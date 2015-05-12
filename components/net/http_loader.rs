@@ -12,9 +12,11 @@ use log;
 use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::Error as HttpError;
+use hyper::client::Request;
+use hyper::client::pool::Pool;
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, Quality};
+use hyper::header::{QualityItem, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::HttpConnector;
@@ -22,21 +24,31 @@ use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SSL_VERIFY_PEER};
 use std::io::{self, Read, Write};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
-use util::opts;
 use url::{Url, UrlParser};
 
 use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>)
+pub fn ssl_verifier(ssl: &mut SslContext) {
+    ssl.set_verify(SSL_VERIFY_PEER, None);
+    let mut certs = resources_dir_path();
+    certs.push("certs");
+    ssl.set_CA_file(&certs).unwrap();
+}
+
+pub fn factory(cookies_chan: Sender<ControlMsg>,
+               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+               connector: Arc<Mutex<Pool<HttpConnector>>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan, devtools_chan))
+        spawn_named("http_loader".to_owned(), move || {
+            load(load_data, senders, classifier, connector, cookies_chan, devtools_chan)
+        })
     }
 }
 
@@ -68,8 +80,12 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>,
-        cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+fn load(mut load_data: LoadData,
+        start_chan: LoadConsumer,
+        classifier: Arc<MIMEClassifier>,
+        connector: Arc<Mutex<Pool<HttpConnector>>>,
+        cookies_chan: Sender<ControlMsg>,
+        devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -116,42 +132,48 @@ fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
 
         info!("requesting {}", url.serialize());
 
-        fn verifier(ssl: &mut SslContext) {
-            ssl.set_verify(SSL_VERIFY_PEER, None);
-            let mut certs = resources_dir_path();
-            certs.push("certs");
-            ssl.set_CA_file(&certs).unwrap();
-        };
-
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]))";
 
-        let mut connector = if opts::get().nossl {
-            HttpConnector(None)
-        } else {
-            HttpConnector(Some(box verifier as Box<FnMut(&mut SslContext) + Send>))
-        };
+        let mut req = {
+            let mut lock = connector.lock().unwrap();
+            let connector = &mut *lock;
 
-        let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
-            Ok(req) => req,
-            Err(HttpError::Io(ref io_error)) if (
-                io_error.kind() == io::ErrorKind::Other &&
-                io_error.description() == "Error in OpenSSL" &&
-                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-                format!("{:?}", io_error.cause()) == ssl_err_string
-            ) => {
-                let mut image = resources_dir_path();
-                image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
-                file_loader::factory(load_data, start_chan, classifier);
-                return;
-            },
-            Err(e) => {
-                println!("{:?}", e);
-                send_error(url, e.description().to_string(), start_chan);
-                return;
-            }
+            // Loop to handle retries if the pool gave out a stale connection.
+            let mut req = None;
+            for _ in 0..2 {
+                match Request::with_connector(load_data.method.clone(), url.clone(), connector) {
+                    Ok(request) => {
+                        req = Some(request);
+                        break
+                    }
+                    Err(HttpError::Io(ref io_error)) if
+                            io_error.kind() == io::ErrorKind::NotConnected ||
+                            io_error.kind() == io::ErrorKind::ConnectionAborted => {
+                        // We got a stale connection in the pool. Retry.
+                        continue
+                    }
+                    Err(HttpError::Io(ref io_error)) if (
+                        io_error.kind() == io::ErrorKind::Other &&
+                        io_error.description() == "Error in OpenSSL" &&
+                        // FIXME: This incredibly hacky. Make it more robust, and at least test it.
+                        format!("{:?}", io_error.cause()) == ssl_err_string
+                    ) => {
+                        let mut image = resources_dir_path();
+                        image.push("badcert.html");
+                        let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
+                        file_loader::factory(load_data, start_chan, classifier);
+                        return;
+                    },
+                    Err(e) => {
+                        println!("{:?}", e);
+                        send_error(url, e.description().to_string(), start_chan);
+                        return;
+                    }
+                }
+            };
+            req.unwrap()
         };
 
         // Preserve the `host` header set automatically by Request.
@@ -236,7 +258,8 @@ reason: \"certificate verify failed\" }]))";
         };
 
         // Send an HttpRequest message to devtools with a unique request_id
-        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
+        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the
+        // message
         let request_id = uuid::Uuid::new_v4().to_simple_string();
         if let Some(ref chan) = devtools_chan {
             let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),

@@ -19,8 +19,11 @@ use util::opts;
 use util::task::spawn_named;
 
 use devtools_traits::{DevtoolsControlMsg};
+use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
+use hyper::net::HttpConnector;
 use hyper::mime::{Mime, TopLevel, SubLevel};
+use openssl::ssl::SslContext;
 
 use std::borrow::ToOwned;
 use std::boxed::{self, FnBox};
@@ -29,9 +32,8 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Receiver, Sender};
-
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
@@ -181,29 +183,43 @@ pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, S
     return load_data;
 }
 
+fn create_http_connector() -> Arc<Mutex<Pool<HttpConnector>>> {
+    let connector = if opts::get().nossl {
+        HttpConnector(None)
+    } else {
+        HttpConnector(Some(box http_loader::ssl_verifier as Box<FnMut(&mut SslContext) + Send>))
+    };
+
+    Arc::new(Mutex::new(Pool::with_connector(Default::default(), connector)))
+}
+
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    http_connector: Arc<Mutex<Pool<HttpConnector>>>,
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>,
-           resource_task: Sender<ControlMsg>, devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
+    fn new(from_client: Receiver<ControlMsg>,
+           user_agent: Option<String>,
+           resource_task: Sender<ControlMsg>,
+           devtools_channel: Option<Sender<DevtoolsControlMsg>>)
+           -> ResourceManager {
         ResourceManager {
             from_client: from_client,
             user_agent: user_agent,
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
-            devtools_chan: devtools_channel
+            devtools_chan: devtools_channel,
+            http_connector: create_http_connector(),
         }
     }
 }
-
 
 impl ResourceManager {
     fn start(&mut self) {
@@ -250,7 +266,11 @@ impl ResourceManager {
 
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
-            "http" | "https" | "view-source" => http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone()),
+            "http" | "https" | "view-source" => {
+                http_loader::factory(self.resource_task.clone(),
+                                     self.devtools_chan.clone(),
+                                     self.http_connector.clone())
+            }
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
