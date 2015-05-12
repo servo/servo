@@ -419,17 +419,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn Parent(self) -> Temporary<Window> {
-        let browser_context = self.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
-
-        browser_context.frame_element().map_or(self.Window(), |fe| {
-            let frame_element = fe.root();
-            let window = window_from_node(frame_element.r()).root();
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let r = window.r();
-            let context = r.browser_context();
-            context.as_ref().unwrap().active_window()
-        })
+        self.parent().unwrap_or(self.Window())
     }
 
     fn Performance(self) -> Temporary<Performance> {
@@ -523,6 +513,7 @@ pub trait WindowHelpers {
     fn emit_timeline_marker(self, marker: TimelineMarker);
     fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
+    fn parent(self) -> Option<Temporary<Window>>;
 }
 
 pub trait ScriptHelpers {
@@ -879,6 +870,20 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn drop_devtools_timeline_markers(self) {
         self.devtools_markers.borrow_mut().clear();
         *self.devtools_marker_sender.borrow_mut() = None;
+    }
+
+    fn parent(self) -> Option<Temporary<Window>> {
+        let browser_context = self.browser_context();
+        let browser_context = browser_context.as_ref().unwrap();
+
+        browser_context.frame_element().map(|fe| {
+            let frame_element = fe.root();
+            let window = window_from_node(frame_element.r()).root();
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let r = window.r();
+            let context = r.browser_context();
+            context.as_ref().unwrap().active_window()
+        })
     }
 }
 

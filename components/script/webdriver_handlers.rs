@@ -8,11 +8,12 @@ use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::js::{OptionalRootable, Rootable, Temporary};
 use dom::node::{Node, NodeHelpers};
-use dom::window::ScriptHelpers;
+use dom::window::{ScriptHelpers, WindowHelpers};
 use dom::document::DocumentHelpers;
 use page::Page;
 use msg::constellation_msg::{PipelineId, SubpageId};
@@ -58,24 +59,31 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
     }).unwrap();
 }
 
-pub fn handle_get_frame_id(page: &Rc<Page>, pipeline: PipelineId, webdriver_frame_id: WebDriverFrameId, reply: Sender<Option<(PipelineId, SubpageId)>>) {
-    let frame_id = match webdriver_frame_id {
+pub fn handle_get_frame_id(page: &Rc<Page>, pipeline: PipelineId, webdriver_frame_id: WebDriverFrameId, reply: Sender<Result<Option<(PipelineId, SubpageId)>, ()>>) {
+    let window = match webdriver_frame_id {
         WebDriverFrameId::Short(_) => {
             // This isn't supported yet
-            None
+            Ok(None)
         },
         WebDriverFrameId::Element(x) => {
             match find_node_by_unique_id(page, pipeline, x) {
-                Some(x) => {
-                    HTMLIFrameElementCast::to_ref(x.root().r()).map(
-                    |frame| (frame.containing_page_pipeline_id().unwrap(),
-                             frame.subpage_id().unwrap()))
+                Some(ref node) => {
+                    match HTMLIFrameElementCast::to_ref(node.root().r()) {
+                        Some(ref elem) => Ok(elem.GetContentWindow()),
+                        None => Err(())
+                    }
                 },
-                None => None
+                None => Err(())
             }
+        },
+        WebDriverFrameId::Parent => {
+            let window = page.window();
+            Ok(window.root().r().parent())
         }
     };
-    reply.send(frame_id).unwrap();
+
+    let frame_id = window.map(|x| x.and_then(|x| x.root().r().parent_info()));
+    reply.send(frame_id).unwrap()
 }
 
 pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String, reply: Sender<Result<Option<String>, ()>>) {

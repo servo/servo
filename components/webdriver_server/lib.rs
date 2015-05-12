@@ -214,12 +214,7 @@ impl Handler {
     }
 
     fn handle_switch_to_frame(&mut self, parameters: &SwitchToFrameParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_frame_pipeline());
-
-        //Ensure we have a session
-        try!(self.get_session());
-
-        let wd_frame_id = match parameters.id {
+        let frame_id = match parameters.id {
             webdriver::common::FrameId::Null => {
                 self.set_frame_id(None).unwrap();
                 return Ok(WebDriverResponse::Void)
@@ -228,37 +223,41 @@ impl Handler {
             webdriver::common::FrameId::Element(ref x) => WebDriverFrameId::Element(x.id.clone())
         };
 
+        self.switch_to_frame(frame_id)
+    }
+
+
+    fn handle_switch_to_parent_frame(&mut self) -> WebDriverResult<WebDriverResponse> {
+        self.switch_to_frame(WebDriverFrameId::Parent)
+    }
+
+    fn switch_to_frame(&mut self, frame_id: WebDriverFrameId) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.get_frame_pipeline());
         let (sender, reciever) = channel();
-            let cmd = WebDriverScriptCommand::GetFrameId(wd_frame_id, sender);
+            let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
         {
             let ConstellationChan(ref const_chan) = self.constellation_chan;
             const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
         }
 
         let frame = match reciever.recv().unwrap() {
-            Some((pipeline_id, subpage_id)) => {
+            Ok(Some((pipeline_id, subpage_id))) => {
                 let (sender, reciever) = channel();
                 let ConstellationChan(ref const_chan) = self.constellation_chan;
                 const_chan.send(ConstellationMsg::GetFrame(pipeline_id, subpage_id, sender)).unwrap();
                 reciever.recv().unwrap()
             },
-            None => {
+            Ok(None) => None,
+            Err(_) => {
                 return Err(WebDriverError::new(ErrorStatus::NoSuchFrame,
                                                "Frame does not exist"));
             }
         };
 
-        match frame {
-            Some(x) => {
-                self.set_frame_id(Some(x)).unwrap();
-                Ok(WebDriverResponse::Void)
-            },
-            None => {
-                Err(WebDriverError::new(ErrorStatus::NoSuchFrame,
-                                        "Frame element didn't match any known frame"))
-            }
-        }
+        self.set_frame_id(frame).unwrap();
+        Ok(WebDriverResponse::Void)
     }
+
 
     fn handle_find_elements(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.get_frame_pipeline());
@@ -392,6 +391,13 @@ impl WebDriverHandler for Handler {
     fn handle_command(&mut self, _session: &Option<Session>, msg: &WebDriverMessage) -> WebDriverResult<WebDriverResponse> {
 
         match msg.command {
+            WebDriverCommand::NewSession => {},
+            _ => {
+                try!(self.get_session());
+            }
+        }
+
+        match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GoBack => self.handle_go_back(),
@@ -400,6 +406,7 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_get_window_handles(),
             WebDriverCommand::SwitchToFrame(ref parameters) => self.handle_switch_to_frame(parameters),
+            WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
             WebDriverCommand::GetActiveElement => self.handle_get_active_element(),
