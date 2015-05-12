@@ -156,6 +156,8 @@ impl Element {
 
 #[allow(unsafe_code)]
 pub trait RawLayoutElementHelpers {
+    unsafe fn get_attr_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
+                                      -> Option<&'a AttrValue>;
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                       -> Option<&'a str>;
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str>;
@@ -190,6 +192,13 @@ unsafe fn get_attr_for_layout(elem: &Element, namespace: &Namespace, name: &Atom
 #[allow(unsafe_code)]
 impl RawLayoutElementHelpers for Element {
     #[inline]
+    unsafe fn get_attr_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
+                                      -> Option<&'a AttrValue> {
+        get_attr_for_layout(self, namespace, name).map(|attr| {
+            (*attr.unsafe_get()).value_forever()
+        })
+    }
+
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
