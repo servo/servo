@@ -22,7 +22,6 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
-use msg::compositor_msg::{ReadyState, PaintState};
 use std::ptr;
 use std_url::Url;
 use util::cursor::Cursor;
@@ -210,26 +209,6 @@ impl WindowMethods for Window {
                 browser.get_host().get_client().get_render_handler().on_present(browser.clone());
             }
         }
-    }
-
-    fn set_ready_state(&self, ready_state: ReadyState) {
-        let browser = self.cef_browser.borrow();
-        let browser = match *browser {
-            None => return,
-            Some(ref browser) => browser,
-        };
-        let is_loading = match ready_state {
-            ReadyState::Blank | ReadyState::FinishedLoading => 0,
-            ReadyState::Loading | ReadyState::PerformingLayout => 1,
-        };
-        browser.get_host()
-               .get_client()
-               .get_load_handler()
-               .on_loading_state_change(browser.clone(), is_loading, 1, 1);
-    }
-
-    fn set_paint_state(&self, _: PaintState) {
-        // TODO(pcwalton)
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {

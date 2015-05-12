@@ -11,7 +11,6 @@ use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
-use msg::compositor_msg::{ReadyState, PaintState};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::cell::Cell;
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -622,9 +621,6 @@ pub struct Window {
     dpy: EGLDisplay,
     ctx: EGLContext,
     surf: EGLSurface,
-
-    ready_state: Cell<ReadyState>,
-    paint_state: Cell<PaintState>,
 }
 
 impl Window {
@@ -750,9 +746,6 @@ impl Window {
             dpy: dpy,
             ctx: ctx,
             surf: eglwindow,
-
-            ready_state: Cell::new(ReadyState::Blank),
-            paint_state: Cell::new(PaintState::Idle),
         };
 
         Rc::new(window)
@@ -785,16 +778,6 @@ impl WindowMethods for Window {
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self) {
         let _ = egl::SwapBuffers(self.dpy, self.surf);
-    }
-
-    /// Sets the ready state.
-    fn set_ready_state(&self, ready_state: ReadyState) {
-        self.ready_state.set(ready_state);
-    }
-
-    /// Sets the paint state.
-    fn set_paint_state(&self, paint_state: PaintState) {
-        self.paint_state.set(paint_state);
     }
 
     fn set_page_title(&self, _: Option<String>) {

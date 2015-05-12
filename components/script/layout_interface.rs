@@ -12,6 +12,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use libc::uintptr_t;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
+use msg::compositor_msg::Epoch;
 use net_traits::PendingAsyncLoad;
 use profile_traits::mem::{Reporter, ReportsChan};
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
@@ -63,6 +64,9 @@ pub enum Msg {
     /// Requests that the layout task immediately shut down. There must be no more nodes left after
     /// this, or layout will crash.
     ExitNow(PipelineExitType),
+
+    /// Get the last epoch counter for this layout task.
+    GetCurrentEpoch(Sender<Epoch>)
 }
 
 /// Synchronous messages that script can send to layout.
