@@ -158,6 +158,40 @@ class LoadCommits(Step):
 
         self.logger.debug("Source commits: %s" % state.source_commits)
 
+class SelectCommits(Step):
+    """Provide a UI to select which commits to upstream"""
+
+    def create(self, state):
+        if not state.source_commits[:]:
+            return
+
+        while True:
+            commits = state.source_commits[:]
+            for i, commit in enumerate(commits):
+                print "%i:\t%s" % (i, commit.message.summary)
+
+            remove = raw_input("Provide a space-separated list of any commits numbers to remove from the list to upstream:\n").strip()
+            remove_idx = set()
+            for item in remove.split(" "):
+                try:
+                    item = int(item)
+                except:
+                    continue
+                if item < 0 or item >= len(commits):
+                    continue
+                remove_idx.add(item)
+
+            keep_commits = [(i,cmt) for i,cmt in enumerate(commits) if i not in remove_idx]
+            #TODO: consider printed removed commits
+            print "Selected the following commits to keep:"
+            for i, commit in keep_commits:
+                print "%i:\t%s" % (i, commit.message.summary)
+            confirm = raw_input("Keep the above commits? y/n\n").strip().lower()
+
+            if confirm == "y":
+                state.source_commits = [item[1] for item in keep_commits]
+                break
+
 class MovePatches(Step):
     """Convert gecko commits into patches against upstream and commit these to the sync tree."""
 
@@ -329,6 +363,7 @@ class SyncToUpstreamRunner(StepRunner):
              GetLastSyncCommit,
              GetBaseCommit,
              LoadCommits,
+             SelectCommits,
              MovePatches,
              RebaseCommits,
              CheckRebase,
