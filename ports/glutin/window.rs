@@ -14,7 +14,6 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
-use msg::compositor_msg::{PaintState, ReadyState};
 use NestedEventLoopListener;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
@@ -64,8 +63,6 @@ pub struct Window {
     event_queue: RefCell<Vec<WindowEvent>>,
 
     mouse_pos: Cell<Point2D<i32>>,
-    ready_state: Cell<ReadyState>,
-    paint_state: Cell<PaintState>,
     key_modifiers: Cell<KeyModifiers>,
 }
 
@@ -93,8 +90,6 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0, 0)),
 
             mouse_pos: Cell::new(Point2D(0, 0)),
-            ready_state: Cell::new(ReadyState::Blank),
-            paint_state: Cell::new(PaintState::Idle),
             key_modifiers: Cell::new(KeyModifiers::empty()),
         };
 
@@ -476,16 +471,6 @@ impl WindowMethods for Window {
          box receiver as Box<CompositorReceiver>)
     }
 
-    /// Sets the ready state.
-    fn set_ready_state(&self, ready_state: ReadyState) {
-        self.ready_state.set(ready_state);
-    }
-
-    /// Sets the paint state.
-    fn set_paint_state(&self, paint_state: PaintState) {
-        self.paint_state.set(paint_state);
-    }
-
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         ScaleFactor::new(self.window.hidpi_factor())
     }
@@ -668,14 +653,6 @@ impl WindowMethods for Window {
              window_proxy: None,
          } as Box<CompositorProxy+Send>,
          box receiver as Box<CompositorReceiver>)
-    }
-
-    /// Sets the ready state.
-    fn set_ready_state(&self, _: ReadyState) {
-    }
-
-    /// Sets the paint state.
-    fn set_paint_state(&self, _: PaintState) {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {

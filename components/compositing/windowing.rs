@@ -11,7 +11,6 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use msg::compositor_msg::{PaintState, ReadyState};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use script_traits::MouseButton;
 use url::Url;
@@ -100,10 +99,6 @@ pub trait WindowMethods {
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 
-    /// Sets the ready state of the current page.
-    fn set_ready_state(&self, ready_state: ReadyState);
-    /// Sets the paint state of the current page.
-    fn set_paint_state(&self, paint_state: PaintState);
     /// Sets the page title for the current page.
     fn set_page_title(&self, title: Option<String>);
     /// Sets the load data for the current page.

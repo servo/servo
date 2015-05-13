@@ -39,7 +39,7 @@ use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
-use msg::compositor_msg::ScrollPolicy;
+use msg::compositor_msg::{Epoch, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use profile_traits::mem::{self, Report, ReportsChan};
@@ -124,6 +124,9 @@ pub struct LayoutTaskData {
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
     pub new_animations_sender: Sender<Animation>,
+
+    /// A counter for epoch messages
+    epoch: Epoch,
 }
 
 /// Information needed by the layout task.
@@ -329,6 +332,7 @@ impl LayoutTask {
                     running_animations: Vec::new(),
                     new_animations_receiver: new_animations_receiver,
                     new_animations_sender: new_animations_sender,
+                    epoch: Epoch(0),
               })),
         }
     }
@@ -404,6 +408,10 @@ impl LayoutTask {
                 match self.pipeline_port.recv().unwrap() {
                     LayoutControlMsg::TickAnimations => {
                         self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
+                    }
+                    LayoutControlMsg::GetCurrentEpoch(sender) => {
+                        self.handle_request_helper(Msg::GetCurrentEpoch(sender),
+                                                   possibly_locked_rw_data)
                     }
                     LayoutControlMsg::ExitNow(exit_type) => {
                         self.handle_request_helper(Msg::ExitNow(exit_type),
@@ -509,8 +517,11 @@ impl LayoutTask {
             Msg::CollectReports(reports_chan) => {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
+            Msg::GetCurrentEpoch(sender) => {
+                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                sender.send(rw_data.epoch).unwrap();
+            },
             Msg::PrepareToExit(response_chan) => {
-                debug!("layout: PrepareToExitMsg received");
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
@@ -825,7 +836,8 @@ impl LayoutTask {
 
                 debug!("Layout done!");
 
-                self.paint_chan.send(PaintMsg::PaintInit(stacking_context));
+                rw_data.epoch.next();
+                self.paint_chan.send(PaintMsg::PaintInit(rw_data.epoch, stacking_context));
             }
         });
     }

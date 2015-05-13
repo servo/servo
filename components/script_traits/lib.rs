@@ -60,6 +60,13 @@ pub trait StylesheetLoadResponder {
     fn respond(self: Box<Self>);
 }
 
+/// Used to determine if a script has any pending asynchronous activity.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ScriptState {
+    DocumentLoaded,
+    DocumentLoading,
+}
+
 /// Messages sent from the constellation to the script task
 pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
@@ -96,6 +103,8 @@ pub enum ConstellationControlMsg {
     TickAllAnimations(PipelineId),
     /// Notifies script that a stylesheet has finished loading.
     StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder+Send>),
+    /// Get the current state of the script task for a given pipeline.
+    GetCurrentState(Sender<ScriptState>, PipelineId),
 }
 
 /// The mouse button involved in the event.

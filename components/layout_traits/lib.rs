@@ -17,6 +17,7 @@ extern crate util;
 
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::PaintChan;
+use msg::compositor_msg::Epoch;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use profile_traits::mem;
 use profile_traits::time;
@@ -28,6 +29,7 @@ use std::sync::mpsc::{Sender, Receiver};
 /// Messages sent to the layout task from the constellation
 pub enum LayoutControlMsg {
     ExitNow(PipelineExitType),
+    GetCurrentEpoch(Sender<Epoch>),
     TickAnimations,
 }
 

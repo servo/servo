@@ -5,6 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use compositor_msg::Epoch;
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
@@ -14,6 +15,7 @@ use layers::geometry::DevicePixel;
 use png;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
+use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
 use webdriver_traits::WebDriverScriptCommand;
@@ -239,7 +241,9 @@ pub enum Msg {
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// Create a PNG of the window contents
-    CompositePng(Sender<Option<png::Image>>)
+    CompositePng(Sender<Option<png::Image>>),
+    /// Query the constellation to see if the current compositor output is stable
+    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
 }
 
 #[derive(Clone, Eq, PartialEq)]

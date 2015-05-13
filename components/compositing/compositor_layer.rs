@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::LayerProperties;
 use compositor::IOCompositor;
 use windowing::{MouseWindowEvent, WindowMethods};
 
@@ -18,7 +17,7 @@ use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::{ScriptControlChan, ConstellationControlMsg};
-use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
+use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
 use std::rc::Rc;
 
@@ -36,9 +35,11 @@ pub struct CompositorData {
     /// Whether an ancestor layer that receives scroll events moves this layer.
     pub scroll_policy: ScrollPolicy,
 
-    /// A monotonically increasing counter that keeps track of the current epoch.
-    /// add_buffer() calls that don't match the current epoch will be ignored.
-    pub epoch: Epoch,
+    /// The epoch that has been requested for this layer (via send_buffer_requests).
+    pub requested_epoch: Epoch,
+
+    /// The last accepted painted buffer for this layer (via assign_pained_buffers).
+    pub painted_epoch: Epoch,
 
     /// The scroll offset originating from this scrolling root. This allows scrolling roots
     /// to track their current scroll position even while their content_offset does not change.
@@ -46,16 +47,18 @@ pub struct CompositorData {
 }
 
 impl CompositorData {
-    pub fn new_layer(layer_properties: LayerProperties,
+    pub fn new_layer(pipeline_id: PipelineId,
+                     layer_properties: LayerProperties,
                      wants_scroll_events: WantsScrollEventsFlag,
                      tile_size: usize)
                      -> Rc<Layer<CompositorData>> {
         let new_compositor_data = CompositorData {
-            pipeline_id: layer_properties.pipeline_id,
+            pipeline_id: pipeline_id,
             id: layer_properties.id,
             wants_scroll_events: wants_scroll_events,
             scroll_policy: layer_properties.scroll_policy,
-            epoch: layer_properties.epoch,
+            requested_epoch: Epoch(0),
+            painted_epoch: Epoch(0),
             scroll_offset: TypedPoint2D(0., 0.),
         };
 
@@ -76,7 +79,6 @@ pub trait CompositorLayer {
                            compositor: &IOCompositor<Window>,
                            new_buffers: Box<LayerBufferSet>,
                            epoch: Epoch)
-                           -> bool
                            where Window: WindowMethods;
 
     /// Destroys all layer tiles, sending the buffers back to the painter to be destroyed or
@@ -178,7 +180,6 @@ pub enum ScrollEventResult {
 
 impl CompositorLayer for Layer<CompositorData> {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
-        self.extra_data.borrow_mut().epoch = layer_properties.epoch;
         self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
 
         *self.background_color.borrow_mut() = to_layers_color(&layer_properties.background_color);
@@ -205,17 +206,9 @@ impl CompositorLayer for Layer<CompositorData> {
                            compositor: &IOCompositor<Window>,
                            new_buffers: Box<LayerBufferSet>,
                            epoch: Epoch)
-                           -> bool
                            where Window: WindowMethods {
-        if self.extra_data.borrow().epoch != epoch {
-            debug!("add_buffers: compositor epoch mismatch: {:?} != {:?}, id: {:?}",
-                   self.extra_data.borrow().epoch,
-                   epoch,
-                   self.get_pipeline_id());
-            let pipeline = compositor.get_pipeline(self.get_pipeline_id());
-            let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(new_buffers.buffers));
-            return false;
-        }
+        self.extra_data.borrow_mut().painted_epoch = epoch;
+        assert!(self.extra_data.borrow().painted_epoch == self.extra_data.borrow().requested_epoch);
 
         for buffer in new_buffers.buffers.into_iter().rev() {
             self.add_buffer(buffer);
@@ -226,8 +219,6 @@ impl CompositorLayer for Layer<CompositorData> {
             let pipeline = compositor.get_pipeline(self.get_pipeline_id());
             let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(unused_buffers));
         }
-
-        true
     }
 
     fn clear<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods {

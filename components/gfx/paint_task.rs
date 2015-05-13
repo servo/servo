@@ -20,8 +20,8 @@ use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsCo
 use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
-use msg::compositor_msg::{Epoch, FrameTreeId, PaintState, LayerId};
-use msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId};
+use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
@@ -67,7 +67,7 @@ pub struct PaintRequest {
 }
 
 pub enum Msg {
-    PaintInit(Arc<StackingContext>),
+    PaintInit(Epoch, Arc<StackingContext>),
     Paint(Vec<PaintRequest>, FrameTreeId),
     UnusedBuffer(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
@@ -112,8 +112,8 @@ pub struct PaintTask<C> {
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
 
-    /// A counter for epoch messages
-    epoch: Epoch,
+    /// The current epoch counter is passed by the layout task
+    current_epoch: Option<Epoch>,
 
     /// A data structure to store unused LayerBuffers
     buffer_map: BufferMap,
@@ -165,7 +165,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     native_graphics_context: native_graphics_context,
                     root_stacking_context: None,
                     paint_permission: false,
-                    epoch: Epoch(0),
+                    current_epoch: None,
                     buffer_map: BufferMap::new(10000000),
                     worker_threads: worker_threads,
                     used_buffer_count: 0,
@@ -197,7 +197,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
             match self.port.recv().unwrap() {
-                Msg::PaintInit(stacking_context) => {
+                Msg::PaintInit(epoch, stacking_context) => {
+                    self.current_epoch = Some(epoch);
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
@@ -207,7 +208,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         continue;
                     }
 
-                    self.epoch.next();
                     self.initialize_layers();
                 }
                 Msg::Paint(requests, frame_tree_id) => {
@@ -215,22 +215,18 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
-                        self.compositor.paint_msg_discarded();
                         continue;
                     }
 
                     let mut replies = Vec::new();
-                    self.compositor.set_paint_state(self.id, PaintState::Painting);
                     for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
-                        if self.epoch == epoch {
+                        if self.current_epoch == Some(epoch) {
                             self.paint(&mut replies, buffer_requests, scale, layer_id);
                         } else {
-                            debug!("painter epoch mismatch: {:?} != {:?}", self.epoch, epoch);
+                            debug!("painter epoch mismatch: {:?} != {:?}", self.current_epoch, epoch);
                         }
                     }
-
-                    self.compositor.set_paint_state(self.id, PaintState::Idle);
 
                     for reply in replies.iter() {
                         let &(_, ref buffer_set) = reply;
@@ -238,7 +234,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     }
 
                     debug!("PaintTask: returning surfaces");
-                    self.compositor.assign_painted_buffers(self.id, self.epoch, replies, frame_tree_id);
+                    self.compositor.assign_painted_buffers(self.id, self.current_epoch.unwrap(), replies, frame_tree_id);
                 }
                 Msg::UnusedBuffer(unused_buffers) => {
                     debug!("PaintTask: Received {} unused buffers", unused_buffers.len());
@@ -258,7 +254,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.paint_permission = true;
 
                     if self.root_stacking_context.is_some() {
-                        self.epoch.next();
                         self.initialize_layers();
                     }
                 }
@@ -379,11 +374,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             Some(ref root_stacking_context) => root_stacking_context,
         };
 
-        let mut metadata = Vec::new();
-        build(&mut metadata, &**root_stacking_context, &ZERO_POINT);
-        self.compositor.initialize_layers_for_pipeline(self.id, metadata, self.epoch);
+        let mut properties = Vec::new();
+        build(&mut properties, &**root_stacking_context, &ZERO_POINT);
+        self.compositor.initialize_layers_for_pipeline(self.id, properties, self.current_epoch.unwrap());
 
-        fn build(metadata: &mut Vec<LayerMetadata>,
+        fn build(properties: &mut Vec<LayerProperties>,
                  stacking_context: &StackingContext,
                  page_position: &Point2D<Au>) {
             let page_position = stacking_context.bounds.origin + *page_position;
@@ -392,20 +387,20 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 // the compositor is concerned.
                 let overflow_relative_page_position = page_position + stacking_context.overflow.origin;
                 let layer_position =
-                    Rect(Point2D(overflow_relative_page_position.x.to_nearest_px() as i32,
-                                 overflow_relative_page_position.y.to_nearest_px() as i32),
-                         Size2D(stacking_context.overflow.size.width.to_nearest_px() as i32,
-                                stacking_context.overflow.size.height.to_nearest_px() as i32));
-                metadata.push(LayerMetadata {
+                    Rect(Point2D(overflow_relative_page_position.x.to_nearest_px() as f32,
+                                 overflow_relative_page_position.y.to_nearest_px() as f32),
+                         Size2D(stacking_context.overflow.size.width.to_nearest_px() as f32,
+                                stacking_context.overflow.size.height.to_nearest_px() as f32));
+                properties.push(LayerProperties {
                     id: paint_layer.id,
-                    position: layer_position,
+                    rect: layer_position,
                     background_color: paint_layer.background_color,
                     scroll_policy: paint_layer.scroll_policy,
                 })
             }
 
             for kid in stacking_context.display_list.children.iter() {
-                build(metadata, &**kid, &page_position)
+                build(properties, &**kid, &page_position)
             }
         }
     }
