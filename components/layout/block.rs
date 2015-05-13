@@ -1572,11 +1572,8 @@ impl Flow for BlockFlow {
 
         // Distance from the inline-end margin edge to the inline-end content edge.
         let inline_end_content_edge =
-            self.base.block_container_inline_size -
-            self.fragment.margin.inline_end -
-            self.fragment.border_box.size.inline -
-            self.fragment.border_box.start.i -
-            padding_and_borders;
+            self.fragment.margin.inline_end +
+            self.fragment.border_padding.inline_end;
 
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
@@ -1747,7 +1744,7 @@ impl Flow for BlockFlow {
                                                     .contains(LAYERS_NEEDED_FOR_DESCENDANTS),
         };
         let container_size_for_children =
-            self.fragment.content_box().size.to_physical(self.base.writing_mode);
+            self.base.position.size.to_physical(self.base.writing_mode);
 
         // Compute the origin and clipping rectangle for children.
         let relative_offset = relative_offset.to_physical(self.base.writing_mode);
@@ -1786,8 +1783,6 @@ impl Flow for BlockFlow {
             if flow::base(kid).flags.contains(INLINE_POSITION_IS_STATIC) ||
                     flow::base(kid).flags.contains(BLOCK_POSITION_IS_STATIC) {
                 let kid_base = flow::mut_base(kid);
-                // FIXME (mbrubeck): `position.size` is inflated by the inline margin size, making
-                // this incorrect for RTL blocks (see `set_inline_size_constraint_solutions`).
                 let physical_position = kid_base.position.to_physical(kid_base.writing_mode,
                                                                       container_size_for_children);
 
@@ -2097,9 +2092,6 @@ pub trait ISizeAndMarginsComputer {
         // We also resize the block itself, to ensure that overflow is not calculated
         // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
-        //
-        // FIXME (mbrubeck): The margin is included in position.size but not position.start, which
-        // throws off position.to_physical results (especially for RTL blocks).
         flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 
