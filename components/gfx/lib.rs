@@ -36,6 +36,7 @@ extern crate style;
 extern crate skia;
 extern crate time;
 extern crate url;
+extern crate fontsan;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.

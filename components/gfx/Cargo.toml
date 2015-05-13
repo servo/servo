@@ -68,6 +68,9 @@ path = "../script_traits"
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
+[dependencies.fontsan]
+git = "https://github.com/servo/fontsan"
+
 [dependencies]
 url = "0.2.16"
 time = "0.1.12"

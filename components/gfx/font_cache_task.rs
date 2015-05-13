@@ -19,6 +19,7 @@ use string_cache::Atom;
 use style::font_face::Source;
 use util::str::LowercaseString;
 use util::task::spawn_named;
+use fontsan;
 
 /// A list of font templates that make up a given font family.
 struct FontFamily {
@@ -138,12 +139,20 @@ impl FontCache {
                             let url = &url_source.url;
                             let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
                             match maybe_resource {
-                                Ok((_, bytes)) => {
-                                    let family = &mut self.web_families.get_mut(&family_name).unwrap();
-                                    family.add_template(&url.to_string(), Some(bytes));
+                                Ok((_, bytes)) => match fontsan::process(&bytes) {
+                                    Ok(san) => {
+                                        let family = &mut self.web_families.get_mut(&family_name).unwrap();
+                                        family.add_template(&url.to_string(), Some(san));
+                                    }
+                                    Err(_) => {
+                                        // FIXME(servo/fontsan#1): get an error message
+                                        debug!("Sanitiser rejected web font: \
+                                                family={:?} url={}", family_name, url);
+                                    }
                                 },
                                 Err(_) => {
-                                    debug!("Failed to load web font: family={:?} url={}", family_name, url);
+                                    debug!("Failed to load web font: \
+                                            family={:?} url={}", family_name, url);
                                 }
                             }
                         }

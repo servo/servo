@@ -282,7 +282,7 @@ version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "miniz-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "miniz-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -306,6 +306,16 @@ source = "git+https://github.com/servo/libfontconfig#ce4a38633dc649b95c9b4935c0c
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
+]
+
+[[package]]
+name = "fontsan"
+version = "0.1.0"
+source = "git+https://github.com/servo/fontsan#7915f5beb7b00ef987ee5adc93c06184beff579b"
+dependencies = [
+ "gcc 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "miniz-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -347,6 +357,7 @@ dependencies = [
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
+ "fontsan 0.1.0 (git+https://github.com/servo/fontsan)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "harfbuzz 0.1.0 (git+https://github.com/servo/rust-harfbuzz)",
@@ -633,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "miniz-sys"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gcc 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
