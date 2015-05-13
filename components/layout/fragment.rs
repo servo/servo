@@ -999,6 +999,10 @@ impl Fragment {
         }
     }
 
+    pub fn padding_width(&self) -> LogicalMargin<Au> {
+        self.border_padding - self.border_width()
+    }
+
     /// Computes the margins in the inline direction from the containing block inline-size and the
     /// style. After this call, the inline direction of the `margin` field will be correct.
     ///
