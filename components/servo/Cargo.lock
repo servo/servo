@@ -531,6 +531,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fontsan"
+version = "0.1.0"
+source = "git+https://github.com/servo/fontsan#92ff414f23842a4c1331203a5339c2e54eab6c2a"
+dependencies = [
+ "gcc 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "miniz-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "freetype"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-freetype#d564ff90a3c69d987f5c015d7ec034cfaee21aff"
@@ -590,6 +600,7 @@ dependencies = [
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
+ "fontsan 0.1.0 (git+https://github.com/servo/fontsan)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gfx_traits 0.0.1",
  "harfbuzz 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
