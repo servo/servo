@@ -435,8 +435,11 @@ impl FragmentDisplayListBuilding for Fragment {
             let vertical_position = model::specified(background.background_position.vertical,
                                                      bounds.size.height - image_size.height);
 
-            let abs_x = virtual_origin_x + horizontal_position;
-            let abs_y = virtual_origin_y + vertical_position;
+            // Background image should be positioned on the padding box basis.
+            let border = style.logical_border_width();
+
+            let abs_x = border.inline_start + virtual_origin_x + horizontal_position;
+            let abs_y = border.block_start + virtual_origin_y + vertical_position;
 
             // Adjust origin and size based on background-repeat
             match background.background_repeat {
