@@ -50,6 +50,7 @@ use util::opts;
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
+#[derive(Copy, Clone, PartialEq)]
 enum ReadyState {
     Unknown,
     WaitingForConstellationReply,
@@ -440,6 +441,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::IsReadyToSaveImageReply(is_ready), ShutdownState::NotShuttingDown) => {
+                assert!(self.ready_to_save_state == ReadyState::WaitingForConstellationReply);
                 if is_ready {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                 } else {
@@ -735,9 +737,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // has already drawn the most recently painted buffer, and missing a frame.
         if frame_tree_id == self.frame_tree_id {
             if let Some(layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-                if layer.extra_data.borrow().requested_epoch == epoch {
+                let requested_epoch = layer.extra_data.borrow().requested_epoch;
+                if requested_epoch == epoch {
                     self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
                     return
+                } else {
+                    debug!("assign_painted_buffers epoch mismatch {:?} {:?} req={:?} actual={:?}",
+                           pipeline_id,
+                           layer_id,
+                           requested_epoch,
+                           epoch);
                 }
             }
         }
@@ -1132,7 +1141,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// Check if a layer (or its children) have any outstanding paint
     /// results to arrive yet.
-    fn does_layer_have_outstanding_paint_messages(&self, layer: Rc<Layer<CompositorData>>) -> bool {
+    fn does_layer_have_outstanding_paint_messages(&self, layer: &Rc<Layer<CompositorData>>) -> bool {
         let layer_data = layer.extra_data.borrow();
         let current_epoch = self.pipeline_details.get(&layer_data.pipeline_id).unwrap().current_epoch;
 
@@ -1146,7 +1155,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         for child in layer.children().iter() {
-            if self.does_layer_have_outstanding_paint_messages(child.clone()) {
+            if self.does_layer_have_outstanding_paint_messages(child) {
                 return true;
             }
         }
@@ -1167,7 +1176,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // from this check.
                 match self.scene.root {
                     Some(ref root_layer) => {
-                        if self.does_layer_have_outstanding_paint_messages(root_layer.clone()) {
+                        if self.does_layer_have_outstanding_paint_messages(root_layer) {
                             return false;
                         }
                     }

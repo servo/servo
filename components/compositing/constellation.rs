@@ -949,7 +949,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     /// for reftests.
     fn handle_is_ready_to_save_image(&mut self,
                                      pipeline_states: HashMap<PipelineId, Epoch>) -> bool {
-        // If there is not root frame yet, the initial page has
+        // If there is no root frame yet, the initial page has
         // not loaded, so there is nothing to save yet.
         if self.root_frame_id.is_none() {
             return false;
@@ -970,7 +970,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let pipeline = self.pipeline(frame.current);
 
             // Synchronously query the script task for this pipeline
-            // to see if it idle.
+            // to see if it is idle.
             let ScriptControlChan(ref script_chan) = pipeline.script_chan;
             let (sender, receiver) = channel();
             let msg = ConstellationControlMsg::GetCurrentState(sender, frame.current);
