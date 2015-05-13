@@ -97,6 +97,9 @@ pub struct Fragment {
     /// content edge of the fragment.
     pub border_padding: LogicalMargin<Au>,
 
+    /// The padding of the content box.
+    pub padding: LogicalMargin<Au>,
+
     /// The margin of the content box.
     pub margin: LogicalMargin<Au>,
 
@@ -715,6 +718,7 @@ impl Fragment {
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
+            padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
@@ -745,6 +749,7 @@ impl Fragment {
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
+            padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
@@ -765,6 +770,7 @@ impl Fragment {
             restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
+            padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
@@ -797,6 +803,7 @@ impl Fragment {
             restyle_damage: incremental::rebuild_and_reflow(),
             border_box: new_border_box,
             border_padding: self.border_padding,
+            padding: self.padding,
             margin: self.margin,
             specific: info,
             inline_context: self.inline_context.clone(),
@@ -1108,6 +1115,8 @@ impl Fragment {
                 }
             }
         };
+
+        self.padding = padding;
 
         self.border_padding = border + padding
     }
