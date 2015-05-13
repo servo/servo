@@ -86,7 +86,7 @@
      async_test(function(t) {
        var frame = document.createElement("iframe"),
            name = compatibility_names[encoding.name] || encoding.name;
-       frame.src = "resources/single-byte-raw.py?label=" + label
+       frame.src = "resources/text-plain-charset.py?label=" + label
        frame.onload = t.step_func_done(function() {
          assert_equals(frame.contentDocument.characterSet, name)
          assert_equals(frame.contentDocument.inputEncoding, name)

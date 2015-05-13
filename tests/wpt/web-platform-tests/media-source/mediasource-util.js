@@ -1,6 +1,4 @@
 (function(window) {
-    setup({ timeout: 12000 });
-
     var SEGMENT_INFO_LIST = [
 	{
 	    url: 'mp4/test.mp4',

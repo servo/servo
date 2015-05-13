@@ -267,7 +267,7 @@ GitHub UI.  Below is one method and others can be found on
 
 
 4. Wait for feedback on your pull request and once your pull request is
-accepted, detele youre branch (see '
+accepted, delete your branch (see '
 [When Pull Request is Accepted][cleanup]').
 
 That's it! If you're currently at a Test the Web Forward event, find an

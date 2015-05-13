@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>This page reports back it's request details the parent frame</title>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="../generic/common.js"></script>
+  </head>
+  <body>
+    <h2>This page reports back it's request details to the parent frame.</h2>
+
+    <script>
+      // Notice: This is filled in from server side.
+      var SERVER_REQUEST_HEADERS = %(headers)s;
+
+      var query = parseUrlQueryString(document.location.search)
+
+      // Note: Read the ID from the query section of this page's URL.
+      // The ID is used to identify the sender of the message in the parent.
+      var pageInfo = {
+        id: query.id,
+        location: document.location.toString(),
+        referrer: document.referrer,
+        headers: SERVER_REQUEST_HEADERS
+      };
+
+      // Notify parent frame.
+      parent.postMessage(pageInfo, "*");
+    </script>
+
+  </body>
+</html>

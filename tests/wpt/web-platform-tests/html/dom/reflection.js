@@ -373,7 +373,7 @@ ReflectionTests.typeMap = {
                      {toString:function() {return 2;}, valueOf: null},
                      {valueOf:function() {return 3;}}],
         "domExpected": function(val) {
-            var parsed = ReflectionTests.parseNonneg(val + "");
+            var parsed = ReflectionTests.parseNonneg(String(val));
             if (parsed === false || parsed > maxInt || parsed < minInt) {
                 return null;
             }
@@ -409,7 +409,7 @@ ReflectionTests.typeMap = {
                      {toString:function() {return 2;}, valueOf: null},
                      {valueOf:function() {return 3;}}],
         "domExpected": function(val) {
-            var parsed = ReflectionTests.parseNonneg(val + "");
+            var parsed = ReflectionTests.parseNonneg(String(val));
             // Note maxInt, not maxUnsigned.
             if (parsed === false || parsed < 0 || parsed > maxInt) {
                 return null;
@@ -450,7 +450,7 @@ ReflectionTests.typeMap = {
                      {toString:function() {return 2;}, valueOf: null},
                      {valueOf:function() {return 3;}}],
         "domExpected": function(val) {
-            var parsed = ReflectionTests.parseNonneg(val + "");
+            var parsed = ReflectionTests.parseNonneg(String(val));
             // Note maxInt, not maxUnsigned.
             if (parsed === false || parsed < 1 || parsed > maxInt) {
                 return null;
@@ -696,7 +696,7 @@ ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
             }
             try {
                 domObj.setAttribute(domName, domTests[i]);
-                ReflectionHarness.test(domObj.getAttribute(domName), domTests[i] + "", "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by getAttribute()");
+                ReflectionHarness.test(domObj.getAttribute(domName), String(domTests[i]), "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by getAttribute()");
                 ReflectionHarness.test(idlObj[idlName], domExpected[i], "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by IDL get");
                 if (ReflectionHarness.catchUnexpectedExceptions) {
                     ReflectionHarness.success();

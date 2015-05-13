@@ -1,32 +1,32 @@
 <!doctype html>
 <html>
-	<head>
-		<meta charset=utf-8>
-		<title>HTML time element API</title>
-		<style>
+  <head>
+    <meta charset=utf-8>
+    <title>HTML time element API</title>
+    <style>
 #time { visibility: hidden; }
-		</style>
-		<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-time-element">
-		<script src="/resources/testharness.js"></script>
-		<script src="/resources/testharnessreport.js"></script>
-	</head>
-	<body>
-		<div id="log"></div>
-		<!-- intentionally nested to test parsing rules -->
-		<p id="time"><time pubdate datetime="2000-02-01T03:04:05Z">Dummy text <time>2001-06-07T<time>08:09<time></time></time>Z</time></time></p>
-		<script type="text/javascript">
+    </style>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-time-element">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <!-- intentionally nested to test parsing rules -->
+    <p id="time"><time pubdate datetime="2000-02-01T03:04:05Z">Dummy text <time>2001-06-07T<time>08:09<time></time></time>Z</time></time></p>
+    <script type="text/javascript">
 function makeTime(dateTime,contents,dateTimeProp) {
-	var timeEl = document.createElement('time');
-	if( dateTime ) {
-		timeEl.setAttribute('datetime',dateTime);
-	}
-	if( contents ) {
-		timeEl.innerHTML = contents;
-	}
-	if( dateTimeProp ) {
-		timeEl.dateTime = dateTimeProp;
-	}
-	return timeEl;
+  var timeEl = document.createElement('time');
+  if( dateTime ) {
+    timeEl.setAttribute('datetime',dateTime);
+  }
+  if( contents ) {
+    timeEl.innerHTML = contents;
+  }
+  if( dateTimeProp ) {
+    timeEl.dateTime = dateTimeProp;
+  }
+  return timeEl;
 }
 
 var timep = document.getElementById('time');
@@ -34,35 +34,35 @@ var times = timep.getElementsByTagName('time');
 
 //TIME elements
 test(function () {
-	assert_equals( times.length, 4 );
+  assert_equals( times.length, 4 );
 }, 'HTML parsing should locate 4 time elements in this document');
 test(function () {
-	assert_true( !!window.HTMLTimeElement );
+  assert_true( !!window.HTMLTimeElement );
 }, 'HTMLTimeElement should be exposed for prototyping');
 test(function () {
-	assert_true( makeTime() instanceof window.HTMLTimeElement, 'createElement variant' );
-	assert_true( times[0] instanceof window.HTMLTimeElement, 'HTML parsing variant' );
+  assert_true( makeTime() instanceof window.HTMLTimeElement, 'createElement variant' );
+  assert_true( times[0] instanceof window.HTMLTimeElement, 'HTML parsing variant' );
 }, 'the time elements should be instanceof HTMLTimeElement');
 
 //dateTime
 test(function () {
-	assert_equals( makeTime('2000-02-01T03:04:05Z','2001-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
+  assert_equals( makeTime('2000-02-01T03:04:05Z','2001-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
 }, 'the datetime attribute should be reflected by the .dateTime property');
 test(function () {
-	assert_equals( typeof makeTime().dateTime, 'string', 'typeof test' );
-	assert_equals( makeTime().dateTime, '', 'value test' );
+  assert_equals( typeof makeTime().dateTime, 'string', 'typeof test' );
+  assert_equals( makeTime().dateTime, '', 'value test' );
 }, 'the dateTime IDL property should default to an empty string');
 test(function () {
-	assert_equals( makeTime(false,false,'2000-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
+  assert_equals( makeTime(false,false,'2000-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
 }, 'the dateTime property should be read/write');
 test(function () {
-	assert_equals( makeTime('go fish').dateTime, 'go fish' );
+  assert_equals( makeTime('go fish').dateTime, 'go fish' );
 }, 'the datetime attribute should be reflected by the .dateTime property even if it is invalid');
 test(function () {
-	assert_equals( makeTime(false,'2000-02-01T03:04:05Z').dateTime, '' );
+  assert_equals( makeTime(false,'2000-02-01T03:04:05Z').dateTime, '' );
 }, 'the datetime attribute should not reflect the textContent');
 
-		</script>
+    </script>
 
-	</body>
+  </body>
 </html>

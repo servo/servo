@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Check that sub-resource gets the referrer URL when no explicit
+           Referrer Policy is set.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="../generic/common.js"></script>
+  </head>
+  <body>
+    <h1>Check that sub-resource gets the referrer URL when no explicit Referrer
+        Policy is set.</h1>
+
+    <p>This page loads sub-resources (iframes) and waits for messages containing
+       referrer URLs from children.</p>
+
+    <script>
+      var documentUrl = document.location.toString();
+
+      // Referrer policy can also be defined via meta tag of parent.
+      // TODO(burnik): For now we use the DOM element itself as we expect it not
+      // to be explicitly defined on the page. We should use the content
+      // attribute value instead.
+      var documentMetaReferrer = document.querySelector("meta[name=referrer]");
+
+      // The referrer URL should be this document's URL adjusted according to
+      // this section:
+      // https://w3c.github.io/webappsec/specs/referrer-policy/#strip-url
+      var expectedReferrerUrl = stripUrlForUseAsReferrer(documentUrl);
+
+      // Path to the sub-resource page which reports back it's own context.
+      var subresourceUrlPath = "/referrer-policy/no-referrer-policy" +
+                               "/no-referrer-policy.subresource.py";
+
+      // Define all the test definitions here to create correspoding test
+      // arrangements. Each test arrangement will have it's own iframe and ID
+      // passed by URL. The ID should be unique as it identifies the message
+      // coming back from the iframe and matches the corressponding test to be
+      // run.
+      var scenarios = [
+        {
+          id: "same-origin",
+          url: location.protocol + "//" + location.hostname + ":" +
+               location.port + subresourceUrlPath,
+          metaReferrer: documentMetaReferrer,
+          expectedReferrerUrl: expectedReferrerUrl,
+          description: "Refrerer URL is passed to sub-resource (iframe) of " +
+                       "same-origin."
+        },
+        {
+          id: "cross-origin",
+          url: location.protocol + "//www1." + location.hostname + ":" +
+               location.port + subresourceUrlPath,
+          metaReferrer: documentMetaReferrer,
+          expectedReferrerUrl: expectedReferrerUrl,
+          description: "Refrerer URL is passed to sub-resource (iframe) of " +
+                       "cross-origin."
+        }
+      ];
+
+      //////////////////////////////////////////////////////////////////////////
+      // Rest of the script arranges and runs all the tests defined above.
+      //////////////////////////////////////////////////////////////////////////
+
+      // Creates a test arrangement from a test scenario.
+      function arrangeScenario(scenario) {
+        var test = async_test(scenario.description);
+        var subresourceUrl = scenario.url + "?id=" + scenario.id;
+        var testArrangement = {
+          scenario:scenario,
+          test:test,
+          subresourceUrl:subresourceUrl
+        };
+
+        return testArrangement;
+      }
+
+      // Asserts the values for an iframe response message and matched test
+      // arrangement.
+      function assertScenario(message, testArrangement) {
+        // Defense: Making sure the message and test arrangement are up to date.
+        testArrangement.test.step(function() {
+          assert_equals(Object.keys(message).length, 4);
+          assert_own_property(message, "id");
+          assert_own_property(message, "location");
+          assert_own_property(message, "referrer");
+          assert_own_property(message, "headers");
+          assert_own_property(message.headers, "referer");
+
+          assert_equals(Object.keys(testArrangement).length, 3);
+          assert_own_property(testArrangement, "scenario");
+          assert_own_property(testArrangement, "test");
+          assert_own_property(testArrangement, "subresourceUrl");
+
+          assert_equals(Object.keys(testArrangement.scenario).length, 5);
+          assert_own_property(testArrangement.scenario, "id");
+          assert_own_property(testArrangement.scenario, "url");
+          assert_own_property(testArrangement.scenario, "metaReferrer");
+          assert_own_property(testArrangement.scenario, "expectedReferrerUrl");
+          assert_own_property(testArrangement.scenario, "description");
+        }, "Running a valid test scenario.");
+
+        testArrangement.test.step(function() {
+          // TODO(burnik): This check should be specified by the scenario
+          // itself. For now we only expect that there is no CSP so neither is
+          // the referrer policy explicitly defined via HTTP headers.
+          assert_not_exists(message.headers, "content-security-policy",
+                            "No referrer policy is set.");
+
+          // The meta defined refferer should also not exist.
+          assert_equals(testArrangement.scenario.metaReferrer, null);
+        }, "No referrer policy is explicity defined via HTTP headers or meta.")
+
+        testArrangement.test.step(function() {
+          // Sanity check - location of iframe matches reported location.
+          assert_equals(message.location, testArrangement.subresourceUrl,
+                        "Child reported location.");
+
+          // Child reports the referrer URL available from DOM.
+          assert_equals(message.referrer,
+                        testArrangement.scenario.expectedReferrerUrl,
+                        "Child reported referrer.");
+
+          // Also check the request headers reported from the server.
+          assert_equals(message.headers.referer,
+                        testArrangement.scenario.expectedReferrerUrl,
+                        "Child reported referrer (from server).");
+
+        }, "Referrer URL is passed to the sub-resource (iframe).");
+
+        testArrangement.test.done();
+      }
+
+      // Using a map to easily find and run the test corresponding to the
+      // received message ID (iframe).
+      var testArrangementMap = {};
+
+      // With this handler we receive all the messages from the iframes.
+      // We identify the source and appropriate test arrangement to be run via
+      // the provided message ID.
+      window.addEventListener("message", function (event) {
+        var childMessage = event.data;
+        var testArrangement = testArrangementMap[childMessage.id];
+        // Run the test for this sub-resource.
+        assertScenario(childMessage, testArrangement);
+      });
+
+      // Map all test arrangements by ID and append iframes.
+      for (var i in scenarios) {
+        var testArrangement = arrangeScenario(scenarios[i]);
+        testArrangementMap[scenarios[i].id] = testArrangement;
+        appendIframeToBody(testArrangement.subresourceUrl);
+      }
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>
