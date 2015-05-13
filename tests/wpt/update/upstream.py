@@ -162,7 +162,7 @@ class SelectCommits(Step):
     """Provide a UI to select which commits to upstream"""
 
     def create(self, state):
-        if not state.source_commits[:]:
+        if not state.source_commits:
             return
 
         while True:
@@ -172,14 +172,20 @@ class SelectCommits(Step):
 
             remove = raw_input("Provide a space-separated list of any commits numbers to remove from the list to upstream:\n").strip()
             remove_idx = set()
+            invalid = False
             for item in remove.split(" "):
                 try:
                     item = int(item)
                 except:
-                    continue
+                    invalid = True
+                    break
                 if item < 0 or item >= len(commits):
-                    continue
+                    invalid = True
+                    break
                 remove_idx.add(item)
+
+            if invalid:
+                continue
 
             keep_commits = [(i,cmt) for i,cmt in enumerate(commits) if i not in remove_idx]
             #TODO: consider printed removed commits
