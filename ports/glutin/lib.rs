@@ -30,11 +30,13 @@ use util::opts;
 
 pub mod window;
 
+pub type WindowID = glutin::WindowID;
+
 pub trait NestedEventLoopListener {
     fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool;
 }
 
-pub fn create_window() -> Rc<Window> {
+pub fn create_window(parent: WindowID) -> Rc<Window> {
     // Read command-line options.
     let opts = opts::get();
     let foreground = opts.output_file.is_none();
@@ -42,5 +44,5 @@ pub fn create_window() -> Rc<Window> {
     let size = opts.initial_window_size.as_f32() * scale_factor;
 
     // Open a window.
-    Window::new(foreground, size.as_uint().cast().unwrap())
+    Window::new(foreground, size.as_uint().cast().unwrap(), parent)
 }
