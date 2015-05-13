@@ -1364,8 +1364,15 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(&self.base, display_list, None))
+            DisplayListBuildingResult::StackingContext(
+                self.fragment.create_stacking_context(&self.base, display_list, None))
         } else {
+            match self.fragment.style.get_box().position {
+                position::T::static_ => {}
+                _ => {
+                    display_list.form_pseudo_stacking_context_for_positioned_content();
+                }
+            }
             DisplayListBuildingResult::Normal(display_list)
         }
     }
@@ -1384,8 +1391,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(self.fragment
-                                                               .create_stacking_context(&self.base, display_list, None));
+                DisplayListBuildingResult::StackingContext(
+                    self.fragment.create_stacking_context(&self.base, display_list, None));
             return
         }
 
@@ -1398,10 +1405,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
 
         let transparent = color::transparent();
-        let stacking_context = self.fragment.create_stacking_context(&self.base, display_list,
-                                                                     Some(Arc::new(PaintLayer::new(self.layer_id(0),
-                                                                                                   transparent,
-                                                                                                   scroll_policy))));
+        let stacking_context = self.fragment.create_stacking_context(
+            &self.base,
+            display_list,
+            Some(Arc::new(PaintLayer::new(self.layer_id(0), transparent, scroll_policy))));
         self.base.display_list_building_result =
             DisplayListBuildingResult::StackingContext(stacking_context)
     }
@@ -1417,8 +1424,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         display_list.form_float_pseudo_stacking_context();
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(self.fragment
-                                                           .create_stacking_context(&self.base, display_list, None))
+            DisplayListBuildingResult::StackingContext(
+                self.fragment.create_stacking_context(&self.base, display_list, None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1496,11 +1503,16 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         // FIXME(Savago): fix Fragment::establishes_stacking_context() for absolute positioned item
         // and remove the check for filter presence. Further details on #5812.
-        if has_stacking_context && !self.fragments.fragments[0].style().get_effects().filter.is_empty() {
+        if has_stacking_context &&
+                !self.fragments.fragments[0].style().get_effects().filter.is_empty() {
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(self.fragments.fragments[0].create_stacking_context(&self.base, display_list, None));
+                DisplayListBuildingResult::StackingContext(
+                    self.fragments.fragments[0].create_stacking_context(&self.base,
+                                                                        display_list,
+                                                                        None));
         } else {
-            self.base.display_list_building_result = DisplayListBuildingResult::Normal(display_list);
+            self.base.display_list_building_result =
+                DisplayListBuildingResult::Normal(display_list);
         }
 
         if opts::get().validate_display_list_geometry {
@@ -1614,7 +1626,7 @@ pub enum StackingLevel {
     BackgroundAndBorders,
     /// Borders and backgrounds for block-level descendants: step 4.
     BlockBackgroundsAndBorders,
-    /// All other content.
+    /// All non-positioned content.
     Content,
 }
 
