@@ -4,6 +4,13 @@
 
 #![macro_use]
 
+
+macro_rules! check_ptr_exist {
+    ($var:expr, $member:ident) => (
+        unsafe { (*CefWrap::to_c($var)).$member.is_some() }
+    );
+}
+
 // Provides the implementation of a CEF class. An example follows:
 //
 //    struct ServoCefThing {
