@@ -63,8 +63,8 @@ pub trait StylesheetLoadResponder {
 /// Used to determine if a script has any pending asynchronous activity.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ScriptState {
-    Idle,
-    Active      // May be caused by page load, load events, timers, xhr etc
+    DocumentLoaded,
+    DocumentLoading,
 }
 
 /// Messages sent from the constellation to the script task

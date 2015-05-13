@@ -867,43 +867,33 @@ impl ScriptTask {
         // Check if the main page load is still pending
         let loads = self.incomplete_loads.borrow();
         if let Some(_) = loads.iter().find(|load| load.pipeline_id == pipeline_id) {
-            return ScriptState::Active;
+            return ScriptState::DocumentLoading;
         }
 
         // If not in pending loads, the page should exist by now.
-        let page = self.page.borrow();
-        if let Some(ref page) = page.as_ref() {
-            if let Some(ref page) = page.find(pipeline_id) {
-                let doc = page.document().root();
+        let page = self.root_page();
+        let page = page.find(pipeline_id).expect("GetCurrentState sent to nonexistent pipeline");
+        let doc = page.document().root();
 
-                // Check if document load event has fired. If the document load
-                // event has fired, this also guarantees that the first reflow
-                // has been kicked off. Since the script task does a join with
-                // layout, this ensures there are no race conditions that can occur
-                // between load completing and the first layout completing.
-                let load_pending = doc.r().ReadyState() != DocumentReadyState::Complete;
-                if load_pending {
-                    return ScriptState::Active;
-                }
-
-                // Checks if the html element has reftest-wait attribute present.
-                // See http://testthewebforward.org/docs/reftests.html
-                let html_element = doc.r().GetDocumentElement().root();
-                let reftest_wait = html_element.r().map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
-                if reftest_wait {
-                    return ScriptState::Active;
-                }
-
-                // TODO(gw): It may be useful to introduce further checks here for
-                // reftests. For example, if there are pending timers active, or
-                // xhr requests, they could also result in the script being marked
-                // active.
-
-                return ScriptState::Idle;
-            }
+        // Check if document load event has fired. If the document load
+        // event has fired, this also guarantees that the first reflow
+        // has been kicked off. Since the script task does a join with
+        // layout, this ensures there are no race conditions that can occur
+        // between load completing and the first layout completing.
+        let load_pending = doc.r().ReadyState() != DocumentReadyState::Complete;
+        if load_pending {
+            return ScriptState::DocumentLoading;
         }
 
-        panic!("GetCurrentState sent to nonexistent pipeline");
+        // Checks if the html element has reftest-wait attribute present.
+        // See http://testthewebforward.org/docs/reftests.html
+        let html_element = doc.r().GetDocumentElement().root();
+        let reftest_wait = html_element.r().map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
+        if reftest_wait {
+            return ScriptState::DocumentLoading;
+        }
+
+        return ScriptState::DocumentLoaded;
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

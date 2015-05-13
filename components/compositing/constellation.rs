@@ -975,7 +975,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let (sender, receiver) = channel();
             let msg = ConstellationControlMsg::GetCurrentState(sender, frame.current);
             script_chan.send(msg).unwrap();
-            if receiver.recv().unwrap() == ScriptState::Active {
+            if receiver.recv().unwrap() == ScriptState::DocumentLoading {
                 return false;
             }
 
