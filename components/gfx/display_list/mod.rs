@@ -58,6 +58,8 @@ pub mod optimizer;
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
 pub static BLUR_INFLATION_FACTOR: i32 = 3;
 
+const MIN_INDENTATION_LENGTH: usize = 4;
+
 /// An opaque handle to a node. The only safe operation that can be performed on this node is to
 /// compare it to another opaque handle or to another node.
 ///
@@ -172,20 +174,7 @@ impl DisplayList {
     }
 
     // Print the display list. Only makes sense to call it after performing reflow.
-    pub fn print_items(&self, mut indentation: String) {
-        let min_length = 4;
-        // We cover the case of an empty string.
-        if indentation.len() == 0 {
-            indentation = String::from_str("####");
-        }
-
-        // We grow the indentation by 4 characters if needed.
-        // I wish to push it all as a slice, but it won't work if the string is a single char.
-        while indentation.len() < min_length {
-            let c = indentation.char_at(0);
-            indentation.push(c);
-        }
-
+    pub fn print_items(&self, indentation: String) {
         // Closures are so nice!
         let doit = |items: &Vec<DisplayItem>| {
             for item in items.iter() {
@@ -221,8 +210,9 @@ impl DisplayList {
             println!("{} Children stacking contexts list length: {}",
                      indentation,
                      self.children.len());
-            for sublist in self.children.iter() {
-                sublist.display_list.print_items(indentation.clone()+&indentation[0..min_length]);
+            for stacking_context in self.children.iter() {
+                stacking_context.print(indentation.clone() +
+                                       &indentation[0..MIN_INDENTATION_LENGTH]);
             }
         }
     }
@@ -250,6 +240,7 @@ pub struct StackingContext {
 
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
+
     /// The overflow rect for this stacking context in its coordinate system.
     pub overflow: Rect<Au>,
 
@@ -570,6 +561,27 @@ impl StackingContext {
                          result,
                          topmost_only,
                          self.display_list.background_and_borders.iter().rev())
+    }
+
+    pub fn print(&self, mut indentation: String) {
+        // We cover the case of an empty string.
+        if indentation.len() == 0 {
+            indentation = String::from_str("####");
+        }
+
+        // We grow the indentation by 4 characters if needed.
+        // I wish to push it all as a slice, but it won't work if the string is a single char.
+        while indentation.len() < MIN_INDENTATION_LENGTH {
+            let c = indentation.char_at(0);
+            indentation.push(c);
+        }
+
+        println!("{:?} Stacking context at {:?} with overflow {:?}:",
+                 indentation,
+                 self.bounds,
+                 self.overflow);
+
+        self.display_list.print_items(indentation);
     }
 }
 

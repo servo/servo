@@ -1001,7 +1001,8 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(display_list,
                                                              stacking_relative_border_box,
@@ -1069,7 +1070,6 @@ impl FragmentDisplayListBuilding for Fragment {
                                display_list: Box<DisplayList>,
                                layer: Option<Arc<PaintLayer>>)
                                -> Arc<StackingContext> {
-
         let border_box = self.stacking_relative_border_box(&base_flow.stacking_relative_position,
                                                                &base_flow.absolute_position_info
                                                                .relative_containing_block_size,
@@ -1364,8 +1364,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(&self.base, display_list, None))
+            DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    None))
         } else {
             match self.fragment.style.get_box().position {
                 position::T::static_ => {}
@@ -1391,8 +1393,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(
-                    self.fragment.create_stacking_context(&self.base, display_list, None));
+                DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(
+                        &self.base,
+                        display_list,
+                        None));
             return
         }
 
@@ -1402,7 +1406,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         } else {
             ScrollPolicy::Scrollable
         };
-
 
         let transparent = color::transparent();
         let stacking_context = self.fragment.create_stacking_context(
@@ -1488,6 +1491,11 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                               .add_to(&mut *display_list)
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
+                    let block_flow = &mut *block_flow.flow_ref;
+                    flow::mut_base(block_flow).display_list_building_result
+                                              .add_to(&mut *display_list)
+                }
+                SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
                     let block_flow = &mut *block_flow.flow_ref;
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)

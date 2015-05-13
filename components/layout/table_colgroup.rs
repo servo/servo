@@ -8,7 +8,7 @@
 
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag};
+use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
@@ -20,6 +20,7 @@ use std::fmt;
 use style::values::computed::LengthOrPercentageOrAuto;
 use style::properties::ComputedValues;
 use std::sync::Arc;
+use util::logical_geometry::LogicalSize;
 
 /// A table formatting context.
 pub struct TableColGroupFlow {
@@ -99,6 +100,10 @@ impl Flow for TableColGroupFlow {
 
     fn compute_overflow(&self) -> Rect<Au> {
         ZERO_RECT
+    }
+
+    fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au> {
+        panic!("Table column groups can't be containing blocks!")
     }
 
     fn iterate_through_fragment_border_boxes(&self,

@@ -10,7 +10,7 @@ use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use flow::{Flow, FlowClass};
+use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use model::MaybeAuto;
 use layout_debug;
@@ -27,7 +27,7 @@ use style::computed_values::{border_collapse, border_top_style};
 use style::legacy::UnsignedIntegerAttribute;
 use style::properties::ComputedValues;
 use util::geometry::Au;
-use util::logical_geometry::{LogicalMargin, LogicalRect, WritingMode};
+use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 
 /// A table formatting context.
 #[derive(RustcEncodable)]
@@ -204,8 +204,8 @@ impl Flow for TableCellFlow {
         self.block_flow.compute_overflow()
     }
 
-    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        self.block_flow.generated_containing_block_rect()
+    fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
+        self.block_flow.generated_containing_block_size(flow)
     }
 
     fn iterate_through_fragment_border_boxes(&self,

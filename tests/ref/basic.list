@@ -12,6 +12,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == 2dcontext/lineto_a.html 2dcontext/lineto_ref.html
 == 2dcontext/transform_a.html 2dcontext/transform_ref.html
 
+== absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 == after_block_iteration.html after_block_iteration_ref.html
