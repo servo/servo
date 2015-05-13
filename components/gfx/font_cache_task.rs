@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font_template::{FontTemplate, FontTemplateDescriptor};
+use fontsan;
 use net_traits::{ResourceTask, load_whole_resource};
 use platform::font_context::FontContextHandle;
 use platform::font_list::for_each_available_family;
@@ -133,12 +134,20 @@ impl FontCache {
                             let url = &url_source.url;
                             let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
                             match maybe_resource {
-                                Ok((_, bytes)) => {
-                                    let family = &mut self.web_families.get_mut(&family_name).unwrap();
-                                    family.add_template(Atom::from_slice(&url.to_string()), Some(bytes));
+                                Ok((_, bytes)) => match fontsan::process(&bytes) {
+                                    Ok(san) => {
+                                        let family = &mut self.web_families.get_mut(&family_name).unwrap();
+                                        family.add_template(Atom::from_slice(&url.to_string()), Some(san));
+                                    }
+                                    Err(_) => {
+                                        // FIXME(servo/fontsan#1): get an error message
+                                        debug!("Sanitiser rejected web font: \
+                                                family={:?} url={}", family_name, url);
+                                    }
                                 },
                                 Err(_) => {
-                                    debug!("Failed to load web font: family={:?} url={}", family_name, url);
+                                    debug!("Failed to load web font: \
+                                            family={:?} url={}", family_name, url);
                                 }
                             }
                         }
