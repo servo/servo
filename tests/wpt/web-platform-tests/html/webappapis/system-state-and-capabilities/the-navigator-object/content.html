@@ -21,77 +21,77 @@ test(function () {
 
 /* Happy path */
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s', 'foo');
 }, 'a handler with valid arguments should work');
 
 
 /* URL argument */
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', '%s', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', '%s', 'foo');
 }, 'a relative URL should work');
 
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', location.href + '#%s', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', location.href + '#%s', 'foo');
 }, 'a URL with a fragment identifier should work');
 
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', location.href + '?foo=%s', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', location.href + '?foo=%s', 'foo');
 }, 'a URL with a query string should work');
 
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', location.href + '?foo=%s&bar', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', location.href + '?foo=%s&bar', 'foo');
 }, 'a URL with a multi-argument query string should work');
 
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s/bar/baz/', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s/bar/baz/', 'foo');
 }, 'a URL with the passed string as a directory name should work');
 
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s/bar/baz/?foo=1337&bar#baz', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s/bar/baz/?foo=1337&bar#baz', 'foo');
 }, 'a URL with the passed string as a directory name followed by a query string and fragment identifier should work');
 
 test(function () {
-	navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s/foo/%s/', 'foo');
+  navigator.registerContentHandler('text/x-unknown-type', location.href + '/%s/foo/%s/', 'foo');
 }, 'a URL with the passed string included twice should work');
 
 test(function () {
-	assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', '', 'foo') } );
+  assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', '', 'foo') } );
 }, 'an empty url argument should throw SYNTAX_ERR');
 
 test(function () {
-	assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://%s.com', 'foo') } );
+  assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://%s.com', 'foo') } );
 }, '%s instead of domain name should throw SYNTAX_ERR');
 
 test(function () {
-	assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://%s.example.com', 'foo') } );
+  assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://%s.example.com', 'foo') } );
 }, '%s instead of subdomain name should throw syntax_err');
 
 test(function () {
-	assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', location.href + '', 'foo') } );
+  assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', location.href + '', 'foo') } );
 }, 'a url argument without %s should throw SYNTAX_ERR');
 
 test(function () {
-	assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://example.com', 'foo') } );
+  assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://example.com', 'foo') } );
 }, 'a url argument pointing to a different domain name, without %s should throw SYNTAX_ERR');
 
 test(function () {
-	assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', location.href + '/%', 'foo') } );
+  assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', location.href + '/%', 'foo') } );
 }, 'a url argument without %s (but with %) should throw SYNTAX_ERR');
 
 test(function () {
-	assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', location.href + '/%a', 'foo') } );
+  assert_throws('SYNTAX_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', location.href + '/%a', 'foo') } );
 }, 'a url argument without %s (but with %a) should throw SYNTAX_ERR');
 
 test(function () {
-	assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://example.com/%s', 'foo') } );
+  assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://example.com/%s', 'foo') } );
 }, 'a url argument pointing to a different domain name should throw SECURITY_ERR');
 
 test(function () {
-	assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'https://example.com/%s', 'foo') } );
+  assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'https://example.com/%s', 'foo') } );
 }, 'a url argument pointing to a different domain name should throw SECURITY_ERR (2)');
 
 test(function () {
-	assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://foobar.example.com/%s', 'foo') } );
+  assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler('text/x-unknown-type', 'http://foobar.example.com/%s', 'foo') } );
 }, 'a url argument pointing to a different domain name should throw SECURITY_ERR (3)');
 
 /* Content type argument */
@@ -109,9 +109,9 @@ var blacklist = new Array(
 
 for (var bi=0, bl=blacklist.length; bi<bl; ++bi){
 
-	test(function () {
-		assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler(blacklist[bi], location.href + '/%s', 'foo') } );
-	}, 'attempting to override the ' + blacklist[bi] + ' MIME type should throw SECURITY_ERR');
+  test(function () {
+    assert_throws('SECURITY_ERR', function () { navigator.registerContentHandler(blacklist[bi], location.href + '/%s', 'foo') } );
+  }, 'attempting to override the ' + blacklist[bi] + ' MIME type should throw SECURITY_ERR');
 
 }
 
@@ -124,9 +124,9 @@ var whitelist = new Array('application/atom+xml', /* For feeds. */
 
 for (var wi=0, wl=whitelist.length; wi<wl; ++wi){
 
-	test(function () {
-		navigator.registerContentHandler(whitelist[wi], location.href + '/%s', 'foo');
-	}, 'overriding the ' + whitelist[wi] + ' MIME type should work');
+  test(function () {
+    navigator.registerContentHandler(whitelist[wi], location.href + '/%s', 'foo');
+  }, 'overriding the ' + whitelist[wi] + ' MIME type should work');
 
 }
 

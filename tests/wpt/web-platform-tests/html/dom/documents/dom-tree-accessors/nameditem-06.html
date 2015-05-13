@@ -63,9 +63,7 @@ test(function() {
   assert_equals(img2.id, "test4");
 
   assert_false("test4" in document, '"test4" in document should be false');
-  var collection = document.test4;
-  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
-  assert_array_equals(collection, [img1, img2]);
+  assert_equals(document.test4, undefined);
 }, "If there are two imgs, nothing should be returned. (id)");
 
 test(function() {

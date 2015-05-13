@@ -63,7 +63,7 @@
                   test.done();
               });
 
-          }, 'Test seeking to a new location before transitioning beyond HAVE_METADATA.', {timeout: 10000} );
+          }, 'Test seeking to a new location before transitioning beyond HAVE_METADATA.');
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
@@ -136,7 +136,7 @@
                   assert_greater_than(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'Greater than HAVE_CURRENT_DATA');
                   test.done();
               });
-          }, 'Test seeking to a new location during a pending seek.', {timeout: 10000} );
+          }, 'Test seeking to a new location during a pending seek.');
         </script>
     </body>
 </html>

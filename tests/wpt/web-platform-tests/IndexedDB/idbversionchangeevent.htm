@@ -36,7 +36,7 @@
 
             // Errors
             db.onerror = fail(t, "db.error");
-            db.abort = fail(t, "db.abort");
+            db.onabort = fail(t, "db.abort");
 
             setTimeout(t.step_func(deleteDB), 10);
         });

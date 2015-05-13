@@ -97,5 +97,5 @@ function mediaSourceConfigChangeTest(directory, idA, idB, description)
                 });
             });
         });
-    }, description, { timeout: 10000 } );
+    }, description);
 };
