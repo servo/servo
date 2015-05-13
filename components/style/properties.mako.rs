@@ -1295,6 +1295,8 @@ pub mod longhands {
 
     ${single_keyword("background-attachment", "scroll fixed")}
 
+    ${single_keyword("background-origin", "padding-box border-box content-box")}
+
     <%self:longhand name="background-size">
         use cssparser::{ToCss, Token};
         use std::ascii::AsciiExt;
@@ -4244,9 +4246,10 @@ pub mod shorthands {
 
     // TODO: other background-* properties
     <%self:shorthand name="background"
-                     sub_properties="background-color background-position background-repeat background-attachment background-image background-size">
+                     sub_properties="background-color background-position background-repeat background-attachment
+                                     background-image background-size background-origin">
         use properties::longhands::{background_color, background_position, background_repeat};
-        use properties::longhands::{background_attachment, background_image, background_size};
+        use properties::longhands::{background_attachment, background_image, background_size, background_origin};
 
         let mut color = None;
         let mut image = None;
@@ -4255,6 +4258,7 @@ pub mod shorthands {
         let mut size = None;
         let mut attachment = None;
         let mut any = false;
+        let mut origin = None;
 
         loop {
             if position.is_none() {
@@ -4299,6 +4303,13 @@ pub mod shorthands {
                     continue
                 }
             }
+            if origin.is_none() {
+                if let Ok(value) = input.try(|input| background_origin::parse(context, input)) {
+                    origin = Some(value);
+                    any = true;
+                    continue
+                }
+            }
             break
         }
 
@@ -4310,6 +4321,7 @@ pub mod shorthands {
                 background_repeat: repeat,
                 background_attachment: attachment,
                 background_size: size,
+                background_origin: origin,
             })
         } else {
             Err(())

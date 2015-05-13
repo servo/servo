@@ -43,7 +43,7 @@ use std::sync::Arc;
 use std::sync::mpsc::channel;
 use style::computed_values::filter::Filter;
 use style::computed_values::transform::ComputedMatrix;
-use style::computed_values::{background_attachment, background_repeat, background_size};
+use style::computed_values::{background_attachment, background_origin, background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position, visibility};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
@@ -419,12 +419,32 @@ impl FragmentDisplayListBuilding for Fragment {
             // TODO: Check the bounds to see if a clip item is actually required.
             let clip = clip.clone().intersect_rect(&bounds);
 
+            // Background image should be positioned on the padding box basis.
+            let border = style.logical_border_width().to_physical(style.writing_mode);
+
+            // Use 'background-origin' to get the origin value.
+            let (mut origin_x, mut origin_y) = match background.background_origin {
+                background_origin::T::padding_box => {
+                    (Au(0), Au(0))
+                }
+                background_origin::T::border_box => {
+                    (-border.left, -border.top)
+                }
+                background_origin::T::content_box => {
+                    let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
+                    (border_padding.left - border.left, border_padding.top - border.top)
+                }
+            };
+
             // Use `background-attachment` to get the initial virtual origin
             let (virtual_origin_x, virtual_origin_y) = match background.background_attachment {
                 background_attachment::T::scroll => {
                     (absolute_bounds.origin.x, absolute_bounds.origin.y)
                 }
                 background_attachment::T::fixed => {
+                    // If the ‘background-attachment’ value for this image is ‘fixed’, then 'background-origin' has no effect.
+                    origin_x = Au(0);
+                    origin_y = Au(0);
                     (Au(0), Au(0))
                 }
             };
@@ -435,11 +455,8 @@ impl FragmentDisplayListBuilding for Fragment {
             let vertical_position = model::specified(background.background_position.vertical,
                                                      bounds.size.height - image_size.height);
 
-            // Background image should be positioned on the padding box basis.
-            let border = style.logical_border_width().to_physical(style.writing_mode);
-
-            let abs_x = border.left + virtual_origin_x + horizontal_position;
-            let abs_y = border.top + virtual_origin_y + vertical_position;
+            let abs_x = border.left + virtual_origin_x + horizontal_position + origin_x;
+            let abs_y = border.top + virtual_origin_y + vertical_position + origin_y;
 
             // Adjust origin and size based on background-repeat
             match background.background_repeat {
