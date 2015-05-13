@@ -1,9 +1,10 @@
 from __future__ import print_function, unicode_literals
 
-import sys
 import os
 import os.path as path
 import subprocess
+import sys
+
 from time import time
 
 from mach.decorators import (
@@ -14,56 +15,86 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd
 
+
 def is_headless_build():
     return int(os.getenv('SERVO_HEADLESS', 0)) == 1
 
-# Function to generate desktop notification once build is completed & limit exceeded!
-def notify(elapsed):
-    if elapsed < 30:
-        return
 
-    if sys.platform.startswith('linux'):
-        try:
-            import dbus
-            bus = dbus.SessionBus()
-            notify_obj = bus.get_object('org.freedesktop.Notifications', '/org/freedesktop/Notifications')
-            method = notify_obj.get_dbus_method('Notify', 'org.freedesktop.Notifications')
-            method('Servo Build System', 0, '', ' Servo build complete!', '', [], [], -1)
-        except:
-            print("[Warning] Could not generate notification! Please make sure that the python dbus module is installed!")
+def notify_linux(title, text):
+    try:
+        import dbus
+        bus = dbus.SessionBus()
+        notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+        method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
+        method(title, 0, "", text, "", [], [], -1)
+    except:
+        raise Exception("Please make sure that the Python dbus module is installed!")
 
-    elif sys.platform.startswith('win'):
-        try:
-            from ctypes import Structure, windll, POINTER, sizeof
-            from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
-            class FLASHWINDOW(Structure):
-                _fields_ = [("cbSize", UINT),
-                            ("hwnd", HANDLE),
-                            ("dwFlags", DWORD),
-                            ("uCount", UINT),
-                            ("dwTimeout", DWORD)]
-            FlashWindowExProto = WINFUNCTYPE(BOOL, POINTER(FLASHWINDOW))
-            FlashWindowEx = FlashWindowExProto(("FlashWindowEx", windll.user32))
-            FLASHW_CAPTION = 0x01
-            FLASHW_TRAY = 0x02
-            FLASHW_TIMERNOFG = 0x0C
-            params = FLASHWINDOW(sizeof(FLASHWINDOW),
-                                windll.kernel32.GetConsoleWindow(),
-                                FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
-            FlashWindowEx(params)
-        except:
-            print("[Warning] Could not generate notification! Please make sure that the required libraries are installed!")
 
-    elif sys.platform.startswith('darwin'):
+def notify_win(title, text):
+    from ctypes import Structure, windll, POINTER, sizeof
+    from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
+
+    class FLASHWINDOW(Structure):
+        _fields_ = [("cbSize", UINT),
+                    ("hwnd", HANDLE),
+                    ("dwFlags", DWORD),
+                    ("uCount", UINT),
+                    ("dwTimeout", DWORD)]
+
+    FlashWindowExProto = WINFUNCTYPE(BOOL, POINTER(FLASHWINDOW))
+    FlashWindowEx = FlashWindowExProto(("FlashWindowEx", windll.user32))
+    FLASHW_CAPTION = 0x01
+    FLASHW_TRAY = 0x02
+    FLASHW_TIMERNOFG = 0x0C
+
+    params = FLASHWINDOW(sizeof(FLASHWINDOW),
+                        windll.kernel32.GetConsoleWindow(),
+                        FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
+    FlashWindowEx(params)
+
+
+def notify_darwin(title, text):
+    import AppKit, Foundation, objc
+
+    NSUserNotification = objc.lookUpClass("NSUserNotification")
+    NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")
+
+    note = NSUserNotification.alloc().init()
+    note.setTitle_(title)
+    note.setInformativeText_(text)
+
+    now = Foundation.NSDate.dateWithTimeInterval_sinceDate_(0, Foundation.NSDate.date())
+    note.setDeliveryDate_(now)
+
+    centre = NSUserNotificationCenter.defaultUserNotificationCenter()
+    centre.scheduleNotification_(note)
+
+
+def notify_build_done(elapsed):
+    """Generate desktop notification when build is complete and the
+    elapsed build time was longer than 30 seconds."""
+    if elapsed > 30:
+        notify("Servo build", "Completed in %0.2fs" % elapsed)
+
+
+def notify(title, text):
+    """Generate a desktop notification using appropriate means on
+    supported platforms Linux, Windows, and Mac OS.  On unsupported
+    platforms, this function acts as a no-op."""
+    platforms = {
+        "linux": notify_linux,
+        "win": notify_win,
+        "darwin": notify_darwin
+    }
+    func = platforms.get(sys.platform)
+
+    if func is not None:
         try:
-            from distutils.spawn import find_executable
-            notifier = find_executable('terminal-notifier')
-            if not notifier:
-                raise Exception('`terminal-notifier` not found')
-            subprocess.call([notifier, '-title', 'Servo Build System',
-                             '-group', 'servobuild', '-message', 'Servo build complete!'])
-        except:
-            print("[Warning] Could not generate notification! Make sure that `terminal-notifier is installed!")
+            func(title, text)
+        except Exception as e:
+            extra = getattr(e, "message", "")
+            print("[Warning] Could not generate notification!%s" % extra, file=sys.stderr)
 
 
 @CommandProvider
@@ -159,7 +190,7 @@ class MachCommands(CommandBase):
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify(elapsed)
+        notify_build_done(elapsed)
 
         print("Build completed in %0.2fs" % elapsed)
         return status
@@ -195,7 +226,7 @@ class MachCommands(CommandBase):
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify(elapsed)
+        notify_build_done(elapsed)
 
         print("CEF build completed in %0.2fs" % elapsed)
 
@@ -233,7 +264,7 @@ class MachCommands(CommandBase):
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify(elapsed)
+        notify_build_done(elapsed)
 
         print("Gonk build completed in %0.2fs" % elapsed)
 
