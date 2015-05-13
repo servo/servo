@@ -143,6 +143,8 @@ pub struct Document {
     animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
+    /// When we should kick off a reflow. This happens during parsing.
+    reflow_timeout: Cell<Option<u64>>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -221,6 +223,9 @@ pub trait DocumentHelpers<'a> {
     fn set_encoding_name(self, name: DOMString);
     fn content_changed(self, node: JSRef<Node>, damage: NodeDamage);
     fn content_and_heritage_changed(self, node: JSRef<Node>, damage: NodeDamage);
+    fn reflow_if_reflow_timer_expired(self);
+    fn set_reflow_timeout(self, timeout: u64);
+    fn disarm_reflow_timeout(self);
     fn unregister_named_element(self, to_unregister: JSRef<Element>, id: Atom);
     fn register_named_element(self, element: JSRef<Element>, id: Atom);
     fn load_anchor_href(self, href: DOMString);
@@ -333,12 +338,47 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
     fn content_changed(self, node: JSRef<Node>, damage: NodeDamage) {
         node.dirty(damage);
+
+        self.reflow_if_reflow_timer_expired();
     }
 
     fn content_and_heritage_changed(self, node: JSRef<Node>, damage: NodeDamage) {
-        debug!("content_and_heritage_changed on {}", node.debug_str());
         node.force_dirty_ancestors(damage);
         node.dirty(damage);
+
+        self.reflow_if_reflow_timer_expired();
+    }
+
+    /// Reflows and disarms the timer if the reflow timer has expired.
+    fn reflow_if_reflow_timer_expired(self) {
+        if let Some(reflow_timeout) = self.reflow_timeout.get() {
+            if time::precise_time_ns() < reflow_timeout {
+                return
+            }
+
+            self.reflow_timeout.set(None);
+            let window = self.window.root();
+            window.r().reflow(ReflowGoal::ForDisplay,
+                              ReflowQueryType::NoQuery,
+                              ReflowReason::RefreshTick);
+        }
+    }
+
+    /// Schedules a reflow to be kicked off at the given `timeout` (in `time::precise_time_ns()`
+    /// units). This reflow happens even if the event loop is busy. This is used to display initial
+    /// page content during parsing.
+    fn set_reflow_timeout(self, timeout: u64) {
+        if let Some(existing_timeout) = self.reflow_timeout.get() {
+            if existing_timeout > timeout {
+                return
+            }
+        }
+        self.reflow_timeout.set(Some(timeout))
+    }
+
+    /// Disables any pending reflow timeouts.
+    fn disarm_reflow_timeout(self) {
+        self.reflow_timeout.set(None)
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
@@ -985,6 +1025,7 @@ impl Document {
             animation_frame_ident: Cell::new(0),
             animation_frame_list: RefCell::new(HashMap::new()),
             loader: DOMRefCell::new(doc_loader),
+            reflow_timeout: Cell::new(None),
         }
     }
 
