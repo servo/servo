@@ -255,6 +255,13 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
+        for attribute in self.attrs.borrow_for_layout().iter() {
+            let attribute = attribute.to_layout();
+            for hint in attribute.presentational_hints() {
+                hints.push(from_declaration(hint.clone()));
+            }
+        }
+
         let bgcolor = if self.is_htmlbodyelement() {
             let this: &HTMLBodyElement = mem::transmute(self);
             this.get_background_color()
