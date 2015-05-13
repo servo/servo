@@ -258,7 +258,6 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
         getopts::optopt("Z", "debug", "A comma-separated string of debug options. Pass help to show available options.", ""),
         getopts::optflag("h", "help", "Print this message"),
-        getopts::optopt("r", "render-api", "Set the rendering API to use", "gl|mesa"),
         getopts::optopt("", "resources-path", "Path to find static resources", "/home/servo/resources"),
         getopts::optflag("", "sniff-mime-types" , "Enable MIME sniffing"),
     );
