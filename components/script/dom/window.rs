@@ -81,6 +81,7 @@ enum WindowState {
 #[derive(Debug)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
+    RefreshTick,
     FirstLoad,
     KeyEvent,
     MouseEvent,
@@ -1046,6 +1047,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
 
     debug_msg.push_str(match *reason {
         ReflowReason::CachedPageNeededReflow => "\tCachedPageNeededReflow",
+        ReflowReason::RefreshTick => "\tRefreshTick",
         ReflowReason::FirstLoad => "\tFirstLoad",
         ReflowReason::KeyEvent => "\tKeyEvent",
         ReflowReason::MouseEvent => "\tMouseEvent",

@@ -1565,7 +1565,7 @@ impl ScriptTask {
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
-
+        document.r().disarm_reflow_timeout();
         document.r().content_changed(NodeCast::from_ref(document.r()),
                                      NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r()).root();
