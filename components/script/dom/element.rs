@@ -913,6 +913,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
             self.attrs.borrow_mut().remove(idx);
             attr.r().set_owner(None);
+            if attr.r().namespace() == &ns!("") {
+                vtable_for(&NodeCast::from_ref(self)).after_remove_attr(attr.r().name());
+            }
 
             let node: JSRef<Node> = NodeCast::from_ref(self);
             if node.is_in_doc() {
@@ -924,7 +927,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 };
                 document.r().content_changed(node, damage);
             }
-            node.after_remove_attr(attr.r().name());
             Temporary::from_rooted(attr.r())
         })
     }
