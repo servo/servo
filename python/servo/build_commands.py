@@ -55,8 +55,15 @@ def notify(elapsed):
             print("[Warning] Could not generate notification! Please make sure that the required libraries are installed!")
 
     elif sys.platform.startswith('darwin'):
-        # Notification code for Darwin here! For the time being printing simple msg
-        print("[Warning] : Darwin System! Notifications not supported currently!")
+        try:
+            from distutils.spawn import find_executable
+            notifier = find_executable('terminal-notifier')
+            if not notifier:
+                raise Exception('`terminal-notifier` not found')
+            subprocess.call([notifier, '-title', 'Servo Build System',
+                             '-group', 'servobuild', '-message', 'Servo build complete!'])
+        except:
+            print("[Warning] Could not generate notification! Make sure that `terminal-notifier is installed!")
 
 
 @CommandProvider
