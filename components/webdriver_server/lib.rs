@@ -277,7 +277,7 @@ impl Handler {
             "page load" => self.load_timeout = value,
             "script" => self.script_timeout = value,
             x @ _ => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
-                                                &format!("Unknown timeout type {}", x)))
+                                                    &format!("Unknown timeout type {}", x)))
         }
         Ok(WebDriverResponse::Void)
     }
@@ -300,7 +300,9 @@ impl Handler {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
-        let script = format!("setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})", self.script_timeout, func_body, args_string);
+        let script = format!(
+            "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
+            self.script_timeout, func_body, args_string);
 
         let (sender, reciever) = channel();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);

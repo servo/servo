@@ -63,7 +63,6 @@ pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String
     reply.send(jsval_to_webdriver(cx, rval)).unwrap();
 }
 
-
 pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window().root();

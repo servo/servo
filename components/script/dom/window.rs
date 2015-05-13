@@ -491,23 +491,17 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn WebdriverCallback(self, cx: *mut JSContext, val: JSVal) {
         let rv = jsval_to_webdriver(cx, val);
-        {
-            let opt_chan = self.webdriver_script_chan.borrow();
-            if let Some(ref chan) = *opt_chan {
-                chan.send(rv).unwrap();
-            }
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            chan.send(rv).unwrap();
         }
-        self.set_webdriver_script_chan(None);
     }
 
     fn WebdriverTimeout(self) {
-        {
-            let opt_chan = self.webdriver_script_chan.borrow();
-            if let Some(ref chan) = *opt_chan {
-                chan.send(Err(WebDriverJSError::Timeout)).unwrap();
-            }
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            chan.send(Err(WebDriverJSError::Timeout)).unwrap();
         }
-        self.set_webdriver_script_chan(None);
     }
 }
 
