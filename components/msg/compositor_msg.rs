@@ -43,6 +43,16 @@ impl Epoch {
     }
 }
 
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub struct FrameTreeId(pub u32);
+
+impl FrameTreeId {
+    pub fn next(&mut self) {
+        let FrameTreeId(ref mut u) = *self;
+        *u += 1;
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct LayerId(pub usize, pub u32);
 
@@ -99,7 +109,8 @@ pub trait PaintListener {
     fn assign_painted_buffers(&mut self,
                               pipeline_id: PipelineId,
                               epoch: Epoch,
-                              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
+                              replies: Vec<(LayerId, Box<LayerBufferSet>)>,
+                              frame_tree_id: FrameTreeId);
 
     fn paint_msg_discarded(&mut self);
     fn set_paint_state(&mut self, PipelineId, PaintState);

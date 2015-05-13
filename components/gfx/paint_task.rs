@@ -20,7 +20,7 @@ use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsCo
 use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
-use msg::compositor_msg::{Epoch, PaintState, LayerId};
+use msg::compositor_msg::{Epoch, FrameTreeId, PaintState, LayerId};
 use msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
@@ -68,7 +68,7 @@ pub struct PaintRequest {
 
 pub enum Msg {
     PaintInit(Arc<StackingContext>),
-    Paint(Vec<PaintRequest>),
+    Paint(Vec<PaintRequest>, FrameTreeId),
     UnusedBuffer(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -210,7 +210,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.epoch.next();
                     self.initialize_layers();
                 }
-                Msg::Paint(requests) => {
+                Msg::Paint(requests, frame_tree_id) => {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
@@ -238,7 +238,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     }
 
                     debug!("PaintTask: returning surfaces");
-                    self.compositor.assign_painted_buffers(self.id, self.epoch, replies);
+                    self.compositor.assign_painted_buffers(self.id, self.epoch, replies, frame_tree_id);
                 }
                 Msg::UnusedBuffer(unused_buffers) => {
                     debug!("PaintTask: Received {} unused buffers", unused_buffers.len());
