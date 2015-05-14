@@ -510,7 +510,7 @@ pub trait ElementHelpers<'a> {
     fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
-    fn get_root_element(self) -> Option<Temporary<Element>>;
+    fn get_root_element(self) -> Temporary<Element>;
     fn lookup_prefix(self, namespace: Option<DOMString>) -> Option<DOMString>;
 }
 
@@ -663,12 +663,12 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     // https://html.spec.whatwg.org/multipage/#root-element
-    fn get_root_element(self) -> Option<Temporary<Element>> {
+    fn get_root_element(self) -> Temporary<Element> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        match node.ancestors().last().map(ElementCast::to_temporary) {
-            Some(n) => n,
-            None => Some(self).map(Temporary::from_rooted),
-        }
+        node.inclusive_ancestors()
+            .filter_map(ElementCast::to_temporary)
+            .last()
+            .expect("We know inclusive_ancestors will return `self` which is an element")
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
