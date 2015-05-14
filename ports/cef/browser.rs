@@ -102,7 +102,7 @@ impl ServoCefBrowser {
     pub fn new(window_info: &cef_window_info_t, client: CefClient) -> ServoCefBrowser {
         let frame = ServoCefFrame::new().as_cef_interface();
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
-        let mut window_handle: cef_window_handle_t = 0;
+        let mut window_handle: cef_window_handle_t = get_null_window_handle();
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
             let glutin_window = glutin_app::create_window();
@@ -148,7 +148,7 @@ impl ServoCefBrowserExtensions for CefBrowser {
 
         self.downcast().host.set_browser((*self).clone());
         self.downcast().frame.set_browser((*self).clone());
-        if window_info.parent_window != 0 {
+        if window_info.windowless_rendering_enabled == 0 {
             self.downcast().host.initialize_compositing();
         }
     }
@@ -182,6 +182,15 @@ impl ServoCefBrowserExtensions for CefBrowser {
     fn pinch_zoom_level(&self) -> f32 {
         self.downcast().servo_browser.borrow().pinch_zoom_level()
     }
+}
+
+#[cfg(target_os="macos")]
+pub fn get_null_window_handle() -> cef_window_handle_t {
+    ptr::null_mut()
+}
+#[cfg(target_os="linux")]
+pub fn get_null_window_handle() -> cef_window_handle_t {
+    0
 }
 
 pub fn update() {
