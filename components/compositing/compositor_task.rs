@@ -114,6 +114,10 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
         // `position: fixed` but will not be sufficient to handle `overflow: scroll` or transforms.
         self.send(Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties));
     }
+
+    fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId) {
+        self.send(Msg::PaintTaskExited(pipeline_id))
+    }
 }
 
 /// Messages from the painting task and the constellation task to the compositor task.

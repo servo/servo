@@ -1078,6 +1078,13 @@ impl ScriptTask {
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
     fn handle_exit_pipeline_msg(&self, id: PipelineId, exit_type: PipelineExitType) -> bool {
+        if self.page.borrow().is_none() {
+            // The root page doesn't even exist yet, so it
+            // is safe to exit this script task.
+            // TODO(gw): This probably leaks resources!
+            return true;
+        }
+
         // If root is being exited, shut down all pages
         let page = self.root_page();
         let window = page.window().root();
@@ -1452,7 +1459,11 @@ impl ScriptTask {
             }, LoadConsumer::Channel(input_chan))).unwrap();
 
             let load_response = input_port.recv().unwrap();
-            script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();
+            if script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).is_err() {
+                // TODO(gw): This should be handled by aborting
+                // the load before the script task exits.
+                debug!("PageFetchComplete: script channel has exited");
+            }
         });
 
         self.incomplete_loads.borrow_mut().push(incomplete);

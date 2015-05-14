@@ -253,6 +253,11 @@ impl Pipeline {
         self.children.push(frame_id);
     }
 
+    pub fn remove_child(&mut self, frame_id: FrameId) {
+        let index = self.children.iter().position(|id| *id == frame_id).unwrap();
+        self.children.remove(index);
+    }
+
     pub fn trigger_mozbrowser_event(&self,
                                      subpage_id: SubpageId,
                                      event: MozBrowserEvent) {
