@@ -9,7 +9,8 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMet
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFormElementCast, HTMLDataListElementCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::document::{Document, DocumentHelpers};
@@ -260,7 +261,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                 return None;
             }
             if child.r().ancestors()
-                        .any(|a| a.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement))) {
+                        .any(|a| HTMLDataListElementCast::to_temporary(a).is_some()) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
