@@ -399,8 +399,12 @@ extern fn set_usage(window: *mut GonkNativeWindow,
     println!("Setting usage flags to {}", usage);
     unsafe {
         (*window).usage = usage;
-        (*window).bufs[0] = Some(GonkNativeWindowBuffer::new((*window).alloc_dev, (*window).width, (*window).height, (*window).format, (*window).usage));
-        (*window).bufs[1] = Some(GonkNativeWindowBuffer::new((*window).alloc_dev, (*window).width, (*window).height, (*window).format, (*window).usage));
+        (*window).bufs[0] = Some(GonkNativeWindowBuffer::new(
+            (*window).alloc_dev, (*window).width, (*window).height,
+            (*window).format, (*window).usage));
+        (*window).bufs[1] = Some(GonkNativeWindowBuffer::new(
+            (*window).alloc_dev, (*window).width, (*window).height,
+            (*window).format, (*window).usage));
     }
     0
 }

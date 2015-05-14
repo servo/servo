@@ -26,7 +26,9 @@ impl HTMLMediaElementDerived for EventTarget {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(type_id: HTMLMediaElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMediaElement {
+    pub fn new_inherited(type_id: HTMLMediaElementTypeId, tag_name: DOMString,
+                         prefix: Option<DOMString>, document: JSRef<Document>)
+                         -> HTMLMediaElement {
         HTMLMediaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMediaElement(type_id), tag_name, prefix, document)
         }

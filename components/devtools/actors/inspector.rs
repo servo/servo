@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
+//! Liberally derived from the [Firefox JS implementation]
+//! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
 use devtools_traits::{DevtoolScriptControlMsg, NodeInfo};
 use devtools_traits::DevtoolScriptControlMsg::{GetRootNode, GetDocumentElement, GetChildren};
@@ -461,12 +462,14 @@ impl Actor for PageStyleActor {
                 let auto_margins = msg.get(&"autoMargins".to_string()).unwrap().as_boolean().unwrap();
 
                 //TODO: the remaining layout properties (margin, border, padding, position)
-                //      as specified in getLayout in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
+                //      as specified in getLayout in
+                //      http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                 let msg = GetLayoutReply {
                     width: width.round() as i32,
                     height: height.round() as i32,
                     autoMargins: if auto_margins {
-                        //TODO: real values like processMargins in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
+                        //TODO: real values like processMargins in
+                        //  http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                         let mut m = BTreeMap::new();
                         m.insert("top".to_string(), "auto".to_string().to_json());
                         m.insert("bottom".to_string(), "auto".to_string().to_json());

@@ -260,7 +260,8 @@ pub enum MozBrowserEvent {
     AsyncScroll,
     /// Sent when window.close() is called within a browser <iframe>.
     Close,
-    /// Sent when a browser <iframe> tries to open a context menu. This allows  handling <menuitem> element available within the browser <iframe>'s content.
+    /// Sent when a browser <iframe> tries to open a context menu. This allows
+    /// handling <menuitem> element available within the browser <iframe>'s content.
     ContextMenu,
     /// Sent when an error occurred while trying to load content within a browser <iframe>.
     Error,
