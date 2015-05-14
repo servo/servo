@@ -239,12 +239,12 @@ macro_rules! no_jsmanaged_fields(
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
     ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
-        fn $getter(self) -> Option<$handler> {
+        fn $getter(self) -> Option<::std::rc::Rc<$handler>> {
             let eventtarget = EventTargetCast::from_ref(self);
             eventtarget.get_event_handler_common(stringify!($event_type))
         }
 
-        fn $setter(self, listener: Option<$handler>) {
+        fn $setter(self, listener: Option<::std::rc::Rc<$handler>>) {
             let eventtarget = EventTargetCast::from_ref(self);
             eventtarget.set_event_handler_common(stringify!($event_type), listener)
         }

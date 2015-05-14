@@ -26,6 +26,8 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::mpsc::Select;
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
+use std::default::Default;
 
 #[derive(PartialEq, Eq)]
 #[jstraceable]
@@ -44,7 +46,7 @@ struct TimerHandle {
 #[derive(Clone)]
 pub enum TimerCallback {
     StringTimerCallback(DOMString),
-    FunctionTimerCallback(Function)
+    FunctionTimerCallback(Rc<Function>)
 }
 
 impl Hash for TimerId {
@@ -105,7 +107,6 @@ pub enum TimerControlMsg {
 // TODO: Handle rooting during fire_timer when movable GC is turned on
 #[jstraceable]
 #[privatize]
-#[derive(Clone)]
 struct TimerData {
     is_interval: IsInterval,
     callback: TimerCallback,
@@ -206,10 +207,20 @@ impl TimerManager {
             data: TimerData {
                 is_interval: is_interval,
                 callback: callback,
-                args: arguments.iter().map(|arg| Heap::new(arg.get())).collect()
+                args: Vec::with_capacity(arguments.len())
             }
         };
         self.active_timers.borrow_mut().insert(timer_id, timer);
+        {
+            let mut timers = self.active_timers.borrow_mut();
+            let mut timer = timers.get_mut(&timer_id).unwrap();
+            for _ in 0..arguments.len() {
+                timer.data.args.push(Heap::default());
+            }
+            for i in 0..arguments.len() {
+                timer.data.args.get_mut(i).unwrap().set(arguments[i].get());
+            }
+        }
         handle
     }
 
@@ -223,16 +234,19 @@ impl TimerManager {
 
     pub fn fire_timer<T: Reflectable>(&self, timer_id: TimerId, this: &T) {
 
-        let data = match self.active_timers.borrow().get(&timer_id) {
-            None => return,
-            Some(timer_handle) => timer_handle.data.clone(),
-        };
+        let (is_interval, callback, args): (IsInterval, TimerCallback, Vec<JSVal>) =
+            match self.active_timers.borrow().get(&timer_id) {
+                Some(timer_handle) =>
+                    (timer_handle.data.is_interval,
+                     timer_handle.data.callback.clone(),
+                     timer_handle.data.args.iter().map(|arg| arg.ptr).collect()),
+                None => return,
+            };
 
-        // TODO: Must handle rooting of funval and args when movable GC is turned on
-        match data.callback {
+        match callback {
             TimerCallback::FunctionTimerCallback(function) => {
-                let args = data.args.iter().map(|arg| HandleValue { ptr: &arg.ptr }).collect();
-                let _ = function.Call_(this, args, Report);
+                let arg_handles = args.iter().by_ref().map(|arg| HandleValue { ptr: &*arg }).collect();
+                let _ = function.Call_(this, arg_handles, Report);
             }
             TimerCallback::StringTimerCallback(code_str) => {
                 let proxy = this.reflector().get_jsobject();
@@ -240,9 +254,9 @@ impl TimerManager {
                 let mut rval = RootedValue::new(cx, UndefinedValue());
                 this.evaluate_js_on_global_with_result(&code_str, rval.handle_mut());
             }
-        };
+        }
 
-        if data.is_interval == IsInterval::NonInterval {
+        if is_interval == IsInterval::NonInterval {
             self.active_timers.borrow_mut().remove(&timer_id);
         }
     }
