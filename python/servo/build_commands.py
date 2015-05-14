@@ -137,11 +137,22 @@ class MachCommands(CommandBase):
         opts = params or []
         features = []
 
+        base_path = path.join("components", "servo", "target")
+        release_path = path.join(base_path, "release", "servo")
+        dev_path = path.join(base_path, "debug", "servo")
+
+        release_exists = path.exists(release_path)
+        dev_exists = path.exists(dev_path)
+
         if not (release or dev):
             if self.config["build"]["mode"] == "dev":
                 dev = True
             elif self.config["build"]["mode"] == "release":
                 release = True 
+            elif release_exists and not dev_exists:
+                release = True
+            elif dev_exists and not release_exists:
+                dev = True
             else:
                 print("Please specify either --dev (-d) for a development")
                 print("  build, or --release (-r) for an optimized build.")
