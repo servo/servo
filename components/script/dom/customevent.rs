@@ -12,15 +12,16 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use js::jsapi::{JSContext, HandleValue, Heap};
-use js::jsval::{JSVal, NullValue};
+use js::jsval::JSVal;
 use util::str::DOMString;
-use std::cell::Cell;
+use std::cell::UnsafeCell;
+use std::default::Default;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
 pub struct CustomEvent {
     event: Event,
-    detail: Cell<Heap<JSVal>>,
+    detail: UnsafeCell<Heap<JSVal>>,
 }
 
 impl CustomEventDerived for Event {
@@ -33,7 +34,7 @@ impl CustomEvent {
     fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
-            detail: Cell::new(Heap::new(NullValue())),
+            detail: UnsafeCell::new(Heap::default()),
         }
     }
 
@@ -56,8 +57,9 @@ impl CustomEvent {
 
 impl<'a> CustomEventMethods for &'a CustomEvent {
     // https://dom.spec.whatwg.org/#dom-customevent-detail
+    #[allow(unsafe_code)]
     fn Detail(self, _cx: *mut JSContext) -> JSVal {
-        self.detail.get().get()
+        unsafe { (*self.detail.get()).get() }
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
@@ -74,7 +76,7 @@ impl<'a> CustomEventMethods for &'a CustomEvent {
         }
 
         unsafe {
-            let cell = self.detail.as_unsafe_cell().get();
+            let cell = self.detail.get();
             (*cell).set(detail.get());
         }
         event.InitEvent(type_, can_bubble, cancelable);

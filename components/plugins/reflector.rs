@@ -23,6 +23,9 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, item: &Item,
                         fn reflector<'a>(&'a self) -> &'a ::dom::bindings::utils::Reflector {
                             &self.$field_name
                         }
+                        fn init_reflector(&mut self, obj: *mut ::js::jsapi::JSObject) {
+                            self.$field_name.set_jsobject(obj);
+                        }
                     }
                 );
                 impl_item.map(|it| push(it))
@@ -34,6 +37,9 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, item: &Item,
                     impl ::dom::bindings::utils::Reflectable for $struct_name {
                         fn reflector<'a>(&'a self) -> &'a ::dom::bindings::utils::Reflector {
                             self.$field_name.reflector()
+                        }
+                        fn init_reflector(&mut self, obj: *mut ::js::jsapi::JSObject) {
+                            self.$field_name.init_reflector(obj);
                         }
                     }
                 );

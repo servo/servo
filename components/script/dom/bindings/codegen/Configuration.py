@@ -148,7 +148,7 @@ class Descriptor(DescriptorProvider):
         if self.interface.isCallback():
             self.needsRooting = False
             ty = "%sBinding::%s" % (ifaceName, ifaceName)
-            self.returnType = ty
+            self.returnType = "Rc<%s>"% ty
             self.argumentType = "???"
             self.memberType = "???"
             self.nativeType = ty

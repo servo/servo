@@ -58,7 +58,7 @@ use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use util::smallvec::SmallVec1;
 use util::str::{LengthOrPercentageOrAuto};
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
 use std::ffi::CString;
@@ -167,6 +167,12 @@ impl<T: JSTraceable> JSTraceable for *mut T {
 impl<T: JSTraceable+Copy> JSTraceable for Cell<T> {
     fn trace(&self, trc: *mut JSTracer) {
         self.get().trace(trc)
+    }
+}
+
+impl<T: JSTraceable> JSTraceable for UnsafeCell<T> {
+    fn trace(&self, trc: *mut JSTracer) {
+        unsafe { (*self.get()).trace(trc) }
     }
 }
 
