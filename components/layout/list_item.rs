@@ -117,8 +117,8 @@ impl Flow for ListItemFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self) {
-        self.block_flow.compute_absolute_position()
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_absolute_position(layout_context)
     }
 
     fn place_float_if_applicable<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {

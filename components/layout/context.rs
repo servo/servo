@@ -12,17 +12,21 @@ use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
+use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageState};
 use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
 use std::boxed;
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::collections::hash_state::DefaultState;
 use std::ptr;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
+use util::fnv::FnvHasher;
 use util::geometry::Au;
 use util::opts;
 
@@ -98,6 +102,9 @@ pub struct SharedLayoutContext {
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
     pub new_animations_sender: Sender<Animation>,
+
+    /// The visible rects for each layer, as reported to us by the compositor.
+    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 
     /// Why is this reflow occurring
     pub goal: ReflowGoal,

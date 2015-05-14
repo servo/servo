@@ -52,6 +52,7 @@ pub struct Pipeline {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub script_chan: ScriptControlChan,
+    pub layout_chan: LayoutControlChan,
     pub paint_chan: PaintChan,
 }
 
@@ -245,6 +246,7 @@ impl Pipeline {
         CompositionPipeline {
             id: self.id.clone(),
             script_chan: self.script_chan.clone(),
+            layout_chan: self.layout_chan.clone(),
             paint_chan: self.paint_chan.clone(),
         }
     }

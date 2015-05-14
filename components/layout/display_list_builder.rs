@@ -176,6 +176,8 @@ pub trait FragmentDisplayListBuilding {
     /// * `relative_containing_block_size`: The size of the containing block that
     ///   `position: relative` makes use of.
     /// * `clip`: The region to clip the display items to.
+    /// * `stacking_relative_display_port`: The position and size of the display port with respect
+    ///   to the nearest ancestor stacking context.
     fn build_display_list(&mut self,
                           display_list: &mut DisplayList,
                           layout_context: &LayoutContext,
@@ -184,7 +186,8 @@ pub trait FragmentDisplayListBuilding {
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
                           background_and_border_level: BackgroundAndBorderLevel,
-                          clip: &ClippingRegion);
+                          clip: &ClippingRegion,
+                          stacking_relative_display_port: &Rect<Au>);
 
     /// Sends the size and position of this iframe fragment to the constellation. This is out of
     /// line to guide inlining.
@@ -866,7 +869,8 @@ impl FragmentDisplayListBuilding for Fragment {
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
                           background_and_border_level: BackgroundAndBorderLevel,
-                          clip: &ClippingRegion) {
+                          clip: &ClippingRegion,
+                          stacking_relative_display_port: &Rect<Au>) {
         if self.style().get_inheritedbox().visibility != visibility::T::visible {
             return
         }
@@ -887,6 +891,11 @@ impl FragmentDisplayListBuilding for Fragment {
                layout_context.shared.dirty,
                stacking_relative_flow_origin,
                self);
+
+        if !stacking_relative_border_box.intersects(stacking_relative_display_port) {
+            debug!("Fragment::build_display_list: outside display port");
+            return
+        }
 
         if !stacking_relative_border_box.intersects(&layout_context.shared.dirty) {
             debug!("Fragment::build_display_list: Did not intersect...");
@@ -1076,7 +1085,8 @@ impl FragmentDisplayListBuilding for Fragment {
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
                     Some(ref renderer) =>  {
-                        renderer.lock().unwrap().send(CanvasMsg::Common(CanvasCommonMsg::SendPixelContents(sender))).unwrap();
+                        renderer.lock().unwrap().send(CanvasMsg::Common(
+                                CanvasCommonMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
                     None => repeat(0xFFu8).take(width * height * 4).collect(),
@@ -1364,6 +1374,7 @@ pub trait BlockFlowDisplayListBuilding {
                                     display_list: Box<DisplayList>,
                                     layout_context: &LayoutContext,
                                     border_painting_mode: BorderPaintingMode);
+    fn will_get_layer(&self) -> bool;
 }
 
 impl BlockFlowDisplayListBuilding for BlockFlow {
@@ -1386,7 +1397,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                 self.base.absolute_position_info.relative_containing_block_mode,
                                 border_painting_mode,
                                 background_border_level,
-                                &clip);
+                                &clip,
+                                &self.base.stacking_relative_position_of_display_port);
 
         // Add children.
         for kid in self.base.children.iter_mut() {
@@ -1422,6 +1434,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
     }
 
+    fn will_get_layer(&self) -> bool {
+        self.base.absolute_position_info.layers_needed_for_positioned_flows ||
+            self.base.flags.contains(NEEDS_LAYER)
+    }
+
     fn build_display_list_for_absolutely_positioned_block(
             &mut self,
             mut display_list: Box<DisplayList>,
@@ -1432,8 +1449,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                border_painting_mode,
                                                BackgroundAndBorderLevel::RootOfStackingContext);
 
-        if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
-                !self.base.flags.contains(NEEDS_LAYER) {
+        if !self.will_get_layer() {
             // We didn't need a layer.
             self.base.display_list_building_result =
                 DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(
@@ -1524,7 +1540,8 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                             .relative_containing_block_mode,
                                         BorderPaintingMode::Separate,
                                         BackgroundAndBorderLevel::Content,
-                                        &self.base.clip);
+                                        &self.base.clip,
+                                        &self.base.stacking_relative_position_of_display_port);
 
             has_stacking_context = fragment.establishes_stacking_context();
             match fragment.specific {
@@ -1597,7 +1614,10 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                                           .relative_containing_block_mode,
                                       BorderPaintingMode::Separate,
                                       BackgroundAndBorderLevel::Content,
-                                      &self.block_flow.base.clip);
+                                      &self.block_flow.base.clip,
+                                      &self.block_flow
+                                           .base
+                                           .stacking_relative_position_of_display_port);
         }
 
         // Draw the rest of the block.
