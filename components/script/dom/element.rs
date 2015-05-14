@@ -665,10 +665,14 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     // https://html.spec.whatwg.org/multipage/#root-element
     fn get_root_element(self) -> Option<Temporary<Element>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        match node.ancestors().last().map(ElementCast::to_temporary) {
-            Some(n) => n,
-            None => Some(self).map(Temporary::from_rooted),
+        for ancestor in node.inclusive_ancestors() {
+            let ancestor = ancestor.root();
+            match ancestor.r().GetParentNode() {
+                Some(ref parent) if parent.root().r().is_element() => (),
+                _ => return ElementCast::to_temporary(Temporary::from_rooted(ancestor.r()))
+            }
         }
+        unreachable!("We know inclusive_ancestors will return `self` which is an element");
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
