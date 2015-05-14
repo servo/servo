@@ -90,6 +90,10 @@ pub struct Opts {
     /// True if we should paint borders around flows based on which thread painted them.
     pub show_debug_parallel_layout: bool,
 
+    /// True if we should paint tiles a random color whenever they're repainted. Useful for
+    /// debugging invalidation.
+    pub paint_flashing: bool,
+
     /// If set with --disable-text-aa, disable antialiasing on fonts. This is primarily useful for reftests
     /// where pixel perfect results are required when using fonts such as the Ahem
     /// font for layout tests.
@@ -167,6 +171,7 @@ pub fn print_debug_usage(app: &str)  {
     print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
     print_option("show-parallel-paint", "Overlay tiles with colors showing which thread painted them.");
     print_option("show-parallel-layout", "Mark which thread laid each flow out with colors.");
+    print_option("paint-flashing", "Overlay repainted areas with a random color.");
     print_option("trace-layout", "Write layout trace to an external file for debugging.");
     print_option("validate-display-list-geometry",
                  "Display an error when display list geometry escapes overflow region.");
@@ -213,6 +218,7 @@ pub fn default_opts() -> Opts {
         show_debug_fragment_borders: false,
         show_debug_parallel_paint: false,
         show_debug_parallel_layout: false,
+        paint_flashing: false,
         enable_text_antialiasing: false,
         trace_layout: false,
         devtools_port: None,
@@ -388,6 +394,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         show_debug_fragment_borders: debug_options.contains(&"show-fragment-borders"),
         show_debug_parallel_paint: debug_options.contains(&"show-parallel-paint"),
         show_debug_parallel_layout: debug_options.contains(&"show-parallel-layout"),
+        paint_flashing: debug_options.contains(&"paint-flashing"),
         enable_text_antialiasing: !debug_options.contains(&"disable-text-aa"),
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         dump_display_list: debug_options.contains(&"dump-display-list"),
