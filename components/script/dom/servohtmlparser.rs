@@ -19,7 +19,7 @@ use util::task_state;
 
 use std::default::Default;
 use url::Url;
-use js::jsapi::JSTracer;
+use js::jsapi::{JSTracer, JSObject};
 use html5ever::tokenizer;
 use html5ever::tree_builder;
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
@@ -126,6 +126,9 @@ impl ServoHTMLParser {
 impl Reflectable for ServoHTMLParser {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
+    }
+    fn init_reflector(&mut self, obj: *mut JSObject) {
+        self.reflector_.set_jsobject(obj);
     }
 }
 

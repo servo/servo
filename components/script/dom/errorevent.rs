@@ -18,8 +18,9 @@ use util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
 use std::borrow::ToOwned;
-use std::cell::{Cell};
-use js::jsval::{JSVal, NullValue};
+use std::cell::{Cell, UnsafeCell};
+use std::default::Default;
+use js::jsval::JSVal;
 
 #[dom_struct]
 pub struct ErrorEvent {
@@ -28,7 +29,7 @@ pub struct ErrorEvent {
     filename: DOMRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
-    error: Cell<Heap<JSVal>>,
+    error: UnsafeCell<Heap<JSVal>>,
 }
 
 impl ErrorEventDerived for Event {
@@ -45,7 +46,7 @@ impl ErrorEvent {
             filename: DOMRefCell::new("".to_owned()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
-            error: Cell::new(Heap::new(NullValue()))
+            error: UnsafeCell::new(Heap::default())
         }
     }
 
@@ -78,7 +79,7 @@ impl ErrorEvent {
             ev.colno.set(colno);
         }
         unsafe {
-            let cell = ev.error.as_unsafe_cell().get();
+            let cell = ev.error.get();
             (*cell).set(error.get());
         }
         ev
@@ -135,8 +136,9 @@ impl<'a> ErrorEventMethods for &'a ErrorEvent {
         filename.clone()
     }
 
+    #[allow(unsafe_code)]
     fn Error(self, _cx: *mut JSContext) -> JSVal {
-        self.error.get().get()
+        unsafe { (*self.error.get()).get() }
     }
 
 }

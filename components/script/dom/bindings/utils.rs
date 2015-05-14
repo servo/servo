@@ -18,7 +18,6 @@ use util::str::DOMString;
 use libc;
 use libc::c_uint;
 use std::boxed;
-use std::cell::Cell;
 use std::ffi::CString;
 use std::ptr;
 use std::cmp::PartialEq;
@@ -362,6 +361,10 @@ pub fn initialize_global(global: *mut JSObject) {
 pub trait Reflectable {
     /// Returns the receiver's reflector.
     fn reflector<'a>(&'a self) -> &'a Reflector;
+    /// Initializes the Reflector
+    fn init_reflector(&mut self, _obj: *mut JSObject) {
+        panic!("Cannot call init on this Reflectable");
+    }
 }
 
 /// Create the reflector for a new DOM object and yield ownership to the
@@ -381,13 +384,13 @@ pub fn reflect_dom_object<T: Reflectable>
 #[servo_lang = "reflector"]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
-    object: Cell<Heap<*mut JSObject>>,
+    object: Heap<*mut JSObject>,
 }
 
 #[allow(unrooted_must_root)]
 impl PartialEq for Reflector {
     fn eq(&self, other: &Reflector) -> bool {
-        self.object.get().ptr == other.object.get().ptr
+        self.object.ptr == other.object.ptr
     }
 }
 
@@ -395,30 +398,27 @@ impl Reflector {
     /// Get the reflector.
     #[inline]
     pub fn get_jsobject(&self) -> *mut JSObject {
-        self.object.get().ptr
+        self.object.ptr
     }
 
     /// Initialize the reflector. (May be called only once.)
-    pub fn set_jsobject(&self, object: *mut JSObject) {
-        assert!(self.object.get().ptr.is_null());
+    pub fn set_jsobject(&mut self, object: *mut JSObject) {
+        assert!(self.object.ptr.is_null());
         assert!(!object.is_null());
-        unsafe {
-            let cell = self.object.as_unsafe_cell().get();
-            (*cell).set(object);
-        }
+        self.object.set(object);
     }
 
     /// Return a pointer to the memory location at which the JS reflector
     /// object is stored. Used to root the reflector, as
     /// required by the JSAPI rooting APIs.
     pub unsafe fn rootable(&self) -> *mut Heap<*mut JSObject> {
-        self.object.as_unsafe_cell().get()
+        &self.object as *const Heap<*mut JSObject> as *mut Heap<*mut JSObject>
     }
 
     /// Create an uninitialized `Reflector`.
     pub fn new() -> Reflector {
         Reflector {
-            object: Cell::new(Heap { ptr: ptr::null_mut() })
+            object: Heap { ptr: ptr::null_mut() }
         }
     }
 }

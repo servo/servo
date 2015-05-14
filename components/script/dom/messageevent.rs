@@ -19,6 +19,7 @@ use js::jsapi::{JSContext, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 
 use std::borrow::ToOwned;
+use std::default::Default;
 
 #[dom_struct]
 pub struct MessageEvent {
@@ -36,13 +37,15 @@ impl MessageEventDerived for Event {
 
 impl MessageEvent {
     fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
-                         -> MessageEvent {
-        MessageEvent {
+                         -> Box<MessageEvent> {
+        let mut ret = box MessageEvent {
             event: Event::new_inherited(EventTypeId::MessageEvent),
-            data: Heap::<JSVal>::new(data),
+            data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
-        }
+        };
+        ret.data.set(data);
+        ret
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
@@ -50,7 +53,7 @@ impl MessageEvent {
     }
 
     pub fn new_initialized(global: GlobalRef, data: JSVal, origin: DOMString, lastEventId: DOMString) -> Root<MessageEvent> {
-        reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
+        reflect_dom_object(MessageEvent::new_inherited(data, origin, lastEventId),
         global,
         MessageEventBinding::Wrap)
     }

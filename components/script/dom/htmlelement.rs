@@ -36,6 +36,7 @@ use string_cache::Atom;
 
 use std::borrow::ToOwned;
 use std::default::Default;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -149,7 +150,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }
 
-    fn GetOnload(self) -> Option<EventHandlerNonNull> {
+    fn GetOnload(self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);
             win.r().GetOnload()
@@ -159,7 +160,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
         }
     }
 
-    fn SetOnload(self, listener: Option<EventHandlerNonNull>) {
+    fn SetOnload(self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);
             win.r().SetOnload(listener)

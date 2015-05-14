@@ -96,6 +96,7 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::default::Default;
 use std::ptr;
 use std::sync::mpsc::{Receiver, channel};
+use std::rc::Rc;
 use time;
 
 #[derive(PartialEq)]
@@ -1315,7 +1316,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
-    fn CreateTreeWalker(self, root: &Node, whatToShow: u32, filter: Option<NodeFilter>)
+    fn CreateTreeWalker(self, root: &Node, whatToShow: u32, filter: Option<Rc<NodeFilter>>)
                         -> Root<TreeWalker> {
         TreeWalker::new(self, root, whatToShow, filter)
     }

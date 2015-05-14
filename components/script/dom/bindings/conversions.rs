@@ -62,6 +62,7 @@ use std::borrow::ToOwned;
 use std::default;
 use std::slice;
 use std::ptr;
+use std::rc::Rc;
 use core::nonzero::NonZero;
 
 /// A trait to retrieve the constants necessary to check if a `JSObject`
@@ -620,6 +621,15 @@ impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         match self {
             &Some(ref value) => value.to_jsval(cx),
+            &None => NullValue(),
+        }
+    }
+}
+
+impl<T: ToJSValConvertible> ToJSValConvertible for Option<Rc<T>> {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        match self {
+            &Some(ref value) => (**value).to_jsval(cx),
             &None => NullValue(),
         }
     }
