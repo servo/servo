@@ -245,7 +245,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     }
 
                     debug!("PaintTask: returning surfaces");
-                    self.compositor.assign_painted_buffers(self.id, self.current_epoch.unwrap(), replies, frame_tree_id);
+                    self.compositor.assign_painted_buffers(self.id,
+                                                           self.current_epoch.unwrap(),
+                                                           replies,
+                                                           frame_tree_id);
                 }
                 Msg::UnusedBuffer(unused_buffers) => {
                     debug!("PaintTask {:?}: Received {} unused buffers", self.id, unused_buffers.len());

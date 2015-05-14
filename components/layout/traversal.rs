@@ -364,7 +364,7 @@ pub struct ComputeAbsolutePositions<'a> {
 impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.compute_absolute_position();
+        flow.compute_absolute_position(self.layout_context);
     }
 }
 

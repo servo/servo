@@ -59,13 +59,13 @@ impl Flow for TableCaptionFlow {
         self.block_flow.assign_inline_sizes(ctx);
     }
 
-    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_caption");
-        self.block_flow.assign_block_size(ctx);
+        self.block_flow.assign_block_size(layout_context);
     }
 
-    fn compute_absolute_position(&mut self) {
-        self.block_flow.compute_absolute_position()
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_absolute_position(layout_context)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
