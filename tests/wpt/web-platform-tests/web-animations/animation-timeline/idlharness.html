@@ -1,14 +1,17 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Web Animations API: AnimationTimeline tests</title>
+<title>Web Animations API: DocumentTimeline tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <div id="log"></div>
-<script type="text/plain" id="AnimationTimeline-IDL">
+<script type="text/plain" id="DocumentTimeline-IDL">
 interface AnimationTimeline {
   readonly attribute double? currentTime;
+};
+
+interface DocumentTimeline : AnimationTimeline {
 };
 </script>
 <script>
@@ -18,8 +21,8 @@ var idlArray;
 test(function() {
   idlArray = new IdlArray();
   idlArray.add_idls(
-    document.getElementById('AnimationTimeline-IDL').textContent);
-  idlArray.add_objects( { AnimationTimeline: ['document.timeline'] } );
+    document.getElementById('DocumentTimeline-IDL').textContent);
+  idlArray.add_objects( { DocumentTimeline: ['document.timeline'] } );
 });
 idlArray.test();
 

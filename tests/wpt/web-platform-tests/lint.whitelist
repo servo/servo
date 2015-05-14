@@ -15,9 +15,7 @@ INDENT TABS: custom-elements/*
 INDENT TABS: DOMEvents/*
 INDENT TABS: eventsource/*
 INDENT TABS: html/editing/dnd/*
-INDENT TABS: html/semantics/*
 INDENT TABS: html/syntax/*
-INDENT TABS: html/webappapis/*
 INDENT TABS: media-source/*
 INDENT TABS: old-tests/*
 INDENT TABS: pointerlock/*
@@ -89,6 +87,7 @@ PRINT STATEMENT:*/tools/*
 CR AT EOL:WebIDL/valid/idl/documentation-dos.widl
 CR AT EOL:cors/resources/cors-headers.asis
 CR AT EOL:html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
+INDENT TABS:html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
 CR AT EOL:webvtt/webvtt-file-format-parsing/webvtt-file-parsing/support/newlines.vtt
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.svg
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xhtml

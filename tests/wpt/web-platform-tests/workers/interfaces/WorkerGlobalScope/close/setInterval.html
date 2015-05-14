@@ -18,22 +18,14 @@ var interval2 = setInterval(function() {
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-async_test(function() {
-  var gotMessage = false;
-  var gotError = false;
-  var worker = new Worker('#');
-  worker.onmessage = function(e) {
-    gotMessage = true;
-  };
-  worker.onerror = function(e) {
-    gotError = true;
-  };
-  setTimeout(this.step_func(function() {
-    assert_false(gotMessage, 'got message');
-    assert_true(gotError, 'got error');
-    this.done();
-  }), 500);
-});
+var worker = new Worker('#');
+worker.onmessage = function(e) {
+  assert_unreached("Got message");
+};
+worker.onerror = function(e) {
+  assert_unreached("Got error");
+};
+setTimeout(done, 2000);
 </script>
 <!--
 */

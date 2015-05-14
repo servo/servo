@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html><head>
-	<title> scheduler: removing async attribute at runtime</title>
-	<script src="/resources/testharness.js"></script>
-	<script src="/resources/testharnessreport.js"></script>
-	<script src="testlib/testlib.js"></script>
+        <title> scheduler: removing async attribute at runtime</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
 </head>
 <body>
 
         <div id="test"></div>
-	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
 
-        <script id="async-script" async src="scripts/include-2.js?pipe=trickle(d1)"></script> 
+        <script id="async-script" async src="scripts/include-2.js?pipe=trickle(d2)"></script>
 
-	<script>
+        <script>
           var t = async_test();
 
           t.step(function() {
@@ -27,6 +27,6 @@
             assert_array_equals(eventOrder, ["external script #1", "external script #2"]);
             t.done();
           }), false);
-          
+
         </script>
 </body></html>

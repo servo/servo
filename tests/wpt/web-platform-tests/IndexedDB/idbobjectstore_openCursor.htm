@@ -25,11 +25,14 @@
         txn.objectStore("store")
            .openCursor().onsuccess = this.step_func(function(e)
         {
-            if (e.target.result)
+            if (e.target.result) {
+                count += 1;
                 e.target.result.continue()
+            }
         })
 
         txn.oncomplete = this.step_func(function() {
+            assert_equals(count, 100);
             this.done()
         })
     }

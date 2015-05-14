@@ -29,7 +29,7 @@ open_rq.onsuccess = function(e) {
         upgradeneeded_fired = counter++;
     });
     rq.onsuccess = t.step_func(function (e) {
-        assert_equals(versionchange_fired, 0, 'block event fired #')
+        assert_equals(versionchange_fired, 0, 'versionchange event fired #')
         assert_equals(blocked_fired, 1, 'block event fired #')
         assert_equals(upgradeneeded_fired, 2, 'second upgradeneeded event fired #')
 

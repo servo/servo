@@ -56,6 +56,19 @@ function constValue (cnt) {
     return cnt.value;
 }
 
+function minOverloadLength(overloads) {
+    if (!overloads.length) {
+        return 0;
+    }
+
+    return overloads.map(function(attr) {
+        return attr.arguments ? attr.arguments.filter(function(arg) {
+            return !arg.optional && !arg.variadic;
+        }).length : 0;
+    })
+    .reduce(function(m, n) { return Math.min(m, n); });
+}
+
 /// IdlArray ///
 // Entry point
 self.IdlArray = function()
@@ -754,22 +767,7 @@ IdlInterface.prototype.test_self = function()
 
             var constructors = this.extAttrs
                 .filter(function(attr) { return attr.name == "Constructor"; });
-            var expected_length;
-            if (!constructors.length) {
-                // "If the [Constructor] extended attribute, does not appear on
-                // the interface definition, then the value is 0."
-                expected_length = 0;
-            } else {
-                // "Otherwise, the value is determined as follows: . . .
-                // "Return the length of the shortest argument list of the
-                // entries in S."
-                expected_length = constructors.map(function(attr) {
-                    return attr.arguments ? attr.arguments.filter(function(arg) {
-                        return !arg.optional;
-                    }).length : 0;
-                })
-                .reduce(function(m, n) { return Math.min(m, n); });
-            }
+            var expected_length = minOverloadLength(constructors);
             assert_equals(self[this.name].length, expected_length, "wrong value for " + this.name + ".length");
         }.bind(this), this.name + " interface object length");
     }
@@ -1122,12 +1120,10 @@ IdlInterface.prototype.do_member_operation_asserts = function(memberHolderObject
     // ". . .
     // "Return the length of the shortest argument list of the
     // entries in S."
-    //
-    // TODO: Doesn't handle overloading or variadic arguments.
     assert_equals(memberHolderObject[member.name].length,
-        member.arguments.filter(function(arg) {
-            return !arg.optional;
-        }).length,
+        minOverloadLength(this.members.filter(function(m) {
+            return m.type == "operation" && m.name == member.name;
+        })),
         "property has wrong .length");
 
     // Make some suitable arguments
@@ -1460,13 +1456,12 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
                 {
                     assert_false(member.name in obj);
                 }
+
+                var minLength = minOverloadLength(this.members.filter(function(m) {
+                    return m.type == "operation" && m.name == member.name;
+                }));
                 var args = [];
-                for (var i = 0; i < member.arguments.length; i++)
-                {
-                    if (member.arguments[i].optional)
-                    {
-                        break;
-                    }
+                for (var i = 0; i < minLength; i++) {
                     assert_throws(new TypeError(), function()
                     {
                         obj[member.name].apply(obj, args);

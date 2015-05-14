@@ -1,56 +1,56 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-	<title>Creating and deleting captions</title>
-	<link rel="author" title="Erika Navara" href="mailto:edoyle@microsoft.com">
-	<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-table-element" />
-	<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-createcaption" />
-	<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-deletecaption" />
-	<script src="/resources/testharness.js"></script>
-	<script src="/resources/testharnessreport.js"></script>
+  <title>Creating and deleting captions</title>
+  <link rel="author" title="Erika Navara" href="mailto:edoyle@microsoft.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-table-element" />
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-createcaption" />
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-deletecaption" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
-	<div id="log"></div>
-	<table id="table1" style="display:none">
-		<caption id="caption1">caption</caption>
-		<tr>
-			<td>cell</td>
-			<td>cell</td>
-		</tr>
-	</table>
-	<table id="table2" style="display:none">
-		<tr>
-			<td>cell</td>
-			<td>cell</td>
-		</tr>
-	</table>
-	<table id="table3" style="display:none">
-		<caption id="caption3">caption 3</caption>
-		<tr>
-			<td>cell</td>
-			<td>cell</td>
-		</tr>
-	</table>
-	<script>
-		test(function () {
-			var table1 = document.getElementById('table1');
-			var testCaption = table1.createCaption();
-			var table1FirstCaption = table1.caption;
-			assert_equals(testCaption, table1FirstCaption);
-		}, "createCaption method returns the first caption element child of the table")
-		test(function () {
-			var table2 = document.getElementById('table2');
-			var test2Caption = table2.createCaption();
-			var table2FirstNode = table2.firstChild;
-			assert_true(test2Caption instanceof  HTMLTableCaptionElement);
-			assert_equals(table2FirstNode, test2Caption);
-		}, "createCaption method creates a new caption and inserts it as the first node of the table element")
-		test(function () {
-			var table3 = document.getElementById('table3');
-			assert_equals(table3.caption.textContent, "caption 3");
-			table3.deleteCaption();
-			assert_equals(table3.caption, null);
-		}, "deleteCaption method removes the first caption element child of the table element")
-	</script>
+  <div id="log"></div>
+  <table id="table1" style="display:none">
+    <caption id="caption1">caption</caption>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <table id="table2" style="display:none">
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <table id="table3" style="display:none">
+    <caption id="caption3">caption 3</caption>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <script>
+    test(function () {
+      var table1 = document.getElementById('table1');
+      var testCaption = table1.createCaption();
+      var table1FirstCaption = table1.caption;
+      assert_equals(testCaption, table1FirstCaption);
+    }, "createCaption method returns the first caption element child of the table")
+    test(function () {
+      var table2 = document.getElementById('table2');
+      var test2Caption = table2.createCaption();
+      var table2FirstNode = table2.firstChild;
+      assert_true(test2Caption instanceof  HTMLTableCaptionElement);
+      assert_equals(table2FirstNode, test2Caption);
+    }, "createCaption method creates a new caption and inserts it as the first node of the table element")
+    test(function () {
+      var table3 = document.getElementById('table3');
+      assert_equals(table3.caption.textContent, "caption 3");
+      table3.deleteCaption();
+      assert_equals(table3.caption, null);
+    }, "deleteCaption method removes the first caption element child of the table element")
+  </script>
 </body>
 </html>
