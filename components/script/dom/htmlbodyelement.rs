@@ -23,6 +23,7 @@ use util::str::{self, DOMString};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct HTMLBodyElement {
@@ -62,12 +63,12 @@ impl<'a> HTMLBodyElementMethods for &'a HTMLBodyElement {
     make_getter!(BgColor, "bgcolor");
     make_setter!(SetBgColor, "bgcolor");
 
-    fn GetOnunload(self) -> Option<EventHandlerNonNull> {
+    fn GetOnunload(self) -> Option<Rc<EventHandlerNonNull>> {
         let win = window_from_node(self);
         win.r().GetOnunload()
     }
 
-    fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
+    fn SetOnunload(self, listener: Option<Rc<EventHandlerNonNull>>) {
         let win = window_from_node(self);
         win.r().SetOnunload(listener)
     }

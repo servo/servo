@@ -30,6 +30,7 @@ use std::collections::hash_state::DefaultState;
 use std::default::Default;
 use std::ffi::CString;
 use std::ptr;
+use std::rc::Rc;
 use url::Url;
 
 use std::collections::HashMap;
@@ -52,23 +53,23 @@ pub enum EventTargetTypeId {
     XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 #[jstraceable]
 pub enum EventListenerType {
-    Additive(EventListener),
-    Inline(EventListener),
+    Additive(Rc<EventListener>),
+    Inline(Rc<EventListener>),
 }
 
 impl EventListenerType {
-    fn get_listener(&self) -> EventListener {
+    fn get_listener(&self) -> Rc<EventListener> {
         match *self {
-            EventListenerType::Additive(listener) |
-            EventListenerType::Inline(listener) => listener
+            EventListenerType::Additive(ref listener) |
+            EventListenerType::Inline(ref listener) => listener.clone(),
         }
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 #[jstraceable]
 #[privatize]
 pub struct EventListenerEntry {
@@ -92,14 +93,14 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
+    pub fn get_listeners(&self, type_: &str) -> Option<Vec<Rc<EventListener>>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
-        -> Option<Vec<EventListener>> {
+        -> Option<Vec<Rc<EventListener>>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.get_listener()).collect()
@@ -119,8 +120,8 @@ pub trait EventTargetHelpers {
     fn dispatch_event(self, event: &Event) -> bool;
     fn set_inline_event_listener(self,
                                  ty: DOMString,
-                                 listener: Option<EventListener>);
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<EventListener>;
+                                 listener: Option<Rc<EventListener>>);
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventListener>>;
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
@@ -128,8 +129,8 @@ pub trait EventTargetHelpers {
                                     ty: &str,
                                     source: DOMString);
     fn set_event_handler_common<T: CallbackContainer>(self, ty: &str,
-                                                      listener: Option<T>);
-    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T>;
+                                                      listener: Option<Rc<T>>);
+    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<Rc<T>>;
 
     fn has_handlers(self) -> bool;
 }
@@ -147,14 +148,14 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
 
     fn set_inline_event_listener(self,
                                  ty: DOMString,
-                                 listener: Option<EventListener>) {
+                                 listener: Option<Rc<EventListener>>) {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(vec!()),
         };
 
-        let idx = entries.iter().position(|&entry| {
+        let idx = entries.iter().position(|ref entry| {
             match entry.listener {
                 EventListenerType::Inline(_) => true,
                 _ => false,
@@ -181,7 +182,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
         }
     }
 
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<EventListener> {
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventListener>> {
         let handlers = self.handlers.borrow();
         let entries = handlers.get(&ty);
         entries.and_then(|entries| entries.iter().find(|entry| {
@@ -237,14 +238,14 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
     }
 
     fn set_event_handler_common<T: CallbackContainer>(
-        self, ty: &str, listener: Option<T>)
+        self, ty: &str, listener: Option<Rc<T>>)
     {
         let event_listener = listener.map(|listener|
                                           EventListener::new(listener.callback()));
         self.set_inline_event_listener(ty.to_owned(), event_listener);
     }
 
-    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T> {
+    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<Rc<T>> {
         let listener = self.get_inline_event_listener(ty.to_owned());
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
@@ -259,7 +260,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
 impl<'a> EventTargetMethods for &'a EventTarget {
     fn AddEventListener(self,
                         ty: DOMString,
-                        listener: Option<EventListener>,
+                        listener: Option<Rc<EventListener>>,
                         capture: bool) {
         match listener {
             Some(listener) => {
@@ -284,17 +285,17 @@ impl<'a> EventTargetMethods for &'a EventTarget {
 
     fn RemoveEventListener(self,
                            ty: DOMString,
-                           listener: Option<EventListener>,
+                           listener: Option<Rc<EventListener>>,
                            capture: bool) {
         match listener {
-            Some(listener) => {
+            Some(ref listener) => {
                 let mut handlers = self.handlers.borrow_mut();
                 let mut entry = handlers.get_mut(&ty);
                 for entry in entry.iter_mut() {
                     let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                     let old_entry = EventListenerEntry {
                         phase: phase,
-                        listener: EventListenerType::Additive(listener)
+                        listener: EventListenerType::Additive(listener.clone())
                     };
                     let position = entry.position_elem(&old_entry);
                     for &position in position.iter() {

@@ -31,7 +31,7 @@ use std::ptr;
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: usize,
-    window_proxy: *mut JSObject,
+    window_proxy: Heap<*mut JSObject>,
     frame_element: Option<JS<Element>>,
 }
 
@@ -40,10 +40,9 @@ impl BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: ptr::null_mut(),
+            window_proxy: Heap { ptr: ptr::null_mut() },
             frame_element: frame_element.map(JS::from_ref),
         };
-        context.create_window_proxy();
         context
     }
 
@@ -61,12 +60,12 @@ impl BrowserContext {
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(!self.window_proxy.is_null());
-        self.window_proxy
+        assert!(!self.window_proxy.ptr.is_null());
+        self.window_proxy.get()
     }
 
     #[allow(unsafe_code)]
-    fn create_window_proxy(&mut self) {
+    pub fn create_window_proxy(&mut self) {
         let win = self.active_window();
         let win = win.r();
 
@@ -79,7 +78,7 @@ impl BrowserContext {
         let _ac = JSAutoCompartment::new(cx, parent.ptr);
         let wrapper = unsafe { WrapperNew(cx, parent.handle(), handler) };
         assert!(!wrapper.is_null());
-        self.window_proxy = wrapper;
+        self.window_proxy.set(wrapper);
     }
 }
 
