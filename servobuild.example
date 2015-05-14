@@ -23,6 +23,9 @@ system-cargo = false
 cargo-root = "/path/to/cargo"
 
 [build]
+# Set "mode = dev" or use `mach build --dev` to build the project with warning.
+# or Set "mode = release" or use `mach build --release` for optimized build.
+mode = "dev"
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.

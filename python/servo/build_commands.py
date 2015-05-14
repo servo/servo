@@ -137,6 +137,20 @@ class MachCommands(CommandBase):
         opts = params or []
         features = []
 
+        if not (release or dev):
+            if self.config["build"]["mode"] == "dev":
+                dev = True
+            elif self.config["build"]["mode"] == "release":
+                release = True 
+            else:
+                print("Please specify either --dev (-d) for a development")
+                print("  build, or --release (-r) for an optimized build.")
+                sys.exit(1)
+
+        if release and dev:
+            print("Please specify either --dev or --release.")
+            sys.exit(1)
+
         if release:
             opts += ["--release"]
         if target:
