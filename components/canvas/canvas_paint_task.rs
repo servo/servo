@@ -301,7 +301,22 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
-        self.drawtarget.fill_rect(rect, self.state.fill_style.to_pattern_ref(),
+        let draw_rect = Rect(rect.origin,
+            match self.state.fill_style {
+                Pattern::Surface(ref surface) => {
+                    let surface_size = surface.size();
+                    match (surface.repeat_x, surface.repeat_y) {
+                        (true, true) => rect.size,
+                        (true, false) => Size2D(rect.size.width, surface_size.height as f32),
+                        (false, true) => Size2D(surface_size.width as f32, rect.size.height),
+                        (false, false) => Size2D(surface_size.width as f32, surface_size.height as f32),
+                    }
+                },
+                _ => rect.size,
+            }
+        );
+
+        self.drawtarget.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
                                   Some(&self.state.draw_options));
     }
 
