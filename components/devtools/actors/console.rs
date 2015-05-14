@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
-/// Mediates interaction between the remote web console and equivalent functionality (object
-/// inspection, JS evaluation, autocompletion) in Servo.
+//! Liberally derived from the [Firefox JS implementation]
+//! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
+//! Mediates interaction between the remote web console and equivalent functionality (object
+//! inspection, JS evaluation, autocompletion) in Servo.
 
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
