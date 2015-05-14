@@ -2234,13 +2234,18 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
             match node.type_id() {
                 // Step 3.
-                NodeTypeId::DocumentType if !is_equal_doctype(this, node) => return false,
-                NodeTypeId::Element(..) if !is_equal_element(this, node) => return false,
-                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) if !is_equal_processinginstruction(this, node) => return false,
+                NodeTypeId::DocumentType
+                    if !is_equal_doctype(this, node) => return false,
+                NodeTypeId::Element(..)
+                    if !is_equal_element(this, node) => return false,
+                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)
+                    if !is_equal_processinginstruction(this, node) => return false,
                 NodeTypeId::CharacterData(CharacterDataTypeId::Text) |
-                NodeTypeId::CharacterData(CharacterDataTypeId::Comment) if !is_equal_characterdata(this, node) => return false,
+                NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
+                    if !is_equal_characterdata(this, node) => return false,
                 // Step 4.
-                NodeTypeId::Element(..) if !is_equal_element_attrs(this, node) => return false,
+                NodeTypeId::Element(..)
+                    if !is_equal_element_attrs(this, node) => return false,
                 _ => ()
             }
 

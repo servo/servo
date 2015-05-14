@@ -68,7 +68,7 @@ def check_license(contents):
 
 
 def check_length(idx, line):
-    if len(line) >= 160:
+    if len(line) >= 150:
         yield (idx + 1, "(much) overlong line")
 
 def check_whatwg_url(idx, line):

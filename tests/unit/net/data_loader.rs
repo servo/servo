@@ -70,12 +70,16 @@ fn base64() {
 #[test]
 fn base64_ct() {
     assert_parse("data:application/octet-stream;base64,C62+7w==",
-        Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext("octet-stream".to_string()), vec!()))), None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
+        Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext("octet-stream".to_string()), vec!()))),
+        None,
+        Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
 }
 
 #[test]
 fn base64_charset() {
     assert_parse("data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec!((Attr::Charset, Value::Ext("koi8-r".to_string())))))), Some("koi8-r".to_string()),
+        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
+                              vec!((Attr::Charset, Value::Ext("koi8-r".to_string())))))),
+        Some("koi8-r".to_string()),
         Some(vec!(0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4)));
 }

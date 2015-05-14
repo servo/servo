@@ -156,7 +156,8 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     fn Send(self, data: Option<DOMString>)-> Fallible<()>{
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for "If argument is a string"
           TODO: Need to buffer data
-          TODO: bufferedAmount attribute returns the size of the buffer in bytes - this is a required attribute defined in the websocket.webidle file
+          TODO: bufferedAmount attribute returns the size of the buffer in bytes -
+                this is a required attribute defined in the websocket.webidl file
           TODO: The send function needs to flag when full by using the following
           self.full.set(true). This needs to be done when the buffer is full
         */
