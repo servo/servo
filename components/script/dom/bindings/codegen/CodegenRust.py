@@ -761,7 +761,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
-            declType = CGGeneric(name)
+            declType = CGWrapper(CGGeneric(name), pre="Rc<", post=">")
             template = "%s::new(${val}.get().to_object())" % name
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
@@ -932,11 +932,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not type.treatNonObjectAsNull() or not type.treatNonCallableAsNull()
 
         declType = CGGeneric('%s::%s' % (type.unroll().module(), type.unroll().identifier.name))
+        finalDeclType = CGTemplatedType("Rc", declType)
 
         conversion = CGCallbackTempRoot(declType.define())
 
         if type.nullable():
             declType = CGTemplatedType("Option", declType)
+            finalDeclType = CGTemplatedType("Option", finalDeclType)
             conversion = CGWrapper(conversion, pre="Some(", post=")")
 
         if allowTreatNonObjectAsNull and type.treatNonObjectAsNull():
@@ -967,7 +969,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             default = None
 
-        return JSToNativeConversionInfo(template, default, declType, needsRooting=needsRooting)
+        return JSToNativeConversionInfo(template, default, finalDeclType, needsRooting=needsRooting)
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
@@ -1275,8 +1277,8 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isCallback():
-        result = CGGeneric('%s::%s' % (returnType.unroll().module(),
-                                       returnType.unroll().identifier.name))
+        result = CGGeneric('Rc<%s::%s>' % (returnType.unroll().module(),
+                                           returnType.unroll().identifier.name))
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2094,7 +2096,7 @@ let proto = RootedObject::new(cx, proto);
 
 %s
 
-(*raw).reflector().set_jsobject(obj.ptr);
+(*raw).init_reflector(obj.ptr);
 
 Root::from_ref(&*raw)""" % CreateBindingJSObject(self.descriptor, "scope"))
         else:
@@ -2106,7 +2108,7 @@ let _ac = JSAutoCompartment::new(cx, obj.ptr);
 let proto = RootedObject::new(cx, GetProtoObject(cx, obj.handle(), obj.handle()));
 JS_SetPrototype(cx, obj.handle(), proto.handle());
 
-(*raw).reflector().set_jsobject(obj.ptr);
+(*raw).init_reflector(obj.ptr);
 
 let ret = Root::from_ref(&*raw);
 
@@ -3710,9 +3712,14 @@ class ClassConstructor(ClassItem):
     def getBody(self, cgClass):
         initializers = ["    parent: %s" % str(self.baseConstructors[0])]
         return (self.body + (
-                "%s {\n"
+                "let mut ret = Rc::new(%s {\n"
                 "%s\n"
-                "}") % (cgClass.name, '\n'.join(initializers)))
+                "});\n"
+                "match rc::get_mut(&mut ret) {\n"
+                "    Some(ref mut callback) => callback.parent.init(%s),\n"
+                "    None => unreachable!(),\n"
+                "};\n"
+                "ret") % (cgClass.name, '\n'.join(initializers), self.args[0].name))
 
     def declare(self, cgClass):
         args = ', '.join([a.declare() for a in self.args])
@@ -3723,7 +3730,7 @@ class ClassConstructor(ClassItem):
         body = ' {\n' + body + '}'
 
         return string.Template("""\
-pub fn ${decorators}new(${args}) -> ${className}${body}
+pub fn ${decorators}new(${args}) -> Rc<${className}>${body}
 """).substitute({ 'decorators': self.getDecorators(True),
                   'className': cgClass.getNameString(),
                   'args': args,
@@ -5091,6 +5098,8 @@ class CGBindingRoot(CGThing):
             'std::num',
             'std::ptr',
             'std::str',
+            'std::rc',
+            'std::rc::Rc',
             'std::default::Default',
             'std::ffi::CString',
         ])
@@ -5199,7 +5208,7 @@ class CGCallback(CGClass):
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods+getters+setters,
-                         decorators="#[derive(PartialEq,Copy,Clone)]#[jstraceable]")
+                         decorators="#[derive(PartialEq)]#[jstraceable]")
 
     def getConstructors(self):
         return [ClassConstructor(
@@ -5208,7 +5217,7 @@ class CGCallback(CGClass):
             visibility="pub",
             explicit=False,
             baseConstructors=[
-                "%s::new(aCallback)" % self.baseName
+                "%s::new()" % self.baseName
                 ])]
 
     def getMethodImpls(self, method):
@@ -5235,9 +5244,9 @@ class CGCallback(CGClass):
         args.insert(0, Argument("&T",  "thisObj"))
 
         # And the self argument
-        method.args.insert(0, Argument(None, "self"))
-        args.insert(0, Argument(None, "self"))
-        argsWithoutThis.insert(0, Argument(None, "self"))
+        method.args.insert(0, Argument(None, "&self"))
+        args.insert(0, Argument(None, "&self"))
+        argsWithoutThis.insert(0, Argument(None, "&self"))
 
         setupCall = ("let s = CallSetup::new(self, aExceptionHandling);\n"
                      "if s.get_context().is_null() {\n"
@@ -5298,7 +5307,7 @@ class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback):
         impl = string.Template("""\
 impl CallbackContainer for ${type} {
-    fn new(callback: *mut JSObject) -> ${type} {
+    fn new(callback: *mut JSObject) -> Rc<${type}> {
         ${type}::new(callback)
     }
 

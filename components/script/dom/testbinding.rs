@@ -25,6 +25,7 @@ use js::jsval::{JSVal, NullValue};
 
 use std::borrow::ToOwned;
 use std::ptr;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct TestBinding {
@@ -205,8 +206,8 @@ impl<'a> TestBindingMethods for &'a TestBinding {
     fn PassUnion3(self, _: BlobOrString) {}
     fn PassAny(self, _: *mut JSContext, _: HandleValue) {}
     fn PassObject(self, _: *mut JSContext, _: *mut JSObject) {}
-    fn PassCallbackFunction(self, _: Function) {}
-    fn PassCallbackInterface(self, _: EventListener) {}
+    fn PassCallbackFunction(self, _: Rc<Function>) {}
+    fn PassCallbackInterface(self, _: Rc<EventListener>) {}
 
     fn PassNullableBoolean(self, _: Option<bool>) {}
     fn PassNullableByte(self, _: Option<i8>) {}
@@ -229,8 +230,8 @@ impl<'a> TestBindingMethods for &'a TestBinding {
     fn PassNullableObject(self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassNullableUnion(self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(self, _: Option<EventOrString>) {}
-    fn PassNullableCallbackFunction(self, _: Option<Function>) {}
-    fn PassNullableCallbackInterface(self, _: Option<EventListener>) {}
+    fn PassNullableCallbackFunction(self, _: Option<Rc<Function>>) {}
+    fn PassNullableCallbackInterface(self, _: Option<Rc<EventListener>>) {}
 
     fn PassOptionalBoolean(self, _: Option<bool>) {}
     fn PassOptionalByte(self, _: Option<i8>) {}
@@ -254,8 +255,8 @@ impl<'a> TestBindingMethods for &'a TestBinding {
     fn PassOptionalUnion2(self, _: Option<EventOrString>) {}
     fn PassOptionalAny(self, _: *mut JSContext, _: HandleValue) {}
     fn PassOptionalObject(self, _: *mut JSContext, _: Option<*mut JSObject>) {}
-    fn PassOptionalCallbackFunction(self, _: Option<Function>) {}
-    fn PassOptionalCallbackInterface(self, _: Option<EventListener>) {}
+    fn PassOptionalCallbackFunction(self, _: Option<Rc<Function>>) {}
+    fn PassOptionalCallbackInterface(self, _: Option<Rc<EventListener>>) {}
 
     fn PassOptionalNullableBoolean(self, _: Option<Option<bool>>) {}
     fn PassOptionalNullableByte(self, _: Option<Option<i8>>) {}
@@ -278,8 +279,8 @@ impl<'a> TestBindingMethods for &'a TestBinding {
     fn PassOptionalNullableObject(self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalNullableUnion(self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(self, _: Option<Option<EventOrString>>) {}
-    fn PassOptionalNullableCallbackFunction(self, _: Option<Option<Function>>) {}
-    fn PassOptionalNullableCallbackInterface(self, _: Option<Option<EventListener>>) {}
+    fn PassOptionalNullableCallbackFunction(self, _: Option<Option<Rc<Function>>>) {}
+    fn PassOptionalNullableCallbackInterface(self, _: Option<Option<Rc<EventListener>>>) {}
 
     fn PassOptionalBooleanWithDefault(self, _: bool) {}
     fn PassOptionalByteWithDefault(self, _: i8) {}
@@ -316,7 +317,7 @@ impl<'a> TestBindingMethods for &'a TestBinding {
     fn PassOptionalNullableUnionWithDefault(self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(self, _: Option<EventOrString>) {}
     // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
-    fn PassOptionalNullableCallbackInterfaceWithDefault(self, _: Option<EventListener>) {}
+    fn PassOptionalNullableCallbackInterfaceWithDefault(self, _: Option<Rc<EventListener>>) {}
     fn PassOptionalAnyWithDefault(self, _: *mut JSContext, _: HandleValue) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(self, _: Option<bool>) {}
