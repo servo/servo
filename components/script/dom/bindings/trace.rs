@@ -35,11 +35,12 @@ use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use script_task::ScriptChan;
 
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
-use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
+use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use geom::matrix2d::Matrix2D;
 use geom::rect::Rect;
+use geom::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -249,6 +250,7 @@ no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);
 no_jsmanaged_fields!(Receiver<T>);
 no_jsmanaged_fields!(Rect<T>);
+no_jsmanaged_fields!(Size2D<T>);
 no_jsmanaged_fields!(Arc<T>);
 no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask, ScriptControlChan);
 no_jsmanaged_fields!(Atom, Namespace);
@@ -272,6 +274,7 @@ no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
+no_jsmanaged_fields!(RepetitionStyle);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]
