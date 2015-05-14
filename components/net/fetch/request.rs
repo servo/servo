@@ -255,13 +255,15 @@ impl Request {
             StatusCode::MovedPermanently | StatusCode::Found | StatusCode::SeeOther |
             StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
                 // Step 1
-                if self.redirect_mode == RedirectMode::Error { return Response::network_error(); }
+                if self.redirect_mode == RedirectMode::Error {
+                    return Response::network_error();
+                }
                 // Step 2
                 let location = response.headers.get::<Location>();
                 // Step 3-4
                 match location {
-                    // FIXME: Hyper does not return "null" when it has failed to parse the header
-                    Some(val) => if val.as_slice() == "null" { return response; },
+                    // FIXME: Hyper does not expose the presence of headers that failed to parse
+                    Some(val) => if val.is_empty() { return response; },
                     None => { return Response::network_error(); }
                 }
                 // Step 5
@@ -351,18 +353,13 @@ impl Request {
 }
 
 fn is_no_store_cache(headers: &Headers) -> bool {
-    // TODO: Hyper is missing the header parsing for If-Range
-    // Add an additional or clause for IfRange once it is implemented
     headers.has::<IfModifiedSince>() | headers.has::<IfNoneMatch>() |
     headers.has::<IfUnmodifiedSince>() | headers.has::<IfMatch>() |
     headers.has::<IfRange>()
 }
 
 fn is_simple_header(h: &HeaderView) -> bool {
-    // FIXME: use h.is::<HeaderType>() when AcceptLanguage and
-    // ContentLanguage headers exist
-    if h.is::<Accept>() | h.is::<AcceptLanguage>() | h.is::<ContentLanguage>() { true }
-    else if h.is::<ContentType>() {
+    if h.is::<ContentType>() {
         match h.value() {
             Some(&ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) |
             Some(&ContentType(Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _))) |
@@ -371,7 +368,7 @@ fn is_simple_header(h: &HeaderView) -> bool {
 
         }
     } else {
-        false
+        h.is::<Accept>() || h.is::<AcceptLanguage>() || h.is::<ContentLanguage>()
     }
 }
 
