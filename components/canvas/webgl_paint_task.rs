@@ -37,6 +37,34 @@ impl WebGLPaintTask {
         })
     }
 
+    pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
+        match message {
+            CanvasWebGLMsg::AttachShader(program_id, shader_id) => self.attach_shader(program_id, shader_id),
+            CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id) => self.bind_buffer(buffer_type, buffer_id),
+            CanvasWebGLMsg::BufferData(buffer_type, data, usage) => self.buffer_data(buffer_type, data, usage),
+            CanvasWebGLMsg::Clear(mask) => self.clear(mask),
+            CanvasWebGLMsg::ClearColor(r, g, b, a) => self.clear_color(r, g, b, a),
+            CanvasWebGLMsg::CreateBuffer(chan) => self.create_buffer(chan),
+            CanvasWebGLMsg::DrawArrays(mode, first, count) => self.draw_arrays(mode, first, count),
+            CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) => self.enable_vertex_attrib_array(attrib_id),
+            CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) => self.get_attrib_location(program_id, name, chan),
+            CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) => self.get_shader_info_log(shader_id, chan),
+            CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) => self.get_shader_parameter(shader_id, param_id, chan),
+            CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) => self.get_uniform_location(program_id, name, chan),
+            CanvasWebGLMsg::CompileShader(shader_id) => self.compile_shader(shader_id),
+            CanvasWebGLMsg::CreateProgram(chan) => self.create_program(chan),
+            CanvasWebGLMsg::CreateShader(shader_type, chan) => self.create_shader(shader_type, chan),
+            CanvasWebGLMsg::LinkProgram(program_id) => self.link_program(program_id),
+            CanvasWebGLMsg::ShaderSource(shader_id, source) => self.shader_source(shader_id, source),
+            CanvasWebGLMsg::Uniform4fv(uniform_id, data) => self.uniform_4fv(uniform_id, data),
+            CanvasWebGLMsg::UseProgram(program_id) => self.use_program(program_id),
+            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => {
+                self.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset);
+            },
+            CanvasWebGLMsg::Viewport(x, y, width, height) => self.viewport(x, y, width, height),
+        }
+    }
+
     pub fn start(size: Size2D<i32>) -> Result<Sender<CanvasMsg>, &'static str> {
         let (chan, port) = channel::<CanvasMsg>();
         let mut painter = try!(WebGLPaintTask::new(size));
@@ -44,33 +72,7 @@ impl WebGLPaintTask {
             painter.init();
             loop {
                 match port.recv().unwrap() {
-                    CanvasMsg::WebGL(message) => {
-                        match message {
-                            CanvasWebGLMsg::AttachShader(program_id, shader_id) => painter.attach_shader(program_id, shader_id),
-                            CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id) => painter.bind_buffer(buffer_type, buffer_id),
-                            CanvasWebGLMsg::BufferData(buffer_type, data, usage) => painter.buffer_data(buffer_type, data, usage),
-                            CanvasWebGLMsg::Clear(mask) => painter.clear(mask),
-                            CanvasWebGLMsg::ClearColor(r, g, b, a) => painter.clear_color(r, g, b, a),
-                            CanvasWebGLMsg::CreateBuffer(chan) => painter.create_buffer(chan),
-                            CanvasWebGLMsg::DrawArrays(mode, first, count) => painter.draw_arrays(mode, first, count),
-                            CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) => painter.enable_vertex_attrib_array(attrib_id),
-                            CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) => painter.get_attrib_location(program_id, name, chan),
-                            CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) => painter.get_shader_info_log(shader_id, chan),
-                            CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) => painter.get_shader_parameter(shader_id, param_id, chan),
-                            CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) => painter.get_uniform_location(program_id, name, chan),
-                            CanvasWebGLMsg::CompileShader(shader_id) => painter.compile_shader(shader_id),
-                            CanvasWebGLMsg::CreateProgram(chan) => painter.create_program(chan),
-                            CanvasWebGLMsg::CreateShader(shader_type, chan) => painter.create_shader(shader_type, chan),
-                            CanvasWebGLMsg::LinkProgram(program_id) => painter.link_program(program_id),
-                            CanvasWebGLMsg::ShaderSource(shader_id, source) => painter.shader_source(shader_id, source),
-                            CanvasWebGLMsg::Uniform4fv(uniform_id, data) => painter.uniform_4fv(uniform_id, data),
-                            CanvasWebGLMsg::UseProgram(program_id) => painter.use_program(program_id),
-                            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => {
-                                painter.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset);
-                            },
-                            CanvasWebGLMsg::Viewport(x, y, width, height) => painter.viewport(x, y, width, height),
-                        }
-                    },
+                    CanvasMsg::WebGL(message) => painter.handle_webgl_message(message),
                     CanvasMsg::Common(message) => {
                         match message {
                             CanvasCommonMsg::Close => break,
