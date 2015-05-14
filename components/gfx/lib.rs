@@ -31,6 +31,7 @@ extern crate net_traits;
 #[macro_use]
 extern crate util;
 extern crate msg;
+extern crate rand;
 extern crate string_cache;
 extern crate style;
 extern crate skia;

@@ -26,6 +26,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
 use profile_traits::time::{self, profile};
+use rand::{self, Rng};
 use skia::SkiaGrGLNativeContextRef;
 use std::borrow::ToOwned;
 use std::mem;
@@ -586,6 +587,14 @@ impl WorkerThread {
                 // Overlay a transparent solid color to identify the thread that
                 // painted this tile.
                 let color = THREAD_TINT_COLORS[thread_id % THREAD_TINT_COLORS.len()];
+                paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
+                                                     Size2D(Au::from_px(size.width),
+                                                            Au::from_px(size.height))),
+                                               color);
+            }
+            if opts::get().paint_flashing {
+                // Overlay a random transparent color.
+                let color = *rand::thread_rng().choose(&THREAD_TINT_COLORS[..]).unwrap();
                 paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
                                                      Size2D(Au::from_px(size.width),
                                                             Au::from_px(size.height))),
