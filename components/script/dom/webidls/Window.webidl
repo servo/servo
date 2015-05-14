@@ -128,6 +128,13 @@ partial interface Window {
 };
 Window implements OnErrorEventHandlerForWindow;
 
+// WebDriver extensions
+partial interface Window {
+  // Shouldn't be public, but just to make things work for now
+  void webdriverCallback(optional any result);
+  void webdriverTimeout();
+};
+
 // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
 [NoInterfaceObject]
 interface WindowSessionStorage {

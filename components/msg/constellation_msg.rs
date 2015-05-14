@@ -18,7 +18,7 @@ use util::geometry::{PagePx, ViewportPx};
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
-use webdriver_traits::WebDriverScriptCommand;
+use webdriver_traits::{WebDriverScriptCommand, LoadComplete};
 use url::Url;
 
 #[derive(Clone)]
@@ -237,11 +237,9 @@ pub enum Msg {
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(Sender<String>),
     /// Dispatch a webdriver command
-    WebDriverCommand(PipelineId, WebDriverScriptCommand),
+    WebDriverCommand(WebDriverCommandMsg),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
-    /// Create a PNG of the window contents
-    CompositePng(Sender<Option<png::Image>>),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Notification that this iframe should be removed.
@@ -319,6 +317,11 @@ impl MozBrowserEvent {
     }
 }
 
+pub enum WebDriverCommandMsg {
+    LoadUrl(PipelineId, LoadData, Sender<LoadComplete>),
+    ScriptCommand(PipelineId, WebDriverScriptCommand),
+    TakeScreenshot(Sender<Option<png::Image>>)
+}
 
 /// Similar to net::resource_task::LoadData
 /// can be passed to LoadUrl to load a page with GET/POST

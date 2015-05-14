@@ -19,14 +19,14 @@ extern crate rustc_serialize;
 extern crate uuid;
 extern crate webdriver_traits;
 
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection, WebDriverCommandMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use std::sync::mpsc::channel;
-use webdriver_traits::WebDriverScriptCommand;
+use std::sync::mpsc::{channel, Receiver};
+use webdriver_traits::{WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult};
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters, TimeoutsParameters};
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::response::{
     WebDriverResponse, NewSessionResponse, ValueResponse};
@@ -58,6 +58,9 @@ struct WebdriverSession {
 struct Handler {
     session: Option<WebdriverSession>,
     constellation_chan: ConstellationChan,
+    script_timeout: u32,
+    load_timeout: u32,
+    implicit_wait_timeout: u32
 }
 
 impl WebdriverSession {
@@ -72,16 +75,32 @@ impl Handler {
     pub fn new(constellation_chan: ConstellationChan) -> Handler {
         Handler {
             session: None,
-            constellation_chan: constellation_chan
+            constellation_chan: constellation_chan,
+            script_timeout: 30_000,
+            load_timeout: 300_000,
+            implicit_wait_timeout: 0
         }
     }
 
-    fn get_root_pipeline(&self) -> PipelineId {
-        let (sender, reciever) = channel();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
+    fn get_root_pipeline(&self) -> WebDriverResult<PipelineId> {
+        let interval = 20;
+        let iterations = 30_000 / interval;
 
-        reciever.recv().unwrap().unwrap()
+        for _ in 0..iterations {
+            let (sender, reciever) = channel();
+            let ConstellationChan(ref const_chan) = self.constellation_chan;
+            const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
+
+
+            if let Some(x) = reciever.recv().unwrap() {
+                return Ok(x);
+            };
+
+            sleep_ms(interval)
+        };
+
+        Err(WebDriverError::new(ErrorStatus::Timeout,
+                                "Failed to get root window handle"))
     }
 
     fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -109,12 +128,18 @@ impl Handler {
                                                "Invalid URL"))
         };
 
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
+
+        let (sender, reciever) = channel();
 
         let load_data = LoadData::new(url);
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
-        //TODO: Now we ought to wait until we get a load event
+        let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        //Wait to get a load event
+        reciever.recv().unwrap();
+
         Ok(WebDriverResponse::Void)
     }
 
@@ -131,12 +156,13 @@ impl Handler {
     }
 
     fn handle_get_title(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::GetTitle(sender))).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::GetTitle(sender));
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         let value = reciever.recv().unwrap();
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
@@ -156,7 +182,7 @@ impl Handler {
     }
 
     fn handle_find_element(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -166,7 +192,8 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
                 Ok(WebDriverResponse::Generic(ValueResponse::new(value.map(|x| WebElement::new(x).to_json()).to_json())))
@@ -177,7 +204,7 @@ impl Handler {
     }
 
     fn handle_find_elements(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -187,7 +214,8 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
                 let resp_value: Vec<Json> = value.into_iter().map(
@@ -200,12 +228,13 @@ impl Handler {
     }
 
     fn handle_get_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -214,23 +243,25 @@ impl Handler {
     }
 
     fn handle_get_active_element(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         let value = reciever.recv().unwrap().map(|x| WebElement::new(x).to_json());
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
 
     fn handle_get_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -238,11 +269,20 @@ impl Handler {
         }
     }
 
-    fn handle_execute_script(&self, parameters: &JavascriptCommandParameters)  -> WebDriverResult<WebDriverResponse> {
-        // TODO: This isn't really right because it always runs the script in the
-        // root window
-        let pipeline_id = self.get_root_pipeline();
+    fn handle_set_timeouts(&mut self, parameters: &TimeoutsParameters) -> WebDriverResult<WebDriverResponse> {
+        //TODO: this conversion is crazy, spec should limit these to u32 and check upstream
+        let value = parameters.ms as u32;
+        match &parameters.type_[..] {
+            "implicit" => self.implicit_wait_timeout = value,
+            "page load" => self.load_timeout = value,
+            "script" => self.script_timeout = value,
+            x @ _ => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
+                                                    &format!("Unknown timeout type {}", x)))
+        }
+        Ok(WebDriverResponse::Void)
+    }
 
+    fn handle_execute_script(&self, parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
         let args_string = "";
 
@@ -252,17 +292,39 @@ impl Handler {
         let script = format!("(function() {{ {} }})({})", func_body, args_string);
 
         let (sender, reciever) = channel();
+        let command = WebDriverScriptCommand::ExecuteScript(script, sender);
+        self.execute_script(command, reciever)
+    }
+
+    fn handle_execute_async_script(&self, parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
+        let func_body = &parameters.script;
+        let args_string = "window.webdriverCallback";
+
+        let script = format!(
+            "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
+            self.script_timeout, func_body, args_string);
+
+        let (sender, reciever) = channel();
+        let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
+        self.execute_script(command, reciever)
+    }
+
+    fn execute_script(&self, command: WebDriverScriptCommand, reciever: Receiver<WebDriverJSResult>) -> WebDriverResult<WebDriverResponse> {
+        // TODO: This isn't really right because it always runs the script in the
+        // root window
+        let pipeline_id = try!(self.get_root_pipeline());
+
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::EvaluateJS(script, sender))).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, command);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
-            Err(_) => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
-                                              "Unsupported return type"))
+            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
+            Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation, "Unsupported return type"))
         }
     }
-
 
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
         let mut img = None;
@@ -273,7 +335,8 @@ impl Handler {
         for _ in 0..iterations {
             let (sender, reciever) = channel();
             let ConstellationChan(ref const_chan) = self.constellation_chan;
-            const_chan.send(ConstellationMsg::CompositePng(sender)).unwrap();
+            let cmd_msg = WebDriverCommandMsg::TakeScreenshot(sender);
+            const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
             if let Some(x) = reciever.recv().unwrap() {
                 img = Some(x);
@@ -321,6 +384,8 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetElementText(ref element) => self.handle_get_element_text(element),
             WebDriverCommand::GetElementTagName(ref element) => self.handle_get_element_tag_name(element),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
+            WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
+            WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))

@@ -35,8 +35,10 @@ use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
 use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
+use webdriver_handlers::jsval_to_webdriver;
 
 use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, TracingMetadata};
+use webdriver_traits::{WebDriverJSError, WebDriverJSResult};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use net_traits::ResourceTask;
@@ -166,6 +168,9 @@ pub struct Window {
 
     /// A counter of the number of pending reflows for this window.
     pending_reflow_count: Cell<u32>,
+
+    /// A channel for communicating results of async scripts back to the webdriver server
+    webdriver_script_chan: RefCell<Option<Sender<WebDriverJSResult>>>
 }
 
 impl Window {
@@ -483,6 +488,21 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         let doc = self.Document().root();
         doc.r().cancel_animation_frame(ident);
     }
+
+    fn WebdriverCallback(self, cx: *mut JSContext, val: JSVal) {
+        let rv = jsval_to_webdriver(cx, val);
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            chan.send(rv).unwrap();
+        }
+    }
+
+    fn WebdriverTimeout(self) {
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            chan.send(Err(WebDriverJSError::Timeout)).unwrap();
+        }
+    }
 }
 
 pub trait WindowHelpers {
@@ -523,6 +543,7 @@ pub trait WindowHelpers {
     fn emit_timeline_marker(self, marker: TimelineMarker);
     fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
+    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>);
 }
 
 pub trait ScriptHelpers {
@@ -880,6 +901,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.devtools_markers.borrow_mut().clear();
         *self.devtools_marker_sender.borrow_mut() = None;
     }
+
+    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>) {
+        *self.webdriver_script_chan.borrow_mut() = chan;
+    }
 }
 
 impl Window {
@@ -947,6 +972,7 @@ impl Window {
             devtools_marker_sender: RefCell::new(None),
             devtools_markers: RefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
+            webdriver_script_chan: RefCell::new(None),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)

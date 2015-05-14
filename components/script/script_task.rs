@@ -316,7 +316,7 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
 
-    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
+    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>,
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -726,7 +726,7 @@ impl ScriptTask {
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
             ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
-            ConstellationControlMsg::WebDriverCommand(pipeline_id, msg) =>
+            ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
                 self.handle_tick_all_animations(pipeline_id),
@@ -801,8 +801,8 @@ impl ScriptTask {
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
         let page = self.root_page();
         match msg {
-            WebDriverScriptCommand::EvaluateJS(script, reply) =>
-                webdriver_handlers::handle_evaluate_js(&page, pipeline_id, script, reply),
+            WebDriverScriptCommand::ExecuteScript(script, reply) =>
+                webdriver_handlers::handle_execute_script(&page, pipeline_id, script, reply),
             WebDriverScriptCommand::FindElementCSS(selector, reply) =>
                 webdriver_handlers::handle_find_element_css(&page, pipeline_id, selector, reply),
             WebDriverScriptCommand::FindElementsCSS(selector, reply) =>
@@ -814,7 +814,9 @@ impl ScriptTask {
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetTitle(reply) =>
-                webdriver_handlers::handle_get_title(&page, pipeline_id, reply)
+                webdriver_handlers::handle_get_title(&page, pipeline_id, reply),
+            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>
+                webdriver_handlers::handle_execute_async_script(&page, pipeline_id, script, reply),
         }
     }
 
