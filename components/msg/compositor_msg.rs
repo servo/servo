@@ -34,7 +34,7 @@ impl FrameTreeId {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash)]
 pub struct LayerId(pub usize, pub u32);
 
 impl Debug for LayerId {
