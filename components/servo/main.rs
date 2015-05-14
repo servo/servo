@@ -173,7 +173,9 @@ mod android {
 
     pub fn setup_logging() {
         use self::libc::consts::os::posix88::{STDERR_FILENO, STDOUT_FILENO};
-        //os::setenv("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
+        //use std::env;
+
+        //env::set_var("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
         redirect_output(STDERR_FILENO);
         redirect_output(STDOUT_FILENO);
     }
