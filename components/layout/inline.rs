@@ -32,7 +32,7 @@ use std::u16;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::properties::ComputedValues;
-use util::geometry::{Au, MAX_AU, ZERO_POINT, ZERO_RECT};
+use util::geometry::{Au, MAX_AU, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
 use util;
