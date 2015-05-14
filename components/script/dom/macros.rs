@@ -8,8 +8,7 @@ macro_rules! make_getter(
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            #[allow(unused_imports)]
-            use std::ascii::AsciiExt;
+            use string_cache::Atom;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             element.get_string_attribute(&Atom::from_slice($htmlname))
         }
@@ -25,8 +24,7 @@ macro_rules! make_bool_getter(
         fn $attr(self) -> bool {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            #[allow(unused_imports)]
-            use std::ascii::AsciiExt;
+            use string_cache::Atom;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.has_attribute(&Atom::from_slice($htmlname))
@@ -43,8 +41,7 @@ macro_rules! make_uint_getter(
         fn $attr(self) -> u32 {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            #[allow(unused_imports)]
-            use std::ascii::AsciiExt;
+            use string_cache::Atom;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_uint_attribute(&Atom::from_slice($htmlname), $default)
@@ -64,8 +61,7 @@ macro_rules! make_url_getter(
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            #[allow(unused_imports)]
-            use std::ascii::AsciiExt;
+            use string_cache::Atom;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_url_attribute(&Atom::from_slice($htmlname))
@@ -84,8 +80,7 @@ macro_rules! make_url_or_base_getter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use dom::window::WindowHelpers;
-            #[allow(unused_imports)]
-            use std::ascii::AsciiExt;
+            use string_cache::Atom;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
             if url.is_empty() {
@@ -107,8 +102,7 @@ macro_rules! make_enumerated_getter(
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            #[allow(unused_imports)]
-            use std::ascii::AsciiExt;
+            use string_cache::Atom;
             use std::borrow::ToOwned;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let val = element.get_string_attribute(&Atom::from_slice($htmlname))
@@ -133,6 +127,7 @@ macro_rules! make_setter(
         fn $attr(self, value: DOMString) {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
             element.set_string_attribute(&Atom::from_slice($htmlname), value)
@@ -146,6 +141,7 @@ macro_rules! make_bool_setter(
         fn $attr(self, value: bool) {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
             element.set_bool_attribute(&Atom::from_slice($htmlname), value)
@@ -159,6 +155,7 @@ macro_rules! make_uint_setter(
         fn $attr(self, value: u32) {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
             let value = if value > 2147483647 {
                 $default
             } else {
@@ -200,6 +197,20 @@ macro_rules! make_limited_uint_setter(
     ($attr:ident) => {
         make_limited_uint_setter!($attr, to_lower!(stringify!($attr)));
     };
+);
+
+#[macro_export]
+macro_rules! make_atomic_setter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self, value: DOMString) {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            element.set_atomic_attribute(&Atom::from_slice($htmlname), value)
+        }
+    );
 );
 
 /// For use on non-jsmanaged types

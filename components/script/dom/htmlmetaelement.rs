@@ -12,7 +12,6 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLMetaElement {

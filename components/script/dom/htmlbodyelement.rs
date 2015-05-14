@@ -19,7 +19,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
 use cssparser::RGBA;
-use string_cache::Atom;
 use util::str::{self, DOMString};
 
 use std::borrow::ToOwned;

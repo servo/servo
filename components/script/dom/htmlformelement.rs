@@ -2,15 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFormElementCast, HTMLDataListElementCast};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::HTMLDataListElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
+use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
+use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::document::{Document, DocumentHelpers};
@@ -23,6 +28,7 @@ use dom::htmlinputelement::{HTMLInputElement, HTMLInputElementHelpers};
 use dom::htmlbuttonelement::{HTMLButtonElement};
 use dom::htmltextareaelement::HTMLTextAreaElementHelpers;
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::virtualmethods::VirtualMethods;
 use hyper::method::Method;
 use hyper::header::ContentType;
 use hyper::mime;
@@ -107,9 +113,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_getter!(Name);
-
-    // https://html.spec.whatwg.org/multipage/#dom-form-name
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
     make_bool_getter!(NoValidate);
@@ -558,4 +562,17 @@ pub trait FormControl<'a> : Copy + Sized {
     }
 
     fn to_element(self) -> JSRef<'a, Element>;
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLFormElement> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+        Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("name") => AttrValue::from_atomic(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
 }

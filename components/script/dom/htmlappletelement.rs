@@ -3,13 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding;
+use dom::bindings::codegen::Bindings::HTMLAppletElementBinding::HTMLAppletElementMethods;
+
+use dom::attr::AttrValue;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeHandlers, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
+use dom::virtualmethods::VirtualMethods;
+
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -37,3 +44,21 @@ impl HTMLAppletElement {
     }
 }
 
+impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
+    // https://html.spec.whatwg.org/#the-applet-element:dom-applet-name
+    make_getter!(Name);
+    make_atomic_setter!(SetName, "name");
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLAppletElement> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+        Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("name") => AttrValue::from_atomic(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+}

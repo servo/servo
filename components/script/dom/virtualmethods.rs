@@ -6,11 +6,13 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLAppletElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLFieldSetElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLHeadElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
@@ -144,6 +146,9 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a (VirtualMethods + 'a) {
             let element: &'a JSRef<'a, HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
         }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)) => {
+            HTMLAppletElementCast::to_borrowed_ref(node).unwrap() as &'a (VirtualMethods + 'a)
+        }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
             let element: &'a JSRef<'a, HTMLAreaElement> = HTMLAreaElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
@@ -163,6 +168,9 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a (VirtualMethods + 'a) {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
             let element: &'a JSRef<'a, HTMLFieldSetElement> = HTMLFieldSetElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)) => {
+            HTMLFormElementCast::to_borrowed_ref(node).unwrap() as &'a (VirtualMethods + 'a)
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
             let element: &'a JSRef<'a, HTMLHeadElement> = HTMLHeadElementCast::to_borrowed_ref(node).unwrap();

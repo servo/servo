@@ -12,7 +12,7 @@ interface HTMLAppletElement : HTMLElement {
   //         attribute DOMString codeBase;
   //         attribute DOMString height;
   //         attribute unsigned long hspace;
-  //         attribute DOMString name;
+             attribute DOMString name;
   //         attribute DOMString _object; // the underscore is not part of the identifier
   //         attribute unsigned long vspace;
   //         attribute DOMString width;

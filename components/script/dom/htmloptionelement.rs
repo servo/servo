@@ -22,7 +22,6 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{DOMString, split_html_space_chars};
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLOptionElement {

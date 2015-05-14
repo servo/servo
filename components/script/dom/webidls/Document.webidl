@@ -81,7 +81,7 @@ partial /*sealed*/ interface Document {
   readonly attribute DocumentReadyState readyState;
 
   // DOM tree accessors
-  // getter object (DOMString name);
+     getter object (DOMString name);
            attribute DOMString title;
            [SetterThrows]
            attribute HTMLElement? body;

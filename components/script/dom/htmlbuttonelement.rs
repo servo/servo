@@ -26,7 +26,6 @@ use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use util::str::DOMString;
 use std::cell::Cell;
-use string_cache::Atom;
 
 #[jstraceable]
 #[derive(PartialEq, Copy, Clone)]
