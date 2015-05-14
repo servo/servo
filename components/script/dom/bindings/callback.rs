@@ -18,6 +18,7 @@ use js::jsval::{JSVal, UndefinedValue};
 
 use std::ffi::CString;
 use std::ptr;
+use std::rc::Rc;
 
 /// The exception handling used for a call.
 #[derive(Copy, Clone, PartialEq)]
@@ -29,7 +30,7 @@ pub enum ExceptionHandling {
 }
 
 /// A common base class for representing IDL callback function types.
-#[derive(Copy, Clone,PartialEq)]
+#[derive(PartialEq)]
 #[jstraceable]
 pub struct CallbackFunction {
     object: CallbackObject
@@ -37,17 +38,23 @@ pub struct CallbackFunction {
 
 impl CallbackFunction {
     /// Create a new `CallbackFunction` for this object.
-    pub fn new(callback: *mut JSObject) -> CallbackFunction {
+    pub fn new() -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject {
-                callback: Heap::<*mut JSObject>::new(callback)
+                callback: Heap { ptr: ptr::null_mut() }
             }
         }
+    }
+
+    /// Initialize the callback function with a value.
+    /// Should be called once this object is done moving.
+    pub fn init(&mut self, callback: *mut JSObject) {
+        self.object.callback.set(callback);
     }
 }
 
 /// A common base class for representing IDL callback interface types.
-#[derive(Copy, Clone,PartialEq)]
+#[derive(PartialEq)]
 #[jstraceable]
 pub struct CallbackInterface {
     object: CallbackObject
@@ -56,7 +63,7 @@ pub struct CallbackInterface {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[allow(raw_pointer_derive)]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(PartialEq)]
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
@@ -67,7 +74,7 @@ struct CallbackObject {
 /// callback interface types.
 pub trait CallbackContainer {
     /// Create a new CallbackContainer object for the given `JSObject`.
-    fn new(callback: *mut JSObject) -> Self;
+    fn new(callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `JSObject`.
     fn callback(&self) -> *mut JSObject;
 }
@@ -88,12 +95,18 @@ impl CallbackFunction {
 
 impl CallbackInterface {
     /// Create a new CallbackInterface object for the given `JSObject`.
-    pub fn new(callback: *mut JSObject) -> CallbackInterface {
+    pub fn new() -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject {
-                callback: Heap::<*mut JSObject>::new(callback)
+                callback: Heap { ptr: ptr::null_mut() }
             }
         }
+    }
+
+    /// Initialize the callback function with a value.
+    /// Should be called once this object is done moving.
+    pub fn init(&mut self, callback: *mut JSObject) {
+        self.object.callback.set(callback);
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
@@ -152,7 +165,7 @@ pub struct CallSetup {
 impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(unrooted_must_root)]
-    pub fn new<T: CallbackContainer>(callback: T, handling: ExceptionHandling) -> CallSetup {
+    pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = global_object_for_js_object(callback.callback());
         let cx = global.r().get_cx();
         unsafe { JS_BeginRequest(cx); }

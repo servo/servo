@@ -166,7 +166,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
         base64_atob(atob)
     }
 
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -188,7 +188,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
         self.timers.clear_timeout_or_interval(handle);
     }
 
-    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,

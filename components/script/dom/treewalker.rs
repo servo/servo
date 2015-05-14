@@ -15,6 +15,7 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::Node;
+use std::rc::Rc;
 
 // https://dom.spec.whatwg.org/#interface-treewalker
 #[dom_struct]
@@ -52,7 +53,7 @@ impl TreeWalker {
     pub fn new(document: &Document,
                root_node: &Node,
                what_to_show: u32,
-               node_filter: Option<NodeFilter>) -> Root<TreeWalker> {
+               node_filter: Option<Rc<NodeFilter>>) -> Root<TreeWalker> {
         let filter = match node_filter {
             None => Filter::None,
             Some(jsfilter) => Filter::JS(jsfilter)
@@ -73,10 +74,10 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-filter
-    fn GetFilter(self) -> Option<NodeFilter> {
+    fn GetFilter(self) -> Option<Rc<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::JS(nf) => Some(nf),
+            Filter::JS(ref nf) => Some(nf.clone()),
             Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
@@ -471,7 +472,7 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
             Filter::Native(f) => Ok((f)(node)),
-            Filter::JS(callback) => callback.AcceptNode_(self, node, Rethrow)
+            Filter::JS(ref callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
 
@@ -505,5 +506,5 @@ impl<'a> Iterator for &'a TreeWalker {
 pub enum Filter {
     None,
     Native(fn (node: &Node) -> u16),
-    JS(NodeFilter)
+    JS(Rc<NodeFilter>)
 }
