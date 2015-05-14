@@ -373,7 +373,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -398,7 +398,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -759,7 +759,9 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>) {
-        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc, frame_element));
+        let mut browser_context = self.browser_context.borrow_mut();
+        *browser_context = Some(BrowserContext::new(doc, frame_element));
+        (*browser_context).as_mut().unwrap().create_window_proxy();
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.

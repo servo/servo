@@ -16,6 +16,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct NodeIterator {
@@ -54,7 +55,7 @@ impl NodeIterator {
     pub fn new(document: &Document,
                root_node: &Node,
                what_to_show: u32,
-               node_filter: Option<NodeFilter>) -> Root<NodeIterator> {
+               node_filter: Option<Rc<NodeFilter>>) -> Root<NodeIterator> {
         let filter = match node_filter {
             None => Filter::None,
             Some(jsfilter) => Filter::Callback(jsfilter)
@@ -75,10 +76,10 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-filter
-    fn GetFilter(self) -> Option<NodeFilter> {
+    fn GetFilter(self) -> Option<Rc<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Callback(nf) => Some(nf),
+            Filter::Callback(ref nf) => Some((*nf).clone()),
             Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
@@ -206,7 +207,7 @@ impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
             Filter::Native(f) => Ok((f)(node)),
-            Filter::Callback(callback) => callback.AcceptNode_(self, node, Rethrow)
+            Filter::Callback(ref callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
 
@@ -220,5 +221,5 @@ impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
 pub enum Filter {
     None,
     Native(fn (node: &Node) -> u16),
-    Callback(NodeFilter)
+    Callback(Rc<NodeFilter>)
 }
