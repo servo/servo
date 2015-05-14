@@ -19,7 +19,7 @@ use azure::azure_hl::{DrawOptions, DrawSurfaceOptions, DrawTarget, ExtendMode, F
 use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
 use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, FilterNode, LinearGradientPattern};
 use azure::azure_hl::{JoinStyle, CapStyle};
-use azure::azure_hl::{PatternRef, Path, PathBuilder, CompositionOp};
+use azure::azure_hl::{PatternRef, Path, PathBuilder, CompositionOp, AntialiasMode};
 use azure::scaled_font::ScaledFont;
 use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
@@ -28,7 +28,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
-use libc::types::common::c99::{uint16_t, uint32_t};
+use libc::types::common::c99::uint32_t;
 use net_traits::image::base::Image;
 use png::PixelsByColorType;
 use std::default::Default;
@@ -159,7 +159,7 @@ impl<'a> PaintContext<'a> {
             }
         };
 
-        let draw_options = DrawOptions::new(1.0, 0);
+        let draw_options = DrawOptions::default();
         draw_target_ref.draw_surface(azure_surface,
                                      dest_rect,
                                      source_rect,
@@ -173,7 +173,7 @@ impl<'a> PaintContext<'a> {
                                 self.page_rect.origin.y as AzFloat),
                         Size2D(self.screen_rect.size.width as AzFloat,
                                self.screen_rect.size.height as AzFloat));
-        let mut draw_options = DrawOptions::new(1.0, 0);
+        let mut draw_options = DrawOptions::default();
         draw_options.set_composition_op(CompositionOp::Source);
         self.draw_target.make_current();
         self.draw_target.fill_rect(&rect, PatternRef::Color(&pattern), Some(&draw_options));
@@ -290,7 +290,7 @@ impl<'a> PaintContext<'a> {
                         color: Color) {
         let mut path_builder = self.draw_target.create_path_builder();
         self.create_border_path_segment(&mut path_builder, bounds, direction, border, radii);
-        let draw_options = DrawOptions::new(1.0, 0);
+        let draw_options = DrawOptions::default();
         self.draw_target.fill(&path_builder.finish(), &ColorPattern::new(color), &draw_options);
     }
 
@@ -617,7 +617,7 @@ impl<'a> PaintContext<'a> {
                                   color: Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_nearest_azure_rect();
-        let draw_opts = DrawOptions::new(1 as AzFloat, 0 as uint16_t);
+        let draw_opts = DrawOptions::default();
         let border_width = match direction {
             Direction::Top => border.top,
             Direction::Left => border.left,
@@ -958,7 +958,7 @@ impl<'a> PaintContext<'a> {
                                                              &mut accum_blur);
 
         // Perform the blit operation.
-        let mut draw_options = DrawOptions::new(opacity, 0);
+        let mut draw_options = DrawOptions::new(opacity, CompositionOp::Over, AntialiasMode::Default);
         draw_options.set_composition_op(blend_mode.to_azure_composition_op());
 
        // If there is a blur expansion, shift the transform and update the size.
@@ -1022,7 +1022,7 @@ impl<'a> PaintContext<'a> {
         // Draw the shadow, and blur if we need to.
         temporary_draw_target.draw_target.fill(&path,
                                                &ColorPattern::new(color),
-                                               &DrawOptions::new(1.0, 0));
+                                               &DrawOptions::default());
         self.blur_if_necessary(temporary_draw_target, blur_radius);
 
         // Undo the draw target's clip if we need to, and push back the stacking context clip.
@@ -1219,15 +1219,11 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let azure_pattern = pattern.azure_color_pattern;
         assert!(!azure_pattern.is_null());
 
-        let fields = if antialias {
-            0x0200
-        } else {
-            0
-        };
-
         let mut options = struct__AzDrawOptions {
             mAlpha: 1f64 as AzFloat,
-            fields: fields,
+            mCompositionOp: CompositionOp::Over as u8,
+            mAntialiasMode: if antialias { AntialiasMode::Subpixel as u8 }
+                            else { AntialiasMode::None as u8 }
         };
 
         let mut origin = baseline_origin.clone();
@@ -1416,7 +1412,7 @@ impl TemporaryDrawTarget {
         main_draw_target.draw_filter(&filter,
                                      &Rect(Point2D(0.0, 0.0), temporary_draw_target_size),
                                      &self.offset,
-                                     DrawOptions::new(1.0, 0));
+                                     DrawOptions::default());
         main_draw_target.set_transform(&main_draw_target_transform);
 
     }
