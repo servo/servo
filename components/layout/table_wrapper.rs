@@ -190,6 +190,18 @@ impl TableWrapperFlow {
             table_border_padding + spacing;
         self.block_flow.base.position.size.inline = total_used_inline_size +
             table_border_padding + spacing + self.block_flow.fragment.margin.inline_start_end();
+
+        let writing_mode = self.block_flow.base.writing_mode;
+        let container_mode = self.block_flow.base.block_container_writing_mode;
+
+        if writing_mode.is_bidi_ltr() != container_mode.is_bidi_ltr() {
+            // If our "start" direction is different from our parent flow, then `border_box.start.i`
+            // depends on `border_box.size.inline`.
+            self.block_flow.fragment.border_box.start.i =
+                self.block_flow.base.block_container_inline_size -
+                self.block_flow.fragment.margin.inline_end -
+                self.block_flow.fragment.border_box.size.inline;
+        }
     }
 
     fn compute_used_inline_size(
@@ -314,12 +326,8 @@ impl Flow for TableWrapperFlow {
 
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i;
         let content_inline_size = self.block_flow.fragment.border_box.size.inline;
-
-        // FIXME (mbrubeck): Test mixed RTL/LTR table layout, make sure this is right.
-        let inline_end_content_edge = self.block_flow.base.block_container_inline_size -
-                                      self.block_flow.fragment.margin.inline_end -
-                                      content_inline_size -
-                                      inline_start_content_edge;
+        let inline_end_content_edge = self.block_flow.fragment.border_padding.inline_end +
+                                      self.block_flow.fragment.margin.inline_end;
 
         // In case of fixed layout, column inline-sizes are calculated in table flow.
         let assigned_column_inline_sizes = match self.table_layout {
