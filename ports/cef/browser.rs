@@ -238,9 +238,9 @@ fn browser_host_create(window_info: &cef_window_info_t,
     if callback_executed {
         browser_callback_after_created(browser.clone());
     }
-    if url != ptr::null() {
-       unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
-    }
+    //if url != ptr::null() {
+       //unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
+    //}
     BROWSERS.with(|browsers| {
         browsers.borrow_mut().push(browser.clone());
     });
