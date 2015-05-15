@@ -35,13 +35,14 @@ extern crate x11;
 #[cfg(target_os="linux")]
 use self::x11::xlib::XOpenDisplay;
 
+#[cfg(target_os="linux")]
+pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
+
 /// The type of an off-screen window.
 #[allow(raw_pointer_derive)]
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
-#[cfg(target_os="linux")]
-    display: *mut c_void,
 }
 
 #[cfg(target_os="macos")]
@@ -76,16 +77,6 @@ fn load_gl() {
 
 impl Window {
     /// Creates a new window.
-#[cfg(target_os="linux")]
-    pub fn new() -> Rc<Window> {
-        load_gl();
-
-        Rc::new(Window {
-            cef_browser: RefCell::new(None),
-            display: unsafe { XOpenDisplay(ptr::null()) as *mut c_void },
-        })
-    }
-#[cfg(not(target_os="linux"))]
     pub fn new() -> Rc<Window> {
         load_gl();
 
@@ -246,8 +237,10 @@ impl WindowMethods for Window {
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
-       NativeGraphicsMetadata {
-           display: self.display,
+       unsafe {
+           NativeGraphicsMetadata {
+               display: DISPLAY,
+           }
        }
     }
 
@@ -389,3 +382,20 @@ impl CompositorProxy for CefCompositorProxy {
     }
 }
 
+#[cfg(target_os="linux")]
+pub fn init_window() {
+    unsafe { DISPLAY = XOpenDisplay(ptr::null()) as *mut c_void ; }
+}
+#[cfg(not(target_os="linux"))]
+pub fn init_window() {}
+
+#[cfg(target_os="linux")]
+#[no_mangle]
+pub extern "C" fn cef_get_xdisplay() -> *mut c_void {
+    unsafe { DISPLAY }
+}
+#[cfg(not(target_os="linux"))]
+#[no_mangle]
+pub extern "C" fn cef_get_xdisplay() -> *mut c_void {
+    ptr::null_mut()
+}

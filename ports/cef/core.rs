@@ -5,6 +5,7 @@
 use command_line::command_line_init;
 use interfaces::cef_app_t;
 use types::{cef_main_args_t, cef_settings_t};
+use window::init_window;
 
 use libc::{c_char, c_int, c_void};
 use util::opts;
@@ -66,6 +67,8 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     temp_opts.enable_text_antialiasing = true;
     temp_opts.resources_path = None;
     opts::set(temp_opts);
+
+    init_window();
 
     return 1
 }
