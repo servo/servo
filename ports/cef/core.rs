@@ -12,10 +12,11 @@ use util::opts;
 use std::ffi;
 use std::str;
 use browser;
+use std_url::Url;
 
 const MAX_RENDERING_THREADS: usize = 128;
 
-//static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
+static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
 
 static CEF_API_HASH_UNIVERSAL: &'static [u8] = b"8efd129f4afc344bd04b2feb7f73a149b6c4e27f\0";
 #[cfg(target_os="windows")]
@@ -66,6 +67,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     temp_opts.hard_fail = false;
     temp_opts.enable_text_antialiasing = true;
     temp_opts.resources_path = None;
+    temp_opts.url = Url::parse(HOME_URL).unwrap();
     opts::set(temp_opts);
 
     init_window();
