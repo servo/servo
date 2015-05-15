@@ -25,6 +25,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == background_external_stylesheet.html background_ref.html
 == background_image_position_a.html background_image_position_ref.html
 == background_none_a.html background_none_b.html
+== background_origin_a.html background_origin_ref.html
 == background_position_a.html background_position_b.html
 == background_position_keyword.html background_position_b.html
 == background_position_percent.html background_position_b.html
