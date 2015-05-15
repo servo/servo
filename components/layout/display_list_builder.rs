@@ -12,7 +12,6 @@
 
 use azure::azure_hl::Color;
 use block::BlockFlow;
-use canvas::canvas_msg::{CanvasMsg, CanvasCommonMsg};
 use context::LayoutContext;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
@@ -23,7 +22,7 @@ use model::{self, MaybeAuto, ToGfxMatrix};
 use table_cell::CollapsedBordersForCell;
 
 use geom::{Matrix2D, Point2D, Rect, Size2D, SideOffsets2D};
-use gfx::color;
+use gfx_traits::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
@@ -40,7 +39,6 @@ use std::cmp;
 use std::default::Default;
 use std::iter::repeat;
 use std::sync::Arc;
-use std::sync::mpsc::channel;
 use style::computed_values::filter::Filter;
 use style::computed_values::transform::ComputedMatrix;
 use style::computed_values::{background_attachment, background_origin, background_repeat, background_size};
@@ -237,7 +235,8 @@ pub trait FragmentDisplayListBuilding {
     fn create_stacking_context(&self,
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
-                               layer: Option<Arc<PaintLayer>>)
+                               layout_context: &LayoutContext,
+                               layer: Option<PaintLayer>)
                                -> Arc<StackingContext>;
 
 }
@@ -1045,36 +1044,32 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
-                let width = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_inline_size.map_or(0, |w| w.to_px() as usize);
-                let height = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_block_size.map_or(0, |h| h.to_px() as usize);
-
-                let (sender, receiver) = channel::<Vec<u8>>();
-                let canvas_data = match canvas_fragment_info.renderer {
-                    Some(ref renderer) =>  {
-                        renderer.lock().unwrap().send(CanvasMsg::Common(CanvasCommonMsg::SendPixelContents(sender))).unwrap();
-                        receiver.recv().unwrap()
-                    },
-                    None => repeat(0xFFu8).take(width * height * 4).collect(),
-                };
-
-                let canvas_display_item = box ImageDisplayItem {
-                    base: BaseDisplayItem::new(stacking_relative_content_box,
-                                               DisplayItemMetadata::new(self.node,
-                                                                            &*self.style,
-                                                                            Cursor::DefaultCursor),
-                                               (*clip).clone()),
-                    image: Arc::new(png::Image {
-                        width: width as u32,
-                        height: height as u32,
-                        pixels: PixelsByColorType::RGBA8(canvas_data),
-                    }),
-                    stretch_size: stacking_relative_content_box.size,
-                    image_rendering: image_rendering::T::Auto,
-                };
-
-                display_list.content.push_back(DisplayItem::ImageClass(canvas_display_item));
+                match canvas_fragment_info.renderer {
+                    // Some(ref renderer) => {
+                    //     panic!("Renderer found!");
+                    // }
+                    // None => {
+                    _ => {
+                        let width = canvas_fragment_info.replaced_image_fragment_info
+                            .computed_inline_size.map_or(0, |w| w.to_px() as usize);
+                        let height = canvas_fragment_info.replaced_image_fragment_info
+                            .computed_block_size.map_or(0, |h| h.to_px() as usize);
+                        display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
+                            base: BaseDisplayItem::new(stacking_relative_content_box,
+                                                       DisplayItemMetadata::new(self.node,
+                                                                                    &*self.style,
+                                                                                    Cursor::DefaultCursor),
+                                                       (*clip).clone()),
+                            image: Arc::new(png::Image {
+                                width: width as u32,
+                                height: height as u32,
+                                pixels: PixelsByColorType::RGBA8(repeat(0xFFu8).take(width * height * 4).collect()),
+                            }),
+                            stretch_size: stacking_relative_content_box.size,
+                            image_rendering: image_rendering::T::Auto,
+                        }));
+                    }
+                }
             }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Shouldn't see unscanned fragments here.")
@@ -1088,8 +1083,10 @@ impl FragmentDisplayListBuilding for Fragment {
     fn create_stacking_context(&self,
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
-                               layer: Option<Arc<PaintLayer>>)
+                               layout_context: &LayoutContext,
+                               layer: Option<PaintLayer>)
                                -> Arc<StackingContext> {
+        debug!("create_stacking_context");
         let border_box = self.stacking_relative_border_box(&base_flow.stacking_relative_position,
                                                                &base_flow.absolute_position_info
                                                                .relative_containing_block_size,
@@ -1119,6 +1116,18 @@ impl FragmentDisplayListBuilding for Fragment {
         if effects.opacity != 1.0 {
             filters.push(Filter::Opacity(effects.opacity))
         }
+
+        // Canvas always layerizes, and we must propagate the layer and the renderer to the paint
+        // task
+        match self.specific {
+            SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
+                let layer_id = layer.as_ref().expect("Canvas needs a layer").id;
+                layout_context.shared.canvas_layers_sender.send((layer_id, canvas_fragment_info.renderer.clone())).unwrap();
+            },
+            _ => {}
+        }
+
+        let layer = layer.map(|l| Arc::new(l));
 
         Arc::new(StackingContext::new(display_list,
                                       &border_box,
@@ -1387,6 +1396,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(
                     &self.base,
                     display_list,
+                    layout_context,
                     None))
         } else {
             match self.fragment.style.get_box().position {
@@ -1416,6 +1426,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(
                         &self.base,
                         display_list,
+                        layout_context,
                         None));
             return
         }
@@ -1431,7 +1442,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let stacking_context = self.fragment.create_stacking_context(
             &self.base,
             display_list,
-            Some(Arc::new(PaintLayer::new(self.layer_id(0), transparent, scroll_policy))));
+            layout_context,
+            Some(PaintLayer::new(self.layer_id(0), transparent, scroll_policy)));
         self.base.display_list_building_result =
             DisplayListBuildingResult::StackingContext(stacking_context)
     }
@@ -1448,7 +1460,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
             DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(&self.base, display_list, None))
+                self.fragment.create_stacking_context(&self.base, display_list, layout_context, None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1504,6 +1516,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                         &self.base.clip);
 
             has_stacking_context = fragment.establishes_stacking_context();
+
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
                     let block_flow = &mut *block_flow.flow_ref;
@@ -1531,16 +1544,29 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         // FIXME(Savago): fix Fragment::establishes_stacking_context() for absolute positioned item
         // and remove the check for filter presence. Further details on #5812.
-        if has_stacking_context &&
-                !self.fragments.fragments[0].style().get_effects().filter.is_empty() {
+        has_stacking_context = has_stacking_context && !self.fragments.fragments[0].style().get_effects().filter.is_empty();
+
+        if has_stacking_context {
             self.base.display_list_building_result =
                 DisplayListBuildingResult::StackingContext(
                     self.fragments.fragments[0].create_stacking_context(&self.base,
                                                                         display_list,
+                                                                        layout_context,
                                                                         None));
         } else {
-            self.base.display_list_building_result =
-                DisplayListBuildingResult::Normal(display_list);
+            // We need to handle specially the canvas case since it needs a layer
+            self.base.display_list_building_result = match self.fragments.fragments[0].specific {
+                SpecificFragmentInfo::Canvas(_) =>
+                    DisplayListBuildingResult::StackingContext(
+                        self.fragments.fragments[0]
+                            .create_stacking_context(&self.base,
+                                                     display_list,
+                                                     layout_context,
+                                                     Some(PaintLayer::new(self.layer_id(0),
+                                                                          color::transparent(),
+                                                                          ScrollPolicy::Scrollable)))),
+                _ => DisplayListBuildingResult::Normal(display_list)
+            };
         }
 
         if opts::get().validate_display_list_geometry {

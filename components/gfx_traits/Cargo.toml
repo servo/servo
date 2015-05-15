@@ -1,0 +1,11 @@
+[package]
+name = "gfx_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "gfx_traits"
+path = "lib.rs"
+
+[dependencies.azure]
+git = "https://github.com/servo/rust-azure"

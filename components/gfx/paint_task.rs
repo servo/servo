@@ -20,6 +20,7 @@ use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsCo
 use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
+use canvas_traits::CanvasMsg;
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId};
 use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -30,7 +31,7 @@ use rand::{self, Rng};
 use skia::SkiaGrGLNativeContextRef;
 use std::borrow::ToOwned;
 use std::mem;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
@@ -69,6 +70,7 @@ pub struct PaintRequest {
 
 pub enum Msg {
     PaintInit(Epoch, Arc<StackingContext>),
+    CanvasLayer(LayerId, Arc<Mutex<Sender<CanvasMsg>>>),
     Paint(Vec<PaintRequest>, FrameTreeId),
     UnusedBuffer(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
@@ -215,6 +217,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     }
 
                     self.initialize_layers();
+                }
+                Msg::CanvasLayer(layer_id, canvas_renderer) => {
+                    panic!("Received renderer for layer id: {:?}", layer_id);
                 }
                 Msg::Paint(requests, frame_tree_id) => {
                     if !self.paint_permission {

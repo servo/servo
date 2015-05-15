@@ -8,6 +8,8 @@
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
+use canvas_traits::CanvasMsg;
+use msg::compositor_msg::LayerId;
 use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
@@ -19,7 +21,7 @@ use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
 use std::boxed;
 use std::cell::Cell;
 use std::ptr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
@@ -98,6 +100,9 @@ pub struct SharedLayoutContext {
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
     pub new_animations_sender: Sender<Animation>,
+
+    /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
+    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
 
     /// Why is this reflow occurring
     pub goal: ReflowGoal,

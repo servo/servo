@@ -24,6 +24,7 @@ use sequential;
 use wrapper::{LayoutNode, TLayoutNode};
 
 use azure::azure::AzColor;
+use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use geom::matrix2d::Matrix2D;
@@ -31,7 +32,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::scale_factor::ScaleFactor;
 use geom::size::Size2D;
-use gfx::color;
+use gfx_traits::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use gfx::display_list::{StackingContext};
 use gfx::font_cache_task::FontCacheTask;
@@ -39,7 +40,7 @@ use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
-use msg::compositor_msg::{Epoch, ScrollPolicy};
+use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use profile_traits::mem::{self, Report, ReportsChan};
@@ -182,6 +183,11 @@ pub struct LayoutTask {
     /// Is this the first reflow in this LayoutTask?
     pub first_reflow: Cell<bool>,
 
+    /// To receive a canvas renderer associated to a layer, this message is propagated
+    /// to the paint chan
+    pub canvas_layers_receiver: Receiver<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
     ///
@@ -297,6 +303,7 @@ impl LayoutTask {
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
         let (image_cache_sender, image_cache_receiver) = channel();
+        let (canvas_layers_sender, canvas_layers_receiver) = channel();
 
         LayoutTask {
             id: id,
@@ -316,6 +323,8 @@ impl LayoutTask {
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
             image_cache_sender: ImageCacheChan(image_cache_sender),
+            canvas_layers_receiver: canvas_layers_receiver,
+            canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     root_flow: None,
@@ -361,6 +370,7 @@ impl LayoutTask {
             constellation_chan: rw_data.constellation_chan.clone(),
             layout_chan: self.chan.clone(),
             font_cache_task: self.font_cache_task.clone(),
+            canvas_layers_sender: self.canvas_layers_sender.clone(),
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
             reflow_root: reflow_root.map(|node| OpaqueNodeMethods::from_layout_node(node)),
@@ -935,6 +945,14 @@ impl LayoutTask {
 
             // Kick off animations if any were triggered.
             animation::process_new_animations(&mut *rw_data, self.id);
+        }
+
+        // Send new canvas renderers to the paint task
+        while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
+            // Just send if there's an actual renderer
+            if let Some(renderer) = renderer {
+                self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
+            }
         }
 
         // Perform post-style recalculation layout passes.
