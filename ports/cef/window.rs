@@ -36,6 +36,7 @@ extern crate x11;
 use self::x11::xlib::XOpenDisplay;
 
 /// The type of an off-screen window.
+#[allow(raw_pointer_derive)]
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,

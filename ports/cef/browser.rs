@@ -16,7 +16,6 @@ use wrappers::CefWrap;
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glutin_app;
 use libc::c_int;
-use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, BorrowState};
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};

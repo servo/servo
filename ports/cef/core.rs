@@ -8,11 +8,9 @@ use types::{cef_main_args_t, cef_settings_t};
 
 use libc::{c_char, c_int, c_void};
 use util::opts;
-use std::borrow::ToOwned;
 use std::ffi;
 use std::str;
 use browser;
-use std_url::Url;
 
 const MAX_RENDERING_THREADS: usize = 128;
 
