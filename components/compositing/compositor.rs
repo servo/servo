@@ -1003,7 +1003,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             if pipeline_details.animations_running ||
                pipeline_details.animation_callbacks_running {
 
-                self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id)).unwrap();
+                self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id))
+                                         .unwrap();
             }
         }
     }
@@ -1064,7 +1065,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if let Some(min_zoom) = self.min_viewport_zoom.as_ref() {
             viewport_zoom = min_zoom.get().max(viewport_zoom)
         }
-        let viewport_zoom = self.max_viewport_zoom.as_ref().map_or(1., |z| z.get()).min(viewport_zoom);
+        let viewport_zoom = self.max_viewport_zoom
+                                .as_ref()
+                                .map_or(1., |z| z.get())
+                                .min(viewport_zoom);
         let viewport_zoom = ScaleFactor::new(viewport_zoom);
         self.viewport_zoom = viewport_zoom;
 
@@ -1355,7 +1359,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         rv
     }
 
-    fn draw_png(&self, framebuffer_ids: Vec<gl::GLuint>, texture_ids: Vec<gl::GLuint>, width: usize, height: usize) -> png::Image {
+    fn draw_png(&self,
+                framebuffer_ids: Vec<gl::GLuint>,
+                texture_ids: Vec<gl::GLuint>,
+                width: usize,
+                height: usize)
+                -> png::Image {
         let mut pixels = gl::read_pixels(0, 0,
                                          width as gl::GLsizei,
                                          height as gl::GLsizei,
@@ -1489,7 +1498,7 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
 }
 
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
-    fn handle_event(&mut self, msg: WindowEvent) -> bool {
+    fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other tasks in the system.
         loop {
             match self.port.try_recv_compositor_msg() {
@@ -1509,8 +1518,10 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             return false;
         }
 
-        // Handle the message coming from the windowing system.
-        self.handle_window_message(msg);
+        // Handle any messages coming from the windowing system.
+        for message in messages.into_iter() {
+            self.handle_window_message(message);
+        }
 
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
         if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
