@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, codemap, visit};
+use syntax::{ast, codemap, visit, ast_map};
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
@@ -52,11 +52,19 @@ impl LintPass for UnrootedPass {
     }
     /// All structs containing #[must_root] types must be #[must_root] themselves
     fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
-        if cx.tcx.map.expect_item(id).attrs.iter().all(|a| !a.check_name("must_root")) {
-            for ref field in def.fields.iter() {
-                lint_unrooted_ty(cx, &*field.node.ty,
-                                 "Type must be rooted, use #[must_root] on the struct definition to propagate");
+        match cx.tcx.map.get(id) {
+            ast_map::Node::NodeItem(item) => {
+                if item.attrs.iter().all(|a| !a.check_name("must_root")) {
+                    for ref field in def.fields.iter() {
+                        lint_unrooted_ty(cx, &*field.node.ty,
+                        "Type must be rooted, use #[must_root] on the struct definition to propagate");
+                    }
+                }
             }
+            _ => {
+                let parent_id = cx.tcx.map.get_parent(id);
+                self.check_struct_def(cx, def, _i, _gen, parent_id);
+            },
         }
     }
     /// All enums containing #[must_root] types must be #[must_root] themselves
