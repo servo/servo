@@ -40,6 +40,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString backgroundAttachment;
   [TreatNullAs=EmptyString] attribute DOMString backgroundSize;
   [TreatNullAs=EmptyString] attribute DOMString backgroundOrigin;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundClip;
 
   [TreatNullAs=EmptyString] attribute DOMString border;
   [TreatNullAs=EmptyString] attribute DOMString borderColor;
