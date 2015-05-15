@@ -346,8 +346,10 @@ impl CandidateBSizeIterator {
         };
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
+        // If the style includes `box-sizing: padding-box`, subtract the border.
         let adjustment_for_box_sizing = match fragment.style.get_box().box_sizing {
             box_sizing::T::border_box => fragment.border_padding.block_start_end(),
+            box_sizing::T::padding_box => fragment.padding_width().block_start_end(),
             box_sizing::T::content_box => Au(0),
         };
 
@@ -2018,7 +2020,12 @@ pub trait ISizeAndMarginsComputer {
                 computed_inline_size =
                     MaybeAuto::Specified(size - block.fragment.border_padding.inline_start_end())
             }
+            (MaybeAuto::Specified(size), box_sizing::T::padding_box) => {
+                computed_inline_size =
+                    MaybeAuto::Specified(size - block.fragment.padding_width().inline_start_end())
+            }
             (MaybeAuto::Auto, box_sizing::T::border_box) |
+            (MaybeAuto::Auto, box_sizing::T::padding_box) |
             (_, box_sizing::T::content_box) => {}
         }
 

@@ -2173,7 +2173,7 @@ pub mod longhands {
     // http://dev.w3.org/csswg/css-ui/
     ${switch_to_style_struct("Box")}
 
-    ${single_keyword("box-sizing", "content-box border-box")}
+    ${single_keyword("box-sizing", "content-box padding-box border-box")}
 
     ${new_style_struct("Pointing", is_inherited=True)}
 
