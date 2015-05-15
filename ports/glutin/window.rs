@@ -14,12 +14,14 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
-use NestedEventLoopListener;
+use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
+
+use NestedEventLoopListener;
 
 #[cfg(feature = "window")]
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
@@ -259,7 +261,11 @@ impl Window {
     #[cfg(not(target_os="linux"))]
     fn handle_next_event(&self) -> bool {
         let event = self.window.wait_events().next().unwrap();
-        self.handle_window_event(event)
+        let mut close = self.handle_window_event(event);
+        while let Some(event) = self.window.poll_events().next() {
+            close = self.handle_window_event(event) || close;
+        }
+        close
     }
 
     #[cfg(target_os="linux")]
@@ -283,7 +289,9 @@ impl Window {
         //
         // See https://github.com/servo/servo/issues/5780
         //
-        match self.window.poll_events().next() {
+        let first_event = self.window.poll_events();
+
+        match first_event {
             Some(event) => {
                 self.handle_window_event(event)
             }
@@ -294,40 +302,30 @@ impl Window {
         }
     }
 
-    pub fn wait_events(&self) -> WindowEvent {
-        {
-            let mut event_queue = self.event_queue.borrow_mut();
-            if !event_queue.is_empty() {
-                return event_queue.remove(0);
-            }
-        }
-
+    pub fn wait_events(&self) -> Vec<WindowEvent> {
+        let mut events = mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new());
         let mut close_event = false;
 
         // When writing to a file then exiting, use event
         // polling so that we don't block on a GUI event
         // such as mouse click.
         if opts::get().output_file.is_some() {
-            for event in self.window.poll_events() {
-                close_event = self.handle_window_event(event);
-                if close_event {
-                    break;
-                }
+            while let Some(event) = self.window.poll_events().next() {
+                close_event = self.handle_window_event(event) || close_event;
             }
         } else {
             close_event = self.handle_next_event();
         }
 
         if close_event || self.window.is_closed() {
-            WindowEvent::Quit
-        } else {
-            let mut event_queue = self.event_queue.borrow_mut();
-            if event_queue.is_empty() {
-                WindowEvent::Idle
-            } else {
-                event_queue.remove(0)
-            }
+            events.push(WindowEvent::Quit)
         }
+
+        for event in mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new()).into_iter() {
+            events.push(event)
+        }
+
+        events
     }
 
     pub unsafe fn set_nested_event_loop_listener(

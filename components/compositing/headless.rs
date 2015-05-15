@@ -66,7 +66,7 @@ impl NullCompositor {
 }
 
 impl CompositorEventListener for NullCompositor {
-    fn handle_event(&mut self, _: WindowEvent) -> bool {
+    fn handle_events(&mut self, _: Vec<WindowEvent>) -> bool {
         match self.port.recv_compositor_msg() {
             Msg::Exit(chan) => {
                 debug!("shutting down the constellation");
