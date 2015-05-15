@@ -2056,7 +2056,7 @@ class CGAbstractMethod(CGThing):
         assert(False) # Override me!
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "let mut raw = boxed::into_raw(object);\n"
+    create = "let mut raw = boxed::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
         assert not descriptor.isGlobal()
         create += """
@@ -5091,7 +5091,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::utils::NonNullJSNative',
-            'dom::bindings::trace::JSTraceable',
+            'dom::bindings::trace::{JSTraceable, RootedTraceable}',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::wrap_call_this_object',
