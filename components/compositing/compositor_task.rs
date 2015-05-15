@@ -231,14 +231,14 @@ impl CompositorTask {
                 box compositor::IOCompositor::create(window,
                                                      sender,
                                                      receiver,
-                                                     constellation_chan.clone(),
+                                                     constellation_chan,
                                                      time_profiler_chan,
                                                      mem_profiler_chan)
                     as Box<CompositorEventListener>
             }
             None => {
                 box headless::NullCompositor::create(receiver,
-                                                     constellation_chan.clone(),
+                                                     constellation_chan,
                                                      time_profiler_chan,
                                                      mem_profiler_chan)
                     as Box<CompositorEventListener>

@@ -158,12 +158,12 @@ fn create_constellation(opts: opts::Opts,
 
     let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
     script::script_task::ScriptTask>::start(
-        compositor_proxy.clone_compositor_proxy(),
+        compositor_proxy,
         resource_task,
         image_cache_task,
         font_cache_task,
-        time_profiler_chan.clone(),
-        mem_profiler_chan.clone(),
+        time_profiler_chan,
+        mem_profiler_chan,
         devtools_chan,
         storage_task);
 
