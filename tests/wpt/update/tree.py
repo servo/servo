@@ -173,12 +173,12 @@ class GeckoCommit(Commit):
     def export_patch(self, path=None):
         """Convert a commit in the tree to a Patch with the bug number and
         reviewer stripped from the message"""
-        args = ["%s^..%s" % (self.sha1, self.sha1)]
+        args = ["--binary", self.sha1]
         if path is not None:
             args.append("--")
             args.append(path)
 
-        diff = self.git("diff", *args)
+        diff = self.git("show", *args)
 
         return Patch(self.author, self.email, self.message, diff)
 
