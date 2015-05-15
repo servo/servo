@@ -16,8 +16,7 @@ use std_url::Url;
 
 const MAX_RENDERING_THREADS: usize = 128;
 
-// TODO(pcwalton): Get the home page via the CEF API.
-static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
+//static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
 
 static CEF_API_HASH_UNIVERSAL: &'static [u8] = b"8efd129f4afc344bd04b2feb7f73a149b6c4e27f\0";
 #[cfg(target_os="windows")]
@@ -62,7 +61,6 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     };
 
     let mut temp_opts = opts::default_opts();
-    temp_opts.url = Url::parse(HOME_URL).unwrap();
     temp_opts.paint_threads = rendering_threads;
     temp_opts.layout_threads = rendering_threads;
     temp_opts.headless = false;

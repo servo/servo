@@ -9,14 +9,16 @@ use interfaces::{CefBrowser, CefBrowserHost, CefClient, CefFrame, CefRequestCont
 use interfaces::{cef_browser_t, cef_browser_host_t, cef_client_t, cef_frame_t};
 use interfaces::{cef_request_context_t};
 use servo::Browser;
-use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
+use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t, cef_window_handle_t};
 use window;
+use wrappers::CefWrap;
 
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glutin_app;
 use libc::c_int;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, BorrowState};
+use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
 
 thread_local!(pub static ID_COUNTER: AtomicIsize = AtomicIsize::new(0));
@@ -72,6 +74,10 @@ cef_class_impl! {
         fn get_main_frame(&this,) -> *mut cef_frame_t {{
             this.downcast().frame.clone()
         }}
+
+        fn get_identifier(&this,) -> c_int {{
+            this.downcast().id as c_int
+        }}
     }
 }
 
@@ -84,6 +90,8 @@ pub struct ServoCefBrowser {
     pub client: CefClient,
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
+    /// the display system window handle: only to be used with host.get_window_handle()
+    window_handle: cef_window_handle_t,
 
     id: isize,
     servo_browser: RefCell<ServoBrowser>,
@@ -94,10 +102,12 @@ impl ServoCefBrowser {
     pub fn new(window_info: &cef_window_info_t, client: CefClient) -> ServoCefBrowser {
         let frame = ServoCefFrame::new().as_cef_interface();
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
+        let mut window_handle: cef_window_handle_t = get_null_window_handle();
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
             let glutin_window = glutin_app::create_window(window_info.parent_window as glutin_app::WindowID);
             let servo_browser = Browser::new(Some(glutin_window.clone()));
+            window_handle = glutin_window.platform_window() as cef_window_handle_t;
             ServoBrowser::OnScreen(servo_browser)
         } else {
             ServoBrowser::Invalid
@@ -115,6 +125,7 @@ impl ServoCefBrowser {
             servo_browser: RefCell::new(servo_browser),
             message_queue: RefCell::new(vec!()),
             id: id,
+            window_handle: window_handle,
         }
     }
 }
@@ -137,6 +148,9 @@ impl ServoCefBrowserExtensions for CefBrowser {
 
         self.downcast().host.set_browser((*self).clone());
         self.downcast().frame.set_browser((*self).clone());
+        if window_info.windowless_rendering_enabled == 0 {
+            self.downcast().host.initialize_compositing();
+        }
     }
 
     fn send_window_event(&self, event: WindowEvent) {
@@ -170,9 +184,21 @@ impl ServoCefBrowserExtensions for CefBrowser {
     }
 }
 
+#[cfg(target_os="macos")]
+pub fn get_null_window_handle() -> cef_window_handle_t {
+    ptr::null_mut()
+}
+#[cfg(target_os="linux")]
+pub fn get_null_window_handle() -> cef_window_handle_t {
+    0
+}
+
 pub fn update() {
     BROWSERS.with(|browsers| {
         for browser in browsers.borrow().iter() {
+            if browser.downcast().callback_executed.get() == false {
+                browser_callback_after_created(browser.clone());
+            }
             browser.send_window_event(WindowEvent::Idle);
         }
     });
@@ -185,6 +211,10 @@ pub fn close(browser: CefBrowser) {
                 .position(|&ref n| n.downcast().id == browser.downcast().id)
                 .map(|e| browsers.remove(e));
     });
+}
+
+pub fn get_window(browser: &CefBrowser) -> cef_window_handle_t {
+    browser.downcast().window_handle
 }
 
 pub fn browser_callback_after_created(browser: CefBrowser) {
@@ -201,12 +231,16 @@ pub fn browser_callback_after_created(browser: CefBrowser) {
 
 fn browser_host_create(window_info: &cef_window_info_t,
                        client: CefClient,
+                       url: *const cef_string_t,
                        callback_executed: bool)
                        -> CefBrowser {
     let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();
     browser.init(window_info);
     if callback_executed {
         browser_callback_after_created(browser.clone());
+    }
+    if url != ptr::null() {
+       unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
     }
     BROWSERS.with(|browsers| {
         browsers.borrow_mut().push(browser.clone());
@@ -217,27 +251,25 @@ fn browser_host_create(window_info: &cef_window_info_t,
 cef_static_method_impls! {
     fn cef_browser_host_create_browser(window_info: *const cef_window_info_t,
                                        client: *mut cef_client_t,
-                                       _url: *const cef_string_t,
+                                       url: *const cef_string_t,
                                        _browser_settings: *const cef_browser_settings_t,
                                        _request_context: *mut cef_request_context_t)
                                        -> c_int {{
         let client: CefClient = client;
-        let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
-        browser_host_create(window_info, client, false);
+        browser_host_create(window_info, client, url, false);
         1i32
     }}
     fn cef_browser_host_create_browser_sync(window_info: *const cef_window_info_t,
                                             client: *mut cef_client_t,
-                                            _url: *const cef_string_t,
+                                            url: *const cef_string_t,
                                             _browser_settings: *const cef_browser_settings_t,
                                             _request_context: *mut cef_request_context_t)
                                             -> *mut cef_browser_t {{
         let client: CefClient = client;
-        let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
-        browser_host_create(window_info, client, true)
+        browser_host_create(window_info, client, url, true)
     }}
 }

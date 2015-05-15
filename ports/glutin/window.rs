@@ -101,6 +101,10 @@ impl Window {
         Rc::new(window)
     }
 
+    pub fn platform_window(&self) -> glutin::WindowID {
+        unsafe { self.window.platform_window() }
+    }
+
     fn nested_window_resize(width: u32, height: u32) {
         unsafe {
             match g_nested_event_loop_listener {
