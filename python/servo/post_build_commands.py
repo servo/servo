@@ -75,7 +75,7 @@ class MachCommands(CommandBase):
              category='post-build')
     @CommandArgument('--release', '-r', action='store_true',
                      help='Run the release build')
-    @CommandArgument('--dev', action='store_true',
+    @CommandArgument('--dev', '-d', action='store_true',
                      help='Run the dev build')
     @CommandArgument('--debug', action='store_true',
                      help='Enable the debugger. Not specifying a '
@@ -127,7 +127,7 @@ class MachCommands(CommandBase):
              category='post-build')
     @CommandArgument('--release', '-r', action='store_true',
                      help='Use release build')
-    @CommandArgument('--dev', action='store_true',
+    @CommandArgument('--dev', '-d', action='store_true',
                      help='Use dev build')
     @CommandArgument(
         'params', nargs='...',
