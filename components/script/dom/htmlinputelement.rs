@@ -413,7 +413,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
                                         .as_ref()
                                         .map(|group| &**group));
         }
-        
+
         self.force_relayout();
         //TODO: dispatch change event
     }
