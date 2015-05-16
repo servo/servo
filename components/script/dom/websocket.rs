@@ -96,8 +96,11 @@ impl WebSocket {
                                          WebSocketBinding::Wrap).root();
         let ws_root = ws_root.r();
         let parsed_url = Url::parse(&ws_root.url).unwrap();
-        let request = Client::connect(parsed_url).unwrap();
-        let response = request.send().unwrap();
+        let request = Client::connect(parsed_url);
+        if request.is_err() {
+            return Temporary::from_rooted(ws_root);
+        }
+        let response = request.unwrap().send().unwrap();
         response.validate().unwrap();
         ws_root.ready_state.set(WebSocketRequestState::Open);
         //Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
