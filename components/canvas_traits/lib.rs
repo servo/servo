@@ -8,6 +8,7 @@ extern crate azure;
 extern crate geom;
 extern crate cssparser;
 extern crate gfx_traits;
+extern crate layers;
 
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
@@ -21,6 +22,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx_traits::color;
 use std::sync::mpsc::{Sender};
+use layers::platform::surface::NativeSurface;
 
 #[derive(Clone)]
 pub enum CanvasMsg {
@@ -93,6 +95,7 @@ pub enum CanvasCommonMsg {
     Close,
     Recreate(Size2D<i32>),
     SendPixelContents(Sender<Vec<u8>>),
+    SendNativeSurface(Sender<NativeSurface>),
 }
 
 

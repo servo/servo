@@ -5,19 +5,18 @@
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
-use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
-use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
+use azure::azure_hl::{JoinStyle, CapStyle};
 use canvas_traits::*;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use layers::platform::surface::NativeSurface;
 use gfx_traits::color;
 use num::ToPrimitive;
 use util::task::spawn_named;
 use util::vec::byte_swap;
 
-use cssparser::RGBA;
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::mpsc::{channel, Sender};
@@ -257,6 +256,8 @@ impl<'a> CanvasPaintTask<'a> {
                             CanvasCommonMsg::Recreate(size) => painter.recreate(size),
                             CanvasCommonMsg::SendPixelContents(chan) =>
                                 painter.send_pixel_contents(chan),
+                            CanvasCommonMsg::SendNativeSurface(chan) =>
+                                painter.send_native_surface(chan),
                         }
                     },
                     CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D task"),
@@ -495,6 +496,14 @@ impl<'a> CanvasPaintTask<'a> {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             chan.send(element.to_vec()).unwrap();
         })
+    }
+
+    fn send_native_surface(&self, chan: Sender<NativeSurface>) {
+        let mut native_surface: NativeSurface =
+            NativeSurface::from_draw_target_backing(self.drawtarget.backing.clone());
+        native_surface.mark_wont_leak();
+
+        chan.send(native_surface).unwrap();
     }
 
     fn get_image_data(&self, mut dest_rect: Rect<f64>, canvas_size: Size2D<f64>, chan: Sender<Vec<u8>>) {

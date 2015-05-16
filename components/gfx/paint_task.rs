@@ -33,6 +33,7 @@ use std::borrow::ToOwned;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::collections::HashMap;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
 use util::task::spawn_named_with_send_on_failure;
@@ -127,6 +128,9 @@ pub struct PaintTask<C> {
     /// Tracks the number of buffers that the compositor currently owns. The
     /// PaintTask waits to exit until all buffers are returned.
     used_buffer_count: usize,
+
+    /// A map to track the canvas specific layers
+    canvas_map: HashMap<LayerId, Arc<Mutex<Sender<CanvasMsg>>>>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -172,6 +176,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     buffer_map: BufferMap::new(10000000),
                     worker_threads: worker_threads,
                     used_buffer_count: 0,
+                    canvas_map: HashMap::new()
                 };
 
                 paint_task.start();
@@ -218,8 +223,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
 
                     self.initialize_layers();
                 }
+                // Inserts a new canvas renderer to the layer map
                 Msg::CanvasLayer(layer_id, canvas_renderer) => {
-                    panic!("Received renderer for layer id: {:?}", layer_id);
+                    self.canvas_map.insert(layer_id, canvas_renderer);
                 }
                 Msg::Paint(requests, frame_tree_id) => {
                     if !self.paint_permission {

@@ -54,6 +54,9 @@ use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 
+use canvas_traits::{CanvasMsg, CanvasCommonMsg};
+use std::sync::mpsc::channel;
+
 /// The results of display list building for a single flow.
 pub enum DisplayListBuildingResult {
     None,
@@ -1044,32 +1047,33 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
-                match canvas_fragment_info.renderer {
-                    // Some(ref renderer) => {
-                    //     panic!("Renderer found!");
-                    // }
-                    // None => {
-                    _ => {
-                        let width = canvas_fragment_info.replaced_image_fragment_info
-                            .computed_inline_size.map_or(0, |w| w.to_px() as usize);
-                        let height = canvas_fragment_info.replaced_image_fragment_info
-                            .computed_block_size.map_or(0, |h| h.to_px() as usize);
-                        display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
-                            base: BaseDisplayItem::new(stacking_relative_content_box,
-                                                       DisplayItemMetadata::new(self.node,
-                                                                                    &*self.style,
-                                                                                    Cursor::DefaultCursor),
-                                                       (*clip).clone()),
-                            image: Arc::new(png::Image {
-                                width: width as u32,
-                                height: height as u32,
-                                pixels: PixelsByColorType::RGBA8(repeat(0xFFu8).take(width * height * 4).collect()),
-                            }),
-                            stretch_size: stacking_relative_content_box.size,
-                            image_rendering: image_rendering::T::Auto,
-                        }));
-                    }
-                }
+                // TODO(ecoal95): make the canvas with a renderer use the custom layer
+                let width = canvas_fragment_info.replaced_image_fragment_info
+                    .computed_inline_size.map_or(0, |w| w.to_px() as usize);
+                let height = canvas_fragment_info.replaced_image_fragment_info
+                    .computed_block_size.map_or(0, |h| h.to_px() as usize);
+                let (sender, receiver) = channel::<Vec<u8>>();
+                let canvas_data = match canvas_fragment_info.renderer {
+                    Some(ref renderer) =>  {
+                        renderer.lock().unwrap().send(CanvasMsg::Common(CanvasCommonMsg::SendPixelContents(sender))).unwrap();
+                        receiver.recv().unwrap()
+                    },
+                    None => repeat(0xFFu8).take(width * height * 4).collect(),
+                };
+                display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
+                    base: BaseDisplayItem::new(stacking_relative_content_box,
+                                               DisplayItemMetadata::new(self.node,
+                                                                        &*self.style,
+                                                                        Cursor::DefaultCursor),
+                                               (*clip).clone()),
+                    image: Arc::new(png::Image {
+                        width: width as u32,
+                        height: height as u32,
+                        pixels: PixelsByColorType::RGBA8(canvas_data),
+                    }),
+                    stretch_size: stacking_relative_content_box.size,
+                    image_rendering: image_rendering::T::Auto,
+                }));
             }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Shouldn't see unscanned fragments here.")

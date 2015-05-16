@@ -14,6 +14,7 @@ extern crate gfx_traits;
 extern crate util;
 extern crate gleam;
 extern crate num;
+extern crate layers;
 extern crate offscreen_gl_context;
 
 #[macro_use]

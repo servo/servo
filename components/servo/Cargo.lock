@@ -74,6 +74,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx_traits 0.0.1",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "util 0.0.1",
@@ -87,6 +88,7 @@ dependencies = [
  "cssparser 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx_traits 0.0.1",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
 ]
 
 [[package]]
@@ -875,13 +877,14 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#c2b3dfd7fe344384e4206672b99c296141f5b4d6"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#97eacf34b72f69b10130a0de016529e98ee32f04"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
