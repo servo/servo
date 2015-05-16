@@ -21,13 +21,13 @@ interface WebSocket : EventTarget {
     attribute EventHandler onclose;
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
-    //[Throws] void close([Clamp] optional unsigned short code, optional DOMString reason); //Clamp doesn't work
-    [Throws] void close(optional unsigned short code, optional DOMString reason); //No clamp version - works
+    //[Throws] void close([Clamp] optional unsigned short code, optional USVString reason); //Clamp doesn't work
+    [Throws] void close(optional unsigned short code, optional USVString reason); //No clamp version - works
 
     //messaging
     //attribute EventHandler onmessage;
     //attribute BinaryType binaryType;
-    [Throws] void send(optional DOMString data);
+    [Throws] void send(optional USVString data);
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);
