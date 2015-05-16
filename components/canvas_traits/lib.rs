@@ -11,8 +11,7 @@ extern crate gfx_traits;
 extern crate layers;
 
 use azure::azure::AzFloat;
-use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
-use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
+use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
 use cssparser::RGBA;
