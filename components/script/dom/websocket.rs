@@ -96,7 +96,16 @@ impl WebSocket {
                                          WebSocketBinding::Wrap).root();
         let ws_root = ws_root.r();
         let parsed_url = Url::parse(&ws_root.url).unwrap();
-        let request = Client::connect(parsed_url).unwrap();
+        let request = match Client::connect(parsed_url) {
+            Ok(request) => request,
+            Err(_) => {
+                let global_root = ws_root.global.root();
+                let address = Trusted::new(global_root.r().get_cx(), ws_root, global_root.r().script_chan().clone());
+                let task = box WebSocketTaskHandler::new(address, WebSocketTask::Close);
+                global_root.r().script_chan().send(ScriptMsg::RunnableMsg(task)).unwrap();
+                return Temporary::from_rooted(ws_root);
+            }
+        };
         let response = request.send().unwrap();
         response.validate().unwrap();
         ws_root.ready_state.set(WebSocketRequestState::Open);
