@@ -269,6 +269,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 experimental == rtl_body.html rtl_body_ref.html
 experimental == rtl_margin_a.html rtl_margin_ref.html
 experimental == rtl_simple.html rtl_simple_ref.html
+experimental == rtl_table_a.html rtl_table_ref.html
 == servo_center_a.html servo_center_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
