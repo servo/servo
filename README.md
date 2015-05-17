@@ -27,7 +27,7 @@ On Debian-based Linuxes:
 ``` sh
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
-    msttcorefonts gperf g++ cmake python-virtualenv \
+    ttf-mscorefonts-installer gperf g++ cmake python-virtualenv \
     libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev
 ```
 
