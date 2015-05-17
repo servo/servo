@@ -2149,10 +2149,25 @@ return do_create_interface_objects(cx, global, receiver, parent_proto,
                                    %s,
                                    &sNativeProperties);""" % (protoClass, constructor, domClass)
 
-        return CGList([
+        arr =[
             CGGeneric(getParentProto),
             CGGeneric(call % self.properties.variableNames())
-        ], "\n")
+        ]
+        for ctor in self.descriptor.interface.namedConstructors:
+            constructHook = CONSTRUCT_HOOK_NAME + "_" + ctor.identifier.name;
+            constructArgs = methodLength(ctor)
+            constructor = 'Some((%s as NonNullJSNative, "%s", %d))' % (
+                constructHook, ctor.identifier.name, constructArgs)
+            named_call = """\
+do_create_interface_objects(cx, global, receiver, parent_proto,
+                            %s, %s,
+                            %s,
+                            &sNativeProperties);""" % (protoClass,
+                                                       constructor,
+                                                       domClass)
+            arr.insert(1, CGGeneric(named_call))
+
+        return CGList(arr, "\n")
 
 class CGGetPerInterfaceObject(CGAbstractMethod):
     """
@@ -4209,6 +4224,32 @@ let global = global.root();
                                      self.descriptor, self._ctor)
         return CGList([preamble, callGenerator])
 
+class CGClassNameConstructHook(CGAbstractExternMethod):
+    """
+    JS-visible named constructor for our objects
+    """
+    def __init__(self, descriptor, ctor):
+        args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
+        self._ctor = ctor
+        CGAbstractExternMethod.__init__(self, descriptor,
+                                        CONSTRUCT_HOOK_NAME + "_" +
+                                            self._ctor.identifier.name,
+                                        'JSBool', args)
+
+    def define(self):
+        return CGAbstractExternMethod.define(self)
+
+    def definition_body(self):
+        preamble = CGGeneric("""\
+let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global.root();
+""")
+        name = self._ctor.identifier.name
+        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+        callGenerator = CGMethodCall(["global.r()"], nativeName, True,
+                                     self.descriptor, self._ctor)
+        return CGList([preamble, callGenerator])
+
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
     A hook for finalize, used to release our native object.
@@ -4377,6 +4418,8 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGClassConstructHook(descriptor))
+            for ctor in descriptor.interface.namedConstructors:
+                cgThings.append(CGClassNameConstructHook(descriptor, ctor))
             cgThings.append(CGInterfaceObjectJSClass(descriptor))
 
         if not descriptor.interface.isCallback():
