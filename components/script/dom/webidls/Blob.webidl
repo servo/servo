@@ -16,12 +16,8 @@ interface Blob {
 
   //slice Blob into byte-ranged chunks
 
-  //TODO: implement slice with [Clamp]
-  //Blob slice([Clamp] optional long long start,
-  //           [Clamp] optional long long end,
-  //           optional DOMString contentType);
-  Blob slice(optional long long start,
-             optional long long end,
+  Blob slice([Clamp] optional long long start,
+             [Clamp] optional long long end,
              optional DOMString contentType);
   //void close();
 
