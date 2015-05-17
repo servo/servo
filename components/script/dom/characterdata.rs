@@ -21,7 +21,6 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::Ref;
-use std::cmp;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
@@ -68,47 +67,50 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         data.chars().count() as u32
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
+    // https://dom.spec.whatwg.org/#dom-characterdata-substringdataoffset-count
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
         let data = self.data.borrow();
         // Step 1.
-        let len = data.chars().count();
-        if offset as usize > len {
+        let length = data.chars().count() as u32;
+        if offset > length {
             // Step 2.
             return Err(IndexSize);
         }
-        // Step 3.
-        let end = cmp::min((offset + count) as usize, len);
-        // Step 4.
-        Ok(data.slice_chars(offset as usize, end).to_owned())
+        // Steps 3-4.
+        let end = if length - offset < count { length } else { offset + count };
+        Ok(data.slice_chars(offset as usize, end as usize).to_owned())
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-appenddata
+    // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(self, data: DOMString) {
         self.data.borrow_mut().push_str(&data);
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-insertdata
+    // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data
     fn InsertData(self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-deletedata
+    // https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count
     fn DeleteData(self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, "".to_owned())
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-replacedata
+    // https://dom.spec.whatwg.org/#dom-characterdata-replacedataoffset-count-data
     fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
+        // Step 1.
         let length = self.data.borrow().chars().count() as u32;
         if offset > length {
+            // Step 2.
             return Err(IndexSize);
         }
-        let count = if offset + count > length {
-            length - offset
-        } else {
-            count
+        // Step 3.
+        let count = match length - offset {
+            diff if diff < count => diff,
+            _ => count,
         };
+        // Step 4: Mutation observers.
+        // Step 5.
         let mut data = self.data.borrow().slice_chars(0, offset as usize).to_owned();
         data.push_str(&arg);
         data.push_str(&self.data.borrow().slice_chars((offset + count) as usize, length as usize));
