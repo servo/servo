@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.whatwg.org/html/#htmlimageelement
-//[NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
+[NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
 interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
            attribute DOMString src;
