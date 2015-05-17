@@ -9,8 +9,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::error::Error::InvalidAccess;
-use dom::bindings::error::Error::Syntax;
+use dom::bindings::error::Error::{InvalidAccess, Syntax};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Temporary, JSRef, Rootable};
 use dom::bindings::refcounted::Trusted;
@@ -33,6 +32,7 @@ use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
 
+use url::{SchemeData, SchemeType, UrlParser};
 
 #[derive(PartialEq, Copy, Clone)]
 #[jstraceable]
@@ -63,6 +63,42 @@ pub struct WebSocket {
     sendCloseFrame: Cell<bool>
 }
 
+fn web_socket_scheme_types(scheme: &str) -> SchemeType {
+    match scheme {
+        "ws" => SchemeType::Relative(80),
+        "wss" => SchemeType::Relative(443),
+        _ => SchemeType::NonRelative,
+    }
+}
+
+fn parse_web_socket_url(url_str: &str) -> Fallible<Url> {
+    // https://html.spec.whatwg.org/multipage/comms.html#parse-a-websocket-url's-components
+    // 1. No basepath specified, so it's absolute by default
+    // 2. UrlParser defaults to UTF-8 encoding
+    // 3. Specifying only ws and wss
+    let parsed_url = UrlParser::new()
+        .scheme_type_mapper(web_socket_scheme_types)
+        .parse(url_str);
+        
+    if parsed_url.is_err(){
+        return Err(Error::Syntax);
+    }
+
+    let parsed_url = parsed_url.unwrap();
+
+    // 3. Didn't match ws or wss
+    if let SchemeData::NonRelative(_) = parsed_url.scheme_data {
+        return Err(Error::Syntax);
+    }
+
+    // 4. If the parsed url has a non-null fragment, fail
+    if parsed_url.fragment != None {
+        return Err(Error::Syntax);
+    }
+
+    Ok(parsed_url)
+}
+
 impl WebSocket {
     pub fn new_inherited(global: GlobalRef, url: DOMString) -> WebSocket {
         WebSocket {
@@ -83,7 +119,7 @@ impl WebSocket {
 
     }
 
-    pub fn new(global: GlobalRef, url: DOMString) -> Temporary<WebSocket> {
+    pub fn new(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         /*TODO: This constructor is only a prototype, it does not accomplish the specs
           defined here:
           http://html.spec.whatwg.org
@@ -95,7 +131,13 @@ impl WebSocket {
                                          global,
                                          WebSocketBinding::Wrap).root();
         let ws_root = ws_root.r();
-        let parsed_url = Url::parse(&ws_root.url).unwrap();
+
+        let parsed_url = parse_web_socket_url(&ws_root.url);
+        if let Err(e) = parsed_url {
+            return Err(e);
+        }
+
+        let parsed_url = parsed_url.unwrap();
         let request = Client::connect(parsed_url).unwrap();
         let response = request.send().unwrap();
         response.validate().unwrap();
@@ -106,8 +148,9 @@ impl WebSocket {
         let failed = ws_root.failed.get();
         if failed && (ready_state == WebSocketRequestState::Closed || ready_state == WebSocketRequestState::Closing) {
             //Do nothing else. Let the close finish.
-            return Temporary::from_rooted(ws_root);
+            return Ok(Temporary::from_rooted(ws_root));
         }
+        
         let (temp_sender, temp_receiver) = response.begin().split();
         let mut other_sender = ws_root.sender.borrow_mut();
         let mut other_receiver = ws_root.receiver.borrow_mut();
@@ -132,11 +175,11 @@ impl WebSocket {
           it confirms the websocket is now closed. This requires the close event
           to be fired (dispatch_close fires the close event - see implementation below)
         */
-        Temporary::from_rooted(ws_root)
+        Ok(Temporary::from_rooted(ws_root))
     }
 
     pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
-        Ok(WebSocket::new(global, url))
+        WebSocket::new(global, url)
     }
 }
 
