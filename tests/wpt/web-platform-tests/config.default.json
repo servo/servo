@@ -11,7 +11,8 @@
          "openssl": {
              "openssl_binary": "openssl",
              "base_path": "_certs",
-             "force_regenerate": false
+             "force_regenerate": false,
+             "base_conf_path": null
          },
          "pregenerated": {
              "host_key_path": null,

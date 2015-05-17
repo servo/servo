@@ -5,9 +5,13 @@
 <script src=../../../constants.js?pipe=sub></script>
 <div id=log></div>
 <script>
+var ws = null;
+setup(function() {
+  ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo_raw');
+});
+
 async_test(function(t) {
-  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo_raw');
-  ws.addEventListener('open', t.step_func(function(e) {
+  ws.addEventListener('open', t.step_func_done(function(e) {
     // first a text frame, then a frame with reserved opcode 3
     // which should fail the connection
     ws.send('\\x81\\x04test\\x83\\x03LOL');
@@ -15,21 +19,29 @@ async_test(function(t) {
     assert_equals(e.bubbles, false, 'open e.bubbles');
     assert_equals(e.cancelable, false, 'open e.cancelable');
   }), false);
-  ws.addEventListener('message', t.step_func(function(e) {
+}, "open event");
+
+async_test(function(t) {
+  ws.addEventListener('message', t.step_func_done(function(e) {
     assert_equals(e.toString(), '[object MessageEvent]', "message e.toString()");
     assert_equals(e.bubbles, false, 'message e.bubbles');
     assert_equals(e.cancelable, false, 'message e.cancelable');
   }), false);
-  ws.addEventListener('error', t.step_func(function(e) {
+}, "message event");
+
+async_test(function(t) {
+  ws.addEventListener('error', t.step_func_done(function(e) {
     assert_equals(e.toString(), '[object Event]', "error e.toString()");
     assert_equals(e.bubbles, false, 'error e.bubbles');
     assert_equals(e.cancelable, false, 'error e.cancelable');
   }), false);
-  ws.addEventListener('close', t.step_func(function(e) {
+}, "error event");
+
+async_test(function(t) {
+  ws.addEventListener('close', t.step_func_done(function(e) {
     assert_equals(e.toString(), '[object CloseEvent]', "close e.toString()");
     assert_equals(e.bubbles, false, 'close e.bubbles');
     assert_equals(e.cancelable, false, 'close e.cancelable');
-    t.done();
   }), false);
-});
+}, "close event");
 </script>

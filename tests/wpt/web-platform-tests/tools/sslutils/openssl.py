@@ -6,7 +6,8 @@ import tempfile
 from datetime import datetime
 
 class OpenSSL(object):
-    def __init__(self, logger, binary, base_path, conf_path, hosts, duration):
+    def __init__(self, logger, binary, base_path, conf_path, hosts, duration,
+                 base_conf_path=None):
         """Context manager for interacting with OpenSSL.
         Creates a config file for the duration of the context.
 
@@ -21,6 +22,7 @@ class OpenSSL(object):
         self.base_path = base_path
         self.binary = binary
         self.conf_path = conf_path
+        self.base_conf_path = base_conf_path
         self.logger = logger
         self.proc = None
         self.cmd = []
@@ -53,7 +55,13 @@ class OpenSSL(object):
         if cmd != "x509":
             self.cmd += ["-config", self.conf_path]
         self.cmd += list(args)
-        self.proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        env = os.environ.copy()
+        if self.base_conf_path is not None:
+            env["OPENSSL_CONF"] = self.base_conf_path.encode("utf8")
+
+        self.proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                     env=env)
         stdout, stderr = self.proc.communicate()
         self.log(stdout)
         if self.proc.returncode != 0:
@@ -99,6 +107,11 @@ def get_config(root_dir, hosts, duration=30):
     else:
         san_line = "subjectAltName = %s" % make_alt_names(hosts)
 
+    if os.path.sep == "\\":
+        # This seems to be needed for the Shining Light OpenSSL on
+        # Windows, at least.
+        root_dir = root_dir.replace("\\", "\\\\")
+
     rv = """[ ca ]
 default_ca = CA_default
 
@@ -106,15 +119,15 @@ default_ca = CA_default
 dir = %(root_dir)s
 certs = $dir
 new_certs_dir = $certs
-crl_dir = $dir/crl
-database = $dir/index.txt
-private_key = $dir/cakey.pem
-certificate = $dir/cacert.pem
-serial = $dir/serial
-crldir = $dir/crl
-crlnumber = $dir/crlnumber
-crl = $crldir/crl.pem
-RANDFILE = $dir/private/.rand
+crl_dir = $dir%(sep)scrl
+database = $dir%(sep)sindex.txt
+private_key = $dir%(sep)scakey.pem
+certificate = $dir%(sep)scacert.pem
+serial = $dir%(sep)sserial
+crldir = $dir%(sep)scrl
+crlnumber = $dir%(sep)scrlnumber
+crl = $crldir%(sep)scrl.pem
+RANDFILE = $dir%(sep)sprivate%(sep)s.rand
 x509_extensions = usr_cert
 name_opt        = ca_default
 cert_opt        = ca_default
@@ -184,7 +197,8 @@ authorityKeyIdentifier=keyid:always,issuer:always
 keyUsage = keyCertSign
 """ % {"root_dir": root_dir,
        "san_line": san_line,
-       "duration": duration}
+       "duration": duration,
+       "sep": os.path.sep}
 
     return rv
 
@@ -193,7 +207,7 @@ class OpenSSLEnvironment(object):
 
     def __init__(self, logger, openssl_binary="openssl", base_path=None,
                  password="web-platform-tests", force_regenerate=False,
-                 duration=30):
+                 duration=30, base_conf_path=None):
         """SSL environment that creates a local CA and host certificate using OpenSSL.
 
         By default this will look in base_path for existing certificates that are still
@@ -218,6 +232,7 @@ class OpenSSLEnvironment(object):
         self.password = password
         self.force_regenerate = force_regenerate
         self.duration = duration
+        self.base_conf_path = base_conf_path
 
         self.path = None
         self.binary = openssl_binary
@@ -249,7 +264,7 @@ class OpenSSLEnvironment(object):
     def _config_openssl(self, hosts):
         conf_path = self.path("openssl.cfg")
         return OpenSSL(self.logger, self.binary, self.base_path, conf_path, hosts,
-                       self.duration)
+                       self.duration, self.base_conf_path)
 
     def ca_cert_path(self):
         """Get the path to the CA certificate file, generating a

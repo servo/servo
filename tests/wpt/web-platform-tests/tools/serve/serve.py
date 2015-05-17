@@ -180,7 +180,7 @@ def start_servers(host, ports, paths, routes, bind_hostname, external_config, ss
     for scheme, ports in ports.iteritems():
         assert len(ports) == {"http":2}.get(scheme, 1)
 
-        for port  in ports:
+        for port in ports:
             if port is None:
                 continue
             init_func = {"http":start_http_server,
@@ -290,11 +290,11 @@ def start_wss_server(host, port, path, routes, bind_hostname, external_config, s
     return
 
 
-def get_ports(config, ssl_enabled):
+def get_ports(config, ssl_environment):
     rv = defaultdict(list)
     for scheme, ports in config["ports"].iteritems():
         for i, port in enumerate(ports):
-            if scheme in ["http", "https"] and not ssl_enabled:
+            if scheme in ["wss", "https"] and not ssl_environment.ssl_enabled:
                 port = None
             if port == "auto":
                 port = get_port()
