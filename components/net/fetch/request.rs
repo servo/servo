@@ -258,52 +258,50 @@ impl Request {
                 if self.redirect_mode == RedirectMode::Error {
                     return Response::network_error();
                 }
-                if response.headers.has::<Location>() {
-                    // Step 2
-                    let location = response.headers.get::<Location>();
-                    // Step 3-4
-                    match location {
-                        Some(val) => if val.is_empty() { return response.clone(); },
-                        None => { return Response::network_error(); }
-                    }
-                    // Step 5
-                    let locationUrl = Url::parse(location.unwrap());
-                    // Step 6
-                    let locationUrl = match locationUrl {
-                        Ok(url) => url,
-                        Err(_) => return Response::network_error()
-                    };
-                    // Step 7
-                    if self.redirect_count == 20 {
+                // Step 2-4
+                if !response.headers.has::<Location>() {
+                    return response;
+                }
+                let location = response.headers.get::<Location>();
+                match location {
+                    Some(val) => if val.is_empty() { return response.clone(); },
+                    None => { return Response::network_error(); }
+                }
+                // Step 5
+                let locationUrl = Url::parse(location.unwrap());
+                // Step 6
+                let locationUrl = match locationUrl {
+                    Ok(url) => url,
+                    Err(_) => return Response::network_error()
+                };
+                // Step 7
+                if self.redirect_count == 20 {
+                    return Response::network_error();
+                }
+                // Step 8
+                self.redirect_count += 1;
+                // Step 9
+                self.same_origin_data = false;
+                // Step 10
+                if self.redirect_mode == RedirectMode::Follow {
+                    // FIXME: Origin method of the Url crate hasn't been implemented (https://github.com/servo/rust-url/issues/54)
+                    // Substep 1
+                    // if cors_flag && locationUrl.origin() != self.url.origin() { self.origin = None; }
+                    // Substep 2
+                    if cors_flag && (!locationUrl.username().unwrap_or("").is_empty() ||
+                                      locationUrl.password().is_some()) {
                         return Response::network_error();
                     }
-                    // Step 8
-                    self.redirect_count += 1;
-                    // Step 9
-                    self.same_origin_data = false;
-                    // Step 10
-                    if self.redirect_mode == RedirectMode::Follow {
-                        // FIXME: Origin method of the Url crate hasn't been implemented (https://github.com/servo/rust-url/issues/54)
-                        // Substep 1
-                        // if cors_flag && locationUrl.origin() != self.url.origin() { self.origin = None; }
-                        // Substep 2
-                        if cors_flag && (!locationUrl.username().unwrap_or("").is_empty() ||
-                                          locationUrl.password().is_some()) {
-                            return Response::network_error();
-                        }
-                        // Substep 3
-                        if response.status.unwrap() == StatusCode::MovedPermanently ||
-                           response.status.unwrap() == StatusCode::SeeOther ||
-                           (response.status.unwrap() == StatusCode::Found && self.method == Method::Post) {
-                            self.method = Method::Get;
-                        }
-                        // Substep 4
-                        self.url = locationUrl;
-                        // Substep 5
-                        return self.fetch(cors_flag);
+                    // Substep 3
+                    if response.status.unwrap() == StatusCode::MovedPermanently ||
+                       response.status.unwrap() == StatusCode::SeeOther ||
+                       (response.status.unwrap() == StatusCode::Found && self.method == Method::Post) {
+                        self.method = Method::Get;
                     }
-                } else {
-                    return response;
+                    // Substep 4
+                    self.url = locationUrl;
+                    // Substep 5
+                    return self.fetch(cors_flag);
                 }
             }
             // Code 401
