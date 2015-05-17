@@ -247,7 +247,7 @@ impl WebSocketTaskHandler {
         let event = Event::new(global.r(),
             "open".to_owned(),
             EventBubbles::DoesNotBubble,
-            EventCancelable::Cancelable).root();
+            EventCancelable::NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
         event.r().fire(target);
     }
