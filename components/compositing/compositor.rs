@@ -1288,8 +1288,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composite_specific_target(target);
     }
 
-    fn composite_specific_target(&mut self, target: CompositeTarget) -> Option<png::Image> {
-        if !self.window.prepare_for_composite() {
+    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Option<png::Image> {
+        if !self.context.is_some() {
+            return None
+        }
+        if !self.window.prepare_for_composite(width, height) {
             return None
         }
 
