@@ -95,17 +95,6 @@
     onlevelchange_test.done();
   };
 
-  // compute primes to deplete the battery faster
-  var w = new Worker('prime.js');
-  w.postMessage('compute');
-  w.onmessage = function (e) {
-    document.querySelector('#prime').textContent = e.data;
-  };
-
-  add_completion_callback(function () {
-    w.terminate();
-  });
-
   navigator.getBattery().then(batterySuccess, batteryFailure);
 
 })();

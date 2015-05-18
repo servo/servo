@@ -43,7 +43,7 @@ use std::sync::Arc;
 use std::sync::mpsc::channel;
 use style::computed_values::filter::Filter;
 use style::computed_values::transform::ComputedMatrix;
-use style::computed_values::{background_attachment, background_origin, background_repeat, background_size};
+use style::computed_values::{background_attachment, background_clip, background_origin, background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position, visibility};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
@@ -309,8 +309,31 @@ impl FragmentDisplayListBuilding for Fragment {
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a fragment".
         let background_color = style.resolve_color(style.get_background().background_color);
+
+        // 'background-clip' determines the area within which the background is painted.
+        // http://dev.w3.org/csswg/css-backgrounds-3/#the-background-clip
+        let mut bounds = *absolute_bounds;
+
+        match style.get_background().background_clip {
+            background_clip::T::border_box => {}
+            background_clip::T::padding_box => {
+                let border = style.logical_border_width().to_physical(style.writing_mode);
+                bounds.origin.x = bounds.origin.x + border.left;
+                bounds.origin.y = bounds.origin.y + border.top;
+                bounds.size.width = bounds.size.width - border.horizontal();
+                bounds.size.height = bounds.size.height - border.vertical();
+            }
+            background_clip::T::content_box => {
+                let border_padding = self.border_padding.to_physical(style.writing_mode);
+                bounds.origin.x = bounds.origin.x + border_padding.left;
+                bounds.origin.y = bounds.origin.y + border_padding.top;
+                bounds.size.width = bounds.size.width - border_padding.horizontal();
+                bounds.size.height = bounds.size.height - border_padding.vertical();
+            }
+        }
+
         display_list.push(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
-            base: BaseDisplayItem::new(*absolute_bounds,
+            base: BaseDisplayItem::new(bounds,
                                        DisplayItemMetadata::new(self.node,
                                                                 style,
                                                                 Cursor::DefaultCursor),

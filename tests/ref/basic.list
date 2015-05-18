@@ -9,9 +9,6 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
-== 2dcontext/lineto_a.html 2dcontext/lineto_ref.html
-== 2dcontext/transform_a.html 2dcontext/transform_ref.html
-
 == absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
@@ -22,6 +19,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 flaky_cpu == append_style_a.html append_style_b.html
 == attr_exists_selector.html attr_exists_selector_ref.html
 == attr_selector_case_sensitivity.html attr_selector_case_sensitivity_ref.html
+== background_clip_a.html background_clip_ref.html
 == background_external_stylesheet.html background_ref.html
 == background_image_position_a.html background_image_position_ref.html
 == background_none_a.html background_none_b.html
@@ -268,6 +266,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 experimental == rtl_body.html rtl_body_ref.html
 experimental == rtl_margin_a.html rtl_margin_ref.html
 experimental == rtl_simple.html rtl_simple_ref.html
+experimental == rtl_table_a.html rtl_table_ref.html
 == servo_center_a.html servo_center_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html

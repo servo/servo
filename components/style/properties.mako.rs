@@ -1295,6 +1295,8 @@ pub mod longhands {
 
     ${single_keyword("background-attachment", "scroll fixed")}
 
+    ${single_keyword("background-clip", "border-box padding-box content-box")}
+
     ${single_keyword("background-origin", "padding-box border-box content-box")}
 
     <%self:longhand name="background-size">
@@ -4247,9 +4249,9 @@ pub mod shorthands {
     // TODO: other background-* properties
     <%self:shorthand name="background"
                      sub_properties="background-color background-position background-repeat background-attachment
-                                     background-image background-size background-origin">
-        use properties::longhands::{background_color, background_position, background_repeat};
-        use properties::longhands::{background_attachment, background_image, background_size, background_origin};
+                                     background-image background-size background-origin background-clip">
+        use properties::longhands::{background_color, background_position, background_repeat, background_attachment};
+        use properties::longhands::{background_image, background_size, background_origin, background_clip};
 
         let mut color = None;
         let mut image = None;
@@ -4259,6 +4261,7 @@ pub mod shorthands {
         let mut attachment = None;
         let mut any = false;
         let mut origin = None;
+        let mut clip = None;
 
         loop {
             if position.is_none() {
@@ -4310,6 +4313,13 @@ pub mod shorthands {
                     continue
                 }
             }
+            if clip.is_none() {
+                if let Ok(value) = input.try(|input| background_clip::parse(context, input)) {
+                    clip = Some(value);
+                    any = true;
+                    continue
+                }
+            }
             break
         }
 
@@ -4322,6 +4332,7 @@ pub mod shorthands {
                 background_attachment: attachment,
                 background_size: size,
                 background_origin: origin,
+                background_clip: clip,
             })
         } else {
             Err(())
