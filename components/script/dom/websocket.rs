@@ -148,7 +148,7 @@ impl WebSocket {
                 let address = Trusted::new(global_root.r().get_cx(), ws_root, global_root.r().script_chan().clone());
                 let task = box WebSocketTaskHandler::new(address, WebSocketTask::Close);
                 global_root.r().script_chan().send(ScriptMsg::RunnableMsg(task)).unwrap();
-                return Temporary::from_rooted(ws_root);
+                return Ok(Temporary::from_rooted(ws_root));
             }
         };
         let response = request.send().unwrap();
