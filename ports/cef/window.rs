@@ -43,6 +43,7 @@ pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
+    size: TypedSize2D<DevicePixel,u32>
 }
 
 #[cfg(target_os="macos")]
@@ -77,11 +78,12 @@ fn load_gl() {
 
 impl Window {
     /// Creates a new window.
-    pub fn new() -> Rc<Window> {
+    pub fn new(width: u32, height: u32) -> Rc<Window> {
         load_gl();
 
         Rc::new(Window {
             cef_browser: RefCell::new(None),
+            size: TypedSize2D(width, height)
         })
     }
 
@@ -166,14 +168,36 @@ impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel,u32> {
         let browser = self.cef_browser.borrow();
         match *browser {
-            None => TypedSize2D(400, 300),
+            None => self.size,
             Some(ref browser) => {
-                let mut rect = cef_rect_t::zero();
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .get_backing_rect((*browser).clone(), &mut rect);
-                TypedSize2D(rect.width as u32, rect.height as u32)
+                if browser.downcast().callback_executed.get() != true {
+                    self.size
+                } else {
+                    let mut rect = cef_rect_t::zero();
+                    rect.width = self.size.width.get() as i32;
+                    rect.height = self.size.height.get() as i32;
+                    if cfg!(target_os="macos") {
+                        // osx relies on virtual pixel scaling to provide sizes different from actual
+                        // pixel size on screen. other platforms are just 1.0 unless the desktop/toolkit says otherwise
+                        if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                           check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_backing_rect) {
+                            browser.get_host()
+                                   .get_client()
+                                   .get_render_handler()
+                                   .get_backing_rect((*browser).clone(), &mut rect);
+                        }
+                    } else {
+                        if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                           check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_view_rect) {
+                            browser.get_host()
+                                   .get_client()
+                                   .get_render_handler()
+                                   .get_view_rect((*browser).clone(), &mut rect);
+                        }
+                    }
+
+                    TypedSize2D(rect.width as u32, rect.height as u32)
+                }
             }
         }
     }
