@@ -12,6 +12,7 @@ use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
 use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
+use wrappers::CefWrap;
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
@@ -20,7 +21,7 @@ use geom::size::TypedSize2D;
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use libc::{c_char, c_void};
+use libc::{c_char, c_int, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::ptr;
 use std_url::Url;
@@ -222,7 +223,10 @@ impl WindowMethods for Window {
         match *browser {
             None => {}
             Some(ref browser) => {
-                browser.get_host().get_client().get_render_handler().on_present(browser.clone());
+                if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                   check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_present) {
+                    browser.get_host().get_client().get_render_handler().on_present(browser.clone());
+                   }
             }
         }
     }
@@ -295,10 +299,13 @@ impl WindowMethods for Window {
             None => return,
             Some(ref browser) => browser,
         };
-        browser.get_host()
-               .get_client()
-               .get_load_handler()
-               .on_load_end((*browser).clone(), browser.get_main_frame(), 200);
+        if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_end) {
+            browser.get_host()
+                   .get_client()
+                   .get_load_handler()
+                   .on_load_end((*browser).clone(), browser.get_main_frame(), 200);
+        }
     }
 
     fn set_page_title(&self, string: Option<String>) {
@@ -349,11 +356,14 @@ impl WindowMethods for Window {
             Some(ref browser) => {
                 let cursor_handle = self.cursor_handle_for_cursor(cursor);
                 let info = CefCursorInfo { hotspot: cef_point_t {x: 0, y: 0}, image_scale_factor: 0.0, buffer: 0 as *mut isize, size: cef_size_t { width: 0, height: 0 } };
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .on_cursor_change(browser.clone(), cursor_handle,
-                         self.cursor_type_for_cursor(cursor), &info)
+                if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                   check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_cursor_change) {
+                    browser.get_host()
+                           .get_client()
+                           .get_render_handler()
+                           .on_cursor_change(browser.clone(), cursor_handle,
+                             self.cursor_type_for_cursor(cursor), &info)
+                   }
             }
         }
     }
