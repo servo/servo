@@ -206,7 +206,11 @@ pub fn update() {
             if browser.downcast().callback_executed.get() == false {
                 browser_callback_after_created(browser.clone());
             }
-            browser.send_window_event(WindowEvent::Idle);
+            let event = match browser.downcast().window {
+                Some(ref win) => win.wait_events(),
+                None => WindowEvent::Idle
+            };
+            browser.send_window_event(event);
         }
     });
 }
