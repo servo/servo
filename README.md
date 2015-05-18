@@ -27,7 +27,7 @@ On Debian-based Linuxes:
 ``` sh
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
-    ttf-mscorefonts-installer gperf g++ cmake python-virtualenv \
+    gperf g++ cmake python-virtualenv \
     libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev
 ```
 
@@ -38,17 +38,12 @@ sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel
-pushd /tmp
-wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
-rpmbuild -bb msttcorefonts-2.5-1.spec
-sudo yum install $HOME/rpmbuild/RPMS/noarch/msttcorefonts-2.5-1.noarch.rpm
-popd
 ```
 
 On Arch Linux:
 
 ``` sh
-sudo pacman -S --needed base-devel git python2 python2-virtualenv mesa ttf-font cmake bzip2 libxmu
+sudo pacman -S --needed base-devel git python2 python2-virtualenv mesa cmake bzip2 libxmu
 ```
 
 Cross-compilation for Android:
