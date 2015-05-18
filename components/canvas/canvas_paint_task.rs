@@ -14,6 +14,7 @@ use geom::size::Size2D;
 use layers::platform::surface::NativeSurface;
 use gfx_traits::color;
 use num::ToPrimitive;
+use util::opts;
 use util::task::spawn_named;
 use util::vec::byte_swap;
 
@@ -174,8 +175,14 @@ struct CanvasPaintState<'a> {
 
 impl<'a> CanvasPaintState<'a> {
     fn new() -> CanvasPaintState<'a> {
+        let antialias = if opts::get().enable_canvas_antialiasing {
+            AntialiasMode::Default
+        } else {
+            AntialiasMode::None
+        };
+
         CanvasPaintState {
-            draw_options: DrawOptions::default(),
+            draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
             fill_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
