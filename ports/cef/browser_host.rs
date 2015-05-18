@@ -7,6 +7,7 @@ use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_brows
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event, cef_window_handle_t};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 use browser::{self, ServoCefBrowserExtensions};
+use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use geom::point::TypedPoint2D;
@@ -35,9 +36,19 @@ full_cef_class_impl! {
 
         fn was_resized(&this,) -> () {{
             let mut rect = cef_rect_t::zero();
-            this.get_client()
-                .get_render_handler()
-                .get_backing_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
+            if cfg!(target_os="macos") {
+                if check_ptr_exist!(this.get_client(), get_render_handler) &&
+                   check_ptr_exist!(this.get_client().get_render_handler(), get_backing_rect) {
+                    this.get_client()
+                        .get_render_handler()
+                        .get_backing_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
+                }
+            } else if check_ptr_exist!(this.get_client(), get_render_handler) &&
+               check_ptr_exist!(this.get_client().get_render_handler(), get_view_rect) {
+                this.get_client()
+                    .get_render_handler()
+                    .get_view_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
+               }
             let size = TypedSize2D(rect.width as u32, rect.height as u32);
             this.downcast().send_window_event(WindowEvent::Resize(size));
         }}
