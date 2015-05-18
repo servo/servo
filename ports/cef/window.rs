@@ -230,22 +230,34 @@ impl WindowMethods for Window {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {
-        let browser = self.cef_browser.borrow();
-        match *browser {
-            None => ScaleFactor::new(1.0),
-            Some(ref browser) => {
-                let mut view_rect = cef_rect_t::zero();
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .get_view_rect((*browser).clone(), &mut view_rect);
-                let mut backing_rect = cef_rect_t::zero();
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .get_backing_rect((*browser).clone(), &mut backing_rect);
-                ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32)
+        if cfg!(target_os="macos") {
+            let browser = self.cef_browser.borrow();
+            match *browser {
+                None => ScaleFactor::new(1.0),
+                Some(ref browser) => {
+                    let mut view_rect = cef_rect_t::zero();
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_view_rect) {
+                        browser.get_host()
+                               .get_client()
+                               .get_render_handler()
+                               .get_view_rect((*browser).clone(), &mut view_rect);
+                    }
+                    let mut backing_rect = cef_rect_t::zero();
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_backing_rect) {
+                        browser.get_host()
+                               .get_client()
+                               .get_render_handler()
+                               .get_backing_rect((*browser).clone(), &mut backing_rect);
+                    }
+                    ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32)
+                }
             }
+        } else {
+            // FIXME(zmike)
+            // need to figure out a method for actually getting the scale factor instead of this nonsense
+            ScaleFactor::new(1.0 as f32)
         }
     }
 
