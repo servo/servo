@@ -371,7 +371,6 @@ impl CompositorProxy for CefCompositorProxy {
 
     #[cfg(target_os="linux")]
     fn send(&mut self, msg: compositor_task::Msg) {
-        // FIXME(pcwalton): Kick the GTK event loop awake?
         self.sender.send(msg).unwrap();
     }
 
