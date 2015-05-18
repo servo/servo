@@ -133,7 +133,7 @@ fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bo
     }
 
     let mut resource = resource.to_owned();
-    
+
     // 11. If the resulting parsed URL has a non-null query component, then
     // append a single U+003F QUESTION MARK character (?) to resource name,
     // followed by the value of the query component.
@@ -150,7 +150,7 @@ fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bo
 
             let mut base_pair = String::new();
             base_pair.push_str(joined_pairs.next().unwrap().as_ref());
-            
+
             resource.push('?');
 
             let query_string = joined_pairs.fold(base_pair, |mut current, next| {
@@ -158,7 +158,7 @@ fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bo
                 current.push_str(next.as_ref());
                 current
             });
-            
+
             resource.push_str(query_string.as_ref());
         },
         None => (),
@@ -226,7 +226,7 @@ impl WebSocket {
             //Do nothing else. Let the close finish.
             return Ok(Temporary::from_rooted(ws_root));
         }
-        
+
         let (temp_sender, temp_receiver) = response.begin().split();
         let mut other_sender = ws_root.sender.borrow_mut();
         let mut other_receiver = ws_root.receiver.borrow_mut();
