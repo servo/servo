@@ -33,7 +33,7 @@ use std::sync::mpsc::{Sender, channel};
 #[cfg(target_os="linux")]
 extern crate x11;
 #[cfg(target_os="linux")]
-use self::x11::xlib::XOpenDisplay;
+use self::x11::xlib::{XInitThreads,XOpenDisplay};
 
 #[cfg(target_os="linux")]
 pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
@@ -383,7 +383,10 @@ impl CompositorProxy for CefCompositorProxy {
 
 #[cfg(target_os="linux")]
 pub fn init_window() {
-    unsafe { DISPLAY = XOpenDisplay(ptr::null()) as *mut c_void ; }
+    unsafe {
+        assert!(XInitThreads() != 0);
+        DISPLAY = XOpenDisplay(ptr::null()) as *mut c_void;
+    }
 }
 #[cfg(not(target_os="linux"))]
 pub fn init_window() {}
