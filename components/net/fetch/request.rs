@@ -145,6 +145,7 @@ impl Request {
 
     // [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
     pub fn fetch(&mut self, _cors_flag: bool) -> Response {
+        // TODO: Implement fetch spec
         Response::network_error()
     }
 
@@ -263,9 +264,8 @@ impl Request {
                     return response;
                 }
                 let location = response.headers.get::<Location>();
-                match location {
-                    Some(val) => if val.is_empty() { return response.clone(); },
-                    None => { return Response::network_error(); }
+                if location.is_none() {
+                    return Response::network_error();
                 }
                 // Step 5
                 let locationUrl = Url::parse(location.unwrap());
@@ -339,16 +339,19 @@ impl Request {
 
     // [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
     pub fn http_network_or_cache_fetch(&mut self, _credentials_flag: bool, _authentication_fetch_flag: bool) -> Response {
+        // TODO: Implement HTTP network or cache fetch spec
         Response::network_error()
     }
 
     // [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
     pub fn preflight_fetch(&mut self) -> Response {
+        // TODO: Implement preflight fetch spec
         Response::network_error()
     }
 
     // [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
     pub fn cors_check(&mut self, response: &Response) -> Result<(), ()> {
+        // TODO: Implement CORS check spec
         Err(())
     }
 }
