@@ -887,7 +887,8 @@ impl LayoutTask {
 
                 // let the constellation know about the viewport constraints
                 let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-                constellation_chan.send(ConstellationMsg::ViewportConstrained(self.id, constraints)).unwrap();
+                constellation_chan.send(ConstellationMsg::ViewportConstrained(
+                        self.id, constraints)).unwrap();
             }
         }
 
@@ -1074,6 +1075,7 @@ impl LayoutTask {
     }
 
     fn reflow_all_nodes(flow: &mut Flow) {
+        debug!("reflowing all nodes!");
         flow::mut_base(flow).restyle_damage.insert(REFLOW | REPAINT);
 
         for child in flow::child_iter(flow) {
