@@ -70,7 +70,9 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     temp_opts.url = Url::parse(HOME_URL).unwrap();
     opts::set(temp_opts);
 
-    init_window();
+    if unsafe { (*settings).windowless_rendering_enabled != 0 } {
+        init_window();
+    }
 
     return 1
 }
