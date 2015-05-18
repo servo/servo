@@ -550,7 +550,7 @@ impl WindowMethods for Window {
         self.window.set_cursor(glutin_cursor);
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
 
