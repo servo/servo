@@ -72,14 +72,14 @@ fn web_socket_scheme_types(scheme: &str) -> SchemeType {
 }
 
 fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bool)> {
-    // https://html.spec.whatwg.org/multipage/comms.html#parse-a-websocket-url's-components
+    // https://html.spec.whatwg.org/multipage/#parse-a-websocket-url's-components
     // 1. No basepath specified, so it's absolute by default
     // 2. UrlParser defaults to UTF-8 encoding
     // 3. Specifying only ws and wss
     let parsed_url = UrlParser::new()
         .scheme_type_mapper(web_socket_scheme_types)
         .parse(url_str);
-        
+
     if parsed_url.is_err(){
         return Err(Error::Syntax);
     }
