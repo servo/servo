@@ -191,13 +191,9 @@ impl WebGLPaintTask {
     }
 
     fn send_native_surface(&self, _: Sender<NativeSurface>) {
+        // FIXME(ecoal95): We need to make a clone of the surface in order to
+        // implement this
         unimplemented!()
-        // We need to make a clone of the surface
-        // let surface = self.gl_context.borrow_draw_buffer().unwrap()
-        //                             .borrow_bound_surface().unwrap();
-        // let surface = (*surface).clone();
-        // surface.mark_wont_leak();
-        // chan.send(surface).unwrap()
     }
 
     fn shader_source(&self, shader_id: u32, source_lines: Vec<String>) {
