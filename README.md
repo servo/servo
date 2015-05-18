@@ -38,14 +38,6 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel
-<<<<<<< HEAD
-pushd /tmp
-wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
-rpmbuild -bb msttcorefonts-2.5-1.spec
-sudo dnf install $HOME/rpmbuild/RPMS/noarch/msttcorefonts-2.5-1.noarch.rpm
-popd
-=======
->>>>>>> ab145c43ac29183baf41da31ec853bcd8f5e47d0
 ```
 
 On Arch Linux:
