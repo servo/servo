@@ -253,12 +253,12 @@ impl WindowMethods for Window {
          box receiver as Box<CompositorReceiver>)
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, width: usize, height: usize) -> bool {
         let browser = self.cef_browser.borrow();
         match *browser {
             None => {}
             Some(ref browser) => {
-                browser.get_host().get_client().get_render_handler().paint(browser.clone());
+                browser.get_host().get_client().get_render_handler().paint(browser.clone(), width, height);
             }
         }
         true

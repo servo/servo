@@ -1292,6 +1292,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.context.is_some() {
             return None
         }
+        let (width, height) =
+            (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
             return None
         }
@@ -1304,9 +1306,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             },
             _ => {}
         }
-
-        let (width, height) =
-            (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
 
         let (framebuffer_ids, texture_ids) = match target {
             CompositeTarget::Window => (vec!(), vec!()),
