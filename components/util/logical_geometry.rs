@@ -919,6 +919,13 @@ impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> LogicalRect<T> {
         }
     }
 
+    pub fn translate_by_size(&self, offset: LogicalSize<T>) -> LogicalRect<T> {
+        LogicalRect {
+            start: self.start + offset,
+            ..*self
+        }
+    }
+
     pub fn translate(&self, offset: &LogicalPoint<T>) -> LogicalRect<T> {
         LogicalRect {
             start: self.start + LogicalSize {

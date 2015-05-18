@@ -1049,7 +1049,8 @@ impl BlockFlow {
         let float_offset = self.base.floats.last_float_pos().unwrap()
                                            .convert(self.base.floats.writing_mode,
                                                     self.base.writing_mode,
-                                                    container_size);
+                                                    container_size)
+                                           .start;
         let margin_offset = LogicalPoint::new(self.base.writing_mode,
                                               Au(0),
                                               self.fragment.margin.block_start);
