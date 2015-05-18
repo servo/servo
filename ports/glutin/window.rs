@@ -256,13 +256,13 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    #[cfg(not(target_os="linux"))]
+    #[cfg(target_os="macos")]
     fn handle_next_event(&self) -> bool {
         let event = self.window.wait_events().next().unwrap();
         self.handle_window_event(event)
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(any(target_os="linux", target_os="android"))]
     fn handle_next_event(&self) -> bool {
         use std::thread::sleep_ms;
 
@@ -442,6 +442,18 @@ impl Window {
     }
 }
 
+// WindowProxy is not implemented for android yet
+
+#[cfg(all(feature = "window", target_os="android"))]
+fn create_window_proxy(_: &Rc<Window>) -> Option<glutin::WindowProxy> {
+    None
+}
+
+#[cfg(all(feature = "window", not(target_os="android")))]
+fn create_window_proxy(window: &Rc<Window>) -> Option<glutin::WindowProxy> {
+    Some(window.window.create_window_proxy())
+}
+
 #[cfg(feature = "window")]
 impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
@@ -464,7 +476,7 @@ impl WindowMethods for Window {
         let (sender, receiver) = channel();
 
         let window_proxy = match window {
-            &Some(ref window) => Some(window.window.create_window_proxy()),
+            &Some(ref window) => create_window_proxy(window),
             &None => None,
         };
 
