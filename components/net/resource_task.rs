@@ -11,6 +11,7 @@ use http_loader;
 use cookie_storage::CookieStorage;
 use cookie;
 use mime_classifier::MIMEClassifier;
+use regex::Regex;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
@@ -148,8 +149,8 @@ pub fn new_resource_task(user_agent: Option<String>, devtools_chan: Option<Sende
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
-    let ipv4_regex = regex!(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-    let ipv6_regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
+    let ipv4_regex = Regex::new(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$").unwrap();
+    let ipv6_regex = Regex::new(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$").unwrap();
     let mut host_table = HashMap::new();
     let lines: Vec<&str> = hostsfile_content.split('\n').collect();
 

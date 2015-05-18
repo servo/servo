@@ -11,8 +11,6 @@
 #![feature(rustc_private)]
 #![feature(std_misc)]
 
-#![plugin(regex_macros)]
-
 extern crate net_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
