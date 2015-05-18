@@ -818,7 +818,7 @@ impl WindowMethods for Window {
     fn set_cursor(&self, _: Cursor) {
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
 }

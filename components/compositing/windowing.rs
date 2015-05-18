@@ -123,7 +123,7 @@ pub trait WindowMethods {
     /// Requests that the window system prepare a composite. Typically this will involve making
     /// some type of platform-specific graphics context current. Returns true if the composite may
     /// proceed and false if it should not.
-    fn prepare_for_composite(&self) -> bool;
+    fn prepare_for_composite(&self, width: usize, height: usize) -> bool;
 
     /// Sets the cursor to be used in the window.
     fn set_cursor(&self, cursor: Cursor);
