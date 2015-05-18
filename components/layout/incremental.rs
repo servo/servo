@@ -184,7 +184,6 @@ pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -
                       [ get_box.float, get_box.display, get_box.position ]);
 
     // FIXME: test somehow that we checked every CSS property
-
     damage
 }
 

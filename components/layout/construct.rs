@@ -1250,22 +1250,28 @@ impl<'a> FlowConstructor<'a> {
             return false
         }
 
-        match node.swap_out_construction_result() {
-            ConstructionResult::None => true,
-            ConstructionResult::Flow(mut flow, _) => {
+        let mut layout_data_ref = node.mutate_layout_data();
+        let layout_data = layout_data_ref.as_mut().expect("no layout data");
+        let style = (*node.get_style(&layout_data)).clone();
+        let damage = layout_data.data.restyle_damage;
+        match node.get_construction_result(layout_data) {
+            &mut ConstructionResult::None => true,
+            &mut ConstructionResult::Flow(ref mut flow, _) => {
                 // The node's flow is of the same type and has the same set of children and can
                 // therefore be repaired by simply propagating damage and style to the flow.
-                flow::mut_base(&mut *flow).restyle_damage.insert(node.restyle_damage());
-                flow.repair_style_and_bubble_inline_sizes(node.style());
+                if !flow.is_block_flow() {
+                    return false
+                }
+                flow::mut_base(&mut **flow).restyle_damage.insert(damage);
+                flow.repair_style_and_bubble_inline_sizes(&style);
                 true
             }
-            ConstructionResult::ConstructionItem(ConstructionItem::InlineFragments(
-                    mut inline_fragments_construction_result)) => {
+            &mut ConstructionResult::ConstructionItem(ConstructionItem::InlineFragments(
+                    ref mut inline_fragments_construction_result)) => {
                 if !inline_fragments_construction_result.splits.is_empty() {
                     return false
                 }
 
-                let damage = node.restyle_damage();
                 for fragment in inline_fragments_construction_result.fragments
                                                                     .fragments
                                                                     .iter_mut() {
@@ -1274,17 +1280,34 @@ impl<'a> FlowConstructor<'a> {
                             flow::mut_base(&mut *inline_block_fragment.flow_ref).restyle_damage
                                                                                 .insert(damage);
                             // FIXME(pcwalton): Fragment restyle damage too?
-                            inline_block_fragment.flow_ref.repair_style_and_bubble_inline_sizes(
-                                node.style());
+                            inline_block_fragment.flow_ref
+                                                 .repair_style_and_bubble_inline_sizes(&style);
+                        }
+                        SpecificFragmentInfo::InlineAbsoluteHypothetical(
+                                ref mut inline_absolute_hypothetical_fragment) => {
+                            flow::mut_base(&mut *inline_absolute_hypothetical_fragment.flow_ref)
+                                .restyle_damage.insert(damage);
+                            // FIXME(pcwalton): Fragment restyle damage too?
+                            inline_absolute_hypothetical_fragment
+                                .flow_ref
+                                .repair_style_and_bubble_inline_sizes(&style);
+                        }
+                        SpecificFragmentInfo::InlineAbsolute(ref mut inline_absolute_fragment) => {
+                            flow::mut_base(&mut *inline_absolute_fragment.flow_ref).restyle_damage
+                                                                                   .insert(damage);
+                            // FIXME(pcwalton): Fragment restyle damage too?
+                            inline_absolute_fragment.flow_ref
+                                                    .repair_style_and_bubble_inline_sizes(&style);
                         }
                         _ => {
-                            return false
+                            fragment.repair_style(&style);
+                            return true
                         }
                     }
                 }
                 true
             }
-            ConstructionResult::ConstructionItem(_) => {
+            &mut ConstructionResult::ConstructionItem(_) => {
                 false
             }
         }
@@ -1450,7 +1473,8 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(&self) -> bool;
 
-    fn get_construction_result<'a>(self, layout_data: &'a mut LayoutDataWrapper) -> &'a mut ConstructionResult;
+    fn get_construction_result<'a>(self, layout_data: &'a mut LayoutDataWrapper)
+                                   -> &'a mut ConstructionResult;
 
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
