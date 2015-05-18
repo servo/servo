@@ -78,7 +78,7 @@ use util::task_state;
 use geom::Rect;
 use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest};
 use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
@@ -537,6 +537,8 @@ impl ScriptTask {
 
         unsafe {
             SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
+            // Pre barriers aren't working correctly at the moment
+            DisableIncrementalGC(runtime.rt());
         }
 
         runtime
