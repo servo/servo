@@ -959,14 +959,13 @@ impl InlineFlow {
         let mut expansion_opportunities = 0i32;
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get(fragment_index.to_usize());
-            let scanned_text_fragment_info =
-                if let SpecificFragmentInfo::ScannedText(ref info) = fragment.specific {
-                    info
-                } else {
-                    continue
-                };
-            for slice in scanned_text_fragment_info.run.character_slices_in_range(
-                    &scanned_text_fragment_info.range) {
+            let scanned_text_fragment_info = match fragment.specific {
+                SpecificFragmentInfo::ScannedText(ref info) if !info.range.is_empty() => info,
+                _ => continue
+            };
+            let fragment_range = scanned_text_fragment_info.range;
+
+            for slice in scanned_text_fragment_info.run.character_slices_in_range(&fragment_range) {
                 expansion_opportunities += slice.glyphs.space_count_in_range(&slice.range) as i32
             }
         }
@@ -976,12 +975,10 @@ impl InlineFlow {
             (expansion_opportunities as f64);
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
-            let mut scanned_text_fragment_info =
-                if let SpecificFragmentInfo::ScannedText(ref mut info) = fragment.specific {
-                    info
-                } else {
-                    continue
-                };
+            let mut scanned_text_fragment_info = match fragment.specific {
+                SpecificFragmentInfo::ScannedText(ref mut info) if !info.range.is_empty() => info,
+                _ => continue
+            };
             let fragment_range = scanned_text_fragment_info.range;
 
             // FIXME(pcwalton): This is an awful lot of uniqueness making. I don't see any easy way
