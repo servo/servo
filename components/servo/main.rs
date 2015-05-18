@@ -191,6 +191,7 @@ mod android {
         use util::task::spawn_named;
         use std::ffi::CString;
         use std::str::from_utf8;
+        use std::ffi::CStr;
 
         unsafe {
             let mut pipes: [c_int; 2] = [ 0, 0 ];
@@ -199,16 +200,14 @@ mod android {
             let mode = CString::new("r").unwrap();
             let input_file = FilePtr(fdopen(pipes[0], mode.as_ptr()));
             spawn_named("android-logger".to_owned(), move || {
+                static READ_SIZE: usize = 1024;
+                let mut read_buffer = vec![0; READ_SIZE];
+                let FilePtr(input_file) = input_file;
                 loop {
-                    let mut read_buffer: Vec<u8> = vec!();
-                    read_buffer.reserve(1024);
-                    let FilePtr(input_file) = input_file;
-                    fgets(read_buffer.as_mut_ptr() as *mut i8, read_buffer.len() as i32, input_file);
-                    let cs = CString::new(read_buffer).unwrap();
-                    match from_utf8(cs.as_bytes()) {
-                        Ok(s) => android_glue::write_log(s),
-                        _ => {}
-                    }
+                    fgets(read_buffer.as_mut_ptr(), (read_buffer.len() as i32)-1, input_file);
+                    let c_str = CStr::from_ptr(read_buffer.as_ptr());
+                    let slice = from_utf8(c_str.to_bytes()).unwrap();
+                    android_glue::write_log(slice);
                 }
             });
         }
