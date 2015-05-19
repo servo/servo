@@ -1086,7 +1086,6 @@ impl ScriptTask {
         });
 
         if let Some(idx) = idx {
-            // TODO(gw): This probably leaks resources!
             let load = self.incomplete_loads.borrow_mut().remove(idx);
 
             // Tell the layout task to begin shutting down, and wait until it
@@ -1094,7 +1093,7 @@ impl ScriptTask {
             let (response_chan, response_port) = channel();
             let LayoutChan(chan) = load.layout_chan;
             if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
-                debug!("shutting down layout for root page {:?}", id);
+                debug!("shutting down layout for page {:?}", id);
                 response_port.recv().unwrap();
                 chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
             }
