@@ -2134,9 +2134,9 @@ pub trait ISizeAndMarginsComputer {
     }
 
     fn containing_block_inline_size(&self,
-                              _: &mut BlockFlow,
-                              parent_flow_inline_size: Au,
-                              _: &LayoutContext)
+                                    _: &mut BlockFlow,
+                                    parent_flow_inline_size: Au,
+                                    _: &LayoutContext)
                               -> Au {
         parent_flow_inline_size
     }
