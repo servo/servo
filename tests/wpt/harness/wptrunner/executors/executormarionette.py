@@ -157,20 +157,19 @@ class MarionetteProtocol(Protocol):
             let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
                                           .getService(Components.interfaces.nsIPrefBranch);
             let pref = '%s';
-            let value = '%s';
             let type = prefInterface.getPrefType(pref);
             switch(type) {
                 case prefInterface.PREF_STRING:
-                    prefInterface.setCharPref(pref, value);
+                    prefInterface.setCharPref(pref, '%s');
                     break;
                 case prefInterface.PREF_BOOL:
-                    prefInterface.setBoolPref(pref, value);
+                    prefInterface.setBoolPref(pref, %s);
                     break;
                 case prefInterface.PREF_INT:
-                    prefInterface.setIntPref(pref, value);
+                    prefInterface.setIntPref(pref, %s);
                     break;
             }
-            """ % (name, value)
+            """ % (name, value, value, value)
         self.marionette.execute_script(script)
         self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
 
