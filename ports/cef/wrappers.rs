@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use interfaces::{cef_drag_data_t, cef_post_data_element_t, cef_v8value_t, CefPostDataElement};
+use interfaces::{cef_app_t, CefApp, cef_drag_data_t, cef_post_data_element_t, cef_v8value_t, CefPostDataElement};
 use interfaces::{CefV8Value};
 use interfaces::{cef_download_handler_t, cef_drag_handler_t, cef_context_menu_handler_t};
 use interfaces::{cef_dialog_handler_t, cef_focus_handler_t};
@@ -98,6 +98,7 @@ cef_pointer_wrapper!(());
 cef_pointer_wrapper!(*mut ());
 cef_pointer_wrapper!(*mut c_void);
 cef_pointer_wrapper!(c_void);
+cef_pointer_wrapper!(cef_app_t);
 cef_pointer_wrapper!(cef_base_t);
 cef_pointer_wrapper!(cef_browser_settings_t);
 cef_pointer_wrapper!(cef_cookie_t);
@@ -137,6 +138,7 @@ cef_noop_wrapper!(*mut cef_request_handler_t);
 cef_noop_wrapper!(*mut cef_string_list_t);
 cef_noop_wrapper!(*mut cef_string_utf16);
 cef_noop_wrapper!(c_int);
+cef_noop_wrapper!(CefApp);
 cef_noop_wrapper!(CefBrowserSettings);
 cef_noop_wrapper!(CefScreenInfo);
 cef_noop_wrapper!(CefRequestContextSettings);
