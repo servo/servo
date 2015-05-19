@@ -31,6 +31,7 @@ use std::ptr;
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";
 static FC_INDEX: &'static [u8] = b"index\0";
+static FC_FONTFORMAT: &'static [u8] = b"fontformat\0";
 
 pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
     unsafe {
@@ -39,7 +40,20 @@ pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
         for i in 0..((*fontSet).nfont as isize) {
             let font = (*fontSet).fonts.offset(i);
             let mut family: *mut FcChar8 = ptr::null_mut();
+            let mut format: *mut FcChar8 = ptr::null_mut();
             let mut v: c_int = 0;
+            if FcPatternGetString(*font, FC_FONTFORMAT.as_ptr() as *mut c_char, v, &mut format) != FcResultMatch {
+                continue;
+            }
+
+            // Skip bitmap fonts. They aren't supported by FreeType.
+            let fontformat = c_str_to_string(format as *const c_char);
+            if fontformat != "TrueType" &&
+               fontformat != "CFF" &&
+               fontformat != "Type 1" {
+                continue;
+            }
+
             while FcPatternGetString(*font, FC_FAMILY.as_ptr() as *mut c_char, v, &mut family) == FcResultMatch {
                 let family_name = c_str_to_string(family as *const c_char);
                 callback(family_name);
