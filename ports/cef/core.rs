@@ -26,6 +26,8 @@ static CEF_API_HASH_PLATFORM: &'static [u8] = b"6813214accbf2ebfb6bdcf8d00654650
 #[cfg(target_os="linux")]
 static CEF_API_HASH_PLATFORM: &'static [u8] = b"2bc564c3871965ef3a2531b528bda3e17fa17a6d\0";
 
+pub static mut CEF_APP: *mut cef_app_t = 0 as *mut cef_app_t;
+
 
 #[no_mangle]
 pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
@@ -35,6 +37,11 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
                                  -> c_int {
     if args.is_null() {
         return 0;
+    }
+    unsafe {
+        if !CEF_APP.is_null() {
+            panic!("Attempting to call cef_initialize() multiple times!");
+        }
     }
 
     unsafe {
@@ -47,6 +54,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
                         (*handler).on_context_initialized.map(|hcb| hcb(handler));
                     }
             });
+            CEF_APP = application;
         }
     }
 

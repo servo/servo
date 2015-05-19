@@ -7,8 +7,9 @@
 //! This is used for off-screen rendering mode only; on-screen windows (the default embedding mode)
 //! are managed by a platform toolkit (Glutin).
 
+use core::CEF_APP;
 use eutil::Downcast;
-use interfaces::CefBrowser;
+use interfaces::{CefApp, CefBrowser};
 use render_handler::CefRenderHandlerExtensions;
 use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
@@ -428,6 +429,12 @@ impl CompositorProxy for CefCompositorProxy {
     #[cfg(target_os="linux")]
     fn send(&mut self, msg: compositor_task::Msg) {
         self.sender.send(msg).unwrap();
+        unsafe { if CEF_APP.is_null() { return; } }
+        let capp = unsafe { CefApp::from_c_object_addref(CEF_APP) };
+        if unsafe { (*CEF_APP).get_browser_process_handler.is_some() } &&
+           check_ptr_exist!(capp.get_browser_process_handler(), on_work_available) {
+            capp.get_browser_process_handler().on_work_available();
+        }
     }
 
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
