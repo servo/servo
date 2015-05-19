@@ -519,8 +519,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_init_load(&mut self, url: Url) {
         let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
         let root_pipeline_id =
-            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url));
+            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url.clone()));
         self.push_pending_frame(root_pipeline_id, None);
+        self.compositor_proxy.send(CompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_rect_msg(&mut self, containing_pipeline_id: PipelineId, subpage_id: SubpageId,
