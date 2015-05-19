@@ -73,47 +73,41 @@ fn web_socket_scheme_types(scheme: &str) -> SchemeType {
 
 fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bool)> {
     // https://html.spec.whatwg.org/multipage/#parse-a-websocket-url's-components
-    // 1. No basepath specified, so it's absolute by default
-    // 2. UrlParser defaults to UTF-8 encoding
-    // 3. Specifying only ws and wss
+    // Steps 1, 2, and 3
     let parsed_url = UrlParser::new()
         .scheme_type_mapper(web_socket_scheme_types)
         .parse(url_str);
 
-    if parsed_url.is_err(){
-        return Err(Error::Syntax);
-    }
-
-    let parsed_url = parsed_url.unwrap();
+    let parsed_url = match parsed_url {
+        Ok(parsed_url) => parsed_url,
+        Err(_) => return Err(Error::Syntax),
+    };
 
     // 3. Didn't match ws or wss
     if let SchemeData::NonRelative(_) = parsed_url.scheme_data {
         return Err(Error::Syntax);
     }
 
-    // 4. If the parsed url has a non-null fragment, fail
+    // Step 4
     if parsed_url.fragment != None {
         return Err(Error::Syntax);
     }
 
-    // 5. Set secure false if scheme is ws otherwise if scheme is wss set true
+    // Step 5
     let secure = match parsed_url.scheme.as_ref() {
         "ws" => false,
         "wss" => true,
         _ => unreachable!()
     };
 
-    // 6. Set host to parsed url's host
+    // Step 6
     let host = parsed_url.host().unwrap().serialize();
 
-    // 7. If the resulting parsed URL has a port component that is not the empty
-    // string, then let port be that component's value; otherwise, there is no
-    // explicit port.
+    // Step 7
     let port = match parsed_url.port() {
         Some(p) => p,
 
-        // 8. If there is no explicit port, then: if secure is false, let port
-        // be 80, otherwise let port be 443.
+        // Step 8
         None => if secure {
             443
         } else {
@@ -121,52 +115,41 @@ fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bo
         },
     };
 
-    // 9. Let resource name be the value of the resulting parsed URL's path
-    // component (which might be empty).
-    let base_resource = parsed_url.path().unwrap().connect("/");
-    let mut resource = base_resource.as_ref();
+    // Step 9
+    let mut resource = parsed_url.path().unwrap().connect("/");
 
-    // 10. If resource name is the empty string, set it to a single character
-    // U+002F SOLIDUS (/).
+    // Step 10
     if resource == "" {
-        resource = "/";
+        resource = "/".to_owned();
     }
 
-    let mut resource = resource.to_owned();
-
-    // 11. If the resulting parsed URL has a non-null query component, then
-    // append a single U+003F QUESTION MARK character (?) to resource name,
-    // followed by the value of the query component.
+    // Step 11
     match parsed_url.query_pairs() {
         Some(pairs) => {
-            let mut joined_pairs = pairs.iter()
-                .map(|pair| {
-                    let mut keyValue = String::new();
-                    keyValue.push_str(pair.0.as_ref());
-                    keyValue.push('=');
-                    keyValue.push_str(pair.1.as_ref());
-                    keyValue
-                });
-
-            let mut base_pair = String::new();
-            base_pair.push_str(joined_pairs.next().unwrap().as_ref());
+            fn append_query_components(s: &mut String, key: &str, value: &str) {
+                s.push_str(key);
+                s.push('=');
+                s.push_str(value);
+            }
 
             resource.push('?');
 
-            let query_string = joined_pairs.fold(base_pair, |mut current, next| {
+            let mut iterator = pairs.iter();
+            let first = iterator.next().unwrap();
+            append_query_components(&mut resource, first.0.as_ref(), first.1.as_ref());
+
+            iterator.fold(&mut resource, |mut current, next| {
                 current.push('&');
-                current.push_str(next.as_ref());
+                append_query_components(&mut current, next.0.as_ref(), next.1.as_ref());
                 current
             });
-
-            resource.push_str(query_string.as_ref());
         },
         None => (),
     }
 
-    // 12. Return host, port, resource name, and secure.
+    // Step 12
     // FIXME remove parsed_url once it's no longer used in WebSocket::new
-    Ok((parsed_url, host, port, resource.to_string(), secure))
+    Ok((parsed_url, host, port, resource, secure))
 }
 
 impl WebSocket {
@@ -203,14 +186,9 @@ impl WebSocket {
                                          WebSocketBinding::Wrap).root();
         let ws_root = ws_root.r();
 
-        let parse_url_result = parse_web_socket_url(&ws_root.url);
-        if let Err(e) = parse_url_result {
-            return Err(e);
-        }
-
         // FIXME extract the right variables once Client::connect implementation is
         // fixed to follow the RFC 6455 properly
-        let Ok((parsed_url, _, _, _, _)) = parse_url_result;
+        let (parsed_url, _, _, _, _) = try!(parse_web_socket_url(&ws_root.url));
 
         // TODO Client::connect does not conform to RFC 6455
         // see https://github.com/cyderize/rust-websocket/issues/38
