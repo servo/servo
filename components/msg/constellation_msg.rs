@@ -366,7 +366,7 @@ pub struct SubpageId(pub u32);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum PipelineExitType {
     PipelineOnly,
     Complete,

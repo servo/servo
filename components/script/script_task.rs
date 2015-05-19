@@ -386,7 +386,7 @@ impl ScriptTaskFactory for ScriptTask {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        spawn_named_with_send_on_failure("ScriptTask", task_state::SCRIPT, move || {
+        spawn_named_with_send_on_failure(format!("ScriptTask {:?}", id), task_state::SCRIPT, move || {
             let script_task = ScriptTask::new(box compositor as Box<ScriptListener>,
                                               script_port,
                                               NonWorkerScriptChan(script_chan),
@@ -1080,11 +1080,30 @@ impl ScriptTask {
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
     fn handle_exit_pipeline_msg(&self, id: PipelineId, exit_type: PipelineExitType) -> bool {
-        if self.page.borrow().is_none() {
-            // The root page doesn't even exist yet, so it
-            // is safe to exit this script task.
+        // Check if the exit message is for an in progress load.
+        let idx = self.incomplete_loads.borrow().iter().position(|load| {
+            load.pipeline_id == id
+        });
+
+        if let Some(idx) = idx {
             // TODO(gw): This probably leaks resources!
-            return true;
+            let load = self.incomplete_loads.borrow_mut().remove(idx);
+
+            // Tell the layout task to begin shutting down, and wait until it
+            // processed this message.
+            let (response_chan, response_port) = channel();
+            let LayoutChan(chan) = load.layout_chan;
+            if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
+                debug!("shutting down layout for root page {:?}", id);
+                response_port.recv().unwrap();
+                chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
+            }
+
+            let has_pending_loads = self.incomplete_loads.borrow().len() > 0;
+            let has_root_page = self.page.borrow().is_some();
+
+            // Exit if no pending loads and no root page
+            return !has_pending_loads && !has_root_page;
         }
 
         // If root is being exited, shut down all pages
