@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::DOMRectListBinding;
 use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
 use dom::window::Window;
@@ -19,17 +18,17 @@ pub struct DOMRectList {
 }
 
 impl DOMRectList {
-    fn new_inherited(window: JSRef<Window>,
-                     rects: &RootedVec<JS<DOMRect>>) -> DOMRectList {
+    fn new_inherited<T>(window: JSRef<Window>, rects: T) -> DOMRectList
+                        where T: Iterator<Item=Temporary<DOMRect>> {
         DOMRectList {
             reflector_: Reflector::new(),
-            rects: (**rects).clone(),
+            rects: rects.map(JS::from_rooted).collect(),
             window: JS::from_rooted(window),
         }
     }
 
-    pub fn new(window: JSRef<Window>,
-               rects: &RootedVec<JS<DOMRect>>) -> Temporary<DOMRectList> {
+    pub fn new<T>(window: JSRef<Window>, rects: T) -> Temporary<DOMRectList>
+                  where T: Iterator<Item=Temporary<DOMRect>> {
         reflect_dom_object(box DOMRectList::new_inherited(window, rects),
                            GlobalRef::Window(window), DOMRectListBinding::Wrap)
     }
