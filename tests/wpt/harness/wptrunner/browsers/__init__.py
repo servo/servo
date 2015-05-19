@@ -29,4 +29,5 @@ module global scope.
 product_list = ["b2g",
                 "chrome",
                 "firefox",
-                "servo"]
+                "servo",
+                "servodriver"]

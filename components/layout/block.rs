@@ -771,8 +771,9 @@ impl BlockFlow {
             }
 
             let mut margin_collapse_info = MarginCollapseInfo::new();
+            let writing_mode = self.base.floats.writing_mode;
             self.base.floats.translate(LogicalSize::new(
-                self.fragment.style.writing_mode, -self.fragment.inline_start_offset(), Au(0)));
+                writing_mode, -self.fragment.inline_start_offset(), Au(0)));
 
             // The sum of our block-start border and block-start padding.
             let block_start_offset = self.fragment.border_padding.block_start;
@@ -1029,7 +1030,8 @@ impl BlockFlow {
             size: LogicalSize::new(
                 self.fragment.style.writing_mode,
                 self.base.position.size.inline,
-                block_size + self.fragment.margin.block_start_end()),
+                block_size + self.fragment.margin.block_start_end())
+                      .convert(self.fragment.style.writing_mode, self.base.floats.writing_mode),
             ceiling: clearance + float_info.float_ceiling,
             max_inline_size: float_info.containing_inline_size,
             kind: float_info.float_kind,
@@ -1039,11 +1041,17 @@ impl BlockFlow {
         // After, grab the position and use that to set our position.
         self.base.floats.add_float(&info);
 
+        // FIXME (mbrubeck) Get the correct container size for self.base.floats;
+        let container_size = Size2D(self.base.block_container_inline_size, Au(0));
+
         // Move in from the margin edge, as per CSS 2.1 § 9.5, floats may not overlap anything on
         // their margin edges.
-        let float_offset = self.base.floats.last_float_pos().unwrap();
-        let writing_mode = self.base.floats.writing_mode;
-        let margin_offset = LogicalPoint::new(writing_mode,
+        let float_offset = self.base.floats.last_float_pos().unwrap()
+                                           .convert(self.base.floats.writing_mode,
+                                                    self.base.writing_mode,
+                                                    container_size)
+                                           .start;
+        let margin_offset = LogicalPoint::new(self.base.writing_mode,
                                               Au(0),
                                               self.fragment.margin.block_start);
 
@@ -1379,7 +1387,8 @@ impl BlockFlow {
         }
 
         let info = PlacementInfo {
-            size: self.fragment.border_box.size,
+            size: self.fragment.border_box.size.convert(self.fragment.style.writing_mode,
+                                                        self.base.floats.writing_mode),
             ceiling: self.base.position.start.b,
             max_inline_size: MAX_AU,
             kind: FloatKind::Left,
