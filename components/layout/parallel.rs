@@ -169,7 +169,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
 
                 unsafe_node = layout_node_to_unsafe_layout_node(&parent);
 
-                let parent_layout_data: &mut LayoutDataWrapper = mem::transmute(parent_layout_data);
+                let parent_layout_data: &LayoutDataWrapper = mem::transmute(parent_layout_data);
                 if parent_layout_data
                     .data
                     .parallel
@@ -221,7 +221,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
         loop {
             unsafe {
                 // Get a real flow.
-                let flow: &mut FlowRef = mem::transmute(&unsafe_flow);
+                let flow: &mut FlowRef = mem::transmute(&mut unsafe_flow);
 
                 // Perform the appropriate traversal.
                 if self.should_process(&mut **flow) {
@@ -236,7 +236,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                                                    Ordering::Relaxed);
 
                 // Possibly enqueue the parent.
-                let unsafe_parent = base.parallel.parent;
+                let mut unsafe_parent = base.parallel.parent;
                 if unsafe_parent == null_unsafe_flow() {
                     // We're done!
                     break
@@ -245,7 +245,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 // No, we're not at the root yet. Then are we the last child
                 // of our parent to finish processing? If so, we can continue
                 // on with our parent; otherwise, we've gotta wait.
-                let parent: &mut FlowRef = mem::transmute(&unsafe_parent);
+                let parent: &mut FlowRef = mem::transmute(&mut unsafe_parent);
                 let parent_base = flow::mut_base(&mut **parent);
                 if parent_base.parallel.children_count.fetch_sub(1, Ordering::SeqCst) == 1 {
                     // We were the last child of our parent. Reflow our parent.
@@ -269,14 +269,14 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
     #[inline(always)]
     fn run_parallel_helper(&self,
-                           unsafe_flow: UnsafeFlow,
+                           mut unsafe_flow: UnsafeFlow,
                            proxy: &mut WorkerProxy<SharedLayoutContextWrapper,UnsafeFlow>,
                            top_down_func: FlowTraversalFunction,
                            bottom_up_func: FlowTraversalFunction) {
         let mut had_children = false;
         unsafe {
             // Get a real flow.
-            let flow: &mut FlowRef = mem::transmute(&unsafe_flow);
+            let flow: &mut FlowRef = mem::transmute(&mut unsafe_flow);
 
             if self.should_record_thread_ids() {
                 flow::mut_base(&mut **flow).thread_id = proxy.worker_index();
