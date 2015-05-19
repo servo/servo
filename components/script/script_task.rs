@@ -1062,12 +1062,15 @@ impl ScriptTask {
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
                                   response: LoadResponse) {
-        // Any notification received should refer to an existing, in-progress load that is tracked.
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
-        }).unwrap();
-        let load = self.incomplete_loads.borrow_mut().remove(idx);
-        self.load(response, load);
+        });
+        // The matching in progress load structure may not exist if
+        // the pipeline exited before the page load completed.
+        if let Some(idx) = idx {
+            let load = self.incomplete_loads.borrow_mut().remove(idx);
+            self.load(response, load);
+        }
     }
 
     /// Handles a request for the window title.
