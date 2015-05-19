@@ -32,8 +32,6 @@ use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
 
-use url::{SchemeData, SchemeType, UrlParser};
-
 #[derive(PartialEq, Copy, Clone)]
 #[jstraceable]
 enum WebSocketRequestState {
@@ -63,88 +61,38 @@ pub struct WebSocket {
     sendCloseFrame: Cell<bool>
 }
 
-fn web_socket_scheme_types(scheme: &str) -> SchemeType {
-    match scheme {
-        "ws" => SchemeType::Relative(80),
-        "wss" => SchemeType::Relative(443),
-        _ => SchemeType::NonRelative,
-    }
-}
-
 fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bool)> {
     // https://html.spec.whatwg.org/multipage/#parse-a-websocket-url's-components
-    // Steps 1, 2, and 3
-    let parsed_url = UrlParser::new()
-        .scheme_type_mapper(web_socket_scheme_types)
-        .parse(url_str);
-
+    // Steps 1 and 2
+    let parsed_url = Url::parse(url_str);
     let parsed_url = match parsed_url {
         Ok(parsed_url) => parsed_url,
         Err(_) => return Err(Error::Syntax),
     };
-
-    // 3. Didn't match ws or wss
-    if let SchemeData::NonRelative(_) = parsed_url.scheme_data {
-        return Err(Error::Syntax);
-    }
 
     // Step 4
     if parsed_url.fragment != None {
         return Err(Error::Syntax);
     }
 
-    // Step 5
+    // Steps 3 and 5
     let secure = match parsed_url.scheme.as_ref() {
         "ws" => false,
         "wss" => true,
-        _ => unreachable!()
+        _ => return Err(Error::Syntax), // step 3
     };
 
-    // Step 6
-    let host = parsed_url.host().unwrap().serialize();
-
-    // Step 7
-    let port = match parsed_url.port() {
-        Some(p) => p,
-
-        // Step 8
-        None => if secure {
-            443
-        } else {
-            80
-        },
-    };
-
-    // Step 9
-    let mut resource = parsed_url.path().unwrap().connect("/");
-
-    // Step 10
-    if resource == "" {
-        resource = "/".to_owned();
+    let host = parsed_url.host().unwrap().serialize(); // Step 6
+    let port = parsed_url.port_or_default().unwrap(); // Step 7
+    let mut resource = parsed_url.path().unwrap().connect("/"); // Step 9
+    if resource.is_empty() {
+        resource = "/".to_owned(); // Step 10
     }
 
     // Step 11
-    match parsed_url.query_pairs() {
-        Some(pairs) => {
-            fn append_query_components(s: &mut String, key: &str, value: &str) {
-                s.push_str(key);
-                s.push('=');
-                s.push_str(value);
-            }
-
-            resource.push('?');
-
-            let mut iterator = pairs.iter();
-            let first = iterator.next().unwrap();
-            append_query_components(&mut resource, first.0.as_ref(), first.1.as_ref());
-
-            iterator.fold(&mut resource, |mut current, next| {
-                current.push('&');
-                append_query_components(&mut current, next.0.as_ref(), next.1.as_ref());
-                current
-            });
-        },
-        None => (),
+    if let Some(ref query) = parsed_url.query {
+        resource.push('?');
+        resource.push_str(query);
     }
 
     // Step 12
