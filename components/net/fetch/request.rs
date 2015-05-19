@@ -263,12 +263,12 @@ impl Request {
                 if !response.headers.has::<Location>() {
                     return response;
                 }
-                let location = response.headers.get::<Location>();
-                if location.is_none() {
-                    return Response::network_error();
-                }
+                let location = match response.headers.get::<Location>() {
+                    None => return Response::network_error(),
+                    Some(location) => location,
+                };
                 // Step 5
-                let locationUrl = Url::parse(location.unwrap());
+                let locationUrl = Url::parse(location);
                 // Step 6
                 let locationUrl = match locationUrl {
                     Ok(url) => url,
