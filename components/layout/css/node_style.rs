@@ -4,6 +4,7 @@
 
 //! Style retrieval from DOM elements.
 
+use data::LayoutDataWrapper;
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use std::mem;
@@ -12,6 +13,7 @@ use std::sync::Arc;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
+    fn get_style<'a>(&'a self, layout_data_ref: &'a LayoutDataWrapper) -> &'a Arc<ComputedValues>;
     /// Returns the style results for the given node. If CSS selector matching has not yet been
     /// performed, fails.
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues>;
@@ -23,36 +25,22 @@ pub trait StyledNode {
 
 impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
     #[inline]
+    fn get_style<'a>(&self, layout_data_ref: &'a LayoutDataWrapper) -> &'a Arc<ComputedValues> {
+        match self.get_pseudo_element_type() {
+            PseudoElementType::Before(_) => layout_data_ref.data.before_style.as_ref().unwrap(),
+            PseudoElementType::After(_) => layout_data_ref.data.after_style.as_ref().unwrap(),
+            PseudoElementType::Normal => layout_data_ref.shared_data.style.as_ref().unwrap(),
+        }
+    }
+
+    #[inline]
     #[allow(unsafe_code)]
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues> {
         unsafe {
             let layout_data_ref = self.borrow_layout_data();
-            match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => {
-                     mem::transmute(layout_data_ref.as_ref()
-                                                   .unwrap()
-                                                   .data
-                                                   .before_style
-                                                   .as_ref()
-                                                   .unwrap())
-                }
-                PseudoElementType::After(_) => {
-                    mem::transmute(layout_data_ref.as_ref()
-                                                  .unwrap()
-                                                  .data
-                                                  .after_style
-                                                  .as_ref()
-                                                  .unwrap())
-                }
-                PseudoElementType::Normal => {
-                    mem::transmute(layout_data_ref.as_ref()
-                                                  .unwrap()
-                                                  .shared_data
-                                                  .style
-                                                  .as_ref()
-                                                  .unwrap())
-                }
-            }
+            let layout_data = layout_data_ref.as_ref().expect("no layout data");
+            mem::transmute::<&Arc<ComputedValues>,
+                             &'a Arc<ComputedValues>>(self.get_style(&layout_data))
         }
     }
 

@@ -170,7 +170,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                                         &some_bf,
                                         &mut applicable_declarations,
                                         &mut shareable);
-                    } else {
+                    } else if node.has_changed() {
                         ThreadSafeLayoutNode::new(&node).set_restyle_damage(
                             incremental::rebuild_and_reflow())
                     }
