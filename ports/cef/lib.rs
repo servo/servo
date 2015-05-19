@@ -8,6 +8,7 @@
 #![feature(link_args)]
 #![feature(thread_local)]
 #![feature(core)]
+#![feature(convert)]
 #![feature(std_misc)]
 #![feature(rustc_private)]
 #![feature(collections)]
