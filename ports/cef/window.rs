@@ -340,18 +340,33 @@ impl WindowMethods for Window {
         let frame = browser.get_main_frame();
         let frame = frame.downcast();
         let mut title_visitor = frame.title_visitor.borrow_mut();
-        match &mut *title_visitor {
-            &mut None => {}
-            &mut Some(ref mut visitor) => {
-                match string {
-                    None => visitor.visit(&[]),
-                    Some(string) => {
-                        let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
-                        visitor.visit(&utf16_chars)
-                    }
-                }
+        match string {
+            None => {
+                 if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
+                    check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_title_change) {
+                     browser.get_host().get_client().get_display_handler().on_title_change((*browser).clone(), &[]);
+                 }
+                 match &mut *title_visitor {
+                     &mut None => {},
+                     &mut Some(ref mut visitor) => {
+                         visitor.visit(&[]);
+                     }
+                 };
+            },
+            Some(string) => {
+                 let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
+                 if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
+                    check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_title_change) {
+                     browser.get_host().get_client().get_display_handler().on_title_change((*browser).clone(), utf16_chars.as_slice());
+                 }
+                 match &mut *title_visitor {
+                     &mut None => {},
+                     &mut Some(ref mut visitor) => {
+                         visitor.visit(&utf16_chars);
+                     }
+                 };
             }
-        }
+        };
     }
 
     fn set_page_url(&self, url: Url) {
