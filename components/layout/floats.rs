@@ -4,7 +4,7 @@
 
 use util::geometry::Au;
 use util::logical_geometry::WritingMode;
-use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use util::logical_geometry::{LogicalRect, LogicalSize};
 use util::persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::i32;
@@ -146,10 +146,10 @@ impl Floats {
     }
 
     /// Returns the position of the last float in flow coordinates.
-    pub fn last_float_pos(&self) -> Option<LogicalPoint<Au>> {
+    pub fn last_float_pos(&self) -> Option<LogicalRect<Au>> {
         match self.list.floats.front() {
             None => None,
-            Some(float) => Some(float.bounds.start + self.offset),
+            Some(float) => Some(float.bounds.translate_by_size(self.offset)),
         }
     }
 

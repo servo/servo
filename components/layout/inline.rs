@@ -1455,7 +1455,8 @@ impl Flow for InlineFlow {
         };
 
         self.base.floats = scanner.floats.clone();
-        self.base.floats.translate(LogicalSize::new(self.base.writing_mode,
+        let writing_mode = self.base.floats.writing_mode;
+        self.base.floats.translate(LogicalSize::new(writing_mode,
                                                     Au(0),
                                                     -self.base.position.size.block));
 
