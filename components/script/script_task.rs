@@ -317,6 +317,9 @@ pub struct ScriptTask {
     js_runtime: Rc<Runtime>,
 
     mouse_over_targets: DOMRefCell<Vec<JS<Node>>>,
+
+    /// List of pipelines that have been owned and closed by this script task.
+    closed_pipelines: RefCell<HashSet<PipelineId>>,
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -494,7 +497,8 @@ impl ScriptTask {
             devtools_marker_sender: RefCell::new(None),
 
             js_runtime: Rc::new(runtime),
-            mouse_over_targets: DOMRefCell::new(vec!())
+            mouse_over_targets: DOMRefCell::new(vec!()),
+            closed_pipelines: RefCell::new(HashSet::new()),
         }
     }
 
@@ -1027,11 +1031,15 @@ impl ScriptTask {
     fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: u32) {
         debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
         let page = self.root_page();
-        let page = page.find(pipeline_id).expect(
-            "ScriptTask: received a load message for a layout channel that is not associated \
-             with this script task. This is a bug.");
-        let window = page.window().root();
-        window.r().handle_reflow_complete_msg(reflow_id);
+        match page.find(pipeline_id) {
+            Some(page) => {
+                let window = page.window().root();
+                window.r().handle_reflow_complete_msg(reflow_id);
+            }
+            None => {
+                assert!(self.closed_pipelines.borrow().contains(&pipeline_id));
+            }
+        }
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -1067,9 +1075,14 @@ impl ScriptTask {
         });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
-        if let Some(idx) = idx {
-            let load = self.incomplete_loads.borrow_mut().remove(idx);
-            self.load(response, load);
+        match idx {
+            Some(idx) => {
+                let load = self.incomplete_loads.borrow_mut().remove(idx);
+                self.load(response, load);
+            }
+            None => {
+                assert!(self.closed_pipelines.borrow().contains(&id));
+            }
         }
     }
 
@@ -1083,6 +1096,8 @@ impl ScriptTask {
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
     fn handle_exit_pipeline_msg(&self, id: PipelineId, exit_type: PipelineExitType) -> bool {
+        self.closed_pipelines.borrow_mut().insert(id);
+
         // Check if the exit message is for an in progress load.
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id
