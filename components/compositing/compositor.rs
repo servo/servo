@@ -883,9 +883,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => panic!("Compositor: Received WindowEvent::LoadUrl without initialized compositor \
                            layers"),
         };
+        let url = Url::parse(&url_string).unwrap();
+        self.window.set_page_url(url.clone());
 
-        let msg = ConstellationMsg::LoadUrl(root_pipeline_id,
-            LoadData::new(Url::parse(&url_string).unwrap()));
+        let msg = ConstellationMsg::LoadUrl(root_pipeline_id, LoadData::new(url));
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg).unwrap()
     }
