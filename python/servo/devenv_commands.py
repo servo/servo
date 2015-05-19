@@ -40,7 +40,7 @@ class MachCommands(CommandBase):
         help='Command-line arguments to be passed through to cargo update')
     @CommandArgument(
         '--package', '-p', default=None, 
-        help='Updates select packages')
+        help='Updates selected package')
     @CommandArgument(
         '--all-packages','-a',action='store_true', 
         help='Updates all packages')
@@ -55,7 +55,7 @@ class MachCommands(CommandBase):
         help='Command-line arguments to be passed through to cargo update')
     @CommandArgument(
         '--package','-p',default=None, 
-        help='Updates select packages')
+        help='Updates selected package')
     @CommandArgument(
         '--all-packages','-a',action='store_true', 
         help='Updates all packages')
