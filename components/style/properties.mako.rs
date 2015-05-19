@@ -424,7 +424,7 @@ pub mod longhands {
 
     ${new_style_struct("InheritedBox", is_inherited=True)}
 
-    ${single_keyword("direction", "ltr rtl", experimental=True)}
+    ${single_keyword("direction", "ltr rtl")}
 
     // CSS 2.1, Section 10 - Visual formatting model details
 
