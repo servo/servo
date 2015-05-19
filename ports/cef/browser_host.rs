@@ -15,13 +15,15 @@ use geom::size::TypedSize2D;
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::MouseButton;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 pub struct ServoCefBrowserHost {
     /// A reference to the browser.
     pub browser: RefCell<Option<CefBrowser>>,
     /// A reference to the client.
     pub client: CefClient,
+    /// flag for return value of prepare_for_composite
+    pub composite_ok: Cell<bool>,
 }
 
 full_cef_class_impl! {
@@ -176,6 +178,11 @@ full_cef_class_impl! {
             this.downcast().send_window_event(WindowEvent::InitializeCompositing);
         }}
 
+        fn composite(&this,) -> () {{
+            this.downcast().composite_ok.set(true);
+            this.downcast().send_window_event(WindowEvent::Refresh);
+        }}
+
         fn get_window_handle(&this,) -> cef_window_handle_t {{
             let t = this.downcast();
             let browser = t.browser.borrow();
@@ -189,6 +196,7 @@ impl ServoCefBrowserHost {
         ServoCefBrowserHost {
             browser: RefCell::new(None),
             client: client,
+            composite_ok: Cell::new(false),
         }
     }
 

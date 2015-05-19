@@ -294,12 +294,20 @@ impl WindowMethods for Window {
     fn prepare_for_composite(&self, width: usize, height: usize) -> bool {
         let browser = self.cef_browser.borrow();
         match *browser {
-            None => {}
+            None => {
+                panic!("No browser?!?");
+            }
             Some(ref browser) => {
-                browser.get_host().get_client().get_render_handler().paint(browser.clone(), width, height);
+                if browser.downcast().host.downcast().composite_ok.get() == true { true }
+                else {
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_paint) {
+                        browser.get_host().get_client().get_render_handler().paint(browser.clone(), width, height);
+                    }
+                    false
+                }
             }
         }
-        true
     }
 
     fn load_end(&self) {
