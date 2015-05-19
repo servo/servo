@@ -57,9 +57,10 @@ If you're running servo on a guest machine, make sure 3D Acceleration is switche
 
 ## The Rust compiler
 
-Servo uses a snapshot Rust compiler to build itself. This is normally a
-specific revision of Rust upstream, but sometimes has a backported patch or
-two. If you'd like to know the snapshot revision of Rust which we use, see
+Servo's build system automatically downloads a snapshot Rust compiler to build itself.
+This is normally a specific revision of Rust upstream, but sometimes has a
+backported patch or two.
+If you'd like to know the snapshot revision of Rust which we use, see
 `./rust-snapshot-hash`.
 
 ## Building
