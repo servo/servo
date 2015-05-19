@@ -245,7 +245,7 @@ impl LayoutDataRef {
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn borrow_unchecked(&self) -> *const Option<LayoutData> {
-        mem::transmute(&self.data_cell)
+        self.data_cell.as_unsafe_cell().get() as *const _
     }
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
