@@ -22,7 +22,7 @@ use geom::size::TypedSize2D;
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use libc::{c_char, c_int, c_void};
+use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::ptr;
 use std_url::Url;
