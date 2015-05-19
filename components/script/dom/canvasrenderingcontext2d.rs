@@ -964,12 +964,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn CreatePattern(self, image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
                     repetition: DOMString) -> Fallible<Temporary<CanvasPattern>> {
         match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(_) => {
-                return Err(Type("Not implemented".to_owned()));
-            }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(_) => {
-                return Err(Type("Not implemented".to_owned()));
-            }
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
                 let image = image.root();
                 let image_element = image.r();
@@ -993,18 +987,14 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                 };
 
                 if let Some(rep) = RepetitionStyle::from_str(&repetition) {
-                    match rep {
-                        RepetitionStyle::Repeat => return Err(Type("Not implemented".to_owned())),
-                        RepetitionStyle::RepeatX => return Err(Type("Not implemented".to_owned())),
-                        RepetitionStyle::RepeatY => return Err(Type("Not implemented".to_owned())),
-                        RepetitionStyle::NoRepeat => return Ok(CanvasPattern::new(self.global.root().r(),
-                                                               image_data,
-                                                               Size2D(image_size.width as i32, image_size.height as i32),
-                                                               rep)),
-                    }
+                    return Ok(CanvasPattern::new(self.global.root().r(),
+                                                 image_data,
+                                                 Size2D(image_size.width as i32, image_size.height as i32),
+                                                 rep));
                 }
                 return Err(Type("Invalid repetition type".to_owned()));
-            }
+            },
+            _ => return Err(Type("Not implemented".to_owned())),
         }
     }
 
