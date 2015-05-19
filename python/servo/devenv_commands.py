@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 from os import path, getcwd, listdir
 
 import subprocess
+import sys
 
 from mach.decorators import (
     CommandArgument,
@@ -37,8 +38,14 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
-    def cargo_update(self, params=None):
-        self.update_cargo(params)
+    @CommandArgument(
+        '--package', '-p', default=None, 
+        help='Updates selected package')
+    @CommandArgument(
+        '--all-packages','-a',action='store_true', 
+        help='Updates all packages')
+    def cargo_update(self, params=None, package=None, all_packages=None):
+        self.update_cargo(params, package, all_packages)
 
     @Command('update-cargo',
              description='Update Cargo dependencies',
@@ -46,9 +53,24 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
-    def update_cargo(self, params=None):
+    @CommandArgument(
+        '--package','-p',default=None, 
+        help='Updates selected package')
+    @CommandArgument(
+        '--all-packages','-a',action='store_true', 
+        help='Updates all packages')
+    def update_cargo(self, params=None, package=None, all_packages=None):
         if not params:
             params = []
+
+        if package:
+            params += ["-p", package]
+        elif all_packages:
+            params = []
+        else:
+            print("Please choose package to update with the --package (-p) ") 
+            print("flag or update all packages with --all-packages (-a) flag")
+            sys.exit(1)
 
         cargo_paths = [path.join('components', 'servo'),
                        path.join('ports', 'cef'),
