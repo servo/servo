@@ -13,6 +13,7 @@ use euclid::{Point2D, Rect};
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, mut_base};
 use fragment::{Fragment, FragmentBorderBoxIterator};
+use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
 use style::properties::ComputedValues;
@@ -53,9 +54,49 @@ impl Flow for MulticolFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol");
-        self.block_flow.assign_inline_sizes(ctx);
+        self.block_flow.compute_inline_sizes(layout_context);
+
+        // Move in from the inline-start border edge.
+        let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
+            self.block_flow.fragment.border_padding.inline_start;
+
+        // Distance from the inline-end margin edge to the inline-end content edge.
+        let inline_end_content_edge =
+            self.block_flow.fragment.margin.inline_end +
+            self.block_flow.fragment.border_padding.inline_end;
+
+        self.block_flow.assign_inline_sizes(layout_context);
+        let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
+        let content_inline_size =
+            self.block_flow.fragment.border_box.size.inline - padding_and_borders;
+        let column_width;
+        {
+            let column_style = self.block_flow.fragment.style.get_column();
+
+            // `None` is 'normal': "UA-specified length. A value of 1em is suggested."
+            let column_gap = column_style.column_gap.0.unwrap_or_else(||
+                self.block_flow.fragment.style.get_font().font_size);
+            let mut column_count;
+            if let Some(column_width) = column_style.column_width.0 {
+                column_count =
+                    max(1, (content_inline_size + column_gap).0 / (column_width + column_gap).0);
+                if let Some(specified_column_count) = column_style.column_count.0 {
+                    column_count = min(column_count, specified_column_count as i32);
+                }
+            } else {
+                column_count = column_style.column_count.0.unwrap() as i32;
+            }
+            column_width =
+                max(Au(0), (content_inline_size + column_gap) / column_count - column_gap);
+        }
+
+        self.block_flow.fragment.border_box.size.inline = content_inline_size + padding_and_borders;
+
+        self.block_flow.propagate_assigned_inline_size_to_children(
+            layout_context, inline_start_content_edge, inline_end_content_edge, column_width,
+            |_, _, _, _, _, _| {});
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
