@@ -1790,10 +1790,10 @@ impl Fragment {
                 self.border_box.size.block = block_flow.base.position.size.block +
                     block_flow.fragment.margin.block_start_end()
             }
-            SpecificFragmentInfo::Iframe(_) => {
-                self.border_box.size.block = IframeFragmentInfo::calculate_replaced_block_size(
-                                                style, containing_block_block_size) +
-                                             noncontent_block_size;
+            SpecificFragmentInfo::Iframe(ref info) => {
+                self.border_box.size.block =
+                    info.calculate_replaced_block_size(style, containing_block_block_size) +
+                    noncontent_block_size;
             }
             _ => panic!("should have been handled above"),
         }

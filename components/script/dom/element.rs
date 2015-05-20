@@ -366,20 +366,20 @@ impl RawLayoutElementHelpers for Element {
             let this: &HTMLIFrameElement = mem::transmute(self);
             this.get_height()
         } else {
-            None
+            LengthOrPercentageOrAuto::Auto
         };
 
         match height {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
-                hints.push(from_declaration(PropertyDeclaration::Width(SpecifiedValue(
+                hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
                                 height::SpecifiedValue(width_value)))));
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::Length::Absolute(length));
-                hints.push(from_declaration(PropertyDeclaration::Width(SpecifiedValue(
+                hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
                                 height::SpecifiedValue(width_value)))));
             }
         }

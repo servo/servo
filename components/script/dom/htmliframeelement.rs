@@ -396,7 +396,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
-            &atom!("width") | &atom!("height") => AttrValue::from_u32(value, 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
