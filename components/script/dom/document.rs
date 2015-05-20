@@ -1830,13 +1830,17 @@ impl DocumentProgressHandler {
 
 impl Runnable for DocumentProgressHandler {
     fn handler(self: Box<DocumentProgressHandler>) {
-        match self.task {
-            DocumentProgressTask::DOMContentLoaded => {
-                self.dispatch_dom_content_loaded();
-            }
-            DocumentProgressTask::Load => {
-                self.set_ready_state_complete();
-                self.dispatch_load();
+        let document = self.addr.to_temporary().root();
+        let window = document.r().window().root();
+        if window.r().is_alive() {
+            match self.task {
+                DocumentProgressTask::DOMContentLoaded => {
+                    self.dispatch_dom_content_loaded();
+                }
+                DocumentProgressTask::Load => {
+                    self.set_ready_state_complete();
+                    self.dispatch_load();
+                }
             }
         }
     }
