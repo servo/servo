@@ -14,6 +14,7 @@ use dom::bindings::error::Error::Syntax;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Temporary, JSRef, Rootable};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::reflect_dom_object;
 use dom::closeevent::CloseEvent;
@@ -153,7 +154,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
         self.ready_state.get() as u16
     }
 
-    fn Send(self, data: Option<DOMString>)-> Fallible<()>{
+    fn Send(self, data: Option<USVString>)-> Fallible<()>{
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for "If argument is a string"
           TODO: Need to buffer data
           TODO: bufferedAmount attribute returns the size of the buffer in bytes -
@@ -168,11 +169,11 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
             let _ = my_sender.send_message(Message::Close(None));
             return Ok(());
         }
-        let _ = my_sender.send_message(Message::Text(data.unwrap()));
+        let _ = my_sender.send_message(Message::Text(data.unwrap().0));
         return Ok(())
     }
 
-    fn Close(self, code: Option<u16>, reason: Option<DOMString>) -> Fallible<()>{
+    fn Close(self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
         if let Some(code) = code {
             //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
             if  code != 1000 && (code < 3000 || code > 4999) {
@@ -180,7 +181,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
             }
         }
         if let Some(ref reason) = reason {
-            if reason.as_bytes().len() > 123 { //reason cannot be larger than 123 bytes
+            if reason.0.as_bytes().len() > 123 { //reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }
         }
@@ -205,7 +206,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                     self.code.set(code);
                 }
                 if let Some(reason) = reason {
-                    *self.reason.borrow_mut() = reason;
+                    *self.reason.borrow_mut() = reason.0;
                 }
                 self.ready_state.set(WebSocketRequestState::Closing);
                 self.sendCloseFrame.set(true);
