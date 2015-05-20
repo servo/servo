@@ -938,7 +938,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "plugins"
 version = "0.0.1"
 dependencies = [
- "tenacious 0.0.1 (git+https://github.com/Manishearth/rust-tenacious.git)",
+ "tenacious 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1186,8 +1186,8 @@ dependencies = [
 
 [[package]]
 name = "tenacious"
-version = "0.0.1"
-source = "git+https://github.com/Manishearth/rust-tenacious.git#5112359cd36682cd7df3a7bb9a963299890be26c"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "time"
