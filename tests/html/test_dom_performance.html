@@ -1,0 +1,63 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+
+  <body id="main">
+    <label id="lb">Test string</label> <br />
+
+    <h1>Results:</h1>
+    <div id="results">
+
+    </div>
+  </body>
+
+    <script>
+      var ITERATIONS = 100000;
+
+      var tests = {
+        testGetLabel: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+            var str = label.textContent;
+          }
+        },
+
+        testSetLabel: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+            label.innerHTML = "Test string new";
+          }
+        },
+
+        testCallSimpleMethod: function() {
+          function testMethod() { };
+          for (var i=0; i<ITERATIONS; ++i) {
+            testMethod();
+          }
+        },
+
+        testCallMethodReturnValue: function() {
+          function testMethod() { return 1; };
+          for (var i=0; i<ITERATIONS; ++i) {
+            testMethod();
+          }
+        },
+
+        testEventObjectCreation: function() {
+          for (var i=0; i<ITERATIONS; ++i) {
+            var event = new Event('build');
+          }
+        }
+      };
+
+      for (t in tests) {
+        var beginTime = new Date().getTime();
+        tests[t]();
+        var endTime = new Date().getTime();
+        var res = document.getElementById("results");
+        res.innerHTML = res.innerHTML  + t + ": " + (endTime - beginTime) / ITERATIONS + " ms<br/>";
+      }
+
+    </script>
+</html>
