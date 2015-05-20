@@ -23,7 +23,7 @@ extern crate tenacious;
 
 use rustc::lint::LintPassObject;
 use rustc::plugin::Registry;
-use syntax::ext::base::{Decorator, Modifier};
+use syntax::ext::base::*;
 
 use syntax::parse::token::intern;
 
@@ -40,7 +40,7 @@ pub mod casing;
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("dom_struct"), Modifier(box jstraceable::expand_dom_struct));
-    reg.register_syntax_extension(intern("jstraceable"), Decorator(box jstraceable::expand_jstraceable));
+    reg.register_syntax_extension(intern("jstraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
     reg.register_syntax_extension(intern("_generate_reflector"), Decorator(box reflector::expand_reflector));
     reg.register_macro("to_lower", casing::expand_lower);
     reg.register_macro("to_upper", casing::expand_upper);
