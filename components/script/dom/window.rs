@@ -13,8 +13,8 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, OptionalRootable};
-use dom::bindings::js::{Rootable, RootedReference, Temporary};
+use dom::bindings::js::{JS, Root, MutNullableHeap};
+use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowserContext;
@@ -24,7 +24,7 @@ use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{window_from_node, Node, TrustedNodeAddress, NodeHelpers};
+use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -49,11 +49,11 @@ use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use geom::{Point2D, Rect, Size2D};
-use js::jsapi::JS_EvaluateUCScript;
-use js::jsapi::JSContext;
-use js::jsapi::{JS_GC, JS_GetRuntime};
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{Runtime, with_compartment};
+use js::jsapi::{Evaluate2, MutableHandleValue};
+use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
+use js::rust::Runtime;
+use js::rust::CompileOptionsWrapper;
 use url::{Url, UrlParser};
 
 use libc;
@@ -311,7 +311,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     }
 }
 
-impl<'a> WindowMethods for JSRef<'a, Window> {
+impl<'a> WindowMethods for &'a Window {
     // https://html.spec.whatwg.org/#dom-alert
     fn Alert(self, s: DOMString) {
         // Right now, just print to the console
@@ -322,45 +322,45 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.script_chan.send(ScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
-    fn Document(self) -> Temporary<Document> {
+    fn Document(self) -> Root<Document> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let context = self.browser_context();
         context.as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
-    fn Location(self) -> Temporary<Location> {
-        self.Document().root().r().Location()
+    fn Location(self) -> Root<Location> {
+        self.Document().r().Location()
     }
 
     // https://html.spec.whatwg.org/#dom-sessionstorage
-    fn SessionStorage(self) -> Temporary<Storage> {
+    fn SessionStorage(self) -> Root<Storage> {
         self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/#dom-localstorage
-    fn LocalStorage(self) -> Temporary<Storage> {
+    fn LocalStorage(self) -> Root<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
 
-    fn Console(self) -> Temporary<Console> {
+    fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
     // https://html.spec.whatwg.org/#dom-frameelement
-    fn GetFrameElement(self) -> Option<Temporary<Element>> {
+    fn GetFrameElement(self) -> Option<Root<Element>> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let context = self.browser_context();
         context.as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
-    fn Navigator(self) -> Temporary<Navigator> {
+    fn Navigator(self) -> Root<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -370,7 +370,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -385,7 +385,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -395,7 +395,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -409,27 +409,27 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.ClearTimeout(handle);
     }
 
-    fn Window(self) -> Temporary<Window> {
-        Temporary::from_rooted(self)
+    fn Window(self) -> Root<Window> {
+        Root::from_ref(self)
     }
 
-    fn Self_(self) -> Temporary<Window> {
+    fn Self_(self) -> Root<Window> {
         self.Window()
     }
 
     // https://www.whatwg.org/html/#dom-frames
-    fn Frames(self) -> Temporary<Window> {
+    fn Frames(self) -> Root<Window> {
         self.Window()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn Parent(self) -> Temporary<Window> {
+    fn Parent(self) -> Root<Window> {
         let browser_context = self.browser_context();
         let browser_context = browser_context.as_ref().unwrap();
 
         browser_context.frame_element().map_or(self.Window(), |fe| {
-            let frame_element = fe.root();
-            let window = window_from_node(frame_element.r()).root();
+            let frame_element = fe;
+            let window = window_from_node(frame_element.r());
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
             let context = r.browser_context();
@@ -437,7 +437,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         })
     }
 
-    fn Performance(self) -> Temporary<Performance> {
+    fn Performance(self) -> Root<Performance> {
         self.performance.or_init(|| {
             Performance::new(self, self.navigation_start,
                              self.navigation_start_precise)
@@ -448,7 +448,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     event_handler!(unload, GetOnunload, SetOnunload);
     error_event_handler!(error, GetOnerror, SetOnerror);
 
-    fn Screen(self) -> Temporary<Screen> {
+    fn Screen(self) -> Root<Screen> {
         self.screen.or_init(|| Screen::new(self))
     }
 
@@ -472,8 +472,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
-    fn RequestAnimationFrame(self, callback: FrameRequestCallback) -> i32 {
-        let doc = self.Document().root();
+    fn RequestAnimationFrame(self, callback: Rc<FrameRequestCallback>) -> i32 {
+        let doc = self.Document();
 
         let callback  = move |now: f64| {
             // TODO: @jdm The spec says that any exceptions should be suppressed;
@@ -485,11 +485,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn CancelAnimationFrame(self, ident: i32) {
-        let doc = self.Document().root();
+        let doc = self.Document();
         doc.r().cancel_animation_frame(ident);
     }
 
-    fn WebdriverCallback(self, cx: *mut JSContext, val: JSVal) {
+    fn WebdriverCallback(self, cx: *mut JSContext, val: HandleValue) {
         let rv = jsval_to_webdriver(cx, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
@@ -507,7 +507,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
 pub trait WindowHelpers {
     fn clear_js_runtime(self);
-    fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>);
+    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
@@ -536,7 +536,7 @@ pub trait WindowHelpers {
     fn steal_resize_event(self) -> Option<WindowSizeData>;
     fn set_page_clip_rect_with_new_viewport(self, viewport: Rect<f32>) -> bool;
     fn set_devtools_wants_updates(self, value: bool);
-    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
+    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Root<Window>>;
     fn thaw(self);
     fn freeze(self);
     fn need_emit_timeline_marker(self, timeline_type: TimelineMarkerType) -> bool;
@@ -547,41 +547,44 @@ pub trait WindowHelpers {
 }
 
 pub trait ScriptHelpers {
-    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal;
-    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal;
+    fn evaluate_js_on_global_with_result(self, code: &str,
+                                         rval: MutableHandleValue);
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
+                                             rval: MutableHandleValue);
 }
 
-impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
-    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal {
-        self.evaluate_script_on_global_with_result(code, "")
+impl<'a, T: Reflectable> ScriptHelpers for &'a T {
+    fn evaluate_js_on_global_with_result(self, code: &str,
+                                         rval: MutableHandleValue) {
+        self.evaluate_script_on_global_with_result(code, "", rval)
     }
 
     #[allow(unsafe_code)]
-    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal {
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
+                                             rval: MutableHandleValue) {
         let this = self.reflector().get_jsobject();
-        let cx = global_object_for_js_object(this).root().r().get_cx();
-        let global = global_object_for_js_object(this).root().r().reflector().get_jsobject();
+        let cx = global_object_for_js_object(this).r().get_cx();
+        let _ar = JSAutoRequest::new(cx);
+        let global = global_object_for_js_object(this).r().reflector().get_jsobject();
         let code: Vec<u16> = code.utf16_units().collect();
-        let mut rval = UndefinedValue();
         let filename = CString::new(filename).unwrap();
 
-        with_compartment(cx, global, || {
-            unsafe {
-                if JS_EvaluateUCScript(cx, global, code.as_ptr(),
-                                       code.len() as libc::c_uint,
-                                       filename.as_ptr(), 1, &mut rval) == 0 {
-                    debug!("error evaluating JS string");
-                    report_pending_exception(cx, global);
-                }
-                rval
+        let _ac = JSAutoCompartment::new(cx, global);
+        let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
+        unsafe {
+            if Evaluate2(cx, options.ptr, code.as_ptr() as *const i16,
+                         code.len() as libc::size_t,
+                         rval) == 0 {
+                debug!("error evaluating JS string");
+                report_pending_exception(cx, global);
             }
-        })
+        }
     }
 }
 
-impl<'a> WindowHelpers for JSRef<'a, Window> {
+impl<'a> WindowHelpers for &'a Window {
     fn clear_js_runtime(self) {
-        let document = self.Document().root();
+        let document = self.Document();
         NodeCast::from_ref(document.r()).teardown();
 
         // The above code may not catch all DOM objects
@@ -605,13 +608,13 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document().root();
-        let root = document.r().GetDocumentElement().root();
+        let document = self.Document();
+        let root = document.r().GetDocumentElement();
         let root = match root.r() {
             Some(root) => root,
             None => return,
         };
-        let root: JSRef<Node> = NodeCast::from_ref(root);
+        let root = NodeCast::from_ref(root);
 
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
@@ -676,14 +679,14 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document().root();
-        let root = document.r().GetDocumentElement().root();
+        let document = self.Document();
+        let root = document.r().GetDocumentElement();
         let root = match root.r() {
             Some(root) => root,
             None => return,
         };
 
-        let root: JSRef<Node> = NodeCast::from_ref(root);
+        let root = NodeCast::from_ref(root);
         if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
             debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
             return
@@ -745,8 +748,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.window_size.set(Some(new_size));
     }
 
-    fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>) {
-        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc, frame_element));
+    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>) {
+        let mut browser_context = self.browser_context.borrow_mut();
+        *browser_context = Some(BrowserContext::new(doc, frame_element));
+        (*browser_context).as_mut().unwrap().create_window_proxy();
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -790,7 +795,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn get_url(self) -> Url {
-        let doc = self.Document().root();
+        let doc = self.Document();
         doc.r().url()
     }
 
@@ -875,7 +880,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
-    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>> {
+    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Root<Window>> {
         None
     }
 
@@ -884,7 +889,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
-        let document = self.Document().root();
+        let document = self.Document();
         document.r().title_changed();
     }
 
@@ -934,7 +939,7 @@ impl Window {
                id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
                window_size: Option<WindowSizeData>)
-               -> Temporary<Window> {
+               -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();
             let LayoutChan(ref lchan) = layout_chan;

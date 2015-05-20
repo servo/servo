@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLVideoElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -28,14 +28,14 @@ impl HTMLVideoElementDerived for EventTarget {
 }
 
 impl HTMLVideoElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLVideoElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLVideoElement {
         HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(HTMLMediaElementTypeId::HTMLVideoElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLVideoElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLVideoElement> {
         let element = HTMLVideoElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLVideoElementBinding::Wrap)
     }

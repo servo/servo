@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DOMStringMapBinding;
 use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::window_from_node;
 use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};
@@ -19,22 +19,22 @@ pub struct DOMStringMap {
 }
 
 impl DOMStringMap {
-    fn new_inherited(element: JSRef<HTMLElement>) -> DOMStringMap {
+    fn new_inherited(element: &HTMLElement) -> DOMStringMap {
         DOMStringMap {
             reflector_: Reflector::new(),
-            element: JS::from_rooted(element),
+            element: JS::from_ref(element),
         }
     }
 
-    pub fn new(element: JSRef<HTMLElement>) -> Temporary<DOMStringMap> {
-        let window = window_from_node(element).root();
+    pub fn new(element: &HTMLElement) -> Root<DOMStringMap> {
+        let window = window_from_node(element);
         reflect_dom_object(box DOMStringMap::new_inherited(element),
                            GlobalRef::Window(window.r()), DOMStringMapBinding::Wrap)
     }
 }
 
 // https://html.spec.whatwg.org/#domstringmap
-impl<'a> DOMStringMapMethods for JSRef<'a, DOMStringMap> {
+impl<'a> DOMStringMapMethods for &'a DOMStringMap {
     fn NamedCreator(self, name: DOMString, value: DOMString) -> ErrorResult {
         self.NamedSetter(name, value)
     }

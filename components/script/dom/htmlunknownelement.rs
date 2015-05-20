@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLUnknownElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLUnknownElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -24,14 +24,14 @@ impl HTMLUnknownElementDerived for EventTarget {
 }
 
 impl HTMLUnknownElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLUnknownElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLUnknownElement {
         HTMLUnknownElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLUnknownElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLUnknownElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLUnknownElement> {
         let element = HTMLUnknownElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLUnknownElementBinding::Wrap)
     }

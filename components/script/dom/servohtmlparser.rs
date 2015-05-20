@@ -9,7 +9,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::Node;
@@ -19,7 +19,7 @@ use util::task_state;
 
 use std::default::Default;
 use url::Url;
-use js::jsapi::JSTracer;
+use js::jsapi::{JSTracer, JSObject};
 use html5ever::tokenizer;
 use html5ever::tree_builder;
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
@@ -35,8 +35,8 @@ pub struct Sink {
 /// into functions.
 #[derive(Copy, Clone)]
 pub struct FragmentContext<'a> {
-    pub context_elem: JSRef<'a, Node>,
-    pub form_elem: Option<JSRef<'a, Node>>,
+    pub context_elem: &'a Node,
+    pub form_elem: Option<&'a Node>,
 }
 
 pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
@@ -50,7 +50,7 @@ pub struct ServoHTMLParser {
     tokenizer: DOMRefCell<Tokenizer>,
 }
 
-impl Parser for ServoHTMLParser{
+impl Parser for ServoHTMLParser {
     fn parse_chunk(&self, input: String) {
         self.tokenizer().borrow_mut().feed(input);
     }
@@ -61,11 +61,11 @@ impl Parser for ServoHTMLParser{
 
 impl ServoHTMLParser {
     #[allow(unrooted_must_root)]
-    pub fn new(base_url: Option<Url>, document: JSRef<Document>) -> Temporary<ServoHTMLParser> {
-        let window = document.window().root();
+    pub fn new(base_url: Option<Url>, document: &Document) -> Root<ServoHTMLParser> {
+        let window = document.window();
         let sink = Sink {
             base_url: base_url,
-            document: JS::from_rooted(document),
+            document: JS::from_ref(document),
         };
 
         let tb = TreeBuilder::new(sink, TreeBuilderOpts {
@@ -85,12 +85,12 @@ impl ServoHTMLParser {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new_for_fragment(base_url: Option<Url>, document: JSRef<Document>,
-                            fragment_context: FragmentContext) -> Temporary<ServoHTMLParser> {
-        let window = document.window().root();
+    pub fn new_for_fragment(base_url: Option<Url>, document: &Document,
+                            fragment_context: FragmentContext) -> Root<ServoHTMLParser> {
+        let window = document.window();
         let sink = Sink {
             base_url: base_url,
-            document: JS::from_rooted(document),
+            document: JS::from_ref(document),
         };
 
         let tb_opts = TreeBuilderOpts {
@@ -98,8 +98,8 @@ impl ServoHTMLParser {
             .. Default::default()
         };
         let tb = TreeBuilder::new_for_fragment(sink,
-                                               JS::from_rooted(fragment_context.context_elem),
-                                               fragment_context.form_elem.map(|n| JS::from_rooted(n)),
+                                               JS::from_ref(fragment_context.context_elem),
+                                               fragment_context.form_elem.map(|n| JS::from_ref(n)),
                                                tb_opts);
 
         let tok_opts = tokenizer::TokenizerOpts {
@@ -126,6 +126,9 @@ impl ServoHTMLParser {
 impl Reflectable for ServoHTMLParser {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
+    }
+    fn init_reflector(&mut self, obj: *mut JSObject) {
+        self.reflector_.set_jsobject(obj);
     }
 }
 
