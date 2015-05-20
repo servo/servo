@@ -57,6 +57,7 @@ use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 
 use libc;
 use num::Float;
+use num::traits::{Bounded, ToPrimitive, NumCast, Zero};
 use std::borrow::ToOwned;
 use std::default;
 use std::slice;
@@ -88,6 +89,41 @@ pub trait FromJSValConvertible {
     fn from_jsval(cx: *mut JSContext, val: JSVal, option: Self::Config) -> Result<Self, ()>;
 }
 
+/// Behavior for converting the integers
+#[derive(PartialEq, Eq)]
+pub enum ConversionBehavior {
+    /// Do nothing
+    Default,
+    /// If it doesn't fit in the type, raise error
+    EnforceRange,
+    /// If it doesn't fit in the type, round to MAX or MIN
+    Clamp
+}
+
+impl default::Default for ConversionBehavior {
+    fn default() -> ConversionBehavior {
+        ConversionBehavior::Default
+    }
+}
+
+/// Try to cast the number to a smaller type, but
+/// if it doesn't fit, it will return an error.
+fn enforce_range<T: ToPrimitive, D: NumCast>(i: T) -> Result<D, ()> {
+    NumCast::from(i).ok_or(())
+}
+
+/// Try to cast the number to a smaller type, but if it doesn't fit,
+/// round it to the MAX or MIN of the source type before casting it to
+/// the destination type.
+fn clamp_to<T: NumCast + PartialOrd, D: Bounded + NumCast>(i: T) -> D {
+    if i > NumCast::from(D::max_value()).unwrap() {
+        D::max_value()
+    } else if i < NumCast::from(D::min_value()).unwrap() {
+        D::min_value()
+    } else {
+        NumCast::from(i).unwrap()
+    }
+}
 
 impl ToJSValConvertible for () {
     fn to_jsval(&self, _cx: *mut JSContext) -> JSVal {
@@ -116,6 +152,67 @@ unsafe fn convert_from_jsval<T: default::Default>(
     }
 }
 
+// XXX(reviewer): macro or generic?, the difference is the direct cast or
+// using NummCast basically. As this code will be called a lot, I thought
+// that the macro would be better.
+macro_rules! convert_int_from_jsval {
+    ($cx:ident, $value:ident, $option:ident, $fun:path, $mid:ty, $dst:ty) => (
+        if $option == ConversionBehavior::Default {
+            let mut ret: $mid = default::Default::default();
+            if unsafe {$fun($cx, $value, &mut ret)} == 0 {
+                Err(())
+            } else {
+                Ok(ret as $dst)
+            }
+        } else {
+            let mut ret = 0f64;
+            if unsafe {JS_ValueToNumber($cx, $value, &mut ret)} == 0 {
+                Err(())
+            } else {
+                match $option {
+                    ConversionBehavior::EnforceRange => enforce_range(ret).or_else(
+                        |_| {
+                            throw_type_error($cx, "value out of range in an EnforceRange argument");
+                            Err(())
+                        }),
+                    ConversionBehavior::Clamp => Ok(clamp_to(ret)),
+                    _ => panic!("unreachable")
+                }
+            }
+        }
+        )
+}
+
+#[inline]
+fn convert_int_from_jsval<T: Bounded + NumCast + Zero, M: ToPrimitive + Zero>(
+    cx: *mut JSContext, value: JSVal,
+    convert_fn: unsafe extern "C" fn(*mut JSContext, JSVal, *mut M) -> JSBool,
+    option: ConversionBehavior) -> Result<T, ()>
+{
+    if option == ConversionBehavior::Default {
+        let mut ret = M::zero();
+        if unsafe {convert_fn(cx, value, &mut ret)} == 0 {
+            Err(())
+        } else {
+            Ok(NumCast::from(ret).unwrap())
+        }
+    } else {
+        let mut ret = 0f64;
+        if unsafe {JS_ValueToNumber(cx, value, &mut ret)} == 0 {
+            Err(())
+        } else {
+            match option {
+                ConversionBehavior::EnforceRange => enforce_range(ret).or_else(
+                    |_| {
+                        throw_type_error(cx, "value out of range in an EnforceRange argument");
+                        Err(())
+                    }),
+                ConversionBehavior::Clamp => Ok(clamp_to(ret)),
+                _ => panic!("unreachable")
+            }
+        }
+    }
+}
 
 impl ToJSValConvertible for bool {
     fn to_jsval(&self, _cx: *mut JSContext) -> JSVal {
@@ -138,10 +235,11 @@ impl ToJSValConvertible for i8 {
 }
 
 impl FromJSValConvertible for i8 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i8, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
-        result.map(|v| v as i8)
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<i8, ()> {
+        // XXX(reviewer): this would be with the generic
+        //convert_int_from_jsval(cx, val, JS_ValueToECMAInt32, option)
+        convert_int_from_jsval!(cx, val, option, JS_ValueToECMAInt32, i32, i8)
     }
 }
 
@@ -152,10 +250,9 @@ impl ToJSValConvertible for u8 {
 }
 
 impl FromJSValConvertible for u8 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u8, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
-        result.map(|v| v as u8)
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<u8, ()> {
+        convert_int_from_jsval!(cx, val, option, JS_ValueToECMAInt32, i32, u8)
     }
 }
 
@@ -166,10 +263,9 @@ impl ToJSValConvertible for i16 {
 }
 
 impl FromJSValConvertible for i16 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i16, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
-        result.map(|v| v as i16)
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<i16, ()> {
+        convert_int_from_jsval!(cx, val, option, JS_ValueToECMAInt32, i32, i16)
     }
 }
 
@@ -180,9 +276,9 @@ impl ToJSValConvertible for u16 {
 }
 
 impl FromJSValConvertible for u16 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u16, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToUint16) }
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<u16, ()> {
+        convert_int_from_jsval!(cx, val, option, JS_ValueToUint16, u16, u16)
     }
 }
 
@@ -193,9 +289,9 @@ impl ToJSValConvertible for i32 {
 }
 
 impl FromJSValConvertible for i32 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i32, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) }
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<i32, ()> {
+        convert_int_from_jsval!(cx, val, option, JS_ValueToECMAInt32, i32, i32)
     }
 }
 
@@ -206,9 +302,9 @@ impl ToJSValConvertible for u32 {
 }
 
 impl FromJSValConvertible for u32 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u32, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAUint32) }
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<u32, ()> {
+        convert_int_from_jsval!(cx, val, option, JS_ValueToECMAUint32, u32, u32)
     }
 }
 
@@ -221,9 +317,9 @@ impl ToJSValConvertible for i64 {
 }
 
 impl FromJSValConvertible for i64 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i64, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToInt64) }
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<i64, ()> {
+        convert_int_from_jsval!(cx, val, option, JS_ValueToInt64, i64, i64)
     }
 }
 
@@ -236,9 +332,9 @@ impl ToJSValConvertible for u64 {
 }
 
 impl FromJSValConvertible for u64 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u64, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToUint64) }
+    type Config = ConversionBehavior;
+    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ConversionBehavior) -> Result<u64, ()> {
+        convert_int_from_jsval!(cx, val, option, JS_ValueToUint64, u64, u64)
     }
 }
 
@@ -583,12 +679,11 @@ impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
 }
 
 impl<X: default::Default, T: FromJSValConvertible<Config=X>> FromJSValConvertible for Option<T> {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, value: JSVal, _: ()) -> Result<Option<T>, ()> {
+    type Config = X;
+    fn from_jsval(cx: *mut JSContext, value: JSVal, option: X) -> Result<Option<T>, ()> {
         if value.is_null_or_undefined() {
             Ok(None)
         } else {
-            let option: X = default::Default::default();
             let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
             result.map(Some)
         }
