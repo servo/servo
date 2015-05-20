@@ -503,8 +503,8 @@ impl Flow for TableFlow {
         self.block_flow.assign_block_size_for_table_like_flow(layout_context, vertical_spacing)
     }
 
-    fn compute_absolute_position(&mut self) {
-        self.block_flow.compute_absolute_position()
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_absolute_position(layout_context)
     }
 
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {

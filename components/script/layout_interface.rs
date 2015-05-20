@@ -11,6 +11,7 @@ use dom::node::LayoutData;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use libc::uintptr_t;
+use msg::compositor_msg::LayerId;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
 use msg::compositor_msg::Epoch;
 use net_traits::PendingAsyncLoad;
@@ -46,6 +47,10 @@ pub enum Msg {
 
     /// Requests that the layout task render the next frame of all animations.
     TickAnimations,
+
+    /// Updates the layout visible rects, affecting the area that display lists will be constructed
+    /// for.
+    SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
 
     /// Destroys layout data associated with a DOM node.
     ///

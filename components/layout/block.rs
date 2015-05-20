@@ -43,6 +43,7 @@ use flow::{CLEARS_LEFT, CLEARS_RIGHT};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
+use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
 use wrapper::ThreadSafeLayoutNode;
@@ -59,7 +60,7 @@ use style::computed_values::{position, text_align};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
-use util::geometry::{Au, MAX_AU};
+use util::geometry::{Au, MAX_AU, MAX_RECT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 
@@ -377,7 +378,9 @@ impl Iterator for CandidateBSizeIterator {
                     Some(max_block_size) if self.candidate_value > max_block_size => {
                         CandidateBSizeIteratorStatus::TryingMax
                     }
-                    _ if self.candidate_value < self.min_block_size => CandidateBSizeIteratorStatus::TryingMin,
+                    _ if self.candidate_value < self.min_block_size => {
+                        CandidateBSizeIteratorStatus::TryingMin
+                    }
                     _ => CandidateBSizeIteratorStatus::Found,
                 }
             }
@@ -718,13 +721,16 @@ impl BlockFlow {
             return
         }
 
-        let (block_start_margin_value, block_end_margin_value) = match self.base.collapsible_margins {
-            CollapsibleMargins::CollapseThrough(_) => panic!("Margins unexpectedly collapsed through root flow."),
-            CollapsibleMargins::Collapse(block_start_margin, block_end_margin) => {
-                (block_start_margin.collapse(), block_end_margin.collapse())
-            }
-            CollapsibleMargins::None(block_start, block_end) => (block_start, block_end),
-        };
+        let (block_start_margin_value, block_end_margin_value) =
+            match self.base.collapsible_margins {
+                CollapsibleMargins::CollapseThrough(_) => {
+                    panic!("Margins unexpectedly collapsed through root flow.")
+                }
+                CollapsibleMargins::Collapse(block_start_margin, block_end_margin) => {
+                    (block_start_margin.collapse(), block_end_margin.collapse())
+                }
+                CollapsibleMargins::None(block_start, block_end) => (block_start, block_end),
+            };
 
         // Shift all kids down (or up, if margins are negative) if necessary.
         if block_start_margin_value != Au(0) {
@@ -757,7 +763,8 @@ impl BlockFlow {
     pub fn assign_block_size_block_base<'a>(&mut self,
                                             layout_context: &'a LayoutContext<'a>,
                                             margins_may_collapse: MarginsMayCollapseFlag) {
-        let _scope = layout_debug_scope!("assign_block_size_block_base {:x}", self.base.debug_id());
+        let _scope = layout_debug_scope!("assign_block_size_block_base {:x}",
+                                         self.base.debug_id());
 
         if self.base.restyle_damage.contains(REFLOW) {
             // Our current border-box position.
@@ -1661,13 +1668,14 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
         // account.  Must handle vertical writing modes.
         let container_size = Size2D(self.base.block_container_inline_size, Au(0));
 
         if self.is_root() {
-            self.base.clip = ClippingRegion::max()
+            self.base.clip = ClippingRegion::max();
+            self.base.stacking_relative_position_of_display_port = MAX_RECT;
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -1761,7 +1769,8 @@ impl Flow for BlockFlow {
         let relative_offset = relative_offset.to_physical(self.base.writing_mode);
         let origin_for_children;
         let clip_in_child_coordinate_system;
-        if self.fragment.establishes_stacking_context() {
+        let is_stacking_context = self.fragment.establishes_stacking_context();
+        if is_stacking_context {
             // We establish a stacking context, so the position of our children is vertically
             // correct, but has to be adjusted to accommodate horizontal margins. (Note the
             // calculation involving `position` below and recall that inline-direction flow
@@ -1771,11 +1780,31 @@ impl Flow for BlockFlow {
             let margin = self.fragment.margin.to_physical(self.base.writing_mode);
             origin_for_children = Point2D(-margin.left, Au(0)) + relative_offset;
             clip_in_child_coordinate_system =
-                self.base.clip.translate(&-self.base.stacking_relative_position)
+                self.base.clip.translate(&-self.base.stacking_relative_position);
         } else {
             origin_for_children = self.base.stacking_relative_position + relative_offset;
-            clip_in_child_coordinate_system = self.base.clip.clone()
+            clip_in_child_coordinate_system = self.base.clip.clone();
         }
+
+        let stacking_relative_position_of_display_port_for_children =
+            if (is_stacking_context && self.will_get_layer()) || self.is_root() {
+                let visible_rect =
+                    match layout_context.shared.visible_rects.get(&self.layer_id(0)) {
+                        Some(visible_rect) => *visible_rect,
+                        None => Rect(Point2D::zero(), layout_context.shared.screen_size),
+                    };
+
+                let screen_size = layout_context.shared.screen_size;
+                visible_rect.inflate(screen_size.width * DISPLAY_PORT_SIZE_FACTOR,
+                                     screen_size.height * DISPLAY_PORT_SIZE_FACTOR)
+            } else if is_stacking_context {
+                self.base
+                    .stacking_relative_position_of_display_port
+                    .translate(&-self.base.stacking_relative_position)
+            } else {
+                self.base.stacking_relative_position_of_display_port
+            };
+
         let stacking_relative_border_box =
             self.fragment
                 .stacking_relative_border_box(&self.base.stacking_relative_position,
@@ -1820,7 +1849,9 @@ impl Flow for BlockFlow {
             }
 
             flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
-            flow::mut_base(kid).clip = clip.clone()
+            flow::mut_base(kid).clip = clip.clone();
+            flow::mut_base(kid).stacking_relative_position_of_display_port =
+                stacking_relative_position_of_display_port_for_children;
         }
     }
 

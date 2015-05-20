@@ -11,12 +11,12 @@ use animation;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, SharedLayoutContextWrapper};
 use css::node_style::StyledNode;
+use data::{LayoutDataAccess, LayoutDataWrapper};
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
-use data::{LayoutDataAccess, LayoutDataWrapper};
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, UnsafeFlow};
@@ -39,7 +39,7 @@ use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
-use msg::compositor_msg::{Epoch, ScrollPolicy};
+use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use profile_traits::mem::{self, Report, ReportsChan};
@@ -57,6 +57,8 @@ use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
@@ -69,6 +71,7 @@ use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
 use util::cursor::Cursor;
+use util::fnv::FnvHasher;
 use util::geometry::{Au, MAX_RECT};
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
@@ -76,6 +79,12 @@ use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
+
+/// The number of screens of data we're allowed to generate display lists for in each direction.
+pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
+
+/// The number of screens we have to traverse before we decide to generate new display lists.
+const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 
 /// Mutable data belonging to the LayoutTask.
 ///
@@ -125,8 +134,12 @@ pub struct LayoutTaskData {
     /// sent.
     pub new_animations_sender: Sender<Animation>,
 
-    /// A counter for epoch messages
+    /// A counter for epoch messages.
     epoch: Epoch,
+
+    /// The position and size of the visible rect for each layer. We do not build display lists
+    /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
+    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 }
 
 /// Information needed by the layout task.
@@ -330,6 +343,7 @@ impl LayoutTask {
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
                     running_animations: Vec::new(),
+                    visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
                     new_animations_sender: new_animations_sender,
                     epoch: Epoch(0),
@@ -365,6 +379,7 @@ impl LayoutTask {
             url: (*url).clone(),
             reflow_root: reflow_root.map(|node| OpaqueNodeMethods::from_layout_node(node)),
             dirty: Rect::zero(),
+            visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
             new_animations_sender: rw_data.new_animations_sender.clone(),
             goal: goal,
@@ -406,6 +421,10 @@ impl LayoutTask {
         match port_to_read {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv().unwrap() {
+                    LayoutControlMsg::SetVisibleRects(new_visible_rects) => {
+                        self.handle_request_helper(Msg::SetVisibleRects(new_visible_rects),
+                                                   possibly_locked_rw_data)
+                    }
                     LayoutControlMsg::TickAnimations => {
                         self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
                     }
@@ -509,6 +528,9 @@ impl LayoutTask {
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
+            Msg::SetVisibleRects(new_visible_rects) => {
+                self.set_visible_rects(new_visible_rects, possibly_locked_rw_data);
+            }
             Msg::ReapLayoutData(dead_layout_data) => {
                 unsafe {
                     self.handle_reap_layout_data(dead_layout_data)
@@ -964,6 +986,64 @@ impl LayoutTask {
         chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
+    fn set_visible_rects<'a>(&'a self,
+                             new_visible_rects: Vec<(LayerId, Rect<Au>)>,
+                             possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
+                             -> bool {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+
+        // First, determine if we need to regenerate the display lists. This will happen if the
+        // layers have moved more than `DISPLAY_PORT_THRESHOLD_SIZE_FACTOR` away from their last
+        // positions.
+        let mut must_regenerate_display_lists = false;
+        let mut old_visible_rects = HashMap::with_hash_state(Default::default());
+        let inflation_amount =
+            Size2D(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
+                   rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
+        for &(ref layer_id, ref new_visible_rect) in new_visible_rects.iter() {
+            match rw_data.visible_rects.get(layer_id) {
+                None => {
+                    old_visible_rects.insert(*layer_id, *new_visible_rect);
+                }
+                Some(old_visible_rect) => {
+                    old_visible_rects.insert(*layer_id, *old_visible_rect);
+
+                    if !old_visible_rect.inflate(inflation_amount.width, inflation_amount.height)
+                                        .intersects(new_visible_rect) {
+                        must_regenerate_display_lists = true;
+                    }
+                }
+            }
+        }
+
+        if !must_regenerate_display_lists {
+            // Update `visible_rects` in case there are new layers that were discovered.
+            rw_data.visible_rects = Arc::new(old_visible_rects);
+            return true
+        }
+
+        debug!("regenerating display lists!");
+        for &(ref layer_id, ref new_visible_rect) in new_visible_rects.iter() {
+            old_visible_rects.insert(*layer_id, *new_visible_rect);
+        }
+        rw_data.visible_rects = Arc::new(old_visible_rects);
+
+        // Regenerate the display lists.
+        let reflow_info = Reflow {
+            goal: ReflowGoal::ForDisplay,
+            page_clip_rect: MAX_RECT,
+        };
+
+        let mut layout_context = self.build_shared_layout_context(&*rw_data,
+                                                                  false,
+                                                                  None,
+                                                                  &self.url,
+                                                                  reflow_info.goal);
+
+        self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
+        true
+    }
+
     fn tick_all_animations<'a>(&'a self,
                                possibly_locked_rw_data: &mut Option<MutexGuard<'a,
                                                                                LayoutTaskData>>) {
@@ -1045,7 +1125,15 @@ impl LayoutTask {
             }
         });
 
+        self.perform_post_main_layout_passes(data, rw_data, layout_context);
+    }
+
+    fn perform_post_main_layout_passes<'a>(&'a self,
+                                           data: &Reflow,
+                                           rw_data: &mut LayoutTaskData,
+                                           layout_context: &mut SharedLayoutContext) {
         // Build the display list if necessary, and send it to the painter.
+        let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
         self.compute_abs_pos_and_build_display_list(data,
                                                     &mut root_flow,
                                                     &mut *layout_context,

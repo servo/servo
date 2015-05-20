@@ -403,8 +403,8 @@ impl Flow for TableRowFlow {
         self.assign_block_size_table_row_base(layout_context);
     }
 
-    fn compute_absolute_position(&mut self) {
-        self.block_flow.compute_absolute_position()
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_absolute_position(layout_context)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {

@@ -1464,7 +1464,7 @@ impl Flow for InlineFlow {
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
-    fn compute_absolute_position(&mut self) {
+    fn compute_absolute_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         let mut containing_block_positions = Vec::new();
         let container_size = Size2D(self.base.block_container_inline_size, Au(0));
@@ -1504,14 +1504,18 @@ impl Flow for InlineFlow {
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin
+                        stacking_relative_border_box.origin;
+                    block_flow.base.stacking_relative_position_of_display_port =
+                        self.base.stacking_relative_position_of_display_port;
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin
+                        stacking_relative_border_box.origin;
+                    block_flow.base.stacking_relative_position_of_display_port =
+                        self.base.stacking_relative_position_of_display_port;
 
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
@@ -1528,7 +1532,9 @@ impl Flow for InlineFlow {
                         stacking_relative_position + *padding_box_origin;
 
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin
+                        stacking_relative_border_box.origin;
+                    block_flow.base.stacking_relative_position_of_display_port =
+                        self.base.stacking_relative_position_of_display_port;
                 }
                 _ => {}
             }
