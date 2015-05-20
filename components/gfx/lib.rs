@@ -38,6 +38,9 @@ extern crate skia;
 extern crate time;
 extern crate url;
 
+extern crate gfx_traits;
+extern crate canvas_traits;
+
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.
 extern crate harfbuzz;
@@ -59,8 +62,6 @@ pub use paint_context::PaintContext;
 // Private painting modules
 mod paint_context;
 
-// Painting
-pub mod color;
 #[path="display_list/mod.rs"]
 pub mod display_list;
 pub mod paint_task;

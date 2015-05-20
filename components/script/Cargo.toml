@@ -42,6 +42,9 @@ path = "../gfx"
 [dependencies.canvas]
 path = "../canvas"
 
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
 [dependencies.webdriver_traits]
 path = "../webdriver_traits"
 

@@ -6,13 +6,15 @@
 #![feature(collections)]
 #![feature(rustc_private)]
 
+extern crate canvas_traits;
 extern crate azure;
 extern crate cssparser;
 extern crate geom;
-extern crate gfx;
+extern crate gfx_traits;
 extern crate util;
 extern crate gleam;
 extern crate num;
+extern crate layers;
 extern crate offscreen_gl_context;
 
 #[macro_use]
@@ -20,4 +22,3 @@ extern crate log;
 
 pub mod canvas_paint_task;
 pub mod webgl_paint_task;
-pub mod canvas_msg;

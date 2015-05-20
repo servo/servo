@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_msg::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use geom::size::Size2D;
 
 use gleam::gl;
@@ -14,7 +14,8 @@ use std::borrow::ToOwned;
 use std::slice::bytes::copy_memory;
 use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
-use offscreen_gl_context::{GLContext, GLContextAttributes};
+use layers::platform::surface::NativeSurface;
+use offscreen_gl_context::{GLContext, GLContextAttributes, ColorAttachmentType};
 
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
@@ -29,7 +30,9 @@ unsafe impl Send for WebGLPaintTask {}
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
         // TODO(ecoal95): Get the GLContextAttributes from the `GetContext` call
-        let context = try!(GLContext::create_offscreen(size, GLContextAttributes::default()));
+        let context = try!(GLContext::create_offscreen_with_color_attachment(size,
+                                                                             GLContextAttributes::default(),
+                                                                             ColorAttachmentType::TextureWithSurface));
         Ok(WebGLPaintTask {
             size: size,
             original_context_size: size,
@@ -76,7 +79,10 @@ impl WebGLPaintTask {
                     CanvasMsg::Common(message) => {
                         match message {
                             CanvasCommonMsg::Close => break,
-                            CanvasCommonMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
+                            CanvasCommonMsg::SendPixelContents(chan) =>
+                                painter.send_pixel_contents(chan),
+                            CanvasCommonMsg::SendNativeSurface(chan) =>
+                                painter.send_native_surface(chan),
                             // TODO(ecoal95): handle error nicely
                             CanvasCommonMsg::Recreate(size) => painter.recreate(size).unwrap(),
                         }
@@ -182,6 +188,12 @@ impl WebGLPaintTask {
         // rgba -> bgra
         byte_swap(&mut pixels);
         chan.send(pixels).unwrap();
+    }
+
+    fn send_native_surface(&self, _: Sender<NativeSurface>) {
+        // FIXME(ecoal95): We need to make a clone of the surface in order to
+        // implement this
+        unimplemented!()
     }
 
     fn shader_source(&self, shader_id: u32, source_lines: Vec<String>) {

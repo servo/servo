@@ -8,11 +8,12 @@
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
+use canvas_traits::CanvasMsg;
+use msg::compositor_msg::LayerId;
 use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
-use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageState};
@@ -22,7 +23,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::ptr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
@@ -102,6 +103,9 @@ pub struct SharedLayoutContext {
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
     pub new_animations_sender: Sender<Animation>,
+
+    /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
+    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
