@@ -584,6 +584,17 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let document = self.Document().root();
         NodeCast::from_ref(document.r()).teardown();
 
+        // The above code may not catch all DOM objects
+        // (e.g. DOM objects removed from the tree that haven't
+        // been collected yet). Forcing a GC here means that
+        // those DOM objects will be able to call dispose()
+        // to free their layout data before the layout task
+        // exits. Without this, those remaining objects try to
+        // send a message to free their layout data to the
+        // layout task when the script task is dropped,
+        // which causes a panic!
+        self.Gc();
+
         *self.js_runtime.borrow_mut() = None;
         *self.browser_context.borrow_mut() = None;
     }

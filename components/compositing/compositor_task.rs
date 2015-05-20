@@ -94,7 +94,13 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
         self.send(Msg::GetGraphicsMetadata(chan));
-        port.recv().unwrap()
+        // If the compositor is shutting down when a paint task
+        // is being created, the compositor won't respond to
+        // this message, resulting in an eventual panic. Instead,
+        // just return None in this case, since the paint task
+        // will exit shortly and never actually be requested
+        // to paint buffers by the compositor.
+        port.recv().unwrap_or(None)
     }
 
     fn assign_painted_buffers(&mut self,

@@ -220,7 +220,7 @@ impl LayoutTaskFactory for LayoutTask {
               memory_profiler_chan: mem::ProfilerChan,
               shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, move || {
+        spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id), task_state::LAYOUT, move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout = LayoutTask::new(id,
