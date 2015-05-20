@@ -13,8 +13,14 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.canvas]
 path = "../canvas"
 
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
 [dependencies.gfx]
 path = "../gfx"
+
+[dependencies.gfx_traits]
+path = "../gfx_traits"
 
 [dependencies.msg]
 path = "../msg"

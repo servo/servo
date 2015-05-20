@@ -34,8 +34,8 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use script_task::ScriptChan;
 
-use canvas::canvas_paint_task::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
-use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
+use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
+use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use geom::matrix2d::Matrix2D;

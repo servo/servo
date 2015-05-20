@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use canvas::canvas_msg::CanvasMsg;
+use canvas_traits::CanvasMsg;
 use css::node_style::StyledNode;
 use context::LayoutContext;
 use floats::ClearType;
@@ -195,9 +195,7 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::Iframe(_) => "SpecificFragmentInfo::Iframe",
             SpecificFragmentInfo::Image(_) => "SpecificFragmentInfo::Image",
             SpecificFragmentInfo::InlineAbsolute(_) => "SpecificFragmentInfo::InlineAbsolute",
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
-                "SpecificFragmentInfo::InlineAbsoluteHypothetical"
-            }
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => "SpecificFragmentInfo::InlineAbsoluteHypothetical",
             SpecificFragmentInfo::InlineBlock(_) => "SpecificFragmentInfo::InlineBlock",
             SpecificFragmentInfo::ScannedText(_) => "SpecificFragmentInfo::ScannedText",
             SpecificFragmentInfo::Table => "SpecificFragmentInfo::Table",
@@ -1997,6 +1995,13 @@ impl Fragment {
         if self.style().get_effects().transform.is_some() {
             return true
         }
+
+        // Canvas always layerizes, as an special case
+        // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
+        if let SpecificFragmentInfo::Canvas(_) = self.specific {
+            return true
+        }
+
         match self.style().get_box().position {
             position::T::absolute | position::T::fixed => {
                 // FIXME(pcwalton): This should only establish a new stacking context when

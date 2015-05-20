@@ -28,10 +28,10 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
-use canvas::canvas_msg::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
-use canvas::canvas_paint_task::{CanvasPaintTask, FillOrStrokeStyle};
-use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
-use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
+use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
+use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
+use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
+use canvas::canvas_paint_task::CanvasPaintTask;
 
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::ImageCacheChan;

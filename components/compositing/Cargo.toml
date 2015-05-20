@@ -10,6 +10,9 @@ path = "lib.rs"
 [dependencies.gfx]
 path = "../gfx"
 
+[dependencies.gfx_traits]
+path = "../gfx_traits"
+
 [dependencies.layout_traits]
 path = "../layout_traits"
 

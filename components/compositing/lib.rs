@@ -23,6 +23,7 @@ extern crate net;
 extern crate num;
 extern crate profile_traits;
 extern crate net_traits;
+extern crate gfx_traits;
 extern crate style;
 #[macro_use]
 extern crate util;
