@@ -61,11 +61,11 @@ impl UrlHelper {
         // https://url.spec.whatwg.org/#dom-urlutils-host
         // FIXME: Url null check is skipped for now
         let host = match url.host() {
-            None => "".to_owned(),
-            Some(host) => format!("{}", host)
+            None => ""
+            Some(host) => host
         };
         USVString(match url.port() {
-            None => host,
+            None => host.to_owned(),
             Some(port) => format!("{}:{}", host, port)
         })
     }
