@@ -45,12 +45,11 @@ pub use constellation::Constellation;
 pub mod compositor_task;
 
 mod compositor_layer;
-mod scrolling;
-
 mod compositor;
 mod headless;
+mod scrolling;
 
 pub mod pipeline;
 pub mod constellation;
-
 pub mod windowing;
+

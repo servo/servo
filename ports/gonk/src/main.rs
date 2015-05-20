@@ -76,16 +76,16 @@ fn main() {
             Some(ref window) => input::run_input_loop(&window.event_send)
         }
 
-        browser.browser.handle_event(WindowEvent::InitializeCompositing);
+        browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
 
         // Feed events from the window to the browser until the browser
         // says to stop.
         loop {
             let should_continue = match window {
-                None => browser.browser.handle_event(WindowEvent::Idle),
+                None => browser.browser.handle_events(vec![WindowEvent::Idle]),
                 Some(ref window) => {
-                    let event = window.wait_events();
-                    browser.browser.handle_event(event)
+                    let events = window.wait_events();
+                    browser.browser.handle_events(events)
                 }
             };
             if !should_continue {

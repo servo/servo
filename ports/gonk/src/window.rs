@@ -754,8 +754,8 @@ impl Window {
         Rc::new(window)
     }
 
-    pub fn wait_events(&self) -> WindowEvent {
-        self.event_recv.recv().unwrap()
+    pub fn wait_events(&self) -> Vec<WindowEvent> {
+        vec![self.event_recv.recv().unwrap()]
     }
 }
 

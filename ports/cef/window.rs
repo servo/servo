@@ -100,8 +100,8 @@ impl Window {
     }
 
     /// Currently unimplemented.
-    pub fn wait_events(&self) -> WindowEvent {
-        WindowEvent::Idle
+    pub fn wait_events(&self) -> Vec<WindowEvent> {
+        vec![WindowEvent::Idle]
     }
 
     fn cursor_type_for_cursor(&self, cursor: Cursor) -> cef_cursor_type_t {
