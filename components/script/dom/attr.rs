@@ -311,6 +311,7 @@ pub trait AttrHelpersForLayout {
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
     unsafe fn local_name_atom_forever(&self) -> Atom;
+    unsafe fn value(&self) -> &AttrValue;
 }
 
 #[allow(unsafe_code)]
@@ -350,5 +351,10 @@ impl AttrHelpersForLayout for Attr {
     #[inline]
     unsafe fn local_name_atom_forever(&self) -> Atom {
         self.local_name.clone()
+    }
+
+    #[inline]
+    unsafe fn value(&self) -> &AttrValue {
+        self.value.borrow_for_layout()
     }
 }
