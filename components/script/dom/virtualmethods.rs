@@ -91,6 +91,14 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called when changing or removing attributes, after all modification
+    /// has taken place.
+    fn after_remove_attr(&self, name: &Atom) {
+        if let Some(ref s) = self.super_type() {
+            s.after_remove_attr(name);
+        }
+    }
+
     /// Returns the right AttrValue variant for the attribute with name `name`
     /// on this element.
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {

@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -24,7 +25,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
@@ -70,12 +71,51 @@ impl HTMLElement {
 
 trait PrivateHTMLElementHelpers {
     fn is_body_or_frameset(self) -> bool;
+    fn update_sequentially_focusable_status(self);
 }
 
 impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
     fn is_body_or_frameset(self) -> bool {
         let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
+    }
+
+    fn update_sequentially_focusable_status(self) {
+        let element = ElementCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
+        if element.has_attribute(&atom!("tabindex")) {
+            node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
+        } else {
+            match node.type_id() {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement))
+                    => node.set_flag(SEQUENTIALLY_FOCUSABLE, true),
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
+                    if element.has_attribute(&atom!("href")) {
+                        node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
+                    }
+                },
+                _ => {
+                    if let Some(attr) = element.get_attribute(&ns!(""), &atom!("draggable")) {
+                        let attr = attr.root();
+                        let attr = attr.r();
+                        let value = attr.value();
+                        let is_true = match *value {
+                            AttrValue::String(ref string) => string == "true",
+                            _ => false,
+                        };
+                        node.set_flag(SEQUENTIALLY_FOCUSABLE, is_true);
+                    } else {
+                        node.set_flag(SEQUENTIALLY_FOCUSABLE, false);
+                    }
+                    //TODO set SEQUENTIALLY_FOCUSABLE flag if editing host
+                    //TODO set SEQUENTIALLY_FOCUSABLE flag if "sorting interface th elements"
+                },
+            }
+        }
     }
 }
 
@@ -220,6 +260,19 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         Some(element as &VirtualMethods)
     }
 
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
+        }
+    }
+
+    fn after_remove_attr(&self, name: &Atom) {
+        if let Some(ref s) = self.super_type() {
+            s.after_remove_attr(name);
+        }
+        self.update_sequentially_focusable_status();
+    }
+
     fn after_set_attr(&self, attr: JSRef<Attr>) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
@@ -236,6 +289,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
                                                   &name[2..],
                                                   (**attr.value()).to_owned());
         }
+        self.update_sequentially_focusable_status();
+    }
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+        self.update_sequentially_focusable_status();
     }
 }
 
