@@ -16,7 +16,8 @@ use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageState};
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
+use net_traits::image_cache_task::{UsePlaceholder};
 use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
 use std::boxed;
 use std::cell::Cell;
@@ -158,9 +159,11 @@ impl<'a> LayoutContext<'a> {
         }
     }
 
-    pub fn get_or_request_image(&self, url: Url) -> Option<Arc<Image>> {
+    pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
+                                -> Option<Arc<Image>> {
         // See if the image is already available
-        let result = self.shared.image_cache_task.get_image_if_available(url.clone());
+        let result = self.shared.image_cache_task.get_image_if_available(url.clone(),
+                                                                         use_placeholder);
 
         match result {
             Ok(image) => Some(image),
@@ -178,7 +181,11 @@ impl<'a> LayoutContext<'a> {
                         self.shared.image_cache_task.request_image(url,
                                                                    ImageCacheChan(sync_tx),
                                                                    None);
-                        sync_rx.recv().unwrap().image
+                        match sync_rx.recv().unwrap().image_response {
+                            ImageResponse::Loaded(image) |
+                            ImageResponse::PlaceholderLoaded(image) => Some(image),
+                            ImageResponse::None => None,
+                        }
                     }
                     // Not yet requested, async mode - request image from the cache
                     (ImageState::NotRequested, false) => {
