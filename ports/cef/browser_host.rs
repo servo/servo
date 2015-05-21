@@ -111,8 +111,10 @@ full_cef_class_impl! {
                 _ => constellation_msg::Key::Space,
             };
             let key_state = match (*event).t {
-                KEYEVENT_RAWKEYDOWN => KeyState::Pressed,
-                KEYEVENT_KEYDOWN | KEYEVENT_CHAR => KeyState::Repeated,
+                // in tests with cef-real, this event had no effect
+                KEYEVENT_RAWKEYDOWN => return,
+                KEYEVENT_KEYDOWN => KeyState::Pressed,
+                KEYEVENT_CHAR => KeyState::Repeated,
                 KEYEVENT_KEYUP => KeyState::Released,
             };
             let key_modifiers = KeyModifiers::empty();  // TODO(pcwalton)
