@@ -8,7 +8,7 @@ use geom::scale_factor::ScaleFactor;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
-use style::values::specified::{Length, LengthOrPercentageOrAuto};
+use style::values::specified::{Length, ViewportPercentageLength};
 use style::viewport::*;
 use url::Url;
 
@@ -36,6 +36,26 @@ fn test_viewport_rule<F>(css: &str,
     assert!(rule_count > 0);
 }
 
+fn test_meta_viewport<F>(meta: &str, callback: F)
+    where F: Fn(&Vec<ViewportDescriptorDeclaration>, &str)
+{
+    if let Some(mut rule) = ViewportRule::from_meta(meta) {
+        use std::intrinsics::discriminant_value;
+
+        // from_meta uses a hash-map to collect the declarations, so we need to
+        // sort them in a stable order for the tests
+        rule.declarations.sort_by(|a, b| {
+            let a = unsafe { discriminant_value(&a.descriptor) };
+            let b = unsafe { discriminant_value(&b.descriptor) };
+            a.cmp(&b)
+        });
+
+        callback(&rule.declarations, meta);
+    } else {
+        panic!("no @viewport rule for {}", meta);
+    }
+}
+
 macro_rules! assert_decl_len {
     ($declarations:ident == 1) => {
         assert!($declarations.len() == 1,
@@ -46,6 +66,15 @@ macro_rules! assert_decl_len {
         assert!($declarations.len() == $len,
                 "expected {} declarations; have {}: {:?})",
                 $len, $declarations.len(), $declarations)
+    }
+}
+
+macro_rules! viewport_length {
+    ($value:expr, px) => {
+        ViewportLength::Length(Length::from_px($value))
+    };
+    ($value:expr, vw) => {
+        ViewportLength::Length(Length::ViewportPercentage(ViewportPercentageLength::Vw($value)))
     }
 }
 
@@ -82,10 +111,10 @@ fn simple_viewport_rules() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 9);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto);
-        assert_decl_eq!(&declarations[1], Author, MaxWidth: LengthOrPercentageOrAuto::Auto);
-        assert_decl_eq!(&declarations[2], Author, MinHeight: LengthOrPercentageOrAuto::Auto);
-        assert_decl_eq!(&declarations[3], Author, MaxHeight: LengthOrPercentageOrAuto::Auto);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[2], Author, MinHeight: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[3], Author, MaxHeight: ViewportLength::Auto);
         assert_decl_eq!(&declarations[4], Author, Zoom: Zoom::Auto);
         assert_decl_eq!(&declarations[5], Author, MinZoom: Zoom::Number(0.));
         assert_decl_eq!(&declarations[6], Author, MaxZoom: Zoom::Percentage(2.));
@@ -98,10 +127,49 @@ fn simple_viewport_rules() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 4);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Length(Length::from_px(200.)));
-        assert_decl_eq!(&declarations[1], Author, MaxWidth: LengthOrPercentageOrAuto::Auto);
-        assert_decl_eq!(&declarations[2], Author, MinHeight: LengthOrPercentageOrAuto::Length(Length::from_px(200.)));
-        assert_decl_eq!(&declarations[3], Author, MaxHeight: LengthOrPercentageOrAuto::Auto);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: viewport_length!(200., px));
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[2], Author, MinHeight: viewport_length!(200., px));
+        assert_decl_eq!(&declarations[3], Author, MaxHeight: ViewportLength::Auto);
+    });
+}
+
+#[test]
+fn simple_meta_viewport_contents() {
+    test_meta_viewport("width=500, height=600", |declarations, meta| {
+        println!("{}", meta);
+        assert_decl_len!(declarations == 4);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::ExtendToZoom);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: viewport_length!(500., px));
+        assert_decl_eq!(&declarations[2], Author, MinHeight: ViewportLength::ExtendToZoom);
+        assert_decl_eq!(&declarations[3], Author, MaxHeight: viewport_length!(600., px));
+    });
+
+    test_meta_viewport("initial-scale=1.0", |declarations, meta| {
+        println!("{}", meta);
+        assert_decl_len!(declarations == 3);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::ExtendToZoom);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: ViewportLength::ExtendToZoom);
+        assert_decl_eq!(&declarations[2], Author, Zoom: Zoom::Number(1.));
+    });
+
+    test_meta_viewport("initial-scale=2.0, height=device-width", |declarations, meta| {
+        println!("{}", meta);
+        assert_decl_len!(declarations == 5);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[2], Author, MinHeight: ViewportLength::ExtendToZoom);
+        assert_decl_eq!(&declarations[3], Author, MaxHeight: viewport_length!(100., vw));
+        assert_decl_eq!(&declarations[4], Author, Zoom: Zoom::Number(2.));
+    });
+
+    test_meta_viewport("width=480, initial-scale=2.0, user-scalable=1", |declarations, meta| {
+        println!("{}", meta);
+        assert_decl_len!(declarations == 4);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::ExtendToZoom);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: viewport_length!(480., px));
+        assert_decl_eq!(&declarations[2], Author, Zoom: Zoom::Number(2.));
+        assert_decl_eq!(&declarations[3], Author, UserZoom: UserZoom::Zoom);
     });
 }
 
@@ -114,7 +182,7 @@ fn cascading_within_viewport_rule() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 1);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto);
     });
 
     // !important order of appearance
@@ -122,7 +190,7 @@ fn cascading_within_viewport_rule() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 1);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto, !important);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto, !important);
     });
 
     // !important vs normal
@@ -130,7 +198,7 @@ fn cascading_within_viewport_rule() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 1);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto, !important);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto, !important);
     });
 
     // normal longhands vs normal shorthand
@@ -138,8 +206,8 @@ fn cascading_within_viewport_rule() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 2);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto);
-        assert_decl_eq!(&declarations[1], Author, MaxWidth: LengthOrPercentageOrAuto::Auto);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: ViewportLength::Auto);
     });
 
     // normal shorthand vs normal longhands
@@ -147,8 +215,8 @@ fn cascading_within_viewport_rule() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 2);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto);
-        assert_decl_eq!(&declarations[1], Author, MaxWidth: LengthOrPercentageOrAuto::Auto);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: ViewportLength::Auto);
     });
 
     // one !important longhand vs normal shorthand
@@ -156,8 +224,8 @@ fn cascading_within_viewport_rule() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 2);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto, !important);
-        assert_decl_eq!(&declarations[1], Author, MaxWidth: LengthOrPercentageOrAuto::Length(Length::from_px(200.)));
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto, !important);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: viewport_length!(200., px));
     });
 
     // both !important longhands vs normal shorthand
@@ -165,8 +233,8 @@ fn cascading_within_viewport_rule() {
                        &device, |declarations, css| {
         println!("{}", css);
         assert_decl_len!(declarations == 2);
-        assert_decl_eq!(&declarations[0], Author, MinWidth: LengthOrPercentageOrAuto::Auto, !important);
-        assert_decl_eq!(&declarations[1], Author, MaxWidth: LengthOrPercentageOrAuto::Auto, !important);
+        assert_decl_eq!(&declarations[0], Author, MinWidth: ViewportLength::Auto, !important);
+        assert_decl_eq!(&declarations[1], Author, MaxWidth: ViewportLength::Auto, !important);
     });
 }
 
@@ -185,8 +253,8 @@ fn multiple_stylesheets_cascading() {
         .declarations;
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, Zoom: Zoom::Number(1.));
-    assert_decl_eq!(&declarations[1], User, MinHeight: LengthOrPercentageOrAuto::Length(Length::from_px(200.)));
-    assert_decl_eq!(&declarations[2], Author, MinWidth: LengthOrPercentageOrAuto::Length(Length::from_px(300.)));
+    assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px));
+    assert_decl_eq!(&declarations[2], Author, MinWidth: viewport_length!(300., px));
 
     let stylesheets = vec![
         stylesheet!("@viewport { min-width: 100px !important; }", UserAgent),
@@ -199,10 +267,8 @@ fn multiple_stylesheets_cascading() {
         .cascade()
         .declarations;
     assert_decl_len!(declarations == 3);
-    assert_decl_eq!(
-        &declarations[0], UserAgent, MinWidth: LengthOrPercentageOrAuto::Length(Length::from_px(100.)), !important);
-    assert_decl_eq!(
-        &declarations[1], User, MinHeight: LengthOrPercentageOrAuto::Length(Length::from_px(200.)), !important);
+    assert_decl_eq!(&declarations[0], UserAgent, MinWidth: viewport_length!(100., px), !important);
+    assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px), !important);
     assert_decl_eq!(&declarations[2], Author, Zoom: Zoom::Number(3.), !important);
 }
 
