@@ -15,7 +15,7 @@ interface NodeIterator {
   [Constant]
   readonly attribute Node root;
   [Pure]
-  readonly attribute Node? referenceNode;
+  readonly attribute Node referenceNode;
   [Pure]
   readonly attribute boolean pointerBeforeReferenceNode;
   [Constant]
