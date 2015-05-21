@@ -167,6 +167,8 @@ struct ScriptContext {
     metadata: RefCell<Option<Metadata>>,
     /// Whether the owning document's parser should resume once the response completes.
     resume_on_completion: bool,
+    /// The initial URL requested.
+    url: Url,
 }
 
 impl AsyncResponseListener for ScriptContext {
@@ -175,7 +177,8 @@ impl AsyncResponseListener for ScriptContext {
     }
 
     fn data_available(&self, payload: Vec<u8>) {
-        self.data.borrow_mut().extend(payload.into_iter());
+        let mut payload = payload;
+        self.data.borrow_mut().append(&mut payload);
     }
 
     fn response_complete(&self, status: Result<(), String>) {
@@ -188,8 +191,10 @@ impl AsyncResponseListener for ScriptContext {
 
         elem.r().execute(ScriptOrigin::External(load));
 
+        let document = document_from_node(elem.r()).root();
+        document.r().finish_load(LoadType::Script(self.url.clone()));
+
         if self.resume_on_completion {
-            let document = document_from_node(elem.r()).root();
             document.r().get_current_parser().unwrap().root().r().resume();
         }
     }
@@ -316,6 +321,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                             data: RefCell::new(vec!()),
                             metadata: RefCell::new(None),
                             resume_on_completion: self.parser_inserted.get(),
+                            url: url.clone(),
                         }));
 
                         let listener = box NetworkListener {
