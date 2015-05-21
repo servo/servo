@@ -84,7 +84,7 @@ fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bo
     };
 
     let host = parsed_url.host().unwrap().serialize(); // Step 6
-    let port = parsed_url.port_or_default().unwrap(); // Step 7
+    let port = parsed_url.port_or_default().unwrap(); // Steps 7 and 8
     let mut resource = parsed_url.path().unwrap().connect("/"); // Step 9
     if resource.is_empty() {
         resource = "/".to_owned(); // Step 10
