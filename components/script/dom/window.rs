@@ -69,6 +69,14 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
+/// Current state of the window object
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[jstraceable]
+enum WindowState {
+    Alive,
+    Zombie,     // Pipeline is closed, but the window hasn't been GCed yet.
+}
+
 /// Extra information concerning the reason for reflowing.
 #[derive(Debug)]
 pub enum ReflowReason {
@@ -170,7 +178,10 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    webdriver_script_chan: RefCell<Option<Sender<WebDriverJSResult>>>
+    webdriver_script_chan: RefCell<Option<Sender<WebDriverJSResult>>>,
+
+    /// The current state of the window object
+    current_state: Cell<WindowState>,
 }
 
 impl Window {
@@ -179,6 +190,7 @@ impl Window {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             *self.browser_context.borrow_for_script_deallocation() = None;
+            self.current_state.set(WindowState::Zombie);
         }
     }
 
@@ -544,6 +556,7 @@ pub trait WindowHelpers {
     fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
     fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>);
+    fn is_alive(self) -> bool;
 }
 
 pub trait ScriptHelpers {
@@ -584,6 +597,18 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let document = self.Document().root();
         NodeCast::from_ref(document.r()).teardown();
 
+        // The above code may not catch all DOM objects
+        // (e.g. DOM objects removed from the tree that haven't
+        // been collected yet). Forcing a GC here means that
+        // those DOM objects will be able to call dispose()
+        // to free their layout data before the layout task
+        // exits. Without this, those remaining objects try to
+        // send a message to free their layout data to the
+        // layout task when the script task is dropped,
+        // which causes a panic!
+        self.Gc();
+
+        self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         *self.browser_context.borrow_mut() = None;
     }
@@ -905,6 +930,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
+
+    fn is_alive(self) -> bool {
+        self.current_state.get() == WindowState::Alive
+    }
 }
 
 impl Window {
@@ -968,6 +997,7 @@ impl Window {
             layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
             pending_reflow_count: Cell::new(0),
+            current_state: Cell::new(WindowState::Alive),
 
             devtools_marker_sender: RefCell::new(None),
             devtools_markers: RefCell::new(HashSet::new()),

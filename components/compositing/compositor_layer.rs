@@ -87,7 +87,8 @@ pub trait CompositorLayer {
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// painter to be destroyed or reused.
-    fn clear_all_tiles<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods;
+    fn clear_all_tiles<Window>(&self, compositor: &IOCompositor<Window>)
+                               where Window: WindowMethods;
 
     /// Removes the root layer (and any children) for a given pipeline from the
     /// compositor. Buffers that the compositor is holding are returned to the

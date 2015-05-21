@@ -4,7 +4,8 @@
 
 use collections::borrow::ToOwned;
 use net_traits::image::base::{Image, load_from_memory};
-use net_traits::image_cache_task::{ImageState, ImageCacheTask, ImageCacheChan, ImageCacheCommand, ImageCacheResult};
+use net_traits::image_cache_task::{ImageState, ImageCacheTask, ImageCacheChan, ImageCacheCommand};
+use net_traits::image_cache_task::{ImageCacheResult, ImageResponse, UsePlaceholder};
 use net_traits::load_whole_resource;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -53,13 +54,13 @@ impl PendingLoad {
 /// failure) are still stored here, so that they aren't
 /// fetched again.
 struct CompletedLoad {
-    image: Option<Arc<Image>>,
+    image_response: ImageResponse,
 }
 
 impl CompletedLoad {
-    fn new(image: Option<Arc<Image>>) -> CompletedLoad {
+    fn new(image_response: ImageResponse) -> CompletedLoad {
         CompletedLoad {
-            image: image,
+            image_response: image_response,
         }
     }
 }
@@ -79,11 +80,11 @@ impl ImageListener {
         }
     }
 
-    fn notify(self, image: Option<Arc<Image>>) {
+    fn notify(self, image_response: ImageResponse) {
         let ImageCacheChan(ref sender) = self.sender;
         let msg = ImageCacheResult {
             responder: self.responder,
-            image: image,
+            image_response: image_response,
         };
         sender.send(msg).ok();
     }
@@ -210,10 +211,19 @@ impl ImageCache {
             ImageCacheCommand::RequestImage(url, result_chan, responder) => {
                 self.request_image(url, result_chan, responder);
             }
-            ImageCacheCommand::GetImageIfAvailable(url, consumer) => {
+            ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, consumer) => {
                 let result = match self.completed_loads.get(&url) {
                     Some(completed_load) => {
-                        completed_load.image.clone().ok_or(ImageState::LoadError)
+                        match (completed_load.image_response.clone(), use_placeholder) {
+                            (ImageResponse::Loaded(image), _) |
+                            (ImageResponse::PlaceholderLoaded(image), UsePlaceholder::Yes) => {
+                                Ok(image)
+                            }
+                            (ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
+                            (ImageResponse::None, _) => {
+                                Err(ImageState::LoadError)
+                            }
+                        }
                     }
                     None => {
                         let pending_load = self.pending_loads.get(&url);
@@ -255,8 +265,13 @@ impl ImageCache {
                         });
                     }
                     Err(_) => {
-                        let placeholder_image = self.placeholder_image.clone();
-                        self.complete_load(msg.url, placeholder_image);
+                        match self.placeholder_image.clone() {
+                            Some(placeholder_image) => {
+                                self.complete_load(msg.url, ImageResponse::PlaceholderLoaded(
+                                        placeholder_image))
+                            }
+                            None => self.complete_load(msg.url, ImageResponse::None),
+                        }
                     }
                 }
             }
@@ -265,31 +280,37 @@ impl ImageCache {
 
     // Handle a message from one of the decoder worker threads
     fn handle_decoder(&mut self, msg: DecoderMsg) {
-        let image = msg.image.map(Arc::new);
+        let image = match msg.image {
+            None => ImageResponse::None,
+            Some(image) => ImageResponse::Loaded(Arc::new(image)),
+        };
         self.complete_load(msg.url, image);
     }
 
     // Change state of a url from pending -> loaded.
-    fn complete_load(&mut self, url: Url, image: Option<Arc<Image>>) {
+    fn complete_load(&mut self, url: Url, image_response: ImageResponse) {
         let pending_load = self.pending_loads.remove(&url).unwrap();
 
-        let completed_load = CompletedLoad::new(image.clone());
+        let completed_load = CompletedLoad::new(image_response.clone());
         self.completed_loads.insert(url, completed_load);
 
         for listener in pending_load.listeners.into_iter() {
-            listener.notify(image.clone());
+            listener.notify(image_response.clone());
         }
     }
 
     // Request an image from the cache
-    fn request_image(&mut self, url: Url, result_chan: ImageCacheChan, responder: Option<Box<ImageResponder>>) {
+    fn request_image(&mut self,
+                     url: Url,
+                     result_chan: ImageCacheChan,
+                     responder: Option<Box<ImageResponder>>) {
         let image_listener = ImageListener::new(result_chan, responder);
 
         // Check if already completed
         match self.completed_loads.get(&url) {
             Some(completed_load) => {
                 // It's already completed, return a notify straight away
-                image_listener.notify(completed_load.image.clone());
+                image_listener.notify(completed_load.image_response.clone());
             }
             None => {
                 // Check if the load is already pending
@@ -366,3 +387,4 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
 
     ImageCacheTask::new(cmd_sender)
 }
+

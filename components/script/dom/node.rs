@@ -158,6 +158,9 @@ bitflags! {
         const CLICK_IN_PROGRESS = 0x100,
         #[doc = "Specifies whether this node has the focus."]
         const IN_FOCUS_STATE = 0x200,
+        #[doc = "Specifies whether this node is focusable and whether it is supposed \
+                 to be reachable with using sequential focus navigation."]
+        const SEQUENTIALLY_FOCUSABLE = 0x400,
     }
 }
 
@@ -245,7 +248,7 @@ impl LayoutDataRef {
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn borrow_unchecked(&self) -> *const Option<LayoutData> {
-        mem::transmute(&self.data_cell)
+        self.data_cell.as_unsafe_cell().get() as *const _
     }
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
@@ -629,7 +632,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn set_hover_state(self, state: bool) {
         self.set_flag(IN_HOVER_STATE, state);
-        self.dirty(NodeDamage::OtherNodeDamage);
+        self.dirty(NodeDamage::NodeStyleDamaged);
     }
 
     fn get_focus_state(self) -> bool {
@@ -638,7 +641,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn set_focus_state(self, state: bool) {
         self.set_flag(IN_FOCUS_STATE, state);
-        self.dirty(NodeDamage::OtherNodeDamage);
+        self.dirty(NodeDamage::NodeStyleDamaged);
     }
 
     fn get_disabled_state(self) -> bool {

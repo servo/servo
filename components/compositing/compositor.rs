@@ -14,8 +14,8 @@ use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg}
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
-use gfx::color;
+use geom::size::{Size2D, TypedSize2D};
+use gfx_traits::color;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::PaintRequest;
 use gleam::gl::types::{GLint, GLsizei};
@@ -25,6 +25,7 @@ use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
 use layers::rendergl::RenderContext;
 use layers::rendergl;
 use layers::scene::Scene;
+use layout_traits::{LayoutControlChan, LayoutControlMsg};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
 use msg::constellation_msg::AnimationState;
@@ -45,7 +46,7 @@ use std::sync::mpsc::Sender;
 use style::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use url::Url;
-use util::geometry::{PagePx, ScreenPx, ViewportPx};
+use util::geometry::{Au, PagePx, ScreenPx, ViewportPx};
 use util::opts;
 
 /// Holds the state when running reftests that determines when it is
@@ -434,7 +435,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.remove_pipeline_root_layer(pipeline_id);
             }
 
-            (Msg::ViewportConstrained(pipeline_id, constraints), ShutdownState::NotShuttingDown) => {
+            (Msg::ViewportConstrained(pipeline_id, constraints),
+             ShutdownState::NotShuttingDown) => {
                 self.constrain_viewport(pipeline_id, constraints);
             }
 
@@ -701,7 +703,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 panic!("Compositor: Tried to scroll to fragment with unknown layer.");
             }
 
-            self.start_scrolling_timer_if_necessary();
+            self.perform_updates_after_scroll();
         }
     }
 
@@ -937,9 +939,57 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
+    /// Computes new display ports for each layer, taking the scroll position into account, and
+    /// sends them to layout as necessary. This ultimately triggers a rerender of the content.
+    fn send_updated_display_ports_to_layout(&mut self) {
+        fn process_layer(layer: &Layer<CompositorData>,
+                         window_size: &TypedSize2D<LayerPixel, f32>,
+                         new_display_ports: &mut HashMap<PipelineId, Vec<(LayerId, Rect<Au>)>>) {
+            let visible_rect =
+                Rect(Point2D::zero(), *window_size).translate(&-*layer.content_offset.borrow())
+                                                   .intersection(&*layer.bounds.borrow())
+                                                   .unwrap_or(Rect::zero())
+                                                   .to_untyped();
+            let visible_rect = Rect(Point2D(Au::from_f32_px(visible_rect.origin.x),
+                                            Au::from_f32_px(visible_rect.origin.y)),
+                                    Size2D(Au::from_f32_px(visible_rect.size.width),
+                                           Au::from_f32_px(visible_rect.size.height)));
+
+            let extra_layer_data = layer.extra_data.borrow();
+            if !new_display_ports.contains_key(&extra_layer_data.pipeline_id) {
+                new_display_ports.insert(extra_layer_data.pipeline_id, Vec::new());
+            }
+            new_display_ports.get_mut(&extra_layer_data.pipeline_id)
+                             .unwrap()
+                             .push((extra_layer_data.id, visible_rect));
+
+            for kid in layer.children.borrow().iter() {
+                process_layer(&*kid, window_size, new_display_ports)
+            }
+        }
+
+        let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+        let window_size = self.window_size.as_f32() / dppx * ScaleFactor::new(1.0);
+        let mut new_visible_rects = HashMap::new();
+        if let Some(ref layer) = self.scene.root {
+            process_layer(&**layer, &window_size, &mut new_visible_rects)
+        }
+
+        for (pipeline_id, new_visible_rects) in new_visible_rects.iter() {
+            if let Some(pipeline_details) = self.pipeline_details.get(&pipeline_id) {
+                if let Some(ref pipeline) = pipeline_details.pipeline {
+                    let LayoutControlChan(ref sender) = pipeline.layout_chan;
+                    sender.send(LayoutControlMsg::SetVisibleRects((*new_visible_rects).clone()))
+                          .unwrap()
+                }
+            }
+        }
+    }
+
     /// Performs buffer requests and starts the scrolling timer or schedules a recomposite as
     /// necessary.
     fn perform_updates_after_scroll(&mut self) {
+        self.send_updated_display_ports_to_layout();
         if self.send_buffer_requests_for_all_layers() {
             self.start_scrolling_timer_if_necessary();
         } else {
@@ -953,7 +1003,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             if pipeline_details.animations_running ||
                pipeline_details.animation_callbacks_running {
 
-                self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id)).unwrap();
+                self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id))
+                                         .unwrap();
             }
         }
     }
@@ -1014,7 +1065,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if let Some(min_zoom) = self.min_viewport_zoom.as_ref() {
             viewport_zoom = min_zoom.get().max(viewport_zoom)
         }
-        let viewport_zoom = self.max_viewport_zoom.as_ref().map_or(1., |z| z.get()).min(viewport_zoom);
+        let viewport_zoom = self.max_viewport_zoom
+                                .as_ref()
+                                .map_or(1., |z| z.get())
+                                .min(viewport_zoom);
         let viewport_zoom = ScaleFactor::new(viewport_zoom);
         self.viewport_zoom = viewport_zoom;
 
@@ -1305,7 +1359,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         rv
     }
 
-    fn draw_png(&self, framebuffer_ids: Vec<gl::GLuint>, texture_ids: Vec<gl::GLuint>, width: usize, height: usize) -> png::Image {
+    fn draw_png(&self,
+                framebuffer_ids: Vec<gl::GLuint>,
+                texture_ids: Vec<gl::GLuint>,
+                width: usize,
+                height: usize)
+                -> png::Image {
         let mut pixels = gl::read_pixels(0, 0,
                                          width as gl::GLsizei,
                                          height as gl::GLsizei,
@@ -1439,7 +1498,7 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
 }
 
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
-    fn handle_event(&mut self, msg: WindowEvent) -> bool {
+    fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other tasks in the system.
         loop {
             match self.port.try_recv_compositor_msg() {
@@ -1459,8 +1518,10 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             return false;
         }
 
-        // Handle the message coming from the windowing system.
-        self.handle_window_message(msg);
+        // Handle any messages coming from the windowing system.
+        for message in messages.into_iter() {
+            self.handle_window_message(message);
+        }
 
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
         if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {

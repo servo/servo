@@ -32,8 +32,8 @@ pub enum ServoBrowser {
 impl ServoBrowser {
     fn handle_event(&mut self, event: WindowEvent) {
         match *self {
-            ServoBrowser::OnScreen(ref mut browser) => { browser.handle_event(event); }
-            ServoBrowser::OffScreen(ref mut browser) => { browser.handle_event(event); }
+            ServoBrowser::OnScreen(ref mut browser) => { browser.handle_events(vec![event]); }
+            ServoBrowser::OffScreen(ref mut browser) => { browser.handle_events(vec![event]); }
             ServoBrowser::Invalid => {}
         }
     }

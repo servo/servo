@@ -23,6 +23,7 @@ extern crate net;
 extern crate num;
 extern crate profile_traits;
 extern crate net_traits;
+extern crate gfx_traits;
 extern crate style;
 #[macro_use]
 extern crate util;
@@ -45,12 +46,11 @@ pub use constellation::Constellation;
 pub mod compositor_task;
 
 mod compositor_layer;
-mod scrolling;
-
 mod compositor;
 mod headless;
+mod scrolling;
 
 pub mod pipeline;
 pub mod constellation;
-
 pub mod windowing;
+

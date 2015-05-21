@@ -13,17 +13,24 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
+
+[dependencies.canvas_traits]
+path = "../canvas_traits"
 
 [dependencies.util]
 path = "../util"
 
-[dependencies.gfx]
-path = "../gfx"
+[dependencies.gfx_traits]
+path = "../gfx_traits"
 
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+features = ["texture_surface"]
 
 [dependencies]
 cssparser = "0.3.1"

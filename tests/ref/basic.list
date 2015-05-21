@@ -102,6 +102,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == floated_table_with_margin_a.html floated_table_with_margin_ref.html
 == focus_selector.html focus_selector_ref.html
 == font_advance.html font_advance_ref.html
+== font_color_attribute_a.html font_color_attribute_ref.html
 == font_size.html font_size_ref.html
 == font_style.html font_style_ref.html
 == height_compute_reset.html height_compute.html
@@ -124,6 +125,8 @@ flaky_cpu == append_style_a.html append_style_b.html
 == iframe/simple_inline_width.html iframe/simple_inline_width_ref.html
 == iframe/simple_inline_width_height.html iframe/simple_inline_width_height_ref.html
 == iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
+== iframe/size_attributes.html iframe/size_attributes_ref.html
+experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_ref.html
 
 != image_rendering_auto_a.html image_rendering_pixelated_a.html
 == image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
@@ -204,6 +207,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == negative_margin_uncle_a.html negative_margin_uncle_b.html
 == negative_margins_a.html negative_margins_b.html
 == no-image.html no-image-ref.html
+== no_image_background_a.html no_image_background_ref.html
 == noscript.html noscript_ref.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 == nth_child_pseudo_a.html nth_child_pseudo_b.html
@@ -224,7 +228,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == outset.html outset_ref.html
 != outset_blackborder.html blackborder_ref.html
 # Should be == with expected failure. See #2797
-experimental != overconstrained_block.html overconstrained_block_ref.html
+!= overconstrained_block.html overconstrained_block_ref.html
 == overflow_auto.html overflow_simple_b.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
@@ -233,6 +237,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 == percent_height.html percent_height_ref.html
 == percentage_height_float_a.html percentage_height_float_ref.html
 == percentage_height_root.html percentage_height_root_ref.html
+== percentage_width_inline_block_a.html percentage_width_inline_block_ref.html
 == png_rgba_colorspace_a.html png_rgba_colorspace_b.html
 == position_abs_cb_with_non_cb_kid_a.html position_abs_cb_with_non_cb_kid_b.html
 == position_abs_height_width_a.html position_abs_height_width_b.html
@@ -263,11 +268,11 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 == root_height_a.html root_height_b.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
 == root_pseudo_a.html root_pseudo_b.html
-experimental == rtl_body.html rtl_body_ref.html
-experimental == rtl_float_a.html rtl_float_ref.html
-experimental == rtl_margin_a.html rtl_margin_ref.html
-experimental == rtl_simple.html rtl_simple_ref.html
-experimental == rtl_table_a.html rtl_table_ref.html
+== rtl_body.html rtl_body_ref.html
+== rtl_float_a.html rtl_float_ref.html
+== rtl_margin_a.html rtl_margin_ref.html
+== rtl_simple.html rtl_simple_ref.html
+== rtl_table_a.html rtl_table_ref.html
 == servo_center_a.html servo_center_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
@@ -286,12 +291,12 @@ experimental == rtl_table_a.html rtl_table_ref.html
 == table_padding_a.html table_padding_ref.html
 == table_percentage_capping_a.html table_percentage_capping_ref.html
 == table_percentage_width_a.html table_percentage_width_ref.html
-experimental == table_row_direction_a.html table_row_direction_ref.html
+== table_row_direction_a.html table_row_direction_ref.html
 == table_width_attribute_a.html table_width_attribute_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
 == text_align_justify_a.html text_align_justify_ref.html
-experimental == text_align_rtl.html text_align_rtl_ref.html
-experimental == text_align_start_end.html text_align_start_end_ref.html
+== text_align_rtl.html text_align_rtl_ref.html
+== text_align_start_end.html text_align_start_end_ref.html
 == text_decoration_cached.html text_decoration_cached_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html

@@ -5,22 +5,24 @@
 use url::Url;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use hyper::header::{Headers, ContentType, IfModifiedSince, IfNoneMatch, Accept};
-use hyper::header::{IfUnmodifiedSince, IfMatch, IfRange, Location, HeaderView};
-use hyper::header::{AcceptLanguage, ContentLanguage};
+use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
+use hyper::header::{Accept, IfUnmodifiedSince, IfMatch, IfRange, Location};
+use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage, Language};
+use hyper::header::{QualityItem, qitem, q};
 use hyper::status::StatusCode;
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
 use fetch::response::{Response, ResponseType};
 use std::ascii::AsciiExt;
+use std::str::FromStr;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]
 pub enum Context {
     Audio, Beacon, CSPreport, Download, Embed, Eventsource,
     Favicon, Fetch, Font, Form, Frame, Hyperlink, IFrame, Image,
-    ImageSet, Import, Internal, Location, Manifest, Object, Ping,
-    Plugin, Prefetch, Script, ServiceWorker, SharedWorker, Subresource,
-    Style, Track, Video, Worker, XMLHttpRequest, XSLT
+    ImageSet, Import, Internal, Location, Manifest, MetaRefresh, Object,
+    Ping, Plugin, Prefetch, PreRender, Script, ServiceWorker, SharedWorker,
+    Subresource, Style, Track, Video, Worker, XMLHttpRequest, XSLT
 }
 
 /// A [request context frame type](https://fetch.spec.whatwg.org/#concept-request-context-frame-type)
@@ -143,9 +145,56 @@ impl Request {
         }
     }
 
-    // [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-    pub fn fetch(&mut self, _cors_flag: bool) -> Response {
-        // TODO: Implement fetch spec
+    /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
+    pub fn fetch(&mut self, cors_flag: bool) -> Response {
+        // Step 1
+        if self.context != Context::Fetch && !self.headers.has::<Accept>() {
+            // Substep 1
+            let value = match self.context {
+                Context::Favicon | Context::Image | Context::ImageSet
+                    => vec![qitem(Mime(TopLevel::Image, SubLevel::Png, vec![])),
+                        // FIXME: This should properly generate a MimeType that has a
+                        // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
+                        qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_string()), vec![])),
+                        QualityItem::new(Mime(TopLevel::Image, SubLevel::Star, vec![]), q(0.8)),
+                        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.5))],
+                Context::Form | Context::Frame | Context::Hyperlink |
+                Context::IFrame | Context::Location | Context::MetaRefresh |
+                Context::PreRender
+                    => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                        // FIXME: This should properly generate a MimeType that has a
+                        // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
+                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                        QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
+                        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
+                Context::Internal if self.context_frame_type != ContextFrameType::ContextNone
+                    => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                        // FIXME: This should properly generate a MimeType that has a
+                        // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
+                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                        QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
+                        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
+                Context::Style
+                    => vec![qitem(Mime(TopLevel::Text, SubLevel::Css, vec![])),
+                        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.1))],
+                _ => vec![qitem(Mime(TopLevel::Star, SubLevel::Star, vec![]))]
+            };
+            // Substep 2
+            self.headers.set(Accept(value));
+        }
+        // Step 2
+        if self.context != Context::Fetch && !self.headers.has::<AcceptLanguage>() {
+            self.headers.set(AcceptLanguage(vec![qitem(Language::from_str("en-US").unwrap())]));
+        }
+        // TODO: Figure out what a Priority object is
+        // Step 3
+        // Step 4
+        self.main_fetch(cors_flag)
+    }
+
+    /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
+    pub fn main_fetch(&mut self, _cors_flag: bool) -> Response {
+        // TODO: Implement main fetch spec
         Response::network_error()
     }
 
@@ -174,7 +223,7 @@ impl Request {
         }
     }
 
-    // [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
+    /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
     pub fn http_fetch(&mut self, cors_flag: bool, cors_preflight_flag: bool, authentication_fetch_flag: bool) -> Response {
         // Step 1
         let mut response: Option<Response> = None;
@@ -337,19 +386,19 @@ impl Request {
         response
     }
 
-    // [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
+    /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
     pub fn http_network_or_cache_fetch(&mut self, _credentials_flag: bool, _authentication_fetch_flag: bool) -> Response {
         // TODO: Implement HTTP network or cache fetch spec
         Response::network_error()
     }
 
-    // [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
+    /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
     pub fn preflight_fetch(&mut self) -> Response {
         // TODO: Implement preflight fetch spec
         Response::network_error()
     }
 
-    // [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
+    /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
     pub fn cors_check(&mut self, response: &Response) -> Result<(), ()> {
         // TODO: Implement CORS check spec
         Err(())

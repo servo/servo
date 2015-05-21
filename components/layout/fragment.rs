@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use canvas::canvas_msg::CanvasMsg;
+use canvas_traits::CanvasMsg;
 use css::node_style::StyledNode;
 use context::LayoutContext;
 use floats::ClearType;
@@ -27,6 +27,7 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
+use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
 use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
@@ -195,9 +196,7 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::Iframe(_) => "SpecificFragmentInfo::Iframe",
             SpecificFragmentInfo::Image(_) => "SpecificFragmentInfo::Image",
             SpecificFragmentInfo::InlineAbsolute(_) => "SpecificFragmentInfo::InlineAbsolute",
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
-                "SpecificFragmentInfo::InlineAbsoluteHypothetical"
-            }
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => "SpecificFragmentInfo::InlineAbsoluteHypothetical",
             SpecificFragmentInfo::InlineBlock(_) => "SpecificFragmentInfo::InlineBlock",
             SpecificFragmentInfo::ScannedText(_) => "SpecificFragmentInfo::ScannedText",
             SpecificFragmentInfo::Table => "SpecificFragmentInfo::Table",
@@ -337,7 +336,9 @@ impl ImageFragmentInfo {
                    .map(Au::from_px)
         }
 
-        let image = url.and_then(|url| layout_context.get_or_request_image(url));
+        let image = url.and_then(|url| {
+            layout_context.get_or_request_image(url, UsePlaceholder::Yes)
+        });
 
         ImageFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
@@ -566,7 +567,8 @@ impl IframeFragmentInfo {
     }
 
     #[inline]
-    pub fn calculate_replaced_inline_size(style: &ComputedValues, containing_size: Au) -> Au {
+    pub fn calculate_replaced_inline_size(&self, style: &ComputedValues, containing_size: Au)
+                                          -> Au {
         // Calculate the replaced inline size (or default) as per CSS 2.1 § 10.3.2
         IframeFragmentInfo::calculate_replaced_size(style.content_inline_size(),
                                                     style.min_inline_size(),
@@ -576,7 +578,8 @@ impl IframeFragmentInfo {
     }
 
     #[inline]
-    pub fn calculate_replaced_block_size(style: &ComputedValues, containing_size: Au) -> Au {
+    pub fn calculate_replaced_block_size(&self, style: &ComputedValues, containing_size: Au)
+                                         -> Au {
         // Calculate the replaced block size (or default) as per CSS 2.1 § 10.3.2
         IframeFragmentInfo::calculate_replaced_size(style.content_block_size(),
                                                     style.min_block_size(),
@@ -589,7 +592,8 @@ impl IframeFragmentInfo {
     fn calculate_replaced_size(content_size: LengthOrPercentageOrAuto,
                                style_min_size: LengthOrPercentage,
                                style_max_size: LengthOrPercentageOrNone,
-                               containing_size: Au, default_size: Au) -> Au {
+                               containing_size: Au,
+                               default_size: Au) -> Au {
         let computed_size = match MaybeAuto::from_style(content_size, containing_size) {
             MaybeAuto::Specified(length) => length,
             MaybeAuto::Auto => default_size,
@@ -1702,9 +1706,10 @@ impl Fragment {
                                                                         fragment_inline_size,
                                                                         fragment_block_size);
             }
-            SpecificFragmentInfo::Iframe(_) => {
-                self.border_box.size.inline = IframeFragmentInfo::calculate_replaced_inline_size(
-                                                style, container_inline_size) +
+            SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
+                self.border_box.size.inline =
+                    iframe_fragment_info.calculate_replaced_inline_size(style,
+                                                                        container_inline_size) +
                                               noncontent_inline_size;
             }
             _ => panic!("this case should have been handled above"),
@@ -1786,10 +1791,10 @@ impl Fragment {
                 self.border_box.size.block = block_flow.base.position.size.block +
                     block_flow.fragment.margin.block_start_end()
             }
-            SpecificFragmentInfo::Iframe(_) => {
-                self.border_box.size.block = IframeFragmentInfo::calculate_replaced_block_size(
-                                                style, containing_block_block_size) +
-                                             noncontent_block_size;
+            SpecificFragmentInfo::Iframe(ref info) => {
+                self.border_box.size.block =
+                    info.calculate_replaced_block_size(style, containing_block_block_size) +
+                    noncontent_block_size;
             }
             _ => panic!("should have been handled above"),
         }
@@ -1897,6 +1902,19 @@ impl Fragment {
         }
     }
 
+    /// Determines the inline sizes of inline-block fragments. These cannot be fully computed until
+    /// inline size assignment has run for the child flow: thus it is computed "late", during
+    /// block size assignment.
+    pub fn update_late_computed_replaced_inline_size_if_necessary(&mut self) {
+        if let SpecificFragmentInfo::InlineBlock(ref mut inline_block_info) = self.specific {
+            let block_flow = inline_block_info.flow_ref.as_block();
+            let margin = block_flow.fragment.style.logical_margin();
+            self.border_box.size.inline = block_flow.fragment.border_box.size.inline +
+                MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
+                MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero()
+        }
+    }
+
     pub fn update_late_computed_inline_position_if_necessary(&mut self) {
         match self.specific {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
@@ -1980,6 +1998,13 @@ impl Fragment {
         if self.style().get_effects().transform.is_some() {
             return true
         }
+
+        // Canvas always layerizes, as an special case
+        // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
+        if let SpecificFragmentInfo::Canvas(_) = self.specific {
+            return true
+        }
+
         match self.style().get_box().position {
             position::T::absolute | position::T::fixed => {
                 // FIXME(pcwalton): This should only establish a new stacking context when

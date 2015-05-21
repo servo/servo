@@ -9,11 +9,11 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::error::Error::InvalidAccess;
-use dom::bindings::error::Error::Syntax;
+use dom::bindings::error::Error::{InvalidAccess, Syntax};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Temporary, JSRef, Rootable};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::reflect_dom_object;
 use dom::closeevent::CloseEvent;
@@ -32,7 +32,6 @@ use websocket::client::receiver::Receiver;
 use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
-
 
 #[derive(PartialEq, Copy, Clone)]
 #[jstraceable]
@@ -63,6 +62,45 @@ pub struct WebSocket {
     sendCloseFrame: Cell<bool>
 }
 
+fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bool)> {
+    // https://html.spec.whatwg.org/multipage/#parse-a-websocket-url's-components
+    // Steps 1 and 2
+    let parsed_url = Url::parse(url_str);
+    let parsed_url = match parsed_url {
+        Ok(parsed_url) => parsed_url,
+        Err(_) => return Err(Error::Syntax),
+    };
+
+    // Step 4
+    if parsed_url.fragment != None {
+        return Err(Error::Syntax);
+    }
+
+    // Steps 3 and 5
+    let secure = match parsed_url.scheme.as_ref() {
+        "ws" => false,
+        "wss" => true,
+        _ => return Err(Error::Syntax), // step 3
+    };
+
+    let host = parsed_url.host().unwrap().serialize(); // Step 6
+    let port = parsed_url.port_or_default().unwrap(); // Steps 7 and 8
+    let mut resource = parsed_url.path().unwrap().connect("/"); // Step 9
+    if resource.is_empty() {
+        resource = "/".to_owned(); // Step 10
+    }
+
+    // Step 11
+    if let Some(ref query) = parsed_url.query {
+        resource.push('?');
+        resource.push_str(query);
+    }
+
+    // Step 12
+    // FIXME remove parsed_url once it's no longer used in WebSocket::new
+    Ok((parsed_url, host, port, resource, secure))
+}
+
 impl WebSocket {
     pub fn new_inherited(global: GlobalRef, url: DOMString) -> WebSocket {
         WebSocket {
@@ -83,11 +121,12 @@ impl WebSocket {
 
     }
 
-    pub fn new(global: GlobalRef, url: DOMString) -> Temporary<WebSocket> {
+    pub fn new(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         /*TODO: This constructor is only a prototype, it does not accomplish the specs
           defined here:
           http://html.spec.whatwg.org
-          All 9 items must be satisfied.
+          Item 1 is already satisfied.
+          The remaining 8 items must be satisfied.
           TODO: This constructor should be responsible for spawning a thread for the
           receive loop after ws_root.r().Open() - See comment
         */
@@ -95,7 +134,13 @@ impl WebSocket {
                                          global,
                                          WebSocketBinding::Wrap).root();
         let ws_root = ws_root.r();
-        let parsed_url = Url::parse(&ws_root.url).unwrap();
+
+        // FIXME extract the right variables once Client::connect implementation is
+        // fixed to follow the RFC 6455 properly
+        let (parsed_url, _, _, _, _) = try!(parse_web_socket_url(&ws_root.url));
+
+        // TODO Client::connect does not conform to RFC 6455
+        // see https://github.com/cyderize/rust-websocket/issues/38
         let request = Client::connect(parsed_url).unwrap();
         let response = request.send().unwrap();
         response.validate().unwrap();
@@ -106,8 +151,9 @@ impl WebSocket {
         let failed = ws_root.failed.get();
         if failed && (ready_state == WebSocketRequestState::Closed || ready_state == WebSocketRequestState::Closing) {
             //Do nothing else. Let the close finish.
-            return Temporary::from_rooted(ws_root);
+            return Ok(Temporary::from_rooted(ws_root));
         }
+
         let (temp_sender, temp_receiver) = response.begin().split();
         let mut other_sender = ws_root.sender.borrow_mut();
         let mut other_receiver = ws_root.receiver.borrow_mut();
@@ -132,11 +178,11 @@ impl WebSocket {
           it confirms the websocket is now closed. This requires the close event
           to be fired (dispatch_close fires the close event - see implementation below)
         */
-        Temporary::from_rooted(ws_root)
+        Ok(Temporary::from_rooted(ws_root))
     }
 
     pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
-        Ok(WebSocket::new(global, url))
+        WebSocket::new(global, url)
     }
 }
 
@@ -153,7 +199,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
         self.ready_state.get() as u16
     }
 
-    fn Send(self, data: Option<DOMString>)-> Fallible<()>{
+    fn Send(self, data: Option<USVString>)-> Fallible<()>{
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for "If argument is a string"
           TODO: Need to buffer data
           TODO: bufferedAmount attribute returns the size of the buffer in bytes -
@@ -168,11 +214,11 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
             let _ = my_sender.send_message(Message::Close(None));
             return Ok(());
         }
-        let _ = my_sender.send_message(Message::Text(data.unwrap()));
+        let _ = my_sender.send_message(Message::Text(data.unwrap().0));
         return Ok(())
     }
 
-    fn Close(self, code: Option<u16>, reason: Option<DOMString>) -> Fallible<()>{
+    fn Close(self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
         if let Some(code) = code {
             //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
             if  code != 1000 && (code < 3000 || code > 4999) {
@@ -180,7 +226,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
             }
         }
         if let Some(ref reason) = reason {
-            if reason.as_bytes().len() > 123 { //reason cannot be larger than 123 bytes
+            if reason.0.as_bytes().len() > 123 { //reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }
         }
@@ -205,7 +251,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                     self.code.set(code);
                 }
                 if let Some(reason) = reason {
-                    *self.reason.borrow_mut() = reason;
+                    *self.reason.borrow_mut() = reason.0;
                 }
                 self.ready_state.set(WebSocketRequestState::Closing);
                 self.sendCloseFrame.set(true);

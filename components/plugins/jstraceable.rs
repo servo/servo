@@ -2,32 +2,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::ext::base::ExtCtxt;
+use syntax::ext::base::{Annotatable, ExtCtxt};
 use syntax::codemap::Span;
 use syntax::ptr::P;
-use syntax::ast::{Item, MetaItem, Expr};
+use syntax::ast::{MetaItem, Expr};
 use syntax::ast;
 use syntax::ext::build::AstBuilder;
 use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef, Struct, Substructure, TraitDef, ty};
 
-pub fn expand_dom_struct(cx: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>) -> P<Item> {
-    let mut item2 = (*item).clone();
-    item2.attrs.push(quote_attr!(cx, #[must_root]));
-    item2.attrs.push(quote_attr!(cx, #[privatize]));
-    item2.attrs.push(quote_attr!(cx, #[jstraceable]));
+pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotatable) -> Annotatable {
+    if let Annotatable::Item(item) = anno {
+        let mut item2 = (*item).clone();
+        item2.attrs.push(quote_attr!(cx, #[must_root]));
+        item2.attrs.push(quote_attr!(cx, #[privatize]));
+        item2.attrs.push(quote_attr!(cx, #[jstraceable]));
 
-    // The following attributes are only for internal usage
-    item2.attrs.push(quote_attr!(cx, #[_generate_reflector]));
-    // #[dom_struct] gets consumed, so this lets us keep around a residue
-    // Do NOT register a modifier/decorator on this attribute
-    item2.attrs.push(quote_attr!(cx, #[_dom_struct_marker]));
-    P(item2)
+        // The following attributes are only for internal usage
+        item2.attrs.push(quote_attr!(cx, #[_generate_reflector]));
+        // #[dom_struct] gets consumed, so this lets us keep around a residue
+        // Do NOT register a modifier/decorator on this attribute
+        item2.attrs.push(quote_attr!(cx, #[_dom_struct_marker]));
+        Annotatable::Item(P(item2))
+    } else {
+        cx.span_err(sp, "#[dom_struct] applied to something other than a struct");
+        anno
+    }
 }
 
 /// Provides the hook to expand `#[jstraceable]` into an implementation of `JSTraceable`
 ///
 /// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not implement the method.
-pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Item, push: &mut FnMut(P<Item>)) {
+pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: Annotatable, push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
@@ -42,12 +47,13 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))), ty::Raw(ast::MutMutable))),
                 ret_ty: ty::nil_ty(),
                 attributes: vec![quote_attr!(cx, #[inline(always)])],
+                is_unsafe: false,
                 combine_substructure: combine_substructure(box jstraceable_substructure)
             }
         ],
         associated_types: vec![],
     };
-    trait_def.expand(cx, mitem, item, push)
+    trait_def.expand(cx, mitem, &item, push)
 }
 
 // Mostly copied from syntax::ext::deriving::hash

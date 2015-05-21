@@ -170,7 +170,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                                         &some_bf,
                                         &mut applicable_declarations,
                                         &mut shareable);
-                    } else {
+                    } else if node.has_changed() {
                         ThreadSafeLayoutNode::new(&node).set_restyle_damage(
                             incremental::rebuild_and_reflow())
                     }
@@ -364,7 +364,7 @@ pub struct ComputeAbsolutePositions<'a> {
 impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.compute_absolute_position();
+        flow.compute_absolute_position(self.layout_context);
     }
 }
 

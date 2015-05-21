@@ -4,7 +4,7 @@
 
 #![allow(unsafe_code, unrooted_must_root)]
 
-use document_loader::{DocumentLoader, LoadType};
+use document_loader::DocumentLoader;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -32,13 +32,10 @@ use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
 use dom::text::Text;
 use parse::Parser;
 
-use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecoderTrap};
+use encoding::types::Encoding;
 
-use net_traits::{ProgressMsg, LoadResponse};
+use msg::constellation_msg::PipelineId;
 use util::str::DOMString;
-use util::task_state;
-use util::task_state::IN_HTML_PARSER;
 use std::borrow::Cow;
 use std::io::{self, Write};
 use url::Url;
@@ -48,14 +45,6 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText, NextParserState};
 use string_cache::QualName;
-
-use hyper::header::ContentType;
-use hyper::mime::{Mime, TopLevel, SubLevel};
-
-pub enum HTMLInput {
-    InputString(String),
-    InputUrl(LoadResponse),
-}
 
 trait SinkHelpers {
     fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Temporary<Node>;
@@ -183,7 +172,9 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
         let node: Root<Node> = node.root();
         let script: Option<JSRef<HTMLScriptElement>> = HTMLScriptElementCast::to_ref(node.r());
-        script.map(|script| script.prepare());
+        if let Some(script) = script {
+            return script.prepare();
+        }
         NextParserState::Continue
     }
 
@@ -272,80 +263,22 @@ impl<'a> Serializable for JSRef<'a, Node> {
     }
 }
 
+pub enum ParseContext<'a> {
+    Fragment(FragmentContext<'a>),
+    Owner(Option<PipelineId>),
+}
+
 pub fn parse_html(document: JSRef<Document>,
-                  input: HTMLInput,
+                  input: String,
                   url: &Url,
-                  fragment_context: Option<FragmentContext>) {
-    let parser = match fragment_context {
-        None => ServoHTMLParser::new(Some(url.clone()), document).root(),
-        Some(fc) => ServoHTMLParser::new_for_fragment(Some(url.clone()), document, fc).root(),
-    };
-    let parser: JSRef<ServoHTMLParser> = parser.r();
-
-    let nested_parse = task_state::get().contains(task_state::IN_HTML_PARSER);
-    if !nested_parse {
-        task_state::enter(IN_HTML_PARSER);
-    }
-
-    fn parse_progress(document: JSRef<Document>, parser: JSRef<ServoHTMLParser>, url: &Url, load_response: &LoadResponse) {
-        for msg in load_response.progress_port.iter() {
-            match msg {
-                ProgressMsg::Payload(data) => {
-                    // FIXME: use Vec<u8> (html5ever #34)
-                    let data = UTF_8.decode(&data, DecoderTrap::Replace).unwrap();
-                    parser.parse_chunk(data);
-                }
-                ProgressMsg::Done(Err(err)) => {
-                    debug!("Failed to load page URL {}, error: {}", url.serialize(), err);
-                    // TODO(Savago): we should send a notification to callers #5463.
-                    break;
-                }
-                ProgressMsg::Done(Ok(())) => {
-                    document.finish_load(LoadType::PageSource(url.clone()));
-                    break;
-                }
-            }
-        }
-    };
-
-    match input {
-        HTMLInput::InputString(s) => {
-            parser.parse_chunk(s);
-        }
-        HTMLInput::InputUrl(load_response) => {
-            match load_response.metadata.content_type {
-                Some(ContentType(Mime(TopLevel::Image, _, _))) => {
-                    let page = format!("<html><body><img src='{}' /></body></html>", url.serialize());
-                    parser.parse_chunk(page);
-                    document.finish_load(LoadType::PageSource(url.clone()));
-                },
-                Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                    // FIXME: When servo/html5ever#109 is fixed remove <plaintext> usage and
-                    // replace with fix from that issue.
-
-                    // text/plain documents require setting the tokenizer into PLAINTEXT mode.
-                    // This is done by using a <plaintext> element as the html5ever tokenizer
-                    // provides no other way to change to that state.
-                    // Spec for text/plain handling is:
-                    // https://html.spec.whatwg.org/multipage/#read-text
-                    let page = format!("<pre>\u{000A}<plaintext>");
-                    parser.parse_chunk(page);
-                    parse_progress(document, parser, url, &load_response);
-                },
-                _ => {
-                    parse_progress(document, parser, url, &load_response);
-                }
-            }
-        }
-    }
-
-    parser.finish();
-
-    if !nested_parse {
-        task_state::exit(IN_HTML_PARSER);
-    }
-
-    debug!("finished parsing");
+                  context: ParseContext) {
+    let parser = match context {
+        ParseContext::Owner(owner) =>
+            ServoHTMLParser::new(Some(url.clone()), document, owner),
+        ParseContext::Fragment(fc) =>
+            ServoHTMLParser::new_for_fragment(Some(url.clone()), document, fc),
+    }.root();
+    parser.r().parse_chunk(input);
 }
 
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
@@ -376,7 +309,7 @@ pub fn parse_html_fragment(context_node: JSRef<Node>,
         context_elem: context_node,
         form_elem: form.r(),
     };
-    parse_html(document.r(), HTMLInput::InputString(input), &url, Some(fragment_context));
+    parse_html(document.r(), input, &url, ParseContext::Fragment(fragment_context));
 
     // Step 14.
     let root_element = document.r().GetDocumentElement().expect("no document element").root();

@@ -8,21 +8,27 @@
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
+use canvas_traits::CanvasMsg;
+use msg::compositor_msg::LayerId;
 use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageState};
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
+use net_traits::image_cache_task::{UsePlaceholder};
 use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
 use std::boxed;
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::collections::hash_state::DefaultState;
 use std::ptr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
+use util::fnv::FnvHasher;
 use util::geometry::Au;
 use util::opts;
 
@@ -99,6 +105,12 @@ pub struct SharedLayoutContext {
     /// sent.
     pub new_animations_sender: Sender<Animation>,
 
+    /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
+    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+
+    /// The visible rects for each layer, as reported to us by the compositor.
+    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
+
     /// Why is this reflow occurring
     pub goal: ReflowGoal,
 }
@@ -147,9 +159,11 @@ impl<'a> LayoutContext<'a> {
         }
     }
 
-    pub fn get_or_request_image(&self, url: Url) -> Option<Arc<Image>> {
+    pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
+                                -> Option<Arc<Image>> {
         // See if the image is already available
-        let result = self.shared.image_cache_task.get_image_if_available(url.clone());
+        let result = self.shared.image_cache_task.get_image_if_available(url.clone(),
+                                                                         use_placeholder);
 
         match result {
             Ok(image) => Some(image),
@@ -167,7 +181,11 @@ impl<'a> LayoutContext<'a> {
                         self.shared.image_cache_task.request_image(url,
                                                                    ImageCacheChan(sync_tx),
                                                                    None);
-                        sync_rx.recv().unwrap().image
+                        match sync_rx.recv().unwrap().image_response {
+                            ImageResponse::Loaded(image) |
+                            ImageResponse::PlaceholderLoaded(image) => Some(image),
+                            ImageResponse::None => None,
+                        }
                     }
                     // Not yet requested, async mode - request image from the cache
                     (ImageState::NotRequested, false) => {

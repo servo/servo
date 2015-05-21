@@ -7,13 +7,12 @@
 
 use script_task::{ScriptMsg, ScriptChan};
 use msg::constellation_msg::{PipelineId};
-use net_traits::{LoadResponse, Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
+use net_traits::{Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
+use net_traits::AsyncResponseTarget;
 use url::Url;
 
-use std::sync::mpsc::Receiver;
-
 #[jstraceable]
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum LoadType {
     Image(Url),
     Script(Url),
@@ -75,9 +74,9 @@ impl DocumentLoader {
     }
 
     /// Create and initiate a new network request.
-    pub fn load_async(&mut self, load: LoadType) -> Receiver<LoadResponse> {
+    pub fn load_async(&mut self, load: LoadType, listener: Box<AsyncResponseTarget + Send>) {
         let pending = self.prepare_async_load(load);
-        pending.load()
+        pending.load_async(listener)
     }
 
     /// Create, initiate, and await the response for a new network request.
@@ -91,7 +90,7 @@ impl DocumentLoader {
     /// Mark an in-progress network request complete.
     pub fn finish_load(&mut self, load: LoadType) {
         let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == load);
-        self.blocking_loads.remove(idx.expect("unknown completed load"));
+        self.blocking_loads.remove(idx.expect(&format!("unknown completed load {:?}", load)));
 
         if let Some(NotifierData { ref script_chan, pipeline }) = self.notifier_data {
             if !self.is_blocked() {
@@ -101,6 +100,7 @@ impl DocumentLoader {
     }
 
     pub fn is_blocked(&self) -> bool {
+        //TODO: Ensure that we report blocked if parsing is still ongoing.
         !self.blocking_loads.is_empty()
     }
 
