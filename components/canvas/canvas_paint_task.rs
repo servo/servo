@@ -5,7 +5,7 @@
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
-use azure::azure_hl::{JoinStyle, CapStyle};
+use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
 use canvas_traits::*;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -80,7 +80,7 @@ impl<'a> CanvasPaintTask<'a> {
             image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(self.state.draw_options.alpha, CompositionOp::Over, AntialiasMode::Default);
+        let draw_options = DrawOptions::new(self.state.draw_options.alpha, CompositionOp::Over, AntialiasMode::None);
 
         self.drawtarget.draw_surface(source_surface,
                                      dest_rect.to_azfloat(),

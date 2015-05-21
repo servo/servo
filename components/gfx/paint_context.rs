@@ -159,7 +159,7 @@ impl<'a> PaintContext<'a> {
             }
         };
 
-        let draw_options = DrawOptions::default();
+        let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         draw_target_ref.draw_surface(azure_surface,
                                      dest_rect,
                                      source_rect,
@@ -173,7 +173,7 @@ impl<'a> PaintContext<'a> {
                                 self.page_rect.origin.y as AzFloat),
                         Size2D(self.screen_rect.size.width as AzFloat,
                                self.screen_rect.size.height as AzFloat));
-        let mut draw_options = DrawOptions::default();
+        let mut draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         draw_options.set_composition_op(CompositionOp::Source);
         self.draw_target.make_current();
         self.draw_target.fill_rect(&rect, PatternRef::Color(&pattern), Some(&draw_options));
@@ -290,7 +290,7 @@ impl<'a> PaintContext<'a> {
                         color: Color) {
         let mut path_builder = self.draw_target.create_path_builder();
         self.create_border_path_segment(&mut path_builder, bounds, direction, border, radii);
-        let draw_options = DrawOptions::default();
+        let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         self.draw_target.fill(&path_builder.finish(), &ColorPattern::new(color), &draw_options);
     }
 
@@ -617,7 +617,7 @@ impl<'a> PaintContext<'a> {
                                   color: Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_nearest_azure_rect();
-        let draw_opts = DrawOptions::default();
+        let draw_opts = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         let border_width = match direction {
             Direction::Top => border.top,
             Direction::Left => border.left,
@@ -960,7 +960,7 @@ impl<'a> PaintContext<'a> {
                                                              &mut accum_blur);
 
         // Perform the blit operation.
-        let mut draw_options = DrawOptions::new(opacity, CompositionOp::Over, AntialiasMode::Default);
+        let mut draw_options = DrawOptions::new(opacity, CompositionOp::Over, AntialiasMode::None);
         draw_options.set_composition_op(blend_mode.to_azure_composition_op());
 
        // If there is a blur expansion, shift the transform and update the size.
@@ -1024,7 +1024,7 @@ impl<'a> PaintContext<'a> {
         // Draw the shadow, and blur if we need to.
         temporary_draw_target.draw_target.fill(&path,
                                                &ColorPattern::new(color),
-                                               &DrawOptions::default());
+                                               &DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None));
         self.blur_if_necessary(temporary_draw_target, blur_radius);
 
         // Undo the draw target's clip if we need to, and push back the stacking context clip.
@@ -1414,7 +1414,7 @@ impl TemporaryDrawTarget {
         main_draw_target.draw_filter(&filter,
                                      &Rect(Point2D(0.0, 0.0), temporary_draw_target_size),
                                      &self.offset,
-                                     DrawOptions::default());
+                                     DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None));
         main_draw_target.set_transform(&main_draw_target_transform);
 
     }
