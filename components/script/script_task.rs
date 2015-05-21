@@ -30,7 +30,7 @@ use dom::bindings::js::{RootCollectionPtr, Root, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
-use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
+use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap, DOM_CALLBACKS};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler,
                     DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
@@ -80,7 +80,7 @@ use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSWrapObjectCallbacks};
-use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest};
+use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
 use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
@@ -537,6 +537,7 @@ impl ScriptTask {
 
         unsafe {
             SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
+            SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
             // Pre barriers aren't working correctly at the moment
             DisableIncrementalGC(runtime.rt());
         }
