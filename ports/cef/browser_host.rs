@@ -6,6 +6,7 @@ use eutil::Downcast;
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_browser_host_t, cef_client_t};
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event, cef_window_handle_t};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
+use types::cef_event_flags_t::{EVENTFLAG_ALT_DOWN, EVENTFLAG_CONTROL_DOWN, EVENTFLAG_SHIFT_DOWN};
 use browser::{self, ServoCefBrowserExtensions};
 use wrappers::CefWrap;
 
@@ -17,6 +18,7 @@ use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::MouseButton;
 use std::cell::{Cell, RefCell};
 use std::mem::transmute;
+use std::intrinsics;
 
 pub struct ServoCefBrowserHost {
     /// A reference to the browser.
@@ -414,7 +416,16 @@ full_cef_class_impl! {
                 KEYEVENT_CHAR => KeyState::Repeated,
                 KEYEVENT_KEYUP => KeyState::Released,
             };
-            let key_modifiers = KeyModifiers::empty();  // TODO(pcwalton)
+            let mut key_modifiers = KeyModifiers::empty();
+            if (*event).modifiers & unsafe { intrinsics::discriminant_value(&EVENTFLAG_SHIFT_DOWN) as u32 } != 0 {
+               key_modifiers = key_modifiers | constellation_msg::SHIFT;
+            }
+            if (*event).modifiers & unsafe { intrinsics::discriminant_value(&EVENTFLAG_CONTROL_DOWN) as u32 } != 0 {
+               key_modifiers = key_modifiers | constellation_msg::CONTROL;
+            }
+            if (*event).modifiers & unsafe { intrinsics::discriminant_value(&EVENTFLAG_ALT_DOWN) as u32 } != 0 {
+               key_modifiers = key_modifiers | constellation_msg::ALT;
+            }
             this.downcast().send_window_event(WindowEvent::KeyEvent(key, key_state, key_modifiers))
         }}
 
