@@ -5,7 +5,7 @@
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
-use azure::azure_hl::{JoinStyle, CapStyle};
+use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
 use canvas_traits::*;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
