@@ -80,7 +80,7 @@ impl<'a> CanvasPaintTask<'a> {
             image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(self.state.draw_options.alpha, CompositionOp::Over, AntialiasMode::Default);
+        let draw_options = DrawOptions::new(self.state.draw_options.alpha, CompositionOp::Over, AntialiasMode::None);
 
         self.drawtarget.draw_surface(source_surface,
                                      dest_rect.to_azfloat(),
