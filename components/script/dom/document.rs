@@ -61,6 +61,7 @@ use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
+use dom::servohtmlparser::ServoHTMLParser;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers, ReflowReason};
@@ -73,7 +74,7 @@ use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyMod
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
-use net_traits::{Metadata, LoadResponse, PendingAsyncLoad};
+use net_traits::{Metadata, PendingAsyncLoad, AsyncResponseTarget};
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
 use util::opts;
@@ -96,7 +97,7 @@ use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::default::Default;
 use std::ptr;
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::channel;
 use time;
 
 #[derive(PartialEq)]
@@ -145,6 +146,8 @@ pub struct Document {
     animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
+    /// The current active HTML parser, to allow resuming after interruptions.
+    current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -263,9 +266,11 @@ pub trait DocumentHelpers<'a> {
     /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self);
     fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
-    fn load_async(self, load: LoadType) -> Receiver<LoadResponse>;
+    fn load_async(self, load: LoadType, listener: Box<AsyncResponseTarget + Send>);
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
     fn finish_load(self, load: LoadType);
+    fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>);
+    fn get_current_parser(self) -> Option<Temporary<ServoHTMLParser>>;
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -892,9 +897,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         loader.prepare_async_load(load)
     }
 
-    fn load_async(self, load: LoadType) -> Receiver<LoadResponse> {
+    fn load_async(self, load: LoadType, listener: Box<AsyncResponseTarget + Send>) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load)
+        loader.load_async(load, listener)
     }
 
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
@@ -906,6 +911,14 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let mut loader = self.loader.borrow_mut();
         loader.finish_load(load);
     }
+
+    fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>) {
+        self.current_parser.set(script.map(JS::from_rooted));
+    }
+
+    fn get_current_parser(self) -> Option<Temporary<ServoHTMLParser>> {
+        self.current_parser.get().map(Temporary::from_rooted)
+    }
 }
 
 pub enum MouseEventType {
@@ -913,6 +926,7 @@ pub enum MouseEventType {
     MouseDown,
     MouseUp,
 }
+
 
 #[derive(PartialEq)]
 pub enum DocumentSource {
@@ -987,6 +1001,7 @@ impl Document {
             animation_frame_ident: Cell::new(0),
             animation_frame_list: RefCell::new(HashMap::new()),
             loader: DOMRefCell::new(doc_loader),
+            current_parser: Default::default(),
         }
     }
 
