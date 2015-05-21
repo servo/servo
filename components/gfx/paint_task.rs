@@ -308,7 +308,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // If we own buffers in the compositor and we are not exiting completely, wait
                     // for the compositor to return buffers, so that we can release them properly.
                     // When doing a complete exit, the compositor lets all buffers leak.
-                    println!("PaintTask {:?}: Saw ExitMsg, {} buffers in use", self.id, self.used_buffer_count);
+                    debug!("PaintTask {:?}: Saw ExitMsg, {} buffers in use", self.id, self.used_buffer_count);
                     waiting_for_compositor_buffers_to_exit = true;
                     exit_response_channel = response_channel;
                 }
