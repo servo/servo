@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use cssparser::ToCss;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -10,20 +11,23 @@ use parser::{ParserContext, log_css_error};
 use properties::longhands;
 use std::ascii::AsciiExt;
 use std::collections::hash_map::{Entry, HashMap};
+use std::fmt;
 use std::intrinsics;
+use std::iter::Enumerate;
+use std::str::Chars;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::Origin;
 use util::geometry::ViewportPx;
 use values::computed::{Context, ToComputedValue};
-use values::specified::LengthOrPercentageOrAuto;
+use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ViewportDescriptor {
-    MinWidth(LengthOrPercentageOrAuto),
-    MaxWidth(LengthOrPercentageOrAuto),
+    MinWidth(ViewportLength),
+    MaxWidth(ViewportLength),
 
-    MinHeight(LengthOrPercentageOrAuto),
-    MaxHeight(LengthOrPercentageOrAuto),
+    MinHeight(ViewportLength),
+    MaxHeight(ViewportLength),
 
     Zoom(Zoom),
     MinZoom(Zoom),
@@ -31,6 +35,98 @@ pub enum ViewportDescriptor {
 
     UserZoom(UserZoom),
     Orientation(Orientation)
+}
+
+trait FromMeta: Sized {
+    fn from_meta<'a>(value: &'a str) -> Option<Self>;
+}
+
+// ViewportLength is a length | percentage | auto | extend-to-zoom
+// See:
+// * http://dev.w3.org/csswg/css-device-adapt/#min-max-width-desc
+// * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
+#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
+pub enum ViewportLength {
+    Specified(LengthOrPercentageOrAuto),
+    ExtendToZoom
+}
+
+impl ToCss for ViewportLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write
+    {
+        match *self {
+            ViewportLength::Specified(length) => length.to_css(dest),
+            ViewportLength::ExtendToZoom => write!(dest, "extend-to-zoom"),
+        }
+    }
+}
+
+impl FromMeta for ViewportLength {
+    fn from_meta<'a>(value: &'a str) -> Option<ViewportLength> {
+        macro_rules! specified {
+            ($value:expr) => {
+                ViewportLength::Specified(LengthOrPercentageOrAuto::Length($value))
+            }
+        }
+
+        Some(match value {
+            v if v.eq_ignore_ascii_case("device-width") =>
+                specified!(Length::ViewportPercentage(ViewportPercentageLength::Vw(100.))),
+            v if v.eq_ignore_ascii_case("device-height") =>
+                specified!(Length::ViewportPercentage(ViewportPercentageLength::Vh(100.))),
+            _ => {
+                match value.parse::<f32>() {
+                    Ok(n) if n >= 0. => specified!(Length::from_px(n.max(1.).min(10000.))),
+                    Ok(_) => return None,
+                    Err(_) => specified!(Length::from_px(1.))
+                }
+            }
+        })
+    }
+}
+
+impl ViewportLength {
+    fn parse(input: &mut Parser) -> Result<ViewportLength, ()> {
+        // we explicitly do not accept 'extend-to-zoom', since it is a UA internal value
+        // for <META> viewport translation
+        LengthOrPercentageOrAuto::parse_non_negative(input).map(ViewportLength::Specified)
+    }
+}
+
+impl FromMeta for Zoom {
+    fn from_meta<'a>(value: &'a str) -> Option<Zoom> {
+        Some(match value {
+            v if v.eq_ignore_ascii_case("yes") => Zoom::Number(1.),
+            v if v.eq_ignore_ascii_case("no") => Zoom::Number(0.1),
+            v if v.eq_ignore_ascii_case("device-width") => Zoom::Number(10.),
+            v if v.eq_ignore_ascii_case("device-height") => Zoom::Number(10.),
+            _ => {
+                match value.parse::<f32>() {
+                    Ok(n) if n >= 0. => Zoom::Number(n.max(0.1).min(10.)),
+                    Ok(_) => return None,
+                    Err(_) => Zoom::Number(0.1),
+                }
+            }
+        })
+    }
+}
+
+impl FromMeta for UserZoom {
+    fn from_meta<'a>(value: &'a str) -> Option<UserZoom> {
+        Some(match value {
+            v if v.eq_ignore_ascii_case("yes") => UserZoom::Zoom,
+            v if v.eq_ignore_ascii_case("no") => UserZoom::Fixed,
+            v if v.eq_ignore_ascii_case("device-width") => UserZoom::Zoom,
+            v if v.eq_ignore_ascii_case("device-height") => UserZoom::Zoom,
+            _ => {
+                match value.parse::<f32>() {
+                    Ok(n) if n >= 1. || n <= -1. => UserZoom::Zoom,
+                    _ => UserZoom::Fixed
+                }
+            }
+        })
+    }
 }
 
 struct ViewportRuleParser<'a, 'b: 'a> {
@@ -57,10 +153,10 @@ impl ViewportDescriptorDeclaration {
     }
 }
 
-fn parse_shorthand(input: &mut Parser) -> Result<[LengthOrPercentageOrAuto; 2], ()> {
-    let min = try!(LengthOrPercentageOrAuto::parse_non_negative(input));
-    match input.try(|input| LengthOrPercentageOrAuto::parse_non_negative(input)) {
-        Err(()) => Ok([min.clone(), min]),
+fn parse_shorthand(input: &mut Parser) -> Result<[ViewportLength; 2], ()> {
+    let min = try!(ViewportLength::parse(input));
+    match input.try(|input| ViewportLength::parse(input)) {
+        Err(()) => Ok([min, min]),
         Ok(max) => Ok([min, max])
     }
 }
@@ -102,16 +198,16 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
 
         match name {
             n if n.eq_ignore_ascii_case("min-width") =>
-                ok!(MinWidth(LengthOrPercentageOrAuto::parse_non_negative)),
+                ok!(MinWidth(ViewportLength::parse)),
             n if n.eq_ignore_ascii_case("max-width") =>
-                ok!(MaxWidth(LengthOrPercentageOrAuto::parse_non_negative)),
+                ok!(MaxWidth(ViewportLength::parse)),
             n if n.eq_ignore_ascii_case("width") =>
                 ok!(shorthand -> [MinWidth, MaxWidth]),
 
             n if n.eq_ignore_ascii_case("min-height") =>
-                ok!(MinHeight(LengthOrPercentageOrAuto::parse_non_negative)),
+                ok!(MinHeight(ViewportLength::parse)),
             n if n.eq_ignore_ascii_case("max-height") =>
-                ok!(MaxHeight(LengthOrPercentageOrAuto::parse_non_negative)),
+                ok!(MaxHeight(ViewportLength::parse)),
             n if n.eq_ignore_ascii_case("height") =>
                 ok!(shorthand -> [MinHeight, MaxHeight]),
 
@@ -135,6 +231,19 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
 #[derive(Debug, PartialEq)]
 pub struct ViewportRule {
     pub declarations: Vec<ViewportDescriptorDeclaration>
+}
+
+/// Whitespace as defined by DEVICE-ADAPT § 9.2
+// TODO: should we just use whitespace as defined by HTML5?
+const WHITESPACE: &'static [char] = &['\t', '\n', '\r', ' '];
+
+/// Separators as defined by DEVICE-ADAPT § 9.2
+// need to use \x2c instead of ',' due to test-tidy
+const SEPARATOR: &'static [char] = &['\x2c', ';'];
+
+#[inline]
+fn is_whitespace_separator_or_equals(c: &char) -> bool {
+    WHITESPACE.contains(c) || SEPARATOR.contains(c) || *c == '='
 }
 
 impl ViewportRule {
@@ -165,6 +274,145 @@ impl ViewportRule {
         }
 
         Ok(ViewportRule { declarations: valid_declarations.iter().cascade() })
+    }
+
+    pub fn from_meta<'a>(content: &'a str) -> Option<ViewportRule> {
+        let mut declarations = HashMap::new();
+        macro_rules! push_descriptor {
+            ($descriptor:ident($value:expr)) => {{
+                let descriptor = ViewportDescriptor::$descriptor($value);
+                declarations.insert(
+                    unsafe {
+                        intrinsics::discriminant_value(&descriptor)
+                    },
+                    ViewportDescriptorDeclaration::new(
+                        Origin::Author,
+                        descriptor,
+                        false))
+            }
+        }}
+
+        let mut has_width = false;
+        let mut has_height = false;
+        let mut has_zoom = false;
+
+        let mut iter = content.chars().enumerate();
+
+        macro_rules! start_of_name {
+            ($iter:ident) => {
+                $iter.by_ref()
+                    .skip_while(|&(_, c)| is_whitespace_separator_or_equals(&c))
+                    .next()
+            }
+        }
+
+        while let Some((start, _)) = start_of_name!(iter) {
+            let property = ViewportRule::parse_meta_property(content,
+                                                             &mut iter,
+                                                             start);
+
+            if let Some((name, value)) = property {
+                macro_rules! push {
+                    ($descriptor:ident($translate:path)) => {
+                        if let Some(value) = $translate(value) {
+                            push_descriptor!($descriptor(value));
+                        }
+                    }
+                }
+
+                match name {
+                    n if n.eq_ignore_ascii_case("width") => {
+                        if let Some(value) = ViewportLength::from_meta(value) {
+                            push_descriptor!(MinWidth(ViewportLength::ExtendToZoom));
+                            push_descriptor!(MaxWidth(value));
+                            has_width = true;
+                        }
+                    }
+                    n if n.eq_ignore_ascii_case("height") => {
+                        if let Some(value) = ViewportLength::from_meta(value) {
+                            push_descriptor!(MinHeight(ViewportLength::ExtendToZoom));
+                            push_descriptor!(MaxHeight(value));
+                            has_height = true;
+                        }
+                    }
+                    n if n.eq_ignore_ascii_case("initial-scale") => {
+                        if let Some(value) = Zoom::from_meta(value) {
+                            push_descriptor!(Zoom(value));
+                            has_zoom = true;
+                        }
+                    }
+                    n if n.eq_ignore_ascii_case("minimum-scale") =>
+                        push!(MinZoom(Zoom::from_meta)),
+                    n if n.eq_ignore_ascii_case("maximum-scale") =>
+                        push!(MaxZoom(Zoom::from_meta)),
+                    n if n.eq_ignore_ascii_case("user-scalable") =>
+                        push!(UserZoom(UserZoom::from_meta)),
+                    _ => {}
+                }
+            }
+        }
+
+        // DEVICE-ADAPT § 9.4 - The 'width' and 'height' properties
+        // http://dev.w3.org/csswg/css-device-adapt/#width-and-height-properties
+        if !has_width && has_zoom {
+            if has_height {
+                push_descriptor!(MinWidth(ViewportLength::Specified(LengthOrPercentageOrAuto::Auto)));
+                push_descriptor!(MaxWidth(ViewportLength::Specified(LengthOrPercentageOrAuto::Auto)));
+            } else {
+                push_descriptor!(MinWidth(ViewportLength::ExtendToZoom));
+                push_descriptor!(MaxWidth(ViewportLength::ExtendToZoom));
+            }
+        }
+
+        let declarations: Vec<_> = declarations.into_iter().map(|kv| kv.1).collect();
+        if !declarations.is_empty() {
+            Some(ViewportRule { declarations: declarations })
+        } else {
+            None
+        }
+    }
+
+    fn parse_meta_property<'a>(content: &'a str,
+                               iter: &mut Enumerate<Chars<'a>>,
+                               start: usize)
+                               -> Option<(&'a str, &'a str)>
+    {
+        fn end_of_token<'a>(iter: &mut Enumerate<Chars<'a>>) -> Option<(usize, char)> {
+            iter.by_ref()
+                .skip_while(|&(_, c)| !is_whitespace_separator_or_equals(&c))
+                .next()
+        }
+
+        fn skip_whitespace<'a>(iter: &mut Enumerate<Chars<'a>>) -> Option<(usize, char)> {
+            iter.by_ref()
+                .skip_while(|&(_, c)| WHITESPACE.contains(&c))
+                .next()
+        }
+
+        // <name> <whitespace>* '='
+        let end = match end_of_token(iter) {
+            Some((end, c)) if WHITESPACE.contains(&c) => {
+                match skip_whitespace(iter) {
+                    Some((_, c)) if c == '=' => end,
+                    _ => return None
+                }
+            }
+            Some((end, c)) if c == '=' => end,
+            _ => return None
+        };
+        let name = &content[start..end];
+
+        // <whitespace>* <value>
+        let start = match skip_whitespace(iter) {
+            Some((start, c)) if !SEPARATOR.contains(&c) => start,
+            _ => return None
+        };
+        let value = match end_of_token(iter) {
+            Some((end, _)) => &content[start..end],
+            _ => &content[start..]
+        };
+
+        Some((name, value))
     }
 }
 
@@ -306,9 +554,9 @@ impl MaybeNew for ViewportConstraints {
             ($op:ident, $opta:expr, $optb:expr) => {
                 match ($opta, $optb) {
                     (None, None) => None,
-                    (a, None) => a.clone(),
-                    (None, b) => b.clone(),
-                    (a, b) => Some(a.clone().unwrap().$op(b.clone().unwrap())),
+                    (a, None) => a,
+                    (None, b) => b,
+                    (a, b) => Some(a.unwrap().$op(b.unwrap())),
                 }
             }
         }
@@ -325,7 +573,7 @@ impl MaybeNew for ViewportConstraints {
 
         // DEVICE-ADAPT § 6.2.1 Resolve min-zoom and max-zoom values
         if min_zoom.is_some() && max_zoom.is_some() {
-            max_zoom = Some(min_zoom.clone().unwrap().max(max_zoom.unwrap()))
+            max_zoom = Some(min_zoom.unwrap().max(max_zoom.unwrap()))
         }
 
         // DEVICE-ADAPT § 6.2.2 Constrain zoom value to the [min-zoom, max-zoom] range
@@ -363,18 +611,41 @@ impl MaybeNew for ViewportConstraints {
             outline_style_present: false,
         };
 
+        // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
+        let extend_width;
+        let extend_height;
+        if let Some(extend_zoom) = max!(initial_zoom, max_zoom) {
+            let scale_factor = 1. / extend_zoom;
+            extend_width = Some(initial_viewport.width.scale_by(scale_factor));
+            extend_height = Some(initial_viewport.height.scale_by(scale_factor));
+        } else {
+            extend_width = None;
+            extend_height = None;
+        }
+
         macro_rules! to_pixel_length {
-            ($value:ident, $dimension:ident) => {
+            ($value:ident, $dimension:ident, $extend_to:ident => $auto_extend_to:expr) => {
                 if let Some($value) = $value {
                     match $value {
-                        LengthOrPercentageOrAuto::Length(value) =>
-                            Some(value.to_computed_value(&context)),
-                        LengthOrPercentageOrAuto::Percentage(value) =>
-                            Some(initial_viewport.$dimension.scale_by(value.0)),
-                        LengthOrPercentageOrAuto::Auto => None,
-                        LengthOrPercentageOrAuto::Calc(calc) => {
-                            let calc = calc.to_computed_value(&context);
-                            Some(initial_viewport.$dimension.scale_by(calc.percentage()) + calc.length())
+                        ViewportLength::Specified(length) => match length {
+                            LengthOrPercentageOrAuto::Length(value) =>
+                                Some(value.to_computed_value(&context)),
+                            LengthOrPercentageOrAuto::Percentage(value) =>
+                                Some(initial_viewport.$dimension.scale_by(value.0)),
+                            LengthOrPercentageOrAuto::Auto => None,
+                            LengthOrPercentageOrAuto::Calc(calc) => {
+                                let calc = calc.to_computed_value(&context);
+                                Some(initial_viewport.$dimension.scale_by(calc.percentage()) + calc.length())
+                            }
+                        },
+                        ViewportLength::ExtendToZoom => {
+                            // $extend_to will be 'None' if 'extend-to-zoom' is 'auto'
+                            match ($extend_to, $auto_extend_to) {
+                                (None, None) => None,
+                                (a, None) => a,
+                                (None, b) => b,
+                                (a, b) => cmp::max(a, b)
+                            }
                         }
                     }
                 } else {
@@ -383,10 +654,14 @@ impl MaybeNew for ViewportConstraints {
             }
         }
 
-        let min_width = to_pixel_length!(min_width, width);
-        let max_width = to_pixel_length!(max_width, width);
-        let min_height = to_pixel_length!(min_height, height);
-        let max_height = to_pixel_length!(max_height, height);
+        // DEVICE-ADAPT § 9.3 states that max-descriptors need to be resolved
+        // before min-descriptors.
+        // http://dev.w3.org/csswg/css-device-adapt/#resolve-extend-to-zoom
+        let max_width = to_pixel_length!(max_width, width, extend_width => None);
+        let max_height = to_pixel_length!(max_height, height, extend_height => None);
+
+        let min_width = to_pixel_length!(min_width, width, extend_width => max_width);
+        let min_height = to_pixel_length!(min_height, height, extend_height => max_height);
 
         // DEVICE-ADAPT § 6.2.4 Resolve initial width and height from min/max descriptors
         macro_rules! resolve {
@@ -421,7 +696,7 @@ impl MaybeNew for ViewportConstraints {
             Au(0) => initial_viewport.width,
             initial_height => {
                 let ratio = initial_viewport.width.to_f32_px() / initial_height.to_f32_px();
-                Au::from_f32_px(height.clone().unwrap().to_f32_px() * ratio)
+                Au::from_f32_px(height.unwrap().to_f32_px() * ratio)
             }
         });
 

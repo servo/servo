@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(plugin)]
+#![cfg_attr(test, feature(core_intrinsics))]
 #![plugin(string_cache_plugin)]
 
 extern crate app_units;
