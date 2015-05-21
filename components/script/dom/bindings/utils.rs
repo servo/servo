@@ -45,6 +45,7 @@ use js::jsapi::JS_NewObjectWithUniqueType;
 use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, Heap};
 use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
+use js::jsapi::DOMCallbacks;
 use js::jsval::JSVal;
 use js::jsval::{PrivateValue, NullValue};
 use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue};
@@ -689,6 +690,18 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
         XMLName::QName => Ok(())
     }
 }
+
+unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::Class,
+                                                       proto_id: u32,
+                                                       depth: u32) -> u8 {
+    let domclass: *const DOMJSClass = clasp as *const _;
+    let domclass = &*domclass;
+    (domclass.dom_class.interface_chain[depth as usize] as u32 == proto_id) as u8
+}
+
+pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
+    instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
+};
 
 /// Validate a namespace and qualified name and extract their parts.
 /// See https://dom.spec.whatwg.org/#validate-and-extract for details.
