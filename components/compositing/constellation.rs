@@ -865,8 +865,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 let ScriptControlChan(ref script_channel) = pipeline.script_chan;
                 script_channel.send(control_msg).unwrap();
             },
-            WebDriverCommandMsg::TakeScreenshot(reply) => {
-                self.compositor_proxy.send(CompositorMsg::CreatePng(reply));
+            WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
+                let current_pipeline_id = self.root_frame_id.map(|frame_id| {
+                    let frame = self.frames.get(&frame_id).unwrap();
+                    frame.current
+                });
+                if Some(pipeline_id) == current_pipeline_id {
+                    self.compositor_proxy.send(CompositorMsg::CreatePng(reply));
+                } else {
+                    reply.send(None).unwrap();
+                }
             },
         }
     }
