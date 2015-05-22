@@ -162,8 +162,8 @@ pub enum Msg {
     SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
     /// The load of a page has begun: (can go back, can go forward).
     LoadStart(bool, bool),
-    /// The load of a page has completed.
-    LoadComplete,
+    /// The load of a page has completed: (can go back, can go forward).
+    LoadComplete(bool, bool),
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
@@ -196,7 +196,7 @@ impl Debug for Msg {
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
-            Msg::LoadComplete => write!(f, "LoadComplete"),
+            Msg::LoadComplete(..) => write!(f, "LoadComplete"),
             Msg::LoadStart(..) => write!(f, "LoadStart"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),

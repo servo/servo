@@ -508,7 +508,7 @@ impl WindowMethods for Window {
     fn load_start(&self, _: bool, _: bool) {
     }
 
-    fn load_end(&self) {
+    fn load_end(&self, _: bool, _: bool) {
     }
 
     /// Has no effect on Android.
