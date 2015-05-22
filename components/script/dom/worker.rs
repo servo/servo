@@ -170,7 +170,10 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
     // https://html.spec.whatwg.org/multipage/#terminate-a-worker
     #[allow(unsafe_code)]
     fn Terminate(self) {
-        if self.closing.get() { return; }
+        if self.closing.get() {
+            return;
+        }
+
         self.closing.set(true);
 
         let address = Trusted::new(self.global.root().r().get_cx(), self,
