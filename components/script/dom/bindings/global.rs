@@ -198,11 +198,9 @@ impl GlobalUnrooted {
     }
 }
 
-/// Returns the global object of the realm that the given JS object was created in.
-#[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
+/// Return the global object for a global JSObject
+fn global_object_for_js_global(global: *mut JSObject) -> GlobalUnrooted {
     unsafe {
-        let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         match native_from_reflector_jsmanaged(global) {
@@ -219,24 +217,22 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
     }
 }
 
+/// Returns the global object of the realm that the given JS object was created in.
+#[allow(unrooted_must_root)]
+pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
+    unsafe {
+        let global = GetGlobalForObjectCrossCompartment(obj);
+        global_object_for_js_global(global)
+    }
+}
+
 /// Returns the global object for the given JSContext
 #[allow(unrooted_must_root)]
 pub fn global_object_for_js_context(cx: *mut JSContext) -> GlobalUnrooted {
     unsafe {
         let rt = JS_GetRuntime(cx);
         let global = JS_GetRuntimePrivate(rt) as *mut JSObject;
-        let clasp = JS_GetClass(global);
-        assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match native_from_reflector_jsmanaged(global) {
-            Ok(window) => return GlobalUnrooted::Window(window),
-            Err(_) => (),
-        }
-
-        match native_from_reflector_jsmanaged(global) {
-            Ok(worker) => return GlobalUnrooted::Worker(worker),
-            Err(_) => (),
-        }
-
-        panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+        assert!(!global.is_null());
+        global_object_for_js_global(global)
     }
 }
