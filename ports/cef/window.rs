@@ -277,11 +277,12 @@ impl WindowMethods for Window {
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
-       unsafe {
-           NativeGraphicsMetadata {
-               display: DISPLAY,
-           }
-       }
+        use x11::xlib;
+        unsafe {
+            NativeGraphicsMetadata {
+                display: DISPLAY as *mut xlib::Display,
+            }
+        }
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)

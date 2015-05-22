@@ -558,8 +558,9 @@ impl WindowMethods for Window {
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
+        use x11::xlib;
         NativeGraphicsMetadata {
-            display: unsafe { self.window.platform_display() }
+            display: unsafe { self.window.platform_display() as *mut xlib::Display }
         }
     }
 
