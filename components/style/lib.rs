@@ -11,7 +11,6 @@
 #![feature(rustc_private)]
 
 #![plugin(string_cache_plugin)]
-#![plugin(mod_path)]
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate bitflags;
@@ -44,7 +43,10 @@ pub mod selector_matching;
 #[macro_use] pub mod values;
 
 // Generated from the properties.mako.rs template by build.rs
-mod_path! properties (concat!(env!("OUT_DIR"), "/properties.rs"));
+#[macro_use]
+pub mod properties {
+    include!(concat!(env!("OUT_DIR"), "/properties.rs"));
+}
 
 pub mod node;
 pub mod media_queries;
