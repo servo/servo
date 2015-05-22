@@ -211,7 +211,7 @@ pub enum Msg {
     Exit,
     Failure(Failure),
     InitLoadUrl(Url),
-    LoadComplete,
+    LoadComplete(PipelineId),
     FrameRect(PipelineId, SubpageId, Rect<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
