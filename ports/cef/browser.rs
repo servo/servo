@@ -60,6 +60,18 @@ cef_class_impl! {
             this.downcast().host.clone()
         }}
 
+        fn can_go_back(&this,) -> c_int {{
+            this.downcast().back.get() as c_int
+        }}
+
+        fn can_go_forward(&this,) -> c_int {{
+            this.downcast().forward.get() as c_int
+        }}
+
+        fn is_loading(&this,) -> c_int {{
+            this.downcast().loading.get() as c_int
+        }}
+
         fn go_back(&this,) -> () {{
             this.send_window_event(WindowEvent::Navigation(WindowNavigateMsg::Back));
         }}
@@ -90,6 +102,12 @@ pub struct ServoCefBrowser {
     pub window: Option<Rc<glutin_app::window::Window>>,
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
+    /// whether the browser can navigate back
+    pub back: Cell<bool>,
+    /// whether the browser can navigate forward
+    pub forward: Cell<bool>,
+    /// whether the browser is loading
+    pub loading: Cell<bool>,
     /// the display system window handle: only to be used with host.get_window_handle()
     window_handle: cef_window_handle_t,
 
@@ -130,6 +148,9 @@ impl ServoCefBrowser {
             servo_browser: RefCell::new(servo_browser),
             message_queue: RefCell::new(vec!()),
             id: id,
+            back: Cell::new(false),
+            forward: Cell::new(false),
+            loading: Cell::new(false),
             window_handle: window_handle,
         }
     }
