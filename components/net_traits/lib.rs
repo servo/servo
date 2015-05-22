@@ -149,7 +149,7 @@ impl PendingLoadGuard {
 impl Drop for PendingLoadGuard {
     fn drop(&mut self) {
         if !thread::panicking() {
-        assert!(self.loaded)
+            assert!(self.loaded)
         }
     }
 }
