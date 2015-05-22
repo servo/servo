@@ -4,8 +4,6 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-#![macro_use]
-
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
