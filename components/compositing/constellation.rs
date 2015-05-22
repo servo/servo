@@ -391,9 +391,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             // A page loaded through one of several methods above has completed all parsing,
             // script, and reflow messages have been sent.
-            ConstellationMsg::LoadComplete => {
+            ConstellationMsg::LoadComplete(pipeline_id) => {
                 debug!("constellation got load complete message");
-                self.handle_load_complete_msg()
+                self.handle_load_complete_msg(&pipeline_id)
             }
             // Handle a forward or back request
             ConstellationMsg::Navigate(pipeline_info, direction) => {
@@ -681,8 +681,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
     }
 
-    fn handle_load_complete_msg(&mut self) {
-        self.compositor_proxy.send(CompositorMsg::LoadComplete);
+    fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
+        let frame_id = *self.pipeline_to_frame_map.get(pipeline_id).unwrap();
+
+        let forward = !self.mut_frame(frame_id).next.is_empty();
+        let back = !self.mut_frame(frame_id).prev.is_empty();
+        self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
         if let Some(ref reply_chan) = self.webdriver.load_channel {
             reply_chan.send(webdriver_traits::LoadComplete).unwrap();
         }

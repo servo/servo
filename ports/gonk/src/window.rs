@@ -805,7 +805,7 @@ impl WindowMethods for Window {
     fn load_start(&self, _: bool, _: bool) {
     }
 
-    fn load_end(&self) {
+    fn load_end(&self, _: bool, _: bool) {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
