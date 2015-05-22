@@ -304,8 +304,8 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         assert!(self.parent_node.get().is_none());
         for node in self.traverse_preorder() {
             let node = node.root();
-            vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
             node.r().set_flag(IS_IN_DOC, false);
+            vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
         self.layout_data.dispose();
     }
@@ -1666,8 +1666,6 @@ impl Node {
         // Step 6-7: mutation observers.
         // Step 8.
         parent.remove_child(node);
-
-        node.set_flag(IS_IN_DOC, false);
 
         // Step 9.
         node.node_removed(parent.is_in_doc());
