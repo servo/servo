@@ -326,7 +326,7 @@ impl MozBrowserEvent {
 pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, Sender<LoadComplete>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
-    TakeScreenshot(Sender<Option<png::Image>>)
+    TakeScreenshot(PipelineId, Sender<Option<png::Image>>)
 }
 
 /// Similar to net::resource_task::LoadData
