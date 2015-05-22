@@ -520,6 +520,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
         let root_pipeline_id =
             self.new_pipeline(None, Some(window_rect), None, LoadData::new(url.clone()));
+        self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(CompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
@@ -630,6 +631,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // requested change so it can update its internal state.
         match self.pipeline(source_id).parent_info {
             Some((parent_pipeline_id, subpage_id)) => {
+                self.handle_load_start_msg(&source_id);
                 // Message the constellation to find the script task for this iframe
                 // and issue an iframe load through there.
                 let parent_pipeline = self.pipeline(parent_pipeline_id);
@@ -647,6 +649,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     }
                 }
 
+                self.handle_load_start_msg(&source_id);
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
 
@@ -660,6 +663,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 old_pipeline.freeze();
             }
         }
+    }
+
+    fn handle_load_start_msg(&mut self, pipeline_id: &PipelineId) {
+        let mut back = false;
+        let mut forward = false;
+        let frameid = self.pipeline_to_frame_map.get(pipeline_id);
+        match frameid {
+            Some(frame_id) => {
+                forward = if !self.frame(*frame_id).next.is_empty() { true }
+                          else { false };
+                back = if !self.frame(*frame_id).prev.is_empty() { true }
+                       else { false };
+            },
+            None => {}
+        };
+        self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
     }
 
     fn handle_load_complete_msg(&mut self) {

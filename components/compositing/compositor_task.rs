@@ -160,6 +160,8 @@ pub enum Msg {
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
     SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
+    /// The load of a page has begun: (can go back, can go forward).
+    LoadStart(bool, bool),
     /// The load of a page has completed.
     LoadComplete,
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
@@ -195,6 +197,7 @@ impl Debug for Msg {
             Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::LoadComplete => write!(f, "LoadComplete"),
+            Msg::LoadStart(..) => write!(f, "LoadStart"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
