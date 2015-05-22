@@ -890,16 +890,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
 
     if type.isInteger():
-        conversionBehavior = "ConversionBehavior::Default"
+        if isEnforceRange:
+            conversionBehavior = "ConversionBehavior::EnforceRange"
+        elif isClamp:
+            conversionBehavior = "ConversionBehavior::Clamp"
+        else:
+            conversionBehavior = "ConversionBehavior::Default"
     else:
+        assert not isEnforceRange and not isClamp
         conversionBehavior = "()"
-
-    if isEnforceRange:
-        assert type.isInteger()
-        conversionBehavior = "ConversionBehavior::EnforceRange"
-    elif isClamp:
-        assert type.isInteger()
-        conversionBehavior = "ConversionBehavior::Clamp"
 
     if failureCode is None:
         failureCode = 'return 0'

@@ -96,32 +96,40 @@ pub enum ConversionBehavior {
     Default,
     /// If it doesn't fit in the type, raise error
     EnforceRange,
-    /// If it doesn't fit in the type, round to MAX or MIN
+    /// If it doesn't fit in the type, clamp to MAX or MIN
     Clamp
-}
-
-impl default::Default for ConversionBehavior {
-    fn default() -> ConversionBehavior {
-        ConversionBehavior::Default
-    }
 }
 
 /// Try to cast the number to a smaller type, but
 /// if it doesn't fit, it will return an error.
-fn enforce_range<T: ToPrimitive, D: NumCast>(i: T) -> Result<D, ()> {
-    NumCast::from(i).ok_or(())
+fn enforce_range<D: Bounded + NumCast>(cx: *mut JSContext, d: f64) -> Result<D, ()> {
+    if d.is_infinite() {
+        throw_type_error(cx, "value out of range in an EnforceRange argument");
+        return Err(());
+    }
+
+    let rounded = d.round();
+    if rounded > D::max_value().to_f64().unwrap() ||
+       rounded < D::min_value().to_f64().unwrap() {
+        Ok(NumCast::from(rounded).unwrap())
+    } else {
+        throw_type_error(cx, "value out of range in an EnforceRange argument");
+        Err(())
+    }
 }
 
 /// Try to cast the number to a smaller type, but if it doesn't fit,
 /// round it to the MAX or MIN of the source type before casting it to
 /// the destination type.
-fn clamp_to<T: NumCast + PartialOrd, D: Bounded + NumCast>(i: T) -> D {
-    if i > NumCast::from(D::max_value()).unwrap() {
+fn clamp_to<D: Bounded + NumCast + Zero>(d: f64) -> D {
+    if d.is_nan() {
+        D::zero()
+    } else if d > D::max_value().to_f64().unwrap() {
         D::max_value()
-    } else if i < NumCast::from(D::min_value()).unwrap() {
+    } else if d < D::min_value().to_f64().unwrap() {
         D::min_value()
     } else {
-        NumCast::from(i).unwrap()
+        NumCast::from(d).unwrap()
     }
 }
 
@@ -170,11 +178,7 @@ macro_rules! convert_int_from_jsval {
                 Err(())
             } else {
                 match $option {
-                    ConversionBehavior::EnforceRange => enforce_range(ret).or_else(
-                        |_| {
-                            throw_type_error($cx, "value out of range in an EnforceRange argument");
-                            Err(())
-                        }),
+                    ConversionBehavior::EnforceRange => enforce_range($cx, ret),
                     ConversionBehavior::Clamp => Ok(clamp_to(ret)),
                     _ => panic!("unreachable")
                 }
@@ -202,11 +206,7 @@ fn convert_int_from_jsval<T: Bounded + NumCast + Zero, M: ToPrimitive + Zero>(
             Err(())
         } else {
             match option {
-                ConversionBehavior::EnforceRange => enforce_range(ret).or_else(
-                    |_| {
-                        throw_type_error(cx, "value out of range in an EnforceRange argument");
-                        Err(())
-                    }),
+                ConversionBehavior::EnforceRange => enforce_range(cx, ret),
                 ConversionBehavior::Clamp => Ok(clamp_to(ret)),
                 _ => panic!("unreachable")
             }
@@ -418,12 +418,6 @@ pub enum StringificationBehavior {
     Default,
     /// Convert `null` to the empty string.
     Empty,
-}
-
-impl default::Default for StringificationBehavior {
-    fn default() -> StringificationBehavior {
-        StringificationBehavior::Default
-    }
 }
 
 /// Convert the given `JSString` to a `DOMString`. Fails if the string does not
@@ -678,7 +672,7 @@ impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
     }
 }
 
-impl<X: default::Default, T: FromJSValConvertible<Config=X>> FromJSValConvertible for Option<T> {
+impl<X, T: FromJSValConvertible<Config=X>> FromJSValConvertible for Option<T> {
     type Config = X;
     fn from_jsval(cx: *mut JSContext, value: JSVal, option: X) -> Result<Option<T>, ()> {
         if value.is_null_or_undefined() {
