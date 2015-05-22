@@ -505,6 +505,9 @@ impl WindowMethods for Window {
     fn set_page_url(&self, _: Url) {
     }
 
+    fn load_start(&self, _: bool, _: bool) {
+    }
+
     fn load_end(&self) {
     }
 

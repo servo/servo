@@ -315,6 +315,22 @@ impl WindowMethods for Window {
         }
     }
 
+    fn load_start(&self, back: bool, forward: bool) {
+        // FIXME(pcwalton): The status code 200 is a lie.
+        let browser = self.cef_browser.borrow();
+        let browser = match *browser {
+            None => return,
+            Some(ref browser) => browser,
+        };
+        if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
+            browser.get_host()
+                   .get_client()
+                   .get_load_handler()
+                   .on_loading_state_change((*browser).clone(), 1i32, back as i32, forward as i32);
+        }
+    }
+
     fn load_end(&self) {
         // FIXME(pcwalton): The status code 200 is a lie.
         let browser = self.cef_browser.borrow();
