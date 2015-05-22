@@ -361,6 +361,9 @@ impl WindowMethods for Window {
     }
 
     fn set_page_url(&self, url: Url) {
+        // it seems to be the case that load start is always called
+        // IMMEDIATELY before address change, so just stick it here
+        on_load_start(self);
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
@@ -452,6 +455,21 @@ impl CompositorProxy for CefCompositorProxy {
         box CefCompositorProxy {
             sender: self.sender.clone(),
         } as Box<CompositorProxy+Send>
+    }
+}
+
+fn on_load_start(window: &Window) {
+    let browser = window.cef_browser.borrow();
+    let browser = match *browser {
+        None => return,
+        Some(ref browser) => browser,
+    };
+    if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+       check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_start) {
+        browser.get_host()
+               .get_client()
+               .get_load_handler()
+               .on_load_start((*browser).clone(), browser.get_main_frame());
     }
 }
 
