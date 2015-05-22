@@ -58,6 +58,7 @@ extern crate core_text;
 #[cfg(target_os="macos")]
 #[macro_use]
 extern crate objc;
+#[cfg(target_os="linux")] extern crate x11;
 
 // Must come first.
 pub mod macros;
