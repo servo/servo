@@ -106,7 +106,7 @@ pub trait WindowMethods {
     /// Called when the browser has started loading a frame.
     fn load_start(&self, back: bool, forward: bool);
     /// Called when the browser is done loading a frame.
-    fn load_end(&self);
+    fn load_end(&self, back: bool, forward: bool);
 
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;

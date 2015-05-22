@@ -98,7 +98,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::ChangeRunningAnimationsState(..) |
             Msg::ScrollFragmentPoint(..) |
             Msg::LoadStart(..) |
-            Msg::LoadComplete |
+            Msg::LoadComplete(..) |
             Msg::ScrollTimeout(..) |
             Msg::RecompositeAfterScroll |
             Msg::ChangePageTitle(..) |

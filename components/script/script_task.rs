@@ -960,7 +960,7 @@ impl ScriptTask {
         self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete).unwrap();
+        chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
 
     /// Handles a timer that fired.
