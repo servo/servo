@@ -322,6 +322,9 @@ impl WindowMethods for Window {
             None => return,
             Some(ref browser) => browser,
         };
+        browser.downcast().loading.set(true);
+        browser.downcast().back.set(back);
+        browser.downcast().forward.set(forward);
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
             browser.get_host()
@@ -338,6 +341,9 @@ impl WindowMethods for Window {
             None => return,
             Some(ref browser) => browser,
         };
+        browser.downcast().loading.set(false);
+        browser.downcast().back.set(back);
+        browser.downcast().forward.set(forward);
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
             browser.get_host()
