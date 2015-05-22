@@ -206,11 +206,16 @@ pub fn update() {
             if browser.downcast().callback_executed.get() == false {
                 browser_callback_after_created(browser.clone());
             }
-            let event = match browser.downcast().window {
+            let mut events = match browser.downcast().window {
                 Some(ref win) => win.wait_events(),
-                None => WindowEvent::Idle
+                None => vec![WindowEvent::Idle]
             };
-            browser.send_window_event(event);
+            loop {
+               match events.pop() {
+                   Some(event) => browser.send_window_event(event),
+                   None => break
+               }
+            }
         }
     });
 }
