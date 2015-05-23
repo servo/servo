@@ -844,7 +844,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#71d5dbd838f7038feb9b366ec5a95503bb81039f"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#99cee719a811f28e70fe33fa71137663ac210487"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
