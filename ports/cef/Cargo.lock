@@ -29,7 +29,7 @@ dependencies = [
  "style 0.0.1",
  "url 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "x11 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -462,7 +462,7 @@ dependencies = [
  "osmesa-sys 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "user32-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -483,7 +483,7 @@ dependencies = [
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "x11 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -633,7 +633,7 @@ dependencies = [
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia)",
- "x11 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -844,7 +844,7 @@ dependencies = [
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1315,7 +1315,7 @@ dependencies = [
 
 [[package]]
 name = "x11"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
