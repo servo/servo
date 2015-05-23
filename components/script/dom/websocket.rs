@@ -324,7 +324,7 @@ impl WebSocketTaskHandler {
         let close_event = CloseEvent::new(global.r(),
                                           "close".to_owned(),
                                           EventBubbles::DoesNotBubble,
-                                          EventCancelable::Cancelable,
+                                          EventCancelable::NotCancelable,
                                           ws.clean_close.get(),
                                           ws.code.get(),
                                           rsn_clone).root();
