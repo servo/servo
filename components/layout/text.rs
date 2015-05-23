@@ -27,7 +27,6 @@ use util::geometry::Au;
 use util::linked_list::split_off_head;
 use util::logical_geometry::{LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
-use util::smallvec::SmallVec1;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`s.
 pub struct TextRunScanner {
@@ -100,14 +99,9 @@ impl TextRunScanner {
             }
         }
 
-        // TODO(#177): Text run creation must account for the renderability of text by font group
-        // fonts. This is probably achieved by creating the font group above and then letting
-        // `FontGroup` decide which `Font` to stick into the text run.
-        //
         // Concatenate all of the transformed strings together, saving the new character indices.
-        let mut new_ranges: SmallVec1<Range<CharIndex>> = SmallVec1::new();
-        let mut char_total = CharIndex(0);
-        let run = {
+        let mut mappings: Vec<RunMapping> = Vec::new();
+        let runs = {
             let fontgroup;
             let compression;
             let text_transform;
@@ -132,38 +126,78 @@ impl TextRunScanner {
             }
 
             // First, transform/compress text of all the nodes.
-            let mut run_text = String::new();
-            for in_fragment in self.clump.iter() {
-                let in_fragment = match in_fragment.specific {
+            let (mut run_info_list, mut run_info) = (Vec::new(), RunInfo::new());
+            for (fragment_index, in_fragment) in self.clump.iter().enumerate() {
+                let mut mapping = RunMapping::new(&run_info_list[..], &run_info, fragment_index);
+                let text = match in_fragment.specific {
                     SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
                         &text_fragment_info.text
                     }
                     _ => panic!("Expected an unscanned text fragment!"),
                 };
 
-                let old_length = CharIndex(run_text.chars().count() as isize);
-                last_whitespace = util::transform_text(&in_fragment,
-                                                       compression,
-                                                       last_whitespace,
-                                                       &mut run_text);
+                let (mut start_position, mut end_position) = (0, 0);
+                for character in text.chars() {
+                    // Search for the first font in this font group that contains a glyph for this
+                    // character.
+                    for font_index in 0..fontgroup.fonts.len() {
+                        if font_index < fontgroup.fonts.len() - 1 &&
+                                fontgroup.fonts
+                                         .get(font_index)
+                                         .unwrap()
+                                         .borrow()
+                                         .glyph_index(character)
+                                         .is_none() {
+                            continue
+                        }
 
-                let added_chars = CharIndex(run_text.chars().count() as isize) - old_length;
-                new_ranges.push(Range::new(char_total, added_chars));
-                char_total = char_total + added_chars;
+                        // We found the font we want to use. Now, if necessary, flush the mapping
+                        // we were building up.
+                        if run_info.font_index != font_index {
+                            if run_info.text.len() > 0 {
+                                mapping.flush(&mut mappings,
+                                              &mut run_info,
+                                              &**text,
+                                              compression,
+                                              text_transform,
+                                              &mut last_whitespace,
+                                              &mut start_position,
+                                              end_position);
+                                run_info_list.push(run_info);
+                                run_info = RunInfo::new();
+                                mapping = RunMapping::new(&run_info_list[..],
+                                                          &run_info,
+                                                          fragment_index);
+                            }
+
+                            run_info.font_index = font_index
+                        }
+
+
+                        // Consume this character.
+                        end_position += character.len_utf8();
+                        break
+                    }
+                }
+
+                // If the mapping is zero-length, don't flush it.
+                if start_position == end_position {
+                    continue
+                }
+
+                // Flush the last mapping we created for this fragment to the list.
+                mapping.flush(&mut mappings,
+                              &mut run_info,
+                              &**text,
+                              compression,
+                              text_transform,
+                              &mut last_whitespace,
+                              &mut start_position,
+                              end_position);
             }
 
-            // Account for `text-transform`. (Confusingly, this is not handled in "text
-            // transformation" above, but we follow Gecko in the naming.)
-            self.apply_style_transform_if_necessary(&mut run_text, text_transform);
-
-            // Now create the run.
-            //
-            // TextRuns contain a cycle which is usually resolved by the teardown sequence.
-            // If no clump takes ownership, however, it will leak.
-            if run_text.len() == 0 {
-                self.clump = LinkedList::new();
-                return last_whitespace
-            }
+            // Push the final run info.
+            run_info_list.push(run_info);
 
             // Per CSS 2.1 § 16.4, "when the resultant space between two characters is not the same
             // as the default space, user agents should not use ligatures." This ensures that, for
@@ -185,93 +219,52 @@ impl TextRunScanner {
             };
 
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let mut font = fontgroup.fonts[0].borrow_mut();
-            Arc::new(box TextRun::new(&mut *font, run_text, &options))
+            run_info_list.into_iter().map(|run_info| {
+                let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
+                Arc::new(box TextRun::new(&mut *font, run_info.text, &options))
+            }).collect::<Vec<_>>()
         };
 
-        // Make new fragments with the run and adjusted text indices.
+        // Make new fragments with the runs and adjusted text indices.
         debug!("TextRunScanner: pushing {} fragment(s)", self.clump.len());
+        let mut mappings = mappings.into_iter().peekable();
         for (logical_offset, old_fragment) in
                 mem::replace(&mut self.clump, LinkedList::new()).into_iter().enumerate() {
-            let mut range = new_ranges[logical_offset];
-            if range.is_empty() {
-                debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was \
-                        zero-length after compression");
-                continue
-            }
+             loop {
+                 match mappings.peek() {
+                     Some(mapping) if mapping.old_fragment_index == logical_offset => {}
+                     Some(_) | None => break,
+                 };
 
-            let requires_line_break_afterward_if_wrapping_on_newlines =
-                run.text.char_at_reverse(range.end().get() as usize) == '\n';
-            if requires_line_break_afterward_if_wrapping_on_newlines {
-                range.extend_by(CharIndex(-1))
-            }
+                let mut mapping = mappings.next().unwrap();
+                let run = runs[mapping.text_run_index].clone();
 
-            let text_size = old_fragment.border_box.size;
-            let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
-                run.clone(),
-                range,
-                text_size,
-                requires_line_break_afterward_if_wrapping_on_newlines);
-            let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
-            let bounding_box_size = bounding_box_for_run_metrics(&new_metrics,
-                                                                 old_fragment.style.writing_mode);
-            new_text_fragment_info.content_size = bounding_box_size;
-            let new_fragment =
-                old_fragment.transform(bounding_box_size,
-                                       SpecificFragmentInfo::ScannedText(new_text_fragment_info));
-            out_fragments.push(new_fragment)
+                let requires_line_break_afterward_if_wrapping_on_newlines =
+                    run.text.char_at_reverse(mapping.range.end().get() as usize) == '\n';
+                if requires_line_break_afterward_if_wrapping_on_newlines {
+                    mapping.range.extend_by(CharIndex(-1))
+                }
+
+                let text_size = old_fragment.border_box.size;
+                let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
+                    run,
+                    mapping.range,
+                    text_size,
+                    requires_line_break_afterward_if_wrapping_on_newlines);
+
+                let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.range);
+                let writing_mode = old_fragment.style.writing_mode;
+                let bounding_box_size = bounding_box_for_run_metrics(&new_metrics, writing_mode);
+                new_text_fragment_info.content_size = bounding_box_size;
+
+                let new_fragment = old_fragment.transform(
+                    bounding_box_size,
+                    SpecificFragmentInfo::ScannedText(new_text_fragment_info));
+                out_fragments.push(new_fragment)
+            }
         }
 
         last_whitespace
-    }
-
-    /// Accounts for `text-transform`.
-    ///
-    /// FIXME(#4311, pcwalton): Case mapping can change length of the string; case mapping should
-    /// be language-specific; `full-width`; use graphemes instead of characters.
-    fn apply_style_transform_if_necessary(&mut self,
-                                          string: &mut String,
-                                          text_transform: text_transform::T) {
-        match text_transform {
-            text_transform::T::none => {}
-            text_transform::T::uppercase => {
-                let length = string.len();
-                let original = mem::replace(string, String::with_capacity(length));
-                for character in original.chars() {
-                    string.extend(character.to_uppercase())
-                }
-            }
-            text_transform::T::lowercase => {
-                let length = string.len();
-                let original = mem::replace(string, String::with_capacity(length));
-                for character in original.chars() {
-                    string.extend(character.to_lowercase())
-                }
-            }
-            text_transform::T::capitalize => {
-                let length = string.len();
-                let original = mem::replace(string, String::with_capacity(length));
-                let mut capitalize_next_letter = true;
-                for character in original.chars() {
-                    // FIXME(#4311, pcwalton): Should be the CSS/Unicode notion of a *typographic
-                    // letter unit*, not an *alphabetic* character:
-                    //
-                    //    http://dev.w3.org/csswg/css-text/#typographic-letter-unit
-                    if capitalize_next_letter && character.is_alphabetic() {
-                        string.extend(character.to_uppercase());
-                        capitalize_next_letter = false;
-                        continue
-                    }
-
-                    string.push(character);
-
-                    // FIXME(#4311, pcwalton): Try UAX29 instead of just whitespace.
-                    if character.is_whitespace() {
-                        capitalize_next_letter = true
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -361,5 +354,151 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
     };
 
     fragments.push_front(new_fragment);
+}
+
+/// Information about a text run that we're about to create. This is used in `scan_for_runs`.
+struct RunInfo {
+    /// The text that will go in this text run.
+    text: String,
+    /// The index of the applicable font in the font group.
+    font_index: usize,
+    /// A cached copy of the number of Unicode characters in the text run.
+    character_length: usize,
+}
+
+impl RunInfo {
+    fn new() -> RunInfo {
+        RunInfo {
+            text: String::new(),
+            font_index: 0,
+            character_length: 0,
+        }
+    }
+}
+
+/// A mapping from a portion of an unscanned text fragment to the text run we're going to create
+/// for it.
+#[derive(Copy, Clone, Debug)]
+struct RunMapping {
+    /// The range of characters within the text fragment.
+    range: Range<CharIndex>,
+    /// The index of the unscanned text fragment that this mapping corresponds to.
+    old_fragment_index: usize,
+    /// The index of the text run we're going to create.
+    text_run_index: usize,
+}
+
+impl RunMapping {
+    /// Given the current set of text runs, creates a run mapping for the next fragment.
+    /// `run_info_list` describes the set of runs we've seen already, and `current_run_info`
+    /// describes the run we just finished processing.
+    fn new(run_info_list: &[RunInfo], current_run_info: &RunInfo, fragment_index: usize)
+           -> RunMapping {
+        RunMapping {
+            range: Range::new(CharIndex(current_run_info.character_length as isize), CharIndex(0)),
+            old_fragment_index: fragment_index,
+            text_run_index: run_info_list.len(),
+        }
+    }
+
+    /// Flushes this run mapping to the list. `run_info` describes the text run that we're
+    /// currently working on. `text` refers to the text of this fragment.
+    fn flush(mut self,
+             mappings: &mut Vec<RunMapping>,
+             run_info: &mut RunInfo,
+             text: &str,
+             compression: CompressionMode,
+             text_transform: text_transform::T,
+             last_whitespace: &mut bool,
+             start_position: &mut usize,
+             end_position: usize) {
+        let old_byte_length = run_info.text.len();
+        *last_whitespace = util::transform_text(&text[(*start_position)..end_position],
+                                                compression,
+                                                *last_whitespace,
+                                                &mut run_info.text);
+
+        // Account for `text-transform`. (Confusingly, this is not handled in "text
+        // transformation" above, but we follow Gecko in the naming.)
+        let character_count = apply_style_transform_if_necessary(&mut run_info.text,
+                                                                 old_byte_length,
+                                                                 text_transform);
+
+        run_info.character_length = run_info.character_length + character_count;
+        *start_position = end_position;
+
+        // Don't flush empty mappings.
+        if character_count == 0 {
+            return
+        }
+
+        self.range.extend_by(CharIndex(character_count as isize));
+        mappings.push(self)
+    }
+}
+
+
+/// Accounts for `text-transform`.
+///
+/// FIXME(#4311, pcwalton): Case mapping can change length of the string; case mapping should
+/// be language-specific; `full-width`; use graphemes instead of characters.
+fn apply_style_transform_if_necessary(string: &mut String,
+                                      first_character_position: usize,
+                                      text_transform: text_transform::T)
+                                      -> usize {
+    match text_transform {
+        text_transform::T::none => string[first_character_position..].chars().count(),
+        text_transform::T::uppercase => {
+            let original = string[first_character_position..].to_owned();
+            string.truncate(first_character_position);
+            let mut count = 0;
+            for character in original.chars() {
+                string.push(character.to_uppercase().next().unwrap());
+                count += 1;
+            }
+            count
+        }
+        text_transform::T::lowercase => {
+            let original = string[first_character_position..].to_owned();
+            string.truncate(first_character_position);
+            let mut count = 0;
+            for character in original.chars() {
+                string.push(character.to_lowercase().next().unwrap());
+                count += 1;
+            }
+            count
+        }
+        text_transform::T::capitalize => {
+            let original = string[first_character_position..].to_owned();
+            string.truncate(first_character_position);
+
+            // FIXME(pcwalton): This may not always be correct in the case of something like
+            // `f<span>oo</span>`.
+            let mut capitalize_next_letter = true;
+            let mut count = 0;
+            for character in original.chars() {
+                count += 1;
+
+                // FIXME(#4311, pcwalton): Should be the CSS/Unicode notion of a *typographic
+                // letter unit*, not an *alphabetic* character:
+                //
+                //    http://dev.w3.org/csswg/css-text/#typographic-letter-unit
+                if capitalize_next_letter && character.is_alphabetic() {
+                    string.push(character.to_uppercase().next().unwrap());
+                    capitalize_next_letter = false;
+                    continue
+                }
+
+                string.push(character);
+
+                // FIXME(#4311, pcwalton): Try UAX29 instead of just whitespace.
+                if character.is_whitespace() {
+                    capitalize_next_letter = true
+                }
+            }
+
+            count
+        }
+    }
 }
 
