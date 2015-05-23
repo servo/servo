@@ -200,6 +200,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    proto_proto: HandleObject,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
+                                   named_constructors: Vec<Option<(NonNullJSNative, &'static str, u32)>>,
                                    dom_class: *const DOMClass,
                                    members: &'static NativeProperties,
                                    rval: MutableHandleObject) {
@@ -209,9 +210,31 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
     }
 
     unsafe {
-        if !rval.get().is_null() {
-            JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               PrivateValue(dom_class as *const libc::c_void));
+        let proto = match proto_class {
+            Some(proto_class) => {
+                let proto = create_interface_prototype_object(cx, global, proto_proto,
+                                                              proto_class, members);
+                JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
+                                   PrivateValue(dom_class as *const libc::c_void));
+                proto
+            },
+            None => ptr::null_mut()
+        };
+
+        if let Some((native, name, nargs)) = constructor {
+            let s = CString::new(name).unwrap();
+            let interface = create_interface_object(cx, global, receiver,
+                                    native, nargs, proto,
+                                    members, s.as_ptr());
+            for ctor in named_constructors.iter() {
+                if let Some((cnative, cname, cnargs)) = *ctor {
+                    let cs = CString::new(cname).unwrap();
+                    create_interface_object(cx, global, receiver,
+                                            cnative, cnargs, proto,
+                                            members, cs.as_ptr());
+                }
+            }
+            interface
         }
     }
 
