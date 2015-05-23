@@ -50,7 +50,9 @@ pub struct HTMLTextAreaElement {
 
 impl HTMLTextAreaElementDerived for EventTarget {
     fn is_htmltextareaelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)))
     }
 }
 
@@ -92,10 +94,13 @@ static DEFAULT_COLS: u32 = 20;
 static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLTextAreaElement {
         let chan = document.window().root().r().constellation_chan();
         HTMLTextAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan)),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
@@ -104,7 +109,9 @@ impl HTMLTextAreaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
         let element = HTMLTextAreaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTextAreaElementBinding::Wrap)
     }

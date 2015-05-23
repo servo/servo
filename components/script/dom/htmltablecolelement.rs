@@ -19,19 +19,26 @@ pub struct HTMLTableColElement {
 
 impl HTMLTableColElementDerived for EventTarget {
     fn is_htmltablecolelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement)))
     }
 }
 
 impl HTMLTableColElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableColElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLTableColElement {
         HTMLTableColElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableColElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableColElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTableColElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLTableColElement> {
         let element = HTMLTableColElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableColElementBinding::Wrap)
     }

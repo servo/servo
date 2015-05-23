@@ -19,7 +19,8 @@ pub struct HTMLMediaElement {
 impl HTMLMediaElementDerived for EventTarget {
     fn is_htmlmediaelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)))) => true,
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)))) => true,
             _ => false
         }
     }
@@ -30,7 +31,8 @@ impl HTMLMediaElement {
                          prefix: Option<DOMString>, document: JSRef<Document>)
                          -> HTMLMediaElement {
         HTMLMediaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMediaElement(type_id), tag_name, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLMediaElement(type_id), tag_name, prefix, document)
         }
     }
 

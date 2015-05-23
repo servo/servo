@@ -19,19 +19,25 @@ pub struct HTMLMeterElement {
 
 impl HTMLMeterElementDerived for EventTarget {
     fn is_htmlmeterelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMeterElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMeterElement)))
     }
 }
 
 impl HTMLMeterElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMeterElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMeterElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLMeterElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLMeterElement> {
         let element = HTMLMeterElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLMeterElementBinding::Wrap)
     }

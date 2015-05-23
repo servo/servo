@@ -19,7 +19,9 @@ pub struct HTMLTimeElement {
 
 impl HTMLTimeElementDerived for EventTarget {
     fn is_htmltimeelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTimeElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTimeElement)))
     }
 }
 
@@ -31,7 +33,9 @@ impl HTMLTimeElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTimeElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLTimeElement> {
         let element = HTMLTimeElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTimeElementBinding::Wrap)
     }

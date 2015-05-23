@@ -55,7 +55,8 @@ impl UIEvent {
                view: Option<JSRef<Window>>,
                detail: i32) -> Temporary<UIEvent> {
         let ev = UIEvent::new_uninitialized(window).root();
-        ev.r().InitUIEvent(type_, can_bubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable, view, detail);
+        ev.r().InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
+                           cancelable == EventCancelable::Cancelable, view, detail);
         Temporary::from_rooted(ev.r())
     }
 
@@ -63,7 +64,11 @@ impl UIEvent {
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
         let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
+        let cancelable = if init.parent.cancelable {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
+        };
         let event = UIEvent::new(global.as_window(), type_,
                                  bubbles, cancelable,
                                  init.view.r(), init.detail);

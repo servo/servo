@@ -118,7 +118,8 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) 
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, set: bool, desc: *mut JSPropertyDescriptor) -> bool {
+unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
+                                          set: bool, desc: *mut JSPropertyDescriptor) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
         let window = window.root();
@@ -145,7 +146,8 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObje
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, desc: *mut JSPropertyDescriptor) -> bool {
+unsafe extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
+                                desc: *mut JSPropertyDescriptor) -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Spec says to Reject whether this is a supported index or not,
         // since we have no indexed setter or indexed creator.  That means
@@ -178,7 +180,8 @@ unsafe extern fn hasOwn(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, bp: 
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn get(cx: *mut JSContext, proxy: *mut JSObject, receiver: *mut JSObject, id: jsid, vp: *mut JSVal) -> bool {
+unsafe extern fn get(cx: *mut JSContext, proxy: *mut JSObject, receiver: *mut JSObject, id: jsid,
+                     vp: *mut JSVal) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
         let window = window.root();
@@ -191,7 +194,8 @@ unsafe extern fn get(cx: *mut JSContext, proxy: *mut JSObject, receiver: *mut JS
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut JSObject, id: jsid, _strict: bool, vp: *mut JSVal) -> bool {
+unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut JSObject,
+                     id: jsid, _strict: bool, vp: *mut JSVal) -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Reject (which means throw if and only if strict) the set.
         // FIXME: Throw
@@ -205,12 +209,14 @@ unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut J
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     getPropertyDescriptor: Some(get_property_descriptor
-                                as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+                                as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool,
+                                                        *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor
                                    as unsafe extern "C" fn(*mut JSContext, *mut JSObject,
                                                            jsid, bool, *mut JSPropertyDescriptor)
                                                            -> bool),
-    defineProperty: Some(defineProperty as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut JSPropertyDescriptor) -> bool),
+    defineProperty: Some(defineProperty as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid,
+                                                                *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyNames: None,
     delete_: None,
     enumerate: None,
@@ -218,7 +224,8 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     has: None,
     hasOwn: Some(hasOwn as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut bool) -> bool),
     get: Some(get as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject, jsid, *mut JSVal) -> bool),
-    set: Some(set as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject, jsid, bool, *mut JSVal) -> bool),
+    set: Some(set as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject,
+                                          jsid, bool, *mut JSVal) -> bool),
     keys: None,
     iterate: None,
 

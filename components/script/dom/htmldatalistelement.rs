@@ -23,19 +23,26 @@ pub struct HTMLDataListElement {
 
 impl HTMLDataListElementDerived for EventTarget {
     fn is_htmldatalistelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement)))
     }
 }
 
 impl HTMLDataListElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDataListElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLDataListElement {
         HTMLDataListElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataListElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataListElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLDataListElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDataListElementBinding::Wrap)
     }

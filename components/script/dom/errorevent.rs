@@ -97,7 +97,11 @@ impl ErrorEvent {
 
         let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
 
-        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
+        let cancelable = if init.parent.cancelable {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
+        };
 
         let event = ErrorEvent::new(global, type_,
                                 bubbles, cancelable,

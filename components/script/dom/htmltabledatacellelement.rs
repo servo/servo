@@ -28,10 +28,13 @@ impl HTMLTableDataCellElementDerived for EventTarget {
 }
 
 impl HTMLTableDataCellElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableDataCellElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
-            htmltablecellelement: HTMLTableCellElement::new_inherited(HTMLTableCellElementTypeId::HTMLTableDataCellElement,
-                                                                      localName, prefix, document)
+            htmltablecellelement:
+                HTMLTableCellElement::new_inherited(
+                    HTMLTableCellElementTypeId::HTMLTableDataCellElement, localName, prefix, document)
         }
     }
 

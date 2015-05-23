@@ -19,19 +19,26 @@ pub struct HTMLModElement {
 
 impl HTMLModElementDerived for EventTarget {
     fn is_htmlmodelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLModElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLModElement)))
     }
 }
 
 impl HTMLModElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLModElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLModElement {
         HTMLModElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLModElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLModElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLModElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLModElement> {
         let element = HTMLModElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLModElementBinding::Wrap)
     }

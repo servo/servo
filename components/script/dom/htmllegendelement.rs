@@ -19,19 +19,26 @@ pub struct HTMLLegendElement {
 
 impl HTMLLegendElementDerived for EventTarget {
     fn is_htmllegendelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLegendElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLegendElement)))
     }
 }
 
 impl HTMLLegendElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLegendElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLLegendElement {
         HTMLLegendElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLegendElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLLegendElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLLegendElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLLegendElement> {
         let element = HTMLLegendElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLegendElementBinding::Wrap)
     }

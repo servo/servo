@@ -51,14 +51,19 @@ fn plain() {
 
 #[test]
 fn plain_ct() {
-    assert_parse("data:text/plain,hello",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec!()))), None, Some(b"hello".iter().map(|&x| x).collect()));
+    assert_parse(
+        "data:text/plain,hello",
+        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec!()))),
+        None,
+        Some(b"hello".iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn plain_charset() {
     assert_parse("data:text/plain;charset=latin1,hello",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec!((Attr::Charset, Value::Ext("latin1".to_string())))))),
+        Some(ContentType(Mime(TopLevel::Text,
+                              SubLevel::Plain,
+                              vec!((Attr::Charset, Value::Ext("latin1".to_string())))))),
         Some("latin1".to_string()), Some(b"hello".iter().map(|&x| x).collect()));
 }
 

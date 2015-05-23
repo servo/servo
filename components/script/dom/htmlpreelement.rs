@@ -19,19 +19,26 @@ pub struct HTMLPreElement {
 
 impl HTMLPreElementDerived for EventTarget {
     fn is_htmlpreelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement)))
     }
 }
 
 impl HTMLPreElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLPreElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLPreElement {
         HTMLPreElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLPreElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLPreElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLPreElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLPreElement> {
         let element = HTMLPreElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLPreElementBinding::Wrap)
     }

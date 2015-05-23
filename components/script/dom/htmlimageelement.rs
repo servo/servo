@@ -7,7 +7,8 @@ use dom::attr::{AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, HTMLElementCast, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, HTMLElementCast,
+                                           HTMLImageElementDerived};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, LayoutJS, Rootable, Temporary};
 use dom::bindings::refcounted::Trusted;
@@ -40,7 +41,9 @@ pub struct HTMLImageElement {
 
 impl HTMLImageElementDerived for EventTarget {
     fn is_htmlimageelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)))
     }
 }
 
@@ -143,7 +146,9 @@ impl HTMLImageElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLImageElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLImageElement> {
         let element = HTMLImageElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLImageElementBinding::Wrap)
     }

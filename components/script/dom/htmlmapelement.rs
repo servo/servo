@@ -19,19 +19,25 @@ pub struct HTMLMapElement {
 
 impl HTMLMapElementDerived for EventTarget {
     fn is_htmlmapelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMapElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMapElement)))
     }
 }
 
 impl HTMLMapElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMapElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLMapElement {
         HTMLMapElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMapElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLMapElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLMapElement> {
         let element = HTMLMapElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLMapElementBinding::Wrap)
     }

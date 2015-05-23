@@ -38,20 +38,27 @@ pub struct HTMLAnchorElement {
 
 impl HTMLAnchorElementDerived for EventTarget {
     fn is_htmlanchorelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)))
     }
 }
 
 impl HTMLAnchorElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAnchorElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLAnchorElement {
         HTMLAnchorElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLAnchorElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLAnchorElement> {
         let element = HTMLAnchorElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAnchorElementBinding::Wrap)
     }
@@ -133,7 +140,8 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
             if target.is_htmlimageelement() && element.has_attribute(&atom!("ismap")) {
 
                 let target_node = NodeCast::to_ref(target).unwrap();
-                let rect = window_from_node(target_node).root().r().content_box_query(target_node.to_trusted_node_address());
+                let rect = window_from_node(target_node).root().r().content_box_query(
+                    target_node.to_trusted_node_address());
                 ismap_suffix = Some(
                     format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
                                       mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_f32_px())

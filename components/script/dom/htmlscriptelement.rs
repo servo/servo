@@ -75,7 +75,9 @@ pub struct HTMLScriptElement {
 
 impl HTMLScriptElementDerived for EventTarget {
     fn is_htmlscriptelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)))
     }
 }
 
@@ -83,7 +85,8 @@ impl HTMLScriptElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),

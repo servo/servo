@@ -19,19 +19,26 @@ pub struct HTMLDirectoryElement {
 
 impl HTMLDirectoryElementDerived for EventTarget {
     fn is_htmldirectoryelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDirectoryElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDirectoryElement)))
     }
 }
 
 impl HTMLDirectoryElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDirectoryElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDirectoryElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLDirectoryElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLDirectoryElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLDirectoryElement> {
         let element = HTMLDirectoryElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDirectoryElementBinding::Wrap)
     }

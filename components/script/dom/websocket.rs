@@ -162,7 +162,8 @@ impl WebSocket {
 
         //Create everything necessary for starting the open asynchronous task, then begin the task.
         let global_root = ws_root.global.root();
-        let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), ws_root, global_root.r().script_chan().clone());
+        let addr: Trusted<WebSocket> =
+            Trusted::new(global_root.r().get_cx(), ws_root, global_root.r().script_chan().clone());
         let open_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
         global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
         //TODO: Spawn thread here for receive loop
@@ -200,7 +201,8 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     }
 
     fn Send(self, data: Option<USVString>)-> Fallible<()>{
-        /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for "If argument is a string"
+        /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
+                "If argument is a string"
           TODO: Need to buffer data
           TODO: bufferedAmount attribute returns the size of the buffer in bytes -
                 this is a required attribute defined in the websocket.webidl file
@@ -240,9 +242,11 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                 self.failed.set(true);
                 self.sendCloseFrame.set(true);
                 //Dispatch send task to send close frame
-                //TODO: Sending here is just empty string, though no string is really needed. Another send, empty send, could be used.
+                //TODO: Sending here is just empty string, though no string is really needed. Another send, empty
+                //      send, could be used.
                 let _ = self.Send(None);
-                //Note: After sending the close message, the receive loop confirms a close message from the server and must fire a close event
+                //Note: After sending the close message, the receive loop confirms a close message from the server and
+                //      must fire a close event
             }
             WebSocketRequestState::Open => {
                 //Closing handshake not started - still in open
@@ -257,7 +261,8 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                 self.sendCloseFrame.set(true);
                 //Dispatch send task to send close frame
                 let _ = self.Send(None);
-                //Note: After sending the close message, the receive loop confirms a close message from the server and must fire a close event
+                //Note: After sending the close message, the receive loop confirms a close message from the server and
+                //      must fire a close event
             }
         }
         Ok(()) //Return Ok

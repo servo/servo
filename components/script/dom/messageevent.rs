@@ -49,7 +49,10 @@ impl MessageEvent {
         MessageEvent::new_initialized(global, UndefinedValue(), "".to_owned(), "".to_owned())
     }
 
-    pub fn new_initialized(global: GlobalRef, data: JSVal, origin: DOMString, lastEventId: DOMString) -> Temporary<MessageEvent> {
+    pub fn new_initialized(global: GlobalRef,
+                           data: JSVal,
+                           origin: DOMString,
+                           lastEventId: DOMString) -> Temporary<MessageEvent> {
         reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
         global,
         MessageEventBinding::Wrap)

@@ -1344,7 +1344,8 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 };
                 (munged_display, style.get_box().float, style.get_box().position)
             }
-            Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => (display::T::inline, float::T::none, position::T::static_),
+            Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) =>
+                (display::T::inline, float::T::none, position::T::static_),
             Some(NodeTypeId::CharacterData(CharacterDataTypeId::Comment)) |
             Some(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) |
             Some(NodeTypeId::DocumentType) |
