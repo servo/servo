@@ -216,6 +216,7 @@ dependencies = [
 name = "devtools_traits"
 version = "0.0.1"
 dependencies = [
+ "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -11,6 +11,9 @@
 
 #![allow(non_snake_case)]
 
+#[macro_use]
+extern crate bitflags;
+
 extern crate msg;
 extern crate rustc_serialize;
 extern crate url;
@@ -118,6 +121,7 @@ pub enum DevtoolScriptControlMsg {
     GetDocumentElement(PipelineId, Sender<NodeInfo>),
     GetChildren(PipelineId, String, Sender<Vec<NodeInfo>>),
     GetLayout(PipelineId, String, Sender<(f32, f32)>),
+    GetCachedMessages(PipelineId, CachedConsoleMessageTypes, Sender<Vec<CachedConsoleMessage>>),
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     WantsLiveNotifications(PipelineId, bool),
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, Sender<TimelineMarker>),
@@ -153,6 +157,42 @@ pub enum ConsoleMessage {
         filename: String,
         lineNumber: u32,
         columnNumber: u32,
+    },
+}
+
+bitflags! {
+    flags CachedConsoleMessageTypes: u8 {
+        const PAGE_ERROR  = 1 << 0,
+        const CONSOLE_API = 1 << 1,
+    }
+}
+
+#[derive(RustcEncodable)]
+pub enum CachedConsoleMessage {
+    PageError {
+        __type__: String,
+        errorMessage: String,
+        sourceName: String,
+        lineText: String,
+        lineNumber: u32,
+        columnNumber: u32,
+        category: String,
+        timeStamp: u64,
+        error: bool,
+        warning: bool,
+        exception: bool,
+        strict: bool,
+        private: bool,
+    },
+    ConsoleAPI {
+        __type__: String,
+        level: String,
+        filename: String,
+        lineNumber: u32,
+        functionName: String,
+        timeStamp: u64,
+        private: bool,
+        arguments: Vec<String>,
     },
 }
 
