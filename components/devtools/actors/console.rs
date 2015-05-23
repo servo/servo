@@ -35,46 +35,6 @@ struct StartedListenersReply {
 }
 
 #[derive(RustcEncodable)]
-#[allow(dead_code)]
-struct ConsoleAPIMessage {
-    _type: String, //FIXME: should this be __type__ instead?
-}
-
-#[derive(RustcEncodable)]
-#[allow(dead_code)]
-struct PageErrorMessage {
-    _type: String, //FIXME: should this be __type__ instead?
-    errorMessage: String,
-    sourceName: String,
-    lineText: String,
-    lineNumber: u32,
-    columnNumber: u32,
-    category: String,
-    timeStamp: u64,
-    warning: bool,
-    error: bool,
-    exception: bool,
-    strict: bool,
-    private: bool,
-}
-
-#[derive(RustcEncodable)]
-#[allow(dead_code)]
-struct LogMessage {
-    _type: String, //FIXME: should this be __type__ instead?
-    timeStamp: u64,
-    message: String,
-}
-
-#[derive(RustcEncodable)]
-#[allow(dead_code)]
-enum ConsoleMessageType {
-    ConsoleAPIType(ConsoleAPIMessage),
-    PageErrorType(PageErrorMessage),
-    LogMessageType(LogMessage),
-}
-
-#[derive(RustcEncodable)]
 struct GetCachedMessagesReply {
     from: String,
     messages: Vec<json::Object>,
@@ -124,57 +84,18 @@ impl Actor for ConsoleActor {
         Ok(match msg_type {
             "getCachedMessages" => {
                 let types = msg.get(&"messageTypes".to_string()).unwrap().as_array().unwrap();
-                let /*mut*/ messages = vec!();
-                for msg_type in types.iter() {
-                    let msg_type = msg_type.as_string().unwrap();
-                    match &*msg_type {
-                        "ConsoleAPI" => {
-                            //TODO: figure out all consoleapi properties from FFOX source
-                        }
-
-                        "PageError" => {
-                            //TODO: make script error reporter pass all reported errors
-                            //      to devtools and cache them for returning here.
-
-                            /*let message = PageErrorMessage {
-                                _type: msg_type.to_string(),
-                                sourceName: "".to_string(),
-                                lineText: "".to_string(),
-                                lineNumber: 0,
-                                columnNumber: 0,
-                                category: "".to_string(),
-                                warning: false,
-                                error: true,
-                                exception: false,
-                                strict: false,
-                                private: false,
-                                timeStamp: 0,
-                                errorMessage: "page error test".to_string(),
-                            };
-                            messages.push(
-                                json::from_str(
-                                    json::encode(&message).as_slice()).unwrap().as_object().unwrap().clone());*/
-                        }
-
-                        "LogMessage" => {
-                            //TODO: figure out when LogMessage is necessary
-                            /*let message = LogMessage {
-                                _type: msg_type.to_string(),
-                                timeStamp: 0,
-                                message: "log message test".to_string(),
-                            };
-                            messages.push(
-                                json::from_str(
-                                    json::encode(&message).as_slice()).unwrap().as_object().unwrap().clone());*/
-                        }
-
-                        s => println!("unrecognized message type requested: \"{}\"", s),
-                    }
-                }
-
+                let (chan, port) = channel();
+                let str_types: Vec<String> = types.into_iter().map(|json_type| {
+                    json_type.as_string().unwrap().to_owned()
+                }).collect();
+                self.script_chan.send(DevtoolScriptControlMsg::GetCachedMessages(
+                    self.pipeline, str_types, chan)).unwrap();
+                let cached_messages = try!(port.recv().map_err(|_| ())).into_iter().map(|message| {
+                    json::encode(&message).unwrap().to_json().as_object().unwrap().to_owned()
+                }).collect();
                 let msg = GetCachedMessagesReply {
                     from: self.name(),
-                    messages: messages,
+                    messages: cached_messages,
                 };
                 stream.write_json_packet(&msg);
                 true

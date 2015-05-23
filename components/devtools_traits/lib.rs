@@ -118,6 +118,7 @@ pub enum DevtoolScriptControlMsg {
     GetDocumentElement(PipelineId, Sender<NodeInfo>),
     GetChildren(PipelineId, String, Sender<Vec<NodeInfo>>),
     GetLayout(PipelineId, String, Sender<(f32, f32)>),
+    GetCachedMessages(PipelineId, Vec<String>, Sender<Vec<CachedConsoleMessage>>),
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     WantsLiveNotifications(PipelineId, bool),
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, Sender<TimelineMarker>),
@@ -151,6 +152,35 @@ pub enum ConsoleMessage {
     // Log: message, filename, line number, column number
     LogMessage(String, String, u32, u32),
     //WarnMessage(String),
+}
+
+#[derive(RustcEncodable)]
+pub enum CachedConsoleMessage {
+    PageErrorMessage {
+        __type__: String,
+        errorMessage: String,
+        sourceName: String,
+        lineText: String,
+        lineNumber: u32,
+        columnNumber: u32,
+        category: String,
+        timeStamp: u64,
+        error: bool,
+        warning: bool,
+        exception: bool,
+        strict: bool,
+        private: bool,
+    },
+    ConsoleAPIMessage {
+        __type__: String,
+        level: String,
+        filename: String,
+        lineNumber: u32,
+        functionName: String,
+        timeStamp: u64,
+        private: bool,
+        // arguments: Vec<Something>,
+    },
 }
 
 #[derive(Clone)]
