@@ -190,6 +190,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
                                    proto_proto: *mut JSObject,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
+                                   named_constructors: Vec<Option<(NonNullJSNative, &'static str, u32)>>,
                                    dom_class: *const DOMClass,
                                    members: &'static NativeProperties)
                                    -> *mut JSObject {
@@ -207,9 +208,18 @@ pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
 
         if let Some((native, name, nargs)) = constructor {
             let s = CString::new(name).unwrap();
-            create_interface_object(cx, global, receiver,
+            let interface = create_interface_object(cx, global, receiver,
                                     native, nargs, proto,
-                                    members, s.as_ptr())
+                                    members, s.as_ptr());
+            for ctor in named_constructors.iter() {
+                if let Some((cnative, cname, cnargs)) = *ctor {
+                    let cs = CString::new(cname).unwrap();
+                    create_interface_object(cx, global, receiver,
+                                            cnative, cnargs, proto,
+                                            members, cs.as_ptr());
+                }
+            }
+            interface
         }
 
         proto
