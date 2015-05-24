@@ -61,8 +61,8 @@ impl UrlHelper {
         // https://url.spec.whatwg.org/#dom-urlutils-host
         // FIXME: Url null check is skipped for now
         let host = match url.host() {
-            None => ""
-            Some(host) => host
+            None => "".to_owned(),
+            Some(host) => host.serialize()
         };
         USVString(match url.port() {
             None => host.to_owned(),
