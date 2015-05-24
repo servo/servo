@@ -53,7 +53,8 @@ pub struct CORSCacheEntry {
 }
 
 impl CORSCacheEntry {
-    fn new (origin:Url, url: Url, max_age: u32, credentials: bool, header_or_method: HeaderOrMethod) -> CORSCacheEntry {
+    fn new(origin:Url, url: Url, max_age: u32, credentials: bool,
+            header_or_method: HeaderOrMethod) -> CORSCacheEntry {
         CORSCacheEntry {
             origin: origin,
             url: url,
@@ -80,18 +81,22 @@ pub trait CORSCache {
     /// Remove old entries
     fn cleanup(&mut self);
 
-    /// Returns true if an entry with a [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
+    /// Returns true if an entry with a
+    /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool;
 
-    /// Updates max age if an entry for a [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
+    /// Updates max age if an entry for a
+    /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
     ///
     /// If not, it will insert an equivalent entry
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool;
 
-    /// Returns true if an entry with a [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
+    /// Returns true if an entry with a
+    /// [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
     fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool;
 
-    /// Updates max age if an entry for [a matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
+    /// Updates max age if an entry for
+    /// [a matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
     ///
     /// If not, it will insert an equivalent entry
     fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool;
@@ -104,7 +109,8 @@ pub trait CORSCache {
 pub struct BasicCORSCache(Vec<CORSCacheEntry>);
 
 impl BasicCORSCache {
-    fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails, header_name: &str) -> Option<&'a mut CORSCacheEntry> {
+    fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails,
+                                header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
         let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
@@ -116,7 +122,8 @@ impl BasicCORSCache {
         entry
     }
 
-    fn find_entry_by_method<'a>(&'a mut self, request: &CacheRequestDetails, method: Method) -> Option<&'a mut CORSCacheEntry> {
+    fn find_entry_by_method<'a>(&'a mut self, request: &CacheRequestDetails,
+                                method: Method) -> Option<&'a mut CORSCacheEntry> {
         // we can take the method from CORSRequest itself
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
@@ -135,7 +142,8 @@ impl CORSCache for BasicCORSCache {
     #[allow(dead_code)]
     fn clear (&mut self, request: CacheRequestDetails) {
         let BasicCORSCache(buf) = self.clone();
-        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
+        let new_buf: Vec<CORSCacheEntry> =
+            buf.into_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
         *self = BasicCORSCache(new_buf);
     }
 
@@ -143,7 +151,9 @@ impl CORSCache for BasicCORSCache {
     fn cleanup(&mut self) {
         let BasicCORSCache(buf) = self.clone();
         let now = time::now().to_timespec();
-        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter()
+                                              .filter(|e| now.sec > e.created.sec + e.max_age as i64)
+                                              .collect();
         *self = BasicCORSCache(new_buf);
     }
 
@@ -156,7 +166,8 @@ impl CORSCache for BasicCORSCache {
             Some(_) => true,
             None => {
                 self.insert(CORSCacheEntry::new(request.origin, request.destination, new_max_age,
-                                                request.credentials, HeaderOrMethod::HeaderData(header_name.to_string())));
+                                                request.credentials,
+                                                HeaderOrMethod::HeaderData(header_name.to_string())));
                 false
             }
         }

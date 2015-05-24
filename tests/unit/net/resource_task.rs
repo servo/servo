@@ -98,7 +98,8 @@ fn test_parse_hostsfile_with_tabs_instead_spaces() {
 #[test]
 fn test_parse_hostsfile_with_valid_ipv4_addresses()
 {
-    let mock_hosts_file_content = "255.255.255.255 foo.bar.com\n169.0.1.201 servo.test.server\n192.168.5.0 servo.foo.com";
+    let mock_hosts_file_content =
+        "255.255.255.255 foo.bar.com\n169.0.1.201 servo.test.server\n192.168.5.0 servo.foo.com";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(3, (*hosts_table).len());
 }
@@ -173,7 +174,9 @@ fn test_replace_hosts() {
     let resource_task = new_resource_task(None, None);
     let (start_chan, _) = channel();
     let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
-    resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url, None), host_table), LoadConsumer::Channel(start_chan))).unwrap();
+    let msg = ControlMsg::Load(replace_hosts(LoadData::new(url, None), host_table),
+                               LoadConsumer::Channel(start_chan));
+    resource_task.send(msg).unwrap();
 
     match listener.accept() {
         Ok(..) => assert!(true, "received request"),

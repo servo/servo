@@ -76,7 +76,8 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn GetItem(self, name: DOMString) -> Option<DOMString> {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name)).unwrap();
+        let msg = StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name);
+        self.get_storage_task().send(msg).unwrap();
         receiver.recv().unwrap()
     }
 
@@ -89,7 +90,8 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn SetItem(self, name: DOMString, value: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone())).unwrap();
+        let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
+        self.get_storage_task().send(msg).unwrap();
         let (changed, old_value) = receiver.recv().unwrap();
         if changed {
             self.broadcast_change_notification(Some(name), old_value, Some(value));
@@ -107,7 +109,8 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn RemoveItem(self, name: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone())).unwrap();
+        let msg = StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
+        self.get_storage_task().send(msg).unwrap();
         if let Some(old_value) = receiver.recv().unwrap() {
             self.broadcast_change_notification(Some(name), Some(old_value), None);
         }

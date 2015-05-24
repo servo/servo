@@ -41,7 +41,8 @@ pub struct HTMLTableCellElement {
 impl HTMLTableCellElementDerived for EventTarget {
     fn is_htmltablecellelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => true,
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => true,
             _ => false
         }
     }
@@ -54,7 +55,8 @@ impl HTMLTableCellElement {
                          document: JSRef<Document>)
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCellElement(type_id), tag_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCellElement(type_id),
+                                                    tag_name, prefix, document),
             background_color: Cell::new(None),
             colspan: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),

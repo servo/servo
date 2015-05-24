@@ -21,19 +21,26 @@ pub struct HTMLOutputElement {
 
 impl HTMLOutputElementDerived for EventTarget {
     fn is_htmloutputelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)))
     }
 }
 
 impl HTMLOutputElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOutputElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLOutputElement {
         HTMLOutputElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLOutputElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOutputElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLOutputElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLOutputElement> {
         let element = HTMLOutputElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOutputElementBinding::Wrap)
     }

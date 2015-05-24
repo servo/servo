@@ -96,7 +96,8 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
             DOMErrorName::URLMismatchError => "The given URL does not match another URL.",
             DOMErrorName::QuotaExceededError => "The quota has been exceeded.",
             DOMErrorName::TimeoutError => "The operation timed out.",
-            DOMErrorName::InvalidNodeTypeError => "The supplied node is incorrect or has an incorrect ancestor for this operation.",
+            DOMErrorName::InvalidNodeTypeError =>
+                "The supplied node is incorrect or has an incorrect ancestor for this operation.",
             DOMErrorName::DataCloneError => "The object can not be cloned.",
             DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };

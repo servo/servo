@@ -56,7 +56,8 @@ pub struct Response {
     pub status: Option<StatusCode>,
     pub headers: Headers,
     pub body: ResponseBody,
-    /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response is a filtered response
+    /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
+    /// is a filtered response
     pub internal_response: Option<Box<Response>>,
 }
 

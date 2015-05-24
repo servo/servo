@@ -30,9 +30,9 @@ unsafe impl Send for WebGLPaintTask {}
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
         // TODO(ecoal95): Get the GLContextAttributes from the `GetContext` call
-        let context = try!(GLContext::create_offscreen_with_color_attachment(size,
-                                                                             GLContextAttributes::default(),
-                                                                             ColorAttachmentType::TextureWithSurface));
+        let context = try!(
+            GLContext::create_offscreen_with_color_attachment(
+                size, GLContextAttributes::default(), ColorAttachmentType::TextureWithSurface));
         Ok(WebGLPaintTask {
             size: size,
             original_context_size: size,
@@ -50,10 +50,13 @@ impl WebGLPaintTask {
             CanvasWebGLMsg::CreateBuffer(chan) => self.create_buffer(chan),
             CanvasWebGLMsg::DrawArrays(mode, first, count) => self.draw_arrays(mode, first, count),
             CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) => self.enable_vertex_attrib_array(attrib_id),
-            CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) => self.get_attrib_location(program_id, name, chan),
+            CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
+                self.get_attrib_location(program_id, name, chan),
             CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) => self.get_shader_info_log(shader_id, chan),
-            CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) => self.get_shader_parameter(shader_id, param_id, chan),
-            CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) => self.get_uniform_location(program_id, name, chan),
+            CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) =>
+                self.get_shader_parameter(shader_id, param_id, chan),
+            CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
+                self.get_uniform_location(program_id, name, chan),
             CanvasWebGLMsg::CompileShader(shader_id) => self.compile_shader(shader_id),
             CanvasWebGLMsg::CreateProgram(chan) => self.create_program(chan),
             CanvasWebGLMsg::CreateShader(shader_type, chan) => self.create_shader(shader_type, chan),

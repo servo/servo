@@ -381,7 +381,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         let mut idmap = self.idmap.borrow_mut();
 
-        let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root();
+        let root = self.GetDocumentElement().expect(
+            "The element is in the document, so there must be a document element.").root();
 
         match idmap.entry(id) {
             Vacant(entry) => {
@@ -764,7 +765,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         match key {
             Key::Space if !prevented && state == KeyState::Released => {
                 let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
-                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
+                maybe_elem.map(
+                    |el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
             }
             Key::Enter if !prevented && state == KeyState::Released => {
                 let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
@@ -1077,7 +1079,8 @@ impl<'a> PrivateClickEventHelpers for JSRef<'a, Node> {
             // NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) if self.get_disabled_state() => true,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement))
+                if self.get_disabled_state() => true,
             _ => false
         }
     }

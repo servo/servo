@@ -44,7 +44,8 @@ fn main() {
     let (render_mode_string, base_path, testname) = match harness_args {
         [] | [_] => panic!("USAGE: cpu|gpu base_path [testname regex]"),
         [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
-        [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(testname.clone())),
+        [ref render_mode_string, ref base_path, ref testname, ..] =>
+            (render_mode_string, base_path, Some(testname.clone())),
     };
 
     let mut render_mode = match &**render_mode_string {

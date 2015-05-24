@@ -73,7 +73,11 @@ impl StorageEvent {
         let url = init.url.clone();
         let storageArea = init.storageArea.r();
         let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
+        let cancelable = if init.parent.cancelable {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
+        };
         let event = StorageEvent::new(global, type_,
                                       bubbles, cancelable,
                                       key, oldValue, newValue,

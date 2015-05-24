@@ -8,7 +8,8 @@
 //!
 //!  - `#[privatize]` : Forces all fields in a struct/enum to be private
 //!  - `#[jstraceable]` : Auto-derives an implementation of `JSTraceable` for a struct in the script crate
-//!  - `#[must_root]` : Prevents data of the marked type from being used on the stack. See the lints module for more details
+//!  - `#[must_root]` : Prevents data of the marked type from being used on the stack. See the lints module for more
+//!     details
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[jstraceable]`, and `#[must_root]`.
 //!     Use this for structs that correspond to a DOM type
 

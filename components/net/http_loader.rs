@@ -36,7 +36,8 @@ use std::boxed::FnBox;
 pub fn factory(cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan, devtools_chan))
+        spawn_named("http_loader".to_owned(),
+                    move || load(load_data, senders, classifier, cookies_chan, devtools_chan))
     }
 }
 
@@ -280,7 +281,9 @@ reason: \"certificate verify failed\" }]))";
                         Some(ref c) => {
                             if c.preflight {
                                 // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), start_chan);
+                                send_error(url,
+                                           "Preflight fetch inconsistent with main fetch".to_string(),
+                                           start_chan);
                                 return;
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
@@ -347,7 +350,8 @@ reason: \"certificate verify failed\" }]))";
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         if let Some(ref chan) = devtools_chan {
-            let net_event_response = NetworkEvent::HttpResponse(metadata.headers.clone(), metadata.status.clone(), None);
+            let net_event_response = NetworkEvent::HttpResponse(
+                metadata.headers.clone(), metadata.status.clone(), None);
             chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)).unwrap();
         }
 

@@ -25,20 +25,27 @@ pub struct HTMLDialogElement {
 
 impl HTMLDialogElementDerived for EventTarget {
     fn is_htmldialogelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDialogElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDialogElement)))
     }
 }
 
 impl HTMLDialogElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDialogElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLDialogElement {
         HTMLDialogElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDialogElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLDialogElement, localName, prefix, document),
             return_value: DOMRefCell::new("".to_owned()),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLDialogElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLDialogElement> {
         let element = HTMLDialogElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDialogElementBinding::Wrap)
     }

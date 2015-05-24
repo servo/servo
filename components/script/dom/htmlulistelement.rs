@@ -19,7 +19,9 @@ pub struct HTMLUListElement {
 
 impl HTMLUListElementDerived for EventTarget {
     fn is_htmlulistelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLUListElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLUListElement)))
     }
 }
 
@@ -31,7 +33,9 @@ impl HTMLUListElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLUListElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLUListElement> {
         let element = HTMLUListElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLUListElementBinding::Wrap)
     }

@@ -914,15 +914,17 @@ impl<'a> PaintContext<'a> {
         if accum_blur > Au(0) {
             // Set the correct size.
             let side_inflation = accum_blur * BLUR_INFLATION_FACTOR;
-            size = Size2D(size.width + (side_inflation.to_nearest_px() * 2) as i32, size.height + (side_inflation.to_nearest_px() * 2) as i32);
+            size = Size2D(size.width + (side_inflation.to_nearest_px() * 2) as i32,
+                          size.height + (side_inflation.to_nearest_px() * 2) as i32);
 
             // Calculate the transform matrix.
             let old_transform = self.draw_target.get_transform();
             let inflated_size = Rect(Point2D(0.0, 0.0), Size2D(size.width as AzFloat,
                                                                size.height as AzFloat));
             let temporary_draw_target_bounds = old_transform.transform_rect(&inflated_size);
-            matrix = Matrix2D::identity().translate(-temporary_draw_target_bounds.origin.x as AzFloat,
-                                                    -temporary_draw_target_bounds.origin.y as AzFloat).mul(&old_transform);
+            matrix = Matrix2D::identity().translate(
+                -temporary_draw_target_bounds.origin.x as AzFloat,
+                -temporary_draw_target_bounds.origin.y as AzFloat).mul(&old_transform);
         }
 
         let temporary_draw_target =

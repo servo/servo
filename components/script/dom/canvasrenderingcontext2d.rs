@@ -221,7 +221,8 @@ impl CanvasRenderingContext2D {
             renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect, image_size, sender))).unwrap();
             let imagedata = receiver.recv().unwrap();
             // Writes pixels to destination canvas
-            CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(imagedata, source_rect.size, dest_rect, source_rect, smoothing_enabled))
+            CanvasMsg::Canvas2d(
+                Canvas2dMsg::DrawImage(imagedata, source_rect.size, dest_rect, source_rect, smoothing_enabled))
         };
 
         self.renderer.send(msg).unwrap();
@@ -820,7 +821,9 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                 }
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
-                self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(gradient.root().r().to_fill_or_stroke_style()))).unwrap();
+                let msg = CanvasMsg::Canvas2d(
+                    Canvas2dMsg::SetFillStyle(gradient.root().r().to_fill_or_stroke_style()));
+                self.renderer.send(msg).unwrap();
             }
             _ => {}
         }
@@ -845,7 +848,11 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
-    fn GetImageData(self, sx: Finite<f64>, sy: Finite<f64>, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<Temporary<ImageData>> {
+    fn GetImageData(self,
+                    sx: Finite<f64>,
+                    sy: Finite<f64>,
+                    sw: Finite<f64>,
+                    sh: Finite<f64>) -> Fallible<Temporary<ImageData>> {
         let sx = *sx;
         let sy = *sy;
         let sw = *sw;
@@ -871,7 +878,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         // XXX:
         // By the spec: http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#dom-context-2d-putimagedata
-        // "If any of the arguments to the method are infinite or NaN, the method must throw a NotSupportedError exception"
+        // "If any of the arguments to the method are infinite or NaN, the method must throw a NotSupportedError
+        // exception"
         // But this arguments are stricted value, so if they are not finite values,
         // they will be TypeError by WebIDL spec before call this methods.
 
@@ -880,7 +888,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let image_data_size = Size2D(image_data_size.width as f64, image_data_size.height as f64);
         let image_data_rect = Rect(Point2D(dx, dy), image_data_size);
         let dirty_rect = None;
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap();
+        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
+        self.renderer.send(msg).unwrap();
         self.mark_as_dirty();
     }
 
@@ -896,7 +905,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         // XXX:
         // By the spec: http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#dom-context-2d-putimagedata
-        // "If any of the arguments to the method are infinite or NaN, the method must throw a NotSupportedError exception"
+        // "If any of the arguments to the method are infinite or NaN, the method must throw a NotSupportedError
+        // exception"
         // But this arguments are stricted value, so if they are not finite values,
         // they will be TypeError by WebIDL spec before call this methods.
 
@@ -906,7 +916,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                           imagedata.Height() as f64));
         let dirty_rect = Some(Rect(Point2D(dirtyX, dirtyY),
                                    Size2D(dirtyWidth, dirtyHeight)));
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap();
+        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
+        self.renderer.send(msg).unwrap();
         self.mark_as_dirty();
     }
 
@@ -919,7 +930,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let y1 = *y1;
 
         if [x0, y0, x1, y1].iter().any(|x| x.is_nan() || x.is_infinite()) {
-            return Err(Type("One of the arguments of createLinearGradient() is not a finite floating-point value.".to_owned()));
+            return Err(Type("One of the arguments of createLinearGradient() is not a finite \
+                            floating-point value.".to_owned()));
         }
         Ok(CanvasGradient::new(self.global.root().r(),
                                CanvasGradientStyle::Linear(LinearGradientStyle::new(x0, y0, x1, y1, Vec::new()))))
@@ -927,7 +939,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
     fn CreateRadialGradient(self, x0: Finite<f64>, y0: Finite<f64>, r0: Finite<f64>,
-                                  x1: Finite<f64>, y1: Finite<f64>, r1: Finite<f64>) -> Fallible<Temporary<CanvasGradient>> {
+                            x1: Finite<f64>, y1: Finite<f64>, r1: Finite<f64>)
+                            -> Fallible<Temporary<CanvasGradient>> {
         let x0 = *x0;
         let y0 = *y0;
         let r0 = *r0;
@@ -936,10 +949,12 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let r1 = *r1;
 
         if [x0, y0, r0, x1, y1, r1].iter().any(|x| x.is_nan() || x.is_infinite()) {
-            return Err(Type("One of the arguments of createRadialGradient() is not a finite floating-point value.".to_owned()));
+            return Err(Type("One of the arguments of createRadialGradient() is not a \
+                            finite floating-point value.".to_owned()));
         }
         Ok(CanvasGradient::new(self.global.root().r(),
-                               CanvasGradientStyle::Radial(RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))
+                               CanvasGradientStyle::Radial(
+                                   RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth

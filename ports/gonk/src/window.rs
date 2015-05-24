@@ -246,18 +246,22 @@ pub struct gralloc_module {
     common: hw_module,
     registerBuffer: extern fn(*const gralloc_module, *const native_handle) -> c_int,
     unregisterBuffer: extern fn(*const gralloc_module, *const native_handle) -> c_int,
-    lock: extern fn(*const gralloc_module, *const native_handle, c_int, c_int, c_int, c_int, *mut *mut c_void) -> c_int,
+    lock: extern fn(*const gralloc_module, *const native_handle, c_int, c_int, c_int, c_int,
+                    *mut *mut c_void) -> c_int,
     unlock: extern fn(*const gralloc_module, *const native_handle) -> c_int,
     perform: extern fn(*const gralloc_module, c_int, ...) -> c_int,
-    lock_ycbcr: extern fn(*const gralloc_module, *const native_handle, c_int, c_int, c_int, c_int, c_int, *mut android_ycbcr) -> c_int,
+    lock_ycbcr: extern fn(*const gralloc_module, *const native_handle, c_int, c_int, c_int, c_int,
+                          c_int, *mut android_ycbcr) -> c_int,
     reserved: [*mut c_void; 6],
 }
 
 #[repr(C)]
 pub struct alloc_device {
     common: hw_device,
-    allocSize: extern fn(*mut alloc_device, c_int, c_int, c_int, c_int, *mut *const native_handle, *mut c_int, c_int) -> c_int,
-    alloc: extern fn(*mut alloc_device, c_int, c_int, c_int, c_int, *mut *const native_handle, *mut c_int) -> c_int,
+    allocSize: extern fn(*mut alloc_device, c_int, c_int, c_int, c_int, *mut *const native_handle,
+                         *mut c_int, c_int) -> c_int,
+    alloc: extern fn(*mut alloc_device, c_int, c_int, c_int, c_int, *mut *const native_handle,
+                     *mut c_int) -> c_int,
     free: extern fn(*mut alloc_device, *const native_handle) -> c_int,
     dump: Option<extern fn(*mut alloc_device, *mut c_char, c_int)>,
     reserved: [*mut c_void; 7],
@@ -454,7 +458,8 @@ extern fn gnw_decRef(base: *mut ANativeBase) {
 }
 
 impl GonkNativeWindow {
-    pub fn new(alloc_dev: *mut alloc_device, hwc_dev: *mut hwc_composer_device, width: i32, height: i32, usage: c_int) -> *mut GonkNativeWindow {
+    pub fn new(alloc_dev: *mut alloc_device, hwc_dev: *mut hwc_composer_device, width: i32,
+               height: i32, usage: c_int) -> *mut GonkNativeWindow {
         let win = box GonkNativeWindow {
             window: ANativeWindow {
                 common: ANativeBase {
@@ -561,7 +566,9 @@ impl GonkNativeWindow {
         };
         unsafe {
             let mut displays: [*mut hwc_display_contents; 3] = [ &mut list, ptr::null_mut(), ptr::null_mut(), ];
-            let _ = ((*self.hwc_dev).prepare)(self.hwc_dev, displays.len() as size_t, transmute(displays.as_mut_ptr()));
+            let _ = ((*self.hwc_dev).prepare)(self.hwc_dev,
+                                              displays.len() as size_t,
+                                              transmute(displays.as_mut_ptr()));
             let _ = ((*self.hwc_dev).set)(self.hwc_dev, displays.len() as size_t, transmute(displays.as_mut_ptr()));
             if list.retireFenceFd >= 0 {
                 close(list.retireFenceFd);
@@ -585,7 +592,10 @@ extern fn gnwb_decRef(base: *mut ANativeBase) {
 }
 
 impl GonkNativeWindowBuffer {
-    pub fn new(dev: *mut alloc_device, width: i32, height: i32, format: c_int, usage: c_int) -> *mut GonkNativeWindowBuffer {
+    pub fn new(dev: *mut alloc_device,
+               width: i32,
+               height: i32,
+               format: c_int, usage: c_int) -> *mut GonkNativeWindowBuffer {
         let mut buf = box GonkNativeWindowBuffer {
             buffer: ANativeWindowBuffer {
                 common: ANativeBase {
@@ -607,7 +617,10 @@ impl GonkNativeWindowBuffer {
             count: 1,
         };
 
-        let ret = unsafe { ((*dev).alloc)(dev, width, height, format, usage, &mut buf.buffer.handle, &mut buf.buffer.stride) };
+        let ret = unsafe {
+            ((*dev).alloc)(dev, width, height, format, usage,
+                           &mut buf.buffer.handle, &mut buf.buffer.stride)
+        };
         assert!(ret == 0, "Failed to allocate gralloc buffer!");
 
         unsafe { transmute(buf) }

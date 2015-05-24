@@ -13,7 +13,8 @@ declare_lint!(PRIVATIZE, Deny,
 
 /// Lint for keeping DOM fields private
 ///
-/// This lint (disable with `-A privatize`/`#[allow(privatize)]`) ensures all types marked with `#[privatize]` have no private fields
+/// This lint (disable with `-A privatize`/`#[allow(privatize)]`) ensures all types marked with `#[privatize]`
+/// have no private fields
 pub struct PrivatizePass;
 
 impl LintPass for PrivatizePass {
@@ -21,13 +22,19 @@ impl LintPass for PrivatizePass {
         lint_array!(PRIVATIZE)
     }
 
-    fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
+    fn check_struct_def(&mut self,
+                        cx: &Context,
+                        def: &ast::StructDef,
+                        _i: ast::Ident,
+                        _gen: &ast::Generics,
+                        id: ast::NodeId) {
         if ty::has_attr(cx.tcx, ast_util::local_def(id), "privatize") {
             for field in def.fields.iter() {
                 match field.node {
                     ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } if visibility == Public => {
                         cx.span_lint(PRIVATIZE, field.span,
-                                     &format!("Field {} is public where only private fields are allowed", ident.name));
+                                     &format!("Field {} is public where only private fields are allowed",
+                                              ident.name));
                     }
                     _ => {}
                 }

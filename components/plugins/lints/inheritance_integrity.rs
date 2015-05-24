@@ -22,7 +22,8 @@ impl LintPass for InheritancePass {
         lint_array!(INHERITANCE_INTEGRITY)
     }
 
-    fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
+    fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident,
+                        _gen: &ast::Generics, id: ast::NodeId) {
         // Lints are run post expansion, so it's fine to use
         // #[_dom_struct_marker] here without also checking for #[dom_struct]
         if ty::has_attr(cx.tcx, ast_util::local_def(id), "_dom_struct_marker") {
@@ -32,7 +33,8 @@ impl LintPass for InheritancePass {
                                         if match_lang_ty(cx, &*f.node.ty, "reflector") {
                                             if ctr > 0 {
                                                 cx.span_lint(INHERITANCE_INTEGRITY, f.span,
-                                                             "The Reflector should be the first field of the DOM struct");
+                                                             "The Reflector should be the first field of the DOM \
+                                                             struct");
                                             }
                                             return true;
                                         }

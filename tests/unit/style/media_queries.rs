@@ -393,13 +393,19 @@ fn test_matching_width() {
     media_query_test(&device, "@media screen and (min-width: 250px) and (max-width: 300px) { a { color: red; } }", 0);
     media_query_test(&device, "@media screen and (min-width: 50px) and (max-width: 250px) { a { color: red; } }", 1);
 
-    media_query_test(&device, "@media not screen and (min-width: 50px) and (max-width: 100px) { a { color: red; } }", 1);
-    media_query_test(&device, "@media not screen and (min-width: 250px) and (max-width: 300px) { a { color: red; } }", 1);
-    media_query_test(&device, "@media not screen and (min-width: 50px) and (max-width: 250px) { a { color: red; } }", 0);
+    media_query_test(
+        &device, "@media not screen and (min-width: 50px) and (max-width: 100px) { a { color: red; } }", 1);
+    media_query_test(
+        &device, "@media not screen and (min-width: 250px) and (max-width: 300px) { a { color: red; } }", 1);
+    media_query_test(
+        &device, "@media not screen and (min-width: 50px) and (max-width: 250px) { a { color: red; } }", 0);
 
-    media_query_test(&device, "@media not screen and (min-width: 3.1em) and (max-width: 6em) { a { color: red; } }", 1);
-    media_query_test(&device, "@media not screen and (min-width: 16em) and (max-width: 19.75em) { a { color: red; } }", 1);
-    media_query_test(&device, "@media not screen and (min-width: 3em) and (max-width: 250px) { a { color: red; } }", 0);
+    media_query_test(
+        &device, "@media not screen and (min-width: 3.1em) and (max-width: 6em) { a { color: red; } }", 1);
+    media_query_test(
+        &device, "@media not screen and (min-width: 16em) and (max-width: 19.75em) { a { color: red; } }", 1);
+    media_query_test(
+        &device, "@media not screen and (min-width: 3em) and (max-width: 250px) { a { color: red; } }", 0);
 }
 
 #[test]

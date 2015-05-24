@@ -19,7 +19,9 @@ pub struct HTMLBRElement {
 
 impl HTMLBRElementDerived for EventTarget {
     fn is_htmlbrelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement)))
     }
 }
 
@@ -31,7 +33,9 @@ impl HTMLBRElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLBRElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLBRElement> {
         let element = HTMLBRElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBRElementBinding::Wrap)
     }

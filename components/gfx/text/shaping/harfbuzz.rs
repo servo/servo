@@ -198,7 +198,8 @@ impl Shaper {
             let hb_funcs: *mut hb_font_funcs_t = RUST_hb_font_funcs_create();
             RUST_hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
             RUST_hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
-            RUST_hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
+            RUST_hb_font_funcs_set_glyph_h_kerning_func(
+                hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
             RUST_hb_font_set_funcs(hb_font, hb_funcs, font as *mut Font as *mut c_void, None);
 
             Shaper {

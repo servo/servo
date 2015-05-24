@@ -66,7 +66,8 @@ impl Blob {
     }
 
     // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
-    pub fn Constructor_(global: GlobalRef, blobParts: DOMString, blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Temporary<Blob>> {
+    pub fn Constructor_(global: GlobalRef, blobParts: DOMString,
+                        blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Temporary<Blob>> {
         //TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
         let bytes: Option<Vec<u8>> = Some(blobParts.into_bytes());
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {

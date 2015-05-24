@@ -26,7 +26,9 @@ pub struct HTMLFontElement {
 
 impl HTMLFontElementDerived for EventTarget {
     fn is_htmlfontelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)))
     }
 }
 
@@ -39,7 +41,9 @@ impl HTMLFontElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLFontElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLFontElement> {
         let element = HTMLFontElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFontElementBinding::Wrap)
     }
