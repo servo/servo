@@ -99,8 +99,23 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                  -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
-        let nosniff = false;
-        let check_for_apache_bug = false;
+        let mut nosniff = false;
+        let mut check_for_apache_bug = false;
+
+        if let Some(ref headers) = metadata.headers {
+            if let Some(ref raw_content_type) = headers.get_raw("content-type") {
+                let ref last_raw_content_type = raw_content_type[raw_content_type.len() - 1];
+                check_for_apache_bug = last_raw_content_type == b"text/plain"
+                                    || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
+                                    || last_raw_content_type == b"text/plain; charset=iso-8859-1"
+                                    || last_raw_content_type == b"text/plain; charset=UTF-8";
+            }
+            if let Some(ref raw_content_type_options) = headers.get_raw("content-type-options") {
+                for options in raw_content_type_options.iter() {
+                    nosniff = nosniff || options == b"nosniff";
+                }
+            }
+        }
 
         let supplied_type = metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
