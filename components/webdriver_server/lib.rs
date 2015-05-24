@@ -196,8 +196,8 @@ impl Handler {
         const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
-                let v_res = ValueResponse::new(value.map(|x| WebElement::new(x).to_json()).to_json());
-                Ok(WebDriverResponse::Generic(v_res))
+                let value_resp = value.map(|x| WebElement::new(x).to_json()).to_json();
+                Ok(WebDriverResponse::Generic(ValueResponse::new(value_resp)))
             }
             Err(_) => Err(WebDriverError::new(ErrorStatus::InvalidSelector,
                                               "Invalid selector"))
