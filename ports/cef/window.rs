@@ -316,6 +316,9 @@ impl WindowMethods for Window {
         }
     }
 
+    fn status(&self, _: Option<String>) {
+    }
+
     fn load_start(&self, back: bool, forward: bool) {
         // FIXME(pcwalton): The status code 200 is a lie.
         let browser = self.cef_browser.borrow();
