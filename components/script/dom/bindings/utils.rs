@@ -6,10 +6,11 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
+use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class, DOM_OBJECT_SLOT};
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root, Rootable};
+use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::window;
 use util::namespace;
@@ -26,7 +27,7 @@ use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
-use js::jsapi::JSHandleObject;
+use js::jsapi::{JSHandleObject, JSTracer};
 use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty};
@@ -555,17 +556,20 @@ pub fn has_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
 }
 
 /// Create a DOM global object with the given class.
-pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass)
+pub fn create_dom_global<T: Reflectable>(cx: *mut JSContext, class: *const JSClass, global: Box<T>)
                          -> *mut JSObject {
     unsafe {
         let obj = JS_NewGlobalObject(cx, class, ptr::null_mut());
         if obj.is_null() {
             return ptr::null_mut();
         }
+        JS_SetReservedSlot(obj, DOM_OBJECT_SLOT,
+                           PrivateValue(boxed::into_raw(global) as *const libc::c_void));
+        initialize_global(obj);
+
         with_compartment(cx, obj, || {
             JS_InitStandardClasses(cx, obj);
         });
-        initialize_global(obj);
         obj
     }
 }
@@ -574,6 +578,16 @@ pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass)
 pub unsafe fn finalize_global(obj: *mut JSObject) {
     let _: Box<ProtoOrIfaceArray> =
         Box::from_raw(get_proto_or_iface_array(obj) as *mut ProtoOrIfaceArray);
+}
+
+/// Trace the resources held by reserved slots of a global object
+pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
+    let array = get_proto_or_iface_array(obj) as *mut ProtoOrIfaceArray;
+    for &proto in (*array).iter() {
+        if !proto.is_null() {
+            trace_object(tracer, "prototype", proto);
+        }
+    }
 }
 
 /// Callback to outerize windows when wrapping.

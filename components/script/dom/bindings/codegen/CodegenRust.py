@@ -1950,12 +1950,12 @@ assert!(!obj.is_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
-            create += "let obj = create_dom_global(cx, &Class.base as *const js::Class as *const JSClass);\n"
+            create += "let obj = create_dom_global(cx, &Class.base as *const js::Class as *const JSClass, object);\n"
         else:
             create += ("let obj = with_compartment(cx, proto, || {\n"
                        "    JS_NewObject(cx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
                        "});\n" % parent)
-        create += """\
+            create += """\
 assert!(!obj.is_null());
 
 JS_SetReservedSlot(obj, DOM_OBJECT_SLOT,
@@ -4179,9 +4179,13 @@ class CGClassTraceHook(CGAbstractClassHook):
         args = [Argument('*mut JSTracer', 'trc'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, TRACE_HOOK_NAME, 'void',
                                      args)
+        self.traceGlobal = descriptor.isGlobal()
 
     def generate_code(self):
-        return CGGeneric("(*this).trace(%s);" % self.args[0].name)
+        body = [CGGeneric("(*this).trace(%s);" % self.args[0].name)]
+        if self.traceGlobal:
+            body += [CGGeneric("trace_global(trc, obj);")]
+        return CGList(body, "\n")
 
 class CGClassConstructHook(CGAbstractExternMethod):
     """
@@ -4766,7 +4770,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{find_enum_string_index, get_array_index_from_id}',
             'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
-            'dom::bindings::utils::finalize_global',
+            'dom::bindings::utils::{finalize_global, trace_global}',
             'dom::bindings::utils::has_property_on_prototype',
             'dom::bindings::utils::is_platform_object',
             'dom::bindings::utils::{Reflectable}',
