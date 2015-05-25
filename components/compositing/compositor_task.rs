@@ -178,6 +178,8 @@ pub enum Msg {
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
+    /// A status message to be displayed by the browser chrome.
+    Status(Option<String>),
 }
 
 impl Debug for Msg {
@@ -203,6 +205,7 @@ impl Debug for Msg {
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
+            Msg::Status(..) => write!(f, "Status"),
         }
     }
 }

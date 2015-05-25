@@ -384,6 +384,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }
 
+            (Msg::Status(message), ShutdownState::NotShuttingDown) => {
+                self.window.status(message);
+            }
+
             (Msg::LoadComplete, ShutdownState::NotShuttingDown) => {
                 self.got_load_complete_message = true;
 

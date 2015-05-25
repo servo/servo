@@ -5,6 +5,7 @@
 use document_loader::{DocumentLoader, LoadType};
 use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -85,7 +86,7 @@ use geom::point::Point2D;
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
-use url::Url;
+use url::{Url, UrlParser};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 
 use num::ToPrimitive;
@@ -647,9 +648,17 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
+        let mut did_status = false;
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
                 target.root().r().set_hover_state(false);
+                if did_status == false && target.root().r().is_anchor_element() {
+                    let window = self.window.root();
+                    let ConstellationChan(ref chan) = window.r().constellation_chan();
+                    let event = ConstellationMsg::NodeStatus(None);
+                    chan.send(event).unwrap();
+                    did_status = true;
+                }
             }
         }
 
@@ -686,6 +695,37 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
             let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
+            for addr in mouse_over_addresses.iter() {
+                let node = node::from_untrusted_node_address(js_runtime, *addr);
+                let anchor = node.root();
+                if anchor.r().is_anchor_element() {
+                    let window = self.window.root();
+                    let element = ElementCast::from_ref(HTMLAnchorElementCast::to_ref(anchor.r()).unwrap());
+                    let mut ismap_suffix = None;
+                    if target.is_htmlimageelement() && element.has_attribute(&atom!("ismap")) {
+
+                        let rect = window.r().content_box_query(top_most_node.r().to_trusted_node_address());
+                        ismap_suffix = Some(
+                            format!("?{},{}", x as f32 - rect.origin.x.to_f32_px(),
+                                              y as f32 - rect.origin.y.to_f32_px())
+                        )
+                    }
+
+                    let attr = element.get_attribute(&ns!(""), &atom!("href")).root();
+                    let status = match attr {
+                        Some(ref href) => {
+                            let value = href.r().Value() + ismap_suffix.as_ref().map(|s| &**s).unwrap_or("");
+                            let base_url = window.r().get_url();
+                            UrlParser::new().base_url(&base_url).parse(&value).map(|url| url.serialize()).ok()
+                        },
+                        None => None
+                    };
+                    let event = ConstellationMsg::NodeStatus(status);
+                    let ConstellationChan(ref chan) = window.r().constellation_chan();
+                    chan.send(event).unwrap();
+                    break;
+                }
+            }
             event.fire(target);
         }
 

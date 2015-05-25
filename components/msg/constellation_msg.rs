@@ -244,6 +244,8 @@ pub enum Msg {
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Notification that this iframe should be removed.
     RemoveIFrame(PipelineId, SubpageId),
+    /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
+    NodeStatus(Option<String>),
 }
 
 #[derive(Clone, Eq, PartialEq)]
