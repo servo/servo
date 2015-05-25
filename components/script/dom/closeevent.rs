@@ -56,7 +56,11 @@ impl CloseEvent {
                        init: &CloseEventBinding::CloseEventInit)
                        -> Fallible<Temporary<CloseEvent>> {
         let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
+        let cancelable = if init.parent.cancelable {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
+        };
         Ok(CloseEvent::new(global, type_, bubbles, cancelable, init.wasClean,
                            init.code, init.reason.clone()))
     }

@@ -151,7 +151,9 @@ impl Actor for ConsoleActor {
                                 timeStamp: 0,
                                 errorMessage: "page error test".to_string(),
                             };
-                            messages.push(json::from_str(json::encode(&message).as_slice()).unwrap().as_object().unwrap().clone());*/
+                            messages.push(
+                                json::from_str(
+                                    json::encode(&message).as_slice()).unwrap().as_object().unwrap().clone());*/
                         }
 
                         "LogMessage" => {
@@ -161,7 +163,9 @@ impl Actor for ConsoleActor {
                                 timeStamp: 0,
                                 message: "log message test".to_string(),
                             };
-                            messages.push(json::from_str(json::encode(&message).as_slice()).unwrap().as_object().unwrap().clone());*/
+                            messages.push(
+                                json::from_str(
+                                    json::encode(&message).as_slice()).unwrap().as_object().unwrap().clone());*/
                         }
 
                         s => println!("unrecognized message type requested: \"{}\"", s),

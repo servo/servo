@@ -7,7 +7,8 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast, HTMLIFrameElementDerived};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast,
+                                           HTMLIFrameElementDerived};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
@@ -59,7 +60,9 @@ pub struct HTMLIFrameElement {
 
 impl HTMLIFrameElementDerived for EventTarget {
     fn is_htmliframeelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)))
     }
 }
 
@@ -191,9 +194,12 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
@@ -201,7 +207,9 @@ impl HTMLIFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLIFrameElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }

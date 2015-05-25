@@ -46,7 +46,9 @@ pub fn jsval_to_webdriver(cx: *mut JSContext, val: JSVal) -> WebDriverJSResult {
         Ok(WebDriverJSValue::Number(FromJSValConvertible::from_jsval(cx, val, ()).unwrap()))
     } else if val.is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
-        Ok(WebDriverJSValue::String(FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap()))
+        Ok(
+            WebDriverJSValue::String(
+                FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap()))
     } else if val.is_null() {
         Ok(WebDriverJSValue::Null)
     } else {
@@ -63,14 +65,16 @@ pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String
     reply.send(jsval_to_webdriver(cx, rval)).unwrap();
 }
 
-pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<WebDriverJSResult>) {
+pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: String,
+                                   reply: Sender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
     window.r().set_webdriver_script_chan(Some(reply));
     window.r().evaluate_js_on_global_with_result(&eval);
 }
 
-pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String, reply: Sender<Result<Option<String>, ()>>) {
+pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
+                               reply: Sender<Result<Option<String>, ()>>) {
     reply.send(match page.document().root().r().QuerySelector(selector.clone()) {
         Ok(node) => {
             let result = node.map(|x| NodeCast::from_ref(x.root().r()).get_unique_id());
@@ -80,7 +84,8 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
     }).unwrap();
 }
 
-pub fn handle_find_elements_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String, reply: Sender<Result<Vec<String>, ()>>) {
+pub fn handle_find_elements_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
+                                reply: Sender<Result<Vec<String>, ()>>) {
     reply.send(match page.document().root().r().QuerySelectorAll(selector.clone()) {
         Ok(ref node_list) => {
             let nodes = node_list.root();

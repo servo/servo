@@ -30,20 +30,29 @@ pub struct HTMLHeadingElement {
 
 impl HTMLHeadingElementDerived for EventTarget {
     fn is_htmlheadingelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadingElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadingElement)))
     }
 }
 
 impl HTMLHeadingElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>, level: HeadingLevel) -> HTMLHeadingElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>,
+                     level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadingElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadingElement, localName, prefix, document),
             level: level,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>, level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>,
+               level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
         let element = HTMLHeadingElement::new_inherited(localName, prefix, document, level);
         Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)
     }

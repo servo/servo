@@ -91,13 +91,15 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F)
         for i in 0..((*matches).nfont as isize) {
             let font = (*matches).fonts.offset(i);
             let mut file: *mut FcChar8 = ptr::null_mut();
-            let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut c_char, 0, &mut file) == FcResultMatch {
+            let result = FcPatternGetString(*font, FC_FILE.as_ptr() as *mut c_char, 0, &mut file);
+            let file = if result == FcResultMatch {
                 c_str_to_string(file as *const c_char)
             } else {
                 panic!();
             };
             let mut index: libc::c_int = 0;
-            let index = if FcPatternGetInteger(*font, FC_INDEX.as_ptr() as *mut c_char, 0, &mut index) == FcResultMatch {
+            let result = FcPatternGetInteger(*font, FC_INDEX.as_ptr() as *mut c_char, 0, &mut index);
+            let index = if result == FcResultMatch {
                 index
             } else {
                 panic!();

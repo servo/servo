@@ -22,7 +22,8 @@ fn main() {
         .env("PYTHONPATH", &mako)
         .env("TEMPLATE", &template)
         .arg("-c")
-        .arg("from os import environ; from mako.template import Template; print(Template(filename=environ['TEMPLATE']).render())")
+        .arg("from os import environ; from mako.template import Template;\
+             print(Template(filename=environ['TEMPLATE']).render())")
         .stderr(Stdio::inherit())
         .output()
         .unwrap();

@@ -19,19 +19,26 @@ pub struct HTMLSourceElement {
 
 impl HTMLSourceElementDerived for EventTarget {
     fn is_htmlsourceelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)))
     }
 }
 
 impl HTMLSourceElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSourceElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLSourceElement {
         HTMLSourceElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLSourceElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLSourceElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLSourceElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLSourceElement> {
         let element = HTMLSourceElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSourceElementBinding::Wrap)
     }

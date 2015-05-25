@@ -19,19 +19,26 @@ pub struct HTMLTemplateElement {
 
 impl HTMLTemplateElementDerived for EventTarget {
     fn is_htmltemplateelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)))
     }
 }
 
 impl HTMLTemplateElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTemplateElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLTemplateElement {
         HTMLTemplateElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTemplateElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTemplateElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTemplateElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLTemplateElement> {
         let element = HTMLTemplateElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTemplateElementBinding::Wrap)
     }

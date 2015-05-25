@@ -117,7 +117,8 @@ fn read_input_device(device_path: &Path,
     let touchWidth = x_info.maximum - x_info.minimum;
     let touchHeight = y_info.maximum - y_info.minimum;
 
-    println!("xMin: {}, yMin: {}, touchWidth: {}, touchHeight: {}", x_info.minimum, y_info.minimum, touchWidth, touchHeight);
+    println!("xMin: {}, yMin: {}, touchWidth: {}, touchHeight: {}",
+             x_info.minimum, y_info.minimum, touchWidth, touchHeight);
 
     // XXX: Why isn't size_of treated as constant?
     // let buf: [u8; (16 * size_of::<linux_input_event>())];
@@ -168,12 +169,15 @@ fn read_input_device(device_path: &Path,
                             if dist < 16 {
                                 let click_pt = TypedPoint2D(slotA.x as f32, slotA.y as f32);
                                 println!("Dispatching click!");
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(MouseButton::Left, click_pt)))
-                                      .ok().unwrap();
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(MouseButton::Left, click_pt)))
-                                      .ok().unwrap();
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(MouseButton::Left, click_pt)))
-                                      .ok().unwrap();
+                                sender.send(
+                                    WindowEvent::MouseWindowEventClass(
+                                        MouseWindowEvent::MouseDown(MouseButton::Left, click_pt))).ok().unwrap();
+                                sender.send(
+                                    WindowEvent::MouseWindowEventClass(
+                                        MouseWindowEvent::MouseUp(MouseButton::Left, click_pt))).ok().unwrap();
+                                sender.send(
+                                    WindowEvent::MouseWindowEventClass(
+                                        MouseWindowEvent::Click(MouseButton::Left, click_pt))).ok().unwrap();
                             }
                         } else {
                             println!("Touch down");
@@ -188,15 +192,19 @@ fn read_input_device(device_path: &Path,
                         }
                     } else {
                         println!("Touch move x: {}, y: {}", slotA.x, slotA.y);
-                        sender.send(WindowEvent::Scroll(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32),
-                                                        TypedPoint2D(slotA.x, slotA.y))).ok().unwrap();
+                        sender.send(
+                            WindowEvent::Scroll(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32),
+                                                TypedPoint2D(slotA.x, slotA.y))).ok().unwrap();
                         last_x = slotA.x;
                         last_y = slotA.y;
                         if touch_count >= 2 {
                             let slotB = &slots[1];
                             let cur_dist = dist(slotA.x, slotB.x, slotA.y, slotB.y);
-                            println!("Zooming {} {} {} {}", cur_dist, last_dist, screen_dist, ((screen_dist + (cur_dist - last_dist))/screen_dist));
-                            sender.send(WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist)).ok().unwrap();
+                            println!("Zooming {} {} {} {}",
+                                     cur_dist, last_dist, screen_dist,
+                                     ((screen_dist + (cur_dist - last_dist))/screen_dist));
+                            sender.send(
+                                WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist)).ok().unwrap();
                             last_dist = cur_dist;
                         }
                     }

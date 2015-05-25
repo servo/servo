@@ -19,7 +19,8 @@ pub struct XMLHttpRequestUpload {
 impl XMLHttpRequestUpload {
     fn new_inherited() -> XMLHttpRequestUpload {
         XMLHttpRequestUpload {
-            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
+            eventtarget: XMLHttpRequestEventTarget::new_inherited(
+                XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
         }
     }
     pub fn new(global: GlobalRef) -> Temporary<XMLHttpRequestUpload> {
@@ -31,6 +32,7 @@ impl XMLHttpRequestUpload {
 
 impl XMLHttpRequestUploadDerived for EventTarget {
     fn is_xmlhttprequestupload(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
+        *self.type_id() ==
+            EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
     }
 }

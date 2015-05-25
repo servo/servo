@@ -129,12 +129,14 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
         {
             // Step 4.
-            let doc_html: Root<Node> = NodeCast::from_temporary(HTMLHtmlElement::new("html".to_owned(), None, doc.r())).root();
+            let doc_html: Root<Node> = NodeCast::from_temporary(
+                HTMLHtmlElement::new("html".to_owned(), None, doc.r())).root();
             assert!(doc_node.AppendChild(doc_html.r()).is_ok());
 
             {
                 // Step 5.
-                let doc_head: Root<Node> = NodeCast::from_temporary(HTMLHeadElement::new("head".to_owned(), None, doc.r())).root();
+                let doc_head: Root<Node> = NodeCast::from_temporary(
+                    HTMLHeadElement::new("head".to_owned(), None, doc.r())).root();
                 assert!(doc_html.r().AppendChild(doc_head.r()).is_ok());
 
                 // Step 6.
@@ -142,7 +144,8 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let doc_title: Root<Node> = NodeCast::from_temporary(HTMLTitleElement::new("title".to_owned(), None, doc.r())).root();
+                        let doc_title: Root<Node> = NodeCast::from_temporary(
+                            HTMLTitleElement::new("title".to_owned(), None, doc.r())).root();
                         assert!(doc_head.r().AppendChild(doc_title.r()).is_ok());
 
                         // Step 6.2.

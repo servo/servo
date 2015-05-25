@@ -29,7 +29,9 @@ pub struct HTMLAreaElement {
 
 impl HTMLAreaElementDerived for EventTarget {
     fn is_htmlareaelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)))
     }
 }
 
@@ -42,7 +44,9 @@ impl HTMLAreaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLAreaElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLAreaElement> {
         let element = HTMLAreaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)
     }

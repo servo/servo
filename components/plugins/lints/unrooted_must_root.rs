@@ -15,14 +15,17 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
 
 /// Lint for ensuring safe usage of unrooted pointers
 ///
-/// This lint (disable with `-A unrooted-must-root`/`#[allow(unrooted_must_root)]`) ensures that `#[must_root]` values are used correctly.
+/// This lint (disable with `-A unrooted-must-root`/`#[allow(unrooted_must_root)]`) ensures that `#[must_root]`
+/// values are used correctly.
+///
 /// "Incorrect" usage includes:
 ///
 ///  - Not being used in a struct/enum field which is not `#[must_root]` itself
 ///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
 ///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
-/// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a GC pass.
+/// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a
+/// GC pass.
 pub struct UnrootedPass;
 
 // Checks if a type has the #[must_root] annotation.
@@ -31,7 +34,8 @@ pub struct UnrootedPass;
 fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
         ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
-        ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
+        ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) =>
+            lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(..) => {
                 match cx.tcx.def_map.borrow()[&ty.id] {
                     def::PathResolution{ base_def: def::DefTy(def_id, _), .. } => {
@@ -51,7 +55,12 @@ impl LintPass for UnrootedPass {
         lint_array!(UNROOTED_MUST_ROOT)
     }
     /// All structs containing #[must_root] types must be #[must_root] themselves
-    fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
+    fn check_struct_def(&mut self,
+                        cx: &Context,
+                        def: &ast::StructDef,
+                        _i: ast::Ident,
+                        _gen: &ast::Generics,
+                        id: ast::NodeId) {
         let item = match cx.tcx.map.get(id) {
             ast_map::Node::NodeItem(item) => item,
             _ => cx.tcx.map.expect_item(cx.tcx.map.get_parent(id)),

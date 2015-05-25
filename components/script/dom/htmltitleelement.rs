@@ -25,7 +25,9 @@ pub struct HTMLTitleElement {
 
 impl HTMLTitleElementDerived for EventTarget {
     fn is_htmltitleelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
     }
 }
 
@@ -37,7 +39,9 @@ impl HTMLTitleElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTitleElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLTitleElement> {
         let element = HTMLTitleElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTitleElementBinding::Wrap)
     }

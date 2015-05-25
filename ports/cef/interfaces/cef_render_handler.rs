@@ -175,7 +175,7 @@ pub struct _cef_render_handler_t {
   // Called to retrieve the backing size of the view rectangle which is relative
   // to screen coordinates. On HiDPI displays, the backing size can differ from
   // the view size as returned by |GetViewRect|. Return true (1) if the
-  // rectangle was provided.
+  // rectangle was provided. Only used on Mac OS.
   //
   pub get_backing_rect: Option<extern "C" fn(this: *mut cef_render_handler_t,
       browser: *mut interfaces::cef_browser_t,
@@ -527,7 +527,7 @@ impl CefRenderHandler {
   // Called to retrieve the backing size of the view rectangle which is relative
   // to screen coordinates. On HiDPI displays, the backing size can differ from
   // the view size as returned by |GetViewRect|. Return true (1) if the
-  // rectangle was provided.
+  // rectangle was provided. Only used on Mac OS.
   //
   pub fn get_backing_rect(&self, browser: interfaces::CefBrowser,
       rect: &mut types::cef_rect_t) -> libc::c_int {

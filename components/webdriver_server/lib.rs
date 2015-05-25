@@ -196,7 +196,8 @@ impl Handler {
         const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
-                Ok(WebDriverResponse::Generic(ValueResponse::new(value.map(|x| WebElement::new(x).to_json()).to_json())))
+                let value_resp = value.map(|x| WebElement::new(x).to_json()).to_json();
+                Ok(WebDriverResponse::Generic(ValueResponse::new(value_resp)))
             }
             Err(_) => Err(WebDriverError::new(ErrorStatus::InvalidSelector,
                                               "Invalid selector"))
@@ -296,7 +297,8 @@ impl Handler {
         self.execute_script(command, reciever)
     }
 
-    fn handle_execute_async_script(&self, parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
+    fn handle_execute_async_script(&self,
+                                   parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
@@ -309,7 +311,9 @@ impl Handler {
         self.execute_script(command, reciever)
     }
 
-    fn execute_script(&self, command: WebDriverScriptCommand, reciever: Receiver<WebDriverJSResult>) -> WebDriverResult<WebDriverResponse> {
+    fn execute_script(&self,
+                      command: WebDriverScriptCommand,
+                      reciever: Receiver<WebDriverJSResult>) -> WebDriverResult<WebDriverResponse> {
         // TODO: This isn't really right because it always runs the script in the
         // root window
         let pipeline_id = try!(self.get_root_pipeline());
@@ -368,7 +372,9 @@ impl Handler {
 }
 
 impl WebDriverHandler for Handler {
-    fn handle_command(&mut self, _session: &Option<Session>, msg: &WebDriverMessage) -> WebDriverResult<WebDriverResponse> {
+    fn handle_command(&mut self,
+                      _session: &Option<Session>,
+                      msg: &WebDriverMessage) -> WebDriverResult<WebDriverResponse> {
 
         match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),

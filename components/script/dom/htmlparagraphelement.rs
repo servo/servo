@@ -19,19 +19,26 @@ pub struct HTMLParagraphElement {
 
 impl HTMLParagraphElementDerived for EventTarget {
     fn is_htmlparagraphelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement)))
     }
 }
 
 impl HTMLParagraphElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLParagraphElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLParagraphElement {
         HTMLParagraphElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLParagraphElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLParagraphElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLParagraphElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLParagraphElement> {
         let element = HTMLParagraphElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLParagraphElementBinding::Wrap)
     }

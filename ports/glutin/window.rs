@@ -70,7 +70,9 @@ pub struct Window {
 
 #[cfg(feature = "window")]
 impl Window {
-    pub fn new(is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>, parent: glutin::WindowID) -> Rc<Window> {
+    pub fn new(is_foreground: bool,
+               window_size: TypedSize2D<DevicePixel, u32>,
+               parent: glutin::WindowID) -> Rc<Window> {
         let mut glutin_window = glutin::WindowBuilder::new()
                             .with_title("Servo".to_string())
                             .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
@@ -550,14 +552,15 @@ impl WindowMethods for Window {
         self.window.set_cursor(glutin_cursor);
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
+        use x11::xlib;
         NativeGraphicsMetadata {
-            display: unsafe { self.window.platform_display() }
+            display: unsafe { self.window.platform_display() as *mut xlib::Display }
         }
     }
 
@@ -616,7 +619,9 @@ pub struct Window {
 
 #[cfg(feature = "headless")]
 impl Window {
-    pub fn new(_is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>, _parent: glutin::WindowID) -> Rc<Window> {
+    pub fn new(_is_foreground: bool,
+               window_size: TypedSize2D<DevicePixel, u32>,
+               _parent: glutin::WindowID) -> Rc<Window> {
         let window_size = window_size.to_untyped();
         let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                     window_size.height);
@@ -687,7 +692,7 @@ impl WindowMethods for Window {
     fn set_cursor(&self, _: Cursor) {
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
 

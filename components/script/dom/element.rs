@@ -151,9 +151,14 @@ impl Element {
         }
     }
 
-    pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<Element> {
-        Node::reflect_node(box Element::new_inherited(ElementTypeId::Element, local_name, namespace, prefix, document),
-                           document, ElementBinding::Wrap)
+    pub fn new(local_name: DOMString,
+               namespace: Namespace,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<Element> {
+        Node::reflect_node(
+            box Element::new_inherited(ElementTypeId::Element, local_name, namespace, prefix, document),
+            document,
+            ElementBinding::Wrap)
     }
 }
 
@@ -846,7 +851,10 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
         let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
-        attributes.iter().map(|attr| attr.root()).find(|attr| attr.r().namespace() == namespace).map(|x| Temporary::from_rooted(x.r()))
+        attributes.iter()
+                  .map(|attr| attr.root())
+                  .find(|attr| attr.r().namespace() == namespace)
+                  .map(|x| Temporary::from_rooted(x.r()))
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name

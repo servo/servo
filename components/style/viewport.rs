@@ -434,7 +434,8 @@ impl ViewportConstraints {
                                 length.to_computed_value(initial_viewport),
                             _ => unreachable!()
                         }),
-                        LengthOrPercentageOrAuto::Percentage(value) => Some(initial_viewport.$dimension.scale_by(value)),
+                        LengthOrPercentageOrAuto::Percentage(value) =>
+                            Some(initial_viewport.$dimension.scale_by(value)),
                         LengthOrPercentageOrAuto::Auto => None,
                     }
                 } else {

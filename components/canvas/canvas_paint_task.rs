@@ -213,7 +213,8 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::Fill => painter.fill(),
                             Canvas2dMsg::Stroke => painter.stroke(),
                             Canvas2dMsg::Clip => painter.clip(),
-                            Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect, smoothing_enabled) => {
+                            Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect,
+                                                   smoothing_enabled) => {
                                 painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
                             }
                             Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled) => {
@@ -245,7 +246,8 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                             Canvas2dMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
                             Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
-                            Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan) => painter.get_image_data(dest_rect, canvas_size, chan),
+                            Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan)
+                                => painter.get_image_data(dest_rect, canvas_size, chan),
                             Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
                                 => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
                         }

@@ -332,7 +332,8 @@ impl ImageCache {
                             url: url,
                             sender: self.progress_sender.clone(),
                         };
-                        self.resource_task.send(ControlMsg::Load(load_data, LoadConsumer::Listener(listener))).unwrap();
+                        let msg = ControlMsg::Load(load_data, LoadConsumer::Listener(listener));
+                        self.resource_task.send(msg).unwrap();
                     }
                 }
             }

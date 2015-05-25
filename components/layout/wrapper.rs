@@ -125,21 +125,24 @@ pub trait TLayoutNode {
 
     fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
         unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
+                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
             canvas_element.and_then(|elem| elem.get_renderer())
         }
     }
 
     fn get_canvas_width(&self) -> u32 {
         unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
+                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
             canvas_element.unwrap().get_canvas_width()
         }
     }
 
     fn get_canvas_height(&self) -> u32 {
         unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
+                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
             canvas_element.unwrap().get_canvas_height()
         }
     }

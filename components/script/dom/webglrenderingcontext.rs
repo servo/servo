@@ -5,7 +5,8 @@
 use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{ WebGLRenderingContextMethods, WebGLRenderingContextConstants};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
+    WebGLRenderingContextMethods, WebGLRenderingContextConstants};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -192,12 +193,15 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
             None => return NullValue(),
         };
         let (sender, receiver) = channel::<i32>();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, sender))).unwrap();
+        let msg = CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, sender));
+        self.renderer.send(msg).unwrap();
         Int32Value(receiver.recv().unwrap())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetUniformLocation(self, program: Option<JSRef<WebGLProgram>>, name: DOMString) -> Option<Temporary<WebGLUniformLocation>> {
+    fn GetUniformLocation(self,
+                          program: Option<JSRef<WebGLProgram>>,
+                          name: DOMString) -> Option<Temporary<WebGLUniformLocation>> {
         let program_id = match program {
             Some(program) => program.get_id(),
             None => return None,
@@ -226,12 +230,16 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
                                               .split(|c: char| c == '\n')
                                               .map(|line: &str| String::from_str(line) + "\n")
                                               .collect();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ShaderSource(shader_id, source_lines))).unwrap()
+        let msg = CanvasMsg::WebGL(CanvasWebGLMsg::ShaderSource(shader_id, source_lines));
+        self.renderer.send(msg).unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    fn Uniform4fv(self, cx: *mut JSContext, uniform: Option<JSRef<WebGLUniformLocation>>, data: Option<*mut JSObject>) {
+    fn Uniform4fv(self,
+                  cx: *mut JSContext,
+                  uniform: Option<JSRef<WebGLUniformLocation>>,
+                  data: Option<*mut JSObject>) {
         let uniform_id = match uniform {
             Some(uniform) => uniform.get_id(),
             None => return,
@@ -262,8 +270,9 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
                            normalized: bool, stride: i32, offset: i64) {
         match data_type {
             WebGLRenderingContextConstants::FLOAT => {
-                self.renderer.send(
-                    CanvasMsg::WebGL(CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset))).unwrap()
+               let msg = CanvasMsg::WebGL(
+                   CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset));
+                self.renderer.send(msg).unwrap()
             }
             _ => panic!("VertexAttribPointer: Data Type not supported")
         }

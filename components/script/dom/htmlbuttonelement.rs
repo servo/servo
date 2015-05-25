@@ -45,21 +45,28 @@ pub struct HTMLButtonElement {
 
 impl HTMLButtonElementDerived for EventTarget {
     fn is_htmlbuttonelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)))
     }
 }
 
 impl HTMLButtonElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLButtonElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
             //TODO: implement button_type in after_set_attr
             button_type: Cell::new(ButtonType::ButtonSubmit)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLButtonElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLButtonElement> {
         let element = HTMLButtonElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLButtonElementBinding::Wrap)
     }
@@ -96,7 +103,8 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
 
     make_setter!(SetFormAction, "formaction");
 
-    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
+    make_enumerated_getter!(
+        FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
     make_setter!(SetFormEnctype, "formenctype");
 

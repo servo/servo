@@ -311,7 +311,8 @@ impl MozBrowserEvent {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
             MozBrowserEvent::Error | MozBrowserEvent::IconChange | MozBrowserEvent::LoadEnd |
             MozBrowserEvent::LoadStart | MozBrowserEvent::OpenWindow | MozBrowserEvent::SecurityChange |
-            MozBrowserEvent::ShowModalPrompt | MozBrowserEvent::UsernameAndPasswordRequired | MozBrowserEvent::OpenSearch => None,
+            MozBrowserEvent::ShowModalPrompt | MozBrowserEvent::UsernameAndPasswordRequired |
+            MozBrowserEvent::OpenSearch => None,
             MozBrowserEvent::LocationChange(ref new_location) => Some(new_location.clone()),
             MozBrowserEvent::TitleChange(ref new_title) => Some(new_title.clone()),
         }

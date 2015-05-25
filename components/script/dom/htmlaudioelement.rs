@@ -28,14 +28,19 @@ impl HTMLAudioElementDerived for EventTarget {
 }
 
 impl HTMLAudioElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAudioElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLAudioElement {
         HTMLAudioElement {
-            htmlmediaelement: HTMLMediaElement::new_inherited(HTMLMediaElementTypeId::HTMLAudioElement, localName, prefix, document)
+            htmlmediaelement:
+                HTMLMediaElement::new_inherited(HTMLMediaElementTypeId::HTMLAudioElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLAudioElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLAudioElement> {
         let element = HTMLAudioElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAudioElementBinding::Wrap)
     }
