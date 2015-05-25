@@ -12,7 +12,7 @@ interface HTMLCanvasElement : HTMLElement {
   [Pure]
            attribute unsigned long height;
 
-  RenderingContext? getContext(DOMString contextId);
+  RenderingContext? getContext(DOMString contextId, any... arguments);
   //boolean probablySupportsContext(DOMString contextId, any... arguments);
 
   //void setContext(RenderingContext context);
