@@ -105,7 +105,8 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         let supplied_type = metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
-        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type, &partial_body).map(|(toplevel, sublevel)| {
+        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type,
+                                                    &partial_body).map(|(toplevel, sublevel)| {
             let mime_tp: TopLevel = FromStr::from_str(&toplevel).unwrap();
             let mime_sb: SubLevel = FromStr::from_str(&sublevel).unwrap();
             ContentType(Mime(mime_tp, mime_sb, vec!()))
@@ -138,7 +139,8 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 }
 
 /// Create a ResourceTask
-pub fn new_resource_task(user_agent: Option<String>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
+pub fn new_resource_task(user_agent: Option<String>,
+                         devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
@@ -148,7 +150,8 @@ pub fn new_resource_task(user_agent: Option<String>, devtools_chan: Option<Sende
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
-    let ipv4_regex = regex!(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    let ipv4_regex = regex!(
+        r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
     let ipv6_regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
     let mut host_table = HashMap::new();
     let lines: Vec<&str> = hostsfile_content.split('\n').collect();
@@ -191,8 +194,10 @@ struct ResourceManager {
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>,
-           resource_task: Sender<ControlMsg>, devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
+    fn new(from_client: Receiver<ControlMsg>,
+           user_agent: Option<String>,
+           resource_task: Sender<ControlMsg>,
+           devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
             user_agent: user_agent,
@@ -250,7 +255,8 @@ impl ResourceManager {
 
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
-            "http" | "https" | "view-source" => http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone()),
+            "http" | "https" | "view-source" =>
+                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {

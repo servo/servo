@@ -19,7 +19,9 @@ pub struct HTMLBaseElement {
 
 impl HTMLBaseElementDerived for EventTarget {
     fn is_htmlbaseelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)))
     }
 }
 
@@ -31,7 +33,9 @@ impl HTMLBaseElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLBaseElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLBaseElement> {
         let element = HTMLBaseElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBaseElementBinding::Wrap)
     }

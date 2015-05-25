@@ -131,7 +131,8 @@ impl MarginCollapseInfo {
         let state = match self.state {
             MarginCollapseState::AccumulatingCollapsibleTopMargin => {
                 match fragment.style().content_block_size() {
-                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(Au(0)) | LengthOrPercentageOrAuto::Percentage(0.) => {
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(Au(0)) |
+                    LengthOrPercentageOrAuto::Percentage(0.) => {
                         match fragment.style().min_block_size() {
                             LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
                                 FinalMarginState::MarginsCollapseThrough

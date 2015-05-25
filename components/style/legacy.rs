@@ -33,24 +33,18 @@ pub trait PresentationalHintSynthesis {
     /// you don't, you risk strange random nondeterministic failures due to false positives in
     /// style sharing.
     fn synthesize_presentational_hints_for_legacy_attributes<'a,N,V>(
-                                                             &self,
-                                                             node: &N,
-                                                             matching_rules_list: &mut V,
-                                                             shareable: &mut bool)
-                                                             where N: TNode<'a>,
-                                                                   N::Element: TElementAttributes<'a>,
-                                                                   V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+        &self, node: &N, matching_rules_list: &mut V, shareable: &mut bool)
+            where N: TNode<'a>,
+                  N::Element: TElementAttributes<'a>,
+                  V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
 impl PresentationalHintSynthesis for Stylist {
     fn synthesize_presentational_hints_for_legacy_attributes<'a,N,V>(
-                                                             &self,
-                                                             node: &N,
-                                                             matching_rules_list: &mut V,
-                                                             shareable: &mut bool)
-                                                             where N: TNode<'a>,
-                                                                   N::Element: TElementAttributes<'a>,
-                                                                   V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
+        &self, node: &N, matching_rules_list: &mut V, shareable: &mut bool)
+             where N: TNode<'a>,
+                 N::Element: TElementAttributes<'a>,
+                 V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         let element = node.as_element();
 
         let length = matching_rules_list.len();

@@ -378,7 +378,8 @@ impl RootedCollectionSet {
             }
         }
 
-        let dom_collections = &self.set[CollectionType::DOMObjects as usize] as *const _ as *const HashSet<*const RootedVec<JS<Void>>>;
+        let dom_collections =
+            &self.set[CollectionType::DOMObjects as usize] as *const _ as *const HashSet<*const RootedVec<JS<Void>>>;
         for dom_collection in (*dom_collections).iter() {
             for reflector in (**dom_collection).iter() {
                 trace_reflector(tracer, "", reflector.reflector());

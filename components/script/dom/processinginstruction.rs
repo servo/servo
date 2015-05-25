@@ -21,7 +21,8 @@ pub struct ProcessingInstruction {
 
 impl ProcessingInstructionDerived for EventTarget {
     fn is_processinginstruction(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction))
+        *self.type_id() ==
+            EventTargetTypeId::Node(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction))
     }
 }
 

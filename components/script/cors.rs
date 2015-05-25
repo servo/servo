@@ -339,7 +339,11 @@ pub struct CORSCacheEntry {
 }
 
 impl CORSCacheEntry {
-    fn new (origin:Url, url: Url, max_age: u32, credentials: bool, header_or_method: HeaderOrMethod) -> CORSCacheEntry {
+    fn new(origin:Url,
+           url: Url,
+           max_age: u32,
+           credentials: bool,
+           header_or_method: HeaderOrMethod) -> CORSCacheEntry {
         CORSCacheEntry {
             origin: origin,
             url: url,
@@ -354,9 +358,12 @@ impl CORSCacheEntry {
 impl CORSCache {
     /// https://fetch.spec.whatwg.org/#concept-cache-clear
     #[allow(dead_code)]
-    fn clear (&mut self, request: &CORSRequest) {
+    fn clear(&mut self, request: &CORSRequest) {
         let CORSCache(buf) = self.clone();
-        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
+        let new_buf: Vec<CORSCacheEntry> =
+            buf.into_iter()
+               .filter(|e| e.origin == request.origin && request.destination == e.url)
+               .collect();
         *self = CORSCache(new_buf);
     }
 
@@ -364,12 +371,16 @@ impl CORSCache {
     fn cleanup(&mut self) {
         let CORSCache(buf) = self.clone();
         let now = time::now().to_timespec();
-        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter()
+                                              .filter(|e| now.sec > e.created.sec + e.max_age as i64)
+                                              .collect();
         *self = CORSCache(new_buf);
     }
 
     /// https://fetch.spec.whatwg.org/#concept-cache-match-header
-    fn find_entry_by_header<'a>(&'a mut self, request: &CORSRequest, header_name: &str) -> Option<&'a mut CORSCacheEntry> {
+    fn find_entry_by_header<'a>(&'a mut self,
+                                request: &CORSRequest,
+                                header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
@@ -389,7 +400,9 @@ impl CORSCache {
         self.find_entry_by_header(request, header_name).map(|e| e.max_age = new_max_age).is_some()
     }
 
-    fn find_entry_by_method<'a>(&'a mut self, request: &CORSRequest, method: &Method) -> Option<&'a mut CORSCacheEntry> {
+    fn find_entry_by_method<'a>(&'a mut self,
+                                request: &CORSRequest,
+                                method: &Method) -> Option<&'a mut CORSCacheEntry> {
         // we can take the method from CORSRequest itself
         self.cleanup();
         let CORSCache(ref mut buf) = *self;

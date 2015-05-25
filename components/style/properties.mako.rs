@@ -567,8 +567,8 @@ pub mod longhands {
                     }
                     SpecifiedValue::Number(value) => computed_value::T::Number(value),
                     SpecifiedValue::Percentage(value) => {
-                        computed_value::T::Length(
-                            specified::Length::FontRelative(specified::FontRelativeLength::Em(value)).to_computed_value(context))
+                        let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
+                        computed_value::T::Length(fr.to_computed_value(context))
                     }
                 }
             }
@@ -1134,8 +1134,9 @@ pub mod longhands {
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
     ${new_style_struct("Background", is_inherited=False)}
-    ${predefined_type("background-color", "CSSColor",
-                      "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
+    ${predefined_type(
+        "background-color", "CSSColor",
+        "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
     <%self:longhand name="background-image">
         use values::specified::Image;
@@ -1701,7 +1702,8 @@ pub mod longhands {
             input.try(specified::LengthOrPercentage::parse_non_negative)
             .map(|value| match value {
                 specified::LengthOrPercentage::Length(value) => value,
-                specified::LengthOrPercentage::Percentage(value) => specified::Length::FontRelative(specified::FontRelativeLength::Em(value))
+                specified::LengthOrPercentage::Percentage(value) =>
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value))
             })
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -1725,7 +1727,8 @@ pub mod longhands {
     </%self:longhand>
 
     ${single_keyword("font-stretch",
-                     "normal ultra-condensed extra-condensed condensed semi-condensed semi-expanded expanded extra-expanded ultra-expanded")}
+                     "normal ultra-condensed extra-condensed condensed semi-condensed semi-expanded \
+                     expanded extra-expanded ultra-expanded")}
 
     // CSS 2.1, Section 16 - Text
 
@@ -3076,7 +3079,8 @@ pub mod longhands {
             fn to_computed_value(&self, context: &computed::Context) -> computed_value::T {
                 computed_value::T{ filters: self.0.iter().map(|value| {
                     match value {
-                        &SpecifiedFilter::Blur(factor) => computed_value::Filter::Blur(factor.to_computed_value(context)),
+                        &SpecifiedFilter::Blur(factor) =>
+                            computed_value::Filter::Blur(factor.to_computed_value(context)),
                         &SpecifiedFilter::Brightness(factor) => computed_value::Filter::Brightness(factor),
                         &SpecifiedFilter::Contrast(factor) => computed_value::Filter::Contrast(factor),
                         &SpecifiedFilter::Grayscale(factor) => computed_value::Filter::Grayscale(factor),
@@ -4406,7 +4410,8 @@ pub mod shorthands {
             Ok(Longhands {
                 border_${side}_color: color,
                 border_${side}_style: style,
-                border_${side}_width: width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
+                border_${side}_width:
+                    width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
             })
         </%self:shorthand>
     % endfor
@@ -4421,7 +4426,8 @@ pub mod shorthands {
             % for side in ["top", "right", "bottom", "left"]:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
-                border_${side}_width: width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
+                border_${side}_width:
+                    width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
             % endfor
         })
     </%self:shorthand>
@@ -4719,7 +4725,8 @@ pub mod shorthands {
     </%self:shorthand>
 
     <%self:shorthand name="transition"
-                     sub_properties="transition-property transition-duration transition-timing-function transition-delay">
+                     sub_properties="transition-property transition-duration transition-timing-function
+                                     transition-delay">
         use properties::longhands::{transition_delay, transition_duration, transition_property};
         use properties::longhands::{transition_timing_function};
 

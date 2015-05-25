@@ -18,6 +18,7 @@ use glutin_app;
 use libc::c_int;
 use std::cell::{Cell, RefCell, BorrowState};
 use std::ptr;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 
 thread_local!(pub static ID_COUNTER: AtomicIsize = AtomicIsize::new(0));
@@ -87,6 +88,8 @@ pub struct ServoCefBrowser {
     pub host: CefBrowserHost,
     /// A reference to the browser client.
     pub client: CefClient,
+    /// the glutin window when using windowed rendering
+    pub window: Option<Rc<glutin_app::window::Window>>,
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
     /// the display system window handle: only to be used with host.get_window_handle()
@@ -102,11 +105,15 @@ impl ServoCefBrowser {
         let frame = ServoCefFrame::new().as_cef_interface();
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
         let mut window_handle: cef_window_handle_t = get_null_window_handle();
+        let mut glutin_window: Option<Rc<glutin_app::window::Window>> = None;
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
-            let glutin_window = glutin_app::create_window(window_info.parent_window as glutin_app::WindowID);
-            let servo_browser = Browser::new(Some(glutin_window.clone()));
-            window_handle = glutin_window.platform_window() as cef_window_handle_t;
+            glutin_window = Some(glutin_app::create_window(window_info.parent_window as glutin_app::WindowID));
+            let servo_browser = Browser::new(glutin_window.clone());
+            window_handle = match glutin_window {
+                Some(ref win) => win.platform_window() as cef_window_handle_t,
+                None => get_null_window_handle()
+            };
             ServoBrowser::OnScreen(servo_browser)
         } else {
             ServoBrowser::Invalid
@@ -120,6 +127,7 @@ impl ServoCefBrowser {
             frame: frame,
             host: host,
             client: client,
+            window: glutin_window,
             callback_executed: Cell::new(false),
             servo_browser: RefCell::new(servo_browser),
             message_queue: RefCell::new(vec!()),
@@ -139,9 +147,9 @@ pub trait ServoCefBrowserExtensions {
 impl ServoCefBrowserExtensions for CefBrowser {
     fn init(&self, window_info: &cef_window_info_t) {
         if window_info.windowless_rendering_enabled != 0 {
-            let window = window::Window::new();
-            let servo_browser = Browser::new(Some(window.clone()));
+            let window = window::Window::new(window_info.width, window_info.height);
             window.set_browser(self.clone());
+            let servo_browser = Browser::new(Some(window.clone()));
             *self.downcast().servo_browser.borrow_mut() = ServoBrowser::OffScreen(servo_browser);
         }
 
@@ -198,7 +206,16 @@ pub fn update() {
             if browser.downcast().callback_executed.get() == false {
                 browser_callback_after_created(browser.clone());
             }
-            browser.send_window_event(WindowEvent::Idle);
+            let mut events = match browser.downcast().window {
+                Some(ref win) => win.wait_events(),
+                None => vec![WindowEvent::Idle]
+            };
+            loop {
+               match events.pop() {
+                   Some(event) => browser.send_window_event(event),
+                   None => break
+               }
+            }
         }
     });
 }
@@ -238,9 +255,9 @@ fn browser_host_create(window_info: &cef_window_info_t,
     if callback_executed {
         browser_callback_after_created(browser.clone());
     }
-    if url != ptr::null() {
-       unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
-    }
+    //if url != ptr::null() {
+       //unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
+    //}
     BROWSERS.with(|browsers| {
         browsers.borrow_mut().push(browser.clone());
     });

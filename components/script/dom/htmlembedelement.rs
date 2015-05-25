@@ -19,7 +19,9 @@ pub struct HTMLEmbedElement {
 
 impl HTMLEmbedElementDerived for EventTarget {
     fn is_htmlembedelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLEmbedElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLEmbedElement)))
     }
 }
 
@@ -31,7 +33,9 @@ impl HTMLEmbedElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLEmbedElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLEmbedElement> {
         let element = HTMLEmbedElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLEmbedElementBinding::Wrap)
     }

@@ -19,19 +19,26 @@ pub struct HTMLTableCaptionElement {
 
 impl HTMLTableCaptionElementDerived for EventTarget {
     fn is_htmltablecaptionelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCaptionElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCaptionElement)))
     }
 }
 
 impl HTMLTableCaptionElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableCaptionElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLTableCaptionElement {
         HTMLTableCaptionElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCaptionElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCaptionElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
         let element = HTMLTableCaptionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableCaptionElementBinding::Wrap)
     }

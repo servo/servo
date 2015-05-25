@@ -481,7 +481,8 @@ impl WorkerThreadProxy {
                   layer_buffer: Option<Box<LayerBuffer>>,
                   stacking_context: Arc<StackingContext>,
                   scale: f32) {
-        self.sender.send(MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale)).unwrap()
+        let msg = MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale);
+        self.sender.send(msg).unwrap()
     }
 
     fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {

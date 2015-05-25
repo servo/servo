@@ -36,7 +36,8 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
         EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, rval, ()).unwrap())
     } else if rval.is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
-        EvaluateJSReply::StringValue(FromJSValConvertible::from_jsval(cx, rval, StringificationBehavior::Default).unwrap())
+        EvaluateJSReply::StringValue(
+            FromJSValConvertible::from_jsval(cx, rval, StringificationBehavior::Default).unwrap())
     } else if rval.is_null() {
         EvaluateJSReply::NullValue
     } else {
@@ -95,7 +96,10 @@ pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String,
     reply.send((width, height)).unwrap();
 }
 
-pub fn handle_modify_attribute(page: &Rc<Page>, pipeline: PipelineId, node_id: String, modifications: Vec<Modification>) {
+pub fn handle_modify_attribute(page: &Rc<Page>,
+                               pipeline: PipelineId,
+                               node_id: String,
+                               modifications: Vec<Modification>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id).root();
     let elem: JSRef<Element> = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
 

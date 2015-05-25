@@ -54,9 +54,13 @@ impl HTMLElementDerived for EventTarget {
 }
 
 impl HTMLElement {
-    pub fn new_inherited(type_id: HTMLElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLElement {
+    pub fn new_inherited(type_id: HTMLElementTypeId,
+                         tag_name: DOMString,
+                         prefix: Option<DOMString>,
+                         document: JSRef<Document>) -> HTMLElement {
         HTMLElement {
-            element: Element::new_inherited(ElementTypeId::HTMLElement(type_id), tag_name, ns!(HTML), prefix, document),
+            element:
+                Element::new_inherited(ElementTypeId::HTMLElement(type_id), tag_name, ns!(HTML), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }

@@ -26,19 +26,26 @@ pub struct HTMLAppletElement {
 
 impl HTMLAppletElementDerived for EventTarget {
     fn is_htmlappletelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)))
     }
 }
 
 impl HTMLAppletElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAppletElement {
+    fn new_inherited(localName: DOMString,
+                     prefix: Option<DOMString>,
+                     document: JSRef<Document>) -> HTMLAppletElement {
         HTMLAppletElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLAppletElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLAppletElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLAppletElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLAppletElement> {
         let element = HTMLAppletElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAppletElementBinding::Wrap)
     }

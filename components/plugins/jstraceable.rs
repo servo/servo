@@ -8,7 +8,8 @@ use syntax::ptr::P;
 use syntax::ast::{MetaItem, Expr};
 use syntax::ast;
 use syntax::ext::build::AstBuilder;
-use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef, Struct, Substructure, TraitDef, ty};
+use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef, Struct,
+                                     Substructure, TraitDef, ty};
 
 pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotatable) -> Annotatable {
     if let Annotatable::Item(item) = anno {
@@ -31,8 +32,10 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
 
 /// Provides the hook to expand `#[jstraceable]` into an implementation of `JSTraceable`
 ///
-/// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not implement the method.
-pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: Annotatable, push: &mut FnMut(Annotatable)) {
+/// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not
+/// implement the method.
+pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: Annotatable,
+                          push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
@@ -44,7 +47,8 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 name: "trace",
                 generics: ty::LifetimeBounds::empty(),
                 explicit_self: ty::borrowed_explicit_self(),
-                args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))), ty::Raw(ast::MutMutable))),
+                args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))),
+                                   ty::Raw(ast::MutMutable))),
                 ret_ty: ty::nil_ty(),
                 attributes: vec![quote_attr!(cx, #[inline(always)])],
                 is_unsafe: false,

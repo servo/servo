@@ -19,7 +19,9 @@ pub struct HTMLFrameElement {
 
 impl HTMLFrameElementDerived for EventTarget {
     fn is_htmlframeelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameElement)))
     }
 }
 
@@ -31,7 +33,9 @@ impl HTMLFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLFrameElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLFrameElement> {
         let element = HTMLFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFrameElementBinding::Wrap)
     }

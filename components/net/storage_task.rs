@@ -102,7 +102,8 @@ impl StorageManager {
 
     /// Sends Some(old_value) in case there was a previous value with the same key name but with different
     /// value name, otherwise sends None
-    fn set_item(&mut self, sender: Sender<(bool, Option<DOMString>)>, url: Url, storage_type: StorageType, name: DOMString, value: DOMString) {
+    fn set_item(&mut self, sender: Sender<(bool, Option<DOMString>)>, url: Url, storage_type: StorageType,
+                name: DOMString, value: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         if !data.contains_key(&origin) {
@@ -130,7 +131,8 @@ impl StorageManager {
     }
 
     /// Sends Some(old_value) in case there was a previous value with the key name, otherwise sends None
-    fn remove_item(&mut self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType, name: DOMString) {
+    fn remove_item(&mut self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType,
+                   name: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         let old_value = data.get_mut(&origin).and_then(|entry| {

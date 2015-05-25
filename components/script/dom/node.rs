@@ -177,7 +177,8 @@ impl NodeFlags {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
             //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMenuItemElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => IN_ENABLED_STATE | dirty,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) =>
+                IN_ENABLED_STATE | dirty,
             _ => dirty,
         }
     }
@@ -1809,13 +1810,20 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(self) -> u16 {
         match self.type_id {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text)                  => NodeConstants::TEXT_NODE,
-            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => NodeConstants::PROCESSING_INSTRUCTION_NODE,
-            NodeTypeId::CharacterData(CharacterDataTypeId::Comment)               => NodeConstants::COMMENT_NODE,
-            NodeTypeId::Document                                                  => NodeConstants::DOCUMENT_NODE,
-            NodeTypeId::DocumentType                                              => NodeConstants::DOCUMENT_TYPE_NODE,
-            NodeTypeId::DocumentFragment                                          => NodeConstants::DOCUMENT_FRAGMENT_NODE,
-            NodeTypeId::Element(_)                                                => NodeConstants::ELEMENT_NODE,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) =>
+                NodeConstants::TEXT_NODE,
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) =>
+                NodeConstants::PROCESSING_INSTRUCTION_NODE,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) =>
+                NodeConstants::COMMENT_NODE,
+            NodeTypeId::Document =>
+                NodeConstants::DOCUMENT_NODE,
+            NodeTypeId::DocumentType =>
+                NodeConstants::DOCUMENT_TYPE_NODE,
+            NodeTypeId::DocumentFragment =>
+                NodeConstants::DOCUMENT_FRAGMENT_NODE,
+            NodeTypeId::Element(_) =>
+                NodeConstants::ELEMENT_NODE,
         }
     }
 
@@ -2008,7 +2016,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         // Step 4-5.
         match node.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is_document() => return Err(HierarchyRequest),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is_document() =>
+                return Err(HierarchyRequest),
             NodeTypeId::DocumentType if !self.is_document() => return Err(HierarchyRequest),
             NodeTypeId::DocumentFragment |
             NodeTypeId::DocumentType |
@@ -2159,7 +2168,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         match prev_text {
                             Some(ref text_node) => {
                                 let text_node = text_node.clone().root();
-                                let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text_node.r());
+                                let prev_characterdata: JSRef<CharacterData> =
+                                    CharacterDataCast::from_ref(text_node.r());
                                 let _ = prev_characterdata.AppendData(characterdata.Data());
                                 self.remove_child(child.r());
                             },

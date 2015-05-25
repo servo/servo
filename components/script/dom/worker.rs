@@ -192,7 +192,8 @@ pub struct WorkerErrorHandler {
 }
 
 impl WorkerErrorHandler {
-    pub fn new(addr: TrustedWorkerAddress, msg: DOMString, file_name: DOMString, line_num: u32, col_num: u32) -> WorkerErrorHandler {
+    pub fn new(addr: TrustedWorkerAddress, msg: DOMString, file_name: DOMString, line_num: u32, col_num: u32)
+            -> WorkerErrorHandler {
         WorkerErrorHandler {
             addr: addr,
             msg: msg,

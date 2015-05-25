@@ -42,7 +42,8 @@ use std::iter::repeat;
 use std::sync::Arc;
 use style::computed_values::filter::Filter;
 use style::computed_values::transform::ComputedMatrix;
-use style::computed_values::{background_attachment, background_clip, background_origin, background_repeat, background_size};
+use style::computed_values::{background_attachment, background_clip, background_origin,
+                             background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position, visibility};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
@@ -477,7 +478,8 @@ impl FragmentDisplayListBuilding for Fragment {
                     (absolute_bounds.origin.x, absolute_bounds.origin.y)
                 }
                 background_attachment::T::fixed => {
-                    // If the ‘background-attachment’ value for this image is ‘fixed’, then 'background-origin' has no effect.
+                    // If the ‘background-attachment’ value for this image is ‘fixed’, then
+                    // 'background-origin' has no effect.
                     origin_x = Au(0);
                     origin_y = Au(0);
                     (Au(0), Au(0))

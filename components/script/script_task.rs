@@ -32,7 +32,8 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
-use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource, MouseEventType};
+use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler,
+                    DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
@@ -1414,7 +1415,11 @@ impl ScriptTask {
         }
     }
 
-    fn handle_mouse_event(&self, pipeline_id: PipelineId, mouse_event_type: MouseEventType, button: MouseButton, point: Point2D<f32>) {
+    fn handle_mouse_event(&self,
+                          pipeline_id: PipelineId,
+                          mouse_event_type: MouseEventType,
+                          button: MouseButton,
+                          point: Point2D<f32>) {
         let _marker;
         if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
             _marker = AutoDOMEventMarker::new(self);

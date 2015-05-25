@@ -224,7 +224,8 @@ impl Request {
     }
 
     /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
-    pub fn http_fetch(&mut self, cors_flag: bool, cors_preflight_flag: bool, authentication_fetch_flag: bool) -> Response {
+    pub fn http_fetch(&mut self, cors_flag: bool, cors_preflight_flag: bool,
+                      authentication_fetch_flag: bool) -> Response {
         // Step 1
         let mut response: Option<Response> = None;
         // Step 2
@@ -333,7 +334,9 @@ impl Request {
                 self.same_origin_data = false;
                 // Step 10
                 if self.redirect_mode == RedirectMode::Follow {
-                    // FIXME: Origin method of the Url crate hasn't been implemented (https://github.com/servo/rust-url/issues/54)
+                    // FIXME: Origin method of the Url crate hasn't been implemented
+                    // https://github.com/servo/rust-url/issues/54
+
                     // Substep 1
                     // if cors_flag && location_url.origin() != self.url.origin() { self.origin = None; }
                     // Substep 2
@@ -387,7 +390,9 @@ impl Request {
     }
 
     /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
-    pub fn http_network_or_cache_fetch(&mut self, _credentials_flag: bool, _authentication_fetch_flag: bool) -> Response {
+    pub fn http_network_or_cache_fetch(&mut self,
+                                       _credentials_flag: bool,
+                                       _authentication_fetch_flag: bool) -> Response {
         // TODO: Implement HTTP network or cache fetch spec
         Response::network_error()
     }

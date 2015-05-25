@@ -19,19 +19,24 @@ pub struct HTMLDListElement {
 
 impl HTMLDListElementDerived for EventTarget {
     fn is_htmldlistelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDListElement)))
+        *self.type_id() ==
+            EventTargetTypeId::Node(
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDListElement)))
     }
 }
 
 impl HTMLDListElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDListElement {
         HTMLDListElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDListElement, localName, prefix, document)
+            htmlelement:
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLDListElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLDListElement> {
+    pub fn new(localName: DOMString,
+               prefix: Option<DOMString>,
+               document: JSRef<Document>) -> Temporary<HTMLDListElement> {
         let element = HTMLDListElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDListElementBinding::Wrap)
     }
