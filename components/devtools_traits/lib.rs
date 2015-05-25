@@ -148,9 +148,12 @@ impl Decodable for Modification {
 //TODO: Include options for Warn, Debug, Info, Error messages from Console
 #[derive(Clone)]
 pub enum ConsoleMessage {
-    // Log: message, filename, line number, column number
-    LogMessage(String, String, u32, u32),
-    //WarnMessage(String),
+    LogMessage {
+        message: String,
+        filename: String,
+        lineNumber: u32,
+        columnNumber: u32,
+    },
 }
 
 #[derive(Clone)]
