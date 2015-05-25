@@ -552,14 +552,15 @@ impl WindowMethods for Window {
         self.window.set_cursor(glutin_cursor);
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
+        use x11::xlib;
         NativeGraphicsMetadata {
-            display: unsafe { self.window.platform_display() }
+            display: unsafe { self.window.platform_display() as *mut xlib::Display }
         }
     }
 
@@ -691,7 +692,7 @@ impl WindowMethods for Window {
     fn set_cursor(&self, _: Cursor) {
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
 

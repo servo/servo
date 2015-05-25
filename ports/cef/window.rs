@@ -12,6 +12,7 @@ use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
 use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
+use wrappers::CefWrap;
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
@@ -20,7 +21,7 @@ use geom::size::TypedSize2D;
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use libc::{c_char, c_void};
+use libc::{c_char, c_int, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::ptr;
 use std_url::Url;
@@ -33,15 +34,17 @@ use std::sync::mpsc::{Sender, channel};
 #[cfg(target_os="linux")]
 extern crate x11;
 #[cfg(target_os="linux")]
-use self::x11::xlib::XOpenDisplay;
+use self::x11::xlib::{XInitThreads,XOpenDisplay};
+
+#[cfg(target_os="linux")]
+pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 
 /// The type of an off-screen window.
 #[allow(raw_pointer_derive)]
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
-#[cfg(target_os="linux")]
-    display: *mut c_void,
+    size: TypedSize2D<DevicePixel,u32>
 }
 
 #[cfg(target_os="macos")]
@@ -76,21 +79,12 @@ fn load_gl() {
 
 impl Window {
     /// Creates a new window.
-#[cfg(target_os="linux")]
-    pub fn new() -> Rc<Window> {
+    pub fn new(width: u32, height: u32) -> Rc<Window> {
         load_gl();
 
         Rc::new(Window {
             cef_browser: RefCell::new(None),
-            display: unsafe { XOpenDisplay(ptr::null()) as *mut c_void },
-        })
-    }
-#[cfg(not(target_os="linux"))]
-    pub fn new() -> Rc<Window> {
-        load_gl();
-
-        Rc::new(Window {
-            cef_browser: RefCell::new(None),
+            size: TypedSize2D(width, height)
         })
     }
 
@@ -175,14 +169,36 @@ impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel,u32> {
         let browser = self.cef_browser.borrow();
         match *browser {
-            None => TypedSize2D(400, 300),
+            None => self.size,
             Some(ref browser) => {
-                let mut rect = cef_rect_t::zero();
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .get_backing_rect((*browser).clone(), &mut rect);
-                TypedSize2D(rect.width as u32, rect.height as u32)
+                if browser.downcast().callback_executed.get() != true {
+                    self.size
+                } else {
+                    let mut rect = cef_rect_t::zero();
+                    rect.width = self.size.width.get() as i32;
+                    rect.height = self.size.height.get() as i32;
+                    if cfg!(target_os="macos") {
+                        // osx relies on virtual pixel scaling to provide sizes different from actual
+                        // pixel size on screen. other platforms are just 1.0 unless the desktop/toolkit says otherwise
+                        if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                           check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_backing_rect) {
+                            browser.get_host()
+                                   .get_client()
+                                   .get_render_handler()
+                                   .get_backing_rect((*browser).clone(), &mut rect);
+                        }
+                    } else {
+                        if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                           check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_view_rect) {
+                            browser.get_host()
+                                   .get_client()
+                                   .get_render_handler()
+                                   .get_view_rect((*browser).clone(), &mut rect);
+                        }
+                    }
+
+                    TypedSize2D(rect.width as u32, rect.height as u32)
+                }
             }
         }
     }
@@ -207,28 +223,43 @@ impl WindowMethods for Window {
         match *browser {
             None => {}
             Some(ref browser) => {
-                browser.get_host().get_client().get_render_handler().on_present(browser.clone());
+                if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                   check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_present) {
+                    browser.get_host().get_client().get_render_handler().on_present(browser.clone());
+                   }
             }
         }
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {
-        let browser = self.cef_browser.borrow();
-        match *browser {
-            None => ScaleFactor::new(1.0),
-            Some(ref browser) => {
-                let mut view_rect = cef_rect_t::zero();
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .get_view_rect((*browser).clone(), &mut view_rect);
-                let mut backing_rect = cef_rect_t::zero();
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .get_backing_rect((*browser).clone(), &mut backing_rect);
-                ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32)
+        if cfg!(target_os="macos") {
+            let browser = self.cef_browser.borrow();
+            match *browser {
+                None => ScaleFactor::new(1.0),
+                Some(ref browser) => {
+                    let mut view_rect = cef_rect_t::zero();
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_view_rect) {
+                        browser.get_host()
+                               .get_client()
+                               .get_render_handler()
+                               .get_view_rect((*browser).clone(), &mut view_rect);
+                    }
+                    let mut backing_rect = cef_rect_t::zero();
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_backing_rect) {
+                        browser.get_host()
+                               .get_client()
+                               .get_render_handler()
+                               .get_backing_rect((*browser).clone(), &mut backing_rect);
+                    }
+                    ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32)
+                }
             }
+        } else {
+            // FIXME(zmike)
+            // need to figure out a method for actually getting the scale factor instead of this nonsense
+            ScaleFactor::new(1.0 as f32)
         }
     }
 
@@ -246,9 +277,12 @@ impl WindowMethods for Window {
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
-       NativeGraphicsMetadata {
-           display: self.display,
-       }
+        use x11::xlib;
+        unsafe {
+            NativeGraphicsMetadata {
+                display: DISPLAY as *mut xlib::Display,
+            }
+        }
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)
@@ -260,15 +294,24 @@ impl WindowMethods for Window {
          box receiver as Box<CompositorReceiver>)
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self, width: usize, height: usize) -> bool {
         let browser = self.cef_browser.borrow();
         match *browser {
-            None => {}
+            None => {
+                panic!("No browser?!?");
+            }
             Some(ref browser) => {
-                browser.get_host().get_client().get_render_handler().paint(browser.clone());
+                if browser.downcast().host.downcast().composite_ok.get() == true {
+                    true
+                } else {
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_paint) {
+                        browser.get_host().get_client().get_render_handler().paint(browser.clone(), width, height);
+                    }
+                    false
+                }
             }
         }
-        true
     }
 
     fn load_end(&self) {
@@ -278,10 +321,13 @@ impl WindowMethods for Window {
             None => return,
             Some(ref browser) => browser,
         };
-        browser.get_host()
-               .get_client()
-               .get_load_handler()
-               .on_load_end((*browser).clone(), browser.get_main_frame(), 200);
+        if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_end) {
+            browser.get_host()
+                   .get_client()
+                   .get_load_handler()
+                   .on_load_end((*browser).clone(), browser.get_main_frame(), 200);
+        }
     }
 
     fn set_page_title(&self, string: Option<String>) {
@@ -332,11 +378,14 @@ impl WindowMethods for Window {
             Some(ref browser) => {
                 let cursor_handle = self.cursor_handle_for_cursor(cursor);
                 let info = CefCursorInfo { hotspot: cef_point_t {x: 0, y: 0}, image_scale_factor: 0.0, buffer: 0 as *mut isize, size: cef_size_t { width: 0, height: 0 } };
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .on_cursor_change(browser.clone(), cursor_handle,
-                         self.cursor_type_for_cursor(cursor), &info)
+                if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                   check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_cursor_change) {
+                    browser.get_host()
+                           .get_client()
+                           .get_render_handler()
+                           .on_cursor_change(browser.clone(), cursor_handle,
+                             self.cursor_type_for_cursor(cursor), &info)
+                   }
             }
         }
     }
@@ -378,7 +427,6 @@ impl CompositorProxy for CefCompositorProxy {
 
     #[cfg(target_os="linux")]
     fn send(&mut self, msg: compositor_task::Msg) {
-        // FIXME(pcwalton): Kick the GTK event loop awake?
         self.sender.send(msg).unwrap();
     }
 
@@ -389,3 +437,23 @@ impl CompositorProxy for CefCompositorProxy {
     }
 }
 
+#[cfg(target_os="linux")]
+pub fn init_window() {
+    unsafe {
+        assert!(XInitThreads() != 0);
+        DISPLAY = XOpenDisplay(ptr::null()) as *mut c_void;
+    }
+}
+#[cfg(not(target_os="linux"))]
+pub fn init_window() {}
+
+#[cfg(target_os="linux")]
+#[no_mangle]
+pub extern "C" fn cef_get_xdisplay() -> *mut c_void {
+    unsafe { DISPLAY }
+}
+#[cfg(not(target_os="linux"))]
+#[no_mangle]
+pub extern "C" fn cef_get_xdisplay() -> *mut c_void {
+    ptr::null_mut()
+}

@@ -7,6 +7,7 @@ use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_brows
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event, cef_window_handle_t};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 use browser::{self, ServoCefBrowserExtensions};
+use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use geom::point::TypedPoint2D;
@@ -14,13 +15,15 @@ use geom::size::TypedSize2D;
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::MouseButton;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 pub struct ServoCefBrowserHost {
     /// A reference to the browser.
     pub browser: RefCell<Option<CefBrowser>>,
     /// A reference to the client.
     pub client: CefClient,
+    /// flag for return value of prepare_for_composite
+    pub composite_ok: Cell<bool>,
 }
 
 full_cef_class_impl! {
@@ -35,9 +38,19 @@ full_cef_class_impl! {
 
         fn was_resized(&this,) -> () {{
             let mut rect = cef_rect_t::zero();
-            this.get_client()
-                .get_render_handler()
-                .get_backing_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
+            if cfg!(target_os="macos") {
+                if check_ptr_exist!(this.get_client(), get_render_handler) &&
+                   check_ptr_exist!(this.get_client().get_render_handler(), get_backing_rect) {
+                    this.get_client()
+                        .get_render_handler()
+                        .get_backing_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
+                }
+            } else if check_ptr_exist!(this.get_client(), get_render_handler) &&
+               check_ptr_exist!(this.get_client().get_render_handler(), get_view_rect) {
+                this.get_client()
+                    .get_render_handler()
+                    .get_view_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
+               }
             let size = TypedSize2D(rect.width as u32, rect.height as u32);
             this.downcast().send_window_event(WindowEvent::Resize(size));
         }}
@@ -165,6 +178,12 @@ full_cef_class_impl! {
             this.downcast().send_window_event(WindowEvent::InitializeCompositing);
         }}
 
+        fn composite(&this,) -> () {{
+            this.downcast().composite_ok.set(true);
+            this.downcast().send_window_event(WindowEvent::Refresh);
+            this.downcast().composite_ok.set(false);
+        }}
+
         fn get_window_handle(&this,) -> cef_window_handle_t {{
             let t = this.downcast();
             let browser = t.browser.borrow();
@@ -178,6 +197,7 @@ impl ServoCefBrowserHost {
         ServoCefBrowserHost {
             browser: RefCell::new(None),
             client: client,
+            composite_ok: Cell::new(false),
         }
     }
 

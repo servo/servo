@@ -1321,6 +1321,13 @@ pub struct _cef_browser_host_t {
       this: *mut cef_browser_host_t) -> ()>,
 
   //
+  // Instructs the browser to perform an accelerated composite. The appropriate
+  // Direct3D or OpenGL state must have been set up before calling this
+  // function.
+  //
+  pub composite: Option<extern "C" fn(this: *mut cef_browser_host_t) -> ()>,
+
+  //
   // Instructs the browser to initialize accelerated compositing. The
   // appropriate Direct3D or OpenGL state must have been set up before calling
   // this function.
@@ -2210,6 +2217,23 @@ impl CefBrowserHost {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).drag_source_system_drag_ended.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Instructs the browser to perform an accelerated composite. The appropriate
+  // Direct3D or OpenGL state must have been set up before calling this
+  // function.
+  //
+  pub fn composite(&self) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).composite.unwrap())(
           self.c_object))
     }
   }
