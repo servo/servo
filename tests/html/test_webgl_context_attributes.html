@@ -1,0 +1,9 @@
+<meta charset="utf-8">
+<title>WebGL Context Attributes test</title>
+<canvas id="c"></canvas>
+<script>
+  var gl = document.getElementById("c").getContext("webgl", { alpha: false });
+
+  if ( gl.getContextAttributes().alpha )
+    console.error("Alpha not expected");
+</script>

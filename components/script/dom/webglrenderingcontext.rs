@@ -23,6 +23,7 @@ use std::mem;
 use std::ptr;
 use std::sync::mpsc::{channel, Sender};
 use util::str::DOMString;
+use offscreen_gl_context::GLContextAttributes;
 
 #[dom_struct]
 pub struct WebGLRenderingContext {
@@ -33,9 +34,12 @@ pub struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
-    fn new_inherited(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>)
+    fn new_inherited(global: GlobalRef,
+                     canvas: JSRef<HTMLCanvasElement>,
+                     size: Size2D<i32>,
+                     attrs: GLContextAttributes)
                      -> Result<WebGLRenderingContext, &'static str> {
-        let chan = try!(WebGLPaintTask::start(size));
+        let chan = try!(WebGLPaintTask::start(size, attrs));
 
         Ok(WebGLRenderingContext {
             reflector_: Reflector::new(),
@@ -45,9 +49,9 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub fn new(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>)
+    pub fn new(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>, attrs: GLContextAttributes)
                -> Option<Temporary<WebGLRenderingContext>> {
-        match WebGLRenderingContext::new_inherited(global, canvas, size) {
+        match WebGLRenderingContext::new_inherited(global, canvas, size, attrs) {
             Ok(ctx) => Some(reflect_dom_object(box ctx, global,
                                                WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
