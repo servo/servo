@@ -1165,6 +1165,15 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return CGGeneric("*mut JSObject")
     if returnType.isSequence():
         raise TypeError("We don't support sequence return values")
+    if returnType.isDictionary():
+        nullable = returnType.nullable()
+        dictName = returnType.inner.name if nullable else returnType.name
+        result = CGGeneric(dictName)
+        if typeNeedsRooting(returnType, descriptorProvider):
+            raise TypeError("We don't support rootable dictionaries return values")
+        if nullable:
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
 
     raise TypeError("Don't know how to declare return value for %s" %
                     returnType)
@@ -4517,7 +4526,14 @@ class CGDictionary(CGThing):
             conversion = self.getMemberConversion(memberInfo)
             return CGGeneric("%s: %s,\n" % (name, conversion.define()))
 
+        def memberInsert(memberInfo):
+            member, _ = memberInfo
+            name = self.makeMemberName(member.identifier.name)
+            insertion = ("set_dictionary_property(cx, obj, \"%s\", &mut self.%s.to_jsval(cx)).unwrap();" % (name, name))
+            return CGGeneric("%s\n" % insertion)
+
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
+        memberInserts = CGList([memberInsert(m) for m in self.memberInfo])
 
         return string.Template(
             "impl ${selfName} {\n"
@@ -4538,10 +4554,19 @@ class CGDictionary(CGThing):
             "${initMembers}"
             "        })\n"
             "    }\n"
-            "}").substitute({
+            "}\n"
+            "\n"
+            "impl ToJSValConvertible for ${selfName} {\n"
+            "    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {\n"
+            "        let obj = unsafe { JS_NewObject(cx, 0 as *const JSClass, 0 as *const JSObject, 0 as *const JSObject) };\n"
+            "${insertMembers}"
+            "        ObjectOrNullValue(obj)\n"
+            "    }\n"
+            "}\n").substitute({
                 "selfName": self.makeClassName(d),
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
                 "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
+                "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
                 })
 
     @staticmethod
@@ -4589,6 +4614,7 @@ class CGDictionary(CGThing):
             "}") % (member.identifier.name, indent(conversion), indent(default))
 
         return CGGeneric(conversion)
+
 
     @staticmethod
     def makeIdName(name):
@@ -4750,6 +4776,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::throwing_constructor',
             'dom::bindings::utils::get_dictionary_property',
+            'dom::bindings::utils::set_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::utils::NonNullJSNative',

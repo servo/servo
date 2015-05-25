@@ -28,11 +28,10 @@ pub struct WebGLPaintTask {
 unsafe impl Send for WebGLPaintTask {}
 
 impl WebGLPaintTask {
-    fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
-        // TODO(ecoal95): Get the GLContextAttributes from the `GetContext` call
+    fn new(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<WebGLPaintTask, &'static str> {
         let context = try!(
             GLContext::create_offscreen_with_color_attachment(
-                size, GLContextAttributes::default(), ColorAttachmentType::TextureWithSurface));
+                size, attrs, ColorAttachmentType::TextureWithSurface));
         Ok(WebGLPaintTask {
             size: size,
             original_context_size: size,
@@ -42,6 +41,7 @@ impl WebGLPaintTask {
 
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
         match message {
+            CanvasWebGLMsg::GetContextAttributes(sender) => self.get_context_attributes(sender),
             CanvasWebGLMsg::AttachShader(program_id, shader_id) => self.attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id) => self.bind_buffer(buffer_type, buffer_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) => self.buffer_data(buffer_type, data, usage),
@@ -71,9 +71,9 @@ impl WebGLPaintTask {
         }
     }
 
-    pub fn start(size: Size2D<i32>) -> Result<Sender<CanvasMsg>, &'static str> {
+    pub fn start(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<Sender<CanvasMsg>, &'static str> {
         let (chan, port) = channel::<CanvasMsg>();
-        let mut painter = try!(WebGLPaintTask::new(size));
+        let mut painter = try!(WebGLPaintTask::new(size, attrs));
         spawn_named("WebGLTask".to_owned(), move || {
             painter.init();
             loop {
@@ -96,6 +96,10 @@ impl WebGLPaintTask {
         });
 
         Ok(chan)
+    }
+
+    fn get_context_attributes(&self, sender: Sender<GLContextAttributes>) {
+        sender.send(*self.gl_context.borrow_attributes()).unwrap()
     }
 
     fn attach_shader(&self, program_id: u32, shader_id: u32) {

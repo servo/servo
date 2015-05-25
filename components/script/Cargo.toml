@@ -73,6 +73,9 @@ git = "https://github.com/servo/string-cache"
 version = "0.2.33"
 features = ["query_encoding"]
 
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+
 [dependencies]
 encoding = "0.2"
 time = "0.1.12"
