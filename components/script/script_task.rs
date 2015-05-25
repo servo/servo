@@ -21,6 +21,7 @@
 
 use document_loader::{LoadType, DocumentLoader, NotifierData};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
@@ -88,7 +89,7 @@ use js::jsapi::{JS_GetRuntime, JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetD
 use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use url::Url;
+use url::{Url, UrlParser};
 
 use libc;
 use std::any::Any;
@@ -1532,11 +1533,48 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
+
+                let mut prev_mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+                for target in self.mouse_over_targets.borrow_mut().iter() {
+                    prev_mouse_over_targets.push(target.clone());
+                }
+
                 // We temporarily steal the list of targets over which the mouse is to pass it to
                 // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
+
+                // Notify Constellation about anchors that are no longer mouse over targets.
+                for target in prev_mouse_over_targets.iter() {
+                    if !mouse_over_targets.contains(target) {
+                        if target.root().r().is_anchor_element() {
+                            let event = ConstellationMsg::NodeStatus(None);
+                            let ConstellationChan(ref chan) = self.constellation_chan;
+                            chan.send(event).unwrap();
+                            break;
+                        }
+                    }
+                }
+
+                // Notify Constellation about the topmost anchor mouse over target.
+                for target in mouse_over_targets.iter() {
+                    let target = target.root();
+                    if target.r().is_anchor_element() {
+                        let element = ElementCast::to_ref(target.r()).unwrap();
+                        let status = element.get_attribute(&ns!(""), &atom!("href"))
+                            .and_then(|href| {
+                                let value = href.r().Value();
+                                let url = document.r().url();
+                                UrlParser::new().base_url(&url).parse(&value).map(|url| url.serialize()).ok()
+                            });
+                        let event = ConstellationMsg::NodeStatus(status);
+                        let ConstellationChan(ref chan) = self.constellation_chan;
+                        chan.send(event).unwrap();
+                        break;
+                    }
+                }
+
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 

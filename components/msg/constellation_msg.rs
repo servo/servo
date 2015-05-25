@@ -269,6 +269,8 @@ pub enum Msg {
     CreateWebGLPaintTask(Size2D<i32>,
                          GLContextAttributes,
                          IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
+    /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
+    NodeStatus(Option<String>),
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]

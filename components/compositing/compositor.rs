@@ -420,6 +420,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }
 
+            (Msg::Status(message), ShutdownState::NotShuttingDown) => {
+                self.window.status(message);
+            }
+
             (Msg::LoadStart(back, forward), ShutdownState::NotShuttingDown) => {
                 self.window.load_start(back, forward);
             }

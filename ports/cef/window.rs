@@ -316,6 +316,9 @@ impl WindowMethods for Window {
         browser.downcast().favicons.borrow_mut().push(url.to_string().clone());
     }
 
+    fn status(&self, _: Option<String>) {
+    }
+
     fn load_start(&self, back: bool, forward: bool) {
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
