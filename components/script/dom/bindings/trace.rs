@@ -410,14 +410,17 @@ impl VecRootableType for *mut JSObject {
     fn tag(_a: Option<*mut JSObject>) -> CollectionType { CollectionType::JSObjects }
 }
 
-enum Void {}
+#[must_root]
+struct Void {
+    reflector: Reflector,
+}
 
 impl VecRootableType for Void {
     fn tag(_a: Option<Void>) -> CollectionType { unreachable!() }
 }
 
 impl Reflectable for Void {
-    fn reflector<'a>(&'a self) -> &'a Reflector { unreachable!() }
+    fn reflector<'a>(&'a self) -> &'a Reflector { &self.reflector }
 }
 
 /// A vector of items that are rooted for the lifetime
