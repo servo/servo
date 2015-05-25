@@ -14,7 +14,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap, Rootable};
 use dom::bindings::js::Temporary;
 use dom::bindings::js::Unrooted;
-use dom::bindings::utils::{Reflectable};
+use dom::bindings::utils::{Reflectable, get_dictionary_property};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{Element, AttributeHandlers};
@@ -26,6 +26,9 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderingContextHelpers};
 
 use util::str::{DOMString, parse_unsigned_integer};
+use js::jsapi::{JSContext, JSObject};
+use js::jsval::JSVal;
+use offscreen_gl_context::GLContextAttributes;
 
 use geom::size::Size2D;
 
@@ -133,23 +136,21 @@ pub trait HTMLCanvasElementHelpers {
 
 impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
     fn get_2d_context(self) -> Temporary<CanvasRenderingContext2D> {
-        let context = self.GetContext(String::from_str("2d"));
-        match context.unwrap() {
-            CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(context) => {
-              Temporary::from_unrooted(context)
-            }
-            _ => panic!("Wrong Context Type: Expected 2d context"),
-        }
+        let canvas_ref = self.extended_deref();
+
+        canvas_ref.context_2d.get()
+            .map(Unrooted::from_js)
+            .map(Temporary::from_unrooted)
+            .expect("Wrong Context Type: Expected 2d context")
     }
 
     fn get_webgl_context(self) -> Temporary<WebGLRenderingContext> {
-        let context = self.GetContext(String::from_str("webgl"));
-        match context.unwrap() {
-            CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(context) => {
-              Temporary::from_unrooted(context)
-            },
-            _ => panic!("Wrong Context Type: Expected webgl context"),
-        }
+        let canvas_ref = self.extended_deref();
+
+        canvas_ref.context_webgl.get()
+            .map(Unrooted::from_js)
+            .map(Temporary::from_unrooted)
+            .expect("Wrong Context Type: Expected WebGL context")
     }
 
     fn is_valid(self) -> bool {
@@ -176,11 +177,20 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
-    fn GetContext(self, id: DOMString) -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
+    fn GetContext(self,
+                  cx: *mut JSContext,
+                  id: DOMString,
+                  webgl_attributes: JSVal)
+        -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match &*id {
             "2d" => {
                 if self.context_webgl.get().is_some() {
                     debug!("Trying to get a 2d context for a canvas with an already initialized WebGL context");
+                    return None;
+                }
+
+                if !webgl_attributes.is_null() {
+                    debug!("WebGL attributes found for a 2d context");
                     return None;
                 }
 
@@ -203,8 +213,19 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
                     let window = window_from_node(self).root();
                     let size = self.get_size();
 
+                    let attrs = if webgl_attributes.is_null() {
+                        GLContextAttributes::default()
+                    } else if webgl_attributes.is_object() {
+                        GLContextAttributes::from_js_object(cx, webgl_attributes.to_object())
+                    } else {
+                        debug!("WebGL attributes should be an object or null");
+                        return None;
+                    };
+
+
                     self.context_webgl.set(
-                        WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size).map(JS::from_rooted))
+                        WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size, attrs)
+                            .map(JS::from_rooted))
                 }
 
                 self.context_webgl.get().map( |ctx|
@@ -212,6 +233,55 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
             }
             _ => None
         }
+    }
+}
+
+// TODO(ecoal95): put this in a common place for reuse?
+trait FromJSObject {
+    fn from_js_object(context: *mut JSContext, object: *mut JSObject) -> Self;
+}
+
+impl FromJSObject for GLContextAttributes {
+    fn from_js_object(ctx: *mut JSContext, obj: *mut JSObject) -> GLContextAttributes {
+        let mut attrs = GLContextAttributes::default();
+
+        if obj.is_null() {
+            return attrs;
+        }
+
+        if let Some(alpha) = get_dictionary_property(ctx, obj, "alpha").unwrap() {
+            if alpha.is_boolean() {
+                attrs.alpha = alpha.to_boolean();
+            }
+        }
+
+        if let Some(depth) = get_dictionary_property(ctx, obj, "depth").unwrap() {
+            if depth.is_boolean() {
+                attrs.depth = depth.to_boolean();
+            }
+        }
+
+        if let Some(stencil) = get_dictionary_property(ctx, obj, "stencil").unwrap() {
+            if stencil.is_boolean() {
+                attrs.stencil = stencil.to_boolean();
+            }
+        }
+
+        if let Some(antialias) = get_dictionary_property(ctx, obj, "antialias").unwrap() {
+            if antialias.is_boolean() {
+                attrs.antialias = antialias.to_boolean();
+            }
+        }
+
+        if let Some(premultiplied_alpha) = get_dictionary_property(ctx, obj, "premultipliedAlpha").unwrap() {
+            if premultiplied_alpha.is_boolean() {
+                attrs.premultiplied_alpha = premultiplied_alpha.to_boolean();
+            }
+        }
+
+        // TODO(ecoal95): add support for preserve_drawing_buffer, and maybe other optional
+        // arguments
+        attrs
     }
 }
 
