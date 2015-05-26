@@ -536,7 +536,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.0.0"
-source = "git+https://github.com/servo/html5ever#f026acf403e92d264dc63665c613a205e3ffb2a9"
+source = "git+https://github.com/servo/html5ever#7ddaa598b84e5e7fb9bf5313c02c1aaca970cb4b"
 dependencies = [
  "html5ever_macros 0.0.0 (git+https://github.com/servo/html5ever)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -551,7 +551,7 @@ dependencies = [
 [[package]]
 name = "html5ever_macros"
 version = "0.0.0"
-source = "git+https://github.com/servo/html5ever#f026acf403e92d264dc63665c613a205e3ffb2a9"
+source = "git+https://github.com/servo/html5ever#7ddaa598b84e5e7fb9bf5313c02c1aaca970cb4b"
 dependencies = [
  "mac 0.0.2 (git+https://github.com/reem/rust-mac)",
  "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -847,7 +847,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#99cee719a811f28e70fe33fa71137663ac210487"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#13c9f786c55266fa1594cb520fdbc74f45fda809"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
