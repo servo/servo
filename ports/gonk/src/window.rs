@@ -12,6 +12,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::constellation_msg::{Key, KeyModifiers};
+use net::net_error_list::NetError;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::rc::Rc;
 use std::mem::transmute;
@@ -806,6 +807,9 @@ impl WindowMethods for Window {
     }
 
     fn load_end(&self, _: bool, _: bool) {
+    }
+
+    fn load_error(&self, _: NetError, _: String) {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
