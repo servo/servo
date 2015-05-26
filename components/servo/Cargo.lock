@@ -89,6 +89,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx_traits 0.0.1",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
 ]
 
 [[package]]
