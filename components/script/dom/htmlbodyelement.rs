@@ -138,9 +138,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                 let doc = document_from_node(*self).root();
                 let base = doc.r().url();
 
-                if let Ok(url) = UrlParser::new().base_url(&base).parse(&attr.value()) {
-                    *self.background.borrow_mut() = Some(url)
-                }
+                *self.background.borrow_mut() = UrlParser::new().base_url(&base).parse(&attr.value()).ok();
             }
             _ => {}
         }
@@ -154,6 +152,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
 
         match attr.local_name() {
             &atom!("bgcolor") => self.background_color.set(None),
+            &atom!("background") => *self.background.borrow_mut() = None,
             _ => {}
         }
     }
