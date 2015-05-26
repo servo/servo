@@ -29,7 +29,7 @@ use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAn
 use js::jsapi::JSHandleObject;
 use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
-use js::jsapi::{JS_GetProperty, JS_HasProperty};
+use js::jsapi::{JS_GetProperty, JS_HasProperty, JS_SetProperty};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass};
@@ -510,7 +510,6 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
 pub fn get_dictionary_property(cx: *mut JSContext,
                                object: *mut JSObject,
                                property: &str) -> Result<Option<JSVal>, ()> {
-    use std::ffi::CString;
     fn has_property(cx: *mut JSContext, object: *mut JSObject, property: &CString,
                     found: &mut JSBool) -> bool {
         unsafe {
@@ -544,6 +543,27 @@ pub fn get_dictionary_property(cx: *mut JSContext,
     }
 
     Ok(Some(value))
+}
+
+/// Set the property with name `property` from `object`.
+/// Returns `Err(())` on JSAPI failure, or null object,
+/// and Ok(()) otherwise
+pub fn set_dictionary_property(cx: *mut JSContext,
+                               object: *mut JSObject,
+                               property: &str,
+                               value: &mut JSVal) -> Result<(), ()> {
+    if object.is_null() {
+        return Err(());
+    }
+
+    let property = CString::new(property).unwrap();
+    unsafe {
+        if JS_SetProperty(cx, object, property.as_ptr(), value) == 0 {
+            return Err(());
+        }
+    }
+
+    Ok(())
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
