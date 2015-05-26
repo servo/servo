@@ -1029,9 +1029,9 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn create_node_list<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList> {
         let window = self.window.root();
         let doc = self.GetDocumentElement().root();
-        let node = doc.r().map(NodeCast::from_ref);
-        let iter = node.iter().flat_map(|node| node.traverse_preorder())
-                       .filter(|node| callback(node.root().r()));
+        let maybe_node = doc.r().map(NodeCast::from_ref);
+        let iter = maybe_node.iter().flat_map(|node| node.traverse_preorder())
+                             .filter(|node| callback(node.root().r()));
         NodeList::new_simple_list(window.r(), iter)
     }
 
