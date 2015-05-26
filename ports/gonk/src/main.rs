@@ -34,6 +34,7 @@ extern crate script_traits;
 extern crate geom;
 extern crate libc;
 extern crate msg;
+extern crate net;
 extern crate gleam;
 extern crate layers;
 extern crate egl;

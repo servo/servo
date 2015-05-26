@@ -12,6 +12,7 @@ use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use net::net_error_list::NetError;
 use script_traits::MouseButton;
 use url::Url;
 use util::cursor::Cursor;
@@ -107,6 +108,8 @@ pub trait WindowMethods {
     fn load_start(&self, back: bool, forward: bool);
     /// Called when the browser is done loading a frame.
     fn load_end(&self, back: bool, forward: bool);
+    /// Called when the browser encounters an error while loading a URL
+    fn load_error(&self, code: NetError, url: String);
 
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;

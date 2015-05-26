@@ -24,6 +24,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
+use net::net_error_list::NetError;
 use std::ptr;
 use std_url::Url;
 use util::cursor::Cursor;
@@ -358,6 +359,9 @@ impl WindowMethods for Window {
                    .get_load_handler()
                    .on_load_end((*browser).clone(), browser.get_main_frame(), 200);
         }
+    }
+
+    fn load_error(&self, _: NetError, _: String) {
     }
 
     fn set_page_title(&self, string: Option<String>) {
