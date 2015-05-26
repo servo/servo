@@ -801,6 +801,8 @@ impl ScriptTask {
                 devtools::handle_get_children(&page, id, node_id, reply),
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) =>
                 devtools::handle_get_layout(&page, id, node_id, reply),
+            DevtoolScriptControlMsg::GetCachedMessages(pipeline_id, message_types, reply) =>
+                devtools::handle_get_cached_messages(pipeline_id, message_types, reply),
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&page, id, node_id, modifications),
             DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id, to_send) =>
