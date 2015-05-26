@@ -69,7 +69,8 @@ use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
 use style::node::TNode;
 use style::selector_matching::Stylist;
-use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
+use style::stylesheets::{Origin, Stylesheet, CSSRule, CSSRuleIteratorExt};
+use style::viewport::ViewportRule;
 use url::Url;
 use util::cursor::Cursor;
 use util::fnv::FnvHasher;
@@ -527,6 +528,9 @@ impl LayoutTask {
                 self.handle_load_stylesheet(url, mq, pending, link_element, possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
+            Msg::AddMetaViewport(translated_rule) => {
+                self.handle_add_meta_viewport(translated_rule, possibly_locked_rw_data)
+            }
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>).unwrap();
@@ -679,6 +683,19 @@ impl LayoutTask {
             rw_data.stylist.add_stylesheet(sheet);
         }
 
+        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+    }
+
+    fn handle_add_meta_viewport<'a>(&'a self,
+                                    translated_rule: ViewportRule,
+                                    possibly_locked_rw_data:
+                                      &mut Option<MutexGuard<'a, LayoutTaskData>>)
+    {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        rw_data.stylist.add_stylesheet(Stylesheet {
+            rules: vec![CSSRule::Viewport(translated_rule)],
+            origin: Origin::Author
+        });
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
