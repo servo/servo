@@ -2,8 +2,11 @@
 <title>WebGL Context Attributes test</title>
 <canvas id="c"></canvas>
 <script>
-  var gl = document.getElementById("c").getContext("webgl", { alpha: false });
+  var gl = document.getElementById("c").getContext("webgl", { alpha: false }),
+      attributes = gl.getContextAttributes();
 
-  if ( gl.getContextAttributes().alpha )
+  console.log("Got context attributes: ", JSON.stringify(attributes));
+
+  if ( attributes.alpha )
     console.error("Alpha not expected");
 </script>

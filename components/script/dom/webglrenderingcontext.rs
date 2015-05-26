@@ -6,7 +6,7 @@ use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
-    WebGLRenderingContextMethods, WebGLRenderingContextConstants};
+    WebGLContextAttributes, WebGLRenderingContextMethods, WebGLRenderingContextConstants};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -73,6 +73,28 @@ impl Drop for WebGLRenderingContext {
 }
 
 impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
+    fn GetContextAttributes(self) -> Option<WebGLContextAttributes> {
+        let (sender, receiver) = channel();
+
+        // If the send does not succeed, assume context lost
+        if let Err(_) = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetContextAttributes(sender))) {
+            return None;
+        }
+        let attrs = receiver.recv().unwrap();
+
+        Some(WebGLContextAttributes {
+            alpha: attrs.alpha,
+            antialias: attrs.antialias,
+            depth: attrs.depth,
+            failIfMajorPerformanceCaveat: false,
+            preferLowPowerToHighPerformance: false,
+            premultipliedAlpha: attrs.premultiplied_alpha,
+            preserveDrawingBuffer: attrs.preserve_drawing_buffer,
+            stencil: attrs.stencil
+        })
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn AttachShader(self, program: Option<JSRef<WebGLProgram>>, shader: Option<JSRef<WebGLShader>>) {
         let program_id = match program {

@@ -41,6 +41,7 @@ impl WebGLPaintTask {
 
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
         match message {
+            CanvasWebGLMsg::GetContextAttributes(sender) => self.get_context_attributes(sender),
             CanvasWebGLMsg::AttachShader(program_id, shader_id) => self.attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id) => self.bind_buffer(buffer_type, buffer_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) => self.buffer_data(buffer_type, data, usage),
@@ -95,6 +96,10 @@ impl WebGLPaintTask {
         });
 
         Ok(chan)
+    }
+
+    fn get_context_attributes(&self, sender: Sender<GLContextAttributes>) {
+        sender.send(*self.gl_context.borrow_attributes()).unwrap()
     }
 
     fn attach_shader(&self, program_id: u32, shader_id: u32) {
