@@ -303,6 +303,9 @@ impl<'a> PrivateServoHTMLParserHelpers for JSRef<'a, ServoHTMLParser> {
                 break;
             }
 
+            let document = self.document.root();
+            document.r().reflow_if_reflow_timer_expired();
+
             let mut pending_input = self.pending_input.borrow_mut();
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
