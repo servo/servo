@@ -11,11 +11,13 @@ use interfaces::{cef_request_context_t};
 use servo::Browser;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t, cef_window_handle_t};
 use window;
+use wrappers::CefWrap;
 
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glutin_app;
 use libc::c_int;
 use std::cell::{Cell, RefCell, BorrowState};
+use std::ptr;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 
@@ -275,9 +277,9 @@ fn browser_host_create(window_info: &cef_window_info_t,
     if callback_executed {
         browser_callback_after_created(browser.clone());
     }
-    //if url != ptr::null() {
-       //unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
-    //}
+    if url != ptr::null() {
+       unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
+    }
     BROWSERS.with(|browsers| {
         browsers.borrow_mut().push(browser.clone());
     });
