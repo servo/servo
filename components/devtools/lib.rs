@@ -250,7 +250,10 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                               id: PipelineId,
                               console_message: ConsoleMessage,
                               actor_pipelines: &HashMap<PipelineId, String>) {
-        let console_actor_name = find_console_actor(actors.clone(), id, actor_pipelines);
+        let console_actor_name = match find_console_actor(actors.clone(), id, actor_pipelines) {
+            Some(name) => name,
+            None => return,
+        };
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let msg = ConsoleAPICall {
@@ -278,12 +281,15 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
                           id: PipelineId,
-                          actor_pipelines: &HashMap<PipelineId, String>) -> String {
+                          actor_pipelines: &HashMap<PipelineId, String>) -> Option<String> {
         let actors = actors.lock().unwrap();
-        let ref tab_actor_name = (*actor_pipelines)[&id];
+        let tab_actor_name = match (*actor_pipelines).get(&id) {
+            Some(name) => name,
+            None => return None,
+        };
         let tab_actor = actors.find::<TabActor>(tab_actor_name);
         let console_actor_name = tab_actor.console.clone();
-        return console_actor_name;
+        return Some(console_actor_name);
     }
 
     fn handle_network_event(actors: Arc<Mutex<ActorRegistry>>,
@@ -294,7 +300,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                             request_id: String,
                             network_event: NetworkEvent) {
 
-        let console_actor_name = find_console_actor(actors.clone(), pipeline_id, actor_pipelines);
+        let console_actor_name = match find_console_actor(actors.clone(), pipeline_id,
+                                                          actor_pipelines) {
+            Some(name) => name,
+            None => return,
+        };
         let netevent_actor_name = find_network_event_actor(actors.clone(), actor_requests, request_id.clone());
         let mut actors = actors.lock().unwrap();
         let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
