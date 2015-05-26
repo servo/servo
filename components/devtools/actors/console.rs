@@ -83,12 +83,11 @@ impl Actor for ConsoleActor {
                       stream: &mut TcpStream) -> Result<bool, ()> {
         Ok(match msg_type {
             "getCachedMessages" => {
-                let mut message_types = CachedConsoleMessageTypes::empty();
-                for str_type in msg.get(
-                    &"messageTypes".to_string(),
-                ).unwrap().as_array().unwrap().into_iter().map(|json_type| {
+                let str_types = msg.get("messageTypes").unwrap().as_array().unwrap().into_iter().map(|json_type| {
                     json_type.as_string().unwrap()
-                }) {
+                });
+                let mut message_types = CachedConsoleMessageTypes::empty();
+                for str_type in str_types {
                     match str_type {
                         "PageError" => message_types.insert(PAGE_ERROR),
                         "ConsoleAPI" => message_types.insert(CONSOLE_API),
