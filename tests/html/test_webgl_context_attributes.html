@@ -2,7 +2,7 @@
 <title>WebGL Context Attributes test</title>
 <canvas id="c"></canvas>
 <script>
-  var gl = document.getElementById("c").getContext("webgl", { alpha: false }),
+  var gl = document.getElementById("c").getContext("webgl", { alpha: false, antialias: "" }),
       attributes = gl.getContextAttributes();
 
   console.log("Got context attributes: ", JSON.stringify(attributes));

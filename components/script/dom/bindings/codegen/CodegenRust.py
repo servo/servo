@@ -4588,7 +4588,7 @@ class CGDictionary(CGThing):
                 "selfName": self.makeClassName(d),
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
                 "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
-                "insertMembers": CGIndenter(memberInserts, indentLevel=12).define(),
+                "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
                 })
 
     @staticmethod
