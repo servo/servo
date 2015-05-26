@@ -185,8 +185,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
                 }
 
                 if !webgl_attributes.is_null() {
-                    debug!("WebGL attributes found for a 2d context");
-                    return None;
+                    debug!("WebGLContextAttributes found for a 2d context, ignoring...");
                 }
 
                 let context_2d = self.context_2d.or_init(|| {
