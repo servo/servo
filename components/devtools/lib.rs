@@ -249,8 +249,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                               console_message: ConsoleMessage,
                               actor_pipelines: &HashMap<PipelineId, String>) {
         let console_actor_name = find_console_actor(actors.clone(), id, actor_pipelines);
+        if console_actor_name.is_none() {
+            return;
+        }
         let actors = actors.lock().unwrap();
-        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
+        let console_actor = actors.find::<ConsoleActor>(&console_actor_name.unwrap());
         match console_message {
             ConsoleMessage::LogMessage {
                 message,
@@ -279,12 +282,15 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
                           id: PipelineId,
-                          actor_pipelines: &HashMap<PipelineId, String>) -> String {
+                          actor_pipelines: &HashMap<PipelineId, String>) -> Option<String> {
         let actors = actors.lock().unwrap();
-        let ref tab_actor_name = (*actor_pipelines)[&id];
-        let tab_actor = actors.find::<TabActor>(tab_actor_name);
+        let tab_actor_name = (*actor_pipelines).get(&id);
+        if tab_actor_name.is_none() {
+            return None;
+        }
+        let tab_actor = actors.find::<TabActor>(tab_actor_name.unwrap());
         let console_actor_name = tab_actor.console.clone();
-        return console_actor_name;
+        return Some(console_actor_name);
     }
 
     fn handle_network_event(actors: Arc<Mutex<ActorRegistry>>,
@@ -305,14 +311,16 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 //Store the request information in the actor
                 actor.add_request(url, method, headers, body);
 
-                //Send a networkEvent message to the client
-                let msg = NetworkEventMsg {
-                    from: console_actor_name,
-                    __type__: "networkEvent".to_string(),
-                    eventActor: actor.get_event_actor(),
-                };
-                for stream in connections.iter_mut() {
-                    stream.write_json_packet(&msg);
+                if console_actor_name.is_some() {
+                    //Send a networkEvent message to the client
+                    let msg = NetworkEventMsg {
+                        from: console_actor_name.unwrap(),
+                        __type__: "networkEvent".to_string(),
+                        eventActor: actor.get_event_actor(),
+                    };
+                    for stream in connections.iter_mut() {
+                        stream.write_json_packet(&msg);
+                    }
                 }
             }
             NetworkEvent::HttpResponse(headers, status, body) => {
