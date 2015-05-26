@@ -3,7 +3,9 @@ use dom::bindings::codegen::Bindings::FileReaderBinding;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::Error::{InvalidState, InvalidAccess};
+use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary, Rootable};
 use dom::bindings::refcounted::Trusted;
@@ -16,6 +18,35 @@ use script_task::Runnable;
 use script_task::ScriptMsg;
 use std::cell::{Cell, RefCell};
 use util::str::DOMString;
+
+pub struct GenerationId(u32);
+
+struct FileReaderContext {
+    fr: Trusted<FileReader>,
+    blob: Trusted<Blob>,
+    gen_id: GenerationId,
+    buf: RefCell<Vec<u8>>,
+    sync_status: RefCell<Option<ErrorResult>>,
+}
+
+#[derive(Clone)]
+pub enum FileReaderProgress {
+    /// Partial progress (after receiving headers), containing portion of the response
+    Loading(GenerationId),
+    /// Loading is done
+    Done(GenerationId),
+    /// There was an error (only Abort, Timeout or Network is used)
+    Errored(GenerationId, Error),
+}
+impl FileReaderProgress {
+    fn generation_id(&self) -> GenerationId {
+        match *self {
+            FileReaderProgress::Loading(id) |
+            FileReaderProgress::Done(id) |
+            FileReaderProgress::Errored(id, _) => id
+        }
+    }
+}
 
 #[repr(u16)]
 #[derive(Copy, Clone, Debug)]
@@ -36,9 +67,8 @@ pub struct FileReader {
     //result: Option<UnionTypes::StringOrArrayBuffer> 
 }
 
-
 impl FileReader {
-    fn new_inherited(global: GlobalRef, state: FileReaderReadyState) -> FileReader {
+    pub fn new_inherited(global: GlobalRef, state: FileReaderReadyState) -> FileReader {
         FileReader { 
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::FileReader),//?
             global: GlobalField::from_rooted(&global),
@@ -55,6 +85,11 @@ impl FileReader {
 
     pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<FileReader>> {
         Ok(FileReader::new(global,FileReaderReadyState::Empty))
+    }
+
+    fn initiate_async_read(context: Arc<Mutex<FileReaderContext>>,
+                          script_chan: Box<ScriptChan+Send>,
+                          resource_task: ResourceTask) {        
     }
 }
 
@@ -77,12 +112,12 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
 
 
         self.ready_state.set(FileReaderReadyState::Loading);//3. ReadAsText
-
+/*
         let global_root = self.global.root();
         let addr: Trusted<FileReader> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
-        let open_task = box FileReaderTaskHandler::new(addr.clone(), FileReaderTask::Open);
+        let open_task = box FileReaderTaskHandler::new(addr.clone(), FileReaderTask::Open, blob.bytes);
         global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();//4. ReadAsText
-
+*/
 
     }
 
@@ -102,33 +137,46 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         //end tasks ?
 
         //terminate reading alg
-
-        let event = Event::new(global.r(), "abort".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        event.r().fire(target);
-
-        let event = Event::new(global.r(), "loadend".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        event.r().fire(target);
-
+        
+        self.dispatch_response_progress_event("abort".to_owned(),0,None);
+        self.dispatch_response_progress_event("abort".to_owned(),0,None);
     }
 
     fn GetError(self) -> Option<Temporary<DOMException>>{
-        return None;
+        self.error.borrow()
     }
 
     fn GetResult(self) -> Option<DOMString>{
-        return None;
+        self.result.borrow()
     }
 
     fn ReadyState(self) -> u16{
-        return self.ready_state.get() as u16;
+        self.ready_state.get() as u16
     }
 
+}
+
+trait PrivateFileReaderHelpers {
+    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
+}
+
+impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
+
+    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
+        let global = self.global.root();
+        let upload_target = self.upload.root();
+        let progressevent = ProgressEvent::new(global.r(),
+                                               type_, false, false,
+                                               total.is_some(), loaded,
+                                               total.unwrap_or(0)).root();
+        let target: JSRef<EventTarget> = if upload {
+            EventTargetCast::from_ref(upload_target.r())
+        } else {
+            EventTargetCast::from_ref(self)
+        };
+        let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
+        event.fire(target);
+    }
 }
 
 
@@ -140,14 +188,17 @@ pub enum FileReaderTask {
 pub struct FileReaderTaskHandler {
     addr: Trusted<FileReader>,
     task: FileReaderTask,
-//    blob: Blob
+    bytes: Option<Vec<u8>>
+//    blob: JSRef<Blob>
 }
 
 impl FileReaderTaskHandler {
-    pub fn new(addr: Trusted<FileReader>, task: FileReaderTask) -> FileReaderTaskHandler {
+    pub fn new(addr: Trusted<FileReader>, task: FileReaderTask,bytes: Option<Vec<u8>>) -> FileReaderTaskHandler {
         FileReaderTaskHandler {
             addr: addr,
-            task: task
+            task: task,
+            bytes: bytes
+//            blob: blob
         }
     }
 

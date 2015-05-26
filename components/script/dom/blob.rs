@@ -79,6 +79,18 @@ impl Blob {
     }
 }
 
+
+pub trait BlobHelpers {
+    fn read_out_buffer(&self) -> Option<Vec<u8>>;
+}
+
+impl<'a> BlobHelpers for JSRef<'a, Blob> {
+    fn read_out_buffer(&self) -> Option<Vec<u8>> {
+        self.bytes
+    }
+}
+
+
 impl<'a> BlobMethods for JSRef<'a, Blob> {
     // http://dev.w3.org/2006/webapi/FileAPI/#dfn-size
     fn Size(self) -> u64{
