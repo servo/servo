@@ -262,6 +262,7 @@ pub fn browser_callback_after_created(browser: CefBrowser) {
         life_span_handler.on_after_created(browser.clone());
     }
     browser.downcast().callback_executed.set(true);
+    browser.downcast().host.was_resized();
 }
 
 fn browser_host_create(window_info: &cef_window_info_t,
