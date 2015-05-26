@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrHelpers};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -10,16 +11,17 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::utils::Reflectable;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
 use cssparser::RGBA;
 use util::str::{self, DOMString};
+use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -28,6 +30,7 @@ use std::cell::Cell;
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
+    background: DOMRefCell<Option<Url>>
 }
 
 impl HTMLBodyElementDerived for EventTarget {
@@ -47,6 +50,7 @@ impl HTMLBodyElement {
                                                     prefix,
                                                     document),
             background_color: Cell::new(None),
+            background: DOMRefCell::new(None)
         }
     }
 
@@ -77,11 +81,19 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
 
 pub trait HTMLBodyElementHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
+    fn get_background(&self) -> Option<Url>;
 }
 
 impl HTMLBodyElementHelpers for HTMLBodyElement {
     fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
+    }
+
+    #[allow(unsafe_code)]
+    fn get_background(&self) -> Option<Url> {
+        unsafe {
+            self.background.borrow_for_layout().clone()
+        }
     }
 }
 
@@ -121,6 +133,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
         match attr.local_name() {
             &atom!("bgcolor") => {
                 self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
+            }
+            &atom!("background") => {
+                let doc = document_from_node(*self).root();
+                let base = doc.r().url();
+
+                if let Ok(url) = UrlParser::new().base_url(&base).parse(&attr.value()) {
+                    *self.background.borrow_mut() = Some(url)
+                }
             }
             _ => {}
         }
