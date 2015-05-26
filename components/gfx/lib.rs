@@ -37,6 +37,7 @@ extern crate style;
 extern crate skia;
 extern crate time;
 extern crate url;
+extern crate fontsan;
 
 extern crate gfx_traits;
 extern crate canvas_traits;
