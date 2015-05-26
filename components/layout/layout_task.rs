@@ -78,8 +78,9 @@ use style::media_queries::{Device, MediaQueryList, MediaType};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_matching::Stylist;
-use style::stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
+use style::stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use style::values::AuExtensionMethods;
+use style::viewport::ViewportRule;
 use url::Url;
 use util::geometry::{MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
@@ -618,6 +619,9 @@ impl LayoutTask {
                                             possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
+            Msg::AddMetaViewport(translated_rule) => {
+                self.handle_add_meta_viewport(translated_rule, possibly_locked_rw_data)
+            }
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>).unwrap();
@@ -820,6 +824,19 @@ impl LayoutTask {
             rw_data.stylist.add_stylesheet(sheet);
         }
 
+        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+    }
+
+    fn handle_add_meta_viewport<'a>(&'a self,
+                                    translated_rule: ViewportRule,
+                                    possibly_locked_rw_data:
+                                      &mut Option<MutexGuard<'a, LayoutTaskData>>)
+    {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        rw_data.stylist.add_stylesheet(Stylesheet {
+            rules: vec![CSSRule::Viewport(translated_rule)],
+            origin: Origin::Author
+        });
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
@@ -1657,4 +1674,3 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
-
