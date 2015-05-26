@@ -59,7 +59,10 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
     }).unwrap();
 }
 
-pub fn handle_get_frame_id(page: &Rc<Page>, pipeline: PipelineId, webdriver_frame_id: WebDriverFrameId, reply: Sender<Result<Option<(PipelineId, SubpageId)>, ()>>) {
+pub fn handle_get_frame_id(page: &Rc<Page>,
+                           pipeline: PipelineId,
+                           webdriver_frame_id: WebDriverFrameId,
+                           reply: Sender<Result<Option<(PipelineId, SubpageId)>, ()>>) {
     let window = match webdriver_frame_id {
         WebDriverFrameId::Short(_) => {
             // This isn't supported yet

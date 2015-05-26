@@ -214,13 +214,14 @@ impl Handler {
     }
 
     fn handle_switch_to_frame(&mut self, parameters: &SwitchToFrameParameters) -> WebDriverResult<WebDriverResponse> {
+        use webdriver::common::FrameId;
         let frame_id = match parameters.id {
-            webdriver::common::FrameId::Null => {
+            FrameId::Null => {
                 self.set_frame_id(None).unwrap();
                 return Ok(WebDriverResponse::Void)
             },
-            webdriver::common::FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
-            webdriver::common::FrameId::Element(ref x) => WebDriverFrameId::Element(x.id.clone())
+            FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
+            FrameId::Element(ref x) => WebDriverFrameId::Element(x.id.clone())
         };
 
         self.switch_to_frame(frame_id)
@@ -234,7 +235,7 @@ impl Handler {
     fn switch_to_frame(&mut self, frame_id: WebDriverFrameId) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.get_frame_pipeline());
         let (sender, reciever) = channel();
-            let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
+        let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
         {
             let ConstellationChan(ref const_chan) = self.constellation_chan;
             const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
@@ -390,6 +391,8 @@ impl Handler {
 impl WebDriverHandler for Handler {
     fn handle_command(&mut self, _session: &Option<Session>, msg: &WebDriverMessage) -> WebDriverResult<WebDriverResponse> {
 
+        // Unless we are trying to create a new session, we need to ensure that a
+        // session has previously been created
         match msg.command {
             WebDriverCommand::NewSession => {},
             _ => {
