@@ -86,8 +86,8 @@ impl ViewportLength {
             _ => {
                 match value.parse::<f32>() {
                     Ok(n) if n >= 0. => ViewportLength::Length(Length::from_px(n.max(1.).min(10000.))),
-                    Ok(n) if n < 0. => return None,
-                    _ => ViewportLength::Length(Length::from_px(1.))
+                    Ok(_) => return None,
+                    Err(_) => ViewportLength::Length(Length::from_px(1.))
                 }
             }
         })
@@ -137,8 +137,8 @@ impl Zoom {
             _ => {
                 match value.parse::<f32>() {
                     Ok(n) if n >= 0. => Zoom::Number(n.max(0.1).min(10.)),
-                    Ok(n) if n < 0. => return None,
-                    _ => Zoom::Number(0.1),
+                    Ok(_) => return None,
+                    Err(_) => Zoom::Number(0.1),
                 }
             }
         })
@@ -327,16 +327,6 @@ impl ViewportRule {
     }
 
     pub fn from_meta<'a>(content: &'a str) -> Option<ViewportRule> {
-        let mut iter = content.chars().enumerate();
-
-        macro_rules! start_of_name {
-            () => {
-                iter.by_ref()
-                    .skip_while(|&(_, c)| is_whitespace_separator_or_equals(&c))
-                    .next()
-            }
-        }
-
         let mut declarations = HashMap::new();
         macro_rules! push_descriptor {
             ($descriptor:ident($value:expr)) => {{
@@ -356,7 +346,17 @@ impl ViewportRule {
         let mut has_height = false;
         let mut has_zoom = false;
 
-        while let Some((start, _)) = start_of_name!() {
+        let mut iter = content.chars().enumerate();
+
+        macro_rules! start_of_name {
+            ($iter:ident) => {
+                $iter.by_ref()
+                    .skip_while(|&(_, c)| is_whitespace_separator_or_equals(&c))
+                    .next()
+            }
+        }
+
+        while let Some((start, _)) = start_of_name!(iter) {
             let property = ViewportRule::parse_meta_property(content,
                                                              &mut iter,
                                                              start);
@@ -428,25 +428,25 @@ impl ViewportRule {
                                -> Option<(&'a str, &'a str)>
     {
         macro_rules! end_of_token {
-            () => {
-                iter.by_ref()
+            ($iter:ident) => {
+                $iter.by_ref()
                     .skip_while(|&(_, c)| !is_whitespace_separator_or_equals(&c))
                     .next()
             }
         }
 
         macro_rules! skip_whitespace {
-            () => {
-                iter.by_ref()
+            ($iter:ident) => {
+                $iter.by_ref()
                     .skip_while(|&(_, c)| WHITESPACE.contains(&c))
                     .next()
             }
         }
 
         // <name> <whitespace>* '='
-        let end = match end_of_token!() {
+        let end = match end_of_token!(iter) {
             Some((end, c)) if WHITESPACE.contains(&c) => {
-                match skip_whitespace!() {
+                match skip_whitespace!(iter) {
                     Some((_, c)) if c == '=' => end,
                     _ => return None
                 }
@@ -457,11 +457,11 @@ impl ViewportRule {
         let name = &content[start..end];
 
         // <whitespace>* <value>
-        let start = match skip_whitespace!() {
+        let start = match skip_whitespace!(iter) {
             Some((start, c)) if !SEPARATOR.contains(&c) => start,
             _ => return None
         };
-        let value = match end_of_token!() {
+        let value = match end_of_token!(iter) {
             Some((end, _)) => &content[start..end],
             _ => &content[start..]
         };
