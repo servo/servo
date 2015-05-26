@@ -1045,17 +1045,11 @@ trait PrivateDocumentHelpers {
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn create_node_list<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList> {
         let window = self.window.root();
-        let document_element = self.GetDocumentElement().root();
-        let mut nodes = RootedVec::new();
-        if let Some(ref root) = document_element {
-            for node in NodeCast::from_ref(root.r()).traverse_preorder() {
-                let node = node.root();
-                if callback(node.r()) {
-                    nodes.push(JS::from_rooted(node.r()));
-                }
-            }
-        };
-        NodeList::new_simple_list(window.r(), &nodes)
+        let doc = self.GetDocumentElement().root();
+        let maybe_node = doc.r().map(NodeCast::from_ref);
+        let iter = maybe_node.iter().flat_map(|node| node.traverse_preorder())
+                             .filter(|node| callback(node.root().r()));
+        NodeList::new_simple_list(window.r(), iter)
     }
 
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {

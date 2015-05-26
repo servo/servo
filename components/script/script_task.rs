@@ -91,6 +91,7 @@ use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
+use std::mem;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -1395,11 +1396,12 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
+                // We temporarily steal the list of targets over which the mouse is to pass it to
+                // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
-                mouse_over_targets.append(&mut *self.mouse_over_targets.borrow_mut());
-
+                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
-                *self.mouse_over_targets.borrow_mut() = mouse_over_targets.clone();
+                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
             KeyEvent(key, state, modifiers) => {

@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
@@ -39,8 +38,10 @@ impl NodeList {
                            GlobalRef::Window(window), NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: JSRef<Window>, elements: &RootedVec<JS<Node>>) -> Temporary<NodeList> {
-        NodeList::new(window, NodeListType::Simple((**elements).clone()))
+    pub fn new_simple_list<T>(window: JSRef<Window>, iter: T)
+                              -> Temporary<NodeList>
+                              where T: Iterator<Item=Temporary<Node>> {
+        NodeList::new(window, NodeListType::Simple(iter.map(JS::from_rooted).collect()))
     }
 
     pub fn new_child_list(window: JSRef<Window>, node: JSRef<Node>) -> Temporary<NodeList> {
