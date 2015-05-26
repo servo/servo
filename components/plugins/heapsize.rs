@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use syntax::ext::base::{Annotatable, ExtCtxt};
 use syntax::codemap::Span;
@@ -7,7 +10,8 @@ use syntax::attr::AttrMetaMethods;
 use syntax::ext::build::AstBuilder;
 use syntax::ext::deriving::generic::*;
 
-pub fn expand_heapsize(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: Annotatable, push: &mut FnMut(Annotatable)) {
+pub fn expand_heapsize(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem,
+                       item: Annotatable, push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
