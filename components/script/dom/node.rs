@@ -917,12 +917,9 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     #[allow(unsafe_code)]
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        let mut nodes = RootedVec::new();
-        for node in try!(unsafe { self.query_selector_iter(selectors) }) {
-            nodes.push(JS::from_rooted(node));
-        }
         let window = window_from_node(self).root();
-        Ok(NodeList::new_simple_list(window.r(), &nodes))
+        let iter = try!(unsafe { self.query_selector_iter(selectors) });
+        Ok(NodeList::new_simple_list(window.r(), iter))
     }
 
 

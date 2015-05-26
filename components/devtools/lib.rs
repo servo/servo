@@ -252,7 +252,12 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         match console_message {
-            ConsoleMessage::LogMessage(message, filename, lineNumber, columnNumber) => {
+            ConsoleMessage::LogMessage {
+                message,
+                filename,
+                lineNumber,
+                columnNumber,
+            } => {
                 let msg = ConsoleAPICall {
                     from: console_actor.name.clone(),
                     __type__: "consoleAPICall".to_string(),

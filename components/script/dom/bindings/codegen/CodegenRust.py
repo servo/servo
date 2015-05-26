@@ -1287,16 +1287,11 @@ class MethodDefiner(PropertyDefiner):
                 accessor = m.get("nativeName", m["name"])
                 if accessor[0:3] != 'JS_':
                     accessor = "%s as NonNullJSNative" % accessor
-            return (m["name"], accessor, jitinfo, m["length"], m["flags"])
+            return (str_to_const_array(m["name"]), accessor, jitinfo, m["length"], m["flags"])
 
-        def stringDecl(m):
-            return "const %s_name: [u8; %i] = %s;\n" % (m["name"], len(m["name"]) + 1,
-                                                         str_to_const_array(m["name"]))
-
-        decls = ''.join([stringDecl(m) for m in array])
-        return decls + self.generatePrefableArray(
+        return self.generatePrefableArray(
             array, name,
-            '    JSFunctionSpec { name: &%s_name as *const u8 as *const libc::c_char, call: JSNativeWrapper {op: Some(%s), info: %s}, nargs: %s, flags: %s as u16, selfHostedName: 0 as *const libc::c_char }',
+            '    JSFunctionSpec { name: %s as *const u8 as *const libc::c_char, call: JSNativeWrapper {op: Some(%s), info: %s}, nargs: %s, flags: %s as u16, selfHostedName: 0 as *const libc::c_char }',
             '    JSFunctionSpec { name: 0 as *const libc::c_char, call: JSNativeWrapper {op: None, info: 0 as *const JSJitInfo}, nargs: 0, flags: 0, selfHostedName: 0 as *const libc::c_char }',
             'JSFunctionSpec',
             specData)
@@ -1353,19 +1348,12 @@ class AttrDefiner(PropertyDefiner):
                        "native" : accessor})
 
         def specData(attr):
-            return (attr.identifier.name, flags(attr), getter(attr),
+            return (str_to_const_array(attr.identifier.name), flags(attr), getter(attr),
                     setter(attr))
 
-        def stringDecl(attr):
-            name = attr.identifier.name
-            return "const %s_name: [u8; %i] = %s;\n" % (name, len(name) + 1,
-                                                          str_to_const_array(name))
-
-        decls = ''.join([stringDecl(m) for m in array])
-
-        return decls + self.generatePrefableArray(
+        return self.generatePrefableArray(
             array, name,
-            '    JSPropertySpec { name: &%s_name as *const u8 as *const libc::c_char, tinyid: 0, flags: ((%s) & 0xFF) as u8, getter: %s, setter: %s }',
+            '    JSPropertySpec { name: %s as *const u8 as *const libc::c_char, tinyid: 0, flags: ((%s) & 0xFF) as u8, getter: %s, setter: %s }',
             '    JSPropertySpec { name: 0 as *const libc::c_char, tinyid: 0, flags: 0, getter: JSPropertyOpWrapper {op: None, info: 0 as *const JSJitInfo}, setter: JSStrictPropertyOpWrapper {op: None, info: 0 as *const JSJitInfo} }',
             'JSPropertySpec',
             specData)
@@ -1384,18 +1372,12 @@ class ConstDefiner(PropertyDefiner):
             return ""
 
         def specData(const):
-            return (const.identifier.name,
+            return (str_to_const_array(const.identifier.name),
                     convertConstIDLValueToJSVal(const.value))
 
-        def stringDecl(const):
-            name = const.identifier.name
-            return "const %s_name: &'static [u8] = &%s;\n" % (name, str_to_const_array(name))
-
-        decls = ''.join([stringDecl(m) for m in array])
-
-        return decls + self.generatePrefableArray(
+        return self.generatePrefableArray(
             array, name,
-            '    ConstantSpec { name: %s_name, value: %s }',
+            '    ConstantSpec { name: %s, value: %s }',
             None,
             'ConstantSpec',
             specData)
@@ -1583,10 +1565,9 @@ class CGDOMJSClass(CGThing):
             flags = "0"
             slots = "1"
         return """\
-const Class_name: [u8; %i] = %s;
 static Class: DOMJSClass = DOMJSClass {
     base: js::Class {
-        name: &Class_name as *const u8 as *const libc::c_char,
+        name: %s as *const u8 as *const libc::c_char,
         flags: JSCLASS_IS_DOMJSCLASS | %s | (((%s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(%s),
         addProperty: Some(JS_PropertyStub),
         delProperty: Some(JS_PropertyStub),
@@ -1649,8 +1630,7 @@ static Class: DOMJSClass = DOMJSClass {
     },
     dom_class: %s
 };
-""" % (len(self.descriptor.interface.identifier.name) + 1,
-       str_to_const_array(self.descriptor.interface.identifier.name),
+""" % (str_to_const_array(self.descriptor.interface.identifier.name),
        flags, slots, slots,
        FINALIZE_HOOK_NAME, traceHook,
        self.descriptor.outerObjectHook,
@@ -1658,7 +1638,7 @@ static Class: DOMJSClass = DOMJSClass {
        CGIndenter(CGGeneric(DOMClass(self.descriptor))).define())
 
 def str_to_const_array(s):
-    return "[" + (", ".join(map(lambda x: "'" + x + "' as u8", list(s)) + ['0 as u8'])) + "]"
+    return "b\"%s\\0\"" % s
 
 class CGPrototypeJSClass(CGThing):
     def __init__(self, descriptor):
@@ -1667,9 +1647,8 @@ class CGPrototypeJSClass(CGThing):
 
     def define(self):
         return """\
-const PrototypeClassName__: [u8; %s] = %s;
 static PrototypeClass: JSClass = JSClass {
-    name: &PrototypeClassName__ as *const u8 as *const libc::c_char,
+    name: %s as *const u8 as *const libc::c_char,
     flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT, //JSCLASS_HAS_RESERVED_SLOTS(1)
     addProperty: Some(JS_PropertyStub),
     delProperty: Some(JS_PropertyStub),
@@ -1686,8 +1665,7 @@ static PrototypeClass: JSClass = JSClass {
     trace: None,
     reserved: [0 as *mut libc::c_void; 40]
 };
-""" % (len(self.descriptor.interface.identifier.name + "Prototype") + 1,
-       str_to_const_array(self.descriptor.interface.identifier.name + "Prototype"))
+""" % str_to_const_array(self.descriptor.interface.identifier.name + "Prototype")
 
 class CGInterfaceObjectJSClass(CGThing):
     def __init__(self, descriptor):

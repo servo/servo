@@ -91,6 +91,7 @@ use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
+use std::mem;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -800,6 +801,8 @@ impl ScriptTask {
                 devtools::handle_get_children(&page, id, node_id, reply),
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) =>
                 devtools::handle_get_layout(&page, id, node_id, reply),
+            DevtoolScriptControlMsg::GetCachedMessages(pipeline_id, message_types, reply) =>
+                devtools::handle_get_cached_messages(pipeline_id, message_types, reply),
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&page, id, node_id, modifications),
             DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id, to_send) =>
@@ -1395,11 +1398,12 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
+                // We temporarily steal the list of targets over which the mouse is to pass it to
+                // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
-                mouse_over_targets.append(&mut *self.mouse_over_targets.borrow_mut());
-
+                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
-                *self.mouse_over_targets.borrow_mut() = mouse_over_targets.clone();
+                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
             KeyEvent(key, state, modifiers) => {
@@ -1561,7 +1565,7 @@ impl ScriptTask {
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
-
+        document.r().disarm_reflow_timeout();
         document.r().content_changed(NodeCast::from_ref(document.r()),
                                      NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r()).root();

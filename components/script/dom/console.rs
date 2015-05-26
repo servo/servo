@@ -37,7 +37,12 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
         for message in messages {
             println!("{}", message);
             //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
-            propagate_console_msg(&self, ConsoleMessage::LogMessage(message, String::from_str("test"), 1, 1));
+            propagate_console_msg(&self, ConsoleMessage::LogMessage {
+                message: message,
+                filename: "test".to_owned(),
+                lineNumber: 1,
+                columnNumber: 1,
+            });
         }
     }
 
