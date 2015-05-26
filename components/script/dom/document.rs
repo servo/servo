@@ -372,7 +372,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// page content during parsing.
     fn set_reflow_timeout(self, timeout: u64) {
         if let Some(existing_timeout) = self.reflow_timeout.get() {
-            if existing_timeout > timeout {
+            if existing_timeout < timeout {
                 return
             }
         }

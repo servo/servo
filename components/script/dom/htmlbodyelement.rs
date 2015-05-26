@@ -100,6 +100,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
             s.bind_to_tree(tree_in_doc);
         }
 
+        if !tree_in_doc {
+            return
+        }
+
         let window = window_from_node(*self).root();
         let document = window.r().Document().root();
         document.r().set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
