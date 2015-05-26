@@ -19,6 +19,8 @@ use layout_interface::{LayoutChan, Msg};
 use style::viewport::ViewportRule;
 use util::str::DOMString;
 
+use std::ascii::AsciiExt;
+
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
@@ -62,7 +64,7 @@ impl <'a> MetaElementHelpers for JSRef<'a, HTMLMetaElement> {
             let name = name.r().value();
             if !name.is_empty() {
                 match &**name {
-                    "viewport" => self.translate_viewport(),
+                    n if n.eq_ignore_ascii_case("viewport") => self.translate_viewport(),
                     _ => {}
                 }
             }
