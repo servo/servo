@@ -165,7 +165,7 @@ macro_rules! known_heap_size(
     ($size:expr, $($ty:ident),+) => (
         $(
             impl $crate::mem::HeapSizeOf for $ty {
-                #[inline]
+                #[inline(always)]
                 fn heap_size_of_children(&self) -> usize {
                     $size
                 }
@@ -174,7 +174,7 @@ macro_rules! known_heap_size(
     );
     ($size: expr, $ty:ident<$($gen:ident),+>) => (
         impl<$($gen),+> $crate::mem::HeapSizeOf for $ty<$($gen),+> {
-            #[inline]
+            #[inline(always)]
             fn heap_size_of_children(&self) -> usize {
                 $size
             }
