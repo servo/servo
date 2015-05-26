@@ -1341,6 +1341,8 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
+                // We temporarily steal the list of targets over which the mouse is to pass it to
+                // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
                 mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
