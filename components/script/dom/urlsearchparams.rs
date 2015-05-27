@@ -50,13 +50,11 @@ impl URLSearchParams {
             },
             Some(eURLSearchParams(init)) => {
                 // Step 3.
-                let init = init.root();
-                let query = query.r();
-                let mut map = query.list.borrow_mut();
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                let query = query.r();
+                let init = init.root();
                 let init = init.r();
-                let list = init.list.borrow();
-                *map = list.clone();
+                *query.list.borrow_mut() = init.list.borrow().clone();
             },
             None => {}
         }
