@@ -26,6 +26,7 @@ use msg::constellation_msg::{PipelineId};
 use url::Url;
 
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thread;
 
 pub mod image_cache_task;
 pub mod storage_task;
@@ -147,7 +148,9 @@ impl PendingLoadGuard {
 
 impl Drop for PendingLoadGuard {
     fn drop(&mut self) {
-        assert!(self.loaded)
+        if !thread::panicking() {
+            assert!(self.loaded)
+        }
     }
 }
 

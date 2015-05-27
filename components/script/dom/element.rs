@@ -1301,17 +1301,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let win = window_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let raw_rects = node.get_content_boxes();
-        let mut rects = RootedVec::new();
-        for rect in raw_rects.iter() {
-            let rect = DOMRect::new(win.r(),
-                                    rect.origin.y,
-                                    rect.origin.y + rect.size.height,
-                                    rect.origin.x,
-                                    rect.origin.x + rect.size.width);
-            rects.push(JS::from_rooted(rect));
-        }
-
-        DOMRectList::new(win.r(), &rects)
+        let rects = raw_rects.iter().map(|rect| {
+            DOMRect::new(win.r(),
+                         rect.origin.y, rect.origin.y + rect.size.height,
+                         rect.origin.x, rect.origin.x + rect.size.width)
+        });
+        DOMRectList::new(win.r(), rects)
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect

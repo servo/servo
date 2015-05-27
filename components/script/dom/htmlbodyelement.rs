@@ -6,11 +6,11 @@ use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::utils::Reflectable;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -23,6 +23,11 @@ use util::str::{self, DOMString};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use time;
+
+/// How long we should wait before performing the initial reflow after `<body>` is parsed, in
+/// nanoseconds.
+const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 
 #[dom_struct]
 pub struct HTMLBodyElement {
@@ -32,9 +37,8 @@ pub struct HTMLBodyElement {
 
 impl HTMLBodyElementDerived for EventTarget {
     fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLBodyElement)))
     }
 }
 
@@ -89,6 +93,20 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let element: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
+    }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+
+        if !tree_in_doc {
+            return
+        }
+
+        let window = window_from_node(*self).root();
+        let document = window.r().Document().root();
+        document.r().set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {

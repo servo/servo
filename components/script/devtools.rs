@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
@@ -94,6 +95,46 @@ pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String,
     let width = *rect.r().Width();
     let height = *rect.r().Height();
     reply.send((width, height)).unwrap();
+}
+
+pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
+                                  message_types: CachedConsoleMessageTypes,
+                                  reply: Sender<Vec<CachedConsoleMessage>>) {
+    //TODO: check the messageTypes against a global Cache for console messages and page exceptions
+    let mut messages = Vec::new();
+    if message_types.contains(PAGE_ERROR) {
+        //TODO: do for real
+        messages.push(CachedConsoleMessage::ConsoleAPI {
+            __type__: "consoleAPICall".to_owned(),
+            level: "error".to_owned(),
+            filename: "http://localhost/~mihai/mozilla/test.html".to_owned(),
+            lineNumber: 0,
+            functionName: String::new(),
+            timeStamp: 0,
+            private: false,
+            arguments: Vec::new(),
+        })
+    }
+    if message_types.contains(CONSOLE_API) {
+        //TODO: make script error reporter pass all reported errors
+        //      to devtools and cache them for returning here.
+        messages.push(CachedConsoleMessage::PageError {
+            __type__: "pageError".to_owned(),
+            errorMessage: "page error test".to_owned(),
+            sourceName: String::new(),
+            lineText: String::new(),
+            lineNumber: 0,
+            columnNumber: 0,
+            category: String::new(),
+            timeStamp: 0,
+            error: false,
+            warning: false,
+            exception: false,
+            strict: false,
+            private: false,
+        })
+    }
+    reply.send(messages).unwrap();
 }
 
 pub fn handle_modify_attribute(page: &Rc<Page>,
