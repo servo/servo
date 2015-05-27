@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CanvasPatternBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::canvasgradient::{ToFillOrStrokeStyle};
+use dom::canvasgradient::ToFillOrStrokeStyle;
 use geom::size::Size2D;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
@@ -37,7 +37,11 @@ impl CanvasPattern {
             repeat_y: y,
         }
     }
-    pub fn new(global: GlobalRef, surface_data: Vec<u8>, surface_size: Size2D<i32>, repeat: RepetitionStyle) -> Temporary<CanvasPattern> {
+    pub fn new(global: GlobalRef,
+               surface_data: Vec<u8>,
+               surface_size: Size2D<i32>,
+               repeat: RepetitionStyle)
+               -> Temporary<CanvasPattern> {
         reflect_dom_object(box CanvasPattern::new_inherited(surface_data, surface_size, repeat),
                            global, CanvasPatternBinding::Wrap)
     }
