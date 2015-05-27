@@ -219,7 +219,6 @@ impl DisplayList {
     }
 }
 
-// FIXME(njn): other fields may be measured later, esp. `layer`
 #[derive(HeapSizeOf)]
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
 pub struct StackingContext {
@@ -227,7 +226,7 @@ pub struct StackingContext {
     pub display_list: Box<DisplayList>,
 
     /// The layer for this stacking context, if there is one.
-    #[ignore_heap_size]
+    #[ignore_heap_size_of = "FIXME(njn): should measure this at some point"]
     pub layer: Option<Arc<PaintLayer>>,
 
     /// The position and size of this stacking context.
@@ -240,11 +239,9 @@ pub struct StackingContext {
     pub z_index: i32,
 
     /// CSS filters to be applied to this stacking context (including opacity).
-    #[ignore_heap_size]
     pub filters: filter::T,
 
     /// The blend mode with which this stacking context blends with its backdrop.
-    #[ignore_heap_size]
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
@@ -768,7 +765,6 @@ pub struct DisplayItemMetadata {
     pub node: OpaqueNode,
     /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
     /// this display item is ineligible for pointer events (`pointer-events: none`).
-    #[ignore_heap_size]
     pub pointing: Option<Cursor>,
 }
 
@@ -808,7 +804,7 @@ pub struct TextDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The text run.
-    #[ignore_heap_size] // We exclude `text_run` because it is non-owning.
+    #[ignore_heap_size_of = "Because it is non-owning"]
     pub text_run: Arc<Box<TextRun>>,
 
     /// The range of text within the text run.
@@ -838,7 +834,7 @@ pub enum TextOrientation {
 #[derive(Clone, HeapSizeOf)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
-    #[ignore_heap_size] // We exclude `image` here because it is non-owning.
+    #[ignore_heap_size_of = "Because it is non-owning"]
     pub image: Arc<Image>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
@@ -848,7 +844,6 @@ pub struct ImageDisplayItem {
 
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
-    #[ignore_heap_size]
     pub image_rendering: image_rendering::T,
 }
 

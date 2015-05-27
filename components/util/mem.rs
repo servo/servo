@@ -9,11 +9,12 @@ use std::collections::LinkedList;
 use std::mem::transmute;
 use std::sync::Arc;
 
-use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 
+use azure::azure_hl::Color;
+use cursor::Cursor;
+use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use geometry::Au;
 use range::Range;
-use azure::azure_hl::Color;
 
 extern {
     // Get the size of a heap block.
@@ -40,9 +41,6 @@ pub fn heap_size_of(ptr: *const c_void) -> usize {
 // The simplest trait for measuring the size of heap data structures. More complex traits that
 // return multiple measurements -- e.g. measure text separately from images -- are also possible,
 // and should be used when appropriate.
-//
-// FIXME(njn): it would be nice to be able to derive this trait automatically, given that
-// implementations are mostly repetitive and mechanical.
 //
 pub trait HeapSizeOf {
     /// Measure the size of any heap-allocated structures that hang off this value, but not the
@@ -165,7 +163,7 @@ impl<T> Drop for LinkedList2<T> {
 }
 
 /// For use on types defined in external crates
-/// with known heap sizes
+/// with known heap sizes.
 #[macro_export]
 macro_rules! known_heap_size(
     ($size:expr, $($ty:ident),+) => (
@@ -197,5 +195,5 @@ known_heap_size!(0, bool, f32, f64);
 
 known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>);
 
-known_heap_size!(0, Au, Color);
+known_heap_size!(0, Au, Color, Cursor);
 known_heap_size!(0, Range<T>);
