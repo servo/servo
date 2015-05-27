@@ -290,10 +290,10 @@ impl LineJoinStyle {
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum RepetitionStyle {
-    Repeat = 0,
-    RepeatX = 1,
-    RepeatY = 2,
-    NoRepeat = 3,
+    Repeat,
+    RepeatX,
+    RepeatY,
+    NoRepeat,
 }
 
 impl RepetitionStyle {

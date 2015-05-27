@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::Error::{IndexSize, NotSupported, Type, InvalidState};
+use dom::bindings::error::Error::{IndexSize, NotSupported, Type, InvalidState, Syntax};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Rootable, Temporary};
@@ -827,7 +827,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                 self.renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
-                self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(pattern.root().r().to_fill_or_stroke_style()))).unwrap();
+                self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
+                                                       pattern.root().r().to_fill_or_stroke_style()))).unwrap();
             }
         }
     }
@@ -992,7 +993,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                                  Size2D(image_size.width as i32, image_size.height as i32),
                                                  rep));
                 }
-                return Err(Type("Invalid repetition type".to_owned()));
+                return Err(Syntax);
             },
             _ => return Err(Type("Not implemented".to_owned())),
         }
