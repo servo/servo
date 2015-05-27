@@ -467,44 +467,9 @@ struct CefCompositorProxy {
 }
 
 impl CompositorProxy for CefCompositorProxy {
-    #[cfg(target_os="macos")]
-    fn send(&mut self, msg: compositor_task::Msg) {
-        use cocoa::appkit::{NSApp, NSApplication, NSApplicationDefined};
-        use cocoa::appkit::{NSEvent, NSEventModifierFlags, NSEventSubtype};
-        use cocoa::base::nil;
-        use cocoa::foundation::{NSAutoreleasePool, NSPoint};
-
-        // Send a message and kick the OS event loop awake.
-        self.sender.send(msg).unwrap();
-
-        unsafe {
-            let pool = NSAutoreleasePool::new(nil);
-            let event =
-                NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2_(
-                nil,
-                NSApplicationDefined,
-                NSPoint::new(0.0, 0.0),
-                NSEventModifierFlags::empty(),
-                0.0,
-                0,
-                nil,
-                NSEventSubtype::NSWindowExposedEventType,
-                0,
-                0);
-            NSApp().postEvent_atStart_(event, 0);
-            pool.drain();
-        }
-    }
-
-    #[cfg(target_os="linux")]
     fn send(&mut self, msg: compositor_task::Msg) {
         self.sender.send(msg).unwrap();
-        unsafe { if CEF_APP.is_null() { return; } }
-        let capp = unsafe { CefApp::from_c_object_addref(CEF_APP) };
-        if unsafe { (*CEF_APP).get_browser_process_handler.is_some() } &&
-           check_ptr_exist!(capp.get_browser_process_handler(), on_work_available) {
-            capp.get_browser_process_handler().on_work_available();
-        }
+        app_wakeup();
     }
 
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
@@ -526,6 +491,42 @@ fn on_load_start(window: &Window) {
                .get_client()
                .get_load_handler()
                .on_load_start((*browser).clone(), browser.get_main_frame());
+    }
+}
+
+#[cfg(target_os="macos")]
+pub fn app_wakeup() {
+    use cocoa::appkit::{NSApp, NSApplication, NSApplicationDefined};
+    use cocoa::appkit::{NSEvent, NSEventModifierFlags, NSEventSubtype};
+    use cocoa::base::nil;
+    use cocoa::foundation::{NSAutoreleasePool, NSPoint};
+
+    unsafe {
+        let pool = NSAutoreleasePool::new(nil);
+        let event =
+            NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2_(
+            nil,
+            NSApplicationDefined,
+            NSPoint::new(0.0, 0.0),
+            NSEventModifierFlags::empty(),
+            0.0,
+            0,
+            nil,
+            NSEventSubtype::NSWindowExposedEventType,
+            0,
+            0);
+        NSApp().postEvent_atStart_(event, 0);
+        pool.drain();
+    }
+}
+
+#[cfg(target_os="linux")]
+pub fn app_wakeup() {
+    unsafe { if CEF_APP.is_null() { return; } }
+    let capp = unsafe { CefApp::from_c_object_addref(CEF_APP) };
+    if unsafe { (*CEF_APP).get_browser_process_handler.is_some() } &&
+       check_ptr_exist!(capp.get_browser_process_handler(), on_work_available) {
+        capp.get_browser_process_handler().on_work_available();
     }
 }
 
