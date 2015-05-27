@@ -24,7 +24,7 @@ use text::glyph::CharIndex;
 use text::TextRun;
 
 use azure::azure::AzFloat;
-use azure::azure_hl::{Color};
+use azure::azure_hl::Color;
 
 use collections::linked_list::{self, LinkedList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
@@ -800,7 +800,6 @@ pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The color.
-    #[ignore_heap_size]
     pub color: Color,
 }
 
@@ -815,11 +814,9 @@ pub struct TextDisplayItem {
     pub text_run: Arc<Box<TextRun>>,
 
     /// The range of text within the text run.
-    #[ignore_heap_size]
     pub range: Range<CharIndex>,
 
     /// The color of the text.
-    #[ignore_heap_size]
     pub text_color: Color,
 
     /// The position of the start of the baseline of this text.
@@ -899,11 +896,9 @@ pub struct BorderDisplayItem {
     pub border_widths: SideOffsets2D<Au>,
 
     /// Border colors.
-    #[ignore_heap_size]
     pub color: SideOffsets2D<Color>,
 
     /// Border styles.
-    #[ignore_heap_size]
     pub style: SideOffsets2D<border_style::T>,
 
     /// Border radii.
@@ -950,11 +945,9 @@ pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The line segment color.
-    #[ignore_heap_size]
     pub color: Color,
 
     /// The line segment style.
-    #[ignore_heap_size]
     pub style: border_style::T
 }
 
@@ -971,7 +964,6 @@ pub struct BoxShadowDisplayItem {
     pub offset: Point2D<Au>,
 
     /// The color of this shadow.
-    #[ignore_heap_size]
     pub color: Color,
 
     /// The blur radius for this shadow.
