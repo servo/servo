@@ -666,8 +666,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_load_start_msg(&mut self, pipeline_id: &PipelineId) {
-        let mut back = false;
-        let mut forward = false;
+        let mut back;
+        let mut forward;
         let frameid = self.pipeline_to_frame_map.get(pipeline_id);
         match frameid {
             Some(frame_id) => {
@@ -676,13 +676,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 back = if !self.frame(*frame_id).prev.is_empty() { true }
                        else { false };
             },
-            None => {}
+            None => return
         };
         self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
-        let frame_id = *self.pipeline_to_frame_map.get(pipeline_id).unwrap();
+        let frame_id = match self.pipeline_to_frame_map.get(pipeline_id) {
+            Some(frame) => *frame,
+            None => return
+        };
 
         let forward = if self.mut_frame(frame_id).next.is_empty() { false }
                       else { true };
