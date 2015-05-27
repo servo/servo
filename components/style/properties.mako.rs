@@ -1027,8 +1027,8 @@ pub mod longhands {
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T(vec![
-                ("\u{201c}".to_string(), "\u{201d}".to_string()),
-                ("\u{2018}".to_string(), "\u{2019}".to_string()),
+                ("\u{201c}".to_owned(), "\u{201d}".to_owned()),
+                ("\u{2018}".to_owned(), "\u{2019}".to_owned()),
             ])
         }
 
