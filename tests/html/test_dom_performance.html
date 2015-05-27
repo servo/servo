@@ -1,25 +1,21 @@
 <html>
   <head>
     <meta charset="UTF-8">
-  </head>
-
-  <body id="main">
-    <label id="lb">Test string</label> <br />
-
-    <h1>Results:</h1>
-    <div id="results">
-
-    </div>
-  </body>
-
     <script>
       var ITERATIONS = 100000;
 
       var tests = {
-        testGetLabel: function() {
+        testGetLabelString: function() {
           var label = document.getElementById("lb");
           for (var i=0; i<ITERATIONS; ++i) {
             var str = label.textContent;
+          }
+        },
+
+        testGetLabelNumber: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+            var str = label.nodeType;
           }
         },
 
@@ -31,16 +27,15 @@
         },
 
         testCallSimpleMethod: function() {
-          function testMethod() { };
           for (var i=0; i<ITERATIONS; ++i) {
-            testMethod();
+             window.alert('');
           }
         },
 
         testCallMethodReturnValue: function() {
-          function testMethod() { return 1; };
+          var label = document.getElementById("lb");
           for (var i=0; i<ITERATIONS; ++i) {
-            testMethod();
+            document.adoptNode(label);
           }
         },
 
@@ -51,13 +46,24 @@
         }
       };
 
-      for (t in tests) {
-        var beginTime = new Date().getTime();
-        tests[t]();
-        var endTime = new Date().getTime();
+      function runTests() {
         var res = document.getElementById("results");
-        res.innerHTML = res.innerHTML  + t + ": " + (endTime - beginTime) / ITERATIONS + " ms<br/>";
+        res.innerHTML = '';
+        for (t in tests) {
+          var beginTime = Date.now();
+          tests[t]();
+          var endTime = Date.now();
+          var diff = ((endTime - beginTime) / ITERATIONS * 1000000).toFixed(0);
+          res.innerHTML = res.innerHTML  + t + ": " + diff + " ns<br>";
+        }
       }
 
     </script>
+  </head>
+
+  <body onload="runTests()">
+    <label id="lb">Test string</label> <br>
+    <h1>Results:</h1>
+    <div id="results">Processing...</div>
+  </body>
 </html>
