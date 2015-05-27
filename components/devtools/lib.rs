@@ -256,9 +256,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             __type__: "consoleAPICall".to_string(),
             message: ConsoleMsg {
                 level: match console_message.logLevel {
+                    LogLevel::Debug => "debug",
                     LogLevel::Info => "info",
                     LogLevel::Warn => "warn",
                     LogLevel::Error => "error",
+                    LogLevel::Assert => "error",
                     _ => "log"
                 }.to_string(),
                 timeStamp: precise_time_ns(),
