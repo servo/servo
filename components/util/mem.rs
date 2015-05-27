@@ -13,6 +13,7 @@ use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 
 use geometry::Au;
 use range::Range;
+use azure::azure_hl::Color;
 
 extern {
     // Get the size of a heap block.
@@ -196,5 +197,5 @@ known_heap_size!(0, bool, f32, f64);
 
 known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>);
 
-known_heap_size!(0, Au);
+known_heap_size!(0, Au, Color);
 known_heap_size!(0, Range<T>);

@@ -519,6 +519,7 @@ int_range_index! {
     #[derive(RustcEncodable)]
     #[doc = "An index that refers to a character in a text run. This could \
              point to the middle of a glyph."]
+    #[derive(HeapSizeOf)]
     struct CharIndex(isize)
 }
 
