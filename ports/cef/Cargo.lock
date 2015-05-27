@@ -40,13 +40,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#91e18a325fa5fdee9b1634b44a3a3a7ac1fb09ff"
+source = "git+https://github.com/servo/rust-azure#f1c5e98201e4c2d7684a388596979ce862788a9e"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
+ "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia)",
@@ -225,6 +226,7 @@ dependencies = [
 name = "devtools_traits"
 version = "0.0.1"
 dependencies = [
+ "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -301,7 +303,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "expat-sys"
 version = "2.1.0"
-source = "git+https://github.com/servo/libexpat#91775ceb69adaea0ce903271b185079a2c484f57"
+source = "git+https://github.com/servo/libexpat#eecae9f2e65b71a956375aa13bae3733e77fa519"
 
 [[package]]
 name = "flate2"
@@ -346,7 +348,7 @@ dependencies = [
 [[package]]
 name = "freetype-sys"
 version = "2.4.11"
-source = "git+https://github.com/servo/libfreetype2#50c1cf412d87f20ccbb940e39a14a38ae7cbb512"
+source = "git+https://github.com/servo/libfreetype2#d076771cd46011264a4674c0f20dc3423e6f3422"
 
 [[package]]
 name = "gcc"
@@ -1099,7 +1101,7 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#d60e6753b2b23b3b4ff787b505da56cfad0335c9"
+source = "git+https://github.com/servo/skia#00aaf728f58677922be96f760c5789250904fe62"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
@@ -1212,6 +1214,7 @@ name = "url"
 version = "0.2.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
