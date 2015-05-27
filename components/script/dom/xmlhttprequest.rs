@@ -1129,12 +1129,17 @@ trait Extractable {
     fn extract(&self) -> Vec<u8>;
 }
 impl Extractable for SendParam {
+    // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self) -> Vec<u8> {
-        // https://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
-        let encoding = UTF_8 as EncodingRef;
         match *self {
-            eString(ref s) => encoding.encode(s, EncoderTrap::Replace).unwrap(),
-            eURLSearchParams(ref usp) => usp.root().r().serialize(None) // Default encoding is UTF8
+            eString(ref s) => {
+                let encoding = UTF_8 as EncodingRef;
+                encoding.encode(s, EncoderTrap::Replace).unwrap()
+            },
+            eURLSearchParams(ref usp) => {
+                // Default encoding is UTF-8.
+                usp.root().r().serialize(None).as_bytes().to_owned()
+            },
         }
     }
 }
