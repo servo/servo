@@ -10,6 +10,7 @@ use interfaces::{cef_browser_t, cef_browser_host_t, cef_client_t, cef_frame_t};
 use interfaces::{cef_request_context_t};
 use servo::Browser;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t, cef_window_handle_t};
+use util::task::spawn_named;
 use window;
 use wrappers::CefWrap;
 
@@ -297,6 +298,9 @@ cef_static_method_impls! {
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
         browser_host_create(window_info, client, url, false);
+        spawn_named("async_browser_creation".to_owned(), move || {
+            window::app_wakeup();
+        });
         1i32
     }}
     fn cef_browser_host_create_browser_sync(window_info: *const cef_window_info_t,
