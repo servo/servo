@@ -9,6 +9,11 @@ use std::collections::LinkedList;
 use std::mem::transmute;
 use std::sync::Arc;
 
+use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
+
+use geometry::Au;
+use range::Range;
+
 extern {
     // Get the size of a heap block.
     //
@@ -172,17 +177,24 @@ macro_rules! known_heap_size(
             }
         )+
     );
-    ($size: expr, $ty:ident<$($gen:ident),+>) => (
-        impl<$($gen),+> $crate::mem::HeapSizeOf for $ty<$($gen),+> {
+    ($size: expr, $($ty:ident<$($gen:ident),+>),+) => (
+        $(
+        impl<$($gen: $crate::mem::HeapSizeOf),+> $crate::mem::HeapSizeOf for $ty<$($gen),+> {
             #[inline(always)]
             fn heap_size_of_children(&self) -> usize {
                 $size
             }
         }
+        )+
     );
 );
 
 
 known_heap_size!(0, u8, u16, u32, u64, usize);
 known_heap_size!(0, i8, i16, i32, i64, isize);
-known_heap_size!(0, bool);
+known_heap_size!(0, bool, f32, f64);
+
+known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>);
+
+known_heap_size!(0, Au);
+known_heap_size!(0, Range<T>);

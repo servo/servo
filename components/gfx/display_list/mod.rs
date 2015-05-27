@@ -231,11 +231,9 @@ pub struct StackingContext {
     pub layer: Option<Arc<PaintLayer>>,
 
     /// The position and size of this stacking context.
-    #[ignore_heap_size]
     pub bounds: Rect<Au>,
 
     /// The overflow rect for this stacking context in its coordinate system.
-    #[ignore_heap_size]
     pub overflow: Rect<Au>,
 
     /// The `z-index` for this stacking context.
@@ -252,7 +250,6 @@ pub struct StackingContext {
     /// A transform to be applied to this stacking context.
     ///
     /// TODO(pcwalton): 3D transforms.
-    #[ignore_heap_size]
     pub transform: Matrix2D<AzFloat>,
 }
 
@@ -616,7 +613,6 @@ pub enum DisplayItem {
 #[derive(Clone, HeapSizeOf)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
-    #[ignore_heap_size]
     pub bounds: Rect<Au>,
 
     /// Metadata attached to this display item.
@@ -645,7 +641,6 @@ impl BaseDisplayItem {
 #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
-    #[ignore_heap_size]
     pub main: Rect<Au>,
     /// Any complex regions.
     ///
@@ -660,10 +655,8 @@ pub struct ClippingRegion {
 #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
-    #[ignore_heap_size]
     pub rect: Rect<Au>,
     /// Border radii of this rectangle.
-    #[ignore_heap_size]
     pub radii: BorderRadii<Au>,
 }
 
@@ -830,15 +823,12 @@ pub struct TextDisplayItem {
     pub text_color: Color,
 
     /// The position of the start of the baseline of this text.
-    #[ignore_heap_size]
     pub baseline_origin: Point2D<Au>,
 
     /// The orientation of the text: upright or sideways left/right.
-    #[ignore_heap_size]
     pub orientation: TextOrientation,
 
     /// The blur radius for this text. If zero, this text is not blurred.
-    #[ignore_heap_size]
     pub blur_radius: Au,
 }
 
@@ -859,7 +849,6 @@ pub struct ImageDisplayItem {
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
     /// direction to tile the entire bounds.
-    #[ignore_heap_size]
     pub stretch_size: Size2D<Au>,
 
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
@@ -907,7 +896,6 @@ pub struct BorderDisplayItem {
     pub base: BaseDisplayItem,
 
     /// Border widths.
-    #[ignore_heap_size]
     pub border_widths: SideOffsets2D<Au>,
 
     /// Border colors.
@@ -921,14 +909,13 @@ pub struct BorderDisplayItem {
     /// Border radii.
     ///
     /// TODO(pcwalton): Elliptical radii.
-    #[ignore_heap_size]
     pub radius: BorderRadii<Au>,
 }
 
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, Default, PartialEq, Debug, Copy)]
+#[derive(Clone, Default, PartialEq, Debug, Copy, HeapSizeOf)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
@@ -978,11 +965,9 @@ pub struct BoxShadowDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The dimensions of the box that we're placing a shadow around.
-    #[ignore_heap_size]
     pub box_bounds: Rect<Au>,
 
     /// The offset of this shadow from the box.
-    #[ignore_heap_size]
     pub offset: Point2D<Au>,
 
     /// The color of this shadow.
@@ -990,11 +975,9 @@ pub struct BoxShadowDisplayItem {
     pub color: Color,
 
     /// The blur radius for this shadow.
-    #[ignore_heap_size]
     pub blur_radius: Au,
 
     /// The spread radius of this shadow.
-    #[ignore_heap_size]
     pub spread_radius: Au,
 
     /// How we should clip the result.
