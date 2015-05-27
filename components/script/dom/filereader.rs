@@ -19,6 +19,9 @@ use dom::blob::Blob;
 use dom::blob::BlobHelpers;
 use dom::domexception::DOMException;
 use dom::progressevent::ProgressEvent;
+use encoding::all::{UTF_8, UTF_16LE, UTF_16BE};
+use encoding::types::{decode, EncodingRef, DecoderTrap};
+use encoding::label::encoding_from_whatwg_label;
 use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
 use std::cell::{Cell, RefCell};
 use std::sync::{Mutex, Arc};
@@ -26,133 +29,34 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use util::str::DOMString;
 use util::task::spawn_named;
 
+pub enum FileReaderFunction {
+    ArrayBuffer,
+    Text,
+    Url,
+}
+
+
 pub struct ReadData {
     pub bytes: Option<Vec<u8>>,
+    pub blobtype: DOMString,
+    pub label: Option<DOMString>,
+    pub function: FileReaderFunction
 }
 
 impl ReadData {
-    pub fn new(bytes: Option<Vec<u8>>) -> ReadData {
+    pub fn new(bytes: Option<Vec<u8>>,blobtype: DOMString, label: Option<DOMString>, function: FileReaderFunction) -> ReadData {
         ReadData {
-            bytes: bytes
+            bytes: bytes,
+            blobtype: blobtype,
+            label: label,
+            function: function
         }
     }
 }
-
-
-struct FileReaderManager {
-    filereader_client: Receiver<ControlMsg>,
-    filereader_task: Sender<ControlMsg>
-}
-
-impl FileReaderManager {
-    fn new(filereader_client: Receiver<ControlMsg>,
-           filereader_task: Sender<ControlMsg>) -> FileReaderManager {
-        FileReaderManager {
-            filereader_client: filereader_client,
-            filereader_task: filereader_task,
-        }
-    }
-}
-
-
-impl FileReaderManager {
-    fn start(&mut self) {
-        loop {
-            match self.filereader_client.recv().unwrap() {
-              ControlMsg::Read(load_data, consumer) => {
-                self.read(load_data, consumer)
-              }
-              ControlMsg::Exit => {
-                break
-              }
-            }
-        }
-    }
-
-    fn read(&mut self, mut read_data: ReadData, consumer: ReadConsumer) {
-        let progress = start_reading(consumer);
-        progress.send(ProgressMsg::Payload(DOMString::new())).unwrap();
-        progress.send(ProgressMsg::Payload(DOMString::new())).unwrap();
-    }
-}
-
-/// For use by loaders in responding to a Load message.
-fn start_reading(start_chan: ReadConsumer)  -> ProgressSender {
-    start_reading_opt(start_chan).ok().unwrap()
-}
-
-/// For use by loaders in responding to a Load message.
-fn start_reading_opt(start_chan: ReadConsumer) -> Result<ProgressSender, ()> {
-    match start_chan {
-        ReadConsumer::Channel(_) => {
-            Err(())
-        }
-        ReadConsumer::Listener(target) => {
-            target.invoke_with_listener(ResultAction::StartReading);
-            Ok(ProgressSender::Listener(target))
-        }
-    }
-}
-
 
 #[derive(PartialEq, Clone, Copy)]
 #[jstraceable]
 pub struct GenerationId(u32);
-
-struct FileReaderContext {
-    fr: Trusted<FileReader>,
-    gen_id: GenerationId,
-    buf: RefCell<DOMString>,
-    sync_status: RefCell<Option<ErrorResult>>,
-}
-
-#[derive(Clone)]
-pub enum FileReaderProgress {
-    Start(GenerationId),
-    Reading(GenerationId, DOMString),
-    Done(GenerationId),
-    Errored(GenerationId, Error),
-}
-
-impl FileReaderProgress {
-    fn generation_id(&self) -> GenerationId {
-        match *self {
-            FileReaderProgress::Reading(id, _) |
-            FileReaderProgress::Start(id) |
-            FileReaderProgress::Done(id) |
-            FileReaderProgress::Errored(id, _) => id
-        }
-    }
-}
-
-
-#[derive(PartialEq,Debug)]
-pub enum ProgressMsg {
-    Payload(DOMString),
-    Done(Result<(), String>)
-}
-
-pub enum ProgressSender {
-    Channel(Sender<ProgressMsg>),
-    Listener(Box<AsyncResultTarget>),
-}
-
-impl ProgressSender {
-    //XXXjdm return actual error
-    pub fn send(&self, msg: ProgressMsg) -> Result<(), ()> {
-        match *self {
-            ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
-            ProgressSender::Listener(ref b) => {
-                let action = match msg {
-                    ProgressMsg::Payload(buf) => ResultAction::DataAvailable(buf),
-                    ProgressMsg::Done(status) => ResultAction::ResultComplete(status),
-                };
-                b.invoke_with_listener(action);
-                Ok(())
-            }
-        }
-    }
-}
 
 pub struct ReadResult {
     /// Port for reading data.
@@ -171,68 +75,11 @@ pub enum ControlMsg {
     Exit
 }
 
-pub enum ResultAction {
-    /// Invoke headers_available
-    StartReading,
-    /// Invoke data_available
-    DataAvailable(DOMString),
-    /// Invoke response_complete
-    ResultComplete(Result<(), String>)
-}
-
-impl ResultAction {
-    /// Execute the default action on a provided listener.
-    pub fn process(self, listener: &AsyncReadingListener) {
-        match self {
-            ResultAction::StartReading => listener.start_reading(),
-            ResultAction::DataAvailable(d) => listener.data_available(d),
-            ResultAction::ResultComplete(r) => listener.reading_complete(r),
-        }
-    }
-}
-pub trait AsyncResultTarget {
-    fn invoke_with_listener(&self, action: ResultAction);
-}
-
-pub trait AsyncReadingListener {
-    fn start_reading(&self);
-    fn data_available(&self, payload: DOMString);
-    fn reading_complete(&self, status: Result<(), String>);
-}
-
-pub struct ReadingListener<T: AsyncReadingListener + Send + 'static> {
-    pub context: Arc<Mutex<T>>,
-    pub script_chan: Box<ScriptChan+Send>,
-}
-
-impl<T: AsyncReadingListener + PreInvoke + Send + 'static> AsyncResultTarget for ReadingListener<T> {
-    fn invoke_with_listener(&self, action: ResultAction) {
-        self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
-            context: self.context.clone(),
-            action: action,
-        })).unwrap();
-    }
-}
-
-pub trait PreInvoke {
-    fn should_invoke(&self) -> bool {
-        true
-    }
-}
-/// A runnable for moving the async network events between threads.
-struct ListenerRunnable<T: AsyncReadingListener + PreInvoke + Send> {
-    context: Arc<Mutex<T>>,
-    action: ResultAction,
-}
-
-impl<T: AsyncReadingListener + PreInvoke + Send> Runnable for ListenerRunnable<T> {
-    fn handler(self: Box<ListenerRunnable<T>>) {
-        let this = *self;
-        let context = this.context.lock().unwrap();
-        if context.should_invoke() {
-            this.action.process(&*context);
-        }
-    }
+struct FileReaderContext {
+    fr: Trusted<FileReader>,
+    gen_id: GenerationId,
+    buf: RefCell<DOMString>,
+    sync_status: RefCell<Option<ErrorResult>>,
 }
 
 #[repr(u16)]
@@ -283,15 +130,18 @@ impl FileReader {
     fn initiate_async_fr(context: Arc<Mutex<FileReaderContext>>, script_chan: Box<ScriptChan+Send>, filereader_task: FileReaderTask, read_data: ReadData) {
         impl AsyncReadingListener for FileReaderContext {
             fn data_available(&self, payload: DOMString){
+                println!("{}", "Run data_available on AsyncReadingListener");
                 let fr = self.fr.to_temporary().root();
                 fr.r().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn reading_complete(&self, status: Result<(), String>){
+            fn reading_complete(&self, status: Result<DOMString, String>){
+                println!("{}", "Run reading_complete on AsyncReadingListener");
                 let fr = self.fr.to_temporary().root();
                 fr.r().process_result_complete(self.gen_id, status);
             }
             fn start_reading(&self){
+                println!("{}", "Run start_reading on AsyncReadingListener");
                 let fr = self.fr.to_temporary().root();
                 fr.r().process_start(self.gen_id);
             }
@@ -303,6 +153,7 @@ impl FileReader {
                 fr.r().generation_id.get() == self.gen_id
             }
         }
+        println!("{}", "Run initiate_async_fr");
 
         let listener = box ReadingListener {//replace
             context: context,
@@ -325,25 +176,27 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     }*/
 
     fn ReadAsText(self,blob: JSRef<Blob>,label:Option<DOMString>) -> ErrorResult {
+        println!("{}", "Run ReadAsText");
         let global = self.global.root();
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1. ReadAsText
             //throw DOMException
             return Err(InvalidState);
         }
         
-        debug!("test");
-
         self.change_ready_state(FileReaderReadyState::Loading);//3. ReadAsText
 
         let bytes = blob.read_out_buffer();
+        let type_ = blob.read_out_type();
 
-        let mut load_data = ReadData::new(bytes.clone());
+
+        let mut load_data = ReadData::new(bytes.clone(),type_,label,FileReaderFunction::Text);
 
         self.read(load_data,global.r());
         Ok(())
     }
 
     fn ReadAsDataURL(self,blob: JSRef<Blob>) -> ErrorResult {
+        println!("{}", "Run ReadAsText");
         let global = self.global.root();
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1. ReadAsText
             //throw DOMException
@@ -353,8 +206,9 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         self.change_ready_state(FileReaderReadyState::Loading);//3. ReadAsText
 
         let bytes = blob.read_out_buffer();
+        let type_ = blob.read_out_type();
 
-        let mut load_data = ReadData::new(bytes.clone());
+        let mut load_data = ReadData::new(bytes.clone(),type_,None,FileReaderFunction::Text);
 
         self.read(load_data,global.r());
         Ok(())
@@ -362,6 +216,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     }
 
     fn Abort(self) {
+        println!("{}", "Run Abort");
         let global = self.global.root();
 
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
@@ -380,7 +235,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     }
 
     fn GetError(self) -> Option<Temporary<DOMException>> {
-        self.error.borrow().clone()
+        None
     }
 
     fn GetResult(self) -> Option<DOMString> {
@@ -402,7 +257,7 @@ trait PrivateFileReaderHelpers {
     fn read(self, read_data: ReadData,  global: GlobalRef) -> ErrorResult;
     fn process_data_available(self, gen_id: GenerationId, payload: DOMString);
     fn process_start(self, gen_id: GenerationId);
-    fn process_result_complete(self, gen_id: GenerationId, status: Result<(), String>);
+    fn process_result_complete(self, gen_id: GenerationId, status: Result<DOMString, String>);
     fn process_partial_result(self, progress: FileReaderProgress);
     fn dispatch_result_progress_event(self, type_:DOMString);
     fn change_ready_state(self, state: FileReaderReadyState);
@@ -412,6 +267,7 @@ trait PrivateFileReaderHelpers {
 impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
 
     fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>) {
+        println!("Event {}", type_);
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
                                                type_, false, false,
@@ -437,6 +293,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
     }
 
     fn read(self, read_data: ReadData, global: GlobalRef) -> ErrorResult {
+        println!("Run read on FileReader");
 
         let fr = Trusted::new(global.get_cx(), self, global.script_chan());
 
@@ -460,6 +317,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
 
     fn process_partial_result(self, progress: FileReaderProgress) {
         let msg_id = progress.generation_id();
+        println!("Run process_partial_result on FileReader");
 
         // Aborts processing if abort() or open() was called
         // (including from one of the event handlers called below)
@@ -480,11 +338,12 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
             FileReaderProgress::Reading(_,partial) =>{
                 self.dispatch_result_progress_event("progress".to_owned());//7.
             },
-            FileReaderProgress::Done(_) => {
+            FileReaderProgress::Done(_,s) => {
                 self.dispatch_result_progress_event("progress".to_owned());
                 return_if_fetch_was_terminated!();
                 self.change_ready_state(FileReaderReadyState::Done);//8.1.
                 return_if_fetch_was_terminated!();
+                *self.result.borrow_mut() = Some(s);
                 self.dispatch_result_progress_event("load".to_owned());//8.3
                 return_if_fetch_was_terminated!();
                 if(self.ready_state.get() as u16 != FileReaderReadyState::Loading as u16){//8.4
@@ -519,10 +378,10 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
         self.process_partial_result(FileReaderProgress::Reading(gen_id, payload));
     }
 
-    fn process_result_complete(self, gen_id: GenerationId, status: Result<(), String>) {
+    fn process_result_complete(self, gen_id: GenerationId, status: Result<DOMString, String>) {
         match status {
-            Ok(()) => {
-                self.process_partial_result(FileReaderProgress::Done(gen_id));
+            Ok(s) => {
+                self.process_partial_result(FileReaderProgress::Done(gen_id,s));
             },
             Err(_) => {
                 self.process_partial_result(FileReaderProgress::Errored(gen_id, Syntax));
@@ -532,5 +391,226 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
 
     fn dispatch_result_progress_event(self, type_: DOMString) {
         self.dispatch_progress_event(type_, 0, None);
+    }
+}
+
+struct FileReaderManager {
+    filereader_client: Receiver<ControlMsg>,
+    filereader_task: Sender<ControlMsg>
+}
+
+impl FileReaderManager {
+    fn new(filereader_client: Receiver<ControlMsg>,
+           filereader_task: Sender<ControlMsg>) -> FileReaderManager {
+        FileReaderManager {
+            filereader_client: filereader_client,
+            filereader_task: filereader_task,
+        }
+    }
+}
+
+
+impl FileReaderManager {
+    fn start(&mut self) {
+        loop {
+            match self.filereader_client.recv().unwrap() {
+              ControlMsg::Read(read_data, consumer) => {
+                self.read(read_data, consumer)
+              }
+              ControlMsg::Exit => {
+                break
+              }
+            }
+        }
+    }
+
+    fn read(&mut self, mut read_data: ReadData, consumer: ReadConsumer) {
+        println!("{}", "Run read of FileReaderManager");
+        let progress = start_reading(consumer);
+        progress.send(ProgressMsg::Payload(DOMString::new())).unwrap();
+        match read_data.function {
+            FileReaderFunction::Text => self.readText(read_data, progress),
+            _ => {
+                println!("Run read of FileReaderManager: {}", "Not Implemented Function");
+                progress.send(ProgressMsg::Done(Ok(DOMString::new()))).unwrap()
+            }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn readText(&mut self, mut read_data: ReadData, progress: ProgressSender) {
+        let encoding = if read_data.label.is_some() {
+            encoding_from_whatwg_label(&read_data.label.unwrap())
+        } else {
+            Some(UTF_8 as EncodingRef)
+        };
+
+        let enc = match encoding {
+            Some(code) => code,
+            None => {
+                println!("Run readText of FileReaderManager: {}", "Wrong Encoding");
+                progress.send(ProgressMsg::Done(Err(DOMString::from_str("Wrong Encoding")))).unwrap();
+                return;
+            } 
+        };
+        let input = match read_data.bytes {
+            Some(bytes) => bytes,
+            None => {
+                println!("Run readText of FileReaderManager: {}", "Empty String");
+                progress.send(ProgressMsg::Done(Ok(DOMString::new()))).unwrap();
+                return;
+            }
+        };
+
+        let (v1, convert) = input.split_at(0);
+
+        let output = enc.decode(convert, DecoderTrap::Strict);
+        match output {
+            Ok(s) => {
+                println!("Run readText of FileReaderManager: {}", "Decoding worked");
+                progress.send(ProgressMsg::Done(Ok(s))).unwrap();
+            },
+            Err(_) => progress.send(ProgressMsg::Done(Err(DOMString::from_str("Decoding failed")))).unwrap()
+        };
+    }
+}
+
+/// For use by loaders in responding to a Load message.
+fn start_reading(start_chan: ReadConsumer)  -> ProgressSender {
+    start_reading_opt(start_chan).ok().unwrap()
+}
+
+/// For use by loaders in responding to a Load message.
+fn start_reading_opt(start_chan: ReadConsumer) -> Result<ProgressSender, ()> {
+    match start_chan {
+        ReadConsumer::Channel(_) => {
+            println!("Run start_reading_opt for ReadConsumer::Channel");
+            Err(())
+        }
+        ReadConsumer::Listener(target) => {
+            println!("Run start_reading_opt for ReadConsumer::Listener");
+            target.invoke_with_listener(ResultAction::StartReading);
+            Ok(ProgressSender::Listener(target))
+        }
+    }
+}
+
+pub enum ResultAction {
+    /// Invoke headers_available
+    StartReading,
+    /// Invoke data_available
+    DataAvailable(DOMString),
+    /// Invoke response_complete
+    ResultComplete(Result<DOMString, String>)
+}
+
+impl ResultAction {
+    /// Execute the default action on a provided listener.
+    pub fn process(self, listener: &AsyncReadingListener) {
+        println!("Run process on ResultAction");
+        match self {
+            ResultAction::StartReading => listener.start_reading(),
+            ResultAction::DataAvailable(d) => listener.data_available(d),
+            ResultAction::ResultComplete(r) => listener.reading_complete(r),
+        }
+    }
+}
+pub trait AsyncResultTarget {
+    fn invoke_with_listener(&self, action: ResultAction);
+}
+
+pub trait AsyncReadingListener {
+    fn start_reading(&self);
+    fn data_available(&self, payload: DOMString);
+    fn reading_complete(&self, status: Result<DOMString, String>);
+}
+
+pub struct ReadingListener<T: AsyncReadingListener + Send + 'static> {
+    pub context: Arc<Mutex<T>>,
+    pub script_chan: Box<ScriptChan+Send>,
+}
+
+impl<T: AsyncReadingListener + PreInvoke + Send + 'static> AsyncResultTarget for ReadingListener<T> {
+    fn invoke_with_listener(&self, action: ResultAction) {
+        match action {
+            ResultAction::StartReading => println!("Run invoke_with_listener on AsyncReadingListener: {}", "StartReading"),
+            ResultAction::DataAvailable(_) => println!("Run invoke_with_listener on AsyncReadingListener: {}", "DataAvailable"),
+            ResultAction::ResultComplete(_) => println!("Run invoke_with_listener on AsyncReadingListener: {}", "ResultComplete"),   
+        }
+        self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
+            context: self.context.clone(),
+            action: action,
+        })).unwrap();
+    }
+}
+
+pub trait PreInvoke {
+    fn should_invoke(&self) -> bool {
+        true
+    }
+}
+/// A runnable for moving the async network events between threads.
+struct ListenerRunnable<T: AsyncReadingListener + PreInvoke + Send> {
+    context: Arc<Mutex<T>>,
+    action: ResultAction,
+}
+
+impl<T: AsyncReadingListener + PreInvoke + Send> Runnable for ListenerRunnable<T> {
+    fn handler(self: Box<ListenerRunnable<T>>) {
+        println!("{}", "Run handler on Runnable");
+        let this = *self;
+        let context = this.context.lock().unwrap();
+        if context.should_invoke() {
+            this.action.process(&*context);
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum FileReaderProgress {
+    Start(GenerationId),
+    Reading(GenerationId, DOMString),
+    Done(GenerationId, DOMString),
+    Errored(GenerationId, Error),
+}
+
+impl FileReaderProgress {
+    fn generation_id(&self) -> GenerationId {
+        match *self {
+            FileReaderProgress::Reading(id, _) |
+            FileReaderProgress::Start(id) |
+            FileReaderProgress::Done(id, _) |
+            FileReaderProgress::Errored(id, _) => id
+        }
+    }
+}
+
+
+#[derive(PartialEq,Debug)]
+pub enum ProgressMsg {
+    Payload(DOMString),
+    Done(Result<DOMString, String>)
+}
+
+pub enum ProgressSender {
+    Channel(Sender<ProgressMsg>),
+    Listener(Box<AsyncResultTarget>),
+}
+
+impl ProgressSender {
+    //XXXjdm return actual error
+    pub fn send(&self, msg: ProgressMsg) -> Result<(), ()> {
+        println!("Run send on ProgressSender");
+        match *self {
+            ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
+            ProgressSender::Listener(ref b) => {
+                let action = match msg {
+                    ProgressMsg::Payload(buf) => ResultAction::DataAvailable(buf),
+                    ProgressMsg::Done(status) => ResultAction::ResultComplete(status),
+                };
+                b.invoke_with_listener(action);
+                Ok(())
+            }
+        }
     }
 }

@@ -82,11 +82,15 @@ impl Blob {
 
 pub trait BlobHelpers {
     fn read_out_buffer(self) -> Option<Vec<u8>>;
+    fn read_out_type(self) -> DOMString;
 }
 
 impl<'a> BlobHelpers for JSRef<'a, Blob> {
     fn read_out_buffer(self) -> Option<Vec<u8>> {
         self.bytes.clone()
+    }
+    fn read_out_type(self) -> DOMString {
+        self.typeString.clone()
     }
 }
 
