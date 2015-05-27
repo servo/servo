@@ -264,7 +264,7 @@ pub fn browser_callback_after_created(browser: CefBrowser) {
         life_span_handler.on_after_created(browser.clone());
     }
     browser.downcast().callback_executed.set(true);
-    browser.downcast().host.was_resized();
+    browser.downcast().frame.load();
 }
 
 fn browser_host_create(window_info: &cef_window_info_t,
@@ -274,11 +274,11 @@ fn browser_host_create(window_info: &cef_window_info_t,
                        -> CefBrowser {
     let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();
     browser.init(window_info);
+    if url != ptr::null() {
+       unsafe { browser.downcast().frame.set_url(CefWrap::to_rust(url)); }
+    }
     if callback_executed {
         browser_callback_after_created(browser.clone());
-    }
-    if url != ptr::null() {
-       unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
     }
     BROWSERS.with(|browsers| {
         browsers.borrow_mut().push(browser.clone());
