@@ -168,10 +168,13 @@ fn create_constellation(opts: opts::Opts,
         storage_task);
 
     // Send the URL command to the constellation.
-    {
-        let ConstellationChan(ref chan) = constellation_chan;
-        chan.send(ConstellationMsg::InitLoadUrl(opts.url.clone())).unwrap();
-    }
+    match opts.url {
+        Some(url) => {
+            let ConstellationChan(ref chan) = constellation_chan;
+            chan.send(ConstellationMsg::InitLoadUrl(url.clone())).unwrap();
+        },
+        None => ()
+    };
 
     constellation_chan
 }
