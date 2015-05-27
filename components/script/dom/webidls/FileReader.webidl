@@ -13,7 +13,8 @@
 interface FileReader: EventTarget {
 
   // async read methods
-  //void readAsArrayBuffer(Blob blob);
+  [Throws]
+  void readAsArrayBuffer(Blob blob);
   [Throws]
   void readAsText(Blob blob, optional DOMString label);
   [Throws]
