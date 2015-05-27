@@ -693,7 +693,11 @@ impl WindowMethods for Window {
     fn set_page_url(&self, _: Url) {
     }
 
-    fn load_end(&self) {
+    fn load_start(&self, _: bool, _: bool) {
+    }
+    fn load_end(&self, _: bool, _: bool) {
+    }
+    fn load_error(&self, _: NetError, _: String) {
     }
 
     fn set_cursor(&self, _: Cursor) {
