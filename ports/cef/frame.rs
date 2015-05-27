@@ -53,10 +53,20 @@ full_cef_class_impl! {
 
 pub trait ServoCefFrameExtensions {
     fn set_browser(&self, browser: CefBrowser);
+    fn set_url(&self, url: &[u16]);
+    fn load(&self);
 }
 
 impl ServoCefFrameExtensions for CefFrame {
     fn set_browser(&self, browser: CefBrowser) {
         *self.downcast().browser.borrow_mut() = Some(browser)
+    }
+    fn set_url(&self, url: &[u16]) {
+        let frame = self.downcast();
+        *frame.url.borrow_mut() = String::from_utf16(url).unwrap();
+    }
+    fn load(&self) {
+        let event = WindowEvent::LoadUrl(self.downcast().url.borrow().clone());
+        self.downcast().browser.borrow_mut().as_mut().unwrap().send_window_event(event);
     }
 }
