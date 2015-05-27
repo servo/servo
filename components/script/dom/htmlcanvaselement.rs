@@ -175,7 +175,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     fn GetContext(self,
                   cx: *mut JSContext,
                   id: DOMString,
-                  webgl_attributes: JSVal)
+                  attributes: Vec<JSVal>)
         -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match &*id {
             "2d" => {
@@ -184,8 +184,8 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
                     return None;
                 }
 
-                if !webgl_attributes.is_null() {
-                    debug!("WebGLContextAttributes found for a 2d context, ignoring...");
+                if !attributes.is_empty() {
+                    debug!("More than one argument found for a 2d context, ignoring...");
                 }
 
                 let context_2d = self.context_2d.or_init(|| {
@@ -207,9 +207,9 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
                     let window = window_from_node(self).root();
                     let size = self.get_size();
 
-                    let attrs = if webgl_attributes.is_object() {
-                        if let Ok(ref attrs) = WebGLContextAttributes::new(cx, webgl_attributes) {
-                            gl_attributes_from_webgl_attributes(attrs)
+                    let attrs = if let Some(webgl_attributes) = attributes.get(0) {
+                        if let Ok(ref attrs) = WebGLContextAttributes::new(cx, *webgl_attributes) {
+                            From::from(attrs)
                         } else {
                             debug!("Unexpected error on conversion of WebGLContextAttributes");
                             return None;
@@ -283,13 +283,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
     }
 }
 
-fn gl_attributes_from_webgl_attributes(attrs: &WebGLContextAttributes) -> GLContextAttributes {
-    GLContextAttributes {
-        alpha: attrs.alpha,
-        depth: attrs.depth,
-        stencil: attrs.stencil,
-        antialias: attrs.antialias,
-        premultiplied_alpha: attrs.premultipliedAlpha,
-        preserve_drawing_buffer: attrs.preserveDrawingBuffer,
+// NOTE this must be a refference because of the [no_move]
+// of the DOM bindings
+impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
+    fn from(attrs: &'a WebGLContextAttributes) -> GLContextAttributes {
+        GLContextAttributes {
+            alpha: attrs.alpha,
+            depth: attrs.depth,
+            stencil: attrs.stencil,
+            antialias: attrs.antialias,
+            premultiplied_alpha: attrs.premultipliedAlpha,
+            preserve_drawing_buffer: attrs.preserveDrawingBuffer,
+        }
     }
 }
+

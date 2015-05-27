@@ -1,15 +1,40 @@
 <meta charset="utf-8">
 <title>WebGL Context Attributes test</title>
-<canvas id="c"></canvas>
 <script>
-  var gl = document.getElementById("c").getContext("webgl", { alpha: false, antialias: "" }),
-      attributes = gl.getContextAttributes();
+(function () {
+    var canvas = document.createElement('canvas'),
+        closure = function() {},
+        gl, attributes;
 
-  console.log("Got context attributes: ", JSON.stringify(attributes));
+    closure.alpha = false;
+    closure.antialias = "";
 
-  if ( attributes.alpha )
-    console.error("Alpha not expected");
+    console.log(canvas.getContext("webgl", "literal"));
+    gl = canvas.getContext("webgl", closure);
 
-  if ( attributes.antialias )
-    console.error("Antialias not expected, should be casted to false");
+    if ( ! gl ) {
+        console.log("Passing a closure to `getContext` didn't generate a context");
+        gl = canvas.getContext("webgl", { alpha: false, antialias: "" });
+    }
+
+    if ( ! gl ) {
+        console.error("Unable to generate a WebGL context");
+        return;
+    }
+
+    attributes = gl.getContextAttributes();
+    console.log("Got context attributes: ", JSON.stringify(attributes));
+
+    if ( attributes.alpha )
+        console.error("Alpha not expected");
+
+    if ( attributes.antialias )
+        console.error("Antialias not expected, should be casted to false");
+
+    gl = canvas.getContext("webgl", { alpha: true });
+    attributes = gl.getContextAttributes();
+
+    if ( attributes.alpha )
+        console.error("Should have returned the previous context attributes");
+})();
 </script>
