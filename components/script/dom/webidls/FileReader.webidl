@@ -14,7 +14,9 @@ interface FileReader: EventTarget {
 
   // async read methods
   //void readAsArrayBuffer(Blob blob);
+  [Throws]
   void readAsText(Blob blob, optional DOMString label);
+  [Throws]
   void readAsDataURL(Blob blob);
 
   void abort();

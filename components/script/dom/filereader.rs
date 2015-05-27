@@ -7,13 +7,13 @@ use dom::bindings::codegen::Bindings::FileReaderBinding::{FileReaderConstants, F
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::error::Error::{InvalidState, InvalidAccess};
-use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
+use dom::bindings::error::Error::InvalidState;
+use dom::bindings::error::Error::{ Syntax, Abort, Timeout};
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary, Rootable};
+use dom::bindings::js::{JSRef, Temporary, Rootable};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
+use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::blob::Blob;
 use dom::blob::BlobHelpers;
@@ -22,7 +22,7 @@ use dom::progressevent::ProgressEvent;
 use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
 use std::cell::{Cell, RefCell};
 use std::sync::{Mutex, Arc};
-use std::sync::mpsc::{channel, Sender, TryRecvError, Receiver};
+use std::sync::mpsc::{channel, Sender, Receiver};
 use util::str::DOMString;
 use util::task::spawn_named;
 
@@ -84,7 +84,7 @@ fn start_reading(start_chan: ReadConsumer)  -> ProgressSender {
 /// For use by loaders in responding to a Load message.
 fn start_reading_opt(start_chan: ReadConsumer) -> Result<ProgressSender, ()> {
     match start_chan {
-        ReadConsumer::Channel(start_chan) => {
+        ReadConsumer::Channel(_) => {
             Err(())
         }
         ReadConsumer::Listener(target) => {
@@ -324,24 +324,40 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         
     }*/
 
-    fn ReadAsText(self,blob: JSRef<Blob>,label:Option<DOMString>) {
+    fn ReadAsText(self,blob: JSRef<Blob>,label:Option<DOMString>) -> ErrorResult {
         let global = self.global.root();
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1. ReadAsText
             //throw DOMException
+            return Err(InvalidState);
         }
+        
+        debug!("test");
 
-
-        self.ready_state.set(FileReaderReadyState::Loading);//3. ReadAsText
+        self.change_ready_state(FileReaderReadyState::Loading);//3. ReadAsText
 
         let bytes = blob.read_out_buffer();
 
         let mut load_data = ReadData::new(bytes.clone());
 
         self.read(load_data,global.r());
-
+        Ok(())
     }
 
-    fn ReadAsDataURL(self,blob: JSRef<Blob>) {
+    fn ReadAsDataURL(self,blob: JSRef<Blob>) -> ErrorResult {
+        let global = self.global.root();
+        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1. ReadAsText
+            //throw DOMException
+            return Err(InvalidState);
+        }
+
+        self.change_ready_state(FileReaderReadyState::Loading);//3. ReadAsText
+
+        let bytes = blob.read_out_buffer();
+
+        let mut load_data = ReadData::new(bytes.clone());
+
+        self.read(load_data,global.r());
+        Ok(())
         
     }
 
@@ -349,7 +365,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         let global = self.global.root();
 
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
-            self.ready_state.set(FileReaderReadyState::Done);
+            self.change_ready_state(FileReaderReadyState::Done);
         }
 
         *self.result.borrow_mut() = None;
@@ -364,12 +380,14 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     }
 
     fn GetError(self) -> Option<Temporary<DOMException>> {
-        None
-        //self.error.borrow()
+        self.error.borrow().clone()
     }
 
     fn GetResult(self) -> Option<DOMString> {
-        None
+        match self.ready_state.get() {
+            FileReaderReadyState::Done | FileReaderReadyState::Loading => self.result.borrow().clone(),
+            _ => None
+        }
         //self.result.borrow()
     }
 
@@ -384,7 +402,7 @@ trait PrivateFileReaderHelpers {
     fn read(self, read_data: ReadData,  global: GlobalRef) -> ErrorResult;
     fn process_data_available(self, gen_id: GenerationId, payload: DOMString);
     fn process_start(self, gen_id: GenerationId);
-    fn process_result_complete(self, gen_id: GenerationId, status: Result<(), String>) -> ErrorResult;
+    fn process_result_complete(self, gen_id: GenerationId, status: Result<(), String>);
     fn process_partial_result(self, progress: FileReaderProgress);
     fn dispatch_result_progress_event(self, type_:DOMString);
     fn change_ready_state(self, state: FileReaderReadyState);
@@ -490,7 +508,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
     }
 
     fn change_ready_state(self, state: FileReaderReadyState) {
-
+        self.ready_state.set(state);
     }
 
     fn process_start(self, gen_id: GenerationId) {
@@ -501,15 +519,13 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
         self.process_partial_result(FileReaderProgress::Reading(gen_id, payload));
     }
 
-    fn process_result_complete(self, gen_id: GenerationId, status: Result<(), String>) -> ErrorResult {
+    fn process_result_complete(self, gen_id: GenerationId, status: Result<(), String>) {
         match status {
             Ok(()) => {
                 self.process_partial_result(FileReaderProgress::Done(gen_id));
-                Ok(())
             },
             Err(_) => {
                 self.process_partial_result(FileReaderProgress::Errored(gen_id, Syntax));
-                Err(Syntax)
             }
         }
     }
