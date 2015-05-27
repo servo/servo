@@ -227,32 +227,32 @@ pub struct StackingContext {
     pub display_list: Box<DisplayList>,
 
     /// The layer for this stacking context, if there is one.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub layer: Option<Arc<PaintLayer>>,
 
     /// The position and size of this stacking context.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub bounds: Rect<Au>,
 
     /// The overflow rect for this stacking context in its coordinate system.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub overflow: Rect<Au>,
 
     /// The `z-index` for this stacking context.
     pub z_index: i32,
 
     /// CSS filters to be applied to this stacking context (including opacity).
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub filters: filter::T,
 
     /// The blend mode with which this stacking context blends with its backdrop.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
     ///
     /// TODO(pcwalton): 3D transforms.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub transform: Matrix2D<AzFloat>,
 }
 
@@ -616,7 +616,7 @@ pub enum DisplayItem {
 #[derive(Clone, HeapSizeOf)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub bounds: Rect<Au>,
 
     /// Metadata attached to this display item.
@@ -645,7 +645,7 @@ impl BaseDisplayItem {
 #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub main: Rect<Au>,
     /// Any complex regions.
     ///
@@ -660,10 +660,10 @@ pub struct ClippingRegion {
 #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub rect: Rect<Au>,
     /// Border radii of this rectangle.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub radii: BorderRadii<Au>,
 }
 
@@ -777,7 +777,7 @@ pub struct DisplayItemMetadata {
     pub node: OpaqueNode,
     /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
     /// this display item is ineligible for pointer events (`pointer-events: none`).
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub pointing: Option<Cursor>,
 }
 
@@ -807,7 +807,7 @@ pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The color.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub color: Color,
 }
 
@@ -818,27 +818,27 @@ pub struct TextDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The text run.
-    #[ignore_heapsize] // We exclude `text_run` because it is non-owning.
+    #[ignore_heap_size] // We exclude `text_run` because it is non-owning.
     pub text_run: Arc<Box<TextRun>>,
 
     /// The range of text within the text run.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub range: Range<CharIndex>,
 
     /// The color of the text.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub text_color: Color,
 
     /// The position of the start of the baseline of this text.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub baseline_origin: Point2D<Au>,
 
     /// The orientation of the text: upright or sideways left/right.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub orientation: TextOrientation,
 
     /// The blur radius for this text. If zero, this text is not blurred.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub blur_radius: Au,
 }
 
@@ -853,18 +853,18 @@ pub enum TextOrientation {
 #[derive(Clone, HeapSizeOf)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
-    #[ignore_heapsize] // We exclude `image` here because it is non-owning.
+    #[ignore_heap_size] // We exclude `image` here because it is non-owning.
     pub image: Arc<Image>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
     /// direction to tile the entire bounds.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub stretch_size: Size2D<Au>,
 
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub image_rendering: image_rendering::T,
 }
 
@@ -907,21 +907,21 @@ pub struct BorderDisplayItem {
     pub base: BaseDisplayItem,
 
     /// Border widths.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub border_widths: SideOffsets2D<Au>,
 
     /// Border colors.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub color: SideOffsets2D<Color>,
 
     /// Border styles.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub style: SideOffsets2D<border_style::T>,
 
     /// Border radii.
     ///
     /// TODO(pcwalton): Elliptical radii.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub radius: BorderRadii<Au>,
 }
 
@@ -963,11 +963,11 @@ pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The line segment color.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub color: Color,
 
     /// The line segment style.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub style: border_style::T
 }
 
@@ -978,23 +978,23 @@ pub struct BoxShadowDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The dimensions of the box that we're placing a shadow around.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub box_bounds: Rect<Au>,
 
     /// The offset of this shadow from the box.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub offset: Point2D<Au>,
 
     /// The color of this shadow.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub color: Color,
 
     /// The blur radius for this shadow.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub blur_radius: Au,
 
     /// The spread radius of this shadow.
-    #[ignore_heapsize]
+    #[ignore_heap_size]
     pub spread_radius: Au,
 
     /// How we should clip the result.

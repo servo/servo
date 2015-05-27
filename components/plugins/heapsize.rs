@@ -46,7 +46,7 @@ fn heapsize_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substructu
     fields.iter().fold(cx.expr_usize(trait_span, 0),
                        |acc, ref item| {
                         if item.attrs.iter()
-                               .find(|ref a| a.check_name("ignore_heapsize"))
+                               .find(|ref a| a.check_name("ignore_heap_size"))
                                .is_some() {
                             acc
                         } else {
