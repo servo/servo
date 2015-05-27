@@ -26,6 +26,9 @@ git = "https://github.com/servo/rust-layers"
 [dependencies.msg]
 path = "../../components/msg"
 
+[dependencies.net]
+path = "../../components/net"
+
 [dependencies.util]
 path = "../../components/util"
 

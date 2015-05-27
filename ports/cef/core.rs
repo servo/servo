@@ -12,11 +12,10 @@ use util::opts;
 use std::ffi;
 use std::str;
 use browser;
-use std_url::Url;
 
 const MAX_RENDERING_THREADS: usize = 128;
 
-static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
+//static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
 
 static CEF_API_HASH_UNIVERSAL: &'static [u8] = b"8efd129f4afc344bd04b2feb7f73a149b6c4e27f\0";
 #[cfg(target_os="windows")]
@@ -25,6 +24,8 @@ static CEF_API_HASH_PLATFORM: &'static [u8] = b"5c7f3e50ff5265985d11dc1a466513e2
 static CEF_API_HASH_PLATFORM: &'static [u8] = b"6813214accbf2ebfb6bdcf8d00654650b251bf3d\0";
 #[cfg(target_os="linux")]
 static CEF_API_HASH_PLATFORM: &'static [u8] = b"2bc564c3871965ef3a2531b528bda3e17fa17a6d\0";
+
+pub static mut CEF_APP: *mut cef_app_t = 0 as *mut cef_app_t;
 
 
 #[no_mangle]
@@ -35,6 +36,11 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
                                  -> c_int {
     if args.is_null() {
         return 0;
+    }
+    unsafe {
+        if !CEF_APP.is_null() {
+            panic!("Attempting to call cef_initialize() multiple times!");
+        }
     }
 
     unsafe {
@@ -47,6 +53,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
                         (*handler).on_context_initialized.map(|hcb| hcb(handler));
                     }
             });
+            CEF_APP = application;
         }
     }
 
@@ -67,7 +74,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     temp_opts.hard_fail = false;
     temp_opts.enable_text_antialiasing = true;
     temp_opts.resources_path = None;
-    temp_opts.url = Url::parse(HOME_URL).unwrap();
+    temp_opts.url = None;
     opts::set(temp_opts);
 
     if unsafe { (*settings).windowless_rendering_enabled != 0 } {
