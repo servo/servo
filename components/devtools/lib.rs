@@ -250,7 +250,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                               actor_pipelines: &HashMap<PipelineId, String>) {
         let console_actor_name = find_console_actor(actors.clone(), id, actor_pipelines);
         let actors = actors.lock().unwrap();
-        let console_actor = actors.find::<ConsoleActor>(&console_actor_name.unwrap());
+        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let msg = ConsoleAPICall {
             from: console_actor.name.clone(),
             __type__: "consoleAPICall".to_string(),
