@@ -45,10 +45,9 @@ use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::f32;
 use style::computed_values::filter::Filter;
-use style::computed_values::{background_attachment, background_clip, background_origin,
-                             background_repeat, background_size};
-use style::computed_values::{border_style, image_rendering, overflow_x, position,
-                             visibility, transform, transform_style};
+use style::computed_values::{background_attachment, background_clip, background_origin};
+use style::computed_values::{background_repeat, background_size, border_style, image_rendering};
+use style::computed_values::{overflow_x, position, transform, transform_style, visibility};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
 use style::values::RGBA;

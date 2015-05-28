@@ -163,7 +163,7 @@ impl DisplayList {
         }
     }
 
-    // Print the display list. Only makes sense to call it after performing reflow.
+    /// Print the display list. Only makes sense to call it after performing reflow.
     pub fn print_items(&self, indentation: String) {
         for item in self.all_display_items().iter() {
             item.print(&*indentation)
