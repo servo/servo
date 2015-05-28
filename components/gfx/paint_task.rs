@@ -234,7 +234,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
     fn start(&mut self) {
         debug!("PaintTask: beginning painting loop");
 
-        let mut exit_response_channel : Option<Sender<()>> = None;
+        let mut exit_response_channel: Option<Sender<()>> = None;
         let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
             match self.port.recv().unwrap() {
@@ -296,7 +296,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         if self.current_epoch == Some(epoch) {
                             self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
                         } else {
-                            debug!("painter epoch mismatch: {:?} != {:?}", self.current_epoch, epoch);
+                            debug!("painter epoch mismatch: {:?} != {:?}",
+                                   self.current_epoch,
+                                   epoch);
                         }
                     }
 
@@ -312,7 +314,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                            frame_tree_id);
                 }
                 Msg::UnusedBuffer(unused_buffers) => {
-                    debug!("PaintTask {:?}: Received {} unused buffers", self.id, unused_buffers.len());
+                    debug!("PaintTask {:?}: Received {} unused buffers",
+                           self.id,
+                           unused_buffers.len());
                     self.used_buffer_count -= unused_buffers.len();
 
                     for buffer in unused_buffers.into_iter().rev() {
@@ -369,7 +373,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // If we own buffers in the compositor and we are not exiting completely, wait
                     // for the compositor to return buffers, so that we can release them properly.
                     // When doing a complete exit, the compositor lets all buffers leak.
-                    debug!("PaintTask {:?}: Saw ExitMsg, {} buffers in use", self.id, self.used_buffer_count);
+                    debug!("PaintTask {:?}: Saw ExitMsg, {} buffers in use",
+                           self.id,
+                           self.used_buffer_count);
                     waiting_for_compositor_buffers_to_exit = true;
                     exit_response_channel = response_channel;
                 }
@@ -652,7 +658,12 @@ impl WorkerThread {
         loop {
             match self.receiver.recv().unwrap() {
                 MsgToWorkerThread::Exit => break,
-                MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale, layer_kind) => {
+                MsgToWorkerThread::PaintTile(thread_id,
+                                             tile,
+                                             layer_buffer,
+                                             stacking_context,
+                                             scale,
+                                             layer_kind) => {
                     let draw_target = self.optimize_and_paint_tile(thread_id,
                                                                    &tile,
                                                                    stacking_context,
