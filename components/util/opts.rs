@@ -24,7 +24,7 @@ use url::{self, Url};
 #[derive(Clone)]
 pub struct Opts {
     /// The initial URL to load.
-    pub url: Url,
+    pub url: Option<Url>,
 
     /// How many threads to use for CPU painting (`-t`).
     ///
@@ -198,7 +198,7 @@ static FORCE_CPU_PAINTING: bool = false;
 
 pub fn default_opts() -> Opts {
     Opts {
-        url: Url::parse("about:blank").unwrap(),
+        url: Some(Url::parse("about:blank").unwrap()),
         paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
@@ -370,7 +370,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     let opts = Opts {
-        url: url,
+        url: Some(url),
         paint_threads: paint_threads,
         gpu_painting: gpu_painting,
         tile_size: tile_size,

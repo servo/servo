@@ -391,9 +391,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             // A page loaded through one of several methods above has completed all parsing,
             // script, and reflow messages have been sent.
-            ConstellationMsg::LoadComplete => {
+            ConstellationMsg::LoadComplete(pipeline_id) => {
                 debug!("constellation got load complete message");
-                self.handle_load_complete_msg()
+                self.handle_load_complete_msg(&pipeline_id)
             }
             // Handle a forward or back request
             ConstellationMsg::Navigate(pipeline_info, direction) => {
@@ -519,8 +519,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_init_load(&mut self, url: Url) {
         let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
         let root_pipeline_id =
-            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url));
+            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url.clone()));
+        self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
+        self.compositor_proxy.send(CompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_rect_msg(&mut self, containing_pipeline_id: PipelineId, subpage_id: SubpageId,
@@ -629,6 +631,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // requested change so it can update its internal state.
         match self.pipeline(source_id).parent_info {
             Some((parent_pipeline_id, subpage_id)) => {
+                self.handle_load_start_msg(&source_id);
                 // Message the constellation to find the script task for this iframe
                 // and issue an iframe load through there.
                 let parent_pipeline = self.pipeline(parent_pipeline_id);
@@ -646,6 +649,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     }
                 }
 
+                self.handle_load_start_msg(&source_id);
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
 
@@ -661,8 +665,31 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    fn handle_load_complete_msg(&mut self) {
-        self.compositor_proxy.send(CompositorMsg::LoadComplete);
+    fn handle_load_start_msg(&mut self, pipeline_id: &PipelineId) {
+        let mut back;
+        let mut forward;
+        let frameid = self.pipeline_to_frame_map.get(pipeline_id);
+        match frameid {
+            Some(frame_id) => {
+                forward = if !self.frame(*frame_id).next.is_empty() { true }
+                          else { false };
+                back = if !self.frame(*frame_id).prev.is_empty() { true }
+                       else { false };
+            },
+            None => return
+        };
+        self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
+    }
+
+    fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
+        let frame_id = match self.pipeline_to_frame_map.get(pipeline_id) {
+            Some(frame) => *frame,
+            None => return
+        };
+
+        let forward = !self.mut_frame(frame_id).next.is_empty();
+        let back = !self.mut_frame(frame_id).prev.is_empty();
+        self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
         if let Some(ref reply_chan) = self.webdriver.load_channel {
             reply_chan.send(webdriver_traits::LoadComplete).unwrap();
         }

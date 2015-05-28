@@ -7,8 +7,9 @@
 //! This is used for off-screen rendering mode only; on-screen windows (the default embedding mode)
 //! are managed by a platform toolkit (Glutin).
 
+use core::CEF_APP;
 use eutil::Downcast;
-use interfaces::CefBrowser;
+use interfaces::{CefApp, CefBrowser};
 use render_handler::CefRenderHandlerExtensions;
 use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
@@ -21,8 +22,9 @@ use geom::size::TypedSize2D;
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use libc::{c_char, c_int, c_void};
+use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
+use net::net_error_list::NetError;
 use std::ptr;
 use std_url::Url;
 use util::cursor::Cursor;
@@ -314,19 +316,65 @@ impl WindowMethods for Window {
         }
     }
 
-    fn load_end(&self) {
+    fn load_start(&self, back: bool, forward: bool) {
         // FIXME(pcwalton): The status code 200 is a lie.
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
             Some(ref browser) => browser,
         };
+        browser.downcast().loading.set(true);
+        browser.downcast().back.set(back);
+        browser.downcast().forward.set(forward);
+        if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
+            browser.get_host()
+                   .get_client()
+                   .get_load_handler()
+                   .on_loading_state_change((*browser).clone(), 1i32, back as i32, forward as i32);
+        }
+    }
+
+    fn load_end(&self, back: bool, forward: bool) {
+        // FIXME(pcwalton): The status code 200 is a lie.
+        let browser = self.cef_browser.borrow();
+        let browser = match *browser {
+            None => return,
+            Some(ref browser) => browser,
+        };
+        browser.downcast().loading.set(false);
+        browser.downcast().back.set(back);
+        browser.downcast().forward.set(forward);
+        if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
+            browser.get_host()
+                   .get_client()
+                   .get_load_handler()
+                   .on_loading_state_change((*browser).clone(), 0i32, back as i32, forward as i32);
+        }
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_end) {
             browser.get_host()
                    .get_client()
                    .get_load_handler()
                    .on_load_end((*browser).clone(), browser.get_main_frame(), 200);
+        }
+    }
+
+    fn load_error(&self, code: NetError, url: String) {
+        let browser = self.cef_browser.borrow();
+        let browser = match *browser {
+            None => return,
+            Some(ref browser) => browser,
+        };
+        if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_error) {
+            let utf16_chars: Vec<u16> = Utf16Encoder::new((url).chars()).collect();
+            browser.get_host()
+                   .get_client()
+                   .get_load_handler()
+                   .on_load_error((*browser).clone(), browser.get_main_frame(),
+                   code, &[], utf16_chars.as_slice());
         }
     }
 
@@ -339,31 +387,45 @@ impl WindowMethods for Window {
         let frame = browser.get_main_frame();
         let frame = frame.downcast();
         let mut title_visitor = frame.title_visitor.borrow_mut();
-        match &mut *title_visitor {
-            &mut None => {}
-            &mut Some(ref mut visitor) => {
-                match string {
-                    None => visitor.visit(&[]),
-                    Some(string) => {
-                        let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
-                        visitor.visit(&utf16_chars)
-                    }
-                }
+        let str = match string {
+            Some(s) => {
+                let utf16_chars: Vec<u16> = Utf16Encoder::new(s.chars()).collect();
+                utf16_chars
             }
+            None => vec![]
+        };
+
+        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_title_change) {
+            browser.get_host().get_client().get_display_handler().on_title_change((*browser).clone(), str.as_slice());
         }
+        match &mut *title_visitor {
+            &mut None => {},
+            &mut Some(ref mut visitor) => {
+                visitor.visit(&str);
+            }
+        };
     }
 
     fn set_page_url(&self, url: Url) {
+        // it seems to be the case that load start is always called
+        // IMMEDIATELY before address change, so just stick it here
+        on_load_start(self);
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
             Some(ref browser) => browser,
         };
         let frame = browser.get_main_frame();
-        let frame = frame.downcast();
+        let servoframe = frame.downcast();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let mut frame_url = frame.url.borrow_mut();
-        *frame_url = url.to_string()
+        let mut frame_url = servoframe.url.borrow_mut();
+        *frame_url = url.to_string();
+        let utf16_chars: Vec<u16> = Utf16Encoder::new((*frame_url).chars()).collect();
+        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_address_change) {
+            browser.get_host().get_client().get_display_handler().on_address_change((*browser).clone(), frame.clone(), utf16_chars.as_slice());
+        }
     }
 
     fn handle_key(&self, _: Key, _: KeyModifiers) {
@@ -396,44 +458,66 @@ struct CefCompositorProxy {
 }
 
 impl CompositorProxy for CefCompositorProxy {
-    #[cfg(target_os="macos")]
-    fn send(&mut self, msg: compositor_task::Msg) {
-        use cocoa::appkit::{NSApp, NSApplication, NSApplicationDefined};
-        use cocoa::appkit::{NSEvent, NSEventModifierFlags, NSEventSubtype};
-        use cocoa::base::nil;
-        use cocoa::foundation::{NSAutoreleasePool, NSPoint};
-
-        // Send a message and kick the OS event loop awake.
-        self.sender.send(msg).unwrap();
-
-        unsafe {
-            let pool = NSAutoreleasePool::new(nil);
-            let event =
-                NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2_(
-                nil,
-                NSApplicationDefined,
-                NSPoint::new(0.0, 0.0),
-                NSEventModifierFlags::empty(),
-                0.0,
-                0,
-                nil,
-                NSEventSubtype::NSWindowExposedEventType,
-                0,
-                0);
-            NSApp().postEvent_atStart_(event, 0);
-            pool.drain();
-        }
-    }
-
-    #[cfg(target_os="linux")]
     fn send(&mut self, msg: compositor_task::Msg) {
         self.sender.send(msg).unwrap();
+        app_wakeup();
     }
 
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
         box CefCompositorProxy {
             sender: self.sender.clone(),
         } as Box<CompositorProxy+Send>
+    }
+}
+
+fn on_load_start(window: &Window) {
+    let browser = window.cef_browser.borrow();
+    let browser = match *browser {
+        None => return,
+        Some(ref browser) => browser,
+    };
+    if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
+       check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_start) {
+        browser.get_host()
+               .get_client()
+               .get_load_handler()
+               .on_load_start((*browser).clone(), browser.get_main_frame());
+    }
+}
+
+#[cfg(target_os="macos")]
+pub fn app_wakeup() {
+    use cocoa::appkit::{NSApp, NSApplication, NSApplicationDefined};
+    use cocoa::appkit::{NSEvent, NSEventModifierFlags, NSEventSubtype};
+    use cocoa::base::nil;
+    use cocoa::foundation::{NSAutoreleasePool, NSPoint};
+
+    unsafe {
+        let pool = NSAutoreleasePool::new(nil);
+        let event =
+            NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2_(
+            nil,
+            NSApplicationDefined,
+            NSPoint::new(0.0, 0.0),
+            NSEventModifierFlags::empty(),
+            0.0,
+            0,
+            nil,
+            NSEventSubtype::NSWindowExposedEventType,
+            0,
+            0);
+        NSApp().postEvent_atStart_(event, 0);
+        pool.drain();
+    }
+}
+
+#[cfg(target_os="linux")]
+pub fn app_wakeup() {
+    unsafe { if CEF_APP.is_null() { return; } }
+    let capp = unsafe { CefApp::from_c_object_addref(CEF_APP) };
+    if unsafe { (*CEF_APP).get_browser_process_handler.is_some() } &&
+       check_ptr_exist!(capp.get_browser_process_handler(), on_work_available) {
+        capp.get_browser_process_handler().on_work_available();
     }
 }
 

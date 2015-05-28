@@ -77,6 +77,7 @@ pub unsafe fn add_ref(c_object: *mut cef_base_t) {
     ((*c_object).add_ref.unwrap())(c_object);
 }
 
+#[no_mangle]
 pub extern "C" fn servo_test() -> c_int {
     1
 }
