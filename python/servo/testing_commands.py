@@ -225,6 +225,18 @@ class MachCommands(CommandBase):
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
 
+    @Command('test-jquery',
+             description='Run the jQuery test suite',
+             category='testing')
+    def test_jquery(self):
+        return self.jquery_test_runner("test")
+
+    @Command('update-jquery',
+             description='Update the jQuery test suite expected results',
+             category='testing')
+    def update_jquery(self):
+        return self.jquery_test_runner("update")
+
     @Command('test-css',
              description='Run the web platform tests',
              category='testing',
@@ -291,3 +303,27 @@ class MachCommands(CommandBase):
             return default
 
         return path
+
+    def jquery_test_runner(self, cmd):
+        self.ensure_bootstrapped()
+        base_dir = path.abspath(path.join("tests", "jquery"))
+        jquery_dir = path.join(base_dir, "jquery")
+        run_file = path.join(base_dir, "run_jquery.py")
+
+        # Clone the jQuery repository if it doesn't exist
+        if not os.path.isdir(jquery_dir):
+            subprocess.check_call(
+                ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/servo/jquery", jquery_dir])
+
+        # Run pull in case the jQuery repo was updated since last test run
+        subprocess.check_call(
+            ["git", "-C", jquery_dir, "pull"])
+
+        # Check that a release servo build exists
+        bin_path = path.abspath(path.join("components", "servo", "target", "release", "servo"))
+        if not os.path.isfile(bin_path):
+            print("Unable to find {0}. This script expects a release build of Servo.".format(bin_path))
+            return 1
+
+        return subprocess.check_call(
+            [run_file, cmd, bin_path, base_dir])
