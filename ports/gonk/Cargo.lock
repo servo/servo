@@ -345,7 +345,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#c4bdb1ef8f4915ae636eb752b103f69246b50304"
+source = "git+https://github.com/servo/rust-geom#270d0246b79fbf86fc2938c4952cae74e4025fcf"
 dependencies = [
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",

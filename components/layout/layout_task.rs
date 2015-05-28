@@ -27,7 +27,7 @@ use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
-use geom::matrix2d::Matrix2D;
+use geom::matrix;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::scale_factor::ScaleFactor;
@@ -854,7 +854,7 @@ impl LayoutTask {
                                                                      &origin,
                                                                      &origin,
                                                                      0,
-                                                                     &Matrix2D::identity(),
+                                                                     &matrix::identity(),
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
                                                                      Some(paint_layer)));
