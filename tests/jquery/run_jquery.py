@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 import os
 import re
 import subprocess
@@ -236,7 +240,9 @@ if __name__ == '__main__':
                     print("\t\tMISSING: {0}".format(prev_test_results[name].text))
 
             print("\tRan {0} test groups. {1} unexpected results.".format(test_count, unexpected_count))
-            print("\t{0} tests succeeded of {1} ({2:.2f}%)".format(individual_success, individual_total, 100.0 * individual_success / individual_total))
+            print("\t{0} tests succeeded of {1} ({2:.2f}%)".format(individual_success,
+                                                                   individual_total,
+                                                                   100.0 * individual_success / individual_total))
             if unexpected_count > 0:
                 sys.exit(1)
         elif cmd == "update":
