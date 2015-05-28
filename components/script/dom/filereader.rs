@@ -159,13 +159,16 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     event_handler!(error, GetOnerror, SetOnerror);
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
+    //https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     fn ReadAsArrayBuffer(self,blob: JSRef<Blob>) -> ErrorResult {
         let global = self.global.root();
-        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1.
+        //1. readAsArrayBuffer
+        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
             return Err(InvalidState);
         }
 
-        self.change_ready_state(FileReaderReadyState::Loading);//3.
+        //3. readAsArrayBuffer
+        self.change_ready_state(FileReaderReadyState::Loading);
 
         let bytes = blob.read_out_buffer();
         let type_ = blob.read_out_type();
@@ -176,13 +179,16 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         self.read(load_data,global.r())
     }
 
+    //https://w3c.github.io/FileAPI/#dfn-readAsText
     fn ReadAsText(self,blob: JSRef<Blob>,label:Option<DOMString>) -> ErrorResult {
         let global = self.global.root();
-        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1. ReadAsText
+        //1. readAsText
+        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
             return Err(InvalidState);
         }
 
-        self.change_ready_state(FileReaderReadyState::Loading);//3. ReadAsText
+        //3. readAsText
+        self.change_ready_state(FileReaderReadyState::Loading);
 
         let bytes = blob.read_out_buffer();
         let type_ = blob.read_out_type();
@@ -193,14 +199,16 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         self.read(load_data,global.r())
     }
 
+    //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn ReadAsDataURL(self,blob: JSRef<Blob>) -> ErrorResult {
-        //println!("{}", "Run ReadAsDataURL");
         let global = self.global.root();
-        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1.
+        //1. readAsDataURL
+        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
             return Err(InvalidState);
         }
 
-        self.change_ready_state(FileReaderReadyState::Loading);//3.
+        //3. readAsDataURL
+        self.change_ready_state(FileReaderReadyState::Loading);
 
         let bytes = blob.read_out_buffer();
         let type_ = blob.read_out_type();
@@ -210,6 +218,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         self.read(load_data,global.r())
     }
 
+    //https://w3c.github.io/FileAPI/#dfn-abort
     fn Abort(self) {
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
             self.change_ready_state(FileReaderReadyState::Done);
@@ -300,7 +309,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
     fn process_partial_result(self, progress: FileReaderProgress) {
         let msg_id = progress.generation_id();
 
-        // Aborts processing if abort() or open() was called
+        // Aborts processing if abort() was called
         // (including from one of the event handlers called below)
         macro_rules! return_if_fetch_was_terminated(
             () => (
@@ -314,20 +323,26 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
         return_if_fetch_was_terminated!();
         match progress {
             FileReaderProgress::Start(_)=>{
-                self.dispatch_result_progress_event("loadstart".to_owned());//6.
+                //6.
+                self.dispatch_result_progress_event("loadstart".to_owned());
             },
             FileReaderProgress::Reading(_,_) =>{
-                self.dispatch_result_progress_event("progress".to_owned());//7.
+                //7.
+                self.dispatch_result_progress_event("progress".to_owned());
             },
             FileReaderProgress::Done(_,s) => {
                 self.dispatch_result_progress_event("progress".to_owned());
                 return_if_fetch_was_terminated!();
-                self.change_ready_state(FileReaderReadyState::Done);//8.1.
+                //8.1
+                self.change_ready_state(FileReaderReadyState::Done);
                 return_if_fetch_was_terminated!();
                 *self.result.borrow_mut() = Some(s);
-                self.dispatch_result_progress_event("load".to_owned());//8.3
                 return_if_fetch_was_terminated!();
-                if self.ready_state.get() as u16 != FileReaderReadyState::Loading as u16 {//8.4
+                //8.3
+                self.dispatch_result_progress_event("load".to_owned());
+                return_if_fetch_was_terminated!();
+                //8.4
+                if self.ready_state.get() as u16 != FileReaderReadyState::Loading as u16 {
                     self.dispatch_result_progress_event("loadend".to_owned());
                 }
             },
