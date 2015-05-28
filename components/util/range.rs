@@ -124,7 +124,7 @@ macro_rules! int_range_index {
 }
 
 /// A range of indices
-#[derive(Clone, RustcEncodable, Copy)]
+#[derive(Clone, RustcEncodable, PartialEq, Copy)]
 pub struct Range<I> {
     begin: I,
     length: I,

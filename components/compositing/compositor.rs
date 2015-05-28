@@ -555,6 +555,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             rect: Rect::zero(),
             background_color: color::transparent(),
             scroll_policy: ScrollPolicy::Scrollable,
+            invalid_rect: Rect::zero(),
         };
 
         let root_layer = CompositorData::new_layer(pipeline.id,
@@ -643,18 +644,40 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             root_layer.children().insert(0, base_layer);
         }
 
-        self.scroll_layer_to_fragment_point_if_necessary(pipeline_id,
-                                                         layer_properties.id);
-        self.send_buffer_requests_for_all_layers();
+        self.scroll_layer_to_fragment_point_if_necessary(pipeline_id, layer_properties.id);
+
+        let invalid_rect: Rect<f32> = {
+            let layer = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
+                                                                   layer_properties.id);
+            match layer {
+                None => panic!(),
+                Some(ref layer) => layer.extra_data.borrow().invalid_rect,
+            }
+        };
+        self.send_buffer_requests_for_layer_with_invalid_rect(pipeline_id,
+                                                              layer_properties.id,
+                                                              &Rect::from_untyped(&invalid_rect));
     }
 
-    fn create_or_update_descendant_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+    fn create_or_update_descendant_layer(&mut self,
+                                         pipeline_id: PipelineId,
+                                         layer_properties: LayerProperties) {
         if !self.update_layer_if_exists(pipeline_id, layer_properties) {
             self.create_descendant_layer(pipeline_id, layer_properties);
         }
-        self.scroll_layer_to_fragment_point_if_necessary(pipeline_id,
-                                                         layer_properties.id);
-        self.send_buffer_requests_for_all_layers();
+        self.scroll_layer_to_fragment_point_if_necessary(pipeline_id, layer_properties.id);
+
+        let invalid_rect: Rect<f32> = {
+            let layer = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
+                                                                   layer_properties.id);
+            match layer {
+                None => panic!(),
+                Some(ref layer) => layer.extra_data.borrow().invalid_rect,
+            }
+        };
+        self.send_buffer_requests_for_layer_with_invalid_rect(pipeline_id,
+                                                              layer_properties.id,
+                                                              &Rect::from_untyped(&invalid_rect));
     }
 
     fn create_descendant_layer(&self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
@@ -1179,11 +1202,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     /// Returns true if any buffer requests were sent or false otherwise.
-    fn send_buffer_requests_for_all_layers(&mut self) -> bool {
-        let mut layers_and_requests = Vec::new();
-        let mut unused_buffers = Vec::new();
-        self.scene.get_buffer_requests(&mut layers_and_requests, &mut unused_buffers);
-
+    fn send_buffer_requests(&mut self,
+                            layers_and_requests: Vec<(Rc<Layer<CompositorData>>,
+                                                      Vec<BufferRequest>)>,
+                            unused_buffers: Vec<(Rc<Layer<CompositorData>>,
+                                                 Vec<Box<LayerBuffer>>)>)
+                            -> bool {
         // Return unused tiles first, so that they can be reused by any new BufferRequests.
         self.send_back_unused_buffers(unused_buffers);
 
@@ -1204,18 +1228,59 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         true
     }
 
+    /// Returns true if any buffer requests were sent or false otherwise.
+    ///
+    /// NB: This function invalidates all tiles! Use with caution!
+    fn send_buffer_requests_for_all_layers(&mut self) -> bool {
+        let mut layers_and_requests = Vec::new();
+        let mut unused_buffers = Vec::new();
+        self.scene.get_buffer_requests(&mut layers_and_requests, &mut unused_buffers);
+        self.send_buffer_requests(layers_and_requests, unused_buffers)
+    }
+
+    /// Returns true if any buffer requests were sent or false otherwise.
+    fn send_buffer_requests_for_layer_with_invalid_rect(&mut self,
+                                                        pipeline_id: PipelineId,
+                                                        layer_id: LayerId,
+                                                        invalid_rect: &TypedRect<LayerPixel, f32>)
+                                                        -> bool {
+        let (mut layers_and_requests, mut unused_buffers) = (Vec::new(), Vec::new());
+        if let Some(ref layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
+                                                                            layer_id) {
+            let invalid_rect = invalid_rect.translate(&layer.bounds.borrow().origin);
+            self.scene.get_buffer_requests_for_layer((*layer).clone(),
+                                                     invalid_rect,
+                                                     *layer.bounds.borrow(),
+                                                     &mut layers_and_requests,
+                                                     &mut unused_buffers)
+        }
+
+        for &mut (_, ref mut buffer_requests) in layers_and_requests.iter_mut() {
+            buffer_requests.retain(|buffer_request| {
+                buffer_request.page_rect.intersects(&invalid_rect.to_untyped())
+            });
+        }
+
+        self.send_buffer_requests(layers_and_requests, unused_buffers)
+    }
+
     /// Check if a layer (or its children) have any outstanding paint
     /// results to arrive yet.
     fn does_layer_have_outstanding_paint_messages(&self, layer: &Rc<Layer<CompositorData>>) -> bool {
         let layer_data = layer.extra_data.borrow();
         let current_epoch = self.pipeline_details.get(&layer_data.pipeline_id).unwrap().current_epoch;
 
+        // Don't check the root layer (the one with a null ID); we set it up and it's never
+        // painted.
+        //
         // Only check layers that have requested the current epoch, as there may be
         // layers that are not visible in the current viewport, and therefore
         // have not requested a paint of the current epoch.
         // If a layer has sent a request for the current epoch, but it hasn't
         // arrived yet then this layer is waiting for a paint message.
-        if layer_data.requested_epoch == current_epoch && layer_data.painted_epoch != current_epoch {
+        if layer_data.id != LayerId::null() &&
+                layer_data.requested_epoch == current_epoch &&
+                layer_data.painted_epoch != current_epoch {
             return true;
         }
 

@@ -72,6 +72,8 @@ pub struct LayerProperties {
     pub background_color: Color,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
+    /// The invalid rectangle for this layer.
+    pub invalid_rect: Rect<f32>,
 }
 
 /// The interface used by the painter to acquire draw targets for each paint frame and

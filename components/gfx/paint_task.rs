@@ -5,6 +5,7 @@
 //! The task that handles all painting.
 
 use buffer_map::BufferMap;
+use display_list::invalidation;
 use display_list::{self, StackingContext};
 use font_cache_task::FontCacheTask;
 use font_context::FontContext;
@@ -30,10 +31,12 @@ use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use skia::SkiaGrGLNativeContextRef;
 use std::borrow::ToOwned;
+use std::collections::HashMap;
+use std::collections::hash_state::DefaultState;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::collections::HashMap;
+use util::fnv::FnvHasher;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
 use util::task::spawn_named_with_send_on_failure;
@@ -207,6 +210,15 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             match self.port.recv().unwrap() {
                 Msg::PaintInit(epoch, stacking_context) => {
                     self.current_epoch = Some(epoch);
+                    let invalid_rects = match self.root_stacking_context {
+                        Some(ref old_stacking_context) => {
+                            invalidation::compute_invalid_regions(&**old_stacking_context,
+                                                                  &*stacking_context)
+                        }
+                        None => {
+                            invalidation::invalidate_entire_stacking_context(&*stacking_context)
+                        }
+                    };
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
@@ -221,7 +233,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         continue;
                     }
 
-                    self.initialize_layers();
+                    self.initialize_layers(&invalid_rects);
                 }
                 // Inserts a new canvas renderer to the layer map
                 Msg::CanvasLayer(layer_id, canvas_renderer) => {
@@ -280,7 +292,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.paint_permission = true;
 
                     if self.root_stacking_context.is_some() {
-                        self.initialize_layers();
+                        self.initialize_layers(&HashMap::with_hash_state(Default::default()));
                     }
                 }
                 Msg::PaintPermissionRevoked => {
@@ -401,19 +413,23 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         })
     }
 
-    fn initialize_layers(&mut self) {
+    fn initialize_layers(&mut self,
+                         invalid_rects: &HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>) {
         let root_stacking_context = match self.root_stacking_context {
             None => return,
             Some(ref root_stacking_context) => root_stacking_context,
         };
 
         let mut properties = Vec::new();
-        build(&mut properties, &**root_stacking_context, &ZERO_POINT);
-        self.compositor.initialize_layers_for_pipeline(self.id, properties, self.current_epoch.unwrap());
+        build(&mut properties, &**root_stacking_context, &ZERO_POINT, invalid_rects);
+        self.compositor.initialize_layers_for_pipeline(self.id,
+                                                       properties,
+                                                       self.current_epoch.unwrap());
 
         fn build(properties: &mut Vec<LayerProperties>,
                  stacking_context: &StackingContext,
-                 page_position: &Point2D<Au>) {
+                 page_position: &Point2D<Au>,
+                 invalid_rects: &HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>) {
             let page_position = stacking_context.bounds.origin + *page_position;
             if let Some(ref paint_layer) = stacking_context.layer {
                 // Layers start at the top left of their overflow rect, as far as the info we give to
@@ -424,16 +440,27 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                  overflow_relative_page_position.y.to_nearest_px() as f32),
                          Size2D(stacking_context.overflow.size.width.to_nearest_px() as f32,
                                 stacking_context.overflow.size.height.to_nearest_px() as f32));
+                let invalid_rect = match invalid_rects.get(&paint_layer.id) {
+                    None => Rect(Point2D(0.0, 0.0), layer_position.size),
+                    Some(invalid_rect) => {
+                        // FIXME(pcwalton): Round out?
+                        Rect(Point2D(invalid_rect.origin.x.to_nearest_px() as f32,
+                                     invalid_rect.origin.y.to_nearest_px() as f32),
+                             Size2D(invalid_rect.size.width.to_nearest_px() as f32,
+                                    invalid_rect.size.height.to_nearest_px() as f32))
+                    }
+                };
                 properties.push(LayerProperties {
                     id: paint_layer.id,
                     rect: layer_position,
                     background_color: paint_layer.background_color,
                     scroll_policy: paint_layer.scroll_policy,
+                    invalid_rect: invalid_rect,
                 })
             }
 
             for kid in stacking_context.display_list.children.iter() {
-                build(properties, &**kid, &page_position)
+                build(properties, &**kid, &page_position, invalid_rects)
             }
         }
     }
