@@ -348,7 +348,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.get_title_for_main_frame();
             }
 
-            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties), ShutdownState::NotShuttingDown) => {
+            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
+             ShutdownState::NotShuttingDown) => {
                 self.get_or_create_pipeline_details(pipeline_id).current_epoch = epoch;
                 for (index, layer_properties) in properties.iter().enumerate() {
                     if index == 0 {
@@ -474,14 +475,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
-                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running = true;
+                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running =
+                    true;
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::NoAnimationsPresent => {
                 self.get_or_create_pipeline_details(pipeline_id).animations_running = false;
             }
             AnimationState::NoAnimationCallbacksPresent => {
-                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running = false;
+                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running =
+                    false;
             }
         }
     }
@@ -606,7 +609,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties) -> bool {
+    fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties)
+                              -> bool {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, properties.id) {
             Some(existing_layer) => {
                 existing_layer.update_layer(properties);
@@ -616,7 +620,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn create_or_update_base_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+    fn create_or_update_base_layer(&mut self,
+                                   pipeline_id: PipelineId,
+                                   layer_properties: LayerProperties) {
         let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
             Some(root_layer) => root_layer,
             None => {
@@ -773,7 +779,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // loaded and the frame tree changes. This can result in the compositor thinking it
         // has already drawn the most recently painted buffer, and missing a frame.
         if frame_tree_id == self.frame_tree_id {
-            if let Some(layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+            if let Some(layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
+                                                                            layer_id) {
                 let requested_epoch = layer.extra_data.borrow().requested_epoch;
                 if requested_epoch == epoch {
                     self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
@@ -1266,9 +1273,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// Check if a layer (or its children) have any outstanding paint
     /// results to arrive yet.
-    fn does_layer_have_outstanding_paint_messages(&self, layer: &Rc<Layer<CompositorData>>) -> bool {
+    fn does_layer_have_outstanding_paint_messages(&self, layer: &Rc<Layer<CompositorData>>)
+                                                  -> bool {
         let layer_data = layer.extra_data.borrow();
-        let current_epoch = self.pipeline_details.get(&layer_data.pipeline_id).unwrap().current_epoch;
+        let current_epoch =
+            self.pipeline_details.get(&layer_data.pipeline_id).unwrap().current_epoch;
 
         // Don't check the root layer (the one with a null ID); we set it up and it's never
         // painted.

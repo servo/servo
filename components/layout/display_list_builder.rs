@@ -42,9 +42,9 @@ use std::iter::repeat;
 use std::sync::Arc;
 use style::computed_values::filter::Filter;
 use style::computed_values::transform::ComputedMatrix;
-use style::computed_values::{background_attachment, background_clip, background_origin,
-                             background_repeat, background_size};
-use style::computed_values::{border_style, image_rendering, overflow_x, position, visibility};
+use style::computed_values::{background_attachment, background_clip, background_origin};
+use style::computed_values::{background_repeat, background_size, border_style, image_rendering};
+use style::computed_values::{overflow_x, position, visibility};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
 use style::values::RGBA;

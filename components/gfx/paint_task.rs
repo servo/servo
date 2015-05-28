@@ -204,7 +204,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
     fn start(&mut self) {
         debug!("PaintTask: beginning painting loop");
 
-        let mut exit_response_channel : Option<Sender<()>> = None;
+        let mut exit_response_channel: Option<Sender<()>> = None;
         let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
             match self.port.recv().unwrap() {
@@ -259,7 +259,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         if self.current_epoch == Some(epoch) {
                             self.paint(&mut replies, buffer_requests, scale, layer_id);
                         } else {
-                            debug!("painter epoch mismatch: {:?} != {:?}", self.current_epoch, epoch);
+                            debug!("painter epoch mismatch: {:?} != {:?}",
+                                   self.current_epoch,
+                                   epoch);
                         }
                     }
 
@@ -275,7 +277,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                            frame_tree_id);
                 }
                 Msg::UnusedBuffer(unused_buffers) => {
-                    debug!("PaintTask {:?}: Received {} unused buffers", self.id, unused_buffers.len());
+                    debug!("PaintTask {:?}: Received {} unused buffers",
+                           self.id,
+                           unused_buffers.len());
                     self.used_buffer_count -= unused_buffers.len();
 
                     for buffer in unused_buffers.into_iter().rev() {
@@ -320,7 +324,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // If we own buffers in the compositor and we are not exiting completely, wait
                     // for the compositor to return buffers, so that we can release them properly.
                     // When doing a complete exit, the compositor lets all buffers leak.
-                    debug!("PaintTask {:?}: Saw ExitMsg, {} buffers in use", self.id, self.used_buffer_count);
+                    debug!("PaintTask {:?}: Saw ExitMsg, {} buffers in use",
+                           self.id,
+                           self.used_buffer_count);
                     waiting_for_compositor_buffers_to_exit = true;
                     exit_response_channel = response_channel;
                 }
@@ -432,9 +438,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                  invalid_rects: &HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>) {
             let page_position = stacking_context.bounds.origin + *page_position;
             if let Some(ref paint_layer) = stacking_context.layer {
-                // Layers start at the top left of their overflow rect, as far as the info we give to
-                // the compositor is concerned.
-                let overflow_relative_page_position = page_position + stacking_context.overflow.origin;
+                // Layers start at the top left of their overflow rect, as far as the info we give
+                // to the compositor is concerned.
+                let overflow_relative_page_position = page_position +
+                    stacking_context.overflow.origin;
+                // FIXME(pcwalton): Round out?
                 let layer_position =
                     Rect(Point2D(overflow_relative_page_position.x.to_nearest_px() as f32,
                                  overflow_relative_page_position.y.to_nearest_px() as f32),
@@ -508,8 +516,11 @@ impl WorkerThreadProxy {
                   layer_buffer: Option<Box<LayerBuffer>>,
                   stacking_context: Arc<StackingContext>,
                   scale: f32) {
-        let msg = MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale);
-        self.sender.send(msg).unwrap()
+        self.sender.send(MsgToWorkerThread::PaintTile(thread_id,
+                                                      tile,
+                                                      layer_buffer,
+                                                      stacking_context,
+                                                      scale)).unwrap()
     }
 
     fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
@@ -553,8 +564,15 @@ impl WorkerThread {
         loop {
             match self.receiver.recv().unwrap() {
                 MsgToWorkerThread::Exit => break,
-                MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale) => {
-                    let draw_target = self.optimize_and_paint_tile(thread_id, &tile, stacking_context, scale);
+                MsgToWorkerThread::PaintTile(thread_id,
+                                             tile,
+                                             layer_buffer,
+                                             stacking_context,
+                                             scale) => {
+                    let draw_target = self.optimize_and_paint_tile(thread_id,
+                                                                   &tile,
+                                                                   stacking_context,
+                                                                   scale);
                     let buffer = self.create_layer_buffer_for_painted_tile(&tile,
                                                                            layer_buffer,
                                                                            draw_target,
