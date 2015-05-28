@@ -12,21 +12,21 @@
 // Import from http://hg.mozilla.org/mozilla-central/raw-file/a5a720259d79/dom/webidl/NodeIterator.webidl
 
 interface NodeIterator {
-  // [Constant]
-  // readonly attribute Node root;
-  // [Pure]
-  // readonly attribute Node? referenceNode;
-  // [Pure]
-  // readonly attribute boolean pointerBeforeReferenceNode;
-  // [Constant]
-  // readonly attribute unsigned long whatToShow;
-  // [Constant]
-  // readonly attribute NodeFilter? filter;
+  [Constant]
+  readonly attribute Node root;
+  [Pure]
+  readonly attribute Node referenceNode;
+  [Pure]
+  readonly attribute boolean pointerBeforeReferenceNode;
+  [Constant]
+  readonly attribute unsigned long whatToShow;
+  [Constant]
+  readonly attribute NodeFilter? filter;
 
-  // [Throws]
-  // Node? nextNode();
-  // [Throws]
-  // Node? previousNode();
+  [Throws]
+  Node? nextNode();
+  [Throws]
+  Node? previousNode();
 
-  // void detach();
+  void detach();
 };

@@ -58,6 +58,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::messageevent::MessageEvent;
 use dom::node::{self, Node, NodeHelpers, NodeTypeId, CloneChildrenFlag, NodeDamage, window_from_node};
 use dom::nodelist::NodeList;
+use dom::nodeiterator::NodeIterator;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
@@ -1361,6 +1362,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // https://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(self) -> Temporary<Range> {
         Range::new_with_doc(self)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter
+    fn CreateNodeIterator(self, root: JSRef<Node>, whatToShow: u32, filter: Option<NodeFilter>)
+                        -> Temporary<NodeIterator> {
+        NodeIterator::new(self, root, whatToShow, filter)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
