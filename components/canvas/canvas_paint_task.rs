@@ -5,7 +5,7 @@
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
-use azure::azure_hl::{JoinStyle, CapStyle};
+use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
 use canvas_traits::*;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -14,6 +14,7 @@ use geom::size::Size2D;
 use layers::platform::surface::NativeSurface;
 use gfx_traits::color;
 use num::ToPrimitive;
+use util::opts;
 use util::task::spawn_named;
 use util::vec::byte_swap;
 
@@ -79,7 +80,7 @@ impl<'a> CanvasPaintTask<'a> {
             image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(self.state.draw_options.alpha, 0);
+        let draw_options = DrawOptions::new(self.state.draw_options.alpha, CompositionOp::Over, AntialiasMode::None);
 
         self.drawtarget.draw_surface(source_surface,
                                      dest_rect.to_azfloat(),
@@ -174,8 +175,14 @@ struct CanvasPaintState<'a> {
 
 impl<'a> CanvasPaintState<'a> {
     fn new() -> CanvasPaintState<'a> {
+        let antialias = if opts::get().enable_canvas_antialiasing {
+            AntialiasMode::Default
+        } else {
+            AntialiasMode::None
+        };
+
         CanvasPaintState {
-            draw_options: DrawOptions::new(1.0, 0),
+            draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
             fill_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),

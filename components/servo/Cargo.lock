@@ -41,7 +41,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#f1c5e98201e4c2d7684a388596979ce862788a9e"
+source = "git+https://github.com/servo/rust-azure#5b9f2dbe7517196a82ea3c9c4dc4cf9fbd7d0867"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -52,7 +52,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia)",
- "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
+ "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -250,9 +250,9 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .args(&reftest.servo_args[..])
-        // Allows pixel perfect rendering of Ahem font for reftests.
+        // Allows pixel perfect rendering of Ahem font and the HTML canvas for reftests.
         .arg("-Z")
-        .arg("disable-text-aa")
+        .arg("disable-text-aa,disable-canvas-aa")
         .args(&["-f", "-o"])
         .arg(&png_filename)
         .arg(&{
