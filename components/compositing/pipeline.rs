@@ -136,12 +136,15 @@ impl Pipeline {
         };
 
         PaintTask::create(id,
+                          load_data.url.clone(),
+                          paint_chan.clone(),
                           paint_port,
                           compositor_proxy,
                           constellation_chan.clone(),
                           font_cache_task.clone(),
                           failure.clone(),
                           time_profiler_chan.clone(),
+                          mem_profiler_chan.clone(),
                           paint_shutdown_chan);
 
         LayoutTaskFactory::create(None::<&mut LTF>,
