@@ -40,6 +40,17 @@ extern fn ft_realloc(_mem: FT_Memory, _cur_size: c_long, new_size: c_long, block
 #[derive(Clone)]
 pub struct FreeTypeLibraryHandle {
     pub ctx: FT_Library,
+    pub mem: FT_Memory,
+}
+
+impl Drop for FreeTypeLibraryHandle {
+    fn drop(&mut self) {
+        assert!(!self.ctx.is_null());
+        unsafe {
+            FT_Done_Library(self.ctx);
+            libc::free(self.mem as *mut c_void);
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -47,20 +58,12 @@ pub struct FontContextHandle {
     pub ctx: Rc<FreeTypeLibraryHandle>,
 }
 
-impl Drop for FreeTypeLibraryHandle {
-    fn drop(&mut self) {
-        assert!(!self.ctx.is_null());
-        unsafe { FT_Done_Library(self.ctx) };
-    }
-}
-
 impl FontContextHandle {
     pub fn new() -> FontContextHandle {
         unsafe {
-
             let ptr = libc::malloc(mem::size_of::<struct_FT_MemoryRec_>() as size_t);
-            let allocator: &mut struct_FT_MemoryRec_ = mem::transmute(ptr);
-            ptr::write(allocator, struct_FT_MemoryRec_ {
+            let mem: &mut struct_FT_MemoryRec_ = mem::transmute(ptr);
+            ptr::write(mem, struct_FT_MemoryRec_ {
                 user: ptr::null_mut(),
                 alloc: ft_alloc,
                 free: ft_free,
@@ -75,7 +78,7 @@ impl FontContextHandle {
             FT_Add_Default_Modules(ctx);
 
             FontContextHandle {
-                ctx: Rc::new(FreeTypeLibraryHandle { ctx: ctx }),
+                ctx: Rc::new(FreeTypeLibraryHandle { ctx: ctx, mem: mem }),
             }
         }
     }
