@@ -4,7 +4,7 @@
 
 use freetype::freetype::FTErrorMethods;
 use freetype::freetype::FT_Add_Default_Modules;
-use freetype::freetype::FT_Done_FreeType;
+use freetype::freetype::FT_Done_Library;
 use freetype::freetype::FT_Library;
 use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_New_Library;
@@ -50,7 +50,7 @@ pub struct FontContextHandle {
 impl Drop for FreeTypeLibraryHandle {
     fn drop(&mut self) {
         assert!(!self.ctx.is_null());
-        unsafe { FT_Done_FreeType(self.ctx) };
+        unsafe { FT_Done_Library(self.ctx) };
     }
 }
 
