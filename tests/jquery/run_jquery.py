@@ -19,6 +19,8 @@ import urlparse
 # introduced very recently that causes the resource task
 # to panic - and hard fail doesn't exit the servo
 # process when this happens.
+# See https://github.com/servo/servo/issues/6210 and
+#     https://github.com/servo/servo/issues/6211
 JQUERY_MODULES = [
     #"ajax",            # panics
     #"attributes",
@@ -193,7 +195,7 @@ if __name__ == '__main__':
 
         # Ensure servo binary can be found
         if not os.path.isfile(servo_exe):
-            print("Unable to find {0}. This script expects a release build of Servo.".format(servo_exe))
+            print("Unable to find {0}. This script expects an existing build of Servo.".format(servo_exe))
             sys.exit(1)
 
         # Start the test server

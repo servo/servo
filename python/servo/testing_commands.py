@@ -228,14 +228,22 @@ class MachCommands(CommandBase):
     @Command('test-jquery',
              description='Run the jQuery test suite',
              category='testing')
-    def test_jquery(self):
-        return self.jquery_test_runner("test")
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Run the release build')
+    @CommandArgument('--dev', '-d', action='store_true',
+                     help='Run the dev build')
+    def test_jquery(self, release, dev):
+        return self.jquery_test_runner("test", release, dev)
 
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
              category='testing')
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Run the release build')
+    @CommandArgument('--dev', '-d', action='store_true',
+                     help='Run the dev build')
     def update_jquery(self):
-        return self.jquery_test_runner("update")
+        return self.jquery_test_runner("update", release, dev)
 
     @Command('test-css',
              description='Run the web platform tests',
@@ -304,7 +312,7 @@ class MachCommands(CommandBase):
 
         return path
 
-    def jquery_test_runner(self, cmd):
+    def jquery_test_runner(self, cmd, release, dev):
         self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "jquery"))
         jquery_dir = path.join(base_dir, "jquery")
@@ -320,10 +328,7 @@ class MachCommands(CommandBase):
             ["git", "-C", jquery_dir, "pull"])
 
         # Check that a release servo build exists
-        bin_path = path.abspath(path.join("components", "servo", "target", "release", "servo"))
-        if not os.path.isfile(bin_path):
-            print("Unable to find {0}. This script expects a release build of Servo.".format(bin_path))
-            return 1
+        bin_path = path.abspath(self.get_binary_path(release, dev))
 
         return subprocess.check_call(
             [run_file, cmd, bin_path, base_dir])
