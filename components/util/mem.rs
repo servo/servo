@@ -9,12 +9,12 @@ use std::collections::LinkedList;
 use std::mem::transmute;
 use std::sync::Arc;
 
-use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 
+use azure::azure_hl::Color;
+use cursor::Cursor;
+use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use geometry::Au;
 use range::Range;
-use cursor::Cursor;
-use azure::azure_hl::Color;
 
 extern {
     // Get the size of a heap block.
@@ -166,7 +166,7 @@ impl<T> Drop for LinkedList2<T> {
 }
 
 /// For use on types defined in external crates
-/// with known heap sizes
+/// with known heap sizes.
 #[macro_export]
 macro_rules! known_heap_size(
     ($size:expr, $($ty:ident),+) => (

@@ -226,7 +226,7 @@ pub struct StackingContext {
     pub display_list: Box<DisplayList>,
 
     /// The layer for this stacking context, if there is one.
-    #[ignore_heap_size = "FIXME(njn): other fields may be measured later, esp. `layer`"]
+    #[ignore_heap_size = "FIXME(njn): should measure this at some point"]
     pub layer: Option<Arc<PaintLayer>>,
 
     /// The position and size of this stacking context.
@@ -806,7 +806,7 @@ pub struct TextDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The text run.
-    #[ignore_heap_size = "We exclude this because it is non-owning"]
+    #[ignore_heap_size = "Because it is non-owning"]
     pub text_run: Arc<Box<TextRun>>,
 
     /// The range of text within the text run.
@@ -836,7 +836,7 @@ pub enum TextOrientation {
 #[derive(Clone, HeapSizeOf)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
-    #[ignore_heap_size = "We exclude this here because it is non-owning"]
+    #[ignore_heap_size = "Because it is non-owning"]
     pub image: Arc<Image>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
