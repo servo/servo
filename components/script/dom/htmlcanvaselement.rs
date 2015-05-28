@@ -283,8 +283,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
     }
 }
 
-// NOTE this must be a refference because of the [no_move]
-// of the DOM bindings
 impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
     fn from(attrs: &'a WebGLContextAttributes) -> GLContextAttributes {
         GLContextAttributes {
