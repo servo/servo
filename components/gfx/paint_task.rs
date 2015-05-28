@@ -5,6 +5,7 @@
 //! The task that handles all painting.
 
 use buffer_map::BufferMap;
+use display_list::invalidation;
 use display_list::{self, StackingContext};
 use font_cache_task::FontCacheTask;
 use font_context::FontContext;
@@ -16,6 +17,7 @@ use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use fnv::FnvHasher;
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
@@ -30,6 +32,7 @@ use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use skia::SkiaGrGLNativeContextRef;
 use std::borrow::ToOwned;
+use std::collections::hash_state::DefaultState;
 use std::mem as std_mem;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -236,7 +239,23 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         loop {
             match self.port.recv().unwrap() {
                 Msg::PaintInit(epoch, stacking_context) => {
+                    let layer_kind = if stacking_context.perspective == Matrix4::identity() {
+                        LayerKind::Layer2D
+                    } else {
+                        LayerKind::Layer3D
+                    };
+
                     self.current_epoch = Some(epoch);
+                    let invalid_rects = match self.root_stacking_context {
+                        Some(ref old_stacking_context) => {
+                            invalidation::compute_invalid_regions(&**old_stacking_context,
+                                                                  &*stacking_context,
+                                                                  layer_kind)
+                        }
+                        None => {
+                            invalidation::invalidate_entire_stacking_context(&*stacking_context)
+                        }
+                    };
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
@@ -251,7 +270,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         continue;
                     }
 
-                    self.initialize_layers();
+                    self.initialize_layers(&invalid_rects);
                 }
                 // Inserts a new canvas renderer to the layer map
                 Msg::CanvasLayer(layer_id, canvas_renderer) => {
@@ -310,7 +329,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.paint_permission = true;
 
                     if self.root_stacking_context.is_some() {
-                        self.initialize_layers();
+                        self.initialize_layers(&HashMap::with_hash_state(Default::default()));
                     }
                 }
                 Msg::PaintPermissionRevoked => {
@@ -443,7 +462,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         })
     }
 
-    fn initialize_layers(&mut self) {
+    fn initialize_layers(&mut self,
+                         invalid_rects: &HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>) {
         let root_stacking_context = match self.root_stacking_context {
             None => return,
             Some(ref root_stacking_context) => root_stacking_context,
@@ -453,66 +473,85 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         build(&mut properties,
               &**root_stacking_context,
               &ZERO_POINT,
+              invalid_rects,
               &Matrix4::identity(),
               &Matrix4::identity(),
               None);
-        self.compositor.initialize_layers_for_pipeline(self.id, properties, self.current_epoch.unwrap());
+        self.compositor.initialize_layers_for_pipeline(self.id,
+                                                       properties,
+                                                       self.current_epoch.unwrap());
 
         fn build(properties: &mut Vec<LayerProperties>,
                  stacking_context: &StackingContext,
                  page_position: &Point2D<Au>,
+                 invalid_rects: &HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>,
                  transform: &Matrix4,
                  perspective: &Matrix4,
                  parent_id: Option<LayerId>) {
-
             let transform = transform.mul(&stacking_context.transform);
             let perspective = perspective.mul(&stacking_context.perspective);
 
-            let (next_parent_id, page_position, transform, perspective) = match stacking_context.layer {
-                Some(ref paint_layer) => {
-                    // Layers start at the top left of their overflow rect, as far as the info we give to
-                    // the compositor is concerned.
-                    let overflow_relative_page_position = *page_position +
-                                                          stacking_context.bounds.origin +
-                                                          stacking_context.overflow.origin;
-                    let layer_position =
-                        Rect::new(Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
-                                               overflow_relative_page_position.y.to_nearest_px() as f32),
-                                  Size2D::new(stacking_context.overflow.size.width.to_nearest_px() as f32,
-                                              stacking_context.overflow.size.height.to_nearest_px() as f32));
+            let (next_parent_id, page_position, transform, perspective) =
+                match stacking_context.layer {
+                    Some(ref paint_layer) => {
+                        // Layers start at the top left of their overflow rect, as far as the info
+                        // we give to the compositor is concerned.
+                        let overflow_relative_page_position = *page_position +
+                                                              stacking_context.bounds.origin +
+                                                              stacking_context.overflow.origin;
+                        let layer_position = Rect::new(
+                            Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
+                                         overflow_relative_page_position.y.to_nearest_px() as f32),
+                            Size2D::new(
+                                stacking_context.overflow.size.width.to_nearest_px() as f32,
+                                stacking_context.overflow.size.height.to_nearest_px() as f32));
 
-                    let establishes_3d_context = stacking_context.establishes_3d_context;
+                        let invalid_rect = match invalid_rects.get(&paint_layer.id) {
+                            None => Rect::new(Point2D::new(0.0, 0.0), layer_position.size),
+                            Some(invalid_rect) => {
+                                // FIXME(pcwalton): Round out?
+                                Rect::new(Point2D::new(
+                                        invalid_rect.origin.x.to_nearest_px() as f32,
+                                        invalid_rect.origin.y.to_nearest_px() as f32),
+                                     Size2D::new(invalid_rect.size.width.to_nearest_px() as f32,
+                                                 invalid_rect.size.height.to_nearest_px() as f32))
+                            }
+                        };
 
-                    properties.push(LayerProperties {
-                        id: paint_layer.id,
-                        parent_id: parent_id,
-                        rect: layer_position,
-                        background_color: paint_layer.background_color,
-                        scroll_policy: paint_layer.scroll_policy,
-                        transform: transform,
-                        perspective: perspective,
-                        establishes_3d_context: establishes_3d_context,
-                    });
+                        let establishes_3d_context = stacking_context.establishes_3d_context;
 
-                    // When there is a new layer, the transforms and origin
-                    // are handled by the compositor.
-                    (Some(paint_layer.id),
-                     Point2D::zero(),
-                     Matrix4::identity(),
-                     Matrix4::identity())
-                }
-                None => {
-                    (parent_id,
-                     stacking_context.bounds.origin + *page_position,
-                     transform,
-                     perspective)
-                }
-            };
+                        properties.push(LayerProperties {
+                            id: paint_layer.id,
+                            parent_id: parent_id,
+                            rect: layer_position,
+                            background_color: paint_layer.background_color,
+                            scroll_policy: paint_layer.scroll_policy,
+                            invalid_rect: invalid_rect,
+                            transform: transform,
+                            perspective: perspective,
+                            establishes_3d_context: establishes_3d_context,
+                        });
+
+                        // When there is a new layer, the transforms and origin
+                        // are handled by the compositor.
+                        (Some(paint_layer.id),
+                         Point2D::zero(),
+                         Matrix4::identity(),
+                         Matrix4::identity())
+                    }
+                    None => {
+                        (parent_id,
+                         stacking_context.bounds.origin + *page_position,
+                         transform,
+                         perspective)
+                    }
+                };
 
             for kid in stacking_context.display_list.children.iter() {
                 build(properties,
                       &**kid,
                       &page_position,
+                      invalid_rects,
                       &transform,
                       &perspective,
                       next_parent_id);

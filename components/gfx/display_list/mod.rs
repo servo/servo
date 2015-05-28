@@ -19,7 +19,6 @@
 use display_list::optimizer::DisplayListOptimizer;
 use paint_context::{PaintContext, ToAzureRect};
 use self::DisplayItem::*;
-use self::DisplayItemIterator::*;
 use text::glyph::CharIndex;
 use text::TextRun;
 
@@ -52,6 +51,7 @@ use style::properties::ComputedValues;
 // layout to use.
 pub use azure::azure_hl::GradientStop;
 
+pub mod invalidation;
 pub mod optimizer;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
@@ -152,61 +152,25 @@ impl DisplayList {
     /// Returns a list of all items in this display list concatenated together. This is extremely
     /// inefficient and should only be used for debugging.
     pub fn all_display_items(&self) -> Vec<DisplayItem> {
-        let mut result = Vec::new();
-        for display_item in self.background_and_borders.iter() {
-            result.push((*display_item).clone())
+        self.iter().map(|display_item| (*display_item).clone()).collect()
+    }
+
+    /// Returns an iterator over all display items in this display list.
+    pub fn iter<'a>(&'a self) -> DisplayItemIterator<'a> {
+        DisplayItemIterator {
+            display_list: self,
+            iterator: self.background_and_borders.iter(),
+            step: Some(DisplayStep::BackgroundAndBorders),
         }
-        for display_item in self.block_backgrounds_and_borders.iter() {
-            result.push((*display_item).clone())
-        }
-        for display_item in self.floats.iter() {
-            result.push((*display_item).clone())
-        }
-        for display_item in self.content.iter() {
-            result.push((*display_item).clone())
-        }
-        for display_item in self.positioned_content.iter() {
-            result.push((*display_item).clone())
-        }
-        for display_item in self.outlines.iter() {
-            result.push((*display_item).clone())
-        }
-        result
     }
 
     // Print the display list. Only makes sense to call it after performing reflow.
     pub fn print_items(&self, indentation: String) {
-        // Closures are so nice!
-        let doit = |items: &Vec<DisplayItem>| {
-            for item in items.iter() {
-                match *item {
-                    DisplayItem::SolidColorClass(ref solid_color) => {
-                        println!("{:?} SolidColor. {:?}", indentation, solid_color.base.bounds)
-                    }
-                    DisplayItem::TextClass(ref text) => {
-                        println!("{:?} Text. {:?}", indentation, text.base.bounds)
-                    }
-                    DisplayItem::ImageClass(ref image) => {
-                        println!("{:?} Image. {:?}", indentation, image.base.bounds)
-                    }
-                    DisplayItem::BorderClass(ref border) => {
-                        println!("{:?} Border. {:?}", indentation, border.base.bounds)
-                    }
-                    DisplayItem::GradientClass(ref gradient) => {
-                        println!("{:?} Gradient. {:?}", indentation, gradient.base.bounds)
-                    }
-                    DisplayItem::LineClass(ref line) => {
-                        println!("{:?} Line. {:?}", indentation, line.base.bounds)
-                    }
-                    DisplayItem::BoxShadowClass(ref box_shadow) => {
-                        println!("{:?} Box_shadow. {:?}", indentation, box_shadow.base.bounds)
-                    }
-                }
-            }
-            println!("\n");
-        };
+        for item in self.all_display_items().iter() {
+            item.print(&*indentation)
+        }
+        println!("\n");
 
-        doit(&(self.all_display_items()));
         if self.children.len() != 0 {
             println!("{} Children stacking contexts list length: {}",
                      indentation,
@@ -219,8 +183,66 @@ impl DisplayList {
     }
 }
 
-#[derive(HeapSizeOf)]
+/// Steps as defined in CSS 2.1 Appendix E.
+#[derive(Copy, Clone)]
+enum DisplayStep {
+    BackgroundAndBorders,
+    BlockBackgroundsAndBorders,
+    Floats,
+    Content,
+    PositionedContent,
+    Outlines,
+}
+
+pub struct DisplayItemIterator<'a> {
+    display_list: &'a DisplayList,
+    iterator: linked_list::Iter<'a,DisplayItem>,
+    step: Option<DisplayStep>,
+}
+
+impl<'a> Iterator for DisplayItemIterator<'a> {
+    type Item = &'a DisplayItem;
+
+    fn next(&mut self) -> Option<&'a DisplayItem> {
+        loop {
+            let step = match self.step {
+                None => return None,
+                Some(step) => step,
+            };
+
+            if let Some(item) = self.iterator.next() {
+                return Some(item)
+            }
+
+            match step {
+                DisplayStep::BackgroundAndBorders => {
+                    self.step = Some(DisplayStep::BlockBackgroundsAndBorders);
+                    self.iterator = self.display_list.block_backgrounds_and_borders.iter()
+                }
+                DisplayStep::BlockBackgroundsAndBorders => {
+                    self.step = Some(DisplayStep::Floats);
+                    self.iterator = self.display_list.floats.iter()
+                }
+                DisplayStep::Floats => {
+                    self.step = Some(DisplayStep::Content);
+                    self.iterator = self.display_list.content.iter()
+                }
+                DisplayStep::Content => {
+                    self.step = Some(DisplayStep::PositionedContent);
+                    self.iterator = self.display_list.positioned_content.iter()
+                }
+                DisplayStep::PositionedContent => {
+                    self.step = Some(DisplayStep::Outlines);
+                    self.iterator = self.display_list.outlines.iter()
+                }
+                DisplayStep::Outlines => self.step = None,
+            }
+        }
+    }
+}
+
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
+#[derive(HeapSizeOf)]
 pub struct StackingContext {
     /// The display items that make up this stacking context.
     pub display_list: Box<DisplayList>,
@@ -1028,22 +1050,6 @@ pub enum BoxShadowClipMode {
     Inset,
 }
 
-pub enum DisplayItemIterator<'a> {
-    Empty,
-    Parent(linked_list::Iter<'a,DisplayItem>),
-}
-
-impl<'a> Iterator for DisplayItemIterator<'a> {
-    type Item = &'a DisplayItem;
-    #[inline]
-    fn next(&mut self) -> Option<&'a DisplayItem> {
-        match *self {
-            DisplayItemIterator::Empty => None,
-            DisplayItemIterator::Parent(ref mut subiterator) => subiterator.next(),
-        }
-    }
-}
-
 impl DisplayItem {
     /// Paints this display item into the given painting context.
     fn draw_into_context(&self, paint_context: &mut PaintContext) {
@@ -1139,6 +1145,32 @@ impl DisplayItem {
             indent.push_str("| ")
         }
         println!("{}+ {:?}", indent, self);
+    }
+
+    pub fn print(&self, indentation: &str) {
+        match *self {
+            DisplayItem::SolidColorClass(ref solid_color) => {
+                println!("{}SolidColor. {:?}", indentation, solid_color.base.bounds)
+            }
+            DisplayItem::TextClass(ref text) => {
+                println!("{}Text. {:?}", indentation, text.base.bounds)
+            }
+            DisplayItem::ImageClass(ref image) => {
+                println!("{}Image. {:?}", indentation, image.base.bounds)
+            }
+            DisplayItem::BorderClass(ref border) => {
+                println!("{}Border. {:?}", indentation, border.base.bounds)
+            }
+            DisplayItem::GradientClass(ref gradient) => {
+                println!("{}Gradient. {:?}", indentation, gradient.base.bounds)
+            }
+            DisplayItem::LineClass(ref line) => {
+                println!("{}Line. {:?}", indentation, line.base.bounds)
+            }
+            DisplayItem::BoxShadowClass(ref box_shadow) => {
+                println!("{}Box_shadow. {:?}", indentation, box_shadow.base.bounds)
+            }
+        }
     }
 }
 
