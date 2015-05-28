@@ -43,7 +43,8 @@ pub struct ReadData {
 }
 
 impl ReadData {
-    pub fn new(bytes: Option<Vec<u8>>,blobtype: DOMString, label: Option<DOMString>, function: FileReaderFunction) -> ReadData {
+    pub fn new(bytes: Option<Vec<u8>>, blobtype: DOMString,
+               label: Option<DOMString>, function: FileReaderFunction) -> ReadData {
         ReadData {
             bytes: bytes,
             blobtype: blobtype,
@@ -94,7 +95,7 @@ pub struct FileReader {
 
 impl FileReader {
     pub fn new_inherited(global: GlobalRef) -> FileReader {
-        FileReader { 
+        FileReader {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::FileReader),//?
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(FileReaderReadyState::Empty),
@@ -115,7 +116,10 @@ impl FileReader {
         Ok(FileReader::new(global))
     }
 
-    fn initiate_async_fr(context: Arc<Mutex<FileReaderContext>>, script_chan: Box<ScriptChan+Send>, filereader_task: FileReaderTask, read_data: ReadData) {
+    fn initiate_async_fr(context: Arc<Mutex<FileReaderContext>>,
+                         script_chan: Box<ScriptChan+Send>,
+                         filereader_task: FileReaderTask,
+                         read_data: ReadData) {
         impl AsyncReadingListener for FileReaderContext {
             fn data_available(&self, payload: DOMString){
                 let fr = self.fr.to_temporary().root();
@@ -157,11 +161,11 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
 
     fn ReadAsArrayBuffer(self,blob: JSRef<Blob>) -> ErrorResult {
         let global = self.global.root();
-        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1. 
+        if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1.
             return Err(InvalidState);
         }
-        
-        self.change_ready_state(FileReaderReadyState::Loading);//3. 
+
+        self.change_ready_state(FileReaderReadyState::Loading);//3.
 
         let bytes = blob.read_out_buffer();
         let type_ = blob.read_out_type();
@@ -177,7 +181,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {//1. ReadAsText
             return Err(InvalidState);
         }
-        
+
         self.change_ready_state(FileReaderReadyState::Loading);//3. ReadAsText
 
         let bytes = blob.read_out_buffer();
@@ -214,7 +218,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         *self.result.borrow_mut() = None;
 
         self.terminate_ongoing_reading();
-        
+
         self.dispatch_result_progress_event("abort".to_owned());
         self.dispatch_result_progress_event("loadend".to_owned());
     }
@@ -265,7 +269,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
     }
-    
+
     fn new_filereader_task(self) -> FileReaderTask {
         let (setup_chan, setup_port) = channel();
         spawn_named("FileReaderManager".to_owned(), move || {
@@ -281,7 +285,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
             fr: fr,
             gen_id: self.generation_id.get()
         }));
-        
+
         let script_chan = global.script_chan();
 
         *self.abort_target.borrow_mut() = Some(script_chan.clone());
@@ -346,7 +350,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
     }
 
     fn process_start(self, gen_id: GenerationId) {
-        self.process_partial_result(FileReaderProgress::Start(gen_id));        
+        self.process_partial_result(FileReaderProgress::Start(gen_id));
     }
 
     fn process_data_available(self, gen_id: GenerationId, payload: DOMString) {
@@ -427,7 +431,7 @@ impl FileReaderManager {
             None => {
                 progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Wrong Encoding"))));
                 return;
-            } 
+            }
         };
         let input = match read_data.bytes {
             Some(bytes) => bytes,
