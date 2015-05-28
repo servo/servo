@@ -15,7 +15,6 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
 use net::net_error_list::NetError;
-use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use url::Url;
@@ -311,6 +310,8 @@ impl Window {
     }
 
     pub fn wait_events(&self) -> Vec<WindowEvent> {
+        use std::mem;
+
         let mut events = mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new());
         let mut close_event = false;
 
