@@ -309,6 +309,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         assert!(self.parent_node.get().is_none());
         for node in self.traverse_preorder() {
             let node = node.root();
+            node.r().set_flag(IS_IN_DOC, false);
             vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
         self.layout_data.dispose();
@@ -1786,7 +1787,7 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: JSRef<Node>, parent: JSRef<Node>, suppress_observers: SuppressObserver) {
+    fn remove(node: JSRef<Node>, parent: JSRef<Node>, _suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent == Temporary::from_rooted(parent)));
 
         // Step 1-5: ranges.
@@ -1794,13 +1795,8 @@ impl Node {
         // Step 8.
         parent.remove_child(node);
 
-        node.set_flag(IS_IN_DOC, false);
-
         // Step 9.
-        match suppress_observers {
-            SuppressObserver::Suppressed => (),
-            SuppressObserver::Unsuppressed => node.node_removed(parent.is_in_doc()),
-        }
+        node.node_removed(parent.is_in_doc());
     }
 
     // https://dom.spec.whatwg.org/#concept-node-clone

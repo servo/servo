@@ -20,6 +20,13 @@
     <input id="test5" type="submit" value="Submit" data-name="3rd">
   </div>
 
+  <!-- test 15 -->
+  <div id="outer">
+    <div id="middle">
+      <div id="inner"></div>
+    </div>
+  </div>
+
 <script>
   var gBody = document.getElementsByTagName("body")[0];
 
@@ -315,6 +322,21 @@
     gBody.appendChild(a);
     assert_equals(document.getElementById(TEST_ID), b);
   }, "Inserting an id by inserting its parent node");
+
+  test(function () {
+    var TEST_ID = "test15"
+    var outer = document.getElementById("outer");
+    var middle = document.getElementById("middle");
+    var inner = document.getElementById("inner");
+    outer.removeChild(middle);
+
+    var new_el = document.createElement("h1");
+    new_el.id = "heading";
+    inner.appendChild(new_el);
+    // the new element is not part of the document since
+    // "middle" element was removed previously
+    assert_equals(document.getElementById("heading"), null);
+  }, "Document.getElementById must not return nodes not present in document");
 
   // TODO:
   // id attribute in a namespace
