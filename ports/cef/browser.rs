@@ -111,6 +111,8 @@ pub struct ServoCefBrowser {
     pub forward: Cell<bool>,
     /// whether the browser is loading
     pub loading: Cell<bool>,
+    /// a vec of favicon urls for the current page
+    pub favicons: RefCell<Vec<String>>,
     /// the display system window handle: only to be used with host.get_window_handle()
     window_handle: cef_window_handle_t,
 
@@ -154,6 +156,7 @@ impl ServoCefBrowser {
             back: Cell::new(false),
             forward: Cell::new(false),
             loading: Cell::new(false),
+            favicons: RefCell::new(vec!()),
             window_handle: window_handle,
         }
     }
