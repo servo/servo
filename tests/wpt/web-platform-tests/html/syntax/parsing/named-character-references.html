@@ -8,29 +8,29 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=named-character-references-data.js></script>
 <script>
-	(function() {
+  (function() {
 
-		function pad(string, totalCharacters) {
-			return totalCharacters < string.length ? string : (Array(totalCharacters + 1).join('0') + string).slice(-totalCharacters);
-		}
+    function pad(string, totalCharacters) {
+      return totalCharacters < string.length ? string : (Array(totalCharacters + 1).join('0') + string).slice(-totalCharacters);
+    }
 
-		var dummy = document.createElement('p');
+    var dummy = document.createElement('p');
 
-		Object.keys(data).forEach(function(entity) {
-			var object = data[entity];
-			dummy.innerHTML = entity;
-			test(
-				function() {
-					assert_equals(
-						dummy.textContent,
-						object.characters
-					);
-				},
-				entity + ' should match ' + object.codepoints.map(function(codePoint) {
-					return 'U+' + pad(codePoint.toString(16).toUpperCase(), 5);
-				}).join(' ')
-			);
-		});
+    Object.keys(data).forEach(function(entity) {
+      var object = data[entity];
+      dummy.innerHTML = entity;
+      test(
+        function() {
+          assert_equals(
+            dummy.textContent,
+            object.characters
+          );
+        },
+        entity + ' should match ' + object.codepoints.map(function(codePoint) {
+          return 'U+' + pad(codePoint.toString(16).toUpperCase(), 5);
+        }).join(' ')
+      );
+    });
 
-	}());
+  }());
 </script>

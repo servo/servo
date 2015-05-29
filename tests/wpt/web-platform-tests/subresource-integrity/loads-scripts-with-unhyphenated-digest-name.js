@@ -1,1 +1,0 @@
-loads_scripts_with_unhyphenated_digest_name=true;

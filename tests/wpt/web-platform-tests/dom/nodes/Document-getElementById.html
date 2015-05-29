@@ -27,6 +27,22 @@
     assert_equals(document.getElementById(""), null);
   }, "Calling document.getElementById with an empty string argument.");
 
+  test(function() {
+    var element = document.createElement("div");
+    element.setAttribute("id", "null");
+    document.body.appendChild(element);
+    this.add_cleanup(function() { document.body.removeChild(element) });
+    assert_equals(document.getElementById(null), element);
+  }, "Calling document.getElementById with a null argument.");
+
+  test(function() {
+    var element = document.createElement("div");
+    element.setAttribute("id", "undefined");
+    document.body.appendChild(element);
+    this.add_cleanup(function() { document.body.removeChild(element) });
+    assert_equals(document.getElementById(undefined), element);
+  }, "Calling document.getElementById with an undefined argument.");
+
 
   test(function() {
     var bar = document.getElementById("test1");

@@ -1,8 +1,8 @@
 var __SERVER__NAME = "{{host}}";
 var __PORT = {{ports[ws][0]}};
-var __SECURE__PORT = null; //{{ports[ws][0]}}; //Should be wss
+var __SECURE__PORT = {{ports[wss][0]}};
 var __NEW__PORT = __PORT; //All ports are non-default for now
-var __NEW__SECURE__PORT = __PORT; //All ports are non-default for now
+var __NEW__SECURE__PORT = __SECURE__PORT; //All ports are non-default for now
 var __PATH = "echo";
 var __CONTROLPATH = "control";
 var __PROTOCOL = "echo";

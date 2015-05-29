@@ -1,10 +1,10 @@
 var namespaces = {
-    "html":"http://www.w3.org/1999/xhtml",
-    "mathml":"http://www.w3.org/1998/Math/MathML",
-    "svg":"http://www.w3.org/2000/svg",
-    "xlink":"http://www.w3.org/1999/xlink",
-    "xml":"http://www.w3.org/XML/1998/namespace",
-    "xmlns":"http://www.w3.org/2000/xmlns/"
+  "html":"http://www.w3.org/1999/xhtml",
+  "mathml":"http://www.w3.org/1998/Math/MathML",
+  "svg":"http://www.w3.org/2000/svg",
+  "xlink":"http://www.w3.org/1999/xlink",
+  "xml":"http://www.w3.org/XML/1998/namespace",
+  "xmlns":"http://www.w3.org/2000/xmlns/"
 };
 
 var prefixes = {};
@@ -73,24 +73,24 @@ function test_serializer(element) {
         lines.push(format("|%s<%s>", indent_spaces, name));
 
         var attributes = Array.prototype.map.call(
-			   element.attributes,
-			   function(attr) {
-			     var name = (attr.namespaceURI ? prefixes[attr.namespaceURI] + " " : "") +
-					  attr.localName;
-			     return [name, attr.value];
-			   });
+         element.attributes,
+         function(attr) {
+           var name = (attr.namespaceURI ? prefixes[attr.namespaceURI] + " " : "") +
+            attr.localName;
+           return [name, attr.value];
+         });
         attributes.sort(function (a, b) {
-			  var x = a[0];
-			  var y = b[0];
-			  if (x === y) {
-	                    return 0;
-			  }
-			  return x > y ? 1 : -1;
-		        });
+                          var x = a[0];
+                          var y = b[0];
+                          if (x === y) {
+                            return 0;
+                          }
+                          return x > y ? 1 : -1;
+                        });
 
         attributes.forEach(
           function(attr) {
-	    var indent_spaces = (new Array(indent + 2)).join(" ");
+            var indent_spaces = (new Array(indent + 2)).join(" ");
             lines.push(format("|%s%s=\"%s\"", indent_spaces, attr[0], attr[1]));
           }
         );
