@@ -354,10 +354,6 @@ impl WindowMethods for Window {
         browser.downcast().loading.set(false);
         browser.downcast().back.set(back);
         browser.downcast().forward.set(forward);
-        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
-           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_favicon_urlchange) {
-            browser.get_host().get_client().get_display_handler().on_favicon_urlchange((*browser).clone(), &browser.downcast().favicons.borrow());
-        }
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
             browser.get_host()
@@ -392,6 +388,15 @@ impl WindowMethods for Window {
     }
 
     fn head_parsed(&self) {
+        let browser = self.cef_browser.borrow();
+        let browser = match *browser {
+            None => return,
+            Some(ref browser) => browser,
+        };
+        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_favicon_urlchange) {
+            browser.get_host().get_client().get_display_handler().on_favicon_urlchange((*browser).clone(), &browser.downcast().favicons.borrow());
+        }
     }
 
     fn set_page_title(&self, string: Option<String>) {
