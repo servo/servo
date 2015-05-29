@@ -248,6 +248,8 @@ pub enum Msg {
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Notification that this iframe should be removed.
     RemoveIFrame(PipelineId, SubpageId),
+    /// Favicon detected
+    NewFavicon(Url),
 }
 
 #[derive(Clone, Eq, PartialEq)]

@@ -138,4 +138,7 @@ pub trait WindowMethods {
 
     /// Does this window support a clipboard
     fn supports_clipboard(&self) -> bool;
+
+    /// Add a favicon
+    fn set_favicon(&self, url: Url);
 }
