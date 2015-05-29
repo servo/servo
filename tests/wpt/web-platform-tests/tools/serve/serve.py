@@ -235,6 +235,26 @@ class WebSocketDaemon(object):
                     "-d", doc_root,
                     "-w", handlers_root,
                     "--log-level", log_level]
+
+        if ssl_config is not None:
+            # This is usually done through pywebsocket.main, however we're
+            # working around that to get the server instance and manually
+            # setup the wss server.
+            if pywebsocket._import_ssl():
+                tls_module = pywebsocket._TLS_BY_STANDARD_MODULE
+                logger.debug("WebSocketDaemon: Using standard SSL module.")
+            elif pywebsocket._import_pyopenssl():
+                tls_module = pywebsocket._TLS_BY_PYOPENSSL
+                logger.debug("WebSocketDaemon: Using PyOpenSSL module.")
+            else:
+                logger.critical("WebSocketDaemon: No SSL module is available.")
+                sys.exit(1)
+
+            cmd_args += ["--tls",
+                         "--private-key", ssl_config["key_path"],
+                         "--certificate", ssl_config["cert_path"],
+                         "--tls-module", tls_module]
+
         if (bind_hostname):
             cmd_args = ["-H", host] + cmd_args
         opts, args = pywebsocket._parse_args_and_config(cmd_args)
@@ -282,12 +302,18 @@ def start_ws_server(host, port, paths, routes, bind_hostname, external_config, s
                            paths["ws_doc_root"],
                            "debug",
                            bind_hostname,
-                           ssl_config)
+                           ssl_config = None)
 
 
-def start_wss_server(host, port, path, routes, bind_hostname, external_config, ssl_config,
+def start_wss_server(host, port, paths, routes, bind_hostname, external_config, ssl_config,
                      **kwargs):
-    return
+    return WebSocketDaemon(host,
+                           str(port),
+                           repo_root,
+                           paths["ws_doc_root"],
+                           "debug",
+                           bind_hostname,
+                           ssl_config)
 
 
 def get_ports(config, ssl_environment):

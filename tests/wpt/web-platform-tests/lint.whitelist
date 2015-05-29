@@ -13,9 +13,7 @@ INDENT TABS: conformance-checkers/*
 INDENT TABS: content-security-policy/*
 INDENT TABS: custom-elements/*
 INDENT TABS: DOMEvents/*
-INDENT TABS: eventsource/*
 INDENT TABS: html/editing/dnd/*
-INDENT TABS: html/syntax/*
 INDENT TABS: media-source/*
 INDENT TABS: old-tests/*
 INDENT TABS: pointerlock/*
@@ -101,3 +99,6 @@ PARSE-FAILED:ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubi
 
 # Test generation files containing print statements
 PRINT STATEMENT:dom/nodes/Document-createElement-namespace-tests/generate.py
+
+# Should probably be fixed.
+W3C-TEST.ORG:subresource-integrity/refresh-header.js.headers

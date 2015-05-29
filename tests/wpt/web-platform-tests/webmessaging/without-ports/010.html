@@ -104,7 +104,7 @@
         test_error.step(function() { assert_equals(e.data, null, 'new Error()'); this.done(); });
         setTimeout(test_unreached.step_func(function() { assert_equals(j, 14); this.done(); }), 50);
         break;
-      default: test_unreached.step(function() { assert_unreached('got an unexpected message event ('+i+')'); });
+      default: test_unreached.step(function() { assert_unreached('got an unexpected message event ('+j+')'); });
     };
     j++;
   }
