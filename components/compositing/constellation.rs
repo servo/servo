@@ -463,6 +463,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got new favicon message");
                 self.compositor_proxy.send(CompositorMsg::NewFavicon(url));
             }
+            ConstellationMsg::HeadParsed => {
+                debug!("constellation got head parsed message");
+                self.compositor_proxy.send(CompositorMsg::HeadParsed);
+            }
         }
         true
     }

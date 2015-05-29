@@ -182,6 +182,8 @@ pub enum Msg {
     IsReadyToSaveImageReply(bool),
     /// A favicon was detected
     NewFavicon(Url),
+    /// <head> tag finished parsing
+    HeadParsed,
 }
 
 impl Debug for Msg {
@@ -209,6 +211,7 @@ impl Debug for Msg {
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
+            Msg::HeadParsed => write!(f, "HeadParsed"),
         }
     }
 }

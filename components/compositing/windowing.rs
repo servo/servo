@@ -110,6 +110,8 @@ pub trait WindowMethods {
     fn load_end(&self, back: bool, forward: bool);
     /// Called when the browser encounters an error while loading a URL
     fn load_error(&self, code: NetError, url: String);
+    /// Called when the <head> tag has finished parsing
+    fn head_parsed(&self);
 
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
