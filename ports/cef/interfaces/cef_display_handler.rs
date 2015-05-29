@@ -77,7 +77,7 @@ pub struct _cef_display_handler_t {
   //
   pub on_favicon_urlchange: Option<extern "C" fn(
       this: *mut cef_display_handler_t, browser: *mut interfaces::cef_browser_t,
-      icon_urls: types::cef_string_list_t) -> ()>,
+      icon_urls: &types::cef_string_list_t) -> ()>,
 
   //
   // Called when the browser is about to display a tooltip. |text| contains the
@@ -234,7 +234,7 @@ impl CefDisplayHandler {
   // Called when the page icon changes.
   //
   pub fn on_favicon_urlchange(&self, browser: interfaces::CefBrowser,
-      icon_urls: Vec<String>) -> () {
+      icon_urls: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
