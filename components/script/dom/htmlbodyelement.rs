@@ -17,6 +17,8 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
+use msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::Msg as ConstellationMsg;
 
 use cssparser::RGBA;
 use util::str::{self, DOMString};
@@ -107,6 +109,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
         let window = window_from_node(*self).root();
         let document = window.r().Document().root();
         document.r().set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
+        let ConstellationChan(ref chan) = window.r().constellation_chan();
+        let event = ConstellationMsg::HeadParsed;
+        chan.send(event).unwrap();
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {

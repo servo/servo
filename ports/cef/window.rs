@@ -391,6 +391,9 @@ impl WindowMethods for Window {
         }
     }
 
+    fn head_parsed(&self) {
+    }
+
     fn set_page_title(&self, string: Option<String>) {
         let browser = self.cef_browser.borrow();
         let browser = match *browser {

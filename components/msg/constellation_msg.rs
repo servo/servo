@@ -250,6 +250,8 @@ pub enum Msg {
     RemoveIFrame(PipelineId, SubpageId),
     /// Favicon detected
     NewFavicon(Url),
+    /// <head> tag finished parsing
+    HeadParsed,
 }
 
 #[derive(Clone, Eq, PartialEq)]
