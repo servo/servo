@@ -812,6 +812,9 @@ impl WindowMethods for Window {
     fn load_error(&self, _: NetError, _: String) {
     }
 
+    fn head_parsed(&self) {
+    }
+
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         ScaleFactor::new(1.0)
     }

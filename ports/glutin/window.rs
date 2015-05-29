@@ -516,6 +516,9 @@ impl WindowMethods for Window {
     fn load_error(&self, _: NetError, _: String) {
     }
 
+    fn head_parsed(&self) {
+    }
+
     /// Has no effect on Android.
     fn set_cursor(&self, c: Cursor) {
         use glutin::MouseCursor;
@@ -706,6 +709,8 @@ impl WindowMethods for Window {
     fn load_end(&self, _: bool, _: bool) {
     }
     fn load_error(&self, _: NetError, _: String) {
+    }
+    fn head_parsed(&self) {
     }
 
     fn set_cursor(&self, _: Cursor) {
