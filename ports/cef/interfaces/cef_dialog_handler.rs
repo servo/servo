@@ -65,7 +65,7 @@ pub struct _cef_file_dialog_callback_t {
   //
   pub cont: Option<extern "C" fn(this: *mut cef_file_dialog_callback_t,
       selected_accept_filter: libc::c_int,
-      file_paths: types::cef_string_list_t) -> ()>,
+      file_paths: &types::cef_string_list_t) -> ()>,
 
   //
   // Cancel the file selection.
@@ -165,7 +165,7 @@ impl CefFileDialogCallback {
   // value is treated the same as calling cancel().
   //
   pub fn cont(&self, selected_accept_filter: libc::c_int,
-      file_paths: Vec<String>) -> () {
+      file_paths: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
@@ -251,7 +251,7 @@ pub struct _cef_dialog_handler_t {
       browser: *mut interfaces::cef_browser_t,
       mode: types::cef_file_dialog_mode_t, title: *const types::cef_string_t,
       default_file_path: *const types::cef_string_t,
-      accept_filters: types::cef_string_list_t,
+      accept_filters: &types::cef_string_list_t,
       selected_accept_filter: libc::c_int,
       callback: *mut interfaces::cef_file_dialog_callback_t) -> libc::c_int>,
 
@@ -357,7 +357,7 @@ impl CefDialogHandler {
   //
   pub fn on_file_dialog(&self, browser: interfaces::CefBrowser,
       mode: types::cef_file_dialog_mode_t, title: &[u16],
-      default_file_path: &[u16], accept_filters: Vec<String>,
+      default_file_path: &[u16], accept_filters: &Vec<String>,
       selected_accept_filter: libc::c_int,
       callback: interfaces::CefFileDialogCallback) -> libc::c_int {
     if self.c_object.is_null() ||

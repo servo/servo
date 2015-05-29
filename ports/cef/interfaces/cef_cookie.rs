@@ -64,7 +64,7 @@ pub struct _cef_cookie_manager_t {
   // Must be called before any cookies are accessed.
   //
   pub set_supported_schemes: Option<extern "C" fn(
-      this: *mut cef_cookie_manager_t, schemes: types::cef_string_list_t,
+      this: *mut cef_cookie_manager_t, schemes: &types::cef_string_list_t,
       callback: *mut interfaces::cef_completion_callback_t) -> ()>,
 
   //
@@ -227,7 +227,7 @@ impl CefCookieManager {
   // executed asnychronously on the IO thread after the change has been applied.
   // Must be called before any cookies are accessed.
   //
-  pub fn set_supported_schemes(&self, schemes: Vec<String>,
+  pub fn set_supported_schemes(&self, schemes: &Vec<String>,
       callback: interfaces::CefCompletionCallback) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
