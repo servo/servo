@@ -1364,7 +1364,7 @@ pub struct _cef_v8value_t {
   // based keys will also be returned as strings.
   //
   pub get_keys: Option<extern "C" fn(this: *mut cef_v8value_t,
-      keys: types::cef_string_list_t) -> libc::c_int>,
+      keys: &types::cef_string_list_t) -> libc::c_int>,
 
   //
   // Sets the user data for this object and returns true (1) on success. Returns
@@ -2117,7 +2117,7 @@ impl CefV8Value {
   // Read the keys for the object's values into the specified vector. Integer-
   // based keys will also be returned as strings.
   //
-  pub fn get_keys(&self, keys: Vec<String>) -> libc::c_int {
+  pub fn get_keys(&self, keys: &Vec<String>) -> libc::c_int {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
