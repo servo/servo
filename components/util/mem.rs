@@ -42,9 +42,6 @@ pub fn heap_size_of(ptr: *const c_void) -> usize {
 // return multiple measurements -- e.g. measure text separately from images -- are also possible,
 // and should be used when appropriate.
 //
-// FIXME(njn): it would be nice to be able to derive this trait automatically, given that
-// implementations are mostly repetitive and mechanical.
-//
 pub trait HeapSizeOf {
     /// Measure the size of any heap-allocated structures that hang off this value, but not the
     /// space taken up by the value itself (i.e. what size_of::<T> measures, more or less); that
