@@ -135,4 +135,7 @@ pub trait WindowMethods {
 
     /// Process a key event.
     fn handle_key(&self, key: Key, mods: KeyModifiers);
+
+    /// Add a favicon
+    fn set_favicon(&self, url: Url);
 }

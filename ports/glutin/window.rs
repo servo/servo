@@ -560,6 +560,9 @@ impl WindowMethods for Window {
         self.window.set_cursor(glutin_cursor);
     }
 
+    fn set_favicon(&self, _: Url) {
+    }
+
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
@@ -702,6 +705,9 @@ impl WindowMethods for Window {
     }
 
     fn set_cursor(&self, _: Cursor) {
+    }
+
+    fn set_favicon(&self, _: Url) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
