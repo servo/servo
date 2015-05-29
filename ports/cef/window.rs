@@ -356,7 +356,7 @@ impl WindowMethods for Window {
         browser.downcast().forward.set(forward);
         if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_favicon_urlchange) {
-            browser.get_host().get_client().get_display_handler().on_favicon_urlchange((*browser).clone(), browser.downcast().favicons.borrow().clone());
+            browser.get_host().get_client().get_display_handler().on_favicon_urlchange((*browser).clone(), &browser.downcast().favicons.borrow());
         }
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
