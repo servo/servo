@@ -6,8 +6,11 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{native_from_handleobject, is_dom_class, jsstring_to_str};
-use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
+use dom::bindings::conversions::{is_dom_class, jsstring_to_str};
+use dom::bindings::conversions::native_from_handleobject;
+use dom::bindings::conversions::private_from_proto_chain;
+use dom::bindings::error::{Error, ErrorResult, Fallible, throw_invalid_this};
+use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
@@ -24,8 +27,11 @@ use std::ptr;
 use std::cmp::PartialEq;
 use std::default::Default;
 use std::cell::UnsafeCell;
-use js::glue::UnwrapObject;
-use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
+use js::glue::{CallJitMethodOp, CallJitGetterOp, CallJitSetterOp, IsWrapper};
+use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT};
+use js::glue::{RUST_JSID_TO_INT, UnwrapObject};
+use js::jsapi::{CallArgs, GetGlobalForObjectCrossCompartment};
+use js::jsapi::JS_IsExceptionPending;
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction, JSTraceOp};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
@@ -47,13 +53,12 @@ use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, Heap, MutableHandleOb
 use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::{DOMCallbacks, JSWrapObjectCallbacks};
-use js::jsval::JSVal;
-use js::jsval::{PrivateValue, NullValue};
-use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue};
+use js::jsval::{PrivateValue, UInt32Value, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use js::glue::{WrapperNew, GetCrossCompartmentWrapper};
-use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
-use js::JSFUN_CONSTRUCTOR;
+use js::{JS_ARGV, JS_CALLEE, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE};
+use js::{JSPROP_PERMANENT, JSPROP_READONLY};
 use js;
 use string_cache::{Atom, Namespace};
 
@@ -668,6 +673,153 @@ pub unsafe extern fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> 
 pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: HandleObject,
                                     id: HandleId, bp: *mut ObjectOpResult) -> u8 {
     JS_DeletePropertyById1(cx, object, id, bp)
+}
+
+/// Generic method of IDL interface.
+pub unsafe extern fn generic_method(cx: *mut JSContext,
+                                    argc: libc::c_uint, vp: *mut JSVal)
+                                    -> u8 {
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let proto_id = (*info).protoID;
+    let depth = (*info).depth;
+    let args = CallArgs::from_vp(vp, argc);
+    let thisobj = args.thisv();
+    if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
+        return 0;
+    }
+    let obj = if thisobj.get().is_object() {
+        RootedObject::new(cx, thisobj.get().to_object())
+    } else {
+        RootedObject::new(cx, GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null()))
+    };
+    let this = match private_from_proto_chain(obj.ptr, proto_id, depth) {
+        Ok(val) => val,
+        Err(()) => {
+            throw_invalid_this(cx, proto_id);
+            return 0;
+        }
+    };
+    CallJitMethodOp(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp)
+}
+
+/// Generic getter of IDL interface.
+pub unsafe extern fn generic_getter(cx: *mut JSContext,
+                                    argc: libc::c_uint, vp: *mut JSVal)
+                                    -> u8 {
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let proto_id = (*info).protoID;
+    let depth = (*info).depth;
+    let args = CallArgs::from_vp(vp, argc);
+    let thisobj = args.thisv();
+    if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
+        return 0;
+    }
+    let obj = if thisobj.get().is_object() {
+        RootedObject::new(cx, thisobj.get().to_object())
+    } else {
+        RootedObject::new(cx, GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null()))
+    };
+    let this = match private_from_proto_chain(obj.ptr, proto_id, depth) {
+        Ok(val) => val,
+        Err(()) => {
+            throw_invalid_this(cx, proto_id);
+            return 0;
+        }
+    };
+    CallJitGetterOp(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp)
+}
+
+/// Generic lenient getter of IDL interface.
+pub unsafe extern fn generic_lenient_getter(cx: *mut JSContext,
+                                            argc: libc::c_uint,
+                                            vp: *mut JSVal)
+                                            -> u8 {
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let proto_id = (*info).protoID;
+    let depth = (*info).depth;
+    let args = CallArgs::from_vp(vp, argc);
+    let thisobj = args.thisv();
+    if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
+        return 0;
+    }
+    let obj = if thisobj.get().is_object() {
+        RootedObject::new(cx, thisobj.get().to_object())
+    } else {
+        RootedObject::new(cx, GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null()))
+    };
+    let this = match private_from_proto_chain(obj.ptr, proto_id, depth) {
+        Ok(val) => val,
+        Err(()) => {
+            debug_assert!(JS_IsExceptionPending(cx) == 0);
+            *vp = UndefinedValue();
+            return 1;
+        }
+    };
+    CallJitGetterOp(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp)
+}
+
+/// Generic setter of IDL interface.
+pub unsafe extern fn generic_setter(cx: *mut JSContext,
+                                    argc: libc::c_uint, vp: *mut JSVal)
+                                    -> u8 {
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let proto_id = (*info).protoID;
+    let depth = (*info).depth;
+    let args = CallArgs::from_vp(vp, argc);
+    let thisobj = args.thisv();
+    if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
+        return 0;
+    }
+    let obj = if thisobj.get().is_object() {
+        RootedObject::new(cx, thisobj.get().to_object())
+    } else {
+        RootedObject::new(cx, GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null()))
+    };
+    let this = match private_from_proto_chain(obj.ptr, proto_id, depth) {
+        Ok(val) => val,
+        Err(()) => {
+            throw_invalid_this(cx, proto_id);
+            return 0;
+        }
+    };
+    if CallJitSetterOp(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp) == 0 {
+        return 0;
+    }
+    *vp = UndefinedValue();
+    1
+}
+
+/// Generic lenient setter of IDL interface.
+pub unsafe extern fn generic_lenient_setter(cx: *mut JSContext,
+                                            argc: libc::c_uint,
+                                            vp: *mut JSVal)
+                                            -> u8 {
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let proto_id = (*info).protoID;
+    let depth = (*info).depth;
+    let args = CallArgs::from_vp(vp, argc);
+    let thisobj = args.thisv();
+    if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
+        return 0;
+    }
+    let obj = if thisobj.get().is_object() {
+        RootedObject::new(cx, thisobj.get().to_object())
+    } else {
+        RootedObject::new(cx, GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null()))
+    };
+    let this = match private_from_proto_chain(obj.ptr, proto_id, depth) {
+        Ok(val) => val,
+        Err(()) => {
+            debug_assert!(JS_IsExceptionPending(cx) == 0);
+            *vp = UndefinedValue();
+            return 1;
+        }
+    };
+    if CallJitSetterOp(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp) == 0 {
+        return 0;
+    }
+    *vp = UndefinedValue();
+    1
 }
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
