@@ -113,12 +113,6 @@
             "url": "/_mozilla/mozilla/caption.html"
           }
         ],
-        "mozilla/characterdata.html": [
-          {
-            "path": "mozilla/characterdata.html",
-            "url": "/_mozilla/mozilla/characterdata.html"
-          }
-        ],
         "mozilla/child_reparenting.html": [
           {
             "path": "mozilla/child_reparenting.html",

@@ -7,7 +7,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-// TODO: non-ASCII strings
 function testNode(create, type) {
   test(function() {
     var node = create()
@@ -101,6 +100,16 @@ function testNode(create, type) {
     assert_equals(node.substringData(0, -1), "test")
     assert_equals(node.substringData(0, -0x100000000 + 2), "te")
   }, type + ".substringData() with negative count")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.data = "This is the character data test, other 資料，更多文字"
+
+    assert_equals(node.substringData(12, 4), "char")
+    assert_equals(node.substringData(39, 2), "資料")
+  }, type + ".substringData() with non-ASCII data")
 }
 
 testNode(function() { return document.createTextNode("test") }, "Text")
