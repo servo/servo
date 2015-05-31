@@ -1,15 +1,10 @@
 from __future__ import print_function, unicode_literals
 
-import argparse
 import os
 import os.path as path
-from os import chdir
 import subprocess
-import SimpleHTTPServer
-import SocketServer
-import mozdebug
 import sys
-from shutil import copytree, rmtree, ignore_patterns, copy2
+from shutil import copytree, rmtree, copy2
 
 from mach.registrar import Registrar
 

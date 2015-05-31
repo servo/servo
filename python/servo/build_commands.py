@@ -55,7 +55,7 @@ def notify_win(title, text):
 
 
 def notify_darwin(title, text):
-    import AppKit, Foundation, objc
+    import Foundation, objc
 
     NSUserNotification = objc.lookUpClass("NSUserNotification")
     NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")

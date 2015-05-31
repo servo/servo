@@ -11,8 +11,6 @@ from mach.base import MachError
 from mach.test.common import TestBase
 from mock import patch
 
-from mozunit import main
-
 
 here = os.path.abspath(os.path.dirname(__file__))
 
