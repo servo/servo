@@ -224,15 +224,7 @@ class CommandBase(object):
         if self.context.bootstrapped:
             return
 
-        subprocess.check_call(["git", "submodule", "--quiet", "sync", "--recursive"])
-        submodules = subprocess.check_output(["git", "submodule", "status"])
-        for line in submodules.split('\n'):
-            components = line.strip().split(' ')
-            if len(components) > 1 and components[0].startswith(('-', '+')):
-                module_path = components[1]
-                subprocess.check_call(["git", "submodule", "update",
-                                       "--init", "--recursive",
-                                       "--", module_path])
+        Registrar.dispatch("update-submodules", context=self.context)
 
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(
