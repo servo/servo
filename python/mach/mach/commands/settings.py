@@ -6,10 +6,7 @@ from __future__ import print_function, unicode_literals
 
 from textwrap import TextWrapper
 
-from mach.decorators import (
-    CommandProvider,
-    Command,
-)
+from mach.decorators import Command
 
 
 #@CommandProvider

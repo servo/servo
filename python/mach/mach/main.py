@@ -16,7 +16,6 @@ import os
 import sys
 import traceback
 import uuid
-import sys
 
 from .base import (
     CommandContext,
@@ -26,11 +25,7 @@ from .base import (
     UnrecognizedArgumentError,
 )
 
-from .decorators import (
-    CommandArgument,
-    CommandProvider,
-    Command,
-)
+from .decorators import CommandProvider
 
 from .config import ConfigSettings
 from .dispatcher import CommandAction
