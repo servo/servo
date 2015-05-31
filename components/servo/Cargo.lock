@@ -322,7 +322,7 @@ dependencies = [
 [[package]]
 name = "fontconfig-sys"
 version = "2.11.1"
-source = "git+https://github.com/servo/libfontconfig#ce4a38633dc649b95c9b4935c0cce53e76d8b46a"
+source = "git+https://github.com/servo/libfontconfig#dc21212ea0088fe8ada3027c365012e1c1ec8311"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
@@ -596,7 +596,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#18f507903856a814f12cce2ffda8065695d8f485"
+source = "git+https://github.com/servo/rust-mozjs#4c311480691348aeecfa2adecca5bb9787cce8cc"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -752,7 +752,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#19edb950930f03f0ad305ffbd9548b92fdb0a250"
+source = "git+https://github.com/servo/mozjs#2d5bc1838f8cc2f37177c705fb9bc583c742bc33"
 
 [[package]]
 name = "msg"
