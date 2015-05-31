@@ -315,7 +315,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::Nothing
             },
            Key::V if is_control_key(mods) => {
-                let contents = self.clipboard_provider.get_clipboard_contents();
+                let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(&contents);
                 KeyReaction::DispatchInput
             },

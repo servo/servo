@@ -31,7 +31,7 @@ use platform::font_template::FontTemplateData;
 pub trait FontHandleMethods {
     fn new_from_template(fctx: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<Au>)
                     -> Result<Self,()>;
-    fn get_template(&self) -> Arc<FontTemplateData>;
+    fn template(&self) -> Arc<FontTemplateData>;
     fn family_name(&self) -> String;
     fn face_name(&self) -> String;
     fn is_italic(&self) -> bool;
@@ -41,7 +41,7 @@ pub trait FontHandleMethods {
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
     fn glyph_h_kerning(&self, GlyphId, GlyphId) -> FractionalPixel;
-    fn get_metrics(&self) -> FontMetrics;
+    fn metrics(&self) -> FontMetrics;
     fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
 

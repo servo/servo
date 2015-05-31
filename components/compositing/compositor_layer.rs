@@ -141,7 +141,7 @@ pub trait CompositorLayer {
     fn wants_scroll_events(&self) -> WantsScrollEventsFlag;
 
     /// Return the pipeline id associated with this layer.
-    fn get_pipeline_id(&self) -> PipelineId;
+    fn pipeline_id(&self) -> PipelineId;
 }
 
 #[derive(Copy, PartialEq, Clone)]
@@ -225,7 +225,7 @@ impl CompositorLayer for Layer<CompositorData> {
 
         let unused_buffers = self.collect_unused_buffers();
         if !unused_buffers.is_empty() { // send back unused buffers
-            let pipeline = compositor.get_pipeline(self.get_pipeline_id());
+            let pipeline = compositor.get_pipeline(self.pipeline_id());
             let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(unused_buffers));
         }
     }
@@ -241,7 +241,7 @@ impl CompositorLayer for Layer<CompositorData> {
                 buffer.mark_wont_leak()
             }
 
-            let pipeline = compositor.get_pipeline(self.get_pipeline_id());
+            let pipeline = compositor.get_pipeline(self.pipeline_id());
             let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(buffers));
         }
     }
@@ -370,7 +370,7 @@ impl CompositorLayer for Layer<CompositorData> {
                 MouseUpEvent(button, event_point),
         };
 
-        let pipeline = compositor.get_pipeline(self.get_pipeline_id());
+        let pipeline = compositor.get_pipeline(self.pipeline_id());
         let ScriptControlChan(ref chan) = pipeline.script_chan;
         let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
@@ -380,7 +380,7 @@ impl CompositorLayer for Layer<CompositorData> {
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods {
         let message = MouseMoveEvent(cursor.to_untyped());
-        let pipeline = compositor.get_pipeline(self.get_pipeline_id());
+        let pipeline = compositor.get_pipeline(self.pipeline_id());
         let ScriptControlChan(ref chan) = pipeline.script_chan;
         let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
@@ -409,7 +409,7 @@ impl CompositorLayer for Layer<CompositorData> {
         self.extra_data.borrow().wants_scroll_events
     }
 
-    fn get_pipeline_id(&self) -> PipelineId {
+    fn pipeline_id(&self) -> PipelineId {
         self.extra_data.borrow().pipeline_id
     }
 }
