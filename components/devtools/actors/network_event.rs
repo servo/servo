@@ -138,7 +138,7 @@ impl NetworkEventActor {
         self.response.body = body.clone();
     }
 
-    pub fn get_event_actor(&self) -> EventActor {
+    pub fn event_actor(&self) -> EventActor {
         // TODO: Send the correct values for startedDateTime, isXHR, private
         EventActor {
             actor: self.name(),
@@ -150,7 +150,7 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn get_response_start(&self) -> ResponseStartMsg {
+    pub fn response_start(&self) -> ResponseStartMsg {
         // TODO: Send the correct values for all these fields.
         //       This is a fake message.
         ResponseStartMsg {

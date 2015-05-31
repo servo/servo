@@ -294,9 +294,9 @@ impl CanvasFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                Some(Au::from_px(node.get_canvas_width() as i32)),
-                Some(Au::from_px(node.get_canvas_height() as i32))),
-            renderer: node.get_renderer().map(|rec| Arc::new(Mutex::new(rec))),
+                Some(Au::from_px(node.canvas_width() as i32)),
+                Some(Au::from_px(node.canvas_height() as i32))),
+            renderer: node.renderer().map(|rec| Arc::new(Mutex::new(rec))),
         }
     }
 
@@ -2208,4 +2208,3 @@ impl<'a> InlineStyleIterator<'a> {
         }
     }
 }
-

@@ -77,7 +77,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn get_template(&self) -> Arc<FontTemplateData> {
+    fn template(&self) -> Arc<FontTemplateData> {
         self.font_data.clone()
     }
 
@@ -157,7 +157,7 @@ impl FontHandleMethods for FontHandle {
         Some(advance as FractionalPixel)
     }
 
-    fn get_metrics(&self) -> FontMetrics {
+    fn metrics(&self) -> FontMetrics {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
         let ascent = self.ctfont.ascent() as f64;
         let descent = self.ctfont.descent() as f64;
@@ -203,4 +203,3 @@ impl FontHandleMethods for FontHandle {
         })
     }
 }
-

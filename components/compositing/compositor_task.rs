@@ -91,7 +91,7 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
 
 /// Implementation of the abstract `PaintListener` interface.
 impl PaintListener for Box<CompositorProxy+'static+Send> {
-    fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
+    fn graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
         self.send(Msg::GetGraphicsMetadata(chan));
         // If the compositor is shutting down when a paint task
