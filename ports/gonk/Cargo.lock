@@ -318,7 +318,7 @@ dependencies = [
 [[package]]
 name = "fontconfig-sys"
 version = "2.11.1"
-source = "git+https://github.com/servo/libfontconfig#b3ef84666e6333dff05442759ffefd2085e9fe0d"
+source = "git+https://github.com/servo/libfontconfig#dc21212ea0088fe8ada3027c365012e1c1ec8311"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
