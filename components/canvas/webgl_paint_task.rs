@@ -32,9 +32,15 @@ impl WebGLPaintTask {
         let context = try!(
             GLContext::create_offscreen_with_color_attachment(
                 size, attrs, ColorAttachmentType::TextureWithSurface));
+
+        // NOTE: As of right now this is always equal to the size parameter,
+        // but this doesn't have to be true. Firefox after failing with
+        // the requested size, tries with the nearest powers of two, for example.
+        let real_size = context.borrow_draw_buffer().unwrap().size();
+
         Ok(WebGLPaintTask {
-            size: size,
-            original_context_size: size,
+            size: real_size,
+            original_context_size: real_size,
             gl_context: context
         })
     }
@@ -64,10 +70,11 @@ impl WebGLPaintTask {
             CanvasWebGLMsg::ShaderSource(shader_id, source) => self.shader_source(shader_id, source),
             CanvasWebGLMsg::Uniform4fv(uniform_id, data) => self.uniform_4fv(uniform_id, data),
             CanvasWebGLMsg::UseProgram(program_id) => self.use_program(program_id),
-            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => {
-                self.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset);
-            },
+            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) =>
+                self.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset),
             CanvasWebGLMsg::Viewport(x, y, width, height) => self.viewport(x, y, width, height),
+            CanvasWebGLMsg::DrawingBufferWidth(sender) => self.send_drawing_buffer_width(sender),
+            CanvasWebGLMsg::DrawingBufferHeight(sender) => self.send_drawing_buffer_height(sender),
         }
     }
 
@@ -100,6 +107,14 @@ impl WebGLPaintTask {
 
     fn get_context_attributes(&self, sender: Sender<GLContextAttributes>) {
         sender.send(*self.gl_context.borrow_attributes()).unwrap()
+    }
+
+    fn send_drawing_buffer_width(&self, sender: Sender<i32>) {
+        sender.send(self.size.width).unwrap()
+    }
+
+    fn send_drawing_buffer_height(&self, sender: Sender<i32>) {
+        sender.send(self.size.height).unwrap()
     }
 
     fn attach_shader(&self, program_id: u32, shader_id: u32) {
@@ -229,7 +244,7 @@ impl WebGLPaintTask {
         if size.width > self.original_context_size.width ||
            size.height > self.original_context_size.height {
             try!(self.gl_context.resize(size));
-            self.size = size;
+            self.size = self.gl_context.borrow_draw_buffer().unwrap().size();
         } else {
             self.size = size;
             unsafe { gl::Scissor(0, 0, size.width, size.height); }

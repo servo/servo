@@ -90,6 +90,8 @@ pub enum CanvasWebGLMsg {
     UseProgram(u32),
     VertexAttribPointer2f(u32, i32, bool, i32, i64),
     Viewport(i32, i32, i32, i32),
+    DrawingBufferWidth(Sender<i32>),
+    DrawingBufferHeight(Sender<i32>),
 }
 
 #[derive(Clone)]

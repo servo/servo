@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::htmlcanvaselement::{HTMLCanvasElement};
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
 use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
@@ -73,6 +74,38 @@ impl Drop for WebGLRenderingContext {
 }
 
 impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    fn Canvas(self) -> Temporary<HTMLCanvasElement> {
+        Temporary::from_rooted(self.canvas)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    fn DrawingBufferWidth(self) -> i32 {
+        let (sender, receiver) = channel();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawingBufferWidth(sender))).unwrap();
+        receiver.recv().unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    fn DrawingBufferHeight(self) -> i32 {
+        let (sender, receiver) = channel();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawingBufferHeight(sender))).unwrap();
+        receiver.recv().unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn GetParameter(self, cx: *mut JSContext, parameter: u32) -> JSVal {
+        // TODO(ecoal95): Implement the missing parameters from the spec
+        match parameter {
+            WebGLRenderingContextConstants::VERSION =>
+                DOMString::from_str("WebGL 1.0").to_jsval(cx),
+            WebGLRenderingContextConstants::RENDERER |
+            WebGLRenderingContextConstants::VENDOR =>
+                DOMString::from_str("Mozilla/Servo").to_jsval(cx),
+            _ => NullValue(),
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
     fn GetContextAttributes(self) -> Option<WebGLContextAttributes> {
         let (sender, receiver) = channel();
