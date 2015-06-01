@@ -40,7 +40,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
-use style::computed_values::{text_align, text_decoration, white_space, word_break};
+use style::computed_values::{border_style, text_align, text_decoration, white_space, word_break};
 use style::node::TNode;
 use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -2045,7 +2045,8 @@ impl Fragment {
 
         // Outlines cause us to draw outside our border box.
         let outline_width = self.style.get_outline().outline_width;
-        if outline_width != Au(0) {
+        let outline_style = self.style.get_outline().outline_style;
+        if outline_width != Au(0) && outline_style != border_style::T::none {
             overflow = overflow.union(&border_box.inflate(outline_width, outline_width))
         }
 
