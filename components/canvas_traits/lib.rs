@@ -9,6 +9,7 @@ extern crate geom;
 extern crate cssparser;
 extern crate gfx_traits;
 extern crate layers;
+extern crate offscreen_gl_context;
 
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
@@ -22,6 +23,7 @@ use geom::size::Size2D;
 use gfx_traits::color;
 use std::sync::mpsc::{Sender};
 use layers::platform::surface::NativeSurface;
+use offscreen_gl_context::GLContextAttributes;
 
 #[derive(Clone)]
 pub enum CanvasMsg {
@@ -66,6 +68,7 @@ pub enum Canvas2dMsg {
 
 #[derive(Clone)]
 pub enum CanvasWebGLMsg {
+    GetContextAttributes(Sender<GLContextAttributes>),
     AttachShader(u32, u32),
     BindBuffer(u32, u32),
     BufferData(u32, Vec<f32>, u32),

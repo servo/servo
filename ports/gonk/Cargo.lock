@@ -76,6 +76,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx_traits 0.0.1",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
 ]
 
 [[package]]
@@ -727,7 +728,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#99cee719a811f28e70fe33fa71137663ac210487"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#13c9f786c55266fa1594cb520fdbc74f45fda809"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
@@ -899,6 +900,7 @@ dependencies = [
  "msg 0.0.1",
  "net_traits 0.0.1",
  "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile_traits 0.0.1",

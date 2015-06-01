@@ -214,7 +214,11 @@ impl CanvasRenderingContext2D {
         let msg = if self.canvas.root().r() == canvas {
             CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled))
         } else { // Source and target canvases are different
-            let context = canvas.get_2d_context().root();
+            let context = match canvas.get_or_init_2d_context() {
+                Some(context) => context.root(),
+                None => return Err(InvalidState),
+            };
+
             let renderer = context.r().get_renderer();
             let (sender, receiver) = channel::<Vec<u8>>();
             // Reads pixels from source image
