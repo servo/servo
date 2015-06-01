@@ -25,7 +25,6 @@ use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 
 use std::ptr;
 
-#[allow(raw_pointer_derive)]
 #[jstraceable]
 #[privatize]
 pub struct BrowserContext {

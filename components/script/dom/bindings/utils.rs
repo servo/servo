@@ -22,7 +22,7 @@ use std::boxed;
 use std::ffi::CString;
 use std::ptr;
 use std::cmp::PartialEq;
-use core::default::Default;
+use std::default::Default;
 use js::glue::UnwrapObject;
 use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction, JSTraceOp};
@@ -79,10 +79,6 @@ impl GlobalStaticData {
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
 // changes.
 const DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
-
-pub const ARRAY_VALUES_STRING: [u8; 12] =
-    ['A' as u8, 'r' as u8, 'r' as u8, 'a' as u8, 'y' as u8,
-     'V' as u8, 'a' as u8, 'l' as u8, 'u' as u8, 'e' as u8, 's' as u8, 0];
 
 /// The index of the slot that contains a reference to the ProtoOrIfaceArray.
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
