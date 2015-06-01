@@ -81,7 +81,7 @@ pub unsafe extern fn delete(cx: *mut JSContext, proxy: HandleObject, id: HandleI
     delete_property_by_id(cx, expando.handle(), id, bp)
 }
 
-/// ???
+/// Controls whether the Extensible bit can be changed
 pub unsafe extern fn prevent_extensions(_cx: *mut JSContext,
                                         _proxy: HandleObject,
                                         result: *mut ObjectOpResult) -> u8 {
@@ -89,7 +89,7 @@ pub unsafe extern fn prevent_extensions(_cx: *mut JSContext,
     return true as u8;
 }
 
-/// ???
+/// Reports whether the object is Extensible
 pub unsafe extern fn is_extensible(_cx: *mut JSContext, _proxy: HandleObject,
                                    succeeded: *mut u8) -> u8 {
     *succeeded = true as u8;

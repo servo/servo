@@ -27,7 +27,7 @@
 //! | interface types         | `&T`            | `Root<T>`      |
 //! | dictionary types        | `&T`            | *unsupported*  |
 //! | enumeration types       | `T`                              |
-//! | callback function types | `T`                              |
+//! | callback function types | `Rc<T>`                          |
 //! | nullable types          | `Option<T>`                      |
 //! | sequences               | `Vec<T>`                         |
 //! | union types             | `T`                              |
@@ -345,11 +345,10 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
 
         let mut buf = String::with_capacity(length as usize);
         let mut i = 0;
-        while i < (length as isize) {
+        for i in 0..(length as isize) {
             unsafe {
                 buf.push(*chars.offset(i) as char);
             }
-            i += 1;
         }
         buf
     } else {

@@ -186,7 +186,6 @@ pub trait RawLayoutElementHelpers {
 
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
-//    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
 }
 
 #[inline]
@@ -512,11 +511,6 @@ impl RawLayoutElementHelpers for Element {
     fn namespace<'a>(&'a self) -> &'a Namespace {
         &self.namespace
     }
-/*
-    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>> {
-        &self.style_attribute
-    }
-*/
 }
 
 pub trait LayoutElementHelpers {

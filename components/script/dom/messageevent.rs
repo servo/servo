@@ -15,7 +15,7 @@ use dom::eventtarget::EventTarget;
 
 use util::str::DOMString;
 
-use js::jsapi::{JSContext, Heap};
+use js::jsapi::{JSContext, Heap, HandleValue};
 use js::jsval::{JSVal, UndefinedValue};
 
 use std::borrow::ToOwned;
@@ -36,7 +36,7 @@ impl MessageEventDerived for Event {
 }
 
 impl MessageEvent {
-    fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
+    fn new_inherited(data: HandleValue, origin: DOMString, lastEventId: DOMString)
                          -> Box<MessageEvent> {
         let mut ret = box MessageEvent {
             event: Event::new_inherited(EventTypeId::MessageEvent),
@@ -44,16 +44,16 @@ impl MessageEvent {
             origin: origin,
             lastEventId: lastEventId,
         };
-        ret.data.set(data);
+        ret.data.set(data.get());
         ret
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
-        MessageEvent::new_initialized(global, UndefinedValue(), "".to_owned(), "".to_owned())
+        MessageEvent::new_initialized(global, HandleValue::undefined(), "".to_owned(), "".to_owned())
     }
 
     pub fn new_initialized(global: GlobalRef,
-                           data: JSVal,
+                           data: HandleValue,
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
         reflect_dom_object(MessageEvent::new_inherited(data, origin, lastEventId),
@@ -63,7 +63,7 @@ impl MessageEvent {
 
     pub fn new(global: GlobalRef, type_: DOMString,
                bubbles: bool, cancelable: bool,
-               data: JSVal, origin: DOMString, lastEventId: DOMString)
+               data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
         {
@@ -78,7 +78,7 @@ impl MessageEvent {
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Root<MessageEvent>> {
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
-                                   init.data.get(), init.origin.clone(), init.lastEventId.clone());
+                                   init.data, init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
 }
@@ -86,7 +86,7 @@ impl MessageEvent {
 impl MessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
                           scope: GlobalRef,
-                          message: JSVal) {
+                          message: HandleValue) {
         let messageevent = MessageEvent::new(
             scope, "message".to_owned(), false, false, message,
             "".to_owned(), "".to_owned());

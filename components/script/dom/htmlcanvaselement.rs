@@ -139,7 +139,7 @@ impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
     fn get_2d_context(self) -> Root<CanvasRenderingContext2D> {
         let context = self.GetContext(String::from_str("2d"));
         match context.unwrap() {
-            CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(context) => { context }
+            CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(context) => context,
             _ => panic!("Wrong Context Type: Expected 2d context"),
         }
     }
