@@ -13,8 +13,7 @@ use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_WriteStructuredClone, JS_ClearPendingException};
 use js::jsapi::JS_ReadStructuredClone;
-use js::jsapi::{RootedValue, HandleValue};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{HandleValue, MutableHandleValue};
 
 use libc::size_t;
 use std::ptr;
@@ -49,15 +48,13 @@ impl StructuredCloneData {
     /// Reads a structured clone.
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
-    pub fn read(self, global: GlobalRef) -> JSVal {
-        let mut message = RootedValue::new(global.get_cx(), UndefinedValue());
+    pub fn read(self, global: GlobalRef, rval: MutableHandleValue) {
         unsafe {
             assert!(JS_ReadStructuredClone(
                 global.get_cx(), self.data, self.nbytes,
-                JS_STRUCTURED_CLONE_VERSION, message.handle_mut(),
+                JS_STRUCTURED_CLONE_VERSION, rval,
                 ptr::null(), ptr::null_mut()) != 0);
         }
-        message.ptr
     }
 }
 

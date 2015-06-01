@@ -24,7 +24,6 @@ use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElem
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::InheritTypes::ElementDerived;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::HierarchyRequest;
@@ -33,7 +32,7 @@ use dom::bindings::js::{JS, Root, LayoutJS, MutNullableHeap};
 use dom::bindings::js::RootedReference;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::utils::{reflect_dom_object, Reflectable};
 use dom::bindings::utils::{xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::comment::Comment;
@@ -1790,7 +1789,7 @@ impl<'a> DocumentMethods for &'a Document {
                     *found = true;
                     // TODO: Step 2.
                     // Step 3.
-                    return first.to_jsval(cx).to_object();
+                    return first.r().reflector().get_jsobject().get()
                 }
             } else {
                 *found = false;
@@ -1802,7 +1801,7 @@ impl<'a> DocumentMethods for &'a Document {
         let window = self.window();
         let filter = NamedElementFilter { name: name };
         let collection = HTMLCollection::create(window.r(), root, box filter);
-        collection.to_jsval(cx).to_object()
+        collection.r().reflector().get_jsobject().get()
     }
 
     global_event_handlers!();

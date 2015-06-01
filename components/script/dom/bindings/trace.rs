@@ -69,7 +69,6 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::mem;
 use string_cache::{Atom, Namespace};
 use style::properties::PropertyDeclarationBlock;
 use url::Url;
@@ -92,7 +91,7 @@ no_jsmanaged_fields!(EncodingRef);
 no_jsmanaged_fields!(Reflector);
 
 /// Trace a `JSVal`.
-pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: *mut Heap<JSVal>) {
+pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
     unsafe {
         if !(*val).ptr.is_markable() {
             return;
@@ -103,27 +102,27 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: *mut Heap<JSVa
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing value {}", description);
-        JS_CallValueTracer(tracer, val, GCTraceKindToAscii((*val).ptr.trace_kind()));
+        JS_CallValueTracer(tracer, val as *const _ as *mut _,
+                           GCTraceKindToAscii((*val).ptr.trace_kind()));
     }
 }
 
 /// Trace the `JSObject` held by `reflector`.
 #[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
-    unsafe {
-        trace_object(tracer, description, reflector.rootable())
-    }
+    trace_object(tracer, description, reflector.rootable())
 }
 
 /// Trace a `JSObject`.
-pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut Heap<*mut JSObject>) {
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
         let name = CString::new(description).unwrap();
         (*tracer).debugPrinter_ = None;
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
-        JS_CallObjectTracer(tracer, obj, GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
+        JS_CallObjectTracer(tracer, obj as *const _ as *mut _,
+                            GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
     }
 }
 
@@ -183,18 +182,14 @@ impl JSTraceable for Heap<*mut JSObject> {
         if self.ptr.is_null() {
             return;
         }
-        unsafe {
-            trace_object(trc, "object", mem::transmute(&*self));
-        }
+        trace_object(trc, "object", self);
     }
 }
 
 
 impl JSTraceable for Heap<JSVal> {
     fn trace(&self, trc: *mut JSTracer) {
-        unsafe {
-            trace_jsval(trc, "val", mem::transmute(&*self));
-        }
+        trace_jsval(trc, "val", self);
     }
 }
 
@@ -343,53 +338,53 @@ impl JSTraceable for () {
 }
 
 /// Homemade trait object for JSTraceable things
-struct CollectionInfo {
+struct TraceableInfo {
     pub ptr: *const libc::c_void,
     pub trace: fn(obj: *const libc::c_void, tracer: *mut JSTracer)
 }
 
-/// Holds a set of vectors that need to be rooted
-pub struct RootedCollectionSet {
-    set: Vec<CollectionInfo>
+/// Holds a set of JSTraceables that need to be rooted
+pub struct RootedTraceableSet {
+    set: Vec<TraceableInfo>
 }
 
-/// TLV Holds a set of vectors that need to be rooted
-thread_local!(pub static ROOTED_COLLECTIONS: Rc<RefCell<RootedCollectionSet>> =
-              Rc::new(RefCell::new(RootedCollectionSet::new())));
+/// TLV Holds a set of JSTraceables that need to be rooted
+thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
+              Rc::new(RefCell::new(RootedTraceableSet::new())));
 
-impl RootedCollectionSet {
-    fn new() -> RootedCollectionSet {
-        RootedCollectionSet {
+impl RootedTraceableSet {
+    fn new() -> RootedTraceableSet {
+        RootedTraceableSet {
             set: vec!()
         }
     }
 
-    fn remove<T: JSTraceable>(collection: &T) {
-        ROOTED_COLLECTIONS.with(|ref collections| {
-            let mut collections = collections.borrow_mut();
+    fn remove<T: JSTraceable>(traceable: &T) {
+        ROOTED_TRACEABLES.with(|ref traceables| {
+            let mut traceables = traceables.borrow_mut();
             let idx =
-                match collections.set.iter()
-                                 .rposition(|x| x.ptr == collection as *const T as *const _) {
+                match traceables.set.iter()
+                                .rposition(|x| x.ptr == traceable as *const T as *const _) {
                     Some(idx) => idx,
                     None => unreachable!(),
                 };
-            collections.set.remove(idx);
+            traceables.set.remove(idx);
         });
     }
 
-    fn add<T: JSTraceable>(collection: &T) {
-        ROOTED_COLLECTIONS.with(|ref collections| {
+    fn add<T: JSTraceable>(traceable: &T) {
+        ROOTED_TRACEABLES.with(|ref traceables| {
             fn trace<T: JSTraceable>(obj: *const libc::c_void, tracer: *mut JSTracer) {
-                let obj: &T = unsafe { mem::transmute(obj) };
+                let obj: &T = unsafe { &*(obj as *const T) };
                 obj.trace(tracer);
             }
 
-            let mut collections = collections.borrow_mut();
-            let info = CollectionInfo {
-                ptr: collection as *const T as *const libc::c_void,
+            let mut traceables = traceables.borrow_mut();
+            let info = TraceableInfo {
+                ptr: traceable as *const T as *const libc::c_void,
                 trace: trace::<T>,
             };
-            collections.set.push(info);
+            traceables.set.push(info);
         })
     }
 
@@ -414,14 +409,14 @@ pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
 impl<'a, T: JSTraceable> RootedTraceable<'a, T> {
     /// Root a JSTraceable thing for the life of this RootedTraceable
     pub fn new(traceable: &'a T) -> RootedTraceable<'a, T> {
-        RootedCollectionSet::add(traceable);
+        RootedTraceableSet::add(traceable);
         RootedTraceable { ptr: traceable }
     }
 }
 
 impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
     fn drop(&mut self) {
-        RootedCollectionSet::remove(self.ptr);
+        RootedTraceableSet::remove(self.ptr);
     }
 }
 
@@ -448,10 +443,10 @@ impl<T: JSTraceable + Reflectable> RootedVec<T> {
     }
 
     /// Create a vector of items of type T. This constructor is specific
-    /// for RootCollection.
+    /// for RootTraceableSet.
     pub fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
         unsafe {
-            RootedCollectionSet::add::<RootedVec<T>>(&*(addr as *const _));
+            RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
         }
         RootedVec::<T> { v: vec!() }
     }
@@ -459,7 +454,7 @@ impl<T: JSTraceable + Reflectable> RootedVec<T> {
 
 impl<T: JSTraceable + Reflectable> Drop for RootedVec<T> {
     fn drop(&mut self) {
-        RootedCollectionSet::remove(self);
+        RootedTraceableSet::remove(self);
     }
 }
 
@@ -476,10 +471,10 @@ impl<T: JSTraceable + Reflectable> DerefMut for RootedVec<T> {
     }
 }
 
-/// SM Callback that traces the rooted collections
-pub unsafe fn trace_collections(tracer: *mut JSTracer) {
-    ROOTED_COLLECTIONS.with(|ref collections| {
-        let collections = collections.borrow();
-        collections.trace(tracer);
+/// SM Callback that traces the rooted traceables
+pub unsafe fn trace_traceables(tracer: *mut JSTracer) {
+    ROOTED_TRACEABLES.with(|ref traceables| {
+        let traceables = traceables.borrow();
+        traceables.trace(tracer);
     });
 }

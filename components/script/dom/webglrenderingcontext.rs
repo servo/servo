@@ -20,9 +20,9 @@ use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
 use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
 use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelpers};
 use euclid::size::Size2D;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
-use js::jsval::{JSVal, NullValue, Int32Value};
+use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value};
 use std::mem;
 use std::ptr;
 use std::sync::mpsc::{channel, Sender};
@@ -99,14 +99,16 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(self, cx: *mut JSContext, parameter: u32) -> JSVal {
         // TODO(ecoal95): Implement the missing parameters from the spec
+        let mut rval = RootedValue::new(cx, UndefinedValue());
         match parameter {
             WebGLRenderingContextConstants::VERSION =>
-                "WebGL 1.0".to_jsval(cx),
+                "WebGL 1.0".to_jsval(cx, rval.handle_mut()),
             WebGLRenderingContextConstants::RENDERER |
             WebGLRenderingContextConstants::VENDOR =>
-                "Mozilla/Servo".to_jsval(cx),
-            _ => NullValue(),
+                "Mozilla/Servo".to_jsval(cx, rval.handle_mut()),
+            _ => rval.ptr = NullValue(),
         }
+        rval.ptr
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2

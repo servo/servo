@@ -102,8 +102,9 @@ impl Worker {
         let global = worker.r().global.root();
         let target = EventTargetCast::from_ref(worker.r());
 
-        let message = data.read(global.r());
-        MessageEvent::dispatch_jsval(target, global.r(), message);
+        let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
+        data.read(global.r(), message.handle_mut());
+        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {

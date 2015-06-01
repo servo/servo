@@ -28,7 +28,7 @@ use dom::bindings::trace::trace_reflector;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
 use js::jsapi::{JSObject, Heap, JSTracer};
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 
@@ -88,7 +88,7 @@ pub struct LayoutJS<T> {
 impl<T: Reflectable> LayoutJS<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
-        (**self.ptr).reflector().get_jsobject()
+        (**self.ptr).reflector().get_jsobject().get()
     }
 }
 
@@ -159,17 +159,48 @@ impl HeapGCValue for Heap<JSVal> {
 impl<T: Reflectable> HeapGCValue for JS<T> {
 }
 
-/// A holder that provides interior mutability for GC-managed values such as
-/// `JS<T>`.
+/// A holder that provides interior mutability for GC-managed JSVals.
 ///
 /// Must be used in place of traditional interior mutability to ensure proper
 /// GC barriers are enforced.
 #[must_root]
 #[jstraceable]
+pub struct MutHeapJSVal {
+    val: UnsafeCell<Heap<JSVal>>,
+}
+
+impl MutHeapJSVal {
+    /// Create a new `MutHeapJSVal`.
+    pub fn new() -> MutHeapJSVal {
+        MutHeapJSVal {
+            val: UnsafeCell::new(Heap { ptr: UndefinedValue() }),
+        }
+    }
+
+    /// Set this `MutHeapJSVal` to the given value, calling write barriers as
+    /// appropriate.
+    pub fn set(&self, val: JSVal) {
+        unsafe {
+            let cell = self.val.get();
+            (*cell).set(val);
+        }
+    }
+
+    /// Set the value in this `MutHeapJSVal`, calling read barriers as appropriate.
+    pub fn get(&self) -> JSVal {
+        unsafe { (*self.val.get()).get() }
+    }
+}
+
+ 
+/// A holder that provides interior mutability for GC-managed values such as
+/// `JS<T>`.
+#[must_root]
+#[jstraceable]
 pub struct MutHeap<T: HeapGCValue+Copy> {
     val: Cell<T>,
 }
-
+ 
 impl<T: HeapGCValue+Copy> MutHeap<T> {
     /// Create a new `MutHeap`.
     pub fn new(initial: T) -> MutHeap<T> {
@@ -177,14 +208,13 @@ impl<T: HeapGCValue+Copy> MutHeap<T> {
             val: Cell::new(initial),
         }
     }
-
-    /// Set this `MutHeap` to the given value, calling write barriers as
-    /// appropriate.
+ 
+    /// Set this `MutHeap` to the given value.
     pub fn set(&self, val: T) {
         self.val.set(val)
     }
 
-    /// Set the value in this `MutHeap`, calling read barriers as appropriate.
+    /// Set the value in this `MutHeap`.
     pub fn get(&self) -> T {
         self.val.get()
     }
@@ -208,8 +238,7 @@ impl<T: HeapGCValue+Copy> MutNullableHeap<T> {
         }
     }
 
-    /// Set this `MutNullableHeap` to the given value, calling write barriers
-    /// as appropriate.
+    /// Set this `MutNullableHeap` to the given value.
     pub fn set(&self, val: Option<T>) {
         self.ptr.set(val);
     }
@@ -414,9 +443,7 @@ impl<T: Reflectable> PartialEq for Root<T> {
 
 impl<T: Reflectable> Drop for Root<T> {
     fn drop(&mut self) {
-        if !self.root_list.is_null() {
-            unsafe { (*self.root_list).unroot(self); }
-        }
+        unsafe { (*self.root_list).unroot(self); }
     }
 }
 

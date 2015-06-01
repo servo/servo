@@ -26,8 +26,8 @@ pub struct ImageData {
 
 impl ImageData {
     #[allow(unsafe_code)]
-    fn new_inherited(width: u32, height: u32, data: Option<Vec<u8>>, global: GlobalRef) -> Box<ImageData> {
-        let mut ret = box ImageData {
+    pub fn new(global: GlobalRef, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
+        let mut imagedata = box ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
@@ -42,14 +42,10 @@ impl ImageData {
                 let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, ptr::null());
                 ptr::copy_nonoverlapping(vec.as_ptr(), js_object_data, vec.len())
             }
-            (*ret).data.set(js_object);
+            (*imagedata).data.set(js_object);
         }
 
-        ret
-    }
-
-    pub fn new(global: GlobalRef, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
-        reflect_dom_object(ImageData::new_inherited(width, height, data, global),
+        reflect_dom_object(imagedata,
                            global, ImageDataBinding::Wrap)
     }
 }

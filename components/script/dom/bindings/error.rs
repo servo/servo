@@ -15,6 +15,8 @@ use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingE
 use js::jsapi::{JS_ReportErrorNumber1, JSErrorFormatString, JSExnType};
 use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
 use js::jsapi::JSAutoCompartment;
+use js::jsval::UndefinedValue;
+use js::JSFalse;
 
 use libc;
 use std::ffi::CString;
@@ -117,7 +119,8 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
 
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
     let exception = DOMException::new(global, code);
-    let thrown = RootedValue::new(cx, exception.to_jsval(cx));
+    let mut thrown = RootedValue::new(cx, UndefinedValue());
+    exception.to_jsval(cx, thrown.handle_mut());
     unsafe {
         JS_SetPendingException(cx, thrown.handle());
     }

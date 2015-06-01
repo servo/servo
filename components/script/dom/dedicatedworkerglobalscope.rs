@@ -33,7 +33,8 @@ use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::{JSContext, RootedValue, HandleValue};
+use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::Url;
 
@@ -175,7 +176,7 @@ impl DedicatedWorkerGlobalScope {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
 
                 match runtime.evaluate_script(
-                    global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
+                    global.r().reflector().get_jsobject().get(), source, url.serialize(), 1) {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")
                 }
@@ -240,8 +241,9 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
             ScriptMsg::DOMMessage(data) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 let target = EventTargetCast::from_ref(self);
-                let message = data.read(GlobalRef::Worker(scope));
-                MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
+                let mut message = RootedValue::new(scope.get_cx(), UndefinedValue());
+                data.read(GlobalRef::Worker(scope), message.handle_mut());
+                MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
             },
             ScriptMsg::RunnableMsg(runnable) => {
                 runnable.handler()

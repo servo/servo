@@ -10,7 +10,7 @@ use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
 use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject, JSString};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewStringCopyN};
-use js::jsapi::{JS_DefinePropertyById6, JS_NewObject};
+use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
 use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
 use js::jsapi::GetObjectProto;
@@ -19,6 +19,7 @@ use js::glue::GetProxyExtra;
 use js::glue::{SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY};
+use js::{JSTrue, JSFalse};
 
 use libc;
 use std::mem;
@@ -37,16 +38,16 @@ pub unsafe extern fn get_property_descriptor(cx: *mut JSContext,
                                              -> u8 {
     let handler = GetProxyHandler(proxy.get());
     if InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) == 0 {
-        return false as u8;
+        return JSFalse;
     }
     if !desc.get().obj.is_null() {
-        return true as u8;
+        return JSTrue;
     }
 
     let mut proto = RootedObject::new(cx, ptr::null_mut());
     if GetObjectProto(cx, proxy, proto.handle_mut()) == 0 {
         desc.get().obj = ptr::null_mut();
-        return true as u8;
+        return JSTrue;
     }
 
     JS_GetPropertyDescriptorById(cx, proto.handle(), id, desc)
@@ -62,7 +63,7 @@ pub unsafe extern fn define_property(cx: *mut JSContext, proxy: HandleObject,
     let setter_stub: *const libc::c_void = mem::transmute(JS_StrictPropertyStub);
     if (desc.get().attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
         (*result).code_ = JSErrNum::JSMSG_GETTER_ONLY as u32;
-        return true as u8;
+        return JSTrue;
     }
 
     let expando = RootedObject::new(cx, ensure_expando_object(cx, proxy));
@@ -75,25 +76,25 @@ pub unsafe extern fn delete(cx: *mut JSContext, proxy: HandleObject, id: HandleI
     let expando = RootedObject::new(cx, get_expando_object(proxy));
     if expando.ptr.is_null() {
         (*bp).code_ = 0 /* OkCode */;
-        return true as u8;
+        return JSTrue;
     }
 
     delete_property_by_id(cx, expando.handle(), id, bp)
 }
 
-/// ???
+/// Controls whether the Extensible bit can be changed
 pub unsafe extern fn prevent_extensions(_cx: *mut JSContext,
                                         _proxy: HandleObject,
                                         result: *mut ObjectOpResult) -> u8 {
     (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as u32;
-    return true as u8;
+    return JSTrue;
 }
 
-/// ???
+/// Reports whether the object is Extensible
 pub unsafe extern fn is_extensible(_cx: *mut JSContext, _proxy: HandleObject,
                                    succeeded: *mut u8) -> u8 {
-    *succeeded = true as u8;
-    return true as u8;
+    *succeeded = JSTrue;
+    return JSTrue;
 }
 
 /// Returns the stringification of an object with class `name`.
@@ -131,7 +132,7 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject)
         assert!(is_dom_proxy(obj.get()));
         let mut expando = get_expando_object(obj);
         if expando.is_null() {
-            expando = JS_NewObject(cx, ptr::null_mut());
+            expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null());
             assert!(!expando.is_null());
 
             SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));

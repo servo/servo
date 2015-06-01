@@ -211,15 +211,16 @@ impl TimerManager {
             }
         };
         self.active_timers.borrow_mut().insert(timer_id, timer);
-        {
-            let mut timers = self.active_timers.borrow_mut();
-            let mut timer = timers.get_mut(&timer_id).unwrap();
-            for _ in 0..arguments.len() {
-                timer.data.args.push(Heap::default());
-            }
-            for i in 0..arguments.len() {
-                timer.data.args.get_mut(i).unwrap().set(arguments[i].get());
-            }
+
+        // This is a bit complicated, but this ensures that the vector's
+        // buffer isn't reallocated (and moved) after setting the Heap values
+        let mut timers = self.active_timers.borrow_mut();
+        let mut timer = timers.get_mut(&timer_id).unwrap();
+        for _ in 0..arguments.len() {
+            timer.data.args.push(Heap::default());
+        }
+        for i in 0..arguments.len() {
+            timer.data.args.get_mut(i).unwrap().set(arguments[i].get());
         }
         handle
     }
@@ -245,12 +246,12 @@ impl TimerManager {
 
         match callback {
             TimerCallback::FunctionTimerCallback(function) => {
-                let arg_handles = args.iter().by_ref().map(|arg| HandleValue { ptr: &*arg }).collect();
+                let arg_handles = args.iter().by_ref().map(|arg| HandleValue { ptr: arg }).collect();
                 let _ = function.Call_(this, arg_handles, Report);
             }
             TimerCallback::StringTimerCallback(code_str) => {
                 let proxy = this.reflector().get_jsobject();
-                let cx = global_object_for_js_object(proxy).r().get_cx();
+                let cx = global_object_for_js_object(proxy.get()).r().get_cx();
                 let mut rval = RootedValue::new(cx, UndefinedValue());
                 this.evaluate_js_on_global_with_result(&code_str, rval.handle_mut());
             }

@@ -9,7 +9,7 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, IsCallable};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
-use js::jsapi::{RootedObject, RootedValue, Heap};
+use js::jsapi::{RootedObject, RootedValue, MutableHandleObject, Heap};
 use js::jsapi::{JSAutoCompartment};
 use js::jsapi::{JS_BeginRequest, JS_EndRequest};
 use js::jsapi::{JS_EnterCompartment, JS_LeaveCompartment, JSCompartment};
@@ -20,6 +20,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use std::ffi::CString;
 use std::ptr;
 use std::rc::Rc;
+use std::intrinsics::return_address;
 
 /// The exception handling used for a call.
 #[derive(Copy, Clone, PartialEq)]
@@ -135,28 +136,29 @@ impl CallbackInterface {
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
-                                             p: &T) -> *mut JSObject {
-    let mut obj = RootedObject::new(cx, p.reflector().get_jsobject());
-    assert!(!obj.ptr.is_null());
+                                             p: &T,
+                                             mut rval: MutableHandleObject) {
+    rval.set(p.reflector().get_jsobject().get());
+    assert!(!rval.get().is_null());
 
     unsafe {
-        if JS_WrapObject(cx, obj.handle_mut()) == 0 {
-            return ptr::null_mut();
+        if JS_WrapObject(cx, rval) == 0 {
+            rval.set(ptr::null_mut());
         }
     }
-
-    return obj.ptr;
 }
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
 pub struct CallSetup {
+    /// The compartment for reporting exceptions.
+    /// As a RootedObject, this must be the first field in order to
+    /// determine the final address on the stack correctly.
+    exception_compartment: RootedObject,
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The compartment we were in before the call.
     old_compartment: *mut JSCompartment,
-    /// The compartment for reporting exceptions.
-    exception_compartment: *mut JSObject,
     /// The exception handling used for the call.
     handling: ExceptionHandling,
 }
@@ -169,10 +171,15 @@ impl CallSetup {
         let cx = global.r().get_cx();
         unsafe { JS_BeginRequest(cx); }
 
+        let exception_compartment = unsafe {
+            GetGlobalForObjectCrossCompartment(callback.callback())
+        };
         CallSetup {
+            exception_compartment:
+                RootedObject::new_with_addr(cx, exception_compartment,
+                                            unsafe { return_address() }),
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
-            exception_compartment: unsafe { GetGlobalForObjectCrossCompartment(callback.callback()) },
             handling: handling,
         }
     }
@@ -191,7 +198,7 @@ impl Drop for CallSetup {
             unsafe { JS_IsExceptionPending(self.cx) } != 0;
         if need_to_deal_with_exception {
             unsafe {
-                let old_global = RootedObject::new(self.cx, self.exception_compartment);
+                let old_global = RootedObject::new(self.cx, self.exception_compartment.ptr);
                 let saved = JS_SaveFrameChain(self.cx) != 0;
                 {
                     let _ac = JSAutoCompartment::new(self.cx, old_global.ptr);
