@@ -1217,8 +1217,8 @@ impl FragmentDisplayListBuilding for Fragment {
                     transform::ComputedOperation::Matrix(m) => {
                         m.to_gfx_matrix()
                     }
-                    transform::ComputedOperation::Skew(sx, sy) => {
-                        Matrix4::create_skew(sx, sy)
+                    transform::ComputedOperation::Skew(theta_x, theta_y) => {
+                        Matrix4::create_skew(theta_x.radians(), theta_y.radians())
                     }
                 };
 
