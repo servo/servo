@@ -9,7 +9,7 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, IsCallable};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
-use js::jsapi::{RootedObject, RootedValue, Heap};
+use js::jsapi::{RootedObject, RootedValue, MutableHandleObject, Heap};
 use js::jsapi::{JSAutoCompartment};
 use js::jsapi::{JS_BeginRequest, JS_EndRequest};
 use js::jsapi::{JS_EnterCompartment, JS_LeaveCompartment, JSCompartment};
@@ -135,17 +135,16 @@ impl CallbackInterface {
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
-                                             p: &T) -> *mut JSObject {
-    let mut obj = RootedObject::new(cx, p.reflector().get_jsobject());
-    assert!(!obj.ptr.is_null());
+                                             p: &T,
+                                             mut rval: MutableHandleObject) {
+    rval.set(p.reflector().get_jsobject());
+    assert!(!rval.get().is_null());
 
     unsafe {
-        if JS_WrapObject(cx, obj.handle_mut()) == 0 {
-            return ptr::null_mut();
+        if JS_WrapObject(cx, rval) == 0 {
+            rval.set(ptr::null_mut());
         }
     }
-
-    return obj.ptr;
 }
 
 /// A class that performs whatever setup we need to safely make a call while

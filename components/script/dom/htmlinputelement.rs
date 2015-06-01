@@ -154,11 +154,11 @@ pub trait LayoutHTMLInputElementHelpers {
 
 pub trait RawLayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(self) -> bool;
+    unsafe fn get_checked_state_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(self) -> bool;
+    unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(self) -> u32;
+    unsafe fn get_size_for_layout(&self) -> u32;
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
@@ -203,22 +203,22 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     }
 }
 
-impl<'a> RawLayoutHTMLInputElementHelpers for &'a HTMLInputElement {
+impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(self) -> bool {
+    unsafe fn get_checked_state_for_layout(&self) -> bool {
         self.checked.get()
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(self) -> bool {
+    unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
         self.indeterminate.get()
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(self) -> u32 {
+    unsafe fn get_size_for_layout(&self) -> u32 {
         self.size.get()
     }
 }
