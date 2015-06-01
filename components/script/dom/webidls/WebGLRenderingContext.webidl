@@ -307,9 +307,9 @@ interface WebGLRenderingContextBase
     //const GLenum DECR_WRAP                      = 0x8508;
 
     /* StringName */
-    //const GLenum VENDOR                         = 0x1F00;
-    //const GLenum RENDERER                       = 0x1F01;
-    //const GLenum VERSION                        = 0x1F02;
+    const GLenum VENDOR                         = 0x1F00;
+    const GLenum RENDERER                       = 0x1F01;
+    const GLenum VERSION                        = 0x1F02;
 
     /* TextureMagFilter */
     //const GLenum NEAREST                        = 0x2600;
@@ -477,9 +477,9 @@ interface WebGLRenderingContextBase
     //const GLenum UNPACK_COLORSPACE_CONVERSION_WEBGL = 0x9243;
     //const GLenum BROWSER_DEFAULT_WEBGL          = 0x9244;
 
-    //readonly attribute HTMLCanvasElement canvas;
-    //readonly attribute GLsizei drawingBufferWidth;
-    //readonly attribute GLsizei drawingBufferHeight;
+    readonly attribute HTMLCanvasElement canvas;
+    readonly attribute GLsizei drawingBufferWidth;
+    readonly attribute GLsizei drawingBufferHeight;
 
     [WebGLHandlesContextLoss] WebGLContextAttributes? getContextAttributes();
     //[WebGLHandlesContextLoss] boolean isContextLost();
@@ -577,7 +577,7 @@ interface WebGLRenderingContextBase
     [WebGLHandlesContextLoss] GLint getAttribLocation(WebGLProgram? program, DOMString name);
 
     //any getBufferParameter(GLenum target, GLenum pname);
-    //any getParameter(GLenum pname);
+    any getParameter(GLenum pname);
 
     //[WebGLHandlesContextLoss] GLenum getError();
 
