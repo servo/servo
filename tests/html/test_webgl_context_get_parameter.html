@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGLRenderingContext getParameter test</title>
+<script>
+  var gl = document.createElement("canvas").getContext("webgl");
+
+  if ( typeof gl.getParameter !== "function" )
+      console.error("getParameter should be a function");
+
+  if ( gl.getParameter(gl.VERSION).indexOf("WebGL 1.0") !== 0 )
+      console.error("getParameter(VERSION) should return a string beginning with \"WebGL 1.0\"");
+</script>
