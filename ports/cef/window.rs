@@ -451,6 +451,10 @@ impl WindowMethods for Window {
             }
         }
     }
+
+    fn supports_clipboard(&self) -> bool {
+        true
+    }
 }
 
 struct CefCompositorProxy {

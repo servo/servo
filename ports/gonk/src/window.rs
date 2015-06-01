@@ -841,6 +841,10 @@ impl WindowMethods for Window {
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
+
+    fn supports_clipboard(&self) -> bool {
+        true
+    }
 }
 
 struct GonkCompositorProxy {
