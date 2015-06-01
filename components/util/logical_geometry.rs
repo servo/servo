@@ -117,17 +117,17 @@ impl Debug for WritingMode {
 /// In debug builds only, logical geometry objects store their writing mode
 /// (in addition to taking it as a parameter to methods) and check it.
 /// In non-debug builds, make this storage zero-size and the checks no-ops.
-#[cfg(ndebug)]
+#[cfg(not(debug_assertions))]
 #[derive(RustcEncodable, PartialEq, Eq, Clone, Copy)]
 struct DebugWritingMode;
 
-#[cfg(not(ndebug))]
+#[cfg(debug_assertions)]
 #[derive(RustcEncodable, PartialEq, Eq, Clone, Copy)]
 struct DebugWritingMode {
     mode: WritingMode
 }
 
-#[cfg(ndebug)]
+#[cfg(not(debug_assertions))]
 impl DebugWritingMode {
     #[inline]
     fn check(&self, _other: WritingMode) {}
@@ -141,7 +141,7 @@ impl DebugWritingMode {
     }
 }
 
-#[cfg(not(ndebug))]
+#[cfg(debug_assertions)]
 impl DebugWritingMode {
     #[inline]
     fn check(&self, other: WritingMode) {
@@ -160,12 +160,12 @@ impl DebugWritingMode {
 }
 
 impl Debug for DebugWritingMode {
-    #[cfg(ndebug)]
+    #[cfg(not(debug_assertions))]
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "?")
     }
 
-    #[cfg(not(ndebug))]
+    #[cfg(debug_assertions)]
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         self.mode.fmt(formatter)
     }

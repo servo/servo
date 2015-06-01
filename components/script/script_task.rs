@@ -529,7 +529,7 @@ impl ScriptTask {
         }
 
         // Needed for debug assertions about whether GC is running.
-        if !cfg!(ndebug) {
+        if cfg!(debug_assertions) {
             unsafe {
                 JS_SetGCCallback(runtime.rt(),
                     Some(debug_gc_callback as unsafe extern "C" fn(*mut JSRuntime, JSGCStatus)));

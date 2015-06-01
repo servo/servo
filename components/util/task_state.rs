@@ -26,18 +26,18 @@ bitflags! {
 macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     impl TaskState {
         $(
-            #[cfg(not(ndebug))]
+            #[cfg(debug_assertions)]
             pub fn $fun(self) -> bool {
                 self.contains($flag)
             }
-            #[cfg(ndebug)]
+            #[cfg(not(debug_assertions))]
             pub fn $fun(self) -> bool {
                 true
             }
         )*
     }
 
-    #[cfg(not(ndebug))]
+    #[cfg(debug_assertions)]
     static TYPES: &'static [TaskState]
         = &[ $( $flag ),* ];
 ));
@@ -48,7 +48,7 @@ task_types! {
     is_paint = PAINT;
 }
 
-#[cfg(not(ndebug))]
+#[cfg(debug_assertions)]
 mod imp {
     use super::{TaskState, TYPES};
     use std::cell::RefCell;
@@ -96,7 +96,7 @@ mod imp {
     }
 }
 
-#[cfg(ndebug)]
+#[cfg(not(debug_assertions))]
 mod imp {
     use super::TaskState;
     #[inline(always)] pub fn initialize(_: TaskState) { }
