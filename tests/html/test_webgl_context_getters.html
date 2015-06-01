@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGLRenderingContext attributes test</title>
+<script>
+  var canvas = document.createElement('canvas'),
+      gl = canvas.getContext('webgl');
+
+  if ( gl.canvas !== canvas )
+      console.error("Expected a canvas getter");
+
+  if ( typeof gl.drawingBufferWidth !== "number" ||
+       typeof gl.drawingBufferHeight !== "number" )
+      console.error("drawingBuffer{Height/Width} should be numbers");
+</script>
