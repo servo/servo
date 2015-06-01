@@ -371,6 +371,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == transform_3d.html transform_3d_ref.html
 == transform_optimization.html transform_optimization_ref.html
 == transform_simple_a.html transform_simple_ref.html
+== transform_skew_a.html transform_skew_ref.html
 == transform_stacking_context_a.html transform_stacking_context_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
