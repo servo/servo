@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tarfile
 import urllib2
+from distutils.version import LooseVersion
 
 from mach.decorators import (
     CommandArgument,
@@ -21,7 +22,7 @@ def download(desc, src, dst):
     print("Downloading %s..." % desc)
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
-    try: 
+    try:
         resp = urllib2.urlopen(src)
         fsize = int(resp.info().getheader('Content-Length').strip())
         recved = 0
@@ -177,6 +178,13 @@ class MachCommands(CommandBase):
              description='Update submodules',
              category='bootstrap')
     def update_submodules(self):
+        # Ensure that the installed git version is >= 1.8.1
+        gitversion_output = subprocess.check_output(["git", "--version"])
+        gitversion = LooseVersion(gitversion_output.split(" ")[-1])
+        if gitversion < LooseVersion("1.8.1"):
+            print("Git version 1.8.1 or above required. Current version is {}"
+                  .format(gitversion))
+            sys.exit(1)
         submodules = subprocess.check_output(["git", "submodule", "status"])
         for line in submodules.split('\n'):
             components = line.strip().split(' ')
