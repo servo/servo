@@ -8,10 +8,10 @@ extern crate geom;
 extern crate hyper;
 extern crate layers;
 extern crate png;
+extern crate rustc_serialize;
 extern crate util;
 extern crate url;
 extern crate style;
-extern crate webdriver_traits;
 
 #[cfg(target_os="macos")]
 extern crate core_foundation;
@@ -20,3 +20,4 @@ extern crate io_surface;
 
 pub mod compositor_msg;
 pub mod constellation_msg;
+pub mod webdriver_msg;

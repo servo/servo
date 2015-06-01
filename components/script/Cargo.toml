@@ -45,9 +45,6 @@ path = "../canvas"
 [dependencies.canvas_traits]
 path = "../canvas_traits"
 
-[dependencies.webdriver_traits]
-path = "../webdriver_traits"
-
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 

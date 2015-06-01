@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use webdriver_traits::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::js::{OptionalRootable, Rootable, Temporary};
@@ -17,7 +17,8 @@ use dom::document::DocumentHelpers;
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
 use page::Page;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::webdriver_msg::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult, WebDriverFrameId};
 use script_task::get_page;
 
 use std::rc::Rc;
@@ -71,6 +72,36 @@ pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: 
     let window = page.window().root();
     window.r().set_webdriver_script_chan(Some(reply));
     window.r().evaluate_js_on_global_with_result(&eval);
+}
+
+pub fn handle_get_frame_id(page: &Rc<Page>,
+                           pipeline: PipelineId,
+                           webdriver_frame_id: WebDriverFrameId,
+                           reply: Sender<Result<Option<(PipelineId, SubpageId)>, ()>>) {
+    let window = match webdriver_frame_id {
+        WebDriverFrameId::Short(_) => {
+            // This isn't supported yet
+            Ok(None)
+        },
+        WebDriverFrameId::Element(x) => {
+            match find_node_by_unique_id(page, pipeline, x) {
+                Some(ref node) => {
+                    match HTMLIFrameElementCast::to_ref(node.root().r()) {
+                        Some(ref elem) => Ok(elem.GetContentWindow()),
+                        None => Err(())
+                    }
+                },
+                None => Err(())
+            }
+        },
+        WebDriverFrameId::Parent => {
+            let window = page.window();
+            Ok(window.root().r().parent())
+        }
+    };
+
+    let frame_id = window.map(|x| x.and_then(|x| x.root().r().parent_info()));
+    reply.send(frame_id).unwrap()
 }
 
 pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
