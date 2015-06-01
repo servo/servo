@@ -34,7 +34,7 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
 ///
 /// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not
 /// implement the method.
-pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: Annotatable,
+pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Annotatable,
                           push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
         span: span,
@@ -57,7 +57,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
         ],
         associated_types: vec![],
     };
-    trait_def.expand(cx, mitem, &item, push)
+    trait_def.expand(cx, mitem, item, push)
 }
 
 // Mostly copied from syntax::ext::deriving::hash

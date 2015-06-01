@@ -9,9 +9,9 @@ use syntax::ast;
 use utils::match_ty_unwrap;
 
 
-pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable: Annotatable,
+pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable: &Annotatable,
                         push: &mut FnMut(Annotatable)) {
-    if let Annotatable::Item(item) = annotatable {
+    if let &Annotatable::Item(ref item) = annotatable {
         if let ast::ItemStruct(ref def, _) = item.node {
             let struct_name = item.ident;
             // This path has to be hardcoded, unfortunately, since we can't resolve paths at expansion time
