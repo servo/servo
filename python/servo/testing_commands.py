@@ -225,6 +225,26 @@ class MachCommands(CommandBase):
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
 
+    @Command('test-jquery',
+             description='Run the jQuery test suite',
+             category='testing')
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Run the release build')
+    @CommandArgument('--dev', '-d', action='store_true',
+                     help='Run the dev build')
+    def test_jquery(self, release, dev):
+        return self.jquery_test_runner("test", release, dev)
+
+    @Command('update-jquery',
+             description='Update the jQuery test suite expected results',
+             category='testing')
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Run the release build')
+    @CommandArgument('--dev', '-d', action='store_true',
+                     help='Run the dev build')
+    def update_jquery(self):
+        return self.jquery_test_runner("update", release, dev)
+
     @Command('test-css',
              description='Run the web platform tests',
              category='testing',
@@ -291,3 +311,24 @@ class MachCommands(CommandBase):
             return default
 
         return path
+
+    def jquery_test_runner(self, cmd, release, dev):
+        self.ensure_bootstrapped()
+        base_dir = path.abspath(path.join("tests", "jquery"))
+        jquery_dir = path.join(base_dir, "jquery")
+        run_file = path.join(base_dir, "run_jquery.py")
+
+        # Clone the jQuery repository if it doesn't exist
+        if not os.path.isdir(jquery_dir):
+            subprocess.check_call(
+                ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/servo/jquery", jquery_dir])
+
+        # Run pull in case the jQuery repo was updated since last test run
+        subprocess.check_call(
+            ["git", "-C", jquery_dir, "pull"])
+
+        # Check that a release servo build exists
+        bin_path = path.abspath(self.get_binary_path(release, dev))
+
+        return subprocess.check_call(
+            [run_file, cmd, bin_path, base_dir])

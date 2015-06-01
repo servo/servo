@@ -27,44 +27,6 @@ def read_file(filename, if_exists=False):
 @CommandProvider
 class MachCommands(CommandBase):
 
-    def get_binary_path(self, release, dev):
-        base_path = path.join("components", "servo", "target")
-        release_path = path.join(base_path, "release", "servo")
-        dev_path = path.join(base_path, "debug", "servo")
-
-        # Prefer release if both given
-        if release and dev:
-            dev = False
-
-        release_exists = path.exists(release_path)
-        dev_exists = path.exists(dev_path)
-
-        if not release_exists and not dev_exists:
-            print("No Servo binary found. Please run './mach build' and try again.")
-            sys.exit()
-
-        if release and release_exists:
-            return release_path
-
-        if dev and dev_exists:
-            return dev_path
-
-        if not dev and not release and release_exists and dev_exists:
-            print("You have multiple profiles built. Please specify which "
-                  "one to run with '--release' or '--dev'.")
-            sys.exit()
-
-        if not dev and not release:
-            if release_exists:
-                return release_path
-            else:
-                return dev_path
-
-        print("The %s profile is not built. Please run './mach build%s' "
-              "and try again." % ("release" if release else "dev",
-                                   " --release" if release else ""))
-        sys.exit()
-
     @Command('run',
              description='Run Servo',
              category='post-build')
