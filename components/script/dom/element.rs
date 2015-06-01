@@ -566,7 +566,7 @@ pub trait ElementHelpers<'a> {
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     fn html_element_in_html_document(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
@@ -700,7 +700,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let mut writer = vec![];
         match serialize(&mut writer, &node,
                         SerializeOpts {
@@ -714,7 +714,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     // https://html.spec.whatwg.org/multipage/#root-element
     fn get_root_element(self) -> Temporary<Element> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.inclusive_ancestors()
             .filter_map(ElementCast::to_temporary)
             .last()
@@ -762,7 +762,7 @@ impl<'a> FocusElementHelpers for JSRef<'a, Element> {
             return false;
         }
         // TODO: Check whether the element is being rendered (i.e. not hidden).
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         if node.get_flag(SEQUENTIALLY_FOCUSABLE) {
             return true;
         }
@@ -779,7 +779,7 @@ impl<'a> FocusElementHelpers for JSRef<'a, Element> {
     }
 
     fn is_actually_disabled(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
@@ -993,7 +993,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 vtable_for(&NodeCast::from_ref(self)).after_remove_attr(attr.r().name());
             }
 
-            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let node = NodeCast::from_ref(self);
             if node.is_in_doc() {
                 let document = document_from_node(self).root();
                 let damage = if attr.r().local_name() == &atom!("style") {
@@ -1009,7 +1009,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn has_class(self, name: &Atom) -> bool {
         let quirks_mode = {
-            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let node = NodeCast::from_ref(self);
             let owner_doc = node.owner_doc().root();
             owner_doc.r().quirks_mode()
         };
@@ -1189,7 +1189,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn Attributes(self) -> Temporary<NamedNodeMap> {
         self.attr_list.or_init(|| {
             let doc = {
-                let node: JSRef<Node> = NodeCast::from_ref(self);
+                let node = NodeCast::from_ref(self);
                 node.owner_doc().root()
             };
             let window = doc.r().window().root();
@@ -1299,7 +1299,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
     fn GetClientRects(self) -> Temporary<DOMRectList> {
         let win = window_from_node(self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let raw_rects = node.get_content_boxes();
         let rects = raw_rects.iter().map(|rect| {
             DOMRect::new(win.r(),
@@ -1312,7 +1312,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(self) -> Temporary<DOMRect> {
         let win = window_from_node(self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         DOMRect::new(
             win.r(),
@@ -1330,7 +1330,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
     fn SetInnerHTML(self, value: DOMString) -> Fallible<()> {
-        let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        let context_node = NodeCast::from_ref(self);
         // Step 1.
         let frag = try!(context_node.parse_fragment(value));
         // Step 2.
@@ -1346,7 +1346,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn SetOuterHTML(self, value: DOMString) -> Fallible<()> {
         let context_document = document_from_node(self).root();
-        let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        let context_node = NodeCast::from_ref(self);
         // Step 1.
         let context_parent = match context_node.GetParentNode() {
             None => {
@@ -1423,13 +1423,13 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+        let root = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+        let root = NodeCast::from_ref(self);
         root.query_selector_all(selectors)
     }
 
@@ -1450,7 +1450,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 
@@ -1459,7 +1459,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                let root: JSRef<Node> = NodeCast::from_ref(self);
+                let root = NodeCast::from_ref(self);
                 Ok(matches(selectors, &root, &mut None))
             }
         }
@@ -1470,7 +1470,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                let root: JSRef<Node> = NodeCast::from_ref(self);
+                let root = NodeCast::from_ref(self);
                 for element in root.inclusive_ancestors() {
                     let element = element.root();
                     if let Some(element) = ElementCast::to_ref(element.r()) {
@@ -1496,7 +1496,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             s.after_set_attr(attr);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
@@ -1544,7 +1544,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             s.before_remove_attr(attr);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
@@ -1630,7 +1630,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     fn is_link(self) -> bool {
         // FIXME: This is HTML only.
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
@@ -1671,14 +1671,14 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         get_namespace(self)
     }
     fn get_hover_state(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_hover_state()
     }
     fn get_focus_state(self) -> bool {
         // TODO: Also check whether the top-level browsing context has the system focus,
         // and whether this element is a browsing context container.
         // https://html.spec.whatwg.org/multipage/#selector-focus
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_focus_state()
     }
     fn get_id(self) -> Option<Atom> {
@@ -1694,11 +1694,11 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         })
     }
     fn get_disabled_state(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_disabled_state()
     }
     fn get_enabled_state(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_enabled_state()
     }
     fn get_checked_state(self) -> bool {
@@ -1759,7 +1759,7 @@ pub trait ActivationElementHelpers<'a> {
 
 impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)> {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
@@ -1783,12 +1783,12 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn click_in_progress(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_flag(CLICK_IN_PROGRESS)
     }
 
     fn set_click_in_progress(self, click: bool) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.set_flag(CLICK_IN_PROGRESS, click)
     }
 
@@ -1797,7 +1797,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
         match self.as_maybe_activatable() {
             Some(el) => Some(Temporary::from_rooted(el.as_element().root().r())),
             None => {
-                let node: JSRef<Node> = NodeCast::from_ref(self);
+                let node = NodeCast::from_ref(self);
                 for node in node.ancestors() {
                     let node = node.root();
                     if let Some(node) = ElementCast::to_ref(node.r()) {
@@ -1824,7 +1824,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
         // the script can generate more click events from the handler)
         assert!(!self.click_in_progress());
 
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         // Step 2 (requires canvas support)
         // Step 3
         self.set_click_in_progress(true);

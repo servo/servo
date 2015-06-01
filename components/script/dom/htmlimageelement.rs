@@ -13,7 +13,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, LayoutJS, Rootable, Temporary};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
-use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -100,7 +99,7 @@ impl ImageResponder for Responder {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let event = event.r();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+        let target = EventTargetCast::from_ref(node);
         event.fire(target);
 
         // Trigger reflow
@@ -112,7 +111,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(self, value: Option<(DOMString, &Url)>) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
         let window = document.r().window().root();
         let window = window.r();
@@ -190,29 +189,29 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     make_bool_getter!(IsMap);
 
     fn SetIsMap(self, is_map: bool) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
     fn Width(self) -> u32 {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
     fn SetWidth(self, width: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
     fn Height(self) -> u32 {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
     fn SetHeight(self, height: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 

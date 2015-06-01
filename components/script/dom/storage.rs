@@ -9,8 +9,7 @@ use dom::bindings::js::{JSRef, Temporary, Rootable, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget};
+use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use dom::window::WindowHelpers;
@@ -182,7 +181,7 @@ impl MainThreadRunnable for StorageEventRunnable {
             ev_url.to_string(),
             Some(storage)
         ).root();
-        let event: JSRef<Event> = EventCast::from_ref(storage_event.r());
+        let event = EventCast::from_ref(storage_event.r());
 
         let root_page = script_task.root_page();
         for it_page in root_page.iter() {
@@ -192,7 +191,7 @@ impl MainThreadRunnable for StorageEventRunnable {
             // TODO: Such a Document object is not necessarily fully active, but events fired on such
             // objects are ignored by the event loop until the Document becomes fully active again.
             if ev_window.pipeline() != it_window.pipeline() {
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(it_window);
+                let target = EventTargetCast::from_ref(it_window);
                 event.fire(target);
             }
         }

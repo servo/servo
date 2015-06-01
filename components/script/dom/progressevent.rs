@@ -42,7 +42,7 @@ impl ProgressEvent {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
                                     global,
                                     ProgressEventBinding::Wrap).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
+        let event = EventCast::from_ref(ev.r());
         event.InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(ev.r())
     }

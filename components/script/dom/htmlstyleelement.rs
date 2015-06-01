@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLSty
 use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary, RootedReference};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::{Element, ElementTypeId, AttributeHandlers};
+use dom::element::{ElementTypeId, AttributeHandlers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -57,8 +57,8 @@ pub trait StyleElementHelpers {
 
 impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         assert!(node.is_in_doc());
 
         let win = window_from_node(node).root();
@@ -92,7 +92,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
             s.child_inserted(child);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.is_in_doc() {
             self.parse_own_css();
         }

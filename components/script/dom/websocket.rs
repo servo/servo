@@ -299,7 +299,7 @@ impl WebSocketTaskHandler {
             "open".to_owned(),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
+        let target = EventTargetCast::from_ref(ws);
         event.r().fire(target);
     }
 
@@ -318,7 +318,7 @@ impl WebSocketTaskHandler {
                                    "error".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable).root();
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
+            let target = EventTargetCast::from_ref(ws);
             event.r().fire(target);
         }
         let rsn = ws.reason.borrow();
@@ -333,8 +333,8 @@ impl WebSocketTaskHandler {
                                           ws.clean_close.get(),
                                           ws.code.get(),
                                           rsn_clone).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
-        let event: JSRef<Event> = EventCast::from_ref(close_event.r());
+        let target = EventTargetCast::from_ref(ws);
+        let event = EventCast::from_ref(close_event.r());
         event.fire(target);
     }
 }

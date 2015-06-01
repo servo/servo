@@ -22,7 +22,7 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, ElementCreator};
+use dom::element::{AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::element::ElementTypeId;
@@ -217,7 +217,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         self.parser_inserted.set(false);
 
         // Step 3.
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         if was_parser_inserted && element.has_attribute(&atom!("async")) {
             self.non_blocking.set(true);
         }
@@ -227,7 +227,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             return NextParserState::Continue;
         }
         // Step 5.
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         if !node.is_in_doc() {
             return NextParserState::Continue;
         }
@@ -483,7 +483,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     }
 
     fn is_javascript(self) -> bool {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         match element.get_attribute(&ns!(""), &atom!("type")).root().map(|s| s.r().Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
@@ -540,7 +540,7 @@ impl<'a> PrivateHTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                                bubbles,
                                cancelable).root();
         let event = event.r();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         event.fire(target)
     }
 }
@@ -555,7 +555,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }
@@ -565,7 +565,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
         if let Some(ref s) = self.super_type() {
             s.child_inserted(child);
         }
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }
@@ -589,7 +589,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
 
         // https://whatwg.org/html/#already-started
         if self.already_started.get() {
-            let copy_elem: JSRef<HTMLScriptElement> = HTMLScriptElementCast::to_ref(copy).unwrap();
+            let copy_elem = HTMLScriptElementCast::to_ref(copy).unwrap();
             copy_elem.mark_already_started();
         }
     }
@@ -607,7 +607,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
 
     // https://www.whatwg.org/html/#dom-script-text
     fn SetText(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 }

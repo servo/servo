@@ -65,7 +65,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
                 TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
             }
         }
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
         let window = window_from_node(node).root();
         HTMLCollection::create(window.r(), node, filter)
@@ -96,7 +96,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
                 let maybe_legend = node.children()
@@ -139,7 +139,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 let maybe_legend = node.children()

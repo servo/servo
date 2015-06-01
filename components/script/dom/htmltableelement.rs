@@ -67,7 +67,7 @@ impl HTMLTableElement {
 impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     //  https://www.whatwg.org/html/#dom-table-caption
     fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.children()
             .map(|c| c.root())
             .filter_map(|c| {
@@ -78,20 +78,20 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 
     // https://www.whatwg.org/html/#dom-table-caption
     fn SetCaption(self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let old_caption = self.GetCaption();
 
         match old_caption {
             Some(htmlelem) => {
                 let htmlelem_root = htmlelem.root();
-                let old_caption_node: JSRef<Node> = NodeCast::from_ref(htmlelem_root.r());
+                let old_caption_node = NodeCast::from_ref(htmlelem_root.r());
                 assert!(node.RemoveChild(old_caption_node).is_ok());
             }
             None => ()
         }
 
         new_caption.map(|caption| {
-            let new_caption_node: JSRef<Node> = NodeCast::from_ref(caption);
+            let new_caption_node = NodeCast::from_ref(caption);
             assert!(node.AppendChild(new_caption_node).is_ok());
         });
     }

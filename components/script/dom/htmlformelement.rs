@@ -177,7 +177,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                                "submit".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         event.r().fire(target);
         if event.r().DefaultPrevented() {
             return;
@@ -262,7 +262,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             buf
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         let data_set = node.traverse_preorder().filter_map(|child| {
@@ -370,13 +370,13 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                                "reset".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         event.r().fire(target);
         if event.r().DefaultPrevented() {
             return;
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
 
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
@@ -542,7 +542,7 @@ pub trait FormControl<'a> : Copy + Sized {
                 _ => ()
             }
         }
-        let node: JSRef<Node> = NodeCast::from_ref(elem);
+        let node = NodeCast::from_ref(elem);
         for ancestor in node.ancestors() {
             let ancestor = ancestor.root();
             if let Some(ancestor) = HTMLFormElementCast::to_ref(ancestor.r()) {

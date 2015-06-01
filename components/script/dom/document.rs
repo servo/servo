@@ -411,7 +411,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                               element: JSRef<Element>,
                               id: Atom) {
         assert!({
-            let node: JSRef<Node> = NodeCast::from_ref(element);
+            let node = NodeCast::from_ref(element);
             node.is_in_doc()
         });
         assert!(!id.is_empty());
@@ -428,9 +428,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             Occupied(entry) => {
                 let elements = entry.into_mut();
 
-                let new_node: JSRef<Node> = NodeCast::from_ref(element);
+                let new_node = NodeCast::from_ref(element);
                 let mut head: usize = 0;
-                let root: JSRef<Node> = NodeCast::from_ref(root.r());
+                let root = NodeCast::from_ref(root.r());
                 for node in root.traverse_preorder() {
                     let node = node.root();
                     if let Some(elem) = ElementCast::to_ref(node.r()) {
@@ -458,7 +458,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>> {
         self.GetElementById(fragid.clone()).or_else(|| {
             let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
-                let elem: JSRef<Element> = ElementCast::from_ref(node);
+                let elem = ElementCast::from_ref(node);
                 elem.get_attribute(&ns!(""), &atom!("name")).root().map_or(false, |attr| {
                     // FIXME(https://github.com/rust-lang/rust/issues/23338)
                     let attr = attr.r();
@@ -466,7 +466,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                     &**value == &*fragid
                 })
             };
-            let doc_node: JSRef<Node> = NodeCast::from_ref(self);
+            let doc_node = NodeCast::from_ref(self);
             doc_node.traverse_preorder()
                     .filter_map(HTMLAnchorElementCast::to_temporary)
                     .find(|node| check_anchor(&node.root().r()))
@@ -498,7 +498,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             Some(root) => root,
             None => return vec!(),
         };
-        let root: JSRef<Node> = NodeCast::from_ref(root);
+        let root = NodeCast::from_ref(root);
         let win = self.window.root();
         match win.r().layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => node_address,
@@ -514,7 +514,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let event = Event::new(GlobalRef::Window(window.r()), "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         let _ = event.r().fire(target);
     }
 
@@ -548,14 +548,14 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         //TODO: dispatch blur, focus, focusout, and focusin events
 
         if let Some(ref elem) = self.focused.get().root() {
-            let node: JSRef<Node> = NodeCast::from_ref(elem.r());
+            let node = NodeCast::from_ref(elem.r());
             node.set_focus_state(false);
         }
 
         self.focused.set(self.possibly_focused.get());
 
         if let Some(ref elem) = self.focused.get().root() {
-            let node: JSRef<Node> = NodeCast::from_ref(elem.r());
+            let node = NodeCast::from_ref(elem.r());
             node.set_focus_state(true);
 
             // Update the focus state for all elements in the focus chain.
@@ -587,7 +587,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 
     fn dirty_all_nodes(self) {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+        let root = NodeCast::from_ref(self);
         for node in root.traverse_preorder() {
             node.root().r().dirty(NodeDamage::OtherNodeDamage)
         }
@@ -621,7 +621,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             },
         }.root();
 
-        let node: JSRef<Node> = NodeCast::from_ref(el.r());
+        let node = NodeCast::from_ref(el.r());
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
         // Prevent click event if form control element is disabled.
         if let  MouseEventType::Click = mouse_event_type {
@@ -647,7 +647,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                     false, false, false, false,
                                     0i16,
                                     None).root();
-        let event: JSRef<Event> = EventCast::from_ref(event.r());
+        let event = EventCast::from_ref(event.r());
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
         event.set_trusted(true);
@@ -655,7 +655,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         match mouse_event_type {
             MouseEventType::Click => el.r().authentic_click_activation(event),
             _ =>  {
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+                let target = EventTargetCast::from_ref(node);
                 event.fire(target);
             },
         }
@@ -721,8 +721,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                               0i16,
                                               None).root();
 
-            let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
+            let event = EventCast::from_ref(mouse_event.r());
+            let target = EventTargetCast::from_ref(top_most_node.r());
             event.fire(target);
         }
 
@@ -745,7 +745,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let focused = self.get_focused_element().root();
         let body = self.GetBody().root();
 
-        let target: JSRef<EventTarget> = match (&focused, &body) {
+        let target = match (&focused, &body) {
             (&Some(ref focused), _) => EventTargetCast::from_ref(focused.r()),
             (&None, &Some(ref body)) => EventTargetCast::from_ref(body.r()),
             (&None, &None) => EventTargetCast::from_ref(window.r()),
@@ -1069,7 +1069,7 @@ impl Document {
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap).root();
 
-        let node: JSRef<Node> = NodeCast::from_ref(document.r());
+        let node = NodeCast::from_ref(document.r());
         node.set_owner_doc(document.r());
         Temporary::from_rooted(document.r())
     }
@@ -1176,7 +1176,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(self) -> Option<Temporary<DocumentType>> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.children()
             .map(|c| c.root())
             .filter_map(|c| DocumentTypeCast::to_ref(c.r()).map(Temporary::from_rooted))
@@ -1185,7 +1185,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(self) -> Option<Temporary<Element>> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.child_elements().next()
     }
 
@@ -1460,7 +1460,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetHead(self) -> Option<Temporary<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
-            let node: JSRef<Node> = NodeCast::from_ref(root.r());
+            let node = NodeCast::from_ref(root.r());
             node.children()
                 .map(|c| c.root())
                 .filter_map(|c| HTMLHeadElementCast::to_ref(c.r()).map(Temporary::from_rooted))
@@ -1477,7 +1477,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetBody(self) -> Option<Temporary<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
-            let node: JSRef<Node> = NodeCast::from_ref(root.r());
+            let node = NodeCast::from_ref(root.r());
             node.children().map(|c| c.root()).find(|child| {
                 match child.r().type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
@@ -1498,7 +1498,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             None => return Err(HierarchyRequest),
         };
 
-        let node: JSRef<Node> = NodeCast::from_ref(new_body);
+        let node = NodeCast::from_ref(new_body);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => {}
@@ -1514,9 +1514,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         match (self.get_html_element().root(), &old_body) {
             // Step 3.
             (Some(ref root), &Some(ref child)) => {
-                let root: JSRef<Node> = NodeCast::from_ref(root.r());
-                let child: JSRef<Node> = NodeCast::from_ref(child.r());
-                let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
+                let root = NodeCast::from_ref(root.r());
+                let child = NodeCast::from_ref(child.r());
+                let new_body = NodeCast::from_ref(new_body);
                 assert!(root.ReplaceChild(new_body, child).is_ok())
             },
 
@@ -1525,8 +1525,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
             // Step 5.
             (Some(ref root), &None) => {
-                let root: JSRef<Node> = NodeCast::from_ref(root.r());
-                let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
+                let root = NodeCast::from_ref(root.r());
+                let new_body = NodeCast::from_ref(new_body);
                 assert!(root.AppendChild(new_body).is_ok());
             }
         }
@@ -1536,7 +1536,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // https://html.spec.whatwg.org/#dom-document-getelementsbyname
     fn GetElementsByName(self, name: DOMString) -> Temporary<NodeList> {
         self.create_node_list(|node| {
-            let element: JSRef<Element> = match ElementCast::to_ref(node) {
+            let element = match ElementCast::to_ref(node) {
                 Some(element) => element,
                 None => return false,
             };
@@ -1665,13 +1665,13 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+        let root = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+        let root = NodeCast::from_ref(self);
         root.query_selector_all(selectors)
     }
 
@@ -1839,7 +1839,7 @@ impl DocumentProgressHandler {
         let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        let doctarget = EventTargetCast::from_ref(document.r());
         let _ = doctarget.DispatchEvent(event.r());
 
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
@@ -1856,8 +1856,8 @@ impl DocumentProgressHandler {
         let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
-        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        let wintarget = EventTargetCast::from_ref(window.r());
+        let doctarget = EventTargetCast::from_ref(document.r());
         event.r().set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
@@ -1871,7 +1871,7 @@ impl DocumentProgressHandler {
             let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable).root();
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(frame_element.r());
+            let target = EventTargetCast::from_ref(frame_element.r());
             event.r().fire(target);
         });
 

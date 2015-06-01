@@ -93,7 +93,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
                    cancelable: bool,
                    view: Option<JSRef<Window>>,
                    detail: i32) {
-        let event: JSRef<Event> = EventCast::from_ref(self);
+        let event = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }

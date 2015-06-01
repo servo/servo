@@ -106,7 +106,7 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 }

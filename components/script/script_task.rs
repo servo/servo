@@ -35,10 +35,9 @@ use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler,
                     DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
-use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
 use dom::uievent::UIEvent;
-use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
@@ -1006,7 +1005,7 @@ impl ScriptTask {
         let frame_element = self.find_iframe(doc.r(), subpage_id).root();
 
         if let Some(ref frame_element) = frame_element {
-            let element: JSRef<Element> = ElementCast::from_ref(frame_element.r());
+            let element = ElementCast::from_ref(frame_element.r());
             doc.r().begin_focus_transaction();
             doc.r().request_focus(element);
             doc.r().commit_focus_transaction(FocusType::Parent);
@@ -1336,7 +1335,7 @@ impl ScriptTask {
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
-        let node: JSRef<Node> = NodeCast::from_ref(node);
+        let node = NodeCast::from_ref(node);
         let rect = node.get_bounding_content_box();
         let point = Point2D(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px());
         // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
@@ -1357,7 +1356,7 @@ impl ScriptTask {
     /// Find an iframe element in a provided document.
     fn find_iframe(&self, doc: JSRef<Document>, subpage_id: SubpageId)
                    -> Option<Temporary<HTMLIFrameElement>> {
-        let doc: JSRef<Node> = NodeCast::from_ref(doc);
+        let doc = NodeCast::from_ref(doc);
 
         doc.traverse_preorder()
             .filter_map(HTMLIFrameElementCast::to_temporary)
@@ -1492,9 +1491,9 @@ impl ScriptTask {
                                    "resize".to_owned(), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
                                    0i32).root();
-        let event: JSRef<Event> = EventCast::from_ref(uievent.r());
+        let event = EventCast::from_ref(uievent.r());
 
-        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
+        let wintarget = EventTargetCast::from_ref(window.r());
         event.fire(wintarget);
     }
 

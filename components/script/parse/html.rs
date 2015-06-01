@@ -25,7 +25,6 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
-use dom::processinginstruction::ProcessingInstruction;
 use dom::processinginstruction::ProcessingInstructionHelpers;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
@@ -67,7 +66,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     type Handle = JS<Node>;
     fn get_document(&mut self) -> JS<Node> {
         let doc = self.document.root();
-        let node: JSRef<Node> = NodeCast::from_ref(doc.r());
+        let node = NodeCast::from_ref(doc.r());
         JS::from_rooted(node)
     }
 
@@ -77,7 +76,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn elem_name(&self, target: JS<Node>) -> QualName {
         let node: Root<Node> = target.root();
-        let elem: JSRef<Element> = ElementCast::to_ref(node.r())
+        let elem = ElementCast::to_ref(node.r())
             .expect("tried to get name of non-Element in HTML parsing");
         QualName {
             ns: elem.namespace().clone(),
@@ -95,7 +94,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             elem.r().set_attribute_from_parser(attr.name, attr.value, None);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(elem.r());
+        let node = NodeCast::from_ref(elem.r());
         JS::from_rooted(node)
     }
 
@@ -140,7 +139,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn append_doctype_to_document(&mut self, name: String, public_id: String, system_id: String) {
         let doc = self.document.root();
-        let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
+        let doc_node = NodeCast::from_ref(doc.r());
         let doctype = DocumentType::new(name, Some(public_id), Some(system_id), doc.r());
         let node: Root<Node> = NodeCast::from_temporary(doctype).root();
 
@@ -149,7 +148,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn add_attrs_if_missing(&mut self, target: JS<Node>, attrs: Vec<Attribute>) {
         let node: Root<Node> = target.root();
-        let elem: JSRef<Element> = ElementCast::to_ref(node.r())
+        let elem = ElementCast::to_ref(node.r())
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs.into_iter() {
             elem.set_attribute_from_parser(attr.name, attr.value, None);
@@ -196,7 +195,7 @@ impl<'a> Serializable for JSRef<'a, Node> {
         let node = *self;
         match (traversal_scope, node.type_id()) {
             (_, NodeTypeId::Element(..)) => {
-                let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
+                let elem = ElementCast::to_ref(node).unwrap();
                 let name = QualName::new(elem.namespace().clone(),
                                          elem.local_name().clone());
                 if traversal_scope == IncludeNode {
@@ -236,7 +235,7 @@ impl<'a> Serializable for JSRef<'a, Node> {
             (ChildrenOnly, _) => Ok(()),
 
             (IncludeNode, NodeTypeId::DocumentType) => {
-                let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
+                let doctype = DocumentTypeCast::to_ref(node).unwrap();
                 serializer.write_doctype(&doctype.name())
             },
 
@@ -251,7 +250,7 @@ impl<'a> Serializable for JSRef<'a, Node> {
             },
 
             (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) => {
-                let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
+                let pi = ProcessingInstructionCast::to_ref(node).unwrap();
                 let data = CharacterDataCast::from_ref(pi).data();
                 serializer.write_processing_instruction(&pi.target(), &data)
             },
@@ -313,7 +312,7 @@ pub fn parse_html_fragment(context_node: JSRef<Node>,
 
     // Step 14.
     let root_element = document.r().GetDocumentElement().expect("no document element").root();
-    let root_node: JSRef<Node> = NodeCast::from_ref(root_element.r());
+    let root_node = NodeCast::from_ref(root_element.r());
     for child in root_node.children() {
         output.push(JS::from_rooted(child));
     }

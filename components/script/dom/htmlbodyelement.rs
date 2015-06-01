@@ -125,7 +125,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
             let (cx, url, reflector) = (window.r().get_cx(),
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
-            let evtarget: JSRef<EventTarget> =
+            let evtarget =
                 if FORWARDED_EVENTS.iter().any(|&event| &**name == event) {
                     EventTargetCast::from_ref(window.r())
                 } else {

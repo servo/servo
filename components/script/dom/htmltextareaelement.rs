@@ -172,13 +172,13 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn DefaultValue(self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn SetDefaultValue(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value));
 
         // if the element's dirty value flag is false, then the element's
@@ -231,7 +231,7 @@ trait PrivateHTMLTextAreaElementHelpers {
 impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
@@ -243,7 +243,7 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
 
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         target.dispatch_event(event.r());
     }
 }
@@ -261,7 +261,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -288,7 +288,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -308,7 +308,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -325,7 +325,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.root().r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {

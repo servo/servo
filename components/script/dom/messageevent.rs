@@ -63,7 +63,7 @@ impl MessageEvent {
                data: JSVal, origin: DOMString, lastEventId: DOMString)
                -> Temporary<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
+        let event = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles, cancelable);
         Temporary::from_rooted(ev.r())
     }
@@ -85,7 +85,7 @@ impl MessageEvent {
         let messageevent = MessageEvent::new(
             scope, "message".to_owned(), false, false, message,
             "".to_owned(), "".to_owned()).root();
-        let event: JSRef<Event> = EventCast::from_ref(messageevent.r());
+        let event = EventCast::from_ref(messageevent.r());
         event.fire(target);
     }
 }

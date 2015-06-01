@@ -86,7 +86,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         let ty = elem.get_string_attribute(&atom!("type")).into_ascii_lowercase();
         // https://html.spec.whatwg.org/multipage/#attr-button-type
         match &*ty {
@@ -142,7 +142,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -157,7 +157,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -171,7 +171,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -180,7 +180,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.root().r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -202,7 +202,7 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
 
     fn is_instance_activatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         !(node.get_disabled_state())
     }
 
@@ -234,9 +234,9 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(doc.r());
+        let node = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+        let elem = ElementCast::from_ref(*self);
         if owner.is_none() || elem.click_in_progress() {
             return;
         }
