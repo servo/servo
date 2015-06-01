@@ -3167,9 +3167,9 @@ pub mod longhands {
                         (*self).clone()
                 }
 
-                pub fn skew(&mut self, sx: CSSFloat, sy: CSSFloat) {
-                    *self = ComputedMatrix::new(1.0, sx,
-                                                sy, 1.0,
+                pub fn skew(&mut self, theta_x: CSSFloat, theta_y: CSSFloat) {
+                    *self = ComputedMatrix::new(1.0, -theta_y.tan(),
+                                                -theta_x.tan(), 1.0,
                                                 computed::LengthAndPercentage::zero(),
                                                 computed::LengthAndPercentage::zero()) *
                         (*self).clone()
@@ -3259,13 +3259,22 @@ pub mod longhands {
             Ok((first, second))
         }
 
+        fn parse_two_angles(input: &mut Parser) -> Result<(specified::Angle, specified::Angle),()> {
+            let first = try!(specified::Angle::parse(input));
+            let second = input.try(|input| {
+                try!(input.expect_comma());
+                specified::Angle::parse(input)
+            }).unwrap_or(specified::Angle(0.0));
+            Ok((first, second))
+        }
+
         #[derive(Clone, Debug, PartialEq)]
         enum SpecifiedOperation {
             Matrix(SpecifiedMatrix),
             Translate(specified::LengthAndPercentage, specified::LengthAndPercentage),
             Scale(CSSFloat, CSSFloat),
             Rotate(specified::Angle),
-            Skew(CSSFloat, CSSFloat),
+            Skew(specified::Angle, specified::Angle),
         }
 
         impl ToCss for SpecifiedOperation {
@@ -3388,22 +3397,22 @@ pub mod longhands {
                     },
                     "skew" => {
                         try!(input.parse_nested_block(|input| {
-                            let (sx, sy) = try!(parse_two_floats(input));
-                            result.push(SpecifiedOperation::Skew(sx, sy));
+                            let (theta_x, theta_y) = try!(parse_two_angles(input));
+                            result.push(SpecifiedOperation::Skew(theta_x, theta_y));
                             Ok(())
                         }))
                     },
                     "skewx" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
-                            result.push(SpecifiedOperation::Skew(sx, 1.0));
+                            let theta_x = try!(specified::Angle::parse(input));
+                            result.push(SpecifiedOperation::Skew(theta_x, specified::Angle(0.0)));
                             Ok(())
                         }))
                     },
                     "skewy" => {
                         try!(input.parse_nested_block(|input| {
-                            let sy = try!(input.expect_number());
-                            result.push(SpecifiedOperation::Skew(1.0, sy));
+                            let theta_y = try!(specified::Angle::parse(input));
+                            result.push(SpecifiedOperation::Skew(specified::Angle(0.0), theta_y));
                             Ok(())
                         }))
                     }
@@ -3448,8 +3457,8 @@ pub mod longhands {
                         SpecifiedOperation::Rotate(ref theta) => {
                             result.rotate(f32::consts::PI_2 - theta.radians());
                         }
-                        SpecifiedOperation::Skew(sx, sy) => {
-                            result.skew(sx, sy)
+                        SpecifiedOperation::Skew(ref theta_x, ref theta_y) => {
+                            result.skew(f32::consts::PI_2 - theta_x.radians(), f32::consts::PI_2 - theta_y.radians())
                         }
                     }
                 }
