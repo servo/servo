@@ -40,6 +40,7 @@ use std::cell::Cell;
 use url::{Url, UrlParser};
 use util::str::{self, LengthOrPercentageOrAuto};
 use js::jsapi::RootedValue;
+use js::jsval::UndefinedValue;
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -154,7 +155,8 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         if self.Mozbrowser() {
             let window = window_from_node(self);
             let cx = window.r().get_cx();
-            let detail = RootedValue::new(cx, event.detail().to_jsval(cx));
+            let mut detail = RootedValue::new(cx, UndefinedValue());
+            event.detail().to_jsval(cx, detail.handle_mut());
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
                                                 event.name().to_owned(),
                                                 true,

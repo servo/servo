@@ -1194,16 +1194,17 @@ class CGArgumentConverter(CGThing):
         return self.converter.define()
 
 
-def wrapForType(jsvalRef, result='result', successCode='return 1;'):
+def wrapForType(jsvalRef, result='result', successCode='return 1;', pre=''):
     """
     Reflect a Rust value into JS.
 
-      * 'jsvalRef': a Rust reference to the JSVal in which to store the result
+      * 'jsvalRef': a MutableHandleValue in which to store the result
                     of the conversion;
       * 'result': the name of the variable in which the Rust value is stored;
       * 'successCode': the code to run once we have done the conversion.
+      * 'pre': code to run before the conversion if rooting is necessary
     """
-    wrap = "%s = (%s).to_jsval(cx);" % (jsvalRef, result)
+    wrap = "%s\n(%s).to_jsval(cx, %s);" % (pre, result, jsvalRef)
     if successCode:
         wrap += "\n%s" % successCode
     return wrap
@@ -1913,7 +1914,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::js::Root',
         'dom::types::*',
         'js::jsapi::JSContext',
-        'js::jsapi::HandleValue',
+        'js::jsapi::{HandleValue, MutableHandleValue}',
         'js::jsval::JSVal',
         'util::str::DOMString',
     ]
@@ -2567,7 +2568,7 @@ class CGPerSignatureCall(CGThing):
         return not 'infallible' in self.extendedAttributes
 
     def wrap_return_value(self):
-        return wrapForType('*args.rval().ptr')
+        return wrapForType('args.rval()')
 
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())
@@ -3261,7 +3262,7 @@ pub enum %s {
 
         inner = """\
 use dom::bindings::conversions::ToJSValConvertible;
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, MutableHandleValue};
 use js::jsval::JSVal;
 
 pub const strings: &'static [&'static str] = &[
@@ -3269,8 +3270,8 @@ pub const strings: &'static [&'static str] = &[
 ];
 
 impl ToJSValConvertible for super::%s {
-    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        strings[*self as usize].to_jsval(cx)
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        strings[*self as usize].to_jsval(cx, rval);
     }
 }
 """ % (",\n    ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name)
@@ -3375,7 +3376,7 @@ class CGUnionStruct(CGThing):
             "    e%s(%s)," % (v["name"], v["typeName"]) for v in templateVars
         ]
         enumConversions = [
-            "            %s::e%s(ref inner) => inner.to_jsval(cx)," % (self.type, v["name"]) for v in templateVars
+            "            %s::e%s(ref inner) => inner.to_jsval(cx, rval)," % (self.type, v["name"]) for v in templateVars
         ]
         # XXXManishearth The following should be #[must_root],
         # however we currently allow it till #2661 is fixed
@@ -3386,7 +3387,7 @@ pub enum %s {
 }
 
 impl ToJSValConvertible for %s {
-    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         match *self {
 %s
         }
@@ -4142,8 +4143,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
-            fillDescriptor = "fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn true as u8;" % readonly
-            templateValues = {'jsvalRef': 'desc.get().value', 'successCode': fillDescriptor}
+            fillDescriptor = "desc.get().value = result_root.ptr;\nfill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn true as u8;" % readonly
+            templateValues = {
+                'jsvalRef': 'result_root.handle_mut()',
+                'successCode': fillDescriptor,
+                'pre': 'let mut result_root = RootedValue::new(cx, UndefinedValue());'
+                ''}
             get += ("if index.is_some() {\n" +
                     "    let index = index.unwrap();\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
@@ -4154,8 +4159,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
-            fillDescriptor = "fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn true as u8;" % readonly
-            templateValues = {'jsvalRef': 'desc.get().value', 'successCode': fillDescriptor}
+            fillDescriptor = "desc.get().value = result_root.ptr;\nfill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn true as u8;" % readonly
+            templateValues = {
+                'jsvalRef': 'result_root.handle_mut()',
+                'successCode': fillDescriptor,
+                'pre': 'let mut result_root = RootedValue::new(cx, UndefinedValue());'
+                }
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
@@ -4351,7 +4360,7 @@ if !expando.ptr.is_null() {
 }"""
 
         templateValues = {
-            'jsvalRef': '(*vp.ptr)',
+            'jsvalRef': 'vp',
             'successCode': 'return true as u8;',
         }
 
@@ -4857,10 +4866,10 @@ class CGDictionary(CGThing):
             "}\n"
             "\n"
             "impl ToJSValConvertible for ${selfName} {\n"
-            "    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {\n"
-            "        let obj = unsafe { JS_NewObject(cx, 0 as *const JSClass, 0 as *const JSObject, 0 as *const JSObject) };\n"
+            "    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {\n"
+            "        let obj = unsafe { RootedObject::new(cx, JS_NewObject(cx, ptr::null())) };\n"
             "${insertMembers}"
-            "        ObjectOrNullValue(obj)\n"
+            "        rval.set(ObjectOrNullValue(obj.ptr))\n"
             "    }\n"
             "}\n").substitute({
                 "selfName": self.makeClassName(d),
@@ -5336,8 +5345,8 @@ impl CallbackContainer for ${type} {
 }
 
 impl ToJSValConvertible for ${type} {
-    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        self.callback().to_jsval(cx)
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        self.callback().to_jsval(cx, rval);
     }
 }\
 """).substitute({"type": callback.name})
@@ -5493,9 +5502,10 @@ class CallbackMember(CGNativeMember):
             if arg.optional and not arg.defaultValue:
                 argval += ".clone().unwrap()"
 
-        conversion = wrapForType("argv[%s]" % jsvalIndex,
-                result=argval,
-                successCode="")
+        conversion = wrapForType(
+            "argv_root.handle_mut()", result=argval,
+            successCode="argv[%s] = argv_root.ptr;" % jsvalIndex,
+            pre="let mut argv_root = RootedValue::new(cx, UndefinedValue());")
         if arg.variadic:
             conversion = string.Template(
                 "for idx in 0..${arg}.len() {\n" +

@@ -669,33 +669,35 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-response-attribute
     #[allow(unsafe_code)]
     fn Response(self, cx: *mut JSContext) -> JSVal {
+         let mut rval = RootedValue::new(cx, UndefinedValue());
          match self.response_type.get() {
             _empty | Text => {
                 let ready_state = self.ready_state.get();
                 if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
-                    self.text_response().to_jsval(cx)
+                    self.text_response().to_jsval(cx, rval.handle_mut());
                 } else {
-                    "".to_jsval(cx)
+                    "".to_jsval(cx, rval.handle_mut());
                 }
             },
-            _ if self.ready_state.get() != XMLHttpRequestState::Done => NullValue(),
+            _ if self.ready_state.get() != XMLHttpRequestState::Done => {
+                return NullValue()
+            },
             Json => {
                 let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.utf16_units().collect();
-                let mut vp = RootedValue::new(cx, UndefinedValue());
                 unsafe {
-                    if JS_ParseJSON(cx, decoded.as_ptr() as *const i16, decoded.len() as u32, vp.handle_mut()) == 0 {
+                    if JS_ParseJSON(cx, decoded.as_ptr() as *const i16, decoded.len() as u32, rval.handle_mut()) == 0 {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
                 }
-                vp.ptr
             }
             _ => {
                 // XXXManishearth handle other response types
-                self.response.borrow().to_jsval(cx)
+                self.response.borrow().to_jsval(cx, rval.handle_mut());
             }
         }
+        rval.ptr
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute
