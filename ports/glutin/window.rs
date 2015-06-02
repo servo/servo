@@ -44,7 +44,6 @@ static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 
 
 #[cfg(feature = "window")]
 bitflags! {
-    #[derive(Debug)]
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
         const RIGHT_CONTROL = 2,
