@@ -2042,7 +2042,7 @@ let obj = {
     let _ac = JSAutoCompartment::new(cx, proto.ptr);
     NewProxyObject(cx, handler,
                    private.handle(),
-                   proto.ptr, %s.ptr,
+                   proto.ptr, %s.get(),
                    ptr::null_mut(), ptr::null_mut())
 };
 assert!(!obj.is_null());
@@ -2084,14 +2084,14 @@ class CGWrapMethod(CGAbstractMethod):
         if not self.descriptor.isGlobal():
             return CGGeneric("""\
 let _ar = JSAutoRequest::new(cx);
-let scope = RootedObject::new(cx, scope.reflector().get_jsobject());
-assert!(!scope.ptr.is_null());
-assert!(((*JS_GetClass(scope.ptr)).flags & JSCLASS_IS_GLOBAL) != 0);
+let scope = scope.reflector().get_jsobject();
+assert!(!scope.get().is_null());
+assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 let mut proto = RootedObject::new(cx, ptr::null_mut());
 {
-    let _ac = JSAutoCompartment::new(cx, scope.ptr);
-    GetProtoObject(cx, scope.handle(), scope.handle(), proto.handle_mut())
+    let _ac = JSAutoCompartment::new(cx, scope.get());
+    GetProtoObject(cx, scope, scope, proto.handle_mut())
 }
 assert!(!proto.ptr.is_null());
 
@@ -2212,8 +2212,9 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor, properties):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
-                Argument('HandleObject', 'receiver')]
-        CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', '*mut JSObject', args)
+                Argument('HandleObject', 'receiver'),
+                Argument('MutableHandleObject', 'rval')]
+        CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args)
         self.properties = properties
     def definition_body(self):
         protoChain = self.descriptor.prototypeChain
@@ -2256,10 +2257,10 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constructor = 'None'
 
         call = """\
-return do_create_interface_objects(cx, receiver, parent_proto.handle(),
-                                   %s, %s,
-                                   %s,
-                                   &sNativeProperties);""" % (protoClass, constructor, domClass)
+do_create_interface_objects(cx, receiver, parent_proto.handle(),
+                            %s, %s,
+                            %s,
+                            &sNativeProperties, rval);""" % (protoClass, constructor, domClass)
 
         return CGList([
             CGGeneric(getParentProto),
@@ -2296,10 +2297,9 @@ if !rval.get().is_null() {
     return;
 }
 
-let tmp = CreateInterfaceObjects(cx, global, receiver);
-assert!(!tmp.is_null());
-*proto_or_iface_array.offset(%s as isize) = tmp;
-rval.set(tmp);
+CreateInterfaceObjects(cx, global, receiver, rval);
+assert!(!rval.get().is_null());
+*proto_or_iface_array.offset(%s as isize) = rval.get();
 """ % (self.id, self.id))
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
@@ -2409,7 +2409,10 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 
     def definition_body(self):
         if self.descriptor.interface.isCallback():
-            code = "CreateInterfaceObjects(cx, global, global);"
+            code = """\
+let mut obj = RootedObject::new(cx, ptr::null_mut());
+CreateInterfaceObjects(cx, global, global, obj.handle_mut());
+"""
         else:
             code = """\
 let mut proto = RootedObject::new(cx, ptr::null_mut());
@@ -2478,7 +2481,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = ""
             else:
-                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject());\n"
+                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject().get());\n"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -4882,7 +4885,7 @@ class CGDictionary(CGThing):
         templateBody = info.template
         default = info.default
         declType = info.declType
-        replacements = { "val": "value" }
+        replacements = { "val": "rval.handle()" }
         conversion = string.Template(templateBody).substitute(replacements)
 
         assert (member.defaultValue is None) == (default is None)
@@ -4894,10 +4897,10 @@ class CGDictionary(CGThing):
             "{\n"
             "let mut rval = RootedValue::new(cx, UndefinedValue());\n"
             "match try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
-            "    Some(value) => {\n"
+            "    true => {\n"
             "%s\n"
             "    },\n"
-            "    None => {\n"
+            "    false => {\n"
             "%s\n"
             "    },\n"
             "}\n}") % (member.identifier.name, indent(conversion), indent(default))

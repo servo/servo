@@ -14,7 +14,6 @@ use dom::event::{Event, EventTypeId};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::JSVal;
 use util::str::DOMString;
-use std::default::Default;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]

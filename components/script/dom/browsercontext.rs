@@ -36,13 +36,12 @@ pub struct BrowserContext {
 
 impl BrowserContext {
     pub fn new(document: &Document, frame_element: Option<&Element>) -> BrowserContext {
-        let mut context = BrowserContext {
+        BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
             window_proxy: Heap { ptr: ptr::null_mut() },
             frame_element: frame_element.map(JS::from_ref),
-        };
-        context
+        }
     }
 
     pub fn active_document(&self) -> Root<Document> {
@@ -73,9 +72,9 @@ impl BrowserContext {
 
         let cx = win.get_cx();
         let _ar = JSAutoRequest::new(cx);
-        let parent = RootedObject::new(cx, win.reflector().get_jsobject());
-        let _ac = JSAutoCompartment::new(cx, parent.ptr);
-        let wrapper = unsafe { WrapperNew(cx, parent.handle(), handler) };
+        let parent = win.reflector().get_jsobject();
+        let _ac = JSAutoCompartment::new(cx, parent.get());
+        let wrapper = unsafe { WrapperNew(cx, parent, handler) };
         assert!(!wrapper.is_null());
         self.window_proxy.set(wrapper);
     }

@@ -19,7 +19,6 @@ use util::str::DOMString;
 use dom::bindings::cell::DOMRefCell;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::default::Default;
 use js::jsval::JSVal;
 
 #[dom_struct]

@@ -41,7 +41,7 @@ use js::jsapi::{JS_FireOnNewGlobalObject, JSVersion};
 use js::jsapi::JS_DeletePropertyById1;
 use js::jsapi::JS_ObjectToOuterObject;
 use js::jsapi::JS_NewObjectWithUniqueType;
-use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, Heap};
+use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, MutableHandleObject, Heap};
 use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::DOMCallbacks;
@@ -198,21 +198,16 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
                                    dom_class: *const DOMClass,
-                                   members: &'static NativeProperties)
-                                   -> *mut JSObject {
-    let proto = match proto_class {
-        Some(proto_class) => {
-            create_interface_prototype_object(cx, proto_proto,
-                                              proto_class, members)
-        },
-        None => ptr::null_mut()
-    };
-
-    let proto = RootedObject::new(cx, proto);
+                                   members: &'static NativeProperties,
+                                   rval: MutableHandleObject) {
+    if let Some(proto_class) = proto_class {
+        create_interface_prototype_object(cx, proto_proto,
+                                          proto_class, members, rval);
+    }
 
     unsafe {
-        if !proto.ptr.is_null() {
-            JS_SetReservedSlot(proto.ptr, DOM_PROTO_INSTANCE_CLASS_SLOT,
+        if !rval.get().is_null() {
+            JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
                                PrivateValue(dom_class as *const libc::c_void));
         }
     }
@@ -220,11 +215,9 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
     if let Some((native, name, nargs)) = constructor {
         let s = CString::new(name).unwrap();
         create_interface_object(cx, receiver,
-                                native, nargs, proto.handle(),
+                                native, nargs, rval.handle(),
                                 members, s.as_ptr())
     }
-
-    proto.ptr
 }
 
 /// Creates the *interface object*.
@@ -309,26 +302,23 @@ fn define_properties(cx: *mut JSContext, obj: HandleObject,
 /// Fails on JSAPI failure.
 fn create_interface_prototype_object(cx: *mut JSContext, global: HandleObject,
                                      proto_class: &'static JSClass,
-                                     members: &'static NativeProperties)
-                                     -> *mut JSObject {
+                                     members: &'static NativeProperties,
+                                     mut rval: MutableHandleObject) {
     unsafe {
-        let our_proto = RootedObject::new(cx,
-            JS_NewObjectWithUniqueType(cx, proto_class, global));
-        assert!(!our_proto.ptr.is_null());
+        rval.set(JS_NewObjectWithUniqueType(cx, proto_class, global));
+        assert!(!rval.get().is_null());
 
         if let Some(methods) = members.methods {
-            define_methods(cx, our_proto.handle(), methods);
+            define_methods(cx, rval.handle(), methods);
         }
 
         if let Some(properties) = members.attrs {
-            define_properties(cx, our_proto.handle(), properties);
+            define_properties(cx, rval.handle(), properties);
         }
 
         if let Some(constants) = members.consts {
-            define_constants(cx, our_proto.handle(), constants);
+            define_constants(cx, rval.handle(), constants);
         }
-
-        return our_proto.ptr;
     }
 }
 
@@ -396,8 +386,8 @@ impl PartialEq for Reflector {
 impl Reflector {
     /// Get the reflector.
     #[inline]
-    pub fn get_jsobject(&self) -> *mut JSObject {
-        self.object.ptr
+    pub fn get_jsobject(&self) -> HandleObject {
+        self.object.handle()
     }
 
     /// Initialize the reflector. (May be called only once.)
@@ -410,8 +400,8 @@ impl Reflector {
     /// Return a pointer to the memory location at which the JS reflector
     /// object is stored. Used to root the reflector, as
     /// required by the JSAPI rooting APIs.
-    pub unsafe fn rootable(&self) -> *mut Heap<*mut JSObject> {
-        &self.object as *const Heap<*mut JSObject> as *mut Heap<*mut JSObject>
+    pub fn rootable(&self) -> &Heap<*mut JSObject> {
+        &self.object
     }
 
     /// Create an uninitialized `Reflector`.
@@ -492,7 +482,7 @@ pub fn find_enum_string_index(cx: *mut JSContext,
         let mut length = 0;
         // XXX support Latin1
         let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
-        assert!(!chars.is_null());
+        debug_assert!(!chars.is_null());
         if chars.is_null() {
             return Err(());
         }
@@ -530,12 +520,12 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
 
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
-/// `Ok(None)` if there was no property with the given name.
+/// `Ok(false)` if there was no property with the given name.
 pub fn get_dictionary_property(cx: *mut JSContext,
                                object: HandleObject,
                                property: &str,
                                rval: MutableHandleValue)
-                               -> Result<Option<HandleValue>, ()> {
+                               -> Result<bool, ()> {
     use std::ffi::CString;
     fn has_property(cx: *mut JSContext, object: HandleObject, property: &CString,
                     found: &mut u8) -> bool {
@@ -552,7 +542,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
 
     let property = CString::new(property).unwrap();
     if object.get().is_null() {
-        return Ok(None);
+        return Ok(false);
     }
 
     let mut found: u8 = 0;
@@ -561,14 +551,14 @@ pub fn get_dictionary_property(cx: *mut JSContext,
     }
 
     if found == 0 {
-        return Ok(None);
+        return Ok(false);
     }
 
     if !get_property(cx, object, &property, rval) {
         return Err(());
     }
 
-    Ok(Some(HandleValue { ptr: rval.ptr }))
+    Ok(true)
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
