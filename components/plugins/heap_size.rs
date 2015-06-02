@@ -22,7 +22,7 @@ use syntax::ext::build::AstBuilder;
 use syntax::ext::deriving::generic::*;
 
 pub fn expand_heap_size(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem,
-                       item: Annotatable, push: &mut FnMut(Annotatable)) {
+                        item: Annotatable, push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
@@ -61,7 +61,7 @@ fn heap_size_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substruct
                             MetaNameValue(..) => (),
                             _ => cx.span_err(a.span, "#[ignore_heap_size_of] \
                                                       should have an explanation, \
-                                                      e.g. #[ignore_heap_size_of = \"foo\"]")
+                                                      e.g. #[ignore_heap_size_of = \"\"]")
                         }
                         true
                     } else {
