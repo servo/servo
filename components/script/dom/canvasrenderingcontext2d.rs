@@ -22,7 +22,7 @@ use dom::imagedata::{ImageData, ImageDataHelpers};
 use dom::node::{window_from_node, NodeHelpers, NodeDamage};
 
 use cssparser::Color as CSSColor;
-use cssparser::{Parser, RGBA, ToCss};
+use cssparser::{Parser, RGBA};
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -39,6 +39,7 @@ use png::PixelsByColorType;
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
+use std::fmt;
 use std::sync::mpsc::{channel, Sender};
 
 use util::str::DOMString;
@@ -772,11 +773,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn StrokeStyle(self) -> StringOrCanvasGradientOrCanvasPattern {
-        // FIXME(pcwalton, #4761): This is not spec-compliant. See:
-        //
-        // https://html.spec.whatwg.org/multipage/#serialisation-of-a-colour
         let mut result = String::new();
-        self.state.borrow().stroke_color.to_css(&mut result).unwrap();
+        serialize(&self.state.borrow().stroke_color, &mut result).unwrap();
         StringOrCanvasGradientOrCanvasPattern::eString(result)
     }
 
@@ -802,11 +800,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn FillStyle(self) -> StringOrCanvasGradientOrCanvasPattern {
-        // FIXME(pcwalton, #4761): This is not spec-compliant. See:
-        //
-        // https://html.spec.whatwg.org/multipage/#serialisation-of-a-colour
         let mut result = String::new();
-        self.state.borrow().stroke_color.to_css(&mut result).unwrap();
+        serialize(&self.state.borrow().fill_color, &mut result).unwrap();
         StringOrCanvasGradientOrCanvasPattern::eString(result)
     }
 
@@ -1047,4 +1042,21 @@ pub fn parse_color(string: &str) -> Result<RGBA,()> {
 // Origin coordinates and size cannot be negative. Size has to be greater than zero
 fn is_rect_valid(rect: Rect<f64>) -> bool {
     rect.size.width > 0.0 && rect.size.height > 0.0
+}
+
+// https://html.spec.whatwg.org/multipage/#serialisation-of-a-colour
+fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    let red = (color.red * 255.).round() as u8;
+    let green = (color.green * 255.).round() as u8;
+    let blue = (color.blue * 255.).round() as u8;
+
+    if color.alpha == 1f32 {
+        write!(dest, "#{:x}{:x}{:x}{:x}{:x}{:x}",
+               red >> 4, red & 0xF,
+               green >> 4, green & 0xF,
+               blue >> 4, blue & 0xF)
+    } else {
+        write!(dest, "rgba({}, {}, {}, {})",
+               red, green, blue, color.alpha)
+    }
 }
