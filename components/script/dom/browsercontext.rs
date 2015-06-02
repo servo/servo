@@ -19,7 +19,7 @@ use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_DefinePropertyById6};
 use js::jsapi::{JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue, Handle, HandleValue, Heap};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
-use js::jsval::ObjectValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::glue::{GetProxyPrivate};
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 
@@ -118,7 +118,9 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObjec
                                           desc: MutableHandle<JSPropertyDescriptor>) -> u8 {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
-        (*desc.ptr).value = window.to_jsval(cx);
+        let mut val = RootedValue::new(cx, UndefinedValue());
+        window.to_jsval(cx, val.handle_mut());
+        (*desc.ptr).value = val.ptr;
         fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, true);
         return true as u8;
     }
@@ -184,7 +186,7 @@ unsafe extern fn get(cx: *mut JSContext,
                      vp: MutableHandleValue) -> u8 {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
-        *vp.ptr = window.to_jsval(cx);
+        window.to_jsval(cx, vp);
         return true as u8;
     }
 
