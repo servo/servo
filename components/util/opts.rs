@@ -24,7 +24,7 @@ use url::{self, Url};
 #[derive(Clone)]
 pub struct Opts {
     /// The initial URL to load.
-    pub url: Url,
+    pub url: Option<Url>,
 
     /// How many threads to use for CPU painting (`-t`).
     ///
@@ -98,6 +98,10 @@ pub struct Opts {
     /// where pixel perfect results are required when using fonts such as the Ahem
     /// font for layout tests.
     pub enable_text_antialiasing: bool,
+
+    /// If set with --disable-canvas-aa, disable antialiasing on the HTML canvas element.
+    /// Like --disable-text-aa, this is useful for reftests where pixel perfect results are required.
+    pub enable_canvas_antialiasing: bool,
 
     /// True if each step of layout is traced to an external JSON file
     /// for debugging purposes. Settings this implies sequential layout
@@ -198,7 +202,7 @@ static FORCE_CPU_PAINTING: bool = false;
 
 pub fn default_opts() -> Opts {
     Opts {
-        url: Url::parse("about:blank").unwrap(),
+        url: Some(Url::parse("about:blank").unwrap()),
         paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
@@ -220,6 +224,7 @@ pub fn default_opts() -> Opts {
         show_debug_parallel_layout: false,
         paint_flashing: false,
         enable_text_antialiasing: false,
+        enable_canvas_antialiasing: false,
         trace_layout: false,
         devtools_port: None,
         webdriver_port: None,
@@ -370,7 +375,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     let opts = Opts {
-        url: url,
+        url: Some(url),
         paint_threads: paint_threads,
         gpu_painting: gpu_painting,
         tile_size: tile_size,
@@ -398,6 +403,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         show_debug_parallel_layout: debug_options.contains(&"show-parallel-layout"),
         paint_flashing: debug_options.contains(&"paint-flashing"),
         enable_text_antialiasing: !debug_options.contains(&"disable-text-aa"),
+        enable_canvas_antialiasing: !debug_options.contains(&"disable-canvas-aa"),
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         dump_display_list: debug_options.contains(&"dump-display-list"),
         dump_display_list_optimized: debug_options.contains(&"dump-display-list-optimized"),

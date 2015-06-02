@@ -384,7 +384,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }
 
-            (Msg::LoadComplete, ShutdownState::NotShuttingDown) => {
+            (Msg::LoadStart(back, forward), ShutdownState::NotShuttingDown) => {
+                self.window.load_start(back, forward);
+            }
+
+            (Msg::LoadComplete(back, forward), ShutdownState::NotShuttingDown) => {
                 self.got_load_complete_message = true;
 
                 // If we're painting in headless mode, schedule a recomposite.
@@ -395,7 +399,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // Inform the embedder that the load has finished.
                 //
                 // TODO(pcwalton): Specify which frame's load completed.
-                self.window.load_end();
+                self.window.load_end(back, forward);
             }
 
             (Msg::ScrollTimeout(timestamp), ShutdownState::NotShuttingDown) => {
@@ -878,14 +882,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_load_url_window_event(&mut self, url_string: String) {
         debug!("osmain: loading URL `{}`", url_string);
         self.got_load_complete_message = false;
-        let root_pipeline_id = match self.scene.root {
-            Some(ref layer) => layer.get_pipeline_id(),
-            None => panic!("Compositor: Received WindowEvent::LoadUrl without initialized compositor \
-                           layers"),
+        let url = Url::parse(&url_string).unwrap();
+        self.window.set_page_url(url.clone());
+        let msg = match self.scene.root {
+            Some(ref layer) => ConstellationMsg::LoadUrl(layer.get_pipeline_id(), LoadData::new(url)),
+            None => ConstellationMsg::InitLoadUrl(url)
         };
 
-        let msg = ConstellationMsg::LoadUrl(root_pipeline_id,
-            LoadData::new(Url::parse(&url_string).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg).unwrap()
     }

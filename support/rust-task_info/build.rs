@@ -2,14 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::process::Command;
-use std::env;
+extern crate gcc;
 
 fn main() {
-    assert!(Command::new("make")
-        .args(&["-f", "makefile.cargo"])
-        .status()
-        .unwrap()
-        .success());
-    println!("cargo:rustc-flags=-L native={}", env::var("OUT_DIR").unwrap());
+    let mut cfg = gcc::Config::new();
+    cfg.file("src/task_info.c");
+    cfg.compile("libtask_info.a");
 }

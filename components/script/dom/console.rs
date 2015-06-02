@@ -8,7 +8,7 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::WindowHelpers;
-use devtools_traits::{DevtoolsControlMsg, ConsoleMessage};
+use devtools_traits::{DevtoolsControlMsg, ConsoleMessage, LogLevel};
 use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
@@ -36,19 +36,14 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
-            propagate_console_msg(&self, ConsoleMessage::LogMessage {
-                message: message,
-                filename: "test".to_owned(),
-                lineNumber: 1,
-                columnNumber: 1,
-            });
+            propagate_console_msg(&self, prepare_message(LogLevel::Log, message));
         }
     }
 
     fn Debug(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
+            propagate_console_msg(&self, prepare_message(LogLevel::Debug, message));
         }
     }
 
@@ -56,6 +51,7 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Info(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
+            propagate_console_msg(&self, prepare_message(LogLevel::Info, message));
         }
     }
 
@@ -63,6 +59,7 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Warn(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
+            propagate_console_msg(&self, prepare_message(LogLevel::Warn, message));
         }
     }
 
@@ -70,6 +67,7 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Error(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
+            propagate_console_msg(&self, prepare_message(LogLevel::Error, message));
         }
     }
 
@@ -81,7 +79,19 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
                 None => "no message",
             };
             println!("Assertion failed: {}", message);
+            propagate_console_msg(&self, prepare_message(LogLevel::Error, message.to_owned()));
         }
+    }
+}
+
+fn prepare_message(logLevel: LogLevel, message: String) -> ConsoleMessage {
+    //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
+    ConsoleMessage{
+        message: message,
+        logLevel: logLevel,
+        filename: "test".to_owned(),
+        lineNumber: 1,
+        columnNumber: 1
     }
 }
 

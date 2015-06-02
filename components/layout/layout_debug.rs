@@ -26,7 +26,7 @@ pub struct Scope;
 #[macro_export]
 macro_rules! layout_debug_scope(
     ($($arg:tt)*) => (
-        if cfg!(not(ndebug)) {
+        if cfg!(debug_assertions) {
             layout_debug::Scope::new(format!($($arg)*))
         } else {
             layout_debug::Scope
@@ -76,7 +76,7 @@ impl Scope {
     }
 }
 
-#[cfg(not(ndebug))]
+#[cfg(debug_assertions)]
 impl Drop for Scope {
     fn drop(&mut self) {
         STATE_KEY.with(|ref r| {

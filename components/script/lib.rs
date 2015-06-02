@@ -52,7 +52,7 @@ extern crate unicase;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;
-extern crate webdriver_traits;
+extern crate offscreen_gl_context;
 
 pub mod cors;
 pub mod document_loader;

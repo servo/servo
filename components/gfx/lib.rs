@@ -24,6 +24,7 @@ extern crate layers;
 extern crate libc;
 extern crate stb_image;
 extern crate png;
+#[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
 extern crate rustc_serialize;

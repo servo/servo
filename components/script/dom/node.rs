@@ -309,6 +309,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         assert!(self.parent_node.get().is_none());
         for node in self.traverse_preorder() {
             let node = node.root();
+            node.r().set_flag(IS_IN_DOC, false);
             vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
         self.layout_data.dispose();
@@ -426,6 +427,9 @@ pub trait NodeHelpers {
     fn child_elements(self) -> ChildElementIterator;
     fn following_siblings(self) -> NodeSiblingIterator;
     fn preceding_siblings(self) -> ReverseSiblingIterator;
+    fn following_nodes(self, root: JSRef<Node>) -> FollowingNodeIterator;
+    fn preceding_nodes(self, root: JSRef<Node>) -> PrecedingNodeIterator;
+    fn descending_last_children(self) -> LastChildIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -785,6 +789,26 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         }
     }
 
+    fn following_nodes(self, root: JSRef<Node>) -> FollowingNodeIterator {
+        FollowingNodeIterator {
+            current: Some(Temporary::from_rooted(self)),
+            root: Temporary::from_rooted(root),
+        }
+    }
+
+    fn preceding_nodes(self, root: JSRef<Node>) -> PrecedingNodeIterator {
+        PrecedingNodeIterator {
+            current: Some(Temporary::from_rooted(self)),
+            root: Temporary::from_rooted(root),
+        }
+    }
+
+    fn descending_last_children(self) -> LastChildIterator {
+        LastChildIterator {
+            current: self.GetLastChild(),
+        }
+    }
+
     fn is_parent_of(self, child: JSRef<Node>) -> bool {
         match child.parent_node.get().root() {
             Some(ref parent) => parent.r() == self,
@@ -921,7 +945,6 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         let iter = try!(unsafe { self.query_selector_iter(selectors) });
         Ok(NodeList::new_simple_list(window.r(), iter))
     }
-
 
     fn ancestors(self) -> AncestorIterator {
         AncestorIterator {
@@ -1236,6 +1259,114 @@ impl Iterator for ReverseSiblingIterator {
     }
 }
 
+pub struct FollowingNodeIterator {
+    current: Option<Temporary<Node>>,
+    root: Temporary<Node>,
+}
+
+impl Iterator for FollowingNodeIterator {
+    type Item = Temporary<Node>;
+
+    // https://dom.spec.whatwg.org/#concept-tree-following
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+
+        let node = current.root();
+        if let Some(first_child) = node.r().GetFirstChild() {
+            self.current = Some(first_child);
+            return node.r().GetFirstChild()
+        }
+
+        if self.root == current {
+            self.current = None;
+            return None;
+        }
+
+        if let Some(next_sibling) = node.r().GetNextSibling() {
+            self.current = Some(next_sibling);
+            return node.r().GetNextSibling()
+        }
+
+        for ancestor in node.r().inclusive_ancestors() {
+            if self.root == ancestor {
+                break;
+            }
+            if let Some(next_sibling) = ancestor.root().r().GetNextSibling() {
+                self.current = Some(next_sibling);
+                return ancestor.root().r().GetNextSibling()
+            }
+        }
+        self.current = None;
+        return None
+    }
+}
+
+pub struct PrecedingNodeIterator {
+    current: Option<Temporary<Node>>,
+    root: Temporary<Node>,
+}
+
+impl Iterator for PrecedingNodeIterator {
+    type Item = Temporary<Node>;
+
+    // https://dom.spec.whatwg.org/#concept-tree-preceding
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+
+        if self.root == current {
+            self.current = None;
+            return None
+        }
+
+        let node = current.root();
+        if let Some(previous_sibling) = node.r().GetPreviousSibling() {
+            if self.root == previous_sibling {
+                self.current = None;
+                return None
+            }
+
+            if let Some(last_child) = previous_sibling.root().r().descending_last_children().last() {
+                self.current = Some(last_child);
+                return previous_sibling.root().r().descending_last_children().last()
+            }
+
+            self.current = Some(previous_sibling);
+            return node.r().GetPreviousSibling()
+        };
+
+        if let Some(parent_node) = node.r().GetParentNode() {
+            self.current = Some(parent_node);
+            return node.r().GetParentNode()
+        }
+
+        self.current = None;
+        return None
+    }
+}
+
+pub struct LastChildIterator {
+    current: Option<Temporary<Node>>,
+}
+
+impl Iterator for LastChildIterator {
+    type Item = Temporary<Node>;
+
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        }.root();
+        self.current = current.r().GetLastChild();
+        Some(Temporary::from_rooted(current.r()))
+    }
+}
+
 pub struct AncestorIterator {
     current: Option<Temporary<Node>>,
 }
@@ -1297,7 +1428,6 @@ impl Iterator for TreeIterator {
         Some(current)
     }
 }
-
 
 /// Specifies whether children must be recursively cloned or not.
 #[derive(Copy, Clone, PartialEq)]
@@ -1657,7 +1787,7 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: JSRef<Node>, parent: JSRef<Node>, suppress_observers: SuppressObserver) {
+    fn remove(node: JSRef<Node>, parent: JSRef<Node>, _suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent == Temporary::from_rooted(parent)));
 
         // Step 1-5: ranges.
@@ -1665,13 +1795,8 @@ impl Node {
         // Step 8.
         parent.remove_child(node);
 
-        node.set_flag(IS_IN_DOC, false);
-
         // Step 9.
-        match suppress_observers {
-            SuppressObserver::Suppressed => (),
-            SuppressObserver::Unsuppressed => node.node_removed(parent.is_in_doc()),
-        }
+        node.node_removed(parent.is_in_doc());
     }
 
     // https://dom.spec.whatwg.org/#concept-node-clone

@@ -7,31 +7,28 @@ use dom::bindings::codegen::Bindings::URLSearchParamsBinding;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eURLSearchParams, eString};
-use dom::bindings::error::{Fallible};
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
+use encoding::types::EncodingRef;
+use url::form_urlencoded::{parse, serialize_with_encoding};
 use util::str::DOMString;
-
-use encoding::all::UTF_8;
-use encoding::types::{EncodingRef, EncoderTrap};
-
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 // https://url.spec.whatwg.org/#interface-urlsearchparams
 #[dom_struct]
 pub struct URLSearchParams {
     reflector_: Reflector,
-    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
+    // https://url.spec.whatwg.org/#concept-urlsearchparams-list
+    list: DOMRefCell<Vec<(DOMString, DOMString)>>,
 }
 
 impl URLSearchParams {
     fn new_inherited() -> URLSearchParams {
         URLSearchParams {
             reflector_: Reflector::new(),
-            data: DOMRefCell::new(HashMap::new()),
+            list: DOMRefCell::new(vec![]),
         }
     }
 
@@ -43,137 +40,113 @@ impl URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
     pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) ->
                        Fallible<Temporary<URLSearchParams>> {
-        let usp = URLSearchParams::new(global).root();
+        // Step 1.
+        let query = URLSearchParams::new(global).root();
         match init {
-            Some(eString(_s)) => {
-                // XXXManishearth we need to parse the input here
-                // https://url.spec.whatwg.org/#concept-urlencoded-parser
-                // We can use rust-url's implementation here:
-                // https://github.com/SimonSapin/rust-url/blob/master/form_urlencoded.rs#L29
+            Some(eString(init)) => {
+                // Step 2.
+                let query = query.r();
+                *query.list.borrow_mut() = parse(init.as_bytes());
             },
-            Some(eURLSearchParams(u)) => {
-                let u = u.root();
-                let usp = usp.r();
-                let mut map = usp.data.borrow_mut();
+            Some(eURLSearchParams(init)) => {
+                // Step 3.
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                let r = u.r();
-                let data = r.data.borrow();
-                *map = data.clone();
+                let query = query.r();
+                let init = init.root();
+                let init = init.r();
+                *query.list.borrow_mut() = init.list.borrow().clone();
             },
             None => {}
         }
-        Ok(Temporary::from_rooted(usp.r()))
+        // Step 4.
+        Ok(Temporary::from_rooted(query.r()))
     }
 }
 
 impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
     fn Append(self, name: DOMString, value: DOMString) {
-        let mut data = self.data.borrow_mut();
-
-        match data.entry(name) {
-            Occupied(entry) => entry.into_mut().push(value),
-            Vacant(entry) => {
-                entry.insert(vec!(value));
-            }
-        }
-
+        // Step 1.
+        self.list.borrow_mut().push((name, value));
+        // Step 2.
         self.update_steps();
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-delete
     fn Delete(self, name: DOMString) {
-        self.data.borrow_mut().remove(&name);
+        // Step 1.
+        self.list.borrow_mut().retain(|&(ref k, _)| k != &name);
+        // Step 2.
         self.update_steps();
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-get
     fn Get(self, name: DOMString) -> Option<DOMString> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let data = self.data.borrow();
-        data.get(&name).map(|v| v[0].clone())
+        let list = self.list.borrow();
+        list.iter().filter_map(|&(ref k, ref v)| {
+            if k == &name {
+                Some(v.clone())
+            } else {
+                None
+            }
+        }).next()
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
     fn Has(self, name: DOMString) -> bool {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let data = self.data.borrow();
-        data.contains_key(&name)
+        let list = self.list.borrow();
+        list.iter().find(|&&(ref k, _)| k == &name).is_some()
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-set
     fn Set(self, name: DOMString, value: DOMString) {
-        self.data.borrow_mut().insert(name, vec!(value));
+        let mut list = self.list.borrow_mut();
+        let mut index = None;
+        let mut i = 0;
+        list.retain(|&(ref k, _)| {
+            if index.is_none() {
+                if k == &name {
+                    index = Some(i);
+                } else {
+                    i += 1;
+                }
+                true
+            } else {
+                k != &name
+            }
+        });
+        match index {
+            Some(index) => list[index].1 = value,
+            None => list.push((name, value)),
+        };
         self.update_steps();
     }
 
     // https://url.spec.whatwg.org/#stringification-behavior
     fn Stringifier(self) -> DOMString {
-        DOMString::from_utf8(self.serialize(None)).unwrap()
+        self.serialize(None)
     }
 }
 
 pub trait URLSearchParamsHelpers {
-    fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8>;
-    fn update_steps(&self);
+    fn serialize(self, encoding: Option<EncodingRef>) -> DOMString;
 }
 
-impl URLSearchParamsHelpers for URLSearchParams {
-    fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8> {
-        // https://url.spec.whatwg.org/#concept-urlencoded-serializer
-        fn serialize_string(value: &str, encoding: EncodingRef) -> Vec<u8> {
-            // https://url.spec.whatwg.org/#concept-urlencoded-byte-serializer
-
-            // XXXManishearth should this be a strict encoding? Can unwrap()ing the result fail?
-            let value = encoding.encode(value, EncoderTrap::Replace).unwrap();
-
-            // Step 1.
-            let mut buf = vec!();
-
-            // Step 2.
-            for i in &value {
-                let append = match *i {
-                    // Convert spaces:
-                    // ' ' => '+'
-                    0x20 => vec!(0x2B),
-
-                    // Retain the following characters:
-                    // '*', '-', '.', '0'...'9', 'A'...'Z', '_', 'a'...'z'
-                    0x2A | 0x2D | 0x2E | 0x30...0x39 |
-                        0x41...0x5A | 0x5F | 0x61...0x7A => vec!(*i),
-
-                    // Encode everything else using 'percented-encoded bytes'
-                    // https://url.spec.whatwg.org/#percent-encode
-                    a => format!("%{:02X}", a).into_bytes(),
-                };
-                buf.push_all(&append);
-            }
-
-            // Step 3.
-            buf
-        }
-        let encoding = encoding.unwrap_or(UTF_8 as EncodingRef);
-        let mut buf = vec!();
-        let mut first_pair = true;
-        for (k, v) in self.data.borrow().iter() {
-            let name = serialize_string(k, encoding);
-            for val in v {
-                let value = serialize_string(val, encoding);
-                if first_pair {
-                    first_pair = false;
-                } else {
-                    buf.push(0x26); // &
-                }
-                buf.push_all(&name);
-                buf.push(0x3D); // =
-                buf.push_all(&value)
-            }
-        }
-        buf
+impl<'a> URLSearchParamsHelpers for JSRef<'a, URLSearchParams> {
+    // https://url.spec.whatwg.org/#concept-urlencoded-serializer
+    fn serialize(self, encoding: Option<EncodingRef>) -> DOMString {
+        let list = self.list.borrow();
+        serialize_with_encoding(list.iter(), encoding)
     }
+}
 
-    fn update_steps(&self) {
+trait PrivateURLSearchParamsHelpers {
+    fn update_steps(self);
+}
+
+impl<'a> PrivateURLSearchParamsHelpers for JSRef<'a, URLSearchParams> {
+    // https://url.spec.whatwg.org/#concept-uq-update
+    fn update_steps(self) {
         // XXXManishearth Implement this when the URL interface is implemented
-        // https://url.spec.whatwg.org/#concept-uq-update
     }
 }

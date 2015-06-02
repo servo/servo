@@ -10,9 +10,6 @@ path = "lib.rs"
 [dependencies.profile_traits]
 path = "../profile_traits"
 
-[dependencies.task_info]
-path = "../../support/rust-task_info"
-
 [dependencies.util]
 path = "../util"
 
@@ -20,3 +17,9 @@ path = "../util"
 libc = "*"
 regex = "0.1.14"
 time = "0.1.12"
+
+[target.x86_64-apple-darwin.dependencies.task_info]
+path = "../../support/rust-task_info"
+
+[target.i686-apple-darwin.dependencies.task_info]
+path = "../../support/rust-task_info"

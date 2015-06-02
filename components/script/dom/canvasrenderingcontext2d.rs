@@ -140,8 +140,8 @@ impl CanvasRenderingContext2D {
 
         // The source rectangle is the rectangle whose corners are the four points (sx, sy),
         // (sx+sw, sy), (sx+sw, sy+sh), (sx, sy+sh).
-        let source_rect = Rect(Point2D(sx, sy),
-                               Size2D(sw, sh));
+        let source_rect = Rect(Point2D(sx.min(sx+sw), sy.min(sy+sh)),
+                               Size2D(sw.abs(), sh.abs()));
 
         // When the source rectangle is outside the source image,
         // the source rectangle must be clipped to the source image
@@ -158,8 +158,8 @@ impl CanvasRenderingContext2D {
 
         // The destination rectangle is the rectangle whose corners are the four points (dx, dy),
         // (dx+dw, dy), (dx+dw, dy+dh), (dx, dy+dh).
-        let dest_rect = Rect(Point2D(dx, dy),
-                             Size2D(dest_rect_width_scaled, dest_rect_height_scaled));
+        let dest_rect = Rect(Point2D(dx.min(dx+dest_rect_width_scaled), dy.min(dy+dest_rect_height_scaled)),
+                             Size2D(dest_rect_width_scaled.abs(), dest_rect_height_scaled.abs()));
 
         let source_rect = Rect(Point2D(source_rect_clipped.origin.x,
                                      source_rect_clipped.origin.y),
@@ -214,7 +214,11 @@ impl CanvasRenderingContext2D {
         let msg = if self.canvas.root().r() == canvas {
             CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled))
         } else { // Source and target canvases are different
-            let context = canvas.get_2d_context().root();
+            let context = match canvas.get_or_init_2d_context() {
+                Some(context) => context.root(),
+                None => return Err(InvalidState),
+            };
+
             let renderer = context.r().get_renderer();
             let (sender, receiver) = channel::<Vec<u8>>();
             // Reads pixels from source image

@@ -270,6 +270,10 @@ http://example\sexample.com
 # This should fail
 http://Goo%20\sgoo%7C|.com
 
+# This should fail
+http://[]
+http://[:]
+
 # U+3000 is mapped to U+0020 (space) which is disallowed
 http://GOO\u00a0\u3000goo.com
 
@@ -339,3 +343,8 @@ http://foo:\uD83D\uDCA9@example.com/bar  s:http h:example.com p:/bar u:foo pass:
 
 # resolving a relative reference against an unknown scheme results in an error
 x test:test
+
+# Credentials in base
+/some/path http://user@example.org/smth s:http u:user h:example.org p:/some/path
+ http://user:pass@example.org:21/smth s:http u:user pass:pass h:example.org port:21 p:/smth
+/some/path http://user:pass@example.org:21/smth s:http u:user pass:pass h:example.org port:21 p:/some/path

@@ -76,7 +76,7 @@ pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
         },
         Some(ast_map::NodeItem(itm)) => {
             match itm.node {
-                ast::ItemFn(_, style, _, _, _) => match style {
+                ast::ItemFn(_, style, _, _, _, _) => match style {
                     ast::Unsafety::Unsafe => true,
                     _ => false,
                 },

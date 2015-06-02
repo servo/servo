@@ -195,9 +195,9 @@ impl ReportsTree {
         t.count += 1;
     }
 
-    // Fill in sizes for interior nodes. Should only be done once all the reports have been
-    // inserted.
-    fn compute_interior_node_sizes(&mut self) -> usize {
+    // Fill in sizes for interior nodes and sort sub-trees accordingly. Should only be done once
+    // all the reports have been inserted.
+    fn compute_interior_node_sizes_and_sort(&mut self) -> usize {
         if !self.children.is_empty() {
             // Interior node. Derive its size from its children.
             if self.size != 0 {
@@ -205,8 +205,10 @@ impl ReportsTree {
                 panic!("one report's path is a sub-path of another report's path");
             }
             for child in self.children.iter_mut() {
-                self.size += child.compute_interior_node_sizes();
+                self.size += child.compute_interior_node_sizes_and_sort();
             }
+            // Now that child sizes have been computed, we can sort the children.
+            self.children.sort_by(|t1, t2| t2.size.cmp(&t1.size));
         }
         self.size
     }
@@ -258,9 +260,9 @@ impl ReportsForest {
     }
 
     fn print(&mut self) {
-        // Fill in sizes of interior nodes.
+        // Fill in sizes of interior nodes, and recursively sort the sub-trees.
         for (_, tree) in self.trees.iter_mut() {
-            tree.compute_interior_node_sizes();
+            tree.compute_interior_node_sizes_and_sort();
         }
 
         // Put the trees into a sorted vector. Primary sort: degenerate trees (those containing a
@@ -350,7 +352,6 @@ mod system_reporter {
             true
         }
     }
-
 
     #[cfg(target_os="linux")]
     extern {
@@ -572,13 +573,10 @@ mod system_reporter {
             }
         }
 
-        let mut segs: Vec<(String, usize)> = seg_map.into_iter().collect();
-
-        // Note that the sum of all these segments' RSS values differs from the "resident" measurement
-        // obtained via /proc/<pid>/statm in get_resident(). It's unclear why this difference occurs;
-        // for some processes the measurements match, but for Servo they do not.
-        segs.sort_by(|&(_, rss1), &(_, rss2)| rss2.cmp(&rss1));
-
+        // Note that the sum of all these segments' RSS values differs from the "resident"
+        // measurement obtained via /proc/<pid>/statm in get_resident(). It's unclear why this
+        // difference occurs; for some processes the measurements match, but for Servo they do not.
+        let segs: Vec<(String, usize)> = seg_map.into_iter().collect();
         segs
     }
 

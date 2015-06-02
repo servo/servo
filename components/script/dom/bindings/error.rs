@@ -11,11 +11,10 @@ use dom::domexception::{DOMException, DOMErrorName};
 
 use util::str::DOMString;
 
-use js::jsapi::{JSContext, JSBool, JSObject};
+use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
 use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, JSEXN_TYPEERR, JSEXN_RANGEERR};
 use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
-use js::glue::{ReportError};
 use js::rust::with_compartment;
 
 use libc;
@@ -141,12 +140,10 @@ pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
 
 /// Throw an exception to signal that a `JSVal` can not be converted to any of
 /// the types in an IDL union type.
-pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
+pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let message = format!("argument could not be converted to any of: {}", names);
-    let string = CString::new(message).unwrap();
-    unsafe { ReportError(cx, string.as_ptr()) };
-    return 0;
+    let error = format!("argument could not be converted to any of: {}", names);
+    throw_type_error(cx, &error);
 }
 
 /// Format string used to throw javascript errors.

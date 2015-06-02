@@ -1,1 +1,0 @@
-loads_scripts_with_improper_integrity_uri_scheme=true;

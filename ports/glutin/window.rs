@@ -14,7 +14,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
-use std::mem;
+use net::net_error_list::NetError;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use url::Url;
@@ -310,6 +310,8 @@ impl Window {
     }
 
     pub fn wait_events(&self) -> Vec<WindowEvent> {
+        use std::mem;
+
         let mut events = mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new());
         let mut close_event = false;
 
@@ -505,7 +507,13 @@ impl WindowMethods for Window {
     fn set_page_url(&self, _: Url) {
     }
 
-    fn load_end(&self) {
+    fn load_start(&self, _: bool, _: bool) {
+    }
+
+    fn load_end(&self, _: bool, _: bool) {
+    }
+
+    fn load_error(&self, _: NetError, _: String) {
     }
 
     /// Has no effect on Android.
@@ -686,7 +694,11 @@ impl WindowMethods for Window {
     fn set_page_url(&self, _: Url) {
     }
 
-    fn load_end(&self) {
+    fn load_start(&self, _: bool, _: bool) {
+    }
+    fn load_end(&self, _: bool, _: bool) {
+    }
+    fn load_error(&self, _: NetError, _: String) {
     }
 
     fn set_cursor(&self, _: Cursor) {

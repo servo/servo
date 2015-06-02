@@ -29,7 +29,8 @@ use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDire
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
-use msg::constellation_msg::{WebDriverCommandMsg};
+use msg::constellation_msg::WebDriverCommandMsg;
+use msg::webdriver_msg;
 use net_traits::{self, ResourceTask};
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
@@ -50,7 +51,6 @@ use util::geometry::PagePx;
 use util::opts;
 use util::task::spawn_named;
 use clipboard::ClipboardContext;
-use webdriver_traits;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 ///
@@ -190,7 +190,7 @@ pub struct SendableFrameTree {
 }
 
 struct WebDriverData {
-    load_channel: Option<Sender<webdriver_traits::LoadComplete>>
+    load_channel: Option<Sender<webdriver_msg::LoadComplete>>
 }
 
 impl WebDriverData {
@@ -391,9 +391,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             // A page loaded through one of several methods above has completed all parsing,
             // script, and reflow messages have been sent.
-            ConstellationMsg::LoadComplete => {
+            ConstellationMsg::LoadComplete(pipeline_id) => {
                 debug!("constellation got load complete message");
-                self.handle_load_complete_msg()
+                self.handle_load_complete_msg(&pipeline_id)
             }
             // Handle a forward or back request
             ConstellationMsg::Navigate(pipeline_info, direction) => {
@@ -425,9 +425,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                  subpage_id,
                                                  event);
             }
-            ConstellationMsg::GetRootPipeline(resp_chan) => {
+            ConstellationMsg::GetPipeline(frame_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
-                self.handle_get_root_pipeline(resp_chan);
+                self.handle_get_pipeline(frame_id, resp_chan);
+            }
+            ConstellationMsg::GetFrame(parent_pipeline_id, subpage_id, resp_chan) => {
+                debug!("constellation got get root pipeline message");
+                self.handle_get_frame(parent_pipeline_id, subpage_id, resp_chan);
             }
             ConstellationMsg::Focus(pipeline_id) => {
                 debug!("constellation got focus message");
@@ -519,8 +523,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_init_load(&mut self, url: Url) {
         let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
         let root_pipeline_id =
-            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url));
+            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url.clone()));
+        self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
+        self.compositor_proxy.send(CompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_rect_msg(&mut self, containing_pipeline_id: PipelineId, subpage_id: SubpageId,
@@ -629,6 +635,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // requested change so it can update its internal state.
         match self.pipeline(source_id).parent_info {
             Some((parent_pipeline_id, subpage_id)) => {
+                self.handle_load_start_msg(&source_id);
                 // Message the constellation to find the script task for this iframe
                 // and issue an iframe load through there.
                 let parent_pipeline = self.pipeline(parent_pipeline_id);
@@ -646,6 +653,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     }
                 }
 
+                self.handle_load_start_msg(&source_id);
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
 
@@ -661,10 +669,33 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    fn handle_load_complete_msg(&mut self) {
-        self.compositor_proxy.send(CompositorMsg::LoadComplete);
+    fn handle_load_start_msg(&mut self, pipeline_id: &PipelineId) {
+        let mut back;
+        let mut forward;
+        let frameid = self.pipeline_to_frame_map.get(pipeline_id);
+        match frameid {
+            Some(frame_id) => {
+                forward = if !self.frame(*frame_id).next.is_empty() { true }
+                          else { false };
+                back = if !self.frame(*frame_id).prev.is_empty() { true }
+                       else { false };
+            },
+            None => return
+        };
+        self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
+    }
+
+    fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
+        let frame_id = match self.pipeline_to_frame_map.get(pipeline_id) {
+            Some(frame) => *frame,
+            None => return
+        };
+
+        let forward = !self.mut_frame(frame_id).next.is_empty();
+        let back = !self.mut_frame(frame_id).prev.is_empty();
+        self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
         if let Some(ref reply_chan) = self.webdriver.load_channel {
-            reply_chan.send(webdriver_traits::LoadComplete).unwrap();
+            reply_chan.send(webdriver_msg::LoadComplete).unwrap();
         }
         self.webdriver.load_channel = None;
     }
@@ -788,12 +819,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         pipeline.trigger_mozbrowser_event(subpage_id, event);
     }
 
-    fn handle_get_root_pipeline(&mut self, resp_chan: Sender<Option<PipelineId>>) {
-        let pipeline_id = self.root_frame_id.map(|frame_id| {
+    fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
+                           resp_chan: Sender<Option<PipelineId>>) {
+        let pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
             let frame = self.frames.get(&frame_id).unwrap();
             frame.current
         });
         resp_chan.send(pipeline_id).unwrap();
+    }
+
+    fn handle_get_frame(&mut self,
+                        containing_pipeline_id: PipelineId,
+                        subpage_id: SubpageId,
+                        resp_chan: Sender<Option<FrameId>>) {
+        let frame_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).and_then(
+            |x| self.pipeline_to_frame_map.get(&x)).map(|x| *x);
+        resp_chan.send(frame_id).unwrap();
     }
 
     fn focus_parent_pipeline(&self, pipeline_id: PipelineId) {
