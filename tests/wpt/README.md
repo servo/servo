@@ -134,3 +134,21 @@ The `mozilla` directory contains tests that cannot be upstreamed for some
 reason (e.g. because they depend on Servo-specific APIs), as well as some
 legacy tests that should be upstreamed at some point. When run they are
 mounted on the server under `/_mozilla/`.
+
+Analyzing reftest results
+=========================
+
+Reftest results can be analyzed from a raw log file. To generate this run
+with the `--log-raw` option e.g.
+
+    ./mach test-css --log-raw css.log
+    
+This file can then be fed into the
+[reftest analyzer](http://hoppipolla.co.uk/410/reftest-analyser-structured.xhtml)
+which will show all failing tests (not just those with unexpected results).
+Note that this ingests logs in a different format to original version of the
+tool written for gecko reftests.
+
+The reftest analyzer allows pixel-level comparison of the test and reference
+screenshots. Tests that both fail and have an unexpected result are marked
+with a `!`.
