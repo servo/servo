@@ -17,6 +17,7 @@ use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use js::glue::{ReportError};
+use js::JSFalse;
 
 use libc;
 use std::ffi::CString;
@@ -149,7 +150,7 @@ pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> u8 {
     let message = format!("argument could not be converted to any of: {}", names);
     let string = CString::new(message).unwrap();
     unsafe { ReportError(cx, string.as_ptr()) };
-    return false as u8;
+    return JSFalse;
 }
 
 /// Format string used to throw javascript errors.
