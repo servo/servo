@@ -57,6 +57,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use util::opts;
 
+use std::borrow::Borrow;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
@@ -91,6 +92,13 @@ impl Browser {
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
             WindowMethods::create_compositor_channel(&window);
+        let supports_clipboard = match window {
+            Some(ref win_rc) => {
+                let win: &Window = win_rc.borrow();
+                win.supports_clipboard()
+            }
+            None => false
+        };
         let time_profiler_chan = profile_time::Profiler::create(opts.time_profiler_period);
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
         let devtools_chan = opts.devtools_port.map(|port| {
@@ -104,7 +112,8 @@ impl Browser {
                                                       compositor_proxy.clone_compositor_proxy(),
                                                       time_profiler_chan.clone(),
                                                       devtools_chan,
-                                                      mem_profiler_chan.clone());
+                                                      mem_profiler_chan.clone(),
+                                                      supports_clipboard);
 
         if let Some(port) = opts.webdriver_port {
             webdriver_server::start_server(port, constellation_chan.clone());
@@ -149,7 +158,8 @@ fn create_constellation(opts: opts::Opts,
                         compositor_proxy: Box<CompositorProxy+Send>,
                         time_profiler_chan: time::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-                        mem_profiler_chan: mem::ProfilerChan) -> ConstellationChan {
+                        mem_profiler_chan: mem::ProfilerChan,
+                        supports_clipboard: bool) -> ConstellationChan {
     let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
 
     let image_cache_task = new_image_cache_task(resource_task.clone());
@@ -165,7 +175,8 @@ fn create_constellation(opts: opts::Opts,
         time_profiler_chan,
         mem_profiler_chan,
         devtools_chan,
-        storage_task);
+        storage_task,
+        supports_clipboard);
 
     // Send the URL command to the constellation.
     match opts.url {

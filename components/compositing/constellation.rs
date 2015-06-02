@@ -122,7 +122,7 @@ pub struct Constellation<LTF, STF> {
     pub window_size: WindowSizeData,
 
     /// Means of accessing the clipboard
-    clipboard_ctx: ClipboardContext,
+    clipboard_ctx: Option<ClipboardContext>,
 
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData
@@ -215,7 +215,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  time_profiler_chan: time::ProfilerChan,
                  mem_profiler_chan: mem::ProfilerChan,
                  devtools_chan: Option<DevtoolsControlChan>,
-                 storage_task: StorageTask)
+                 storage_task: StorageTask,
+                 supports_clipboard: bool)
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
@@ -248,7 +249,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     device_pixel_ratio: ScaleFactor::new(1.0),
                 },
                 phantom: PhantomData,
-                clipboard_ctx: ClipboardContext::new().unwrap(),
+                clipboard_ctx: if supports_clipboard {
+                    ClipboardContext::new().ok()
+                } else {
+                    None
+                },
                 webdriver: WebDriverData::new()
             };
             constellation.run();
@@ -438,13 +443,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.handle_focus_msg(pipeline_id);
             }
             ConstellationMsg::GetClipboardContents(sender) => {
-                let result = match self.clipboard_ctx.get_contents() {
-                    Ok(s) => s,
-                    Err(e) => {
+                let result = self.clipboard_ctx.as_ref().map_or(
+                    "".to_string(),
+                    |ctx| ctx.get_contents().unwrap_or_else(|e| {
                         debug!("Error getting clipboard contents ({}), defaulting to empty string", e);
                         "".to_string()
-                    },
-                };
+                    })
+                );
                 sender.send(result).unwrap();
             }
             ConstellationMsg::WebDriverCommand(command) => {

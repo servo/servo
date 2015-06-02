@@ -614,6 +614,10 @@ impl WindowMethods for Window {
             _ => {}
         }
     }
+
+    fn supports_clipboard(&self) -> bool {
+        true
+    }
 }
 
 /// The type of a window.
@@ -717,6 +721,10 @@ impl WindowMethods for Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, _: Key, _: constellation_msg::KeyModifiers) {
+    }
+
+    fn supports_clipboard(&self) -> bool {
+        false
     }
 }
 
