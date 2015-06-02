@@ -100,7 +100,12 @@ def check_whitespace(idx, line):
 def check_by_line(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
-        for error in itertools.chain(check_length(idx, line), check_whitespace(idx, line), check_whatwg_url(idx, line)):
+        errors = itertools.chain(
+            check_length(idx, line),
+            check_whitespace(idx, line),
+            check_whatwg_url(idx, line),
+        )
+        for error in errors:
             yield error
 
 
