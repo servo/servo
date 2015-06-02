@@ -10,13 +10,13 @@ use std::sync::mpsc::channel;
 
 pub trait ClipboardProvider {
     // blocking method to get the clipboard contents
-    fn get_clipboard_contents(&mut self) -> String;
+    fn clipboard_contents(&mut self) -> String;
     // blocking method to set the clipboard contents
     fn set_clipboard_contents(&mut self, &str);
 }
 
 impl ClipboardProvider for ConstellationChan {
-    fn get_clipboard_contents(&mut self) -> String {
+    fn clipboard_contents(&mut self) -> String {
         let (tx, rx) = channel();
         self.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
         rx.recv().unwrap()
@@ -39,7 +39,7 @@ impl DummyClipboardContext {
 }
 
 impl ClipboardProvider for DummyClipboardContext {
-    fn get_clipboard_contents(&mut self) -> String {
+    fn clipboard_contents(&mut self) -> String {
         self.content.clone()
     }
     fn set_clipboard_contents(&mut self, s: &str) {

@@ -77,7 +77,7 @@ pub struct LayerProperties {
 /// The interface used by the painter to acquire draw targets for each paint frame and
 /// submit them to be drawn to the display.
 pub trait PaintListener {
-    fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata>;
+    fn graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata>;
 
     /// Informs the compositor of the layers for the given pipeline. The compositor responds by
     /// creating and/or destroying paint layers as necessary.
