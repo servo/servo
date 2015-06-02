@@ -29,7 +29,7 @@ use dom::bindings::js::{JS, RootCollection, trace_roots};
 use dom::bindings::js::{RootCollectionPtr, Root, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
+use dom::bindings::trace::{JSTraceable, trace_traceables, RootedVec};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap, DOM_CALLBACKS};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler,
                     DocumentProgressTask, DocumentSource, MouseEventType};
@@ -113,7 +113,7 @@ unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
         }
     });
 
-    trace_collections(tr);
+    trace_traceables(tr);
     trace_roots(tr);
 }
 

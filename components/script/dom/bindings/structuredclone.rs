@@ -13,8 +13,7 @@ use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_WriteStructuredClone, JS_ClearPendingException};
 use js::jsapi::JS_ReadStructuredClone;
-use js::jsapi::{RootedValue, HandleValue, MutableHandleValue};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{HandleValue, MutableHandleValue};
 
 use libc::size_t;
 use std::ptr;
