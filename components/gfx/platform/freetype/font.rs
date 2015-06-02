@@ -206,7 +206,7 @@ impl FontHandleMethods for FontHandle {
 
     fn metrics(&self) -> FontMetrics {
         /* TODO(Issue #76): complete me */
-        let face = self.face_rec();
+        let face = self.face_rec_mut();
 
         let underline_size = self.font_units_to_au(face.underline_thickness as f64);
         let underline_offset = self.font_units_to_au(face.underline_position as f64);
@@ -276,14 +276,14 @@ impl<'a> FontHandle {
         }
     }
 
-    fn face_rec(&'a self) -> &'a mut FT_FaceRec {
+    fn face_rec_mut(&'a self) -> &'a mut FT_FaceRec {
         unsafe {
             &mut (*self.face)
         }
     }
 
     fn font_units_to_au(&self, value: f64) -> Au {
-        let face = self.face_rec();
+        let face = self.face_rec_mut();
 
         // face.size is a *c_void in the bindings, presumably to avoid
         // recursive structural types
