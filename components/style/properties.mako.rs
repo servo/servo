@@ -294,13 +294,38 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="outline-width">
-        pub use super::border_top_width::get_initial_value;
-        pub type SpecifiedValue = specified::Length;
-        pub mod computed_value {
-            pub use util::geometry::Au as T;
+        use values::computed::{ToComputedValue, Context};
+        use util::geometry::Au;
+        use cssparser::ToCss;
+        use std::fmt;
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                self.0.to_css(dest)
+            }
         }
+
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            specified::parse_border_width(input)
+            specified::parse_border_width(input).map(SpecifiedValue)
+        }
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedValue(pub specified::Length);
+        pub mod computed_value {
+            use util::geometry::Au;
+            pub type T = Au;
+        }
+        pub use super::border_top_width::get_initial_value;
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                if !context.outline_style_present {
+                    Au(0)
+                } else {
+                    self.0.to_computed_value(context)
+                }
+            }
         }
     </%self:longhand>
 
@@ -4509,7 +4534,7 @@ pub mod shorthands {
             Ok(Longhands {
                 outline_color: color,
                 outline_style: style,
-                outline_width: width,
+                outline_width: width.map(longhands::outline_width::SpecifiedValue),
             })
         } else {
             Err(())
@@ -5499,6 +5524,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
             border_right_present: false,
             border_bottom_present: false,
             border_left_present: false,
+            outline_style_present: false,
         }
     };
 
@@ -5568,6 +5594,13 @@ pub fn cascade(viewport_size: Size2D<Au>,
                 }
                 PropertyDeclaration::TextDecoration(ref value) => {
                     context.text_decoration = get_specified!(get_text, text_decoration, value);
+                }
+                PropertyDeclaration::OutlineStyle(ref value) => {
+                    context.outline_style_present =
+                    match get_specified!(get_outline, outline_style, value) {
+                        BorderStyle::none => false,
+                        _ => true,
+                    };
                 }
                 % for side in ["top", "right", "bottom", "left"]:
                     PropertyDeclaration::Border${side.capitalize()}Style(ref value) => {
