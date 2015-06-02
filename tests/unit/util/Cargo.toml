@@ -11,5 +11,9 @@ doctest = false
 [dependencies.util]
 path = "../../../components/util"
 
+
+[dependencies.plugins]
+path = "../../../components/plugins"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
