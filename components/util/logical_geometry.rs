@@ -7,7 +7,7 @@
 use geom::{Size2D, Point2D, SideOffsets2D, Rect};
 use geom::num::Zero;
 use std::cmp::{min, max};
-use std::fmt::{Debug, Formatter, Error};
+use std::fmt::{self, Debug, Formatter, Error};
 use std::ops::{Add, Sub};
 
 bitflags!(
@@ -87,7 +87,7 @@ impl WritingMode {
     }
 }
 
-impl Debug for WritingMode {
+impl fmt::Display for WritingMode {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         if self.is_vertical() {
             try!(write!(formatter, "V"));
