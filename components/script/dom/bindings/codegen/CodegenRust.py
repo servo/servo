@@ -2373,7 +2373,7 @@ let traps = ProxyTraps {
     nativeCall: None,
     hasInstance: None,
     objectClassIs: None,
-    className: None,
+    className: Some(className),
     fun_toString: None,
     boxedValue_unbox: None,
     defaultValue: None,
@@ -4402,13 +4402,13 @@ return true as u8;""" % (getIndexedOrExpando, getNamed)
     def definition_body(self):
         return CGGeneric(self.getBody())
 
-class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
+class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', '_proxy')]
-        CGAbstractExternMethod.__init__(self, descriptor, "obj_toString", "*mut JSString", args)
+        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', '_proxy')]
+        CGAbstractExternMethod.__init__(self, descriptor, "className", "*const i8", args)
         self.descriptor = descriptor
     def getBody(self):
-        return """proxyhandler::object_to_string(cx, "%s")""" % self.descriptor.name
+        return 'b"%s" as *const u8 as *const i8' % self.descriptor.name
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4683,7 +4683,7 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGProxyUnwrap(descriptor))
                 cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
-                cgThings.append(CGDOMJSProxyHandler_obj_toString(descriptor))
+                cgThings.append(CGDOMJSProxyHandler_className(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_hasOwn(descriptor))
 
