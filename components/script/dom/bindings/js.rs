@@ -29,7 +29,6 @@ use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
 use js::jsapi::{JSObject, Heap, JSTracer};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::GCMethods;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 
@@ -89,7 +88,7 @@ pub struct LayoutJS<T> {
 impl<T: Reflectable> LayoutJS<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
-        (**self.ptr).reflector().get_jsobject()
+        (**self.ptr).reflector().get_jsobject().get()
     }
 }
 

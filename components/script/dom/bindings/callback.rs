@@ -20,6 +20,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use std::ffi::CString;
 use std::ptr;
 use std::rc::Rc;
+use std::intrinsics::return_address;
 
 /// The exception handling used for a call.
 #[derive(Copy, Clone, PartialEq)]
@@ -137,7 +138,7 @@ impl CallbackInterface {
 pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
                                              p: &T,
                                              mut rval: MutableHandleObject) {
-    rval.set(p.reflector().get_jsobject());
+    rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
 
     unsafe {
@@ -150,14 +151,14 @@ pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
 pub struct CallSetup {
+    /// The compartment for reporting exceptions.
+    exception_compartment: RootedObject,
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The compartment we were in before the call.
     old_compartment: *mut JSCompartment,
-    /// The compartment for reporting exceptions.
-    exception_compartment: *mut JSObject,
     /// The exception handling used for the call.
-    handling: ExceptionHandling,
+    _handling: ExceptionHandling,
 }
 
 impl CallSetup {
@@ -168,11 +169,16 @@ impl CallSetup {
         let cx = global.r().get_cx();
         unsafe { JS_BeginRequest(cx); }
 
+        let exception_compartment = unsafe {
+            GetGlobalForObjectCrossCompartment(callback.callback())
+        };
         CallSetup {
+            exception_compartment:
+                RootedObject::new_with_addr(cx, exception_compartment,
+                                            unsafe { return_address() }),
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
-            exception_compartment: unsafe { GetGlobalForObjectCrossCompartment(callback.callback()) },
-            handling: handling,
+            _handling: handling,
         }
     }
 
@@ -186,11 +192,10 @@ impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe { JS_LeaveCompartment(self.cx, self.old_compartment); }
         let need_to_deal_with_exception =
-            self.handling == ExceptionHandling::Report &&
             unsafe { JS_IsExceptionPending(self.cx) } != 0;
         if need_to_deal_with_exception {
             unsafe {
-                let old_global = RootedObject::new(self.cx, self.exception_compartment);
+                let old_global = RootedObject::new(self.cx, self.exception_compartment.ptr);
                 let saved = JS_SaveFrameChain(self.cx) != 0;
                 {
                     let _ac = JSAutoCompartment::new(self.cx, old_global.ptr);

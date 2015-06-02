@@ -24,7 +24,6 @@ use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElem
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::InheritTypes::ElementDerived;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::HierarchyRequest;
@@ -1790,7 +1789,7 @@ impl<'a> DocumentMethods for &'a Document {
                     *found = true;
                     // TODO: Step 2.
                     // Step 3.
-                    return first.r().reflector().get_jsobject();
+                    return first.r().reflector().get_jsobject().get()
                 }
             } else {
                 *found = false;
@@ -1802,7 +1801,7 @@ impl<'a> DocumentMethods for &'a Document {
         let window = self.window();
         let filter = NamedElementFilter { name: name };
         let collection = HTMLCollection::create(window.r(), root, box filter);
-        collection.r().reflector().get_jsobject()
+        collection.r().reflector().get_jsobject().get()
     }
 
     global_event_handlers!();

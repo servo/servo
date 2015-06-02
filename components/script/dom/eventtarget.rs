@@ -17,7 +17,7 @@ use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject};
-use js::jsapi::{JSContext, JSObject, RootedFunction};
+use js::jsapi::{JSContext, RootedFunction, HandleObject};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use util::str::DOMString;
@@ -162,7 +162,7 @@ pub trait EventTargetHelpers {
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
-                                    scope: *mut JSObject,
+                                    scope: HandleObject,
                                     ty: &str,
                                     source: DOMString);
     fn set_event_handler_common<T: CallbackContainer>(self, ty: &str,
@@ -234,7 +234,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
-                                    scope: *mut JSObject,
+                                    scope: HandleObject,
                                     ty: &str,
                                     source: DOMString) {
         let url = CString::new(url.serialize()).unwrap();
@@ -249,7 +249,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
         let _ar = JSAutoRequest::new(cx);
-        let _ac = JSAutoCompartment::new(cx, scope);
+        let _ac = JSAutoCompartment::new(cx, scope.get());
         let mut handler = RootedFunction::new(cx, ptr::null_mut());
         let rv = unsafe {
             CompileFunction(cx,
@@ -263,7 +263,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
                             handler.handle_mut())
         };
         if rv == 0 || handler.ptr.is_null() {
-            report_pending_exception(cx, self.reflector().get_jsobject());
+            report_pending_exception(cx, self.reflector().get_jsobject().get());
             return;
         }
 

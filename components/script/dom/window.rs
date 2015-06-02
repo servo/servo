@@ -568,20 +568,21 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
     fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
                                              rval: MutableHandleValue) {
         let this = self.reflector().get_jsobject();
-        let cx = global_object_for_js_object(this).r().get_cx();
+        let global = global_object_for_js_object(this.get());
+        let cx = global.r().get_cx();
         let _ar = JSAutoRequest::new(cx);
-        let global = global_object_for_js_object(this).r().reflector().get_jsobject();
+        let globalhandle = global.r().reflector().get_jsobject();
         let code: Vec<u16> = code.utf16_units().collect();
         let filename = CString::new(filename).unwrap();
 
-        let _ac = JSAutoCompartment::new(cx, global);
+        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
         unsafe {
             if Evaluate2(cx, options.ptr, code.as_ptr() as *const i16,
                          code.len() as libc::size_t,
                          rval) == 0 {
                 debug!("error evaluating JS string");
-                report_pending_exception(cx, global);
+                report_pending_exception(cx, globalhandle.get());
             }
         }
     }

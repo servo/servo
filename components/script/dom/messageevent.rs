@@ -16,7 +16,7 @@ use dom::eventtarget::EventTarget;
 use util::str::DOMString;
 
 use js::jsapi::{JSContext, Heap, HandleValue};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::JSVal;
 
 use std::borrow::ToOwned;
 use std::default::Default;

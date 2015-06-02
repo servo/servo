@@ -51,7 +51,7 @@ use js::jsapi::{JS_StringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_Ge
 use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
 use js::jsapi::{JS_WrapValue};
 use js::jsapi::{JSClass, JS_GetClass};
-use js::jsapi::{HandleId, RootedValue, HandleValue, HandleObject, MutableHandleValue};
+use js::jsapi::{HandleId, HandleValue, HandleObject, MutableHandleValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
@@ -100,7 +100,7 @@ impl ToJSValConvertible for () {
 }
 
 impl ToJSValConvertible for JSVal {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         if unsafe { JS_WrapValue(cx, rval) } == 0 {
             panic!("JS_WrapValue failed.");
         }
@@ -108,7 +108,7 @@ impl ToJSValConvertible for JSVal {
 }
 
 impl ToJSValConvertible for HandleValue {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         if unsafe { JS_WrapValue(cx, rval) } == 0 {
             panic!("JS_WrapValue failed.");
         }
@@ -272,7 +272,7 @@ impl FromJSValConvertible for f64 {
 
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let value = **self;
         value.to_jsval(cx, rval);
     }
@@ -308,7 +308,7 @@ impl ToJSValConvertible for str {
 }
 
 impl ToJSValConvertible for DOMString {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
     }
 }
@@ -340,7 +340,6 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
         assert!(!chars.is_null());
 
         let mut buf = String::with_capacity(length as usize);
-        let mut i = 0;
         for i in 0..(length as isize) {
             unsafe {
                 buf.push(*chars.offset(i) as char);
@@ -389,7 +388,7 @@ impl FromJSValConvertible for DOMString {
 }
 
 impl ToJSValConvertible for USVString {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.0.to_jsval(cx, rval);
     }
 }
@@ -472,7 +471,7 @@ impl FromJSValConvertible for ByteString {
 
 impl ToJSValConvertible for Reflector {
     fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
-        let obj = self.get_jsobject();
+        let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
         rval.set(ObjectValue(unsafe { &*obj }));
         if unsafe { JS_WrapValue(cx, rval) } == 0 {
@@ -601,13 +600,13 @@ pub fn native_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
 }
 
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.r().reflector().to_jsval(cx, rval);
     }
 }
 
 impl<'a, T: Reflectable> ToJSValConvertible for &'a T {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
     }
 }

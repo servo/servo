@@ -251,7 +251,7 @@ impl TimerManager {
             }
             TimerCallback::StringTimerCallback(code_str) => {
                 let proxy = this.reflector().get_jsobject();
-                let cx = global_object_for_js_object(proxy).r().get_cx();
+                let cx = global_object_for_js_object(proxy.get()).r().get_cx();
                 let mut rval = RootedValue::new(cx, UndefinedValue());
                 this.evaluate_js_on_global_with_result(&code_str, rval.handle_mut());
             }
