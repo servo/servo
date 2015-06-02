@@ -49,7 +49,7 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
                 applicable_declarations_cache: ApplicableDeclarationsCache::new(),
                 style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             };
-            r.set(unsafe { boxed::into_raw(context) });
+            r.set(boxed::into_raw(context));
         } else if shared_layout_context.screen_size_changed {
             unsafe {
                 (*r.get()).applicable_declarations_cache.evict_all();
