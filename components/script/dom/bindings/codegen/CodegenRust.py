@@ -657,7 +657,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # failureCode will prevent pending exceptions from being set in cases when
     # they really should be!
     if exceptionCode is None:
-        exceptionCode = "return false as u8;"
+        exceptionCode = "return JSFalse;"
 
     needsRooting = typeNeedsRooting(type, descriptorProvider)
 
@@ -2546,7 +2546,7 @@ class CGPerSignatureCall(CGThing):
 
         errorResult = None
         if self.isFallible():
-            errorResult = " false as u8"
+            errorResult = " JSFalse"
 
         cgThings.append(CGCallGenerator(
                     errorResult,
@@ -2698,7 +2698,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         unwrapThis = CGGeneric(
             "let thisobj = *vp.offset(1);\n"
             "if !thisobj.is_null_or_undefined() && !thisobj.is_object() {\n"
-            "    return false as u8;\n"
+            "    return JSFalse;\n"
             "}\n"
             "let obj = if thisobj.is_object() {\n"
             "    RootedObject::new(cx, thisobj.to_object())\n"
@@ -2964,11 +2964,11 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         return CGGeneric("""\
 let mut v = RootedValue::new(cx, UndefinedValue());
 if JS_GetProperty(cx, obj, b"%s".as_ptr() as *const i8, v.handle_mut()) == 0 {
-    return false as u8;
+    return JSFalse;
 }
 if !v.ptr.is_object() {
     throw_type_error(cx, "Value.%s is not an object.");
-    return false as u8;
+    return JSFalse;
 }
 let target_obj = RootedObject::new(cx, v.ptr.to_object());
 JS_SetProperty(cx, target_obj.handle(), b"%s".as_ptr() as *const i8, args.get(0))
@@ -4030,7 +4030,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             argument = arguments[1]
             info = getJSToNativeConversionInfo(
                 argument.type, descriptor, treatNullAs=argument.treatNullAs,
-                exceptionCode="return false as u8;")
+                exceptionCode="return JSFalse;")
             template = info.template
             declType = info.declType
             needsRooting = info.needsRooting
@@ -4146,7 +4146,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
-            fillDescriptor = "desc.get().value = result_root.ptr;\nfill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn true as u8;" % readonly
+            fillDescriptor = "desc.get().value = result_root.ptr;\nfill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn JSTrue;" % readonly
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
@@ -4162,7 +4162,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
-            fillDescriptor = "desc.get().value = result_root.ptr;\nfill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn true as u8;" % readonly
+            fillDescriptor = "desc.get().value = result_root.ptr;\nfill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\nreturn JSTrue;" % readonly
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
@@ -4186,17 +4186,17 @@ let expando = RootedObject::new(cx, get_expando_object(proxy));
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
 if !expando.ptr.is_null() {
     if JS_GetPropertyDescriptorById(cx, expando.handle(), id, desc) == 0 {
-        return false as u8;
+        return JSFalse;
     }
     if !desc.get().obj.is_null() {
         // Pretend the property lives on the wrapper.
         desc.get().obj = *proxy.ptr;
-        return true as u8;
+        return JSTrue;
     }
 }
 """ + namedGet + """\
 desc.get().obj = ptr::null_mut();
-return true as u8;"""
+return JSTrue;"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4223,11 +4223,11 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    let this = UnwrapProxy(proxy);\n" +
                     "    let this = &*this;\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
-                    "    return true as u8;\n" +
+                    "    return JSTrue;\n" +
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
             set += ("if get_array_index_from_id(cx, id).is_some() {\n" +
-                    "    return false as u8;\n" +
+                    "    return JSFalse;\n" +
                     "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
                     "}\n") % self.descriptor.name
 
@@ -4241,9 +4241,9 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    let this = &*this;\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "    (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
-                    "    return true as u8;\n" +
+                    "    return JSTrue;\n" +
                     "} else {\n" +
-                    "    return false as u8;\n" +
+                    "    return JSFalse;\n" +
                     "}\n")
         else:
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
@@ -4257,10 +4257,10 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "        //       ? opresult.succeed()\n" +
                     "        //       : ThrowErrorMessage(cx, MSG_NO_NAMED_SETTER, \"${name}\");\n" +
                     "        (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
-                    "        return true as u8;\n" +
+                    "        return JSTrue;\n" +
                     "    }\n" +
                     "    (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
-                    "    return true as u8;\n"
+                    "    return JSTrue;\n"
                     "}\n") % (self.descriptor.name, self.descriptor.name)
             set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
         return set
@@ -4305,7 +4305,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                        "    let this = &*this;\n" +
                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
                        "    *bp = found as u8;\n" +
-                       "    return true as u8;\n" +
+                       "    return JSTrue;\n" +
                        "}\n\n")
         else:
             indexed = ""
@@ -4318,7 +4318,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                      "    let this = &*this;\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
                      "    *bp = found as u8;\n"
-                     "    return true as u8;\n"
+                     "    return JSTrue;\n"
                      "}\n" +
                      "\n")
         else:
@@ -4335,8 +4335,8 @@ if !expando.ptr.is_null() {
     }
 }
 """ + named + """\
-*bp = false as u8;
-return true as u8;"""
+*bp = JSFalse;
+return JSTrue;"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4354,7 +4354,7 @@ let expando = RootedObject::new(cx, get_expando_object(proxy));
 if !expando.ptr.is_null() {
     let mut hasProp = 0;
     if JS_HasPropertyById(cx, expando.handle(), id, &mut hasProp) == 0 {
-        return false as u8;
+        return JSFalse;
     }
 
     if hasProp != 0 {
@@ -4364,7 +4364,7 @@ if !expando.ptr.is_null() {
 
         templateValues = {
             'jsvalRef': 'vp',
-            'successCode': 'return true as u8;',
+            'successCode': 'return JSTrue;',
         }
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
@@ -4403,15 +4403,15 @@ if !expando.ptr.is_null() {
 %s
 let mut found = false;
 if !get_property_on_prototype(cx, proxy, id, &mut found, vp) {
-    return false as u8;
+    return JSFalse;
 }
 
 if found {
-    return true as u8;
+    return JSTrue;
 }
 %s
 *vp.ptr = UndefinedValue();
-return true as u8;""" % (getIndexedOrExpando, getNamed)
+return JSTrue;""" % (getIndexedOrExpando, getNamed)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -5074,6 +5074,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+            'js::{JSTrue, JSFalse}',
             'dom::bindings',
             'dom::bindings::global::GlobalRef',
             'dom::bindings::global::global_object_for_js_object',

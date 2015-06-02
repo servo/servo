@@ -22,6 +22,7 @@ use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::glue::{GetProxyPrivate};
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
+use js::{JSTrue, JSFalse};
 
 use std::ptr;
 
@@ -121,13 +122,13 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObjec
         window.to_jsval(cx, val.handle_mut());
         (*desc.ptr).value = val.ptr;
         fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, true);
-        return true as u8;
+        return JSTrue;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
     // XXX This should be JS_GetOwnPropertyDescriptorById
     if JS_GetPropertyDescriptorById(cx, target.handle(), id, desc) == 0 {
-        return false as u8;
+        return JSFalse;
     }
 
     if (*desc.ptr).obj != target.ptr {
@@ -137,7 +138,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObjec
         (*desc.ptr).obj = *proxy.ptr;
     }
 
-    true as u8
+    JSTrue
 }
 
 #[allow(unsafe_code)]
@@ -152,7 +153,7 @@ unsafe extern fn defineProperty(cx: *mut JSContext,
         // throwing in strict mode (FIXME: Bug 828137), doing nothing in
         // non-strict mode.
        (*res).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_ELEMENT as u32;
-       return true as u8;
+       return JSTrue;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
@@ -163,18 +164,18 @@ unsafe extern fn defineProperty(cx: *mut JSContext,
 unsafe extern fn hasOwn(cx: *mut JSContext, proxy: HandleObject, id: HandleId, bp: *mut u8) -> u8 {
     let window = GetSubframeWindow(cx, proxy, id);
     if window.is_some() {
-        *bp = true as u8;
-        return true as u8;
+        *bp = JSTrue;
+        return JSTrue;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
     let mut found = 0;
     if JS_AlreadyHasOwnPropertyById(cx, target.handle(), id, &mut found) == 0 {
-        return false as u8;
+        return JSFalse;
     }
 
     *bp = (found != 0) as u8;
-    return true as u8;
+    return JSTrue;
 }
 
 #[allow(unsafe_code)]
@@ -186,7 +187,7 @@ unsafe extern fn get(cx: *mut JSContext,
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
         window.to_jsval(cx, vp);
-        return true as u8;
+        return JSTrue;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
@@ -203,7 +204,7 @@ unsafe extern fn set(cx: *mut JSContext,
     if get_array_index_from_id(cx, id).is_some() {
         // Reject (which means throw if and only if strict) the set.
         (*res).code_ = JSErrNum::JSMSG_READ_ONLY as u32;
-        return true as u8;
+        return JSTrue;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
