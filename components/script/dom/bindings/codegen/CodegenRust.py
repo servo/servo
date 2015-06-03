@@ -2912,6 +2912,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
             name = "genericLenientSetter"
             unwrapFailureCode = (
                 "assert!(JS_IsExceptionPending(cx) == 0);\n"
+                "*vp = UndefinedValue();\n"
                 "return 1;")
         else:
             name = "genericSetter"
