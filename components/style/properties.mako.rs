@@ -1027,8 +1027,8 @@ pub mod longhands {
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T(vec![
-                ("\u{201c}".to_string(), "\u{201d}".to_string()),
-                ("\u{2018}".to_string(), "\u{2019}".to_string()),
+                ("\u{201c}".to_owned(), "\u{201d}".to_owned()),
+                ("\u{2018}".to_owned(), "\u{2019}".to_owned()),
             ])
         }
 
@@ -2935,7 +2935,7 @@ pub mod longhands {
             use values::CSSFloat;
             use values::specified::{Angle};
 
-            #[derive(Clone, PartialEq, Debug)]
+            #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
             pub enum Filter {
                 Blur(Au),
                 Brightness(CSSFloat),
@@ -2948,7 +2948,7 @@ pub mod longhands {
                 Sepia(CSSFloat),
             }
 
-            #[derive(Clone, PartialEq, Debug)]
+            #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
             pub struct T { pub filters: Vec<Filter> }
 
             impl T {
@@ -3631,7 +3631,7 @@ pub mod longhands {
             use cssparser::ToCss;
             use std::fmt;
 
-            #[derive(Copy, Clone, Debug, PartialEq)]
+            #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
             pub enum T {
                 Auto,
                 CrispEdges,

@@ -12,7 +12,7 @@ macro_rules! define_css_keyword_enum {
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
+        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
         pub enum $name {
             $( $variant ),+
         }
@@ -43,7 +43,7 @@ macro_rules! define_numbered_css_keyword_enum {
     };
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
         #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Copy, RustcEncodable, Debug)]
+        #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Copy, RustcEncodable, Debug, HeapSizeOf)]
         pub enum $name {
             $( $variant = $value ),+
         }
@@ -67,7 +67,6 @@ macro_rules! define_numbered_css_keyword_enum {
         }
     }
 }
-
 
 pub type CSSFloat = f32;
 
@@ -607,7 +606,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
+    #[derive(Clone, PartialEq, PartialOrd, Copy, Debug, HeapSizeOf)]
     pub struct Angle(pub CSSFloat);
 
     impl ToCss for Angle {
