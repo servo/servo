@@ -160,4 +160,8 @@ impl BufferMap {
         }
         self.mem = 0
     }
+
+    pub fn mem(&self) -> usize {
+        self.mem
+    }
 }

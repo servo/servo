@@ -13,9 +13,6 @@ path = "../style"
 [dependencies.util]
 path = "../util"
 
-[dependencies.webdriver_traits]
-path = "../webdriver_traits"
-
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
@@ -37,4 +34,5 @@ git = "https://github.com/servo/rust-png"
 [dependencies]
 url = "0.2.16"
 bitflags = "*"
-hyper = "0.4"
+hyper = "0.5"
+rustc-serialize = "0.3.4"

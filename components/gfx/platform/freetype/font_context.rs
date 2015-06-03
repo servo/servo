@@ -13,9 +13,7 @@ use freetype::freetype::struct_FT_MemoryRec_;
 use std::ptr;
 use std::rc::Rc;
 
-use libc;
-use libc::{c_void, c_long, size_t, malloc};
-use std::mem;
+use libc::{self, c_void, c_long, size_t};
 
 extern fn ft_alloc(_mem: FT_Memory, size: c_long) -> *mut c_void {
     unsafe {
@@ -40,6 +38,17 @@ extern fn ft_realloc(_mem: FT_Memory, _cur_size: c_long, new_size: c_long, block
 #[derive(Clone)]
 pub struct FreeTypeLibraryHandle {
     pub ctx: FT_Library,
+    pub mem: FT_Memory,
+}
+
+impl Drop for FreeTypeLibraryHandle {
+    fn drop(&mut self) {
+        assert!(!self.ctx.is_null());
+        unsafe {
+            FT_Done_Library(self.ctx);
+            Box::from_raw(self.mem);
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -47,35 +56,25 @@ pub struct FontContextHandle {
     pub ctx: Rc<FreeTypeLibraryHandle>,
 }
 
-impl Drop for FreeTypeLibraryHandle {
-    fn drop(&mut self) {
-        assert!(!self.ctx.is_null());
-        unsafe { FT_Done_Library(self.ctx) };
-    }
-}
-
 impl FontContextHandle {
     pub fn new() -> FontContextHandle {
+        let mem = box struct_FT_MemoryRec_ {
+            user: ptr::null_mut(),
+            alloc: ft_alloc,
+            free: ft_free,
+            realloc: ft_realloc,
+        };
         unsafe {
-
-            let ptr = libc::malloc(mem::size_of::<struct_FT_MemoryRec_>() as size_t);
-            let allocator: &mut struct_FT_MemoryRec_ = mem::transmute(ptr);
-            ptr::write(allocator, struct_FT_MemoryRec_ {
-                user: ptr::null_mut(),
-                alloc: ft_alloc,
-                free: ft_free,
-                realloc: ft_realloc,
-            });
-
             let mut ctx: FT_Library = ptr::null_mut();
 
-            let result = FT_New_Library(ptr as FT_Memory, &mut ctx);
+            let mem = ::std::boxed::into_raw(mem);
+            let result = FT_New_Library(mem, &mut ctx);
             if !result.succeeded() { panic!("Unable to initialize FreeType library"); }
 
             FT_Add_Default_Modules(ctx);
 
             FontContextHandle {
-                ctx: Rc::new(FreeTypeLibraryHandle { ctx: ctx }),
+                ctx: Rc::new(FreeTypeLibraryHandle { ctx: ctx, mem: mem }),
             }
         }
     }

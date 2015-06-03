@@ -294,9 +294,9 @@ impl CanvasFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                Some(Au::from_px(node.get_canvas_width() as i32)),
-                Some(Au::from_px(node.get_canvas_height() as i32))),
-            renderer: node.get_renderer().map(|rec| Arc::new(Mutex::new(rec))),
+                Some(Au::from_px(node.canvas_width() as i32)),
+                Some(Au::from_px(node.canvas_height() as i32))),
+            renderer: node.renderer().map(|rec| Arc::new(Mutex::new(rec))),
         }
     }
 
@@ -1027,10 +1027,6 @@ impl Fragment {
                                              |acc, node| acc + node.style.logical_border_width())
             }
         }
-    }
-
-    pub fn padding_width(&self) -> LogicalMargin<Au> {
-        self.border_padding - self.border_width()
     }
 
     /// Computes the margins in the inline direction from the containing block inline-size and the
@@ -2208,4 +2204,3 @@ impl<'a> InlineStyleIterator<'a> {
         }
     }
 }
-

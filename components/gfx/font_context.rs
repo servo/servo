@@ -113,7 +113,7 @@ impl FontContext {
                                                  Some(actual_pt_size));
 
         handle.map(|handle| {
-            let metrics = handle.get_metrics();
+            let metrics = handle.metrics();
 
             Font {
                 handle: handle,
@@ -314,4 +314,3 @@ impl borrow::Borrow<usize> for LayoutFontGroupCacheKey {
         &self.address
     }
 }
-

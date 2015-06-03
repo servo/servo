@@ -4,12 +4,14 @@
 
 use libc::{c_int};
 use std::mem;
-use string::{cef_string_userfree_utf16_alloc,cef_string_userfree_utf16_free,cef_string_utf16_set};
+use std::slice;
+use string::cef_string_utf16_set;
 use types::{cef_string_list_t,cef_string_t};
 
+use rustc_unicode::str::Utf16Encoder;
 
-fn string_list_to_vec(lt: *mut cef_string_list_t) -> *mut Vec<*mut cef_string_t> {
-    lt as *mut Vec<*mut cef_string_t>
+fn string_list_to_vec(lt: *mut cef_string_list_t) -> *mut Vec<String> {
+    lt as *mut Vec<String>
 }
 
 //cef_string_list
@@ -17,7 +19,7 @@ fn string_list_to_vec(lt: *mut cef_string_list_t) -> *mut Vec<*mut cef_string_t>
 #[no_mangle]
 pub extern "C" fn cef_string_list_alloc() -> *mut cef_string_list_t {
     unsafe {
-         let lt: Box<Vec<*mut cef_string_t>> = box vec!();
+         let lt: Box<Vec<String>> = box vec!();
          mem::transmute(lt)
     }
 }
@@ -36,9 +38,7 @@ pub extern "C" fn cef_string_list_append(lt: *mut cef_string_list_t, value: *con
     unsafe {
         if lt.is_null() { return; }
         let v = string_list_to_vec(lt);
-        let cs = cef_string_userfree_utf16_alloc();
-        cef_string_utf16_set(mem::transmute((*value).str), (*value).length, cs, 1);
-        (*v).push(cs);
+        (*v).push(String::from_utf16(slice::from_raw_parts((*value).str, (*value).length as usize)).unwrap());
     }
 }
 
@@ -48,8 +48,9 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
         if index < 0 || lt.is_null() { return 0; }
         let v = string_list_to_vec(lt);
         if index as usize > (*v).len() - 1 { return 0; }
-        let cs = (*v)[index as usize];
-        cef_string_utf16_set(mem::transmute((*cs).str), (*cs).length, value, 1)
+        let ref string = (*v)[index as usize];
+        let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
+        cef_string_utf16_set(mem::transmute(utf16_chars.as_ptr()), utf16_chars.len() as u64, value, 1)
     }
 }
 
@@ -58,12 +59,7 @@ pub extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
     unsafe {
         if lt.is_null() { return; }
         let v = string_list_to_vec(lt);
-        if (*v).len() == 0 { return; }
-        let mut cs;
-        while (*v).len() != 0 {
-            cs = (*v).pop();
-            cef_string_userfree_utf16_free(cs.unwrap());
-        }
+        (*v).clear();
     }
 }
 
@@ -71,7 +67,7 @@ pub extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
 pub extern "C" fn cef_string_list_free(lt: *mut cef_string_list_t) {
     unsafe {
         if lt.is_null() { return; }
-        let v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
+        let v: Box<Vec<String>> = mem::transmute(lt);
         cef_string_list_clear(lt);
         drop(v);
     }
@@ -82,10 +78,7 @@ pub extern "C" fn cef_string_list_copy(lt: *mut cef_string_list_t) -> *mut cef_s
     unsafe {
         if lt.is_null() { return 0 as *mut cef_string_list_t; }
         let v = string_list_to_vec(lt);
-        let lt2 = cef_string_list_alloc();
-        for cs in (*v).iter() {
-            cef_string_list_append(lt2, mem::transmute((*cs)));
-        }
-        lt2
+        let copy = (*v).clone();
+        mem::transmute(box copy)
     }
 }

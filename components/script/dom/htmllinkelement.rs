@@ -25,6 +25,8 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
+use msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::Msg as ConstellationMsg;
 use script_traits::StylesheetLoadResponder;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use style::media_queries::parse_media_query_list;
@@ -85,6 +87,19 @@ fn is_stylesheet(value: &Option<String>) -> bool {
     }
 }
 
+/// Favicon spec usage in accordance with CEF implementation:
+/// only url of icon is required/used
+/// https://html.spec.whatwg.org/multipage/#rel-icon
+fn is_favicon(value: &Option<String>) -> bool {
+    match *value {
+        Some(ref value) => {
+            value.split(HTML_SPACE_CHARACTERS)
+                .any(|s| s.eq_ignore_ascii_case("icon"))
+        },
+        None => false,
+    }
+}
+
 impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
@@ -105,7 +120,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         let rel = get_attr(element, &atom!("rel"));
 
         match (rel, attr.local_name()) {
-            (ref rel, &atom!("href")) | (ref rel, &atom!("media")) => {
+            (ref rel, &atom!("href")) => {
+                if is_stylesheet(rel) {
+                    self.handle_stylesheet_url(&attr.value());
+                } else if is_favicon(rel) {
+                    self.handle_favicon_url(&attr.value());
+                }
+            }
+            (ref rel, &atom!("media")) => {
                 if is_stylesheet(rel) {
                     self.handle_stylesheet_url(&attr.value());
                 }
@@ -136,6 +158,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
                 (ref rel, Some(ref href)) if is_stylesheet(rel) => {
                     self.handle_stylesheet_url(href);
                 }
+                (ref rel, Some(ref href)) if is_favicon(rel) => {
+                    self.handle_favicon_url(href);
+                }
                 _ => {}
             }
         }
@@ -144,6 +169,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
 
 trait PrivateHTMLLinkElementHelpers {
     fn handle_stylesheet_url(self, href: &str);
+    fn handle_favicon_url(self, href: &str);
 }
 
 impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
@@ -170,6 +196,19 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
                 let pending = doc.r().prepare_async_load(LoadType::Stylesheet(url.clone()));
                 let LayoutChan(ref layout_chan) = window.layout_chan();
                 layout_chan.send(Msg::LoadStylesheet(url, media, pending, box load_dispatcher)).unwrap();
+            }
+            Err(e) => debug!("Parsing url {} failed: {}", href, e)
+        }
+    }
+
+    fn handle_favicon_url(self, href: &str) {
+        let window = window_from_node(self).root();
+        let window = window.r();
+        match UrlParser::new().base_url(&window.get_url()).parse(href) {
+            Ok(url) => {
+                let ConstellationChan(ref chan) = window.constellation_chan();
+                let event = ConstellationMsg::NewFavicon(url.clone());
+                chan.send(event).unwrap();
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }

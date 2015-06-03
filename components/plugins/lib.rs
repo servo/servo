@@ -8,10 +8,10 @@
 //!
 //!  - `#[privatize]` : Forces all fields in a struct/enum to be private
 //!  - `#[jstraceable]` : Auto-derives an implementation of `JSTraceable` for a struct in the script crate
-//!  - `#[must_root]` : Prevents data of the marked type from being used on the stack. See the lints module for more
-//!     details
+//!  - `#[must_root]` : Prevents data of the marked type from being used on the stack.
+//!                     See the lints module for more details
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[jstraceable]`, and `#[must_root]`.
-//!     Use this for structs that correspond to a DOM type
+//!                       Use this for structs that correspond to a DOM type
 
 #![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private, collections)]
 
@@ -31,6 +31,8 @@ use syntax::parse::token::intern;
 // Public for documentation to show up
 /// Handles the auto-deriving for `#[jstraceable]`
 pub mod jstraceable;
+/// Handles the auto-deriving for `#[derive(HeapSizeOf)]`
+pub mod heap_size;
 /// Autogenerates implementations of Reflectable on DOM structs
 pub mod reflector;
 pub mod lints;
@@ -43,6 +45,7 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("dom_struct"), MultiModifier(box jstraceable::expand_dom_struct));
     reg.register_syntax_extension(intern("jstraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
     reg.register_syntax_extension(intern("_generate_reflector"), MultiDecorator(box reflector::expand_reflector));
+    reg.register_syntax_extension(intern("derive_HeapSizeOf"), MultiDecorator(box heap_size::expand_heap_size));
     reg.register_macro("to_lower", casing::expand_lower);
     reg.register_macro("to_upper", casing::expand_upper);
     reg.register_lint_pass(box lints::transmute_type::TransmutePass as LintPassObject);

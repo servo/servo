@@ -109,7 +109,7 @@ pub struct _cef_command_line_t {
   // array: { program, [(--|-|/)switch[=value]]*, [--], [argument]* }
   //
   pub get_argv: Option<extern "C" fn(this: *mut cef_command_line_t,
-      argv: types::cef_string_list_t) -> ()>,
+      argv: &types::cef_string_list_t) -> ()>,
 
   //
   // Constructs and returns the represented command line string. Use this
@@ -183,7 +183,7 @@ pub struct _cef_command_line_t {
   // Get the remaining command line arguments.
   //
   pub get_arguments: Option<extern "C" fn(this: *mut cef_command_line_t,
-      arguments: types::cef_string_list_t) -> ()>,
+      arguments: &types::cef_string_list_t) -> ()>,
 
   //
   // Add an argument to the end of the command line.
@@ -392,7 +392,7 @@ impl CefCommandLine {
   // Retrieve the original command line string as a vector of strings. The argv
   // array: { program, [(--|-|/)switch[=value]]*, [--], [argument]* }
   //
-  pub fn get_argv(&self, argv: Vec<String>) -> () {
+  pub fn get_argv(&self, argv: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
@@ -572,7 +572,7 @@ impl CefCommandLine {
   //
   // Get the remaining command line arguments.
   //
-  pub fn get_arguments(&self, arguments: Vec<String>) -> () {
+  pub fn get_arguments(&self, arguments: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")

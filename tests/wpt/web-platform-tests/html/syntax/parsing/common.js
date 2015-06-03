@@ -5,7 +5,7 @@ function mark_diffs(expected, actual) {
   var max_length = Math.max(expected_lines.length, actual_lines.length);
 
   var expected_diff = ["code", {}];
-			var actual_diff = ["code", {}];
+  var actual_diff = ["code", {}];
 
   for (var i=0; i<max_length; i++) {
     if (expected_lines[i] === actual_lines[i]) {
@@ -13,10 +13,10 @@ function mark_diffs(expected, actual) {
       actual_diff.push(actual_lines[i] + "\n");
     } else {
       if (expected_lines[i]) {
-	expected_diff.push(["span", {style:"color:red"}, expected_lines[i] + "\n"]);
+        expected_diff.push(["span", {style:"color:red"}, expected_lines[i] + "\n"]);
       }
-    if (actual_lines[i]) {
-      actual_diff.push(["span", {style:"color:red"}, actual_lines[i] + "\n"]);
+      if (actual_lines[i]) {
+        actual_diff.push(["span", {style:"color:red"}, actual_lines[i] + "\n"]);
       }
     }
   }

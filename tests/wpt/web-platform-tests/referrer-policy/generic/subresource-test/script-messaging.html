@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- TODO(kristijanburnik): Remove subres. duplication. Reuse a template. -->
+<html>
+  <head>
+    <title>Script messaging - cross-origin Script request</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/referrer-policy/generic/common.js"></script>
+  </head>
+  <body>
+    <h1>Script messaging - cross-origin Script request</h1>
+    <p>If you can read JSON encoded HTTP request headers of the Script below,
+       the messaging works as expected.</p>
+
+    <pre id="received_message">Running...</pre>
+
+    <script>
+      var messaging_test = async_test("Script is responding with HTTP headers");
+      var urlPath = '/referrer-policy/generic/subresource/script.py';
+      var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
+                urlPath;
+      queryScript(url, function(message) {
+        var pre = document.getElementById('received_message')
+        var headers = message.headers;
+        pre.innerHTML = "";
+        pre.innerHTML += url + ":\n\n";
+        pre.innerHTML += JSON.stringify(headers, null, 2) + "\n\n"
+        messaging_test.step(function() {
+          assert_own_property(headers, "host")
+          assert_own_property(headers, "connection")
+        });
+        messaging_test.done();
+      });
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

@@ -66,7 +66,8 @@ CATEGORIES = {
     },
     'disabled': {
         'short': 'Disabled',
-        'long': 'The disabled commands are hidden by default. Use -v to display them. These commands are unavailable for your current context, run "mach <command>" to see why.',
+        'long': 'The disabled commands are hidden by default. Use -v to display them. These commands are unavailable '
+                'for your current context, run "mach <command>" to see why.',
         'priority': 0,
     }
 }
@@ -78,7 +79,7 @@ def bootstrap(topdir):
     # Ensure we are running Python 2.7+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module
     # import.
-    if sys.version_info[0] != 2 or sys.version_info[1] < 7:
+    if not (3, 0) > sys.version_info >= (2, 7):
         print('Python 2.7 or above (but not Python 3) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)

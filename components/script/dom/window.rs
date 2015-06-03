@@ -38,9 +38,9 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
 use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, TracingMetadata};
-use webdriver_traits::{WebDriverJSError, WebDriverJSResult};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
+use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
@@ -437,17 +437,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn Parent(self) -> Temporary<Window> {
-        let browser_context = self.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
-
-        browser_context.frame_element().map_or(self.Window(), |fe| {
-            let frame_element = fe.root();
-            let window = window_from_node(frame_element.r()).root();
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let r = window.r();
-            let context = r.browser_context();
-            context.as_ref().unwrap().active_window()
-        })
+        self.parent().unwrap_or(self.Window())
     }
 
     fn Performance(self) -> Temporary<Performance> {
@@ -558,6 +548,7 @@ pub trait WindowHelpers {
     fn drop_devtools_timeline_markers(self);
     fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>);
     fn is_alive(self) -> bool;
+    fn parent(self) -> Option<Temporary<Window>>;
 }
 
 pub trait ScriptHelpers {
@@ -938,6 +929,20 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn is_alive(self) -> bool {
         self.current_state.get() == WindowState::Alive
+    }
+
+    fn parent(self) -> Option<Temporary<Window>> {
+        let browser_context = self.browser_context();
+        let browser_context = browser_context.as_ref().unwrap();
+
+        browser_context.frame_element().map(|fe| {
+            let frame_element = fe.root();
+            let window = window_from_node(frame_element.r()).root();
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let r = window.r();
+            let context = r.browser_context();
+            context.as_ref().unwrap().active_window()
+        })
     }
 }
 

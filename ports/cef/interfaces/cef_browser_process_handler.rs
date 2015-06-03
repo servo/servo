@@ -95,7 +95,8 @@ pub struct _cef_browser_process_handler_t {
       this: *mut cef_browser_process_handler_t) -> *mut interfaces::cef_print_handler_t>,
 
   //
-  // Called when the application should call cef_do_message_loop_work()
+  // Called when the application should call cef_do_message_loop_work(). May be
+  // called from a thread.
   //
   pub on_work_available: Option<extern "C" fn(
       this: *mut cef_browser_process_handler_t) -> ()>,
@@ -261,7 +262,8 @@ impl CefBrowserProcessHandler {
   }
 
   //
-  // Called when the application should call cef_do_message_loop_work()
+  // Called when the application should call cef_do_message_loop_work(). May be
+  // called from a thread.
   //
   pub fn on_work_available(&self) -> () {
     if self.c_object.is_null() ||

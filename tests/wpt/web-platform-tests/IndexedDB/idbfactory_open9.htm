@@ -21,7 +21,7 @@ should_throw(-0.5)
 should_throw(0)
 should_throw(0.5)
 should_throw(0.8)
-should_throw(0x20000000000000)
+should_throw(0x20000000000000)  // Number.MAX_SAFE_INTEGER + 1
 should_throw(NaN)
 should_throw(Infinity)
 should_throw(-Infinity)
@@ -43,10 +43,12 @@ should_throw({
     valueOf: function() { return {}; },
 }, 'object (third)')
 
+
 /* Valid */
 
 function should_work(val) {
-    var t = async_test("Calling open() with version argument 1.5 should not throw.")
+    var name = format_value(val);
+    var t = async_test("Calling open() with version argument " + name + " should not throw.")
     var rq = createdb(t, val)
     rq.onupgradeneeded = function() {
         t.done()
@@ -54,6 +56,7 @@ function should_work(val) {
 }
 
 should_work(1.5)
+should_work(Number.MAX_SAFE_INTEGER)  // 0x20000000000000 - 1
 
 </script>
 

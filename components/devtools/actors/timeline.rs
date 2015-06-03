@@ -264,7 +264,7 @@ impl Actor for TimelineActor {
                 }
 
                 let emitter = Emitter::new(self.name(), registry.get_shareable(),
-                                           registry.get_start_stamp(),
+                                           registry.start_stamp(),
                                            stream.try_clone().unwrap(),
                                            self.memory_actor.borrow().clone(),
                                            self.framerate_actor.borrow().clone());
@@ -273,8 +273,7 @@ impl Actor for TimelineActor {
 
                 let msg = StartReply {
                     from: self.name(),
-                    value: HighResolutionStamp::new(registry.get_start_stamp(),
-                                                    PreciseTime::now()),
+                    value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
                 };
                 stream.write_json_packet(&msg);
                 true
@@ -283,8 +282,7 @@ impl Actor for TimelineActor {
             "stop" => {
                 let msg = StopReply {
                     from: self.name(),
-                    value: HighResolutionStamp::new(registry.get_start_stamp(),
-                                                    PreciseTime::now()),
+                    value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
                 };
 
                 stream.write_json_packet(&msg);

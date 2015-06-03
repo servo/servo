@@ -1,3 +1,12 @@
+# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
 from __future__ import print_function, unicode_literals
 
 import os
@@ -55,7 +64,7 @@ def notify_win(title, text):
 
 
 def notify_darwin(title, text):
-    import AppKit, Foundation, objc
+    import Foundation, objc
 
     NSUserNotification = objc.lookUpClass("NSUserNotification")
     NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")
@@ -148,7 +157,7 @@ class MachCommands(CommandBase):
             if self.config["build"]["mode"] == "dev":
                 dev = True
             elif self.config["build"]["mode"] == "release":
-                release = True 
+                release = True
             elif release_exists and not dev_exists:
                 release = True
             elif dev_exists and not release_exists:
@@ -320,7 +329,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
-    
+
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def clean(self, manifest_path, params, verbose=False):
@@ -331,6 +340,6 @@ class MachCommands(CommandBase):
             opts += ["--manifest-path", manifest_path]
         if verbose:
             opts += ["-v"]
-	opts += params
+        opts += params
         return subprocess.call(["cargo", "clean"] + opts,
                                env=self.build_env(), cwd=self.servo_crate())

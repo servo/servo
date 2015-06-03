@@ -39,7 +39,7 @@ use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
 use protocol::JsonPacketStream;
 
-use devtools_traits::{ConsoleMessage, DevtoolsControlMsg, NetworkEvent};
+use devtools_traits::{ConsoleMessage, DevtoolsControlMsg, NetworkEvent, LogLevel};
 use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
 use msg::constellation_msg::{PipelineId, WorkerId};
 use util::task::spawn_named;
@@ -251,29 +251,26 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let console_actor_name = find_console_actor(actors.clone(), id, actor_pipelines);
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
-        match console_message {
-            ConsoleMessage::LogMessage {
-                message,
-                filename,
-                lineNumber,
-                columnNumber,
-            } => {
-                let msg = ConsoleAPICall {
-                    from: console_actor.name.clone(),
-                    __type__: "consoleAPICall".to_string(),
-                    message: ConsoleMsg {
-                        level: "log".to_string(),
-                        timeStamp: precise_time_ns(),
-                        arguments: vec!(message),
-                        filename: filename,
-                        lineNumber: lineNumber,
-                        columnNumber: columnNumber,
-                    },
-                };
-                for stream in console_actor.streams.borrow_mut().iter_mut() {
-                    stream.write_json_packet(&msg);
-                }
-            }
+        let msg = ConsoleAPICall {
+            from: console_actor.name.clone(),
+            __type__: "consoleAPICall".to_string(),
+            message: ConsoleMsg {
+                level: match console_message.logLevel {
+                    LogLevel::Debug => "debug",
+                    LogLevel::Info => "info",
+                    LogLevel::Warn => "warn",
+                    LogLevel::Error => "error",
+                    _ => "log"
+                }.to_string(),
+                timeStamp: precise_time_ns(),
+                arguments: vec!(console_message.message),
+                filename: console_message.filename,
+                lineNumber: console_message.lineNumber,
+                columnNumber: console_message.columnNumber,
+            },
+        };
+        for stream in console_actor.streams.borrow_mut().iter_mut() {
+            stream.write_json_packet(&msg);
         }
     }
 
@@ -309,7 +306,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 let msg = NetworkEventMsg {
                     from: console_actor_name,
                     __type__: "networkEvent".to_string(),
-                    eventActor: actor.get_event_actor(),
+                    eventActor: actor.event_actor(),
                 };
                 for stream in connections.iter_mut() {
                     stream.write_json_packet(&msg);
@@ -324,7 +321,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     from: netevent_actor_name,
                     __type__: "networkEventUpdate".to_string(),
                     updateType: "responseStart".to_string(),
-                    response: actor.get_response_start()
+                    response: actor.response_start()
                 };
 
                 for stream in connections.iter_mut() {

@@ -10,6 +10,7 @@ use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root, Rootable};
+use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::window;
 use util::namespace;
@@ -26,10 +27,10 @@ use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
-use js::jsapi::JSHandleObject;
+use js::jsapi::{JSHandleObject, JSTracer};
 use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
-use js::jsapi::{JS_GetProperty, JS_HasProperty};
+use js::jsapi::{JS_GetProperty, JS_HasProperty, JS_SetProperty};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass};
@@ -510,7 +511,6 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
 pub fn get_dictionary_property(cx: *mut JSContext,
                                object: *mut JSObject,
                                property: &str) -> Result<Option<JSVal>, ()> {
-    use std::ffi::CString;
     fn has_property(cx: *mut JSContext, object: *mut JSObject, property: &CString,
                     found: &mut JSBool) -> bool {
         unsafe {
@@ -546,6 +546,27 @@ pub fn get_dictionary_property(cx: *mut JSContext,
     Ok(Some(value))
 }
 
+/// Set the property with name `property` from `object`.
+/// Returns `Err(())` on JSAPI failure, or null object,
+/// and Ok(()) otherwise
+pub fn set_dictionary_property(cx: *mut JSContext,
+                               object: *mut JSObject,
+                               property: &str,
+                               value: &mut JSVal) -> Result<(), ()> {
+    if object.is_null() {
+        return Err(());
+    }
+
+    let property = CString::new(property).unwrap();
+    unsafe {
+        if JS_SetProperty(cx, object, property.as_ptr(), value) == 0 {
+            return Err(());
+        }
+    }
+
+    Ok(())
+}
+
 /// Returns whether `proxy` has a property `id` on its prototype.
 pub fn has_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
                                  id: jsid) -> bool {
@@ -574,6 +595,16 @@ pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass)
 pub unsafe fn finalize_global(obj: *mut JSObject) {
     let _: Box<ProtoOrIfaceArray> =
         Box::from_raw(get_proto_or_iface_array(obj) as *mut ProtoOrIfaceArray);
+}
+
+/// Trace the resources held by reserved slots of a global object
+pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
+    let array = get_proto_or_iface_array(obj) as *mut ProtoOrIfaceArray;
+    for &proto in (*array).iter() {
+        if !proto.is_null() {
+            trace_object(tracer, "prototype", proto);
+        }
+    }
 }
 
 /// Callback to outerize windows when wrapping.

@@ -6,7 +6,8 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![feature(plugin)]
+#![feature(plugin, custom_attribute)]
+#![feature(custom_derive)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
 #![feature(str_char)]
@@ -24,6 +25,7 @@ extern crate layers;
 extern crate libc;
 extern crate stb_image;
 extern crate png;
+#[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
 extern crate rustc_serialize;

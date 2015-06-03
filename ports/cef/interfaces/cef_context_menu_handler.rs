@@ -403,7 +403,7 @@ pub struct _cef_context_menu_params_t {
   //
   pub get_dictionary_suggestions: Option<extern "C" fn(
       this: *mut cef_context_menu_params_t,
-      suggestions: types::cef_string_list_t) -> libc::c_int>,
+      suggestions: &types::cef_string_list_t) -> libc::c_int>,
 
   //
   // Returns true (1) if the context menu was invoked on an editable node.
@@ -746,7 +746,7 @@ impl CefContextMenuParams {
   // is one.
   //
   pub fn get_dictionary_suggestions(&self,
-      suggestions: Vec<String>) -> libc::c_int {
+      suggestions: &Vec<String>) -> libc::c_int {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")

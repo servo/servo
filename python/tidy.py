@@ -15,7 +15,6 @@ import itertools
 import re
 from licenseck import licenses
 
-directories_to_check = ["ports", "components", "tests"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
@@ -24,6 +23,11 @@ ignored_files = [
     # Upstream
     "support/*",
     "tests/wpt/*",
+    "python/mach/*",
+    "python/mozdebug/*",
+    "python/mozinfo/*",
+    "python/mozlog/*",
+    "python/toml/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
     "components/script/dom/bindings/codegen/*",
@@ -35,10 +39,15 @@ ignored_files = [
 
     # MIT license
     "components/util/deque/mod.rs",
+
+    # Hidden files/directories
+    ".*",
 ]
 
 
-def collect_file_names(top_directories):
+def collect_file_names(top_directories=None):
+    if top_directories is None:
+        top_directories = os.listdir(".")
     for top_directory in top_directories:
         for dirname, dirs, files in os.walk(top_directory):
             for basename in files:
@@ -95,7 +104,12 @@ def check_whitespace(idx, line):
 def check_by_line(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
-        for error in itertools.chain(check_length(idx, line), check_whitespace(idx, line), check_whatwg_url(idx, line)):
+        errors = itertools.chain(
+            check_length(idx, line),
+            check_whitespace(idx, line),
+            check_whatwg_url(idx, line),
+        )
+        for error in errors:
             yield error
 
 
@@ -132,7 +146,7 @@ def get_reftest_names(line):
 
 
 def scan():
-    all_files = collect_file_names(directories_to_check)
+    all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
 
     checking_functions = [check_license, check_by_line]

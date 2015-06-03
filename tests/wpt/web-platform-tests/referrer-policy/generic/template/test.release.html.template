@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+%(generated_disclaimer)s
+<html>
+  <head>
+    <title>Referrer-Policy: %(spec_title)s</title>
+    <meta name="description" content="%(spec_description)s">%(meta_delivery_method)s
+    <link rel="author" title="Kristijan Burnik" href="burnik@chromium.org">
+    <link rel="help" href="%(spec_specification_url)s">
+    <meta name="assert" content="%(test_description)s">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- TODO(kristijanburnik): Minify and merge both: -->
+    <script src="/referrer-policy/generic/common.js"></script>
+    <script src="/referrer-policy/generic/referrer-policy-test-case.js?pipe=sub"></script>
+  </head>
+  <body>
+    <script>%(test_js)s</script>
+    <div id="log"></div>
+  </body>
+</html>

@@ -18,10 +18,12 @@ use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
-use model::{self, MaybeAuto, ToGfxMatrix};
+use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
 use table_cell::CollapsedBordersForCell;
 
-use geom::{Matrix2D, Point2D, Rect, Size2D, SideOffsets2D};
+use geom::{Point2D, Rect, Size2D, SideOffsets2D};
+use geom::matrix::identity;
+use geom::Matrix4;
 use gfx_traits::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
@@ -40,11 +42,12 @@ use std::cmp;
 use std::default::Default;
 use std::iter::repeat;
 use std::sync::Arc;
+use std::f32;
 use style::computed_values::filter::Filter;
-use style::computed_values::transform::ComputedMatrix;
 use style::computed_values::{background_attachment, background_clip, background_origin,
                              background_repeat, background_size};
-use style::computed_values::{border_style, image_rendering, overflow_x, position, visibility};
+use style::computed_values::{border_style, image_rendering, overflow_x, position,
+                             visibility, transform};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
 use style::values::RGBA;
@@ -1139,17 +1142,57 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                .relative_containing_block_mode,
                                                                CoordinateSystem::Parent);
 
-        let transform_origin = self.style().get_effects().transform_origin;
-        let transform_origin =
-            Point2D(model::specified(transform_origin.horizontal,
-                                     border_box.size.width).to_f32_px(),
-                    model::specified(transform_origin.vertical,
-                                     border_box.size.height).to_f32_px());
-        let transform = self.style().get_effects().transform
-            .unwrap_or(ComputedMatrix::identity()).to_gfx_matrix(&border_box.size);
+        let mut transform = identity();
 
-        let transform = Matrix2D::identity().translate(transform_origin.x, transform_origin.y)
-            .mul(&transform).translate(-transform_origin.x, -transform_origin.y);
+        if let Some(ref operations) = self.style().get_effects().transform {
+            let transform_origin = self.style().get_effects().transform_origin;
+            let transform_origin =
+                Point2D(model::specified(transform_origin.horizontal,
+                                         border_box.size.width).to_f32_px(),
+                        model::specified(transform_origin.vertical,
+                                         border_box.size.height).to_f32_px());
+
+            let pre_transform = Matrix4::create_translation(transform_origin.x,
+                                                            transform_origin.y,
+                                                            0.0);
+            let post_transform = Matrix4::create_translation(-transform_origin.x,
+                                                             -transform_origin.y,
+                                                             0.0);
+
+            for operation in operations {
+                let matrix = match operation {
+                    &transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
+                        let theta = f32::consts::PI_2 - theta.radians();
+                        let transform = Matrix4::create_rotation(ax, ay, az, theta);
+                        pre_transform.mul(&transform).mul(&post_transform)
+                    }
+                    &transform::ComputedOperation::Perspective(d) => {
+                        let transform = Matrix4::create_perspective(d.to_f32_px());
+                        pre_transform.mul(&transform).mul(&post_transform)
+                    }
+                    &transform::ComputedOperation::Scale(sx, sy, sz) => {
+                        let transform = Matrix4::create_scale(sx, sy, sz);
+                        pre_transform.mul(&transform).mul(&post_transform)
+                    }
+                    &transform::ComputedOperation::Translate(tx, ty, tz) => {
+                        let tx = tx.to_au(border_box.size.width).to_f32_px();
+                        let ty = ty.to_au(border_box.size.height).to_f32_px();
+                        let tz = tz.to_f32_px();
+                        Matrix4::create_translation(tx, ty, tz)
+                    }
+                    &transform::ComputedOperation::Matrix(m) => {
+                        let transform = m.to_gfx_matrix(&border_box.size);
+                        pre_transform.mul(&transform).mul(&post_transform)
+                    }
+                    &transform::ComputedOperation::Skew(sx, sy) => {
+                        let transform = Matrix4::create_skew(sx, sy);
+                        pre_transform.mul(&transform).mul(&post_transform)
+                    }
+                };
+
+                transform = transform.mul(&matrix);
+            }
+        }
 
         // FIXME(pcwalton): Is this vertical-writing-direction-safe?
         let margin = self.margin.to_physical(base_flow.writing_mode);

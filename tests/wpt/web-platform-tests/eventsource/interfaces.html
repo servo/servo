@@ -39,20 +39,20 @@ typedef EventHandlerNonNull? EventHandler;
 "use strict";
 var idlArray;
 setup(function() {
-	idlArray = new IdlArray();
-	[].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
-		if (node.className == "untested") {
-			idlArray.add_untested_idls(node.textContent);
-		} else {
-			idlArray.add_idls(node.textContent);
-		}
-	});
+  idlArray = new IdlArray();
+  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
+    if (node.className == "untested") {
+      idlArray.add_untested_idls(node.textContent);
+    } else {
+      idlArray.add_idls(node.textContent);
+    }
+  });
 }, {explicit_done:true});
 window.onload = function() {
-	idlArray.add_objects({
-		EventSource: ['new EventSource("http://foo")'],
-	});
-	idlArray.test();
-	done();
+  idlArray.add_objects({
+    EventSource: ['new EventSource("http://foo")'],
+  });
+  idlArray.test();
+  done();
 };
 </script>

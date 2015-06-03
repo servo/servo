@@ -28,20 +28,26 @@ pub struct WebGLPaintTask {
 unsafe impl Send for WebGLPaintTask {}
 
 impl WebGLPaintTask {
-    fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
-        // TODO(ecoal95): Get the GLContextAttributes from the `GetContext` call
+    fn new(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<WebGLPaintTask, &'static str> {
         let context = try!(
             GLContext::create_offscreen_with_color_attachment(
-                size, GLContextAttributes::default(), ColorAttachmentType::TextureWithSurface));
+                size, attrs, ColorAttachmentType::TextureWithSurface));
+
+        // NOTE: As of right now this is always equal to the size parameter,
+        // but this doesn't have to be true. Firefox after failing with
+        // the requested size, tries with the nearest powers of two, for example.
+        let real_size = context.borrow_draw_buffer().unwrap().size();
+
         Ok(WebGLPaintTask {
-            size: size,
-            original_context_size: size,
+            size: real_size,
+            original_context_size: real_size,
             gl_context: context
         })
     }
 
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
         match message {
+            CanvasWebGLMsg::GetContextAttributes(sender) => self.get_context_attributes(sender),
             CanvasWebGLMsg::AttachShader(program_id, shader_id) => self.attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id) => self.bind_buffer(buffer_type, buffer_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) => self.buffer_data(buffer_type, data, usage),
@@ -64,16 +70,17 @@ impl WebGLPaintTask {
             CanvasWebGLMsg::ShaderSource(shader_id, source) => self.shader_source(shader_id, source),
             CanvasWebGLMsg::Uniform4fv(uniform_id, data) => self.uniform_4fv(uniform_id, data),
             CanvasWebGLMsg::UseProgram(program_id) => self.use_program(program_id),
-            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => {
-                self.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset);
-            },
+            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) =>
+                self.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset),
             CanvasWebGLMsg::Viewport(x, y, width, height) => self.viewport(x, y, width, height),
+            CanvasWebGLMsg::DrawingBufferWidth(sender) => self.send_drawing_buffer_width(sender),
+            CanvasWebGLMsg::DrawingBufferHeight(sender) => self.send_drawing_buffer_height(sender),
         }
     }
 
-    pub fn start(size: Size2D<i32>) -> Result<Sender<CanvasMsg>, &'static str> {
+    pub fn start(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<Sender<CanvasMsg>, &'static str> {
         let (chan, port) = channel::<CanvasMsg>();
-        let mut painter = try!(WebGLPaintTask::new(size));
+        let mut painter = try!(WebGLPaintTask::new(size, attrs));
         spawn_named("WebGLTask".to_owned(), move || {
             painter.init();
             loop {
@@ -96,6 +103,18 @@ impl WebGLPaintTask {
         });
 
         Ok(chan)
+    }
+
+    fn get_context_attributes(&self, sender: Sender<GLContextAttributes>) {
+        sender.send(*self.gl_context.borrow_attributes()).unwrap()
+    }
+
+    fn send_drawing_buffer_width(&self, sender: Sender<i32>) {
+        sender.send(self.size.width).unwrap()
+    }
+
+    fn send_drawing_buffer_height(&self, sender: Sender<i32>) {
+        sender.send(self.size.height).unwrap()
     }
 
     fn attach_shader(&self, program_id: u32, shader_id: u32) {
@@ -225,7 +244,7 @@ impl WebGLPaintTask {
         if size.width > self.original_context_size.width ||
            size.height > self.original_context_size.height {
             try!(self.gl_context.resize(size));
-            self.size = size;
+            self.size = self.gl_context.borrow_draw_buffer().unwrap().size();
         } else {
             self.size = size;
             unsafe { gl::Scissor(0, 0, size.width, size.height); }

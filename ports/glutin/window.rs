@@ -15,7 +15,6 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
 use net::net_error_list::NetError;
-use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use url::Url;
@@ -45,7 +44,6 @@ static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 
 
 #[cfg(feature = "window")]
 bitflags! {
-    #[derive(Debug)]
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
         const RIGHT_CONTROL = 2,
@@ -311,6 +309,8 @@ impl Window {
     }
 
     pub fn wait_events(&self) -> Vec<WindowEvent> {
+        use std::mem;
+
         let mut events = mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new());
         let mut close_event = false;
 
@@ -515,6 +515,9 @@ impl WindowMethods for Window {
     fn load_error(&self, _: NetError, _: String) {
     }
 
+    fn head_parsed(&self) {
+    }
+
     /// Has no effect on Android.
     fn set_cursor(&self, c: Cursor) {
         use glutin::MouseCursor;
@@ -557,6 +560,9 @@ impl WindowMethods for Window {
             Cursor::ZoomOutCursor => MouseCursor::ZoomOut,
         };
         self.window.set_cursor(glutin_cursor);
+    }
+
+    fn set_favicon(&self, _: Url) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
@@ -612,6 +618,10 @@ impl WindowMethods for Window {
             }
             _ => {}
         }
+    }
+
+    fn supports_clipboard(&self) -> bool {
+        true
     }
 }
 
@@ -699,8 +709,13 @@ impl WindowMethods for Window {
     }
     fn load_error(&self, _: NetError, _: String) {
     }
+    fn head_parsed(&self) {
+    }
 
     fn set_cursor(&self, _: Cursor) {
+    }
+
+    fn set_favicon(&self, _: Url) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
@@ -716,6 +731,10 @@ impl WindowMethods for Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, _: Key, _: constellation_msg::KeyModifiers) {
+    }
+
+    fn supports_clipboard(&self) -> bool {
+        false
     }
 }
 

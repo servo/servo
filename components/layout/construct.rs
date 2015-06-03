@@ -297,7 +297,7 @@ impl<'a> FlowConstructor<'a> {
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLObjectElement))) => {
                 let image_info = box ImageFragmentInfo::new(node,
-                                                            node.get_object_data(),
+                                                            node.object_data(),
                                                             &self.layout_context);
                 SpecificFragmentInfo::Image(image_info)
             }
@@ -1254,7 +1254,7 @@ impl<'a> FlowConstructor<'a> {
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
         let style = (*node.get_style(&layout_data)).clone();
         let damage = layout_data.data.restyle_damage;
-        match node.get_construction_result(layout_data) {
+        match node.construction_result_mut(layout_data) {
             &mut ConstructionResult::None => true,
             &mut ConstructionResult::Flow(ref mut flow, _) => {
                 // The node's flow is of the same type and has the same set of children and can
@@ -1474,7 +1474,7 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(&self) -> bool;
 
-    fn get_construction_result<'a>(self, layout_data: &'a mut LayoutDataWrapper)
+    fn construction_result_mut<'a>(self, layout_data: &'a mut LayoutDataWrapper)
                                    -> &'a mut ConstructionResult;
 
     /// Sets the construction result of a flow.
@@ -1505,7 +1505,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn get_construction_result<'a>(self, layout_data: &'a mut LayoutDataWrapper) -> &'a mut ConstructionResult {
+    fn construction_result_mut<'a>(self, layout_data: &'a mut LayoutDataWrapper) -> &'a mut ConstructionResult {
         match self.get_pseudo_element_type() {
             PseudoElementType::Before(_) => &mut layout_data.data.before_flow_construction_result,
             PseudoElementType::After (_) => &mut layout_data.data.after_flow_construction_result,
@@ -1518,7 +1518,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
 
-        let dst = self.get_construction_result(layout_data);
+        let dst = self.construction_result_mut(layout_data);
 
         *dst = result;
     }
@@ -1528,7 +1528,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
 
-        self.get_construction_result(layout_data).swap_out()
+        self.construction_result_mut(layout_data).swap_out()
     }
 }
 
@@ -1541,7 +1541,7 @@ trait ObjectElement<'a> {
     fn has_object_data(&self) -> bool;
 
     /// Returns the "data" attribute value parsed as a URL
-    fn get_object_data(&self) -> Option<Url>;
+    fn object_data(&self) -> Option<Url>;
 }
 
 impl<'ln> ObjectElement<'ln> for ThreadSafeLayoutNode<'ln> {
@@ -1557,7 +1557,7 @@ impl<'ln> ObjectElement<'ln> for ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn get_object_data(&self) -> Option<Url> {
+    fn object_data(&self) -> Option<Url> {
         match self.get_type_and_data() {
             (None, Some(uri)) if is_image_data(uri) => Url::parse(uri).ok(),
             _ => None
@@ -1632,4 +1632,3 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
         drop(this.pop_back());
     }
 }
-

@@ -191,7 +191,7 @@ impl<'a> TextRun {
         let run = TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
-            font_template: font.handle.get_template(),
+            font_template: font.handle.template(),
             actual_pt_size: font.actual_pt_size,
             glyphs: Arc::new(glyphs),
         };

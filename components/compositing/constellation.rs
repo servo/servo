@@ -29,7 +29,8 @@ use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDire
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
-use msg::constellation_msg::{WebDriverCommandMsg};
+use msg::constellation_msg::WebDriverCommandMsg;
+use msg::webdriver_msg;
 use net_traits::{self, ResourceTask};
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
@@ -50,7 +51,6 @@ use util::geometry::PagePx;
 use util::opts;
 use util::task::spawn_named;
 use clipboard::ClipboardContext;
-use webdriver_traits;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 ///
@@ -122,7 +122,7 @@ pub struct Constellation<LTF, STF> {
     pub window_size: WindowSizeData,
 
     /// Means of accessing the clipboard
-    clipboard_ctx: ClipboardContext,
+    clipboard_ctx: Option<ClipboardContext>,
 
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData
@@ -190,7 +190,7 @@ pub struct SendableFrameTree {
 }
 
 struct WebDriverData {
-    load_channel: Option<Sender<webdriver_traits::LoadComplete>>
+    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadComplete>)>
 }
 
 impl WebDriverData {
@@ -215,7 +215,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  time_profiler_chan: time::ProfilerChan,
                  mem_profiler_chan: mem::ProfilerChan,
                  devtools_chan: Option<DevtoolsControlChan>,
-                 storage_task: StorageTask)
+                 storage_task: StorageTask,
+                 supports_clipboard: bool)
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
@@ -248,7 +249,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     device_pixel_ratio: ScaleFactor::new(1.0),
                 },
                 phantom: PhantomData,
-                clipboard_ctx: ClipboardContext::new().unwrap(),
+                clipboard_ctx: if supports_clipboard {
+                    ClipboardContext::new().ok()
+                } else {
+                    None
+                },
                 webdriver: WebDriverData::new()
             };
             constellation.run();
@@ -425,22 +430,26 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                  subpage_id,
                                                  event);
             }
-            ConstellationMsg::GetRootPipeline(resp_chan) => {
+            ConstellationMsg::GetPipeline(frame_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
-                self.handle_get_root_pipeline(resp_chan);
+                self.handle_get_pipeline(frame_id, resp_chan);
+            }
+            ConstellationMsg::GetFrame(parent_pipeline_id, subpage_id, resp_chan) => {
+                debug!("constellation got get root pipeline message");
+                self.handle_get_frame(parent_pipeline_id, subpage_id, resp_chan);
             }
             ConstellationMsg::Focus(pipeline_id) => {
                 debug!("constellation got focus message");
                 self.handle_focus_msg(pipeline_id);
             }
             ConstellationMsg::GetClipboardContents(sender) => {
-                let result = match self.clipboard_ctx.get_contents() {
-                    Ok(s) => s,
-                    Err(e) => {
+                let result = self.clipboard_ctx.as_ref().map_or(
+                    "".to_string(),
+                    |ctx| ctx.get_contents().unwrap_or_else(|e| {
                         debug!("Error getting clipboard contents ({}), defaulting to empty string", e);
                         "".to_string()
-                    },
-                };
+                    })
+                );
                 sender.send(result).unwrap();
             }
             ConstellationMsg::WebDriverCommand(command) => {
@@ -458,6 +467,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             ConstellationMsg::RemoveIFrame(containing_pipeline_id, subpage_id) => {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(containing_pipeline_id, subpage_id);
+            }
+            ConstellationMsg::NewFavicon(url) => {
+                debug!("constellation got new favicon message");
+                self.compositor_proxy.send(CompositorMsg::NewFavicon(url));
+            }
+            ConstellationMsg::HeadParsed => {
+                debug!("constellation got head parsed message");
+                self.compositor_proxy.send(CompositorMsg::HeadParsed);
             }
         }
         true
@@ -625,6 +642,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {
+        self.load_url(source_id, load_data);
+    }
+
+    fn load_url(&mut self, source_id: PipelineId, load_data: LoadData) -> Option<PipelineId> {
         // If this load targets an iframe, its framing element may exist
         // in a separate script task than the framed document that initiated
         // the new load. The framing element must be notified about the
@@ -639,13 +660,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 script_channel.send(ConstellationControlMsg::Navigate(parent_pipeline_id,
                                                                       subpage_id,
                                                                       load_data)).unwrap();
+                Some(source_id)
             }
             None => {
                 // Make sure no pending page would be overridden.
                 for frame_change in &self.pending_frames {
                     if frame_change.old_pipeline_id == Some(source_id) {
                         // id that sent load msg is being changed already; abort
-                        return;
+                        return None;
                     }
                 }
 
@@ -661,6 +683,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 // Send message to ScriptTask that will suspend all timers
                 let old_pipeline = self.pipelines.get(&source_id).unwrap();
                 old_pipeline.freeze();
+                Some(new_pipeline_id)
             }
         }
     }
@@ -690,10 +713,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let forward = !self.mut_frame(frame_id).next.is_empty();
         let back = !self.mut_frame(frame_id).prev.is_empty();
         self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
-        if let Some(ref reply_chan) = self.webdriver.load_channel {
-            reply_chan.send(webdriver_traits::LoadComplete).unwrap();
+
+        let mut webdriver_reset = false;
+        if let Some((ref expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
+            if expected_pipeline_id == pipeline_id {
+                reply_chan.send(webdriver_msg::LoadComplete).unwrap();
+                webdriver_reset = true;
+            }
         }
-        self.webdriver.load_channel = None;
+        if webdriver_reset {
+            self.webdriver.load_channel = None;
+        }
     }
 
     fn handle_navigate_msg(&mut self,
@@ -815,12 +845,25 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         pipeline.trigger_mozbrowser_event(subpage_id, event);
     }
 
-    fn handle_get_root_pipeline(&mut self, resp_chan: Sender<Option<PipelineId>>) {
-        let pipeline_id = self.root_frame_id.map(|frame_id| {
+    fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
+                           resp_chan: Sender<Option<PipelineId>>) {
+        let current_pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
             let frame = self.frames.get(&frame_id).unwrap();
             frame.current
         });
+        let pipeline_id = self.pending_frames.iter().rev()
+            .find(|x| x.old_pipeline_id == current_pipeline_id)
+            .map(|x| x.new_pipeline_id).or(current_pipeline_id);
         resp_chan.send(pipeline_id).unwrap();
+    }
+
+    fn handle_get_frame(&mut self,
+                        containing_pipeline_id: PipelineId,
+                        subpage_id: SubpageId,
+                        resp_chan: Sender<Option<FrameId>>) {
+        let frame_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).and_then(
+            |x| self.pipeline_to_frame_map.get(&x)).map(|x| *x);
+        resp_chan.send(frame_id).unwrap();
     }
 
     fn focus_parent_pipeline(&self, pipeline_id: PipelineId) {
@@ -866,8 +909,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // and pass the event to that script task.
         match msg {
             WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, reply) => {
-                self.handle_load_url_msg(pipeline_id, load_data);
-                self.webdriver.load_channel = Some(reply);
+                let new_pipeline_id = self.load_url(pipeline_id, load_data);
+                if let Some(id) = new_pipeline_id {
+                    self.webdriver.load_channel = Some((id, reply));
+                }
             },
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
                 let pipeline = self.pipeline(pipeline_id);
@@ -875,8 +920,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 let ScriptControlChan(ref script_channel) = pipeline.script_chan;
                 script_channel.send(control_msg).unwrap();
             },
-            WebDriverCommandMsg::TakeScreenshot(reply) => {
-                self.compositor_proxy.send(CompositorMsg::CreatePng(reply));
+            WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
+                let current_pipeline_id = self.root_frame_id.map(|frame_id| {
+                    let frame = self.frames.get(&frame_id).unwrap();
+                    frame.current
+                });
+                if Some(pipeline_id) == current_pipeline_id {
+                    self.compositor_proxy.send(CompositorMsg::CreatePng(reply));
+                } else {
+                    reply.send(None).unwrap();
+                }
             },
         }
     }

@@ -131,7 +131,7 @@ reason: \"certificate verify failed\" }]))";
         let mut connector = if opts::get().nossl {
             HttpConnector(None)
         } else {
-            HttpConnector(Some(box verifier as Box<FnMut(&mut SslContext) + Send>))
+            HttpConnector(Some(box verifier as Box<Fn(&mut SslContext) + Send>))
         };
 
         let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {

@@ -12,7 +12,8 @@ use paint_context::PaintContext;
 
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
-use geom::matrix2d::Matrix2D;
+use geom::Matrix4;
+use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -26,14 +27,16 @@ use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
+use profile_traits::mem::{self, Report, Reporter, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use skia::SkiaGrGLNativeContextRef;
 use std::borrow::ToOwned;
-use std::mem;
+use std::mem as std_mem;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::collections::HashMap;
+use url::Url;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
 use util::task::spawn_named_with_send_on_failure;
@@ -76,6 +79,7 @@ pub enum Msg {
     UnusedBuffer(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
+    CollectReports(ReportsChan),
     Exit(Option<Sender<()>>, PipelineExitType),
 }
 
@@ -98,14 +102,29 @@ impl PaintChan {
     }
 }
 
+impl Reporter for PaintChan {
+    // Just injects an appropriate event into the paint task's queue.
+    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
+        let PaintChan(ref c) = *self;
+        c.send(Msg::CollectReports(reports_chan)).is_ok()
+    }
+}
+
 pub struct PaintTask<C> {
     id: PipelineId,
+    url: Url,
     port: Receiver<Msg>,
     compositor: C,
     constellation_chan: ConstellationChan,
 
     /// A channel to the time profiler.
     time_profiler_chan: time::ProfilerChan,
+
+    /// A channel to the memory profiler.
+    mem_profiler_chan: mem::ProfilerChan,
+
+    /// The name used for the task's memory reporter.
+    pub reporter_name: String,
 
     /// The native graphics context.
     native_graphics_context: Option<NativePaintingGraphicsContext>,
@@ -143,12 +162,15 @@ macro_rules! native_graphics_context(
 
 impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
     pub fn create(id: PipelineId,
+                  url: Url,
+                  chan: PaintChan,
                   port: Receiver<Msg>,
                   compositor: C,
                   constellation_chan: ConstellationChan,
                   font_cache_task: FontCacheTask,
                   failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
+                  mem_profiler_chan: mem::ProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
         spawn_named_with_send_on_failure(format!("PaintTask {:?}", id), task_state::PAINT, move || {
@@ -156,19 +178,28 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
                 let mut compositor = compositor;
-                let native_graphics_context = compositor.get_graphics_metadata().map(
+                let native_graphics_context = compositor.graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let worker_threads = WorkerThreadProxy::spawn(compositor.get_graphics_metadata(),
+                let worker_threads = WorkerThreadProxy::spawn(compositor.graphics_metadata(),
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
+
+                // Register this thread as a memory reporter, via its own channel.
+                let reporter = box chan.clone();
+                let reporter_name = format!("paint-reporter-{}", id.0);
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(),
+                                                                          reporter));
 
                 // FIXME: rust/#5967
                 let mut paint_task = PaintTask {
                     id: id,
+                    url: url,
                     port: port,
                     compositor: compositor,
                     constellation_chan: constellation_chan,
                     time_profiler_chan: time_profiler_chan,
+                    mem_profiler_chan: mem_profiler_chan,
+                    reporter_name: reporter_name,
                     native_graphics_context: native_graphics_context,
                     root_stacking_context: None,
                     paint_permission: false,
@@ -286,7 +317,19 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
+                Msg::CollectReports(reports_chan) => {
+                    // FIXME(njn): should eventually measure other parts of the paint task.
+                    let mut reports = vec![];
+                    reports.push(Report {
+                        path: path!["pages", format!("url({})", self.url), "paint-task", "buffer-map"],
+                        size: self.buffer_map.mem(),
+                    });
+                    reports_chan.send(reports);
+                }
                 Msg::Exit(response_channel, exit_type) => {
+                    let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
+                    self.mem_profiler_chan.send(msg);
+
                     // Ask the compositor to return any used buffers it
                     // is holding for this paint task. This previously was
                     // sent from the constellation. However, it needs to be sent
@@ -378,7 +421,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
 
             // Divide up the layer into tiles and distribute them to workers via a simple round-
             // robin strategy.
-            let tiles = mem::replace(&mut tiles, Vec::new());
+            let tiles = std_mem::replace(&mut tiles, Vec::new());
             let tile_count = tiles.len();
             for (i, tile) in tiles.into_iter().enumerate() {
                 let thread_id = i % self.worker_threads.len();
@@ -579,10 +622,11 @@ impl WorkerThread {
                          stacking_context.overflow.origin.y.to_f32_px()));
 
             // Apply the translation to paint the tile we want.
-            let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
+            let matrix: Matrix4<AzFloat> = identity();
+            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
-                                          -tile_bounds.origin.y as AzFloat);
+                                          -tile_bounds.origin.y as AzFloat,
+                                          0.0);
 
             // Clear the buffer.
             paint_context.clear();
@@ -682,4 +726,3 @@ pub static THREAD_TINT_COLORS: [Color; 8] = [
     Color { r: 255.0/255.0, g: 249.0/255.0, b: 201.0/255.0, a: 0.7 },
     Color { r: 137.0/255.0, g: 196.0/255.0, b: 78.0/255.0, a: 0.7 },
 ];
-

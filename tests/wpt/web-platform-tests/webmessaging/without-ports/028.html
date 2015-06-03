@@ -6,10 +6,9 @@
 <div id=log></div>
 <script>
 async_test(function() {
-  var img_data = null;
   var canvas = document.getElementsByTagName("canvas")[0];
   var context = canvas.getContext("2d");
-  img_data = context.getImageData(0, 0, 30, 30);
+  var img_data = context.getImageData(0, 0, 30, 30);
   var obj = {a: img_data, b: {c: img_data, d: 3}};
   postMessage(obj, '*');
   onmessage = this.step_func(function(e) {
