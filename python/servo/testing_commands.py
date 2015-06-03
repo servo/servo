@@ -251,7 +251,7 @@ class MachCommands(CommandBase):
                      help='Run the release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Run the dev build')
-    def update_jquery(self):
+    def update_jquery(self, release, dev):
         return self.jquery_test_runner("update", release, dev)
 
     @Command('test-css',
