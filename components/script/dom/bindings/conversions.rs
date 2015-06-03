@@ -41,17 +41,16 @@ use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
 use util::str::DOMString;
 
 use js;
-use js::glue::{RUST_JSID_TO_STRING, RUST_JSID_IS_STRING};
-use js::glue::RUST_JS_NumberValue;
+use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
+use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::rust::{ToUint64, ToInt64};
 use js::rust::{ToUint32, ToInt32};
 use js::rust::{ToUint16, ToNumber, ToBoolean, ToString};
-use js::jsapi::{JSContext, JSObject, JSString};
-use js::jsapi::{JS_StringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength};
-use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
-use js::jsapi::{JS_WrapValue};
-use js::jsapi::{JSClass, JS_GetClass};
-use js::jsapi::{HandleId, HandleValue, HandleObject, MutableHandleValue};
+use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
+use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
+use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
+use js::jsapi::{JS_NewUCStringCopyN, JS_StringHasLatin1Chars, JS_WrapValue};
+use js::jsapi::{JSClass, JSContext, JSObject, JSString, MutableHandleValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
@@ -504,23 +503,25 @@ pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
 // globals and non-globals.
 pub const DOM_OBJECT_SLOT: u32 = 0;
 
-/// Get the DOM object from the given reflector.
-pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
-    use js::jsapi::JS_GetReservedSlot;
-    use js::glue::GetProxyPrivate;
-
+/// Get the private pointer of a DOM object from a given reflector.
+unsafe fn private_from_reflector(obj: *mut JSObject) -> *const libc::c_void {
     let clasp = JS_GetClass(obj);
     let value = if is_dom_class(clasp) {
         JS_GetReservedSlot(obj, DOM_OBJECT_SLOT)
     } else {
-        assert!(is_dom_proxy(obj));
+        debug_assert!(is_dom_proxy(obj));
         GetProxyPrivate(obj)
     };
     if value.is_undefined() {
         ptr::null()
     } else {
-        value.to_private() as *const T
+        value.to_private()
     }
+}
+
+/// Get the DOM object from the given reflector.
+pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
+    private_from_reflector(obj) as *const T
 }
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
@@ -543,47 +544,57 @@ unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
     return Err(());
 }
 
-/// Get an `Unrooted<T>` for the given DOM object, unwrapping any wrapper
+/// Get a `*const libc::c_void` for the given DOM object, unwrapping any
+/// wrapper around it first, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
+/// not an object for a DOM object of the given type (as defined by the
+/// proto_id and proto_depth).
+pub unsafe fn private_from_proto_chain(mut obj: *mut JSObject,
+                                       proto_id: u16, proto_depth: u16)
+                                       -> Result<*const libc::c_void, ()> {
+    let dom_class = try!(get_dom_class(obj).or_else(|_| {
+        if IsWrapper(obj) == 1 {
+            debug!("found wrapper");
+            obj = UnwrapObject(obj, /* stopAtOuter = */ 0);
+            if obj.is_null() {
+                debug!("unwrapping security wrapper failed");
+                Err(())
+            } else {
+                assert!(IsWrapper(obj) == 0);
+                debug!("unwrapped successfully");
+                get_dom_class(obj)
+            }
+        } else {
+            debug!("not a dom wrapper");
+            Err(())
+        }
+    }));
+
+    if dom_class.interface_chain[proto_depth as usize] as u16 == proto_id {
+        debug!("good prototype");
+        Ok(private_from_reflector(obj))
+    } else {
+        debug!("bad prototype");
+        Err(())
+    }
+}
+
+/// Get a `Root<T>` for the given DOM object, unwrapping any wrapper
 /// around it first, and checking if the object is of the correct type.
 ///
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn native_from_reflector_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Root<T>, ()>
+pub fn native_from_reflector_jsmanaged<T>(obj: *mut JSObject) -> Result<Root<T>, ()>
     where T: Reflectable + IDLInterface
 {
-    use js::glue::{IsWrapper, UnwrapObject};
-
+    let proto_id = <T as IDLInterface>::get_prototype_id() as u16;
+    let proto_depth = <T as IDLInterface>::get_prototype_depth() as u16;
     unsafe {
-        let dom_class = try!(get_dom_class(obj).or_else(|_| {
-            if IsWrapper(obj) == 1 {
-                debug!("found wrapper");
-                obj = UnwrapObject(obj, /* stopAtOuter = */ 0);
-                if obj.is_null() {
-                    debug!("unwrapping security wrapper failed");
-                    Err(())
-                } else {
-                    assert!(IsWrapper(obj) == 0);
-                    debug!("unwrapped successfully");
-                    get_dom_class(obj)
-                }
-            } else {
-                debug!("not a dom wrapper");
-                Err(())
-            }
-        }));
-
-        let proto_id = <T as IDLInterface>::get_prototype_id();
-        let proto_depth = <T as IDLInterface>::get_prototype_depth();
-        if dom_class.interface_chain[proto_depth] == proto_id {
-            debug!("good prototype");
-            let native = native_from_reflector(obj);
-            assert!(!native.is_null());
-            Ok(Root::new(NonZero::new(native)))
-        } else {
-            debug!("bad prototype");
-            Err(())
-        }
+        private_from_proto_chain(obj, proto_id, proto_depth).map(|obj| {
+            Root::new(NonZero::new(obj as *const T))
+        })
     }
 }
 
