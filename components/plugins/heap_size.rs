@@ -22,7 +22,7 @@ use syntax::ext::build::AstBuilder;
 use syntax::ext::deriving::generic::*;
 
 pub fn expand_heap_size(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem,
-                        item: Annotatable, push: &mut FnMut(Annotatable)) {
+                        item: &Annotatable, push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
@@ -43,7 +43,7 @@ pub fn expand_heap_size(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem,
         ],
         associated_types: vec![],
     };
-    trait_def.expand(cx, mitem, &item, push)
+    trait_def.expand(cx, mitem, item, push)
 }
 
 /// Defines how the implementation for `heap_size_of_children()` is to be generated.
