@@ -7,8 +7,7 @@
 #![feature(box_syntax)]
 
 #[macro_use] extern crate bitflags;
-#[cfg(target_os="macos")]
-extern crate cgl;
+#[cfg(target_os="macos")] extern crate cgl;
 extern crate compositing;
 extern crate geom;
 extern crate gleam;
@@ -20,7 +19,7 @@ extern crate net;
 #[cfg(feature = "window")] extern crate script_traits;
 extern crate time;
 extern crate util;
-extern crate egl;
+#[cfg(target_os="android")] extern crate egl;
 extern crate url;
 #[cfg(target_os="linux")] extern crate x11;
 

@@ -41,7 +41,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#5b9f2dbe7517196a82ea3c9c4dc4cf9fbd7d0867"
+source = "git+https://github.com/servo/rust-azure#65f062b0d37c46f5ed1cbf0a9f75eaed55f2aa1b"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -110,10 +110,10 @@ dependencies = [
 [[package]]
 name = "clipboard"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-x11-clipboard#43afb218871e3148758c603f335576cb101cb1fa"
+source = "git+https://github.com/aweinstock314/rust-clipboard#ce1eda8b9c640a39fcf7c924d1ad678de8c6fe24"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
+ "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -125,13 +125,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "cocoa"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "compositing"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
- "clipboard 0.0.1 (git+https://github.com/servo/rust-x11-clipboard)",
- "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
- "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "clipboard 0.0.1 (git+https://github.com/aweinstock314/rust-clipboard)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
@@ -162,6 +172,33 @@ dependencies = [
  "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-foundation"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-graphics"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-text"
+version = "0.1.0"
+source = "git+https://github.com/servo/core-text-rs#54080aaa67758917b2f974d8ebebc174ad570f56"
+dependencies = [
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -377,9 +414,9 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
- "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
- "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
@@ -450,15 +487,15 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.26"
-source = "git+https://github.com/servo/glutin?branch=servo#e888dc79471f062ae0b5fae0ba9e0f01ac96048e"
+source = "git+https://github.com/servo/glutin?branch=servo#3d39d1bb45a6f76be846ed92f946424e24109141"
 dependencies = [
  "android_glue 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cocoa 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin_cocoa 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin_core_foundation 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin_core_graphics 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -490,33 +527,6 @@ dependencies = [
  "url 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "glutin_cocoa"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "glutin_core_foundation"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "glutin_core_graphics"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "glutin_core_foundation 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -625,7 +635,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#842038559a402b37fc8bf4134a4d1329b0607739"
+source = "git+https://github.com/servo/rust-layers#f43124a27a8b2fd666906541f32f753a35042efd"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
@@ -852,7 +862,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#13c9f786c55266fa1594cb520fdbc74f45fda809"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#fd6cb9da11577bd5d4d5e535b00929be19567c29"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
@@ -1106,7 +1116,7 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#1b0a8f5b3805f510cb155476c5f245ef7a16ca54"
+source = "git+https://github.com/servo/skia#be64840752fdbd0b87e02ac99a92727a8454a2dc"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
@@ -1352,15 +1362,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "xlib"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-xlib#184533f276bfad3c78bf06e35ec68f09c18b89c4"
-dependencies = [
- "bitflags 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
