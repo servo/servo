@@ -295,7 +295,7 @@ dependencies = [
 [[package]]
 name = "expat-sys"
 version = "2.1.0"
-source = "git+https://github.com/servo/libexpat#a6ccf2d2dc9bc5e7c5d9318c1e43933013a15787"
+source = "git+https://github.com/servo/libexpat#83f914d964af73ba38aa413455a2009cc6cb2618"
 
 [[package]]
 name = "flate2"
