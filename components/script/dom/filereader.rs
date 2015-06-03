@@ -63,7 +63,7 @@ pub type ReadConsumer = Box<AsyncResultTarget+Send>;
 pub type FileReaderTask = Sender<ControlMsg>;
 
 pub enum ControlMsg {
-    Read(ReadData,ReadConsumer),
+    Read(ReadData, ReadConsumer),
     Exit
 }
 
@@ -90,7 +90,6 @@ pub struct FileReader {
     result: RefCell<Option<DOMString>>,
     generation_id: Cell<GenerationId>,
     filereader_task: RefCell<Option<FileReaderTask>>,
-    abort_target: RefCell<Option<Box<ScriptChan+Send>>>,
 }
 
 impl FileReader {
@@ -103,7 +102,6 @@ impl FileReader {
             result: RefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
             filereader_task: RefCell::new(None),
-            abort_target: RefCell::new(None),
         }
     }
 
@@ -166,6 +164,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
             return Err(InvalidState);
         }
+        //FIXME if isClosed implemented in Blob
 
         //3. readAsArrayBuffer
         self.change_ready_state(FileReaderReadyState::Loading);
@@ -186,6 +185,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
             return Err(InvalidState);
         }
+        //FIXME if isClosed implemented in Blob
 
         //3. readAsText
         self.change_ready_state(FileReaderReadyState::Loading);
@@ -206,6 +206,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
             return Err(InvalidState);
         }
+        //FIXME if isClosed implemented in Blob
 
         //3. readAsDataURL
         self.change_ready_state(FileReaderReadyState::Loading);
@@ -221,18 +222,19 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     //https://w3c.github.io/FileAPI/#dfn-abort
     fn Abort(self) {
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
-            self.change_ready_state(FileReaderReadyState::Done);
+            self.change_ready_state(FileReaderReadyState::Done);//2.
         }
-
+        //1. & 2.
         *self.result.borrow_mut() = None;
 
         self.terminate_ongoing_reading();
-
+        //5. & 6.
         self.dispatch_result_progress_event("abort".to_owned());
         self.dispatch_result_progress_event("loadend".to_owned());
     }
 
     fn GetError(self) -> Option<Temporary<DOMException>> {
+        //FIXME Return the current error state
         None
     }
 
@@ -259,6 +261,7 @@ trait PrivateFileReaderHelpers {
     fn dispatch_result_progress_event(self, type_:DOMString);
     fn change_ready_state(self, state: FileReaderReadyState);
     fn new_filereader_task(self) -> FileReaderTask;
+    fn terminate(self);
 }
 
 impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
@@ -274,9 +277,20 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
         event.fire(target);
     }
 
+    fn terminate(self) {
+        /*let filereader_task = self.filereader_task.borrow().clone();
+        let fr_task = match filereader_task {
+            Some(task) => {task.send(ControlMsg::Exit).unwrap(); None}
+            _ => None
+        };*/
+        *self.filereader_task.borrow_mut() = None;
+    }
+
     fn terminate_ongoing_reading(self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
+        //4.
+        self.terminate();
     }
 
     fn new_filereader_task(self) -> FileReaderTask {
@@ -297,11 +311,10 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
 
         let script_chan = global.script_chan();
 
-        *self.abort_target.borrow_mut() = Some(script_chan.clone());
-
         let filereader_task = self.new_filereader_task();
         *self.filereader_task.borrow_mut() = Some(filereader_task.clone());
 
+        //4.
         FileReader::initiate_async_fr(context.clone(), script_chan, filereader_task, read_data);
         Ok(())
     }
@@ -309,9 +322,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
     fn process_partial_result(self, progress: FileReaderProgress) {
         let msg_id = progress.generation_id();
 
-        // Aborts processing if abort() was called
-        // (including from one of the event handlers called below)
-        macro_rules! return_if_fetch_was_terminated(
+        macro_rules! return_if_reading_was_terminated(
             () => (
                 if msg_id != self.generation_id.get() {
                     return
@@ -319,8 +330,7 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
             );
         );
 
-        // Ignore message if it belongs to a terminated fetch
-        return_if_fetch_was_terminated!();
+        return_if_reading_was_terminated!();
         match progress {
             FileReaderProgress::Start(_)=>{
                 //6.
@@ -332,30 +342,41 @@ impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
             },
             FileReaderProgress::Done(_,s) => {
                 self.dispatch_result_progress_event("progress".to_owned());
-                return_if_fetch_was_terminated!();
+                return_if_reading_was_terminated!();
                 //8.1
                 self.change_ready_state(FileReaderReadyState::Done);
-                return_if_fetch_was_terminated!();
+                return_if_reading_was_terminated!();
+                //8.2
                 *self.result.borrow_mut() = Some(s);
-                return_if_fetch_was_terminated!();
+                return_if_reading_was_terminated!();
                 //8.3
                 self.dispatch_result_progress_event("load".to_owned());
-                return_if_fetch_was_terminated!();
+                return_if_reading_was_terminated!();
                 //8.4
                 if self.ready_state.get() as u16 != FileReaderReadyState::Loading as u16 {
                     self.dispatch_result_progress_event("loadend".to_owned());
                 }
+                //9.
+                self.terminate();
             },
             FileReaderProgress::Errored(_, e) => {
                 let errormsg = match e {
                     Abort => "abort",
                     _ => "error",
                 };
-                self.dispatch_result_progress_event("progress".to_owned());
-                return_if_fetch_was_terminated!();
+                return_if_reading_was_terminated!();
+                //1.
+                self.change_ready_state(FileReaderReadyState::Done);
+                return_if_reading_was_terminated!();
+                *self.result.borrow_mut() = None;
+                //FIXME set error attribute
+                return_if_reading_was_terminated!();
                 self.dispatch_result_progress_event(errormsg.to_owned());
-                return_if_fetch_was_terminated!();
+                return_if_reading_was_terminated!();
+                //3.
                 self.dispatch_result_progress_event("loadend".to_owned());
+                //4.
+                self.terminate();
             }
         }
     }
@@ -417,20 +438,24 @@ impl FileReaderManager {
     }
 
     fn read(&mut self, read_data: ReadData, consumer: ReadConsumer) {
+        //4.
         let progress = start_reading(consumer);
+        //5.
         progress.invoke(ResultAction::DataAvailable(DOMString::new()));
         match read_data.function {
             FileReaderFunction::Text => self.readText(read_data, progress),
             FileReaderFunction::DataUrl => self.readDataUrl(read_data, progress),
-            _ => {
-                //println!("Run read of FileReaderManager: {}", "Not Implemented Function");
-                progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Not Implemented Function"))))
-            }
+            FileReaderFunction::ArrayBuffer => self.readArrayBuffer(read_data, progress)
         }
     }
 
+    fn readArrayBuffer(&mut self, read_data: ReadData, progress: ReadConsumer) {
+        //FIXME
+        progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Not Implemented Function"))))
+    }
+
     fn readDataUrl(&mut self, read_data: ReadData, progress: ReadConsumer) {
-        //println!("Run readDataUrl of FileReaderManager: {}", "Not Implemented Function");
+        //FIXME
         progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Not Implemented Function"))))
     }
 
@@ -455,7 +480,7 @@ impl FileReaderManager {
                 return;
             }
         };
-
+        //5.
         progress.invoke(ResultAction::DataAvailable(DOMString::new()));
         let (_, convert) = input.split_at(0);
 
