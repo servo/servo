@@ -167,12 +167,21 @@ class CommandBase(object):
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
+            # These paths are for when rust-root points to an unpacked installer
             extra_path += [path.join(self.config["tools"]["rust-root"], "rustc", "bin")]
             extra_lib += [path.join(self.config["tools"]["rust-root"], "rustc", "lib")]
+            # These paths are for when rust-root points to a rustc sysroot
+            extra_path += [path.join(self.config["tools"]["rust-root"], "bin")]
+            extra_lib += [path.join(self.config["tools"]["rust-root"], "lib")]
+
         if not self.config["tools"]["system-cargo"] \
                 or self.config["tools"]["cargo-root"]:
+            # This path is for when rust-root points to an unpacked installer
             extra_path += [
                 path.join(self.config["tools"]["cargo-root"], "cargo", "bin")]
+            # This path is for when rust-root points to a rustc sysroot
+            extra_path += [
+                path.join(self.config["tools"]["cargo-root"], "bin")]
 
         if extra_path:
             env["PATH"] = "%s%s%s" % (
