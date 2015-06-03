@@ -15,7 +15,7 @@ import itertools
 import re
 from licenseck import licenses
 
-directories_to_check = ["ports", "components", "tests"]
+directories_to_check = ["ports", "components", "tests", "python"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
@@ -24,6 +24,11 @@ ignored_files = [
     # Upstream
     "support/*",
     "tests/wpt/*",
+    "python/mach/*",
+    "python/mozdebug/*",
+    "python/mozinfo/*",
+    "python/mozlog/*",
+    "python/toml/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
     "components/script/dom/bindings/codegen/*",
@@ -95,7 +100,12 @@ def check_whitespace(idx, line):
 def check_by_line(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
-        for error in itertools.chain(check_length(idx, line), check_whitespace(idx, line), check_whatwg_url(idx, line)):
+        errors = itertools.chain(
+            check_length(idx, line),
+            check_whitespace(idx, line),
+            check_whatwg_url(idx, line),
+        )
+        for error in errors:
             yield error
 
 

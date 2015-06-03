@@ -66,7 +66,8 @@ CATEGORIES = {
     },
     'disabled': {
         'short': 'Disabled',
-        'long': 'The disabled commands are hidden by default. Use -v to display them. These commands are unavailable for your current context, run "mach <command>" to see why.',
+        'long': 'The disabled commands are hidden by default. Use -v to display them. These commands are unavailable '
+                'for your current context, run "mach <command>" to see why.',
         'priority': 0,
     }
 }

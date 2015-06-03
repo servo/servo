@@ -1,3 +1,12 @@
+# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
 import os
 from os import path
 import contextlib
@@ -222,25 +231,45 @@ class CommandBase(object):
 
             env["CC"] = "arm-linux-androideabi-gcc"
             env["ARCH_DIR"] = "arch-arm"
-            env["CPPFLAGS"] = ("-DANDROID -DTARGET_OS_GONK -DGR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE=1 "
-                               "-isystem %(gonkdir)s/bionic/libc/%(archdir)s/include -isystem %(gonkdir)s/bionic/libc/include/ "
-                               "-isystem %(gonkdir)s/bionic/libc/kernel/common -isystem %(gonkdir)s/bionic/libc/kernel/%(archdir)s "
-                               "-isystem %(gonkdir)s/bionic/libm/include -I%(gonkdir)s/system -I%(gonkdir)s/system/core/include "
-                               "-isystem %(gonkdir)s/bionic -I%(gonkdir)s/frameworks/native/opengl/include -I%(gonkdir)s/external/zlib "
-                               "-I%(gonkdir)s/hardware/libhardware/include/hardware/") % {"gonkdir": env["GONKDIR"], "archdir": env["ARCH_DIR"] }
-            env["CXXFLAGS"] = ("-O2 -mandroid -fPIC  %(cppflags)s -I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
-                                "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include") % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"] }
-            env["CFLAGS"] = ("-O2 -mandroid -fPIC  %(cppflags)s -I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
-                             "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include") % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"] }
+            env["CPPFLAGS"] = (
+                "-DANDROID -DTARGET_OS_GONK "
+                "-DGR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE=1 "
+                "-isystem %(gonkdir)s/bionic/libc/%(archdir)s/include "
+                "-isystem %(gonkdir)s/bionic/libc/include/ "
+                "-isystem %(gonkdir)s/bionic/libc/kernel/common "
+                "-isystem %(gonkdir)s/bionic/libc/kernel/%(archdir)s "
+                "-isystem %(gonkdir)s/bionic/libm/include "
+                "-I%(gonkdir)s/system "
+                "-I%(gonkdir)s/system/core/include "
+                "-isystem %(gonkdir)s/bionic "
+                "-I%(gonkdir)s/frameworks/native/opengl/include "
+                "-I%(gonkdir)s/external/zlib "
+                "-I%(gonkdir)s/hardware/libhardware/include/hardware/ "
+            ) % {"gonkdir": env["GONKDIR"], "archdir": env["ARCH_DIR"]}
+            env["CXXFLAGS"] = (
+                "-O2 -mandroid -fPIC  %(cppflags)s "
+                "-I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
+                "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include "
+            ) % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"]}
+            env["CFLAGS"] = (
+                "-O2 -mandroid -fPIC  %(cppflags)s "
+                "-I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
+                "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include "
+            ) % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"]}
 
-            another_extra_path = path.join(env["GONKDIR"], "prebuilts", "gcc", "linux-x86", "arm", "arm-linux-androideabi-4.7", "bin")
+            another_extra_path = path.join(
+                env["GONKDIR"], "prebuilts", "gcc", "linux-x86", "arm", "arm-linux-androideabi-4.7", "bin")
             env["PATH"] = "%s%s%s" % (another_extra_path, os.pathsep, env["PATH"])
-            env["LDFLAGS"] = ("-mandroid -L%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
-                              "-Wl,-rpath-link=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
-                              "--sysroot=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/")  % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
+            env["LDFLAGS"] = (
+                "-mandroid -L%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
+                "-Wl,-rpath-link=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
+                "--sysroot=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/"
+            ) % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"]}
 
             # Not strictly necessary for a vanilla build, but might be when tweaking the openssl build
-            openssl_dir = "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib" % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
+            openssl_dir = (
+                "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib"
+            ) % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"]}
             env["OPENSSL_LIB_DIR"] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
 
