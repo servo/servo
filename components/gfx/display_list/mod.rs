@@ -27,7 +27,7 @@ use azure::azure::AzFloat;
 use azure::azure_hl::Color;
 
 use collections::linked_list::{self, LinkedList};
-use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
+use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use geom::approxeq::ApproxEq;
 use geom::num::Zero;
 use libc::uintptr_t;
@@ -245,7 +245,7 @@ pub struct StackingContext {
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Matrix2D<AzFloat>,
+    pub transform: Matrix4<AzFloat>,
 }
 
 impl StackingContext {
@@ -255,7 +255,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               transform: &Matrix2D<AzFloat>,
+               transform: &Matrix4<AzFloat>,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
                layer: Option<Arc<PaintLayer>>)
@@ -276,7 +276,7 @@ impl StackingContext {
     pub fn optimize_and_draw_into_context(&self,
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
-                                          transform: &Matrix2D<AzFloat>,
+                                          transform: &Matrix4<AzFloat>,
                                           clip_rect: Option<&Rect<Au>>) {
         let transform = transform.mul(&self.transform);
         let temporary_draw_target =
@@ -309,7 +309,10 @@ impl StackingContext {
 
             // Set up our clip rect and transform.
             let old_transform = paint_subcontext.draw_target.get_transform();
-            paint_subcontext.draw_target.set_transform(&transform);
+            let xform_2d = Matrix2D::new(transform.m11, transform.m12,
+                                         transform.m21, transform.m22,
+                                         transform.m41, transform.m42);
+            paint_subcontext.draw_target.set_transform(&xform_2d);
             paint_subcontext.push_clip_if_applicable();
 
             // Steps 1 and 2: Borders and background for the root.
@@ -331,7 +334,8 @@ impl StackingContext {
                                             positioned_kid.bounds
                                                           .origin
                                                           .y
-                                                          .to_nearest_px() as AzFloat);
+                                                          .to_nearest_px() as AzFloat,
+                                            0.0);
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
@@ -379,7 +383,8 @@ impl StackingContext {
                                             positioned_kid.bounds
                                                           .origin
                                                           .y
-                                                          .to_nearest_px() as AzFloat);
+                                                          .to_nearest_px() as AzFloat,
+                                            0.0);
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
@@ -903,7 +908,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, Default, PartialEq, Debug, Copy)]
+#[derive(Clone, Default, PartialEq, Debug, Copy, HeapSizeOf)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
