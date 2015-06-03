@@ -12,7 +12,8 @@ use paint_context::PaintContext;
 
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
-use geom::matrix2d::Matrix2D;
+use geom::Matrix4;
+use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -621,10 +622,11 @@ impl WorkerThread {
                          stacking_context.overflow.origin.y.to_f32_px()));
 
             // Apply the translation to paint the tile we want.
-            let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
+            let matrix: Matrix4<AzFloat> = identity();
+            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
-                                          -tile_bounds.origin.y as AzFloat);
+                                          -tile_bounds.origin.y as AzFloat,
+                                          0.0);
 
             // Clear the buffer.
             paint_context.clear();

@@ -3100,142 +3100,55 @@ pub mod longhands {
         use values::computed::{ToComputedValue, Context};
 
         use cssparser::ToCss;
-        use std::f32;
-        use std::ops::Mul;
         use std::fmt;
         use util::geometry::Au;
 
         pub mod computed_value {
             use values::CSSFloat;
             use values::computed;
-
-            use std::ops::Mul;
+            use values::specified;
 
             #[derive(Clone, Copy, Debug, PartialEq)]
             pub struct ComputedMatrix {
-                pub m11: CSSFloat, pub m12: CSSFloat,
-                pub m21: CSSFloat, pub m22: CSSFloat,
-                pub m31: computed::LengthAndPercentage, pub m32: computed::LengthAndPercentage,
+                pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
+                pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
+                pub m31: CSSFloat, pub m32: CSSFloat, pub m33: CSSFloat, pub m34: CSSFloat,
+                pub m41: computed::LengthAndPercentage,
+                pub m42: computed::LengthAndPercentage,
+                pub m43: CSSFloat,
+                pub m44: CSSFloat,
             }
 
-            impl Mul<ComputedMatrix> for ComputedMatrix {
-                type Output = ComputedMatrix;
-
-                fn mul(self, other: ComputedMatrix) -> ComputedMatrix {
-                    ComputedMatrix {
-                        m11: self.m11*other.m11 + self.m12*other.m21,
-                        m12: self.m11*other.m12 + self.m12*other.m22,
-                        m21: self.m21*other.m11 + self.m22*other.m21,
-                        m22: self.m21*other.m12 + self.m22*other.m22,
-                        m31: self.m31.clone()*other.m11 + self.m32.clone()*other.m21 + other.m31,
-                        m32: self.m31*other.m12 + self.m32*other.m22 + other.m32,
-                    }
-                }
+            #[derive(Clone, Debug, PartialEq)]
+            pub enum ComputedOperation {
+                Matrix(ComputedMatrix),
+                Skew(CSSFloat, CSSFloat),
+                Translate(computed::LengthAndPercentage,
+                          computed::LengthAndPercentage,
+                          computed::Length),
+                Scale(CSSFloat, CSSFloat, CSSFloat),
+                Rotate(CSSFloat, CSSFloat, CSSFloat, specified::Angle),
+                Perspective(computed::Length),
             }
 
-            impl ComputedMatrix {
-                #[inline]
-                fn new(m11: CSSFloat,
-                       m12: CSSFloat,
-                       m21: CSSFloat,
-                       m22: CSSFloat,
-                       m31: computed::LengthAndPercentage,
-                       m32: computed::LengthAndPercentage)
-                       -> ComputedMatrix {
-                    ComputedMatrix {
-                        m11: m11, m12: m12,
-                        m21: m21, m22: m22,
-                        m31: m31, m32: m32,
-                    }
-                }
-
-                #[inline]
-                pub fn identity() -> ComputedMatrix {
-                    ComputedMatrix {
-                        m11: 1.0, m12: 0.0,
-                        m21: 0.0, m22: 1.0,
-                        m31: computed::LengthAndPercentage::zero(),
-                        m32: computed::LengthAndPercentage::zero(),
-                    }
-                }
-
-                pub fn scale(&mut self, sx: CSSFloat, sy: CSSFloat) {
-                    *self = ComputedMatrix::new(sx, 0.0,
-                                                0.0, sy,
-                                                computed::LengthAndPercentage::zero(),
-                                                computed::LengthAndPercentage::zero()) *
-                        (*self).clone()
-                }
-
-                pub fn skew(&mut self, sx: CSSFloat, sy: CSSFloat) {
-                    *self = ComputedMatrix::new(1.0, sx,
-                                                sy, 1.0,
-                                                computed::LengthAndPercentage::zero(),
-                                                computed::LengthAndPercentage::zero()) *
-                        (*self).clone()
-                }
-
-                pub fn translate(&mut self,
-                                 tx: computed::LengthAndPercentage,
-                                 ty: computed::LengthAndPercentage) {
-                    *self = ComputedMatrix::new(1.0, 0.0, 0.0, 1.0, tx, ty) * (*self).clone()
-                }
-
-                pub fn rotate(&mut self, theta: CSSFloat) {
-                    *self = ComputedMatrix::new(theta.cos(), -theta.sin(),
-                                                theta.sin(), theta.cos(),
-                                                computed::LengthAndPercentage::zero(),
-                                                computed::LengthAndPercentage::zero()) *
-                        (*self).clone()
-                }
-            }
-
-            pub type T = Option<ComputedMatrix>;
+            pub type T = Option<Vec<ComputedOperation>>;
         }
 
         #[derive(Clone, Debug, PartialEq)]
         pub struct SpecifiedMatrix {
-            m11: CSSFloat, m12: CSSFloat,
-            m21: CSSFloat, m22: CSSFloat,
-            m31: specified::LengthAndPercentage, m32: specified::LengthAndPercentage,
+            m11: CSSFloat, m12: CSSFloat, m13: CSSFloat, m14: CSSFloat,
+            m21: CSSFloat, m22: CSSFloat, m23: CSSFloat, m24: CSSFloat,
+            m31: CSSFloat, m32: CSSFloat, m33: CSSFloat, m34: CSSFloat,
+            m41: specified::LengthAndPercentage,
+            m42: specified::LengthAndPercentage,
+            m43: specified::Length,
+            m44: CSSFloat,
         }
 
         impl ToCss for SpecifiedMatrix {
             fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
                 // TODO(pcwalton)
                 Ok(())
-            }
-        }
-
-        impl Mul<SpecifiedMatrix> for SpecifiedMatrix {
-            type Output = SpecifiedMatrix;
-
-            fn mul(self, other: SpecifiedMatrix) -> SpecifiedMatrix {
-                SpecifiedMatrix {
-                    m11: self.m11*other.m11 + self.m12*other.m21,
-                    m12: self.m11*other.m12 + self.m12*other.m22,
-                    m21: self.m21*other.m11 + self.m22*other.m21,
-                    m22: self.m21*other.m12 + self.m22*other.m22,
-                    m31: self.m31.clone()*other.m11 + self.m32.clone()*other.m21 + other.m31,
-                    m32: self.m31*other.m12 + self.m32*other.m22 + other.m32,
-                }
-            }
-        }
-
-        impl SpecifiedMatrix {
-            #[inline]
-            fn new(m11: CSSFloat,
-                   m12: CSSFloat,
-                   m21: CSSFloat,
-                   m22: CSSFloat,
-                   m31: specified::LengthAndPercentage,
-                   m32: specified::LengthAndPercentage)
-                   -> SpecifiedMatrix {
-                SpecifiedMatrix {
-                    m11: m11, m12: m12,
-                    m21: m21, m22: m22,
-                    m31: m31, m32: m32,
-                }
             }
         }
 
@@ -3262,10 +3175,13 @@ pub mod longhands {
         #[derive(Clone, Debug, PartialEq)]
         enum SpecifiedOperation {
             Matrix(SpecifiedMatrix),
-            Translate(specified::LengthAndPercentage, specified::LengthAndPercentage),
-            Scale(CSSFloat, CSSFloat),
-            Rotate(specified::Angle),
             Skew(CSSFloat, CSSFloat),
+            Translate(specified::LengthAndPercentage,
+                      specified::LengthAndPercentage,
+                      specified::Length),
+            Scale(CSSFloat, CSSFloat, CSSFloat),
+            Rotate(CSSFloat, CSSFloat, CSSFloat, specified::Angle),
+            Perspective(specified::Length),
         }
 
         impl ToCss for SpecifiedOperation {
@@ -3318,23 +3234,54 @@ pub mod longhands {
                             if values.len() != 6 {
                                 return Err(())
                             }
-                            let (tx, ty) =
+                            let (tx, ty, tz) =
                                 (specified::Length::Absolute(Au::from_f32_px(values[4])),
-                                 specified::Length::Absolute(Au::from_f32_px(values[5])));
+                                 specified::Length::Absolute(Au::from_f32_px(values[5])),
+                                 specified::Length::Absolute(Au(0)));
                             let (tx, ty) =
                                 (specified::LengthAndPercentage::from_length(tx),
                                  specified::LengthAndPercentage::from_length(ty));
                             result.push(SpecifiedOperation::Matrix(
-                                    SpecifiedMatrix::new(values[0], values[1],
-                                                         values[2], values[3],
-                                                         tx, ty)));
+                                    SpecifiedMatrix {
+                                        m11: values[0], m12: values[1], m13: 0.0, m14: 0.0,
+                                        m21: values[2], m22: values[3], m23: 0.0, m24: 0.0,
+                                        m31:       0.0, m32:       0.0, m33: 1.0, m34: 0.0,
+                                        m41:        tx, m42:        ty, m43:  tz, m44: 1.0
+                                    }));
+                            Ok(())
+                        }))
+                    },
+                    "matrix3d" => {
+                        try!(input.parse_nested_block(|input| {
+                            let values = try!(input.parse_comma_separated(|input| {
+                                input.expect_number()
+                            }));
+                            if values.len() != 16 {
+                                return Err(())
+                            }
+                            let (tx, ty, tz) =
+                                (specified::Length::Absolute(Au::from_f32_px(values[12])),
+                                 specified::Length::Absolute(Au::from_f32_px(values[13])),
+                                 specified::Length::Absolute(Au::from_f32_px(values[14])));
+                            let (tx, ty) =
+                                (specified::LengthAndPercentage::from_length(tx),
+                                 specified::LengthAndPercentage::from_length(ty));
+                            result.push(SpecifiedOperation::Matrix(
+                                    SpecifiedMatrix {
+                                        m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
+                                        m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
+                                        m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
+                                        m41:         tx, m42:         ty, m43:         tz, m44: values[15]
+                                    }));
                             Ok(())
                         }))
                     },
                     "translate" => {
                         try!(input.parse_nested_block(|input| {
                             let (tx, ty) = try!(parse_two_lengths_or_percentages(input));
-                            result.push(SpecifiedOperation::Translate(tx, ty));
+                            result.push(SpecifiedOperation::Translate(tx,
+                                                                      ty,
+                                                                      specified::Length::Absolute(Au(0))));
                             Ok(())
                         }))
                     },
@@ -3344,7 +3291,8 @@ pub mod longhands {
                             result.push(SpecifiedOperation::Translate(
                                 specified::LengthAndPercentage::from_length_or_percentage(
                                     &tx),
-                                specified::LengthAndPercentage::zero()));
+                                specified::LengthAndPercentage::zero(),
+                                specified::Length::Absolute(Au(0))));
                             Ok(())
                         }))
                     },
@@ -3354,35 +3302,114 @@ pub mod longhands {
                             result.push(SpecifiedOperation::Translate(
                                 specified::LengthAndPercentage::zero(),
                                 specified::LengthAndPercentage::from_length_or_percentage(
-                                    &ty)));
+                                    &ty),
+                                specified::Length::Absolute(Au(0))));
                             Ok(())
                         }))
+                    },
+                    "translatez" => {
+                        try!(input.parse_nested_block(|input| {
+                            let tz = try!(specified::Length::parse(input));
+                            result.push(SpecifiedOperation::Translate(
+                                specified::LengthAndPercentage::zero(),
+                                specified::LengthAndPercentage::zero(),
+                                tz));
+                            Ok(())
+                        }))
+                    },
+                    "translate3d" => {
+                        try!(input.parse_nested_block(|input| {
+                            let tx = try!(specified::LengthOrPercentage::parse(input));
+                            try!(input.expect_comma());
+                            let ty = try!(specified::LengthOrPercentage::parse(input));
+                            try!(input.expect_comma());
+                            let tz = try!(specified::Length::parse(input));
+                            result.push(SpecifiedOperation::Translate(
+                                specified::LengthAndPercentage::from_length_or_percentage(&tx),
+                                specified::LengthAndPercentage::from_length_or_percentage(&ty),
+                                tz));
+                            Ok(())
+                        }))
+
                     },
                     "scale" => {
                         try!(input.parse_nested_block(|input| {
                             let (sx, sy) = try!(parse_two_floats(input));
-                            result.push(SpecifiedOperation::Scale(sx, sy));
+                            result.push(SpecifiedOperation::Scale(sx, sy, 1.0));
                             Ok(())
                         }))
                     },
                     "scalex" => {
                         try!(input.parse_nested_block(|input| {
                             let sx = try!(input.expect_number());
-                            result.push(SpecifiedOperation::Scale(sx, 1.0));
+                            result.push(SpecifiedOperation::Scale(sx, 1.0, 1.0));
                             Ok(())
                         }))
                     },
                     "scaley" => {
                         try!(input.parse_nested_block(|input| {
                             let sy = try!(input.expect_number());
-                            result.push(SpecifiedOperation::Scale(1.0, sy));
+                            result.push(SpecifiedOperation::Scale(1.0, sy, 1.0));
+                            Ok(())
+                        }))
+                    },
+                    "scalez" => {
+                        try!(input.parse_nested_block(|input| {
+                            let sz = try!(input.expect_number());
+                            result.push(SpecifiedOperation::Scale(1.0, 1.0, sz));
+                            Ok(())
+                        }))
+                    },
+                    "scale3d" => {
+                        try!(input.parse_nested_block(|input| {
+                            let sx = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            let sy = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            let sz = try!(input.expect_number());
+                            result.push(SpecifiedOperation::Scale(sx, sy, sz));
                             Ok(())
                         }))
                     },
                     "rotate" => {
                         try!(input.parse_nested_block(|input| {
                             let theta = try!(specified::Angle::parse(input));
-                            result.push(SpecifiedOperation::Rotate(theta));
+                            result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
+                            Ok(())
+                        }))
+                    },
+                    "rotatex" => {
+                        try!(input.parse_nested_block(|input| {
+                            let theta = try!(specified::Angle::parse(input));
+                            result.push(SpecifiedOperation::Rotate(1.0, 0.0, 0.0, theta));
+                            Ok(())
+                        }))
+                    },
+                    "rotatey" => {
+                        try!(input.parse_nested_block(|input| {
+                            let theta = try!(specified::Angle::parse(input));
+                            result.push(SpecifiedOperation::Rotate(0.0, 1.0, 0.0, theta));
+                            Ok(())
+                        }))
+                    },
+                    "rotatez" => {
+                        try!(input.parse_nested_block(|input| {
+                            let theta = try!(specified::Angle::parse(input));
+                            result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
+                            Ok(())
+                        }))
+                    },
+                    "rotate3d" => {
+                        try!(input.parse_nested_block(|input| {
+                            let ax = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            let ay = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            let az = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            let theta = try!(specified::Angle::parse(input));
+                            // TODO(gw): Check the axis can be normalized!!
+                            result.push(SpecifiedOperation::Rotate(ax, ay, az, theta));
                             Ok(())
                         }))
                     },
@@ -3406,6 +3433,13 @@ pub mod longhands {
                             result.push(SpecifiedOperation::Skew(1.0, sy));
                             Ok(())
                         }))
+                    },
+                    "perspective" => {
+                        try!(input.parse_nested_block(|input| {
+                            let d = try!(specified::Length::parse(input));
+                            result.push(SpecifiedOperation::Perspective(d));
+                            Ok(())
+                        }))
                     }
                     _ => return Err(())
                 }
@@ -3427,32 +3461,41 @@ pub mod longhands {
                     return None
                 }
 
-                let mut result = computed_value::ComputedMatrix::identity();
+                let mut result = vec!();
                 for operation in self.0.iter() {
                     match *operation {
                         SpecifiedOperation::Matrix(ref matrix) => {
-                            result = computed_value::ComputedMatrix {
-                                m11: matrix.m11, m12: matrix.m12,
-                                m21: matrix.m21, m22: matrix.m22,
-                                m31: matrix.m31.to_computed_value(context),
-                                m32: matrix.m32.to_computed_value(context),
-                            } * result
+                            let m = computed_value::ComputedMatrix {
+                                m11: matrix.m11, m12: matrix.m12, m13: matrix.m13, m14: matrix.m14,
+                                m21: matrix.m21, m22: matrix.m22, m23: matrix.m23, m24: matrix.m24,
+                                m31: matrix.m31, m32: matrix.m32, m33: matrix.m33, m34: matrix.m34,
+                                m41: matrix.m41.to_computed_value(context),
+                                m42: matrix.m42.to_computed_value(context),
+                                m43: matrix.m43.to_computed_value(context).to_f32_px(),
+                                m44: matrix.m44
+                            };
+                            result.push(computed_value::ComputedOperation::Matrix(m));
                         }
-                        SpecifiedOperation::Translate(ref tx, ref ty) => {
-                            result.translate(tx.to_computed_value(context),
-                                             ty.to_computed_value(context))
+                        SpecifiedOperation::Translate(ref tx, ref ty, ref tz) => {
+                            result.push(computed_value::ComputedOperation::Translate(tx.to_computed_value(context),
+                                                                                    ty.to_computed_value(context),
+                                                                                    tz.to_computed_value(context)));
                         }
-                        SpecifiedOperation::Scale(sx, sy) => {
-                            result.scale(sx, sy)
+                        SpecifiedOperation::Scale(sx, sy, sz) => {
+                            result.push(computed_value::ComputedOperation::Scale(sx, sy, sz));
                         }
-                        SpecifiedOperation::Rotate(ref theta) => {
-                            result.rotate(f32::consts::PI_2 - theta.radians());
+                        SpecifiedOperation::Rotate(ax, ay, az, theta) => {
+                            result.push(computed_value::ComputedOperation::Rotate(ax, ay, az, theta));
                         }
                         SpecifiedOperation::Skew(sx, sy) => {
-                            result.skew(sx, sy)
+                            result.push(computed_value::ComputedOperation::Skew(sx, sy));
                         }
-                    }
+                        SpecifiedOperation::Perspective(d) => {
+                            result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
+                        }
+                    };
                 }
+
                 Some(result)
             }
         }
