@@ -97,20 +97,20 @@ pub struct _cef_sslcert_principal_t {
   //
   pub get_street_addresses: Option<extern "C" fn(
       this: *mut cef_sslcert_principal_t,
-      addresses: types::cef_string_list_t) -> ()>,
+      addresses: &types::cef_string_list_t) -> ()>,
 
   //
   // Retrieve the list of organization names.
   //
   pub get_organization_names: Option<extern "C" fn(
-      this: *mut cef_sslcert_principal_t, names: types::cef_string_list_t) -> (
+      this: *mut cef_sslcert_principal_t, names: &types::cef_string_list_t) -> (
       )>,
 
   //
   // Retrieve the list of organization unit names.
   //
   pub get_organization_unit_names: Option<extern "C" fn(
-      this: *mut cef_sslcert_principal_t, names: types::cef_string_list_t) -> (
+      this: *mut cef_sslcert_principal_t, names: &types::cef_string_list_t) -> (
       )>,
 
   //
@@ -118,7 +118,7 @@ pub struct _cef_sslcert_principal_t {
   //
   pub get_domain_components: Option<extern "C" fn(
       this: *mut cef_sslcert_principal_t,
-      components: types::cef_string_list_t) -> ()>,
+      components: &types::cef_string_list_t) -> ()>,
 
   //
   // The reference count. This will only be present for Rust instances!
@@ -288,7 +288,7 @@ impl CefSSLCertPrincipal {
   //
   // Retrieve the list of street addresses.
   //
-  pub fn get_street_addresses(&self, addresses: Vec<String>) -> () {
+  pub fn get_street_addresses(&self, addresses: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
@@ -304,7 +304,7 @@ impl CefSSLCertPrincipal {
   //
   // Retrieve the list of organization names.
   //
-  pub fn get_organization_names(&self, names: Vec<String>) -> () {
+  pub fn get_organization_names(&self, names: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
@@ -320,7 +320,7 @@ impl CefSSLCertPrincipal {
   //
   // Retrieve the list of organization unit names.
   //
-  pub fn get_organization_unit_names(&self, names: Vec<String>) -> () {
+  pub fn get_organization_unit_names(&self, names: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
@@ -336,7 +336,7 @@ impl CefSSLCertPrincipal {
   //
   // Retrieve the list of domain components.
   //
-  pub fn get_domain_components(&self, components: Vec<String>) -> () {
+  pub fn get_domain_components(&self, components: &Vec<String>) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")

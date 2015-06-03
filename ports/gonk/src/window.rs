@@ -812,6 +812,9 @@ impl WindowMethods for Window {
     fn load_error(&self, _: NetError, _: String) {
     }
 
+    fn head_parsed(&self) {
+    }
+
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         ScaleFactor::new(1.0)
     }
@@ -836,6 +839,9 @@ impl WindowMethods for Window {
     }
 
     fn set_cursor(&self, _: Cursor) {
+    }
+
+    fn set_favicon(&self, _: Url) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {

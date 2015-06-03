@@ -109,6 +109,8 @@ impl CompositorEventListener for NullCompositor {
             Msg::CreatePng(..) |
             Msg::PaintTaskExited(..) |
             Msg::IsReadyToSaveImageReply(..) => {}
+            Msg::NewFavicon(..) => {}
+            Msg::HeadParsed => {}
         }
         true
     }

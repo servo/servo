@@ -180,6 +180,10 @@ pub enum Msg {
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
+    /// A favicon was detected
+    NewFavicon(Url),
+    /// <head> tag finished parsing
+    HeadParsed,
 }
 
 impl Debug for Msg {
@@ -206,6 +210,8 @@ impl Debug for Msg {
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
+            Msg::NewFavicon(..) => write!(f, "NewFavicon"),
+            Msg::HeadParsed => write!(f, "HeadParsed"),
         }
     }
 }

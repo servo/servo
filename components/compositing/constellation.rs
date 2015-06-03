@@ -468,6 +468,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(containing_pipeline_id, subpage_id);
             }
+            ConstellationMsg::NewFavicon(url) => {
+                debug!("constellation got new favicon message");
+                self.compositor_proxy.send(CompositorMsg::NewFavicon(url));
+            }
+            ConstellationMsg::HeadParsed => {
+                debug!("constellation got head parsed message");
+                self.compositor_proxy.send(CompositorMsg::HeadParsed);
+            }
         }
         true
     }

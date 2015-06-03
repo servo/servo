@@ -515,6 +515,9 @@ impl WindowMethods for Window {
     fn load_error(&self, _: NetError, _: String) {
     }
 
+    fn head_parsed(&self) {
+    }
+
     /// Has no effect on Android.
     fn set_cursor(&self, c: Cursor) {
         use glutin::MouseCursor;
@@ -557,6 +560,9 @@ impl WindowMethods for Window {
             Cursor::ZoomOutCursor => MouseCursor::ZoomOut,
         };
         self.window.set_cursor(glutin_cursor);
+    }
+
+    fn set_favicon(&self, _: Url) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
@@ -703,8 +709,13 @@ impl WindowMethods for Window {
     }
     fn load_error(&self, _: NetError, _: String) {
     }
+    fn head_parsed(&self) {
+    }
 
     fn set_cursor(&self, _: Cursor) {
+    }
+
+    fn set_favicon(&self, _: Url) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
