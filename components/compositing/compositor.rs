@@ -1281,6 +1281,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // Constellation has replied at some point in the past
                 // that the current output image is stable and ready
                 // for saving.
+                // Reset the flag so that we check again in the future
+                // TODO: only reset this if we load a new document?
+                self.ready_to_save_state = ReadyState::Unknown;
                 true
             }
         }
