@@ -98,7 +98,7 @@ def bootstrap(topdir):
 
     for category, meta in CATEGORIES.items():
         mach.define_category(category, meta['short'], meta['long'],
-            meta['priority'])
+                             meta['priority'])
 
     for path in MACH_MODULES:
         mach.load_commands_from_file(os.path.join(topdir, path))

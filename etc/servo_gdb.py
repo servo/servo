@@ -7,18 +7,21 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-# A set of simple pretty printers for gdb to make debugging Servo a bit easier.
+"""
+A set of simple pretty printers for gdb to make debugging Servo a bit easier.
 
-# To load these, you need to add something like the following
-# to your .gdbinit file.
-#python
-#import sys
-#sys.path.insert(0, '/home/<path to git checkout>/servo/src/etc')
-#import servo_gdb
-#servo_gdb.register_printers(None)
-#end
+To load these, you need to add something like the following to your .gdbinit file:
+
+python
+import sys
+sys.path.insert(0, '/home/<path to git checkout>/servo/src/etc')
+import servo_gdb
+servo_gdb.register_printers(None)
+end
+"""
 
 import gdb
+
 
 # Print Au in both raw value and CSS pixels
 class AuPrinter:
@@ -27,8 +30,9 @@ class AuPrinter:
 
     def to_string(self):
         i32_type = gdb.lookup_type("i32")
-        au = self.val.cast(i32_type);
+        au = self.val.cast(i32_type)
         return "{0}px".format(au / 60.0)
+
 
 # Print a U8 bitfield as binary
 class BitFieldU8Printer:
@@ -37,8 +41,9 @@ class BitFieldU8Printer:
 
     def to_string(self):
         u8_type = gdb.lookup_type("u8")
-        value = self.val.cast(u8_type);
+        value = self.val.cast(u8_type)
         return "[{0:#010b}]".format(int(value))
+
 
 # Print a struct with fields as children
 class ChildPrinter:
@@ -48,11 +53,12 @@ class ChildPrinter:
     def children(self):
         children = []
         for f in self.val.type.fields():
-            children.append( (f.name, self.val[f.name]) )
+            children.append((f.name, self.val[f.name]))
         return children
 
     def to_string(self):
         return None
+
 
 # Allow a trusted node to be dereferenced in the debugger
 class TrustedNodeAddressPrinter:
@@ -67,6 +73,7 @@ class TrustedNodeAddressPrinter:
     def to_string(self):
         return self.val.address
 
+
 # Extract a node type ID from enum
 class NodeTypeIdPrinter:
     def __init__(self, val):
@@ -75,8 +82,9 @@ class NodeTypeIdPrinter:
     def to_string(self):
         u8_ptr_type = gdb.lookup_type("u8").pointer()
         enum_0 = self.val.address.cast(u8_ptr_type).dereference()
-        enum_type = self.val.type.fields()[int(enum_0)].type;
+        enum_type = self.val.type.fields()[int(enum_0)].type
         return str(enum_type).lstrip('struct ')
+
 
 # Printer for std::Option<>
 class OptionPrinter:
@@ -111,6 +119,7 @@ class OptionPrinter:
     def to_string(self):
         return None
 
+
 # Useful for debugging when type is unknown
 class TestPrinter:
     def __init__(self, val):
@@ -129,13 +138,15 @@ type_map = [
     ('Option', OptionPrinter),
 ]
 
-def lookup_servo_type (val):
+
+def lookup_servo_type(val):
     val_type = str(val.type)
     for (type_name, printer) in type_map:
-        if val_type == type_name or val_type.endswith("::"+type_name):
+        if val_type == type_name or val_type.endswith("::" + type_name):
             return printer(val)
     return None
-    #return TestPrinter(val)
+    # return TestPrinter(val)
+
 
 def register_printers(obj):
     gdb.pretty_printers.append(lookup_servo_type)

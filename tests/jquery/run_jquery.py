@@ -22,24 +22,24 @@ import urlparse
 # See https://github.com/servo/servo/issues/6210 and
 #     https://github.com/servo/servo/issues/6211
 JQUERY_MODULES = [
-    #"ajax",            # panics
-    #"attributes",
-    #"callbacks",
-    #"core",            # mozjs crash
-    #"css",
-    #"data",
-    #"deferred",
-    #"dimensions",
-    #"effects",
-    #"event",           # panics
-    #"manipulation",    # mozjs crash
-    #"offset",
-    #"queue",
+    # "ajax",            # panics
+    # "attributes",
+    # "callbacks",
+    # "core",            # mozjs crash
+    # "css",
+    # "data",
+    # "deferred",
+    # "dimensions",
+    # "effects",
+    # "event",           # panics
+    # "manipulation",    # mozjs crash
+    # "offset",
+    # "queue",
     "selector",
-    #"serialize",
-    #"support",
-    #"traversing",
-    #"wrap"
+    # "serialize",
+    # "support",
+    # "traversing",
+    # "wrap"
 ]
 
 # Port to run the HTTP server on for jQuery.
@@ -47,6 +47,7 @@ TEST_SERVER_PORT = 8192
 
 # A regex for matching console.log output lines from the test runner.
 REGEX_PATTERN = "^\[jQuery test\] \[([0-9]+)/([0-9]+)/([0-9]+)] (.*)"
+
 
 # The result of a single test group.
 class TestResult:
@@ -94,7 +95,7 @@ def parse_string_to_results(buffer):
 # Run servo and print / parse the results for a specific jQuery test module.
 def run_servo(servo_exe, module):
     url = "http://localhost:{0}/jquery/test/?module={1}".format(TEST_SERVER_PORT, module)
-    args = [ servo_exe, url, "-z", "-f" ]
+    args = [servo_exe, url, "-z", "-f"]
     proc = subprocess.Popen(args, stdout=subprocess.PIPE)
     while True:
         line = proc.stdout.readline()
@@ -107,9 +108,11 @@ def run_servo(servo_exe, module):
         except AttributeError:
             pass
 
+
 # Build the filename for an expected results file.
 def module_filename(module):
     return 'expected_{0}.txt'.format(module)
+
 
 # Read an existing set of expected results to compare against.
 def read_existing_results(module):
@@ -117,15 +120,18 @@ def read_existing_results(module):
         buffer = file.read()
         return parse_string_to_results(buffer)
 
+
 # Write a set of results to file
 def write_results(module, results):
     with open(module_filename(module), 'w') as file:
         for result in test_results.itervalues():
             file.write(result.text + '\n')
 
+
 # Print usage if command line args are incorrect
 def print_usage():
     print("USAGE: {0} servo_binary jquery_base_dir test|update".format(sys.argv[0]))
+
 
 # Run a simple HTTP server to serve up the jQuery test suite
 def run_http_server():
