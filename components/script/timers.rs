@@ -240,7 +240,7 @@ impl TimerManager {
                 Some(timer_handle) =>
                     (timer_handle.data.is_interval,
                      timer_handle.data.callback.clone(),
-                     timer_handle.data.args.iter().map(|arg| arg.ptr).collect()),
+                     timer_handle.data.args.iter().map(|arg| arg.get()).collect()),
                 None => return,
             };
 

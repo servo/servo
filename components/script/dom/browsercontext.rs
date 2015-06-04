@@ -25,6 +25,7 @@ use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 use js::{JSTrue, JSFalse};
 
 use std::ptr;
+use std::default::Default;
 
 #[jstraceable]
 #[privatize]
@@ -40,7 +41,7 @@ impl BrowserContext {
         BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Heap { ptr: ptr::null_mut() },
+            window_proxy: Heap::default(),
             frame_element: frame_element.map(JS::from_ref),
         }
     }
@@ -59,7 +60,7 @@ impl BrowserContext {
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(!self.window_proxy.ptr.is_null());
+        assert!(!self.window_proxy.get().is_null());
         self.window_proxy.get()
     }
 
