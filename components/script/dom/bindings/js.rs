@@ -173,7 +173,7 @@ impl MutHeapJSVal {
     /// Create a new `MutHeapJSVal`.
     pub fn new() -> MutHeapJSVal {
         MutHeapJSVal {
-            val: UnsafeCell::new(Heap { ptr: UndefinedValue() }),
+            val: UnsafeCell::new(Heap::default()),
         }
     }
 
