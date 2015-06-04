@@ -36,8 +36,8 @@ class MachCommands(CommandBase):
 
         if self.context.topdir == getcwd():
             with cd(path.join('components', 'servo')):
-                return subprocess.call(["cargo"] + params,
-                               env=self.build_env())
+                return subprocess.call(
+                    ["cargo"] + params, env=self.build_env())
         return subprocess.call(['cargo'] + params,
                                env=self.build_env())
 
@@ -51,7 +51,7 @@ class MachCommands(CommandBase):
         '--package', '-p', default=None,
         help='Updates selected package')
     @CommandArgument(
-        '--all-packages','-a',action='store_true',
+        '--all-packages', '-a', action='store_true',
         help='Updates all packages')
     def cargo_update(self, params=None, package=None, all_packages=None):
         self.update_cargo(params, package, all_packages)
@@ -63,10 +63,10 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
     @CommandArgument(
-        '--package','-p',default=None,
+        '--package', '-p', default=None,
         help='Updates selected package')
     @CommandArgument(
-        '--all-packages','-a',action='store_true',
+        '--all-packages', '-a', action='store_true',
         help='Updates all packages')
     def update_cargo(self, params=None, package=None, all_packages=None):
         if not params:

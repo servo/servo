@@ -7,17 +7,17 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-#!/usr/bin/env python
-
 import os
 import fnmatch
 import itertools
 import re
+import sys
 from licenseck import licenses
 
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
+dependencies = ["./python/flake8-2.4.1-py2.py3-none-any.whl"]
 
 ignored_files = [
     # Upstream
@@ -80,11 +80,13 @@ def check_length(idx, line):
     if len(line) >= 120:
         yield (idx + 1, "(much) overlong line")
 
+
 def check_whatwg_url(idx, line):
     match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
+
 
 def check_whitespace(idx, line):
     if line[-1] == "\n":
@@ -101,6 +103,7 @@ def check_whitespace(idx, line):
     if "\r" in line:
         yield (idx + 1, "CR on line")
 
+
 def check_by_line(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
@@ -111,6 +114,25 @@ def check_by_line(contents):
         )
         for error in errors:
             yield error
+
+
+def check_flake8(file_paths):
+    from flake8.main import check_file
+
+    ignore = {
+        "W291",  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
+        "E501",  # 80 character line length; the standard tidy process will enforce line length
+    }
+
+    num_errors = 0
+
+    for file_path in file_paths:
+        if os.path.splitext(file_path)[-1].lower() != ".py":
+            continue
+
+        num_errors += check_file(file_path, ignore=ignore)
+
+    return num_errors
 
 
 def collect_errors_for_files(files_to_check, checking_functions):
@@ -129,7 +151,7 @@ def check_reftest_order(files_to_check):
             split_lines = fp.read().splitlines()
             lines = filter(lambda l: len(l) > 0 and l[0] != '#', split_lines)
             for idx, line in enumerate(lines[:-1]):
-                next_line = lines[idx+1]
+                next_line = lines[idx + 1]
                 current = get_reftest_names(line)
                 next = get_reftest_names(next_line)
                 if current is not None and next is not None and current > next:
@@ -146,8 +168,12 @@ def get_reftest_names(line):
 
 
 def scan():
+    sys.path += dependencies
+
     all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
+
+    num_flake8_errors = check_flake8(files_to_check)
 
     checking_functions = [check_license, check_by_line]
     errors = collect_errors_for_files(files_to_check, checking_functions)
@@ -158,7 +184,7 @@ def scan():
 
     errors = list(itertools.chain(errors, r_errors))
 
-    if errors:
+    if errors or num_flake8_errors:
         for error in errors:
             print("{}:{}: {}".format(*error))
         return 1

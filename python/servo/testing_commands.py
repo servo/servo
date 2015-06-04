@@ -10,6 +10,7 @@
 from __future__ import print_function, unicode_literals
 
 import argparse
+import imp
 import sys
 import os
 import os.path as path
@@ -281,7 +282,6 @@ class MachCommands(CommandBase):
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
 
-
     def ensure_wpt_virtualenv(self):
         virtualenv_path = path.join("tests", "wpt", "_virtualenv")
         python = self.get_exec("python2", "python")
@@ -295,23 +295,23 @@ class MachCommands(CommandBase):
         execfile(activate_path, dict(__file__=activate_path))
 
         try:
-            import wptrunner
-            from wptrunner.browsers import servo
+            imp.find_module("wptrunner")
         except ImportError:
             subprocess.check_call(["pip", "install", "-r",
                                    path.join("tests", "wpt", "harness", "requirements.txt")])
             subprocess.check_call(["pip", "install", "-r",
                                    path.join("tests", "wpt", "harness", "requirements_servo.txt")])
         try:
-            import blessings
+            imp.find_module("blessings")
         except ImportError:
             subprocess.check_call(["pip", "install", "blessings"])
+        finally:
+            import blessings
 
         # This is an unfortunate hack. Because mozlog gets imported by wptcommandline
         # before the virtualenv is initalised it doesn't see the blessings module so we don't
         # get coloured output. Setting the blessings global explicitly fixes that.
         from mozlog.structured.formatters import machformatter
-        import blessings
         machformatter.blessings = blessings
 
     def get_exec(self, name, default=None):
