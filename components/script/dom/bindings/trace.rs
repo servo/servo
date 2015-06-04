@@ -93,7 +93,7 @@ no_jsmanaged_fields!(Reflector);
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
     unsafe {
-        if !(*val).ptr.is_markable() {
+        if !val.get().is_markable() {
             return;
         }
 
@@ -102,8 +102,8 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing value {}", description);
-        JS_CallValueTracer(tracer, val as *const _ as *mut _,
-                           GCTraceKindToAscii((*val).ptr.trace_kind()));
+        JS_CallValueTracer(tracer, val.ptr.get() as *mut _,
+                           GCTraceKindToAscii(val.get().trace_kind()));
     }
 }
 
@@ -121,7 +121,7 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
-        JS_CallObjectTracer(tracer, obj as *const _ as *mut _,
+        JS_CallObjectTracer(tracer, obj.ptr.get() as *mut _,
                             GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
     }
 }
@@ -179,7 +179,7 @@ impl<T: JSTraceable> JSTraceable for UnsafeCell<T> {
 
 impl JSTraceable for Heap<*mut JSObject> {
     fn trace(&self, trc: *mut JSTracer) {
-        if self.ptr.is_null() {
+        if self.get().is_null() {
             return;
         }
         trace_object(trc, "object", self);

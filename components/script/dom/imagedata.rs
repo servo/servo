@@ -14,6 +14,7 @@ use libc::uint8_t;
 use std::vec::Vec;
 use std::slice;
 use std::ptr;
+use std::default::Default;
 
 #[dom_struct]
 #[allow(raw_pointer_derive)]
@@ -31,7 +32,7 @@ impl ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: Heap { ptr: ptr::null_mut() },
+            data: Heap::default(),
         };
 
         unsafe {
@@ -84,6 +85,6 @@ impl<'a> ImageDataMethods for &'a ImageData {
 
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
     fn Data(self, _: *mut JSContext) -> *mut JSObject {
-        self.data.ptr
+        self.data.get()
     }
 }

@@ -381,7 +381,7 @@ pub struct Reflector {
 #[allow(unrooted_must_root)]
 impl PartialEq for Reflector {
     fn eq(&self, other: &Reflector) -> bool {
-        self.object.ptr == other.object.ptr
+        self.object.get() == other.object.get()
     }
 }
 
@@ -394,7 +394,7 @@ impl Reflector {
 
     /// Initialize the reflector. (May be called only once.)
     pub fn set_jsobject(&mut self, object: *mut JSObject) {
-        assert!(self.object.ptr.is_null());
+        assert!(self.object.get().is_null());
         assert!(!object.is_null());
         self.object.set(object);
     }
@@ -409,7 +409,7 @@ impl Reflector {
     /// Create an uninitialized `Reflector`.
     pub fn new() -> Reflector {
         Reflector {
-            object: Heap { ptr: ptr::null_mut() }
+            object: Heap::default()
         }
     }
 }
