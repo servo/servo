@@ -73,8 +73,8 @@ class MachCommands(CommandBase):
                 return 1
 
             # Prepend the debugger args.
-            args = ([self.debuggerInfo.path] + self.debuggerInfo.args
-                    + args + params)
+            args = ([self.debuggerInfo.path] + self.debuggerInfo.args +
+                    args + params)
         else:
             args = args + params
 
