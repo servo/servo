@@ -13,7 +13,7 @@ extern crate gfx_traits;
 extern crate layers;
 extern crate offscreen_gl_context;
 
-use azure::azure::AzFloat;
+use azure::azure::{AzFloat, AzColor};
 use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
@@ -67,6 +67,10 @@ pub enum Canvas2dMsg {
     SetGlobalAlpha(f32),
     SetGlobalComposition(CompositionOrBlending),
     SetTransform(Matrix2D<f32>),
+    SetShadowOffsetX(f64),
+    SetShadowOffsetY(f64),
+    SetShadowBlur(f64),
+    SetShadowColor(AzColor),
 }
 
 #[derive(Clone)]
