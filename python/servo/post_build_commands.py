@@ -80,6 +80,9 @@ class MachCommands(CommandBase):
 
         try:
             subprocess.check_call(args, env=env)
+        except subprocess.CalledProcessError as e:
+            print("Servo exited with return value %d" % e.returncode)
+            return e.returncode
         except OSError as e:
             if e.errno == 2:
                 print("Servo Binary can't be found! Run './mach build'"
