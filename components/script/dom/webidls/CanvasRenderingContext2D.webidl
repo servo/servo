@@ -65,10 +65,10 @@ interface CanvasRenderingContext2D {
   //CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 
   // shadows
-  //         attribute unrestricted double shadowOffsetX; // (default 0)
-  //         attribute unrestricted double shadowOffsetY; // (default 0)
-  //         attribute unrestricted double shadowBlur; // (default 0)
-  //         attribute DOMString shadowColor; // (default transparent black)
+  attribute unrestricted double shadowOffsetX; // (default 0)
+  attribute unrestricted double shadowOffsetY; // (default 0)
+  attribute unrestricted double shadowBlur; // (default 0)
+  attribute DOMString shadowColor; // (default transparent black)
 
   // rects
   //[LenientFloat]
