@@ -343,3 +343,4 @@ pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
 
 pub mod testbinding;
+pub mod testbindingproxy;
