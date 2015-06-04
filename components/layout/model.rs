@@ -8,7 +8,7 @@
 
 use fragment::Fragment;
 
-use geom::{Matrix4, SideOffsets2D, Size2D};
+use geom::{Matrix4, SideOffsets2D};
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
@@ -426,19 +426,16 @@ pub fn padding_from_style(style: &ComputedValues, containing_block_inline_size: 
 }
 
 pub trait ToGfxMatrix {
-    fn to_gfx_matrix(&self, containing_size: &Size2D<Au>) -> Matrix4<f32>;
+    fn to_gfx_matrix(&self) -> Matrix4<f32>;
 }
 
 impl ToGfxMatrix for ComputedMatrix {
-    fn to_gfx_matrix(&self, containing_size: &Size2D<Au>) -> Matrix4<f32> {
+    fn to_gfx_matrix(&self) -> Matrix4<f32> {
         Matrix4 {
             m11: self.m11 as f32, m12: self.m12 as f32, m13: self.m13 as f32, m14: self.m14 as f32,
             m21: self.m21 as f32, m22: self.m22 as f32, m23: self.m23 as f32, m24: self.m24 as f32,
             m31: self.m31 as f32, m32: self.m32 as f32, m33: self.m33 as f32, m34: self.m34 as f32,
-            m41: self.m41.to_au(containing_size.width).to_f32_px(),
-            m42: self.m42.to_au(containing_size.height).to_f32_px(),
-            m43: self.m43 as f32,
-            m44: self.m44 as f32
+            m41: self.m41 as f32, m42: self.m42 as f32, m43: self.m43 as f32, m44: self.m44 as f32
         }
     }
 }
