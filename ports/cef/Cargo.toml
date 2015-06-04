@@ -62,23 +62,23 @@ git = "https://github.com/servo/rust-png"
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
-[dependencies.core_foundation]
-git = "https://github.com/servo/rust-core-foundation"
+[dependencies.core-foundation]
+git = "https://github.com/servo/core-foundation-rs"
 
-[dependencies.core_graphics]
-git = "https://github.com/servo/rust-core-graphics"
+[dependencies.core-graphics]
+git = "https://github.com/servo/core-graphics-rs"
 
-[dependencies.core_text]
-git = "https://github.com/servo/rust-core-text"
+[dependencies.core-text]
+git = "https://github.com/servo/core-text-rs"
 
 [dependencies.cocoa]
-git = "https://github.com/servo/rust-cocoa"
+git = "https://github.com/servo/cocoa-rs"
 
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
 
 [dependencies.cgl]
-git = "https://github.com/servo/rust-cgl"
+git = "https://github.com/servo/cgl-rs"
 
 [dependencies]
 url = "*"
