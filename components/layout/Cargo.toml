@@ -69,7 +69,7 @@ git = "https://github.com/tomaka/clock_ticks"
 
 [dependencies]
 encoding = "0.2"
-url = "0.2.16"
+url = "0.2.35"
 bitflags = "*"
 rustc-serialize = "0.3"
 libc = "*"
