@@ -1660,13 +1660,13 @@ impl Node {
                 // Step 5: DocumentFragment, mutation records.
                 // Step 6: DocumentFragment.
                 let mut kids: Vec<Root<Node>> = node.children().collect();
-                for kid in kids.iter_mut() {
+                for kid in &kids {
                     Node::remove(kid.r(), node, SuppressObserver::Suppressed);
                 }
 
                 // Step 7: mutation records.
                 // Step 8.
-                for kid in kids.iter_mut() {
+                for kid in &kids {
                     do_insert(kid.r(), parent, child);
                 }
 

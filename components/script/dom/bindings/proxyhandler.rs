@@ -10,7 +10,7 @@ use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
 use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject, JSString};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewStringCopyN};
-use js::jsapi::{JS_DefinePropertyById6, JS_NewObject};
+use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
 use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
 use js::jsapi::GetObjectProto;
@@ -132,7 +132,7 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject)
         assert!(is_dom_proxy(obj.get()));
         let mut expando = get_expando_object(obj);
         if expando.is_null() {
-            expando = JS_NewObject(cx, ptr::null_mut());
+            expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null());
             assert!(!expando.is_null());
 
             SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
