@@ -40,7 +40,8 @@ def download(desc, src, dst):
         with open(dst, 'wb') as fd:
             while True:
                 chunk = resp.read(chunk_size)
-                if not chunk: break
+                if not chunk:
+                    break
                 recved += len(chunk)
                 if not dumb:
                     pct = recved * 100.0 / fsize
@@ -60,6 +61,7 @@ def download(desc, src, dst):
             print("See https://github.com/servo/servo/issues/3899")
 
         sys.exit(1)
+
 
 def extract(src, dst, movedir=None):
     tarfile.open(src).extractall(dst)

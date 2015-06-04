@@ -38,7 +38,7 @@ def PowerCollector(OutputDir, Benchmarks, LayoutThreads, Renderer):
     powerTiming = 1
     ExperimentNum = 21
     for ExpNum in range(1, ExperimentNum):
-        for layoutT in range(1, LayoutThreads+1):
+        for layoutT in range(1, LayoutThreads + 1):
             print("  layoutT=%d ExpNum=%d" % (layoutT, ExpNum))
             PowerFiles = path.join(
                 power_dir, "power-Layout%d-set%d.csv" % (layoutT, ExpNum))
@@ -71,7 +71,7 @@ def PowerParser(OutputDir, LayoutThreads):
     ResultFile.write("LayoutThreads, MeanPower, MaxPower , MinPower, MeanTime , MaxTime, "
                      "MinTime  \n")
 
-    for layoutT in range(1, LayoutThreads+1):
+    for layoutT in range(1, LayoutThreads + 1):
         MaxTime = 0
         MinTime = 1000000
         MaxPower = 0
@@ -132,8 +132,8 @@ def PowerParser(OutputDir, LayoutThreads):
             TimeGen = TimeGen + TotalTime
             PowerGen = PowerGen + TotalPower
 
-        TotalPower = PowerGen / float(ExperimentNum-1)
-        TotalTime = TimeGen / float(ExperimentNum-1)
+        TotalPower = PowerGen / float(ExperimentNum - 1)
+        TotalTime = TimeGen / float(ExperimentNum - 1)
         ResultFile.write(str(layoutT) + " , " + str(TotalPower) + " , " +
                          str(MaxPower) + " , " + str(MinPower) + " , " +
                          str(TotalTime) + " , " + str(MaxTime) + " , " +

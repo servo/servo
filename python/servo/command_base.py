@@ -165,7 +165,7 @@ class CommandBase(object):
 
         print("The %s profile is not built. Please run './mach build%s' "
               "and try again." % ("release" if release else "dev",
-                                   " --release" if release else ""))
+                                  " --release" if release else ""))
         sys.exit()
 
     def build_env(self, gonk=False, hosts_file_path=None):

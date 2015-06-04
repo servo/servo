@@ -12,7 +12,6 @@ from __future__ import print_function, unicode_literals
 import os
 import os.path as path
 import subprocess
-import sys
 from shutil import copytree, rmtree, copy2
 
 from mach.registrar import Registrar
@@ -49,7 +48,7 @@ class MachCommands(CommandBase):
                           'debugger being used. The following arguments '
                           'have no effect without this.')
     @CommandArgument('--debugger', default=None, type=str,
-        help='Name of debugger to use.')
+                     help='Name of debugger to use.')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
@@ -74,8 +73,8 @@ class MachCommands(CommandBase):
                 return 1
 
             # Prepend the debugger args.
-            args = ([self.debuggerInfo.path] + self.debuggerInfo.args
-                    + args + params)
+            args = ([self.debuggerInfo.path] + self.debuggerInfo.args +
+                    args + params)
         else:
             args = args + params
 
@@ -84,7 +83,7 @@ class MachCommands(CommandBase):
         except OSError as e:
             if e.errno == 2:
                 print("Servo Binary can't be found! Run './mach build'"
-                     " and try again!")
+                      " and try again!")
             else:
                 raise e
 
@@ -132,8 +131,7 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo doc")
     def doc(self, params):
         self.ensure_bootstrapped()
-        if not path.exists(path.join(
-               self.config["tools"]["rust-root"], "doc")):
+        if not path.exists(path.join(self.config["tools"]["rust-root"], "doc")):
             Registrar.dispatch("bootstrap-rust-docs", context=self.context)
         rust_docs = path.join(self.config["tools"]["rust-root"], "doc")
         docs = path.join(

@@ -281,7 +281,6 @@ class MachCommands(CommandBase):
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
 
-
     def ensure_wpt_virtualenv(self):
         virtualenv_path = path.join("tests", "wpt", "_virtualenv")
         python = self.get_exec("python2", "python")
@@ -295,8 +294,8 @@ class MachCommands(CommandBase):
         execfile(activate_path, dict(__file__=activate_path))
 
         try:
-            import wptrunner
-            from wptrunner.browsers import servo
+            import wptrunner  # noqa
+            from wptrunner.browsers import servo  # noqa
         except ImportError:
             subprocess.check_call(["pip", "install", "-r",
                                    path.join("tests", "wpt", "harness", "requirements.txt")])
@@ -311,7 +310,7 @@ class MachCommands(CommandBase):
         # before the virtualenv is initalised it doesn't see the blessings module so we don't
         # get coloured output. Setting the blessings global explicitly fixes that.
         from mozlog.structured.formatters import machformatter
-        import blessings
+        import blessings  # noqa
         machformatter.blessings = blessings
 
     def get_exec(self, name, default=None):
