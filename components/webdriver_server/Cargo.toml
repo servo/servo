@@ -21,5 +21,5 @@ git = "https://github.com/servo/rust-png"
 
 [dependencies]
 rustc-serialize = "0.3.4"
-url = "0.2.16"
+url = "0.2.35"
 uuid = "*"

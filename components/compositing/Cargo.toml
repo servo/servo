@@ -66,6 +66,6 @@ git = "https://github.com/servo/rust-x11-clipboard"
 
 [dependencies]
 num = "0.1.24"
-url = "0.2.16"
+url = "0.2.35"
 time = "0.1.17"
 libc = "*"
