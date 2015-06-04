@@ -17,7 +17,11 @@ from licenseck import licenses
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
-dependencies = ["./python/flake8-2.4.1-py2.py3-none-any.whl"]
+python_dependencies = [
+    "./python/dependencies/flake8-2.4.1-py2.py3-none-any.whl",
+    "./python/dependencies/pep8-1.6.2-py2.py3-none-any.whl",
+    "./python/dependencies/pyflakes-0.9.0-py2.py3-none-any.whl",
+]
 
 ignored_files = [
     # Upstream
@@ -168,7 +172,7 @@ def get_reftest_names(line):
 
 
 def scan():
-    sys.path += dependencies
+    sys.path += python_dependencies
 
     all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
