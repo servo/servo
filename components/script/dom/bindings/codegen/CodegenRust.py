@@ -2694,7 +2694,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                         FakeCastableDescriptor(self.descriptor),
                         "obj.handle()", self.unwrapFailureCode, "object"))
         unwrapThis = CGGeneric(
-            "let thisobj = *vp.offset(1);\n"
+            "let thisobj = JS_ComputeThis(cx, vp);\n"
             "if !thisobj.is_null_or_undefined() && !thisobj.is_object() {\n"
             "    return JSFalse;\n"
             "}\n"
@@ -2749,7 +2749,7 @@ class CGGenericMethod(CGAbstractBindingMethod):
     def generate_code(self):
         return CGGeneric(
             "let _info: *const JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitMethodOp(_info, cx, obj.handle(), mem::transmute(this.r()), argc, vp);")
+            "return CallJitMethodOp(_info, cx, obj.handle(), this.r() as *const _ as *const libc::c_void as *mut libc::c_void, argc, vp);")
 
 class CGSpecializedMethod(CGAbstractExternMethod):
     """
@@ -2816,7 +2816,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGGeneric(
             "let info: *const JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitGetterOp(info, cx, obj.handle(), mem::transmute(this.r()), argc, vp);")
+            "return CallJitGetterOp(info, cx, obj.handle(), this.r() as *const _ as *const libc::c_void as *mut libc::c_void, argc, vp);")
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -2891,7 +2891,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGGeneric(
                 "let info: *const JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-                "if CallJitSetterOp(info, cx, obj.handle(), mem::transmute(this.r()), argc, vp) == 0 {\n"
+                "if CallJitSetterOp(info, cx, obj.handle(), this.r() as *const _ as *const libc::c_void as *mut libc::c_void, argc, vp) == 0 {\n"
                 "    return 0;\n"
                 "}\n"
                 "*vp = UndefinedValue();\n"
@@ -4149,7 +4149,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
                 'pre': 'let mut result_root = RootedValue::new(cx, UndefinedValue());'
-                ''}
+                }
             get += ("if index.is_some() {\n" +
                     "    let index = index.unwrap();\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
@@ -5042,7 +5042,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{MutableHandle, Handle, HandleId, JSType, JSValueType}',
             'js::jsapi::{SymbolCode, ObjectOpResult, HandleValueArray}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitSetterCallArgs, JSJitMethodCallArgs, CallArgs}',
-            'js::jsapi::{JSAutoCompartment, JSAutoRequest}',
+            'js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_ComputeThis}',
             'js::jsapi::GetGlobalForObjectCrossCompartment',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',

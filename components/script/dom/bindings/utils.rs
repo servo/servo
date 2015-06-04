@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{native_from_handleobject, is_dom_class};
+use dom::bindings::conversions::{native_from_handleobject, is_dom_class, jsstring_to_str};
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -26,7 +26,7 @@ use js::glue::UnwrapObject;
 use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction, JSTraceOp};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetTwoByteStringCharsAndLength};
+use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
 use js::jsapi::{HandleObject, HandleId, HandleValue, MutableHandleValue};
 use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
@@ -478,22 +478,8 @@ pub fn find_enum_string_index(cx: *mut JSContext,
         return Err(());
     }
 
-    unsafe {
-        let mut length = 0;
-        // XXX support Latin1
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
-        debug_assert!(!chars.is_null());
-        if chars.is_null() {
-            return Err(());
-        }
-
-        Ok(values.iter().position(|value| {
-            value.len() == length as usize &&
-            (0..length as usize).all(|j| {
-                value.as_bytes()[j] as i16 == *chars.offset(j as isize)
-            })
-        }))
-    }
+    let search = jsstring_to_str(cx, jsstr);
+    Ok(values.iter().position(|value| value == &search))
 }
 
 /// Returns wether `obj` is a platform object

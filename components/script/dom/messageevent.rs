@@ -36,18 +36,6 @@ impl MessageEventDerived for Event {
 }
 
 impl MessageEvent {
-    fn new_inherited(data: HandleValue, origin: DOMString, lastEventId: DOMString)
-                         -> Box<MessageEvent> {
-        let mut ret = box MessageEvent {
-            event: Event::new_inherited(EventTypeId::MessageEvent),
-            data: Heap::default(),
-            origin: origin,
-            lastEventId: lastEventId,
-        };
-        ret.data.set(data.get());
-        ret
-    }
-
     pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
         MessageEvent::new_initialized(global, HandleValue::undefined(), "".to_owned(), "".to_owned())
     }
@@ -56,9 +44,14 @@ impl MessageEvent {
                            data: HandleValue,
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
-        reflect_dom_object(MessageEvent::new_inherited(data, origin, lastEventId),
-        global,
-        MessageEventBinding::Wrap)
+        let mut ev = box MessageEvent {
+            event: Event::new_inherited(EventTypeId::MessageEvent),
+            data: Heap::default(),
+            origin: origin,
+            lastEventId: lastEventId,
+        };
+        ev.data.set(data.get());
+        reflect_dom_object(ev, global, MessageEventBinding::Wrap)
     }
 
     pub fn new(global: GlobalRef, type_: DOMString,
