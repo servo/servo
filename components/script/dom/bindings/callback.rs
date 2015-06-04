@@ -21,6 +21,7 @@ use std::ffi::CString;
 use std::ptr;
 use std::rc::Rc;
 use std::intrinsics::return_address;
+use std::default::Default;
 
 /// The exception handling used for a call.
 #[derive(Copy, Clone, PartialEq)]
@@ -43,7 +44,7 @@ impl CallbackFunction {
     pub fn new() -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject {
-                callback: Heap { ptr: ptr::null_mut() }
+                callback: Heap::default()
             }
         }
     }
@@ -65,11 +66,16 @@ pub struct CallbackInterface {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[allow(raw_pointer_derive)]
-#[derive(PartialEq)]
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
+}
+
+impl PartialEq for CallbackObject {
+    fn eq(&self, other: &CallbackObject) -> bool {
+        self.callback.get() == other.callback.get()
+    }
 }
 
 /// A trait to be implemented by concrete IDL callback function and
@@ -84,14 +90,14 @@ pub trait CallbackContainer {
 impl CallbackInterface {
     /// Returns the underlying `JSObject`.
     pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.ptr
+        self.object.callback.get()
     }
 }
 
 impl CallbackFunction {
     /// Returns the underlying `JSObject`.
     pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.ptr
+        self.object.callback.get()
     }
 }
 
@@ -100,7 +106,7 @@ impl CallbackInterface {
     pub fn new() -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject {
-                callback: Heap { ptr: ptr::null_mut() }
+                callback: Heap::default()
             }
         }
     }
