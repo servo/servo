@@ -152,6 +152,8 @@ pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
 /// this class is on the stack. After `new` returns, the call is safe to make.
 pub struct CallSetup {
     /// The compartment for reporting exceptions.
+    /// As a RootedObject, this must be the first field in order to
+    /// determine the final address on the stack correctly.
     exception_compartment: RootedObject,
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
