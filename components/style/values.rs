@@ -919,7 +919,8 @@ pub mod computed {
         pub border_bottom_present: bool,
         pub border_left_present: bool,
         pub is_root_element: bool,
-        pub viewport_size: Size2D<Au>
+        pub viewport_size: Size2D<Au>,
+        pub outline_style_present: bool,
         // TODO, as needed: viewport size, etc.
     }
 
