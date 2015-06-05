@@ -102,7 +102,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing value {}", description);
-        JS_CallValueTracer(tracer, val as *const _ as *mut _,
+        JS_CallValueTracer(tracer, val.ptr.get() as *mut _,
                            GCTraceKindToAscii(val.get().trace_kind()));
     }
 }
@@ -121,7 +121,7 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
-        JS_CallObjectTracer(tracer, obj as *const _ as *mut _,
+        JS_CallObjectTracer(tracer, obj.ptr.get() as *mut _,
                             GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
     }
 }
