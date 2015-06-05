@@ -22,6 +22,7 @@ pub struct CanvasGradient {
 }
 
 #[jstraceable]
+#[derive(Clone)]
 pub enum CanvasGradientStyle {
     Linear(LinearGradientStyle),
     Radial(RadialGradientStyle),
