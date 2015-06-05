@@ -889,7 +889,7 @@ impl LayoutTask {
         };
 
         debug!("layout: received layout request for: {}", self.url.serialize());
-        if log_enabled!(log::DEBUG) {
+        if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
 

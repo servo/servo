@@ -4,7 +4,6 @@
 
 #![feature(box_syntax)]
 #![feature(collections)]
-#![feature(rustc_private)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 

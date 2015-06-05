@@ -9,7 +9,6 @@
 #![feature(thread_local)]
 #![feature(core)]
 #![feature(std_misc)]
-#![feature(rustc_private)]
 #![feature(collections)]
 #![feature(negate_unsigned)]
 #![feature(unicode)]

@@ -37,6 +37,7 @@ git = "https://github.com/servo/string-cache"
 git = "https://github.com/servo/string-cache"
 
 [dependencies]
+log = "*"
 bitflags = "*"
 libc = "*"
 rand = "*"
