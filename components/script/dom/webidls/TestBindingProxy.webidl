@@ -3,8 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
- * The origin of this IDL file is
- * http://heycam.github.io/webidl/#idl-special-operations
+ * This IDL file was created to test the special operations (see
+ * http://heycam.github.io/webidl/#idl-special-operations) without converting
+ * TestBinding.webidl into a proxy.
  *
  */
 

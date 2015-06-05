@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
  use dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
- use dom::bindings::global::{GlobalField};
- use dom::bindings::js::{JSRef};
- use dom::bindings::utils::{Reflector};
+ use dom::bindings::js::JSRef;
+ use dom::bindings::utils::Reflector;
  use util::str::DOMString;
 
 
  #[dom_struct]
  pub struct TestBindingProxy {
-     reflector: Reflector,
-     global: GlobalField
+     reflector: Reflector
  }
 
  impl<'a> TestBindingProxyMethods for JSRef<'a, TestBindingProxy> {
