@@ -1,0 +1,15 @@
+<html>
+<head>
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+  <script>
+    var initTime = window.performance.now();
+    setTimeout(function() {
+        var endTime = window.performance.now();
+        lt(endTime - initTime, 100);
+    }, 5);
+  </script>
+</body>
+</html>
