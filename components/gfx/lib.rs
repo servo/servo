@@ -7,7 +7,6 @@
 #![feature(collections)]
 #![feature(core)]
 #![feature(plugin)]
-#![feature(rustc_private)]
 #![feature(std_misc)]
 #![feature(str_char)]
 

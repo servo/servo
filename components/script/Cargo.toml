@@ -74,6 +74,7 @@ version = "0.2.33"
 features = ["query_encoding"]
 
 [dependencies]
+log = "*"
 encoding = "0.2"
 time = "0.1.12"
 bitflags = "*"

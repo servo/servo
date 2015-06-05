@@ -55,6 +55,7 @@ git = "https://github.com/servo/rust-egl"
 git = "https://github.com/servo/gleam"
 
 [dependencies]
+env_logger = "*"
 url = "0.2.16"
 time = "0.1.17"
 errno = "*"

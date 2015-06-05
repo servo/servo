@@ -5,7 +5,7 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 
-#![feature(rustc_private, ip_addr)]
+#![feature(ip_addr)]
 
 #[macro_use]
 extern crate log;
