@@ -27,11 +27,11 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#65f062b0d37c46f5ed1cbf0a9f75eaed55f2aa1b"
+source = "git+https://github.com/servo/rust-azure#8ca7e25d5c2c6f66c63b803d24d3bbef13fa9f79"
 dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
- "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
- "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
@@ -87,6 +87,15 @@ dependencies = [
 [[package]]
 name = "cgl"
 version = "0.0.1"
+source = "git+https://github.com/servo/cgl-rs#983d3ac5d7e0d9d3509fb502ebe1570dd885e404"
+dependencies = [
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "cgl"
+version = "0.0.1"
 source = "git+https://github.com/servo/rust-cgl#851ca1b90081d221c3c38d33548d3e22a19db79f"
 dependencies = [
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
@@ -116,8 +125,8 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "clipboard 0.0.1 (git+https://github.com/aweinstock314/rust-clipboard)",
- "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
- "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
@@ -151,29 +160,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-foundation"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-graphics"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-text"
+version = "0.1.0"
+source = "git+https://github.com/servo/core-text-rs#54080aaa67758917b2f974d8ebebc174ad570f56"
+dependencies = [
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "core_foundation"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-core-foundation#c8236c28599b07894fa7d6887db2fa91bc7fda24"
 dependencies = [
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "core_graphics"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-core-graphics#2d8d665c5bdd116b4a1addbe5c415735fb78e1a9"
-dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "core_text"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-core-text#2b4b546718310a9d3fe4273a1df092c79d9fb2c2"
-dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
- "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -365,9 +382,9 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
- "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
- "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
@@ -496,6 +513,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-surface"
+version = "0.1.0"
+source = "git+https://github.com/servo/io-surface-rs#51c187a698f832d52d8fe8a833d47a38c4c8cf06"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "io_surface"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-io-surface#ab0ebd4ea6dd953c1581d9486b9e80ecf3c7577d"
@@ -534,16 +563,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#f43124a27a8b2fd666906541f32f753a35042efd"
+source = "git+https://github.com/servo/rust-layers#2eb4cd219d72ec731aac9a32ad4d39c73eda4fbc"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
- "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
+ "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
- "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
+ "io-surface 0.1.0 (git+https://github.com/servo/io-surface-rs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
