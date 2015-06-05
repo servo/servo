@@ -4,6 +4,8 @@
 
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
+#![feature(core)]
+extern crate core;
 extern crate azure;
 extern crate geom;
 extern crate cssparser;
@@ -24,6 +26,7 @@ use gfx_traits::color;
 use std::sync::mpsc::{Sender};
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
+use core::nonzero::NonZero;
 
 #[derive(Clone)]
 pub enum CanvasMsg {
@@ -70,23 +73,35 @@ pub enum Canvas2dMsg {
 pub enum CanvasWebGLMsg {
     GetContextAttributes(Sender<GLContextAttributes>),
     AttachShader(u32, u32),
-    BindBuffer(u32, u32),
     BufferData(u32, Vec<f32>, u32),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     CompileShader(u32),
-    CreateBuffer(Sender<u32>),
-    CreateProgram(Sender<u32>),
-    CreateShader(u32, Sender<u32>),
+    CreateBuffer(Sender<Option<NonZero<u32>>>),
+    CreateFramebuffer(Sender<Option<NonZero<u32>>>),
+    CreateRenderbuffer(Sender<Option<NonZero<u32>>>),
+    CreateTexture(Sender<Option<NonZero<u32>>>),
+    CreateProgram(Sender<Option<NonZero<u32>>>),
+    CreateShader(u32, Sender<Option<NonZero<u32>>>),
+    DeleteBuffer(u32),
+    DeleteFramebuffer(u32),
+    DeleteRenderbuffer(u32),
+    DeleteTexture(u32),
+    DeleteProgram(u32),
+    DeleteShader(u32),
+    BindBuffer(u32, u32),
+    BindFramebuffer(u32, u32),
+    BindRenderbuffer(u32, u32),
+    BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
     EnableVertexAttribArray(u32),
     GetAttribLocation(u32, String, Sender<i32>),
     GetShaderInfoLog(u32, Sender<String>),
     GetShaderParameter(u32, u32, Sender<i32>),
-    GetUniformLocation(u32, String, Sender<u32>),
+    GetUniformLocation(u32, String, Sender<Option<i32>>),
     LinkProgram(u32),
-    ShaderSource(u32, Vec<String>),
-    Uniform4fv(u32, Vec<f32>),
+    ShaderSource(u32, String),
+    Uniform4fv(i32, Vec<f32>),
     UseProgram(u32),
     VertexAttribPointer2f(u32, i32, bool, i32, i64),
     Viewport(i32, i32, i32, i32),
