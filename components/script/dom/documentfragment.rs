@@ -86,13 +86,13 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+        let root = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+        let root = NodeCast::from_ref(self);
         root.query_selector_all(selectors)
     }
 }

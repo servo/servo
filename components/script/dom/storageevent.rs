@@ -59,7 +59,7 @@ impl StorageEvent {
                                                                     url, storageArea),
                                     global,
                                     StorageEventBinding::Wrap).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
+        let event = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         Temporary::from_rooted(ev.r())
     }

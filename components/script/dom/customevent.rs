@@ -70,7 +70,7 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: JSVal) {
-        let event: JSRef<Event> = EventCast::from_ref(self);
+        let event = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }

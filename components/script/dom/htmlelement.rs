@@ -80,7 +80,7 @@ trait PrivateHTMLElementHelpers {
 
 impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
     fn is_body_or_frameset(self) -> bool {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
     }
 
@@ -153,7 +153,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
             let win = window_from_node(self).root();
             win.r().GetOnload()
         } else {
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+            let target = EventTargetCast::from_ref(self);
             target.get_event_handler_common("load")
         }
     }
@@ -163,7 +163,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
             let win = window_from_node(self).root();
             win.r().SetOnload(listener)
         } else {
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+            let target = EventTargetCast::from_ref(self);
             target.set_event_handler_common("load", listener)
         }
     }
@@ -176,7 +176,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
                 return;
             }
         }
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
         element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
     }
@@ -185,7 +185,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Focus(self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let document = document_from_node(self).root();
         let document = document.r();
         document.begin_focus_transaction();
@@ -196,7 +196,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(self) {
         // TODO: Run the unfocusing steps.
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         if !node.get_focus_state() {
             return;
         }
@@ -235,12 +235,12 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
             return Err(Syntax);
         }
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_custom_attribute(to_snake_case(name), value)
     }
 
     fn get_custom_attr(self, local_name: DOMString) -> Option<DOMString> {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.get_attribute(&ns!(""), &local_name).map(|attr| {
             let attr = attr.root();
@@ -252,7 +252,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
     }
 
     fn delete_custom_attr(self, local_name: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.remove_attribute(&ns!(""), &local_name);
     }
@@ -288,7 +288,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
             let (cx, url, reflector) = (window.r().get_cx(),
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
-            let evtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+            let evtarget = EventTargetCast::from_ref(*self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   &name[2..],
                                                   (**attr.value()).to_owned());

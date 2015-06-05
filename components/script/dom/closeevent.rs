@@ -44,7 +44,7 @@ impl CloseEvent {
         let event = box CloseEvent::new_inherited(EventTypeId::CloseEvent,
                                                   wasClean, code, reason);
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
+        let event = EventCast::from_ref(ev.r());
         event.InitEvent(type_,
                         bubbles == EventBubbles::Bubbles,
                         cancelable == EventCancelable::Cancelable);

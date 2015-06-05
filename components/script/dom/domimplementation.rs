@@ -82,13 +82,13 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         };
 
         {
-            let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
+            let doc_node = NodeCast::from_ref(doc.r());
 
             // Step 4.
             match maybe_doctype {
                 None => (),
                 Some(ref doctype) => {
-                    let doc_type: JSRef<Node> = NodeCast::from_ref(*doctype);
+                    let doc_type = NodeCast::from_ref(*doctype);
                     assert!(doc_node.AppendChild(doc_type).is_ok())
                 }
             }
@@ -119,7 +119,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // Step 1-2.
         let doc = Document::new(win.r(), None, IsHTMLDocument::HTMLDocument, None, None,
                                 DocumentSource::NotFromParser, loader).root();
-        let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
+        let doc_node = NodeCast::from_ref(doc.r());
 
         {
             // Step 3.

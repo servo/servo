@@ -136,7 +136,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 

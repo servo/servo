@@ -65,7 +65,7 @@ impl ErrorEvent {
                colno: u32,
                error: JSVal) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
+        let event = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
                         cancelable == EventCancelable::Cancelable);
         // FIXME(https://github.com/rust-lang/rust/issues/23338)

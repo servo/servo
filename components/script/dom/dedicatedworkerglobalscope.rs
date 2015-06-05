@@ -239,8 +239,8 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::DOMMessage(data) => {
-                let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+                let scope = WorkerGlobalScopeCast::from_ref(self);
+                let target = EventTargetCast::from_ref(self);
                 let message = data.read(GlobalRef::Worker(scope));
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
             },
@@ -248,11 +248,11 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
                 runnable.handler()
             },
             ScriptMsg::RefcountCleanup(addr) => {
-                let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
+                let scope = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
             }
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
-                let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
+                let scope = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
             }
             _ => panic!("Unexpected message"),

@@ -115,7 +115,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -130,7 +130,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -144,7 +144,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -153,7 +153,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.root().r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {

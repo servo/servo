@@ -6,14 +6,13 @@ use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERRO
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
+use dom::bindings::js::{OptionalRootable, Rootable, Temporary};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
 use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
 use dom::node::{Node, NodeHelpers};
 use dom::window::{WindowHelpers, ScriptHelpers};
-use dom::element::Element;
 use dom::document::DocumentHelpers;
 use page::{IterablePage, Page};
 use msg::constellation_msg::PipelineId;
@@ -52,7 +51,7 @@ pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: Sender
     let page = get_page(&*page, pipeline);
     let document = page.document().root();
 
-    let node: JSRef<Node> = NodeCast::from_ref(document.r());
+    let node = NodeCast::from_ref(document.r());
     reply.send(node.summarize()).unwrap();
 }
 
@@ -61,14 +60,14 @@ pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply:
     let document = page.document().root();
     let document_element = document.r().GetDocumentElement().root().unwrap();
 
-    let node: JSRef<Node> = NodeCast::from_ref(document_element.r());
+    let node = NodeCast::from_ref(document_element.r());
     reply.send(node.summarize()).unwrap();
 }
 
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Temporary<Node> {
     let page = get_page(&*page, pipeline);
     let document = page.document().root();
-    let node: JSRef<Node> = NodeCast::from_ref(document.r());
+    let node = NodeCast::from_ref(document.r());
 
     for candidate in node.traverse_preorder() {
         if candidate.root().r().get_unique_id() == node_id {
@@ -90,7 +89,7 @@ pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: Strin
 
 pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id).root();
-    let elem: JSRef<Element> = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
+    let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect().root();
     let width = *rect.r().Width();
     let height = *rect.r().Height();
@@ -142,7 +141,7 @@ pub fn handle_modify_attribute(page: &Rc<Page>,
                                node_id: String,
                                modifications: Vec<Modification>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id).root();
-    let elem: JSRef<Element> = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
+    let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
 
     for modification in modifications.iter(){
         match modification.newValue {

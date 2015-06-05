@@ -492,7 +492,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         if !self.sync.get() {
             // Step 8
             let upload_target = self.upload.root();
-            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target.r());
+            let event_target = EventTargetCast::from_ref(upload_target.r());
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
@@ -760,7 +760,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                                "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         event.r().fire(target);
     }
 
@@ -945,12 +945,12 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                                                type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0)).root();
-        let target: JSRef<EventTarget> = if upload {
+        let target = if upload {
             EventTargetCast::from_ref(upload_target.r())
         } else {
             EventTargetCast::from_ref(self)
         };
-        let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
+        let event = EventCast::from_ref(progressevent.r());
         event.fire(target);
     }
 

@@ -10,7 +10,6 @@ use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
 use dom::bindings::js::{OptionalRootable, Rootable, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
-use dom::node::Node;
 use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 
@@ -248,7 +247,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>) {
         assert!(Some(owner) == self.owner().root().r());
 
-        let node: JSRef<Node> = NodeCast::from_ref(owner);
+        let node = NodeCast::from_ref(owner);
         let namespace_is_null = self.namespace == ns!("");
 
         match set_type {

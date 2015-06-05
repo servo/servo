@@ -16,10 +16,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::{self, AttributeHandlers, Element};
-use dom::event::{Event, EventHelpers};
+use dom::element::{self, AttributeHandlers, ElementTypeId};
+use dom::event::EventHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
@@ -88,7 +87,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn get_url(self) -> Option<Url> {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.get_attribute(&ns!(""), &atom!("src")).root().and_then(|src| {
             let url = src.r().value();
             if url.is_empty() {
@@ -158,8 +157,8 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
                                                 true,
                                                 true,
                                                 event.detail().to_jsval(cx)).root();
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-            let event: JSRef<Event> = EventCast::from_ref(custom_event.r());
+            let target = EventTargetCast::from_ref(self);
+            let event = EventCast::from_ref(custom_event.r());
             event.fire(target);
         }
     }
@@ -227,22 +226,22 @@ impl HTMLIFrameElement {
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Src(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("src"))
     }
 
     fn SetSrc(self, src: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_url_attribute(&atom!("src"), src)
     }
 
     fn Sandbox(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("sandbox"))
     }
 
     fn SetSandbox(self, sandbox: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
@@ -284,7 +283,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(self) -> bool {
         if opts::experimental_enabled() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             element.has_attribute(&Atom::from_slice("mozbrowser"))
         } else {
             false
@@ -293,7 +292,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 
     fn SetMozbrowser(self, value: bool) -> ErrorResult {
         if opts::experimental_enabled() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
         }
         Ok(())
@@ -302,7 +301,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(self) -> Fallible<()> {
          if self.Mozbrowser() {
-            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let node = NodeCast::from_ref(self);
             if node.is_in_doc() {
                 let window = window_from_node(self).root();
                 let window = window.r();
@@ -324,7 +323,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(self) -> Fallible<()> {
          if self.Mozbrowser() {
-            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let node = NodeCast::from_ref(self);
             if node.is_in_doc() {
                 let window = window_from_node(self).root();
                 let window = window.r();
@@ -392,7 +391,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 self.sandbox.set(Some(modes));
             }
             &atom!("src") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
                     self.process_the_iframe_attributes()
                 }

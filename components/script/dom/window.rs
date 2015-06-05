@@ -24,7 +24,7 @@ use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{window_from_node, Node, TrustedNodeAddress, NodeHelpers};
+use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -617,7 +617,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             Some(root) => root,
             None => return,
         };
-        let root: JSRef<Node> = NodeCast::from_ref(root);
+        let root = NodeCast::from_ref(root);
 
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
@@ -689,7 +689,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             None => return,
         };
 
-        let root: JSRef<Node> = NodeCast::from_ref(root);
+        let root = NodeCast::from_ref(root);
         if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
             debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
             return

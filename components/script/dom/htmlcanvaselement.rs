@@ -18,7 +18,7 @@ use dom::bindings::js::Unrooted;
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::{Element, AttributeHandlers};
+use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -205,7 +205,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn SetWidth(self, width: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
@@ -214,7 +214,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn SetHeight(self, height: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 

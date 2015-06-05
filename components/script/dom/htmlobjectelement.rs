@@ -12,7 +12,6 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::document::Document;
-use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -67,7 +66,7 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&self) {
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+        let elem = ElementCast::from_ref(*self);
 
         // TODO: support other values
         match (elem.get_attribute(&ns!(""), &atom!("type")).map(|x| x.root().r().Value()),

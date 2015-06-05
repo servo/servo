@@ -111,12 +111,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
             s.after_set_attr(attr);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if !node.is_in_doc() {
             return;
         }
 
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+        let element = ElementCast::from_ref(*self);
         let rel = get_attr(element, &atom!("rel"));
 
         match (rel, attr.local_name()) {
@@ -149,7 +149,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         }
 
         if tree_in_doc {
-            let element: JSRef<Element> = ElementCast::from_ref(*self);
+            let element = ElementCast::from_ref(*self);
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
@@ -178,7 +178,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
             Ok(url) => {
-                let element: JSRef<Element> = ElementCast::from_ref(self);
+                let element = ElementCast::from_ref(self);
 
                 let mq_attribute = element.get_attribute(&ns!(""), &atom!("media")).root();
                 let value = mq_attribute.r().map(|a| a.value());

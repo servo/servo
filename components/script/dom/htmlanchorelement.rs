@@ -89,12 +89,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
 
 impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     fn Text(self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
     fn SetText(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 
@@ -133,7 +133,7 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
         }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
         //Step 3. Handle <img ismap/>.
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+        let element = ElementCast::from_ref(*self);
         let mouse_event = MouseEventCast::to_ref(event).unwrap();
         let mut ismap_suffix = None;
         if let Some(element) = ElementCast::to_ref(target) {

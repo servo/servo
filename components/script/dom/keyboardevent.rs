@@ -769,12 +769,12 @@ impl<'a> KeyboardEventMethods for JSRef<'a, KeyboardEvent> {
                          _modifiersListArg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
-        let event: JSRef<Event> = EventCast::from_ref(self);
+        let event = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }
 
-        let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
+        let uievent = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
         *self.key_string.borrow_mut() = keyArg;
         self.location.set(locationArg);

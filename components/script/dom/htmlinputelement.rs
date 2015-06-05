@@ -346,7 +346,7 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
     //TODO: if not in document, use root ancestor instead of document
     let owner = broadcaster.form_owner().root();
     let doc = document_from_node(broadcaster).root();
-    let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
+    let doc_node = NodeCast::from_ref(doc.r());
 
     // This function is a workaround for lifetime constraint difficulties.
     fn do_broadcast<'a>(doc_node: JSRef<'a, Node>, broadcaster: JSRef<'a, HTMLInputElement>,
@@ -387,7 +387,7 @@ fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
 impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
@@ -399,7 +399,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
 
     fn get_radio_group_name(self) -> Option<String> {
         //TODO: determine form owner
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.get_attribute(&ns!(""), &atom!("name"))
             .root()
             .map(|name| name.r().Value())
@@ -435,7 +435,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     fn mutable(self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         !(node.get_disabled_state() || self.ReadOnly())
     }
 
@@ -469,7 +469,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             }
@@ -532,7 +532,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -584,7 +584,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -593,7 +593,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.root().r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -699,7 +699,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     //TODO: if not in document, use root ancestor instead of document
                     let owner = self.form_owner().root();
                     let doc = document_from_node(*self).root();
-                    let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
+                    let doc_node = NodeCast::from_ref(doc.r());
                     let group = self.get_radio_group_name();;
 
                     // Safe since we only manipulate the DOM tree after finding an element
@@ -809,14 +809,14 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                                            "input".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
-                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    let target = EventTargetCast::from_ref(*self);
                     event.r().fire(target);
 
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "change".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
-                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    let target = EventTargetCast::from_ref(*self);
                     event.r().fire(target);
                 }
             },
@@ -828,14 +828,14 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(doc.r());
+        let node = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
         let form = match owner {
             None => return,
             Some(ref f) => f.root()
         };
 
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+        let elem = ElementCast::from_ref(*self);
         if elem.click_in_progress() {
             return;
         }

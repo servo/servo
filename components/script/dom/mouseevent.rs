@@ -171,12 +171,12 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       metaKeyArg: bool,
                       buttonArg: i16,
                       relatedTargetArg: Option<JSRef<EventTarget>>) {
-        let event: JSRef<Event> = EventCast::from_ref(self);
+        let event = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }
 
-        let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
+        let uievent = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.set(screenXArg);
         self.screen_y.set(screenYArg);

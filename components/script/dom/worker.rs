@@ -100,7 +100,7 @@ impl Worker {
         let worker = address.to_temporary().root();
 
         let global = worker.r().global.root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+        let target = EventTargetCast::from_ref(worker.r());
 
         let message = data.read(global.r());
         MessageEvent::dispatch_jsval(target, global.r(), message);
@@ -109,7 +109,7 @@ impl Worker {
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.to_temporary().root();
         let global = worker.r().global.root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+        let target = EventTargetCast::from_ref(worker.r());
 
         let event = Event::new(global.r(),
                                "error".to_owned(),
@@ -123,11 +123,11 @@ impl Worker {
         let worker = address.to_temporary().root();
         let global = worker.r().global.root();
         let error = UndefinedValue();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+        let target = EventTargetCast::from_ref(worker.r());
         let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error).root();
-        let event: JSRef<Event> = EventCast::from_ref(errorevent.r());
+        let event = EventCast::from_ref(errorevent.r());
         event.fire(target);
     }
 }

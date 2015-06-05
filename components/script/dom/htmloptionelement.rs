@@ -12,9 +12,8 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::js::{JSRef, Rootable, Temporary};
-use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementHelpers};
+use dom::element::{AttributeHandlers, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -56,7 +55,7 @@ impl HTMLOptionElement {
 }
 
 fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
-    let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
+    let elem = ElementCast::to_ref(*node).unwrap();
     let svg_script = *elem.namespace() == ns!(SVG) && elem.local_name() == &atom!("script");
     let html_script = node.is_htmlscriptelement();
     if svg_script || html_script {
@@ -65,7 +64,7 @@ fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
         for child in node.children() {
             let child = child.root();
             if child.r().is_text() {
-                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child.r()).unwrap();
+                let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
                 value.push_str(&characterdata.Data());
             } else {
                 collect_text(&child.r(), value);
@@ -80,13 +79,13 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
 
     // https://www.whatwg.org/html/#dom-option-disabled
     fn SetDisabled(self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_bool_attribute(&atom!("disabled"), disabled)
     }
 
     // https://www.whatwg.org/html/#dom-option-text
     fn Text(self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let mut content = String::new();
         collect_text(&node, &mut content);
         let v: Vec<&str> = split_html_space_chars(&content).collect();
@@ -95,13 +94,13 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
 
     // https://www.whatwg.org/html/#dom-option-text
     fn SetText(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value
     fn Value(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let attr = &atom!("value");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
@@ -115,7 +114,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     fn Label(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let attr = &atom!("label");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
@@ -142,7 +141,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -157,7 +156,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_parent_disabled_state_for_option();
@@ -171,7 +170,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         node.check_parent_disabled_state_for_option();
     }
 
@@ -180,7 +179,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.GetParentNode().is_some() {
             node.check_parent_disabled_state_for_option();
         } else {
