@@ -689,19 +689,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_load_start_msg(&mut self, pipeline_id: &PipelineId) {
-        let mut back;
-        let mut forward;
-        let frameid = self.pipeline_to_frame_map.get(pipeline_id);
-        match frameid {
-            Some(frame_id) => {
-                forward = if !self.frame(*frame_id).next.is_empty() { true }
-                          else { false };
-                back = if !self.frame(*frame_id).prev.is_empty() { true }
-                       else { false };
-            },
-            None => return
-        };
-        self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
+        if let Some(id) = self.pipeline_to_frame_map.get(pipeline_id) {
+            let forward = !self.frame(*id).next.is_empty();
+            let back = !self.frame(*id).prev.is_empty();
+            self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
+        }
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
@@ -710,8 +702,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             None => return
         };
 
-        let forward = !self.mut_frame(frame_id).next.is_empty();
-        let back = !self.mut_frame(frame_id).prev.is_empty();
+        let forward = !self.frame(frame_id).next.is_empty();
+        let back = !self.frame(frame_id).prev.is_empty();
         self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
 
         let mut webdriver_reset = false;
