@@ -423,7 +423,7 @@ impl<'a> FlowConstructor<'a> {
         // for runs might collapse so much whitespace away that only hypothetical fragments
         // remain. In that case the inline flow will compute its ascent and descent to be zero.
         let scanned_fragments =
-            TextRunScanner::new().scan_for_runs(self.layout_context.font_context(),
+            TextRunScanner::new().scan_for_runs(&mut self.layout_context.font_context(),
                                                 fragments.fragments);
         let mut inline_flow_ref =
             FlowRef::new(box InlineFlow::from_fragments(scanned_fragments,
@@ -446,7 +446,7 @@ impl<'a> FlowConstructor<'a> {
 
 
             let (ascent, descent) =
-                inline_flow.compute_minimum_ascent_and_descent(self.layout_context.font_context(),
+                inline_flow.compute_minimum_ascent_and_descent(&mut self.layout_context.font_context(),
                                                                &**node.style());
             inline_flow.minimum_block_size_above_baseline = ascent;
             inline_flow.minimum_depth_below_baseline = descent;
@@ -1140,7 +1140,7 @@ impl<'a> FlowConstructor<'a> {
                             SpecificFragmentInfo::UnscannedText(
                                 UnscannedTextFragmentInfo::from_text(text))));
                         let marker_fragments = TextRunScanner::new().scan_for_runs(
-                            self.layout_context.font_context(),
+                            &mut self.layout_context.font_context(),
                             unscanned_marker_fragments);
                         debug_assert!(marker_fragments.len() == 1);
                         marker_fragments.fragments.into_iter().next()

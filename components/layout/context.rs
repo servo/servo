@@ -19,11 +19,10 @@ use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
 use net_traits::image_cache_task::{UsePlaceholder};
 use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
-use std::boxed;
-use std::cell::Cell;
+use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
-use std::ptr;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
@@ -33,30 +32,31 @@ use util::geometry::Au;
 use util::opts;
 
 struct LocalLayoutContext {
-    font_context: FontContext,
-    applicable_declarations_cache: ApplicableDeclarationsCache,
-    style_sharing_candidate_cache: StyleSharingCandidateCache,
+    font_context: RefCell<FontContext>,
+    applicable_declarations_cache: RefCell<ApplicableDeclarationsCache>,
+    style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
 }
 
-thread_local!(static LOCAL_CONTEXT_KEY: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()));
+thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<LocalLayoutContext>>> = RefCell::new(None));
 
 fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
-                               -> *mut LocalLayoutContext {
-    LOCAL_CONTEXT_KEY.with(|ref r| {
-        if r.get().is_null() {
-            let context = box LocalLayoutContext {
-                font_context: FontContext::new(shared_layout_context.font_cache_task.clone()),
-                applicable_declarations_cache: ApplicableDeclarationsCache::new(),
-                style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
-            };
-            r.set(boxed::into_raw(context));
-        } else if shared_layout_context.screen_size_changed {
-            unsafe {
-                (*r.get()).applicable_declarations_cache.evict_all();
+                               -> Rc<LocalLayoutContext> {
+    LOCAL_CONTEXT_KEY.with(|r| {
+        let mut r = r.borrow_mut();
+        if let Some(context) = r.clone() {
+            if shared_layout_context.screen_size_changed {
+                context.applicable_declarations_cache.borrow_mut().evict_all();
             }
+            context
+        } else {
+            let context = Rc::new(LocalLayoutContext {
+                font_context: RefCell::new(FontContext::new(shared_layout_context.font_cache_task.clone())),
+                applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
+                style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
+            });
+            *r = Some(context.clone());
+            context
         }
-
-        r.get()
     })
 }
 
@@ -121,7 +121,7 @@ unsafe impl Send for SharedLayoutContextWrapper {}
 
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,
-    cached_local_layout_context: *mut LocalLayoutContext,
+    cached_local_layout_context: Rc<LocalLayoutContext>,
 }
 
 impl<'a> LayoutContext<'a> {
@@ -136,27 +136,18 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
-    pub fn font_context<'b>(&'b self) -> &'b mut FontContext {
-        unsafe {
-            let cached_context = &mut *self.cached_local_layout_context;
-            &mut cached_context.font_context
-        }
+    pub fn font_context(&self) -> RefMut<FontContext> {
+        self.cached_local_layout_context.font_context.borrow_mut()
     }
 
     #[inline(always)]
-    pub fn applicable_declarations_cache<'b>(&'b self) -> &'b mut ApplicableDeclarationsCache {
-        unsafe {
-            let cached_context = &mut *self.cached_local_layout_context;
-            &mut cached_context.applicable_declarations_cache
-        }
+    pub fn applicable_declarations_cache(&self) -> RefMut<ApplicableDeclarationsCache> {
+        self.cached_local_layout_context.applicable_declarations_cache.borrow_mut()
     }
 
     #[inline(always)]
-    pub fn style_sharing_candidate_cache<'b>(&'b self) -> &'b mut StyleSharingCandidateCache {
-        unsafe {
-            let cached_context = &mut *self.cached_local_layout_context;
-            &mut cached_context.style_sharing_candidate_cache
-        }
+    pub fn style_sharing_candidate_cache(&self) -> RefMut<StyleSharingCandidateCache> {
+        self.cached_local_layout_context.style_sharing_candidate_cache.borrow_mut()
     }
 
     pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
