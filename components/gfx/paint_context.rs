@@ -71,7 +71,7 @@ enum DashSize {
 }
 
 impl<'a> PaintContext<'a> {
-    pub fn get_draw_target(&self) -> &DrawTarget {
+    pub fn draw_target(&self) -> &DrawTarget {
         &self.draw_target
     }
 
@@ -675,10 +675,10 @@ impl<'a> PaintContext<'a> {
         self.draw_border_path(&rect, direction, border, radius, color);
     }
 
-    fn get_scaled_bounds(&self,
-                         bounds: &Rect<Au>,
-                         border: &SideOffsets2D<f32>,
-                         shrink_factor: f32) -> Rect<f32> {
+    fn compute_scaled_bounds(&self,
+                             bounds: &Rect<Au>,
+                             border: &SideOffsets2D<f32>,
+                             shrink_factor: f32) -> Rect<f32> {
         let rect            = bounds.to_nearest_azure_rect();
         let scaled_border   = SideOffsets2D::new(shrink_factor * border.top,
                                                  shrink_factor * border.right,
@@ -709,7 +709,7 @@ impl<'a> PaintContext<'a> {
                                                (1.0/3.0) * border.right,
                                                (1.0/3.0) * border.bottom,
                                                (1.0/3.0) * border.left);
-        let inner_scaled_bounds = self.get_scaled_bounds(bounds, border, 2.0/3.0);
+        let inner_scaled_bounds = self.compute_scaled_bounds(bounds, border, 2.0/3.0);
         // draw the outer portion of the double border.
         self.draw_solid_border_segment(direction, bounds, &scaled_border, radius, color);
         // draw the inner portion of the double border.
@@ -724,9 +724,9 @@ impl<'a> PaintContext<'a> {
                                         color: Color,
                                         style: border_style::T) {
         // original bounds as a Rect<f32>, with no scaling.
-        let original_bounds            = self.get_scaled_bounds(bounds, border, 0.0);
+        let original_bounds            = self.compute_scaled_bounds(bounds, border, 0.0);
         // shrink the bounds by 1/2 of the border, leaving the innermost 1/2 of the border
-        let inner_scaled_bounds        = self.get_scaled_bounds(bounds, border, 0.5);
+        let inner_scaled_bounds        = self.compute_scaled_bounds(bounds, border, 0.5);
         let scaled_border              = SideOffsets2D::new(0.5 * border.top,
                                                             0.5 * border.right,
                                                             0.5 * border.bottom,
@@ -779,7 +779,7 @@ impl<'a> PaintContext<'a> {
             _ => panic!("invalid border style")
         };
         // original bounds as a Rect<f32>
-        let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
+        let original_bounds = self.compute_scaled_bounds(bounds, border, 0.0);
 
         // You can't scale black color (i.e. 'scaled = 0 * scale', equals black).
         let mut scaled_color = color::black();
@@ -1419,4 +1419,3 @@ impl TemporaryDrawTarget {
 
     }
 }
-

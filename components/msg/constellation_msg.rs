@@ -248,6 +248,10 @@ pub enum Msg {
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Notification that this iframe should be removed.
     RemoveIFrame(PipelineId, SubpageId),
+    /// Favicon detected
+    NewFavicon(Url),
+    /// <head> tag finished parsing
+    HeadParsed,
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -326,7 +330,7 @@ impl MozBrowserEvent {
 pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, Sender<LoadComplete>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
-    TakeScreenshot(Sender<Option<png::Image>>)
+    TakeScreenshot(PipelineId, Sender<Option<png::Image>>)
 }
 
 /// Similar to net::resource_task::LoadData

@@ -8,7 +8,7 @@
 #![feature(core)]
 #![feature(exit_status)]
 #![feature(optin_builtin_traits)]
-#![cfg_attr(not(target_os = "android"), feature(path_ext))]
+#![feature(path_ext)]
 #![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(step_by)]

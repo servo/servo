@@ -70,7 +70,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == box_shadow_paint_order_a.html box_shadow_paint_order_ref.html
 == box_shadow_spread_a.html box_shadow_spread_ref.html
 == box_sizing_border_box_a.html box_sizing_border_box_ref.html
-== box_sizing_padding_box_a.html box_sizing_padding_box_ref.html
 == box_sizing_sanity_check_a.html box_sizing_sanity_check_ref.html
 == br.html br-ref.html
 == canvas_as_block_element_a.html canvas_as_block_element_ref.html
@@ -312,6 +311,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == text_transform_lowercase_a.html text_transform_lowercase_ref.html
 == text_transform_none_a.html text_transform_none_ref.html
 == text_transform_uppercase_a.html text_transform_uppercase_ref.html
+== transform_3d.html transform_3d_ref.html
 == transform_simple_a.html transform_simple_ref.html
 == transform_stacking_context_a.html transform_stacking_context_ref.html
 == upper_id_attr.html upper_id_attr_ref.html

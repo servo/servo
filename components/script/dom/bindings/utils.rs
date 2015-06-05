@@ -10,6 +10,7 @@ use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root, Rootable};
+use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::window;
 use util::namespace;
@@ -26,7 +27,7 @@ use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
-use js::jsapi::JSHandleObject;
+use js::jsapi::{JSHandleObject, JSTracer};
 use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty, JS_SetProperty};
@@ -594,6 +595,16 @@ pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass)
 pub unsafe fn finalize_global(obj: *mut JSObject) {
     let _: Box<ProtoOrIfaceArray> =
         Box::from_raw(get_proto_or_iface_array(obj) as *mut ProtoOrIfaceArray);
+}
+
+/// Trace the resources held by reserved slots of a global object
+pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
+    let array = get_proto_or_iface_array(obj) as *mut ProtoOrIfaceArray;
+    for &proto in (*array).iter() {
+        if !proto.is_null() {
+            trace_object(tracer, "prototype", proto);
+        }
+    }
 }
 
 /// Callback to outerize windows when wrapping.

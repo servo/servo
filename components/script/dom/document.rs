@@ -1540,6 +1540,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 Some(element) => element,
                 None => return false,
             };
+            if element.namespace() != &ns!(HTML) {
+                return false;
+            }
             element.get_attribute(&ns!(""), &atom!("name")).root().map_or(false, |attr| {
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
                 let attr = attr.r();

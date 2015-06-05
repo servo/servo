@@ -1,3 +1,12 @@
+# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
 from __future__ import print_function, unicode_literals
 
 import os
@@ -31,7 +40,8 @@ def download(desc, src, dst):
         with open(dst, 'wb') as fd:
             while True:
                 chunk = resp.read(chunk_size)
-                if not chunk: break
+                if not chunk:
+                    break
                 recved += len(chunk)
                 if not dumb:
                     pct = recved * 100.0 / fsize
@@ -51,6 +61,7 @@ def download(desc, src, dst):
             print("See https://github.com/servo/servo/issues/3899")
 
         sys.exit(1)
+
 
 def extract(src, dst, movedir=None):
     tarfile.open(src).extractall(dst)

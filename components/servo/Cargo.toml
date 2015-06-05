@@ -100,7 +100,7 @@ path = "../../support/android-rs-glue/glue"
 optional = true
 
 [dependencies]
-url = "0.2.16"
+url = "0.2.35"
 time = "0.1.12"
 bitflags = "*"
 libc = "*"

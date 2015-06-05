@@ -306,7 +306,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 let msg = NetworkEventMsg {
                     from: console_actor_name,
                     __type__: "networkEvent".to_string(),
-                    eventActor: actor.get_event_actor(),
+                    eventActor: actor.event_actor(),
                 };
                 for stream in connections.iter_mut() {
                     stream.write_json_packet(&msg);
@@ -321,7 +321,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     from: netevent_actor_name,
                     __type__: "networkEventUpdate".to_string(),
                     updateType: "responseStart".to_string(),
-                    response: actor.get_response_start()
+                    response: actor.response_start()
                 };
 
                 for stream in connections.iter_mut() {

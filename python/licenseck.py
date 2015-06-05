@@ -59,4 +59,4 @@ licenses = [
 # except according to those terms.
 """,
 
-]
+]  # noqa: Indicate to flake8 that we do not want to check indentation here

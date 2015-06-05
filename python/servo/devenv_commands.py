@@ -1,3 +1,12 @@
+# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
 from __future__ import print_function, unicode_literals
 from os import path, getcwd, listdir
 
@@ -27,8 +36,8 @@ class MachCommands(CommandBase):
 
         if self.context.topdir == getcwd():
             with cd(path.join('components', 'servo')):
-                return subprocess.call(["cargo"] + params,
-                               env=self.build_env())
+                return subprocess.call(
+                    ["cargo"] + params, env=self.build_env())
         return subprocess.call(['cargo'] + params,
                                env=self.build_env())
 
@@ -39,10 +48,10 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
     @CommandArgument(
-        '--package', '-p', default=None, 
+        '--package', '-p', default=None,
         help='Updates selected package')
     @CommandArgument(
-        '--all-packages','-a',action='store_true', 
+        '--all-packages', '-a', action='store_true',
         help='Updates all packages')
     def cargo_update(self, params=None, package=None, all_packages=None):
         self.update_cargo(params, package, all_packages)
@@ -54,10 +63,10 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
     @CommandArgument(
-        '--package','-p',default=None, 
+        '--package', '-p', default=None,
         help='Updates selected package')
     @CommandArgument(
-        '--all-packages','-a',action='store_true', 
+        '--all-packages', '-a', action='store_true',
         help='Updates all packages')
     def update_cargo(self, params=None, package=None, all_packages=None):
         if not params:
@@ -68,7 +77,7 @@ class MachCommands(CommandBase):
         elif all_packages:
             params = []
         else:
-            print("Please choose package to update with the --package (-p) ") 
+            print("Please choose package to update with the --package (-p) ")
             print("flag or update all packages with --all-packages (-a) flag")
             sys.exit(1)
 

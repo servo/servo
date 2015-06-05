@@ -66,7 +66,8 @@ CATEGORIES = {
     },
     'disabled': {
         'short': 'Disabled',
-        'long': 'The disabled commands are hidden by default. Use -v to display them. These commands are unavailable for your current context, run "mach <command>" to see why.',
+        'long': 'The disabled commands are hidden by default. Use -v to display them. These commands are unavailable '
+                'for your current context, run "mach <command>" to see why.',
         'priority': 0,
     }
 }
@@ -97,7 +98,7 @@ def bootstrap(topdir):
 
     for category, meta in CATEGORIES.items():
         mach.define_category(category, meta['short'], meta['long'],
-            meta['priority'])
+                             meta['priority'])
 
     for path in MACH_MODULES:
         mach.load_commands_from_file(os.path.join(topdir, path))

@@ -263,7 +263,7 @@ impl CORSCache for CORSCacheSender {
 /// ```ignore
 /// let task = CORSCacheTask::new();
 /// let builder = TaskBuilder::new().named("XHRTask");
-/// let mut sender = task.get_sender();
+/// let mut sender = task.sender();
 /// builder.spawn(move || { task.run() });
 /// sender.insert(CORSCacheEntry::new(/* parameters here */));
 /// ```
@@ -284,7 +284,7 @@ impl CORSCacheTask {
     }
 
     /// Provides a sender to the cache task
-    pub fn get_sender(&self) -> CORSCacheSender {
+    pub fn sender(&self) -> CORSCacheSender {
         self.sender.clone()
     }
 

@@ -16,7 +16,9 @@ use std::collections::HashSet;
 use std::cmp;
 use std::env;
 use std::io::{self, Write};
+use std::fs::PathExt;
 use std::mem;
+use std::path::Path;
 use std::ptr;
 use url::{self, Url};
 
@@ -310,8 +312,14 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         let cwd = env::current_dir().unwrap();
         match Url::parse(url) {
             Ok(url) => url,
-            Err(url::ParseError::RelativeUrlWithoutBase)
-                => Url::from_file_path(&*cwd.join(url)).unwrap(),
+            Err(url::ParseError::RelativeUrlWithoutBase) => {
+                if Path::new(url).exists() {
+                    Url::from_file_path(&*cwd.join(url)).unwrap()
+                } else {
+                    args_fail(&format!("File not found: {}", url));
+                    return false;
+                }
+            }
             Err(_) => panic!("URL parsing failed"),
         }
     };

@@ -12,7 +12,8 @@ use paint_context::PaintContext;
 
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
-use geom::matrix2d::Matrix2D;
+use geom::Matrix4;
+use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -177,9 +178,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
                 let mut compositor = compositor;
-                let native_graphics_context = compositor.get_graphics_metadata().map(
+                let native_graphics_context = compositor.graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let worker_threads = WorkerThreadProxy::spawn(compositor.get_graphics_metadata(),
+                let worker_threads = WorkerThreadProxy::spawn(compositor.graphics_metadata(),
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
 
@@ -621,10 +622,11 @@ impl WorkerThread {
                          stacking_context.overflow.origin.y.to_f32_px()));
 
             // Apply the translation to paint the tile we want.
-            let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
+            let matrix: Matrix4<AzFloat> = identity();
+            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
-                                          -tile_bounds.origin.y as AzFloat);
+                                          -tile_bounds.origin.y as AzFloat,
+                                          0.0);
 
             // Clear the buffer.
             paint_context.clear();
@@ -724,4 +726,3 @@ pub static THREAD_TINT_COLORS: [Color; 8] = [
     Color { r: 255.0/255.0, g: 249.0/255.0, b: 201.0/255.0, a: 0.7 },
     Color { r: 137.0/255.0, g: 196.0/255.0, b: 78.0/255.0, a: 0.7 },
 ];
-

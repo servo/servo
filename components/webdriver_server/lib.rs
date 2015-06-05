@@ -420,6 +420,7 @@ impl Handler {
 
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
         let mut img = None;
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let interval = 20;
         let iterations = 30_000 / interval;
@@ -427,7 +428,7 @@ impl Handler {
         for _ in 0..iterations {
             let (sender, reciever) = channel();
             let ConstellationChan(ref const_chan) = self.constellation_chan;
-            let cmd_msg = WebDriverCommandMsg::TakeScreenshot(sender);
+            let cmd_msg = WebDriverCommandMsg::TakeScreenshot(pipeline_id, sender);
             const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
             if let Some(x) = reciever.recv().unwrap() {

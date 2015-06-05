@@ -24,10 +24,10 @@ use text::glyph::CharIndex;
 use text::TextRun;
 
 use azure::azure::AzFloat;
-use azure::azure_hl::{Color};
+use azure::azure_hl::Color;
 
 use collections::linked_list::{self, LinkedList};
-use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
+use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use geom::approxeq::ApproxEq;
 use geom::num::Zero;
 use libc::uintptr_t;
@@ -66,7 +66,7 @@ const MIN_INDENTATION_LENGTH: usize = 4;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -82,6 +82,7 @@ impl OpaqueNode {
 ///
 /// TODO(pcwalton): We could reduce the size of this structure with a more "skip list"-like
 /// structure, omitting several pointers and lengths.
+#[derive(HeapSizeOf)]
 pub struct DisplayList {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
     pub background_and_borders: LinkedList<DisplayItem>,
@@ -218,24 +219,14 @@ impl DisplayList {
     }
 }
 
-impl HeapSizeOf for DisplayList {
-    fn heap_size_of_children(&self) -> usize {
-        self.background_and_borders.heap_size_of_children() +
-            self.block_backgrounds_and_borders.heap_size_of_children() +
-            self.floats.heap_size_of_children() +
-            self.content.heap_size_of_children() +
-            self.positioned_content.heap_size_of_children() +
-            self.outlines.heap_size_of_children() +
-            self.children.heap_size_of_children()
-    }
-}
-
+#[derive(HeapSizeOf)]
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
 pub struct StackingContext {
     /// The display items that make up this stacking context.
     pub display_list: Box<DisplayList>,
 
     /// The layer for this stacking context, if there is one.
+    #[ignore_heap_size_of = "FIXME(njn): should measure this at some point"]
     pub layer: Option<Arc<PaintLayer>>,
 
     /// The position and size of this stacking context.
@@ -254,9 +245,7 @@ pub struct StackingContext {
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
-    ///
-    /// TODO(pcwalton): 3D transforms.
-    pub transform: Matrix2D<AzFloat>,
+    pub transform: Matrix4<AzFloat>,
 }
 
 impl StackingContext {
@@ -266,7 +255,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               transform: &Matrix2D<AzFloat>,
+               transform: &Matrix4<AzFloat>,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
                layer: Option<Arc<PaintLayer>>)
@@ -287,7 +276,7 @@ impl StackingContext {
     pub fn optimize_and_draw_into_context(&self,
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
-                                          transform: &Matrix2D<AzFloat>,
+                                          transform: &Matrix4<AzFloat>,
                                           clip_rect: Option<&Rect<Au>>) {
         let transform = transform.mul(&self.transform);
         let temporary_draw_target =
@@ -320,7 +309,10 @@ impl StackingContext {
 
             // Set up our clip rect and transform.
             let old_transform = paint_subcontext.draw_target.get_transform();
-            paint_subcontext.draw_target.set_transform(&transform);
+            let xform_2d = Matrix2D::new(transform.m11, transform.m12,
+                                         transform.m21, transform.m22,
+                                         transform.m41, transform.m42);
+            paint_subcontext.draw_target.set_transform(&xform_2d);
             paint_subcontext.push_clip_if_applicable();
 
             // Steps 1 and 2: Borders and background for the root.
@@ -342,7 +334,8 @@ impl StackingContext {
                                             positioned_kid.bounds
                                                           .origin
                                                           .y
-                                                          .to_nearest_px() as AzFloat);
+                                                          .to_nearest_px() as AzFloat,
+                                            0.0);
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
@@ -390,7 +383,8 @@ impl StackingContext {
                                             positioned_kid.bounds
                                                           .origin
                                                           .y
-                                                          .to_nearest_px() as AzFloat);
+                                                          .to_nearest_px() as AzFloat,
+                                            0.0);
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
@@ -585,14 +579,6 @@ impl StackingContext {
     }
 }
 
-impl HeapSizeOf for StackingContext {
-    fn heap_size_of_children(&self) -> usize {
-        self.display_list.heap_size_of_children()
-
-        // FIXME(njn): other fields may be measured later, esp. `layer`
-    }
-}
-
 /// Returns the stacking context in the given tree of stacking contexts with a specific layer ID.
 pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id: LayerId)
                                            -> Option<Arc<StackingContext>> {
@@ -612,7 +598,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
 }
 
 /// One drawing command in the list.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub enum DisplayItem {
     SolidColorClass(Box<SolidColorDisplayItem>),
     TextClass(Box<TextDisplayItem>),
@@ -624,7 +610,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
@@ -648,17 +634,11 @@ impl BaseDisplayItem {
     }
 }
 
-impl HeapSizeOf for BaseDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        self.metadata.heap_size_of_children() +
-            self.clip.heap_size_of_children()
-    }
-}
 
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -672,7 +652,7 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
@@ -780,22 +760,11 @@ impl ClippingRegion {
     }
 }
 
-impl HeapSizeOf for ClippingRegion {
-    fn heap_size_of_children(&self) -> usize {
-        self.complex.heap_size_of_children()
-    }
-}
-
-impl HeapSizeOf for ComplexClippingRegion {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
 
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, HeapSizeOf)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -823,14 +792,8 @@ impl DisplayItemMetadata {
     }
 }
 
-impl HeapSizeOf for DisplayItemMetadata {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
-
 /// Paints a solid color.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct SolidColorDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -839,19 +802,14 @@ pub struct SolidColorDisplayItem {
     pub color: Color,
 }
 
-impl HeapSizeOf for SolidColorDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        self.base.heap_size_of_children()
-    }
-}
-
 /// Paints text.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
     /// The text run.
+    #[ignore_heap_size_of = "Because it is non-owning"]
     pub text_run: Arc<Box<TextRun>>,
 
     /// The range of text within the text run.
@@ -870,14 +828,7 @@ pub struct TextDisplayItem {
     pub blur_radius: Au,
 }
 
-impl HeapSizeOf for TextDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        self.base.heap_size_of_children()
-        // We exclude `text_run` because it is non-owning.
-    }
-}
-
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, HeapSizeOf)]
 pub enum TextOrientation {
     Upright,
     SidewaysLeft,
@@ -885,9 +836,10 @@ pub enum TextOrientation {
 }
 
 /// Paints an image.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
+    #[ignore_heap_size_of = "Because it is non-owning"]
     pub image: Arc<Image>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
@@ -900,12 +852,6 @@ pub struct ImageDisplayItem {
     pub image_rendering: image_rendering::T,
 }
 
-impl HeapSizeOf for ImageDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        self.base.heap_size_of_children()
-        // We exclude `image` here because it is non-owning.
-    }
-}
 
 /// Paints a gradient.
 #[derive(Clone)]
@@ -923,6 +869,7 @@ pub struct GradientDisplayItem {
     pub stops: Vec<GradientStop>,
 }
 
+
 impl HeapSizeOf for GradientDisplayItem {
     fn heap_size_of_children(&self) -> usize {
         use libc::c_void;
@@ -938,7 +885,7 @@ impl HeapSizeOf for GradientDisplayItem {
 
 
 /// Paints a border.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -958,16 +905,10 @@ pub struct BorderDisplayItem {
     pub radius: BorderRadii<Au>,
 }
 
-impl HeapSizeOf for BorderDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        self.base.heap_size_of_children()
-    }
-}
-
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, Default, PartialEq, Debug, Copy)]
+#[derive(Clone, Default, PartialEq, Debug, Copy, HeapSizeOf)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
@@ -997,7 +938,7 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
 }
 
 /// Paints a line segment.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
@@ -1008,14 +949,8 @@ pub struct LineDisplayItem {
     pub style: border_style::T
 }
 
-impl HeapSizeOf for LineDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        self.base.heap_size_of_children()
-    }
-}
-
 /// Paints a box shadow per CSS-BACKGROUNDS.
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct BoxShadowDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1039,14 +974,8 @@ pub struct BoxShadowDisplayItem {
     pub clip_mode: BoxShadowClipMode,
 }
 
-impl HeapSizeOf for BoxShadowDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        self.base.heap_size_of_children()
-    }
-}
-
 /// How a box shadow should be clipped.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
 pub enum BoxShadowClipMode {
     /// No special clipping should occur. This is used for (shadowed) text decorations.
     None,
@@ -1207,17 +1136,4 @@ impl fmt::Debug for DisplayItem {
     }
 }
 
-impl HeapSizeOf for DisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            SolidColorClass(ref item) => item.heap_size_of_children(),
-            TextClass(ref item)       => item.heap_size_of_children(),
-            ImageClass(ref item)      => item.heap_size_of_children(),
-            BorderClass(ref item)     => item.heap_size_of_children(),
-            GradientClass(ref item)   => item.heap_size_of_children(),
-            LineClass(ref item)       => item.heap_size_of_children(),
-            BoxShadowClass(ref item)  => item.heap_size_of_children(),
-        }
-    }
-}
 

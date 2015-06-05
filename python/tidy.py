@@ -7,23 +7,31 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-#!/usr/bin/env python
-
 import os
 import fnmatch
 import itertools
 import re
+import sys
 from licenseck import licenses
 
-directories_to_check = ["ports", "components", "tests"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
+python_dependencies = [
+    "./python/dependencies/flake8-2.4.1-py2.py3-none-any.whl",
+    "./python/dependencies/pep8-1.5.7-py2.py3-none-any.whl",
+    "./python/dependencies/pyflakes-0.9.0-py2.py3-none-any.whl",
+]
 
 ignored_files = [
     # Upstream
     "support/*",
     "tests/wpt/*",
+    "python/mach/*",
+    "python/mozdebug/*",
+    "python/mozinfo/*",
+    "python/mozlog/*",
+    "python/toml/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
     "components/script/dom/bindings/codegen/*",
@@ -35,10 +43,15 @@ ignored_files = [
 
     # MIT license
     "components/util/deque/mod.rs",
+
+    # Hidden files/directories
+    ".*",
 ]
 
 
-def collect_file_names(top_directories):
+def collect_file_names(top_directories=None):
+    if top_directories is None:
+        top_directories = os.listdir(".")
     for top_directory in top_directories:
         for dirname, dirs, files in os.walk(top_directory):
             for basename in files:
@@ -71,11 +84,13 @@ def check_length(idx, line):
     if len(line) >= 120:
         yield (idx + 1, "(much) overlong line")
 
+
 def check_whatwg_url(idx, line):
     match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
+
 
 def check_whitespace(idx, line):
     if line[-1] == "\n":
@@ -92,11 +107,36 @@ def check_whitespace(idx, line):
     if "\r" in line:
         yield (idx + 1, "CR on line")
 
+
 def check_by_line(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
-        for error in itertools.chain(check_length(idx, line), check_whitespace(idx, line), check_whatwg_url(idx, line)):
+        errors = itertools.chain(
+            check_length(idx, line),
+            check_whitespace(idx, line),
+            check_whatwg_url(idx, line),
+        )
+        for error in errors:
             yield error
+
+
+def check_flake8(file_paths):
+    from flake8.main import check_file
+
+    ignore = {
+        "W291",  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
+        "E501",  # 80 character line length; the standard tidy process will enforce line length
+    }
+
+    num_errors = 0
+
+    for file_path in file_paths:
+        if os.path.splitext(file_path)[-1].lower() != ".py":
+            continue
+
+        num_errors += check_file(file_path, ignore=ignore)
+
+    return num_errors
 
 
 def collect_errors_for_files(files_to_check, checking_functions):
@@ -115,7 +155,7 @@ def check_reftest_order(files_to_check):
             split_lines = fp.read().splitlines()
             lines = filter(lambda l: len(l) > 0 and l[0] != '#', split_lines)
             for idx, line in enumerate(lines[:-1]):
-                next_line = lines[idx+1]
+                next_line = lines[idx + 1]
                 current = get_reftest_names(line)
                 next = get_reftest_names(next_line)
                 if current is not None and next is not None and current > next:
@@ -132,8 +172,12 @@ def get_reftest_names(line):
 
 
 def scan():
-    all_files = collect_file_names(directories_to_check)
+    sys.path += python_dependencies
+
+    all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
+
+    num_flake8_errors = check_flake8(files_to_check)
 
     checking_functions = [check_license, check_by_line]
     errors = collect_errors_for_files(files_to_check, checking_functions)
@@ -144,7 +188,7 @@ def scan():
 
     errors = list(itertools.chain(errors, r_errors))
 
-    if errors:
+    if errors or num_flake8_errors:
         for error in errors:
             print("{}:{}: {}".format(*error))
         return 1
