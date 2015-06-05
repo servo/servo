@@ -40,7 +40,7 @@ branch = "servo"
 git = "https://github.com/servo/gleam"
 
 [dependencies.cgl]
-git = "https://github.com/servo/rust-cgl"
+git = "https://github.com/servo/cgl-rs"
 
 [dependencies.egl]
 git = "https://github.com/servo/rust-egl"
