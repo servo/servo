@@ -12,7 +12,7 @@ use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::Error::{IndexSize, NotSupported, Type, InvalidState};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, LayoutJS, Rootable, Temporary};
+use dom::bindings::js::{JS, JSRef, LayoutJS, Rootable, Temporary, Unrooted};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
@@ -46,6 +46,15 @@ use util::str::DOMString;
 use url::Url;
 use util::vec::byte_swap;
 
+#[must_root]
+#[jstraceable]
+#[derive(Clone)]
+pub enum CanvasFillStrokeStyle {
+    Color(RGBA),
+    Gradient(JS<CanvasGradient>),
+    // Pattern(JS<CanvasPattern>),  // https://github.com/servo/servo/pull/6157
+}
+
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
@@ -57,18 +66,19 @@ pub struct CanvasRenderingContext2D {
     saved_states: RefCell<Vec<CanvasContextState>>,
 }
 
-#[derive(Clone)]
+#[must_root]
 #[jstraceable]
+#[derive(Clone)]
 struct CanvasContextState {
     global_alpha: f64,
     global_composition: CompositionOrBlending,
     image_smoothing_enabled: bool,
-    stroke_color: RGBA,
+    fill_style: CanvasFillStrokeStyle,
+    stroke_style: CanvasFillStrokeStyle,
     line_width: f64,
     line_cap: LineCapStyle,
     line_join: LineJoinStyle,
     miter_limit: f64,
-    fill_color: RGBA,
     transform: Matrix2D<f32>,
 }
 
@@ -84,12 +94,12 @@ impl CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
             image_smoothing_enabled: true,
-            stroke_color: black,
+            fill_style: CanvasFillStrokeStyle::Color(black),
+            stroke_style: CanvasFillStrokeStyle::Color(black),
             line_width: 1.0,
             line_cap: LineCapStyle::Butt,
             line_join: LineJoinStyle::Miter,
             miter_limit: 10.0,
-            fill_color: black,
             transform: Matrix2D::identity(),
         }
     }
@@ -773,9 +783,16 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn StrokeStyle(self) -> StringOrCanvasGradientOrCanvasPattern {
-        let mut result = String::new();
-        serialize(&self.state.borrow().stroke_color, &mut result).unwrap();
-        StringOrCanvasGradientOrCanvasPattern::eString(result)
+        match self.state.borrow().stroke_style {
+            CanvasFillStrokeStyle::Color(ref rgba) => {
+                let mut result = String::new();
+                serialize(rgba, &mut result).unwrap();
+                StringOrCanvasGradientOrCanvasPattern::eString(result)
+            },
+            CanvasFillStrokeStyle::Gradient(gradient) => {
+                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Unrooted::from_js(gradient))
+            },
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -784,25 +801,37 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
                 match parse_color(&string) {
                     Ok(rgba) => {
-                        self.state.borrow_mut().stroke_color = rgba;
+                        self.state.borrow_mut().stroke_style = CanvasFillStrokeStyle::Color(rgba);
                         self.renderer
                             .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetStrokeStyle(FillOrStrokeStyle::Color(rgba))))
                             .unwrap();
                     }
                     _ => {}
                 }
-            }
-            _ => {
-                // TODO(pcwalton)
-            }
+            },
+            StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
+                self.state.borrow_mut().stroke_style = CanvasFillStrokeStyle::Gradient(
+                                                           JS::from_rooted(gradient.root().r()));
+                let msg = CanvasMsg::Canvas2d(
+                    Canvas2dMsg::SetStrokeStyle(gradient.root().r().to_fill_or_stroke_style()));
+                self.renderer.send(msg).unwrap();
+            },
+            _ => {}
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn FillStyle(self) -> StringOrCanvasGradientOrCanvasPattern {
-        let mut result = String::new();
-        serialize(&self.state.borrow().fill_color, &mut result).unwrap();
-        StringOrCanvasGradientOrCanvasPattern::eString(result)
+        match self.state.borrow().fill_style {
+            CanvasFillStrokeStyle::Color(ref rgba) => {
+                let mut result = String::new();
+                serialize(rgba, &mut result).unwrap();
+                StringOrCanvasGradientOrCanvasPattern::eString(result)
+            },
+            CanvasFillStrokeStyle::Gradient(gradient) => {
+                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Unrooted::from_js(gradient))
+            },
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -811,7 +840,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
                 match parse_color(&string) {
                     Ok(rgba) => {
-                        self.state.borrow_mut().fill_color = rgba;
+                        self.state.borrow_mut().fill_style = CanvasFillStrokeStyle::Color(rgba);
                         self.renderer
                             .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(FillOrStrokeStyle::Color(rgba))))
                             .unwrap()
@@ -820,6 +849,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                 }
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
+                self.state.borrow_mut().fill_style = CanvasFillStrokeStyle::Gradient(
+                                                        JS::from_rooted(gradient.root().r()));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(gradient.root().r().to_fill_or_stroke_style()));
                 self.renderer.send(msg).unwrap();
