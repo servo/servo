@@ -74,6 +74,7 @@ features = ["query_encoding"]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
 [dependencies]
+log = "*"
 encoding = "0.2"
 time = "0.1.12"
 bitflags = "*"

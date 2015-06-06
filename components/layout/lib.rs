@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(filling_drop)]
 #![feature(plugin)]
-#![feature(rustc_private)]
 #![feature(std_misc)]
 #![feature(str_char)]
 #![feature(thread_local)]

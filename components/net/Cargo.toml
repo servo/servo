@@ -23,6 +23,7 @@ git = "https://github.com/servo/rust-geom"
 git = "https://github.com/servo/rust-png"
 
 [dependencies]
+log = "*"
 url = "0.2.35"
 time = "0.1.17"
 openssl="0.6.1"
