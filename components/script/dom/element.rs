@@ -10,6 +10,7 @@ use dom::attr::AttrValue;
 use dom::namednodemap::NamedNodeMap;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -1061,6 +1062,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let url = self.get_string_attribute(local_name);
         let doc = document_from_node(self).root();
         let base = doc.r().url();
+        let base = doc.r().QuerySelector("base".to_owned()).unwrap().map_or(base, |base| {
+            UrlParser::new().parse(&base.root().r().get_string_attribute(&atom!("href"))).unwrap()
+        });
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
         match UrlParser::new().base_url(&base).parse(&url) {
