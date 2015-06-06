@@ -20,6 +20,7 @@ git = "https://github.com/jgraham/webdriver-rust.git"
 git = "https://github.com/servo/rust-png"
 
 [dependencies]
+log = "*"
 rustc-serialize = "0.3.4"
 url = "0.2.35"
 uuid = "*"

@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(collections)]
 #![feature(hash)]
-#![feature(rustc_private)]
 #![feature(custom_attribute, custom_derive)]
 #![plugin(string_cache_plugin)]
 #![plugin(plugins)]

@@ -65,6 +65,7 @@ git = "https://github.com/servo/gleam"
 git = "https://github.com/servo/rust-x11-clipboard"
 
 [dependencies]
+log = "*"
 num = "0.1.24"
 url = "0.2.35"
 time = "0.1.17"

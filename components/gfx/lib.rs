@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(plugin, custom_attribute)]
 #![feature(custom_derive)]
-#![feature(rustc_private)]
 #![feature(std_misc)]
 #![feature(str_char)]
 

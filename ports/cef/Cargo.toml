@@ -81,6 +81,7 @@ git = "https://github.com/servo/gleam"
 git = "https://github.com/servo/rust-cgl"
 
 [dependencies]
+log = "*"
 url = "*"
 libc = "*"
 objc = "0.1"

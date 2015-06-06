@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(path_ext)]
 #![feature(plugin)]
-#![feature(rustc_private)]
 #![feature(std_misc)]
 
 #![plugin(regex_macros)]
