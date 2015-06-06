@@ -9,7 +9,7 @@
 
  #[dom_struct]
  pub struct TestBindingProxy {
-     reflector: Reflector
+     reflector_: Reflector
  }
 
  impl<'a> TestBindingProxyMethods for JSRef<'a, TestBindingProxy> {
