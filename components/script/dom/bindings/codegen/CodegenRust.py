@@ -1887,7 +1887,7 @@ class CGAbstractMethod(CGThing):
     def _decorators(self):
         decorators = []
         if self.alwaysInline:
-            decorators.append('#[inline(always)]')
+            decorators.append('#[inline]')
 
         if self.extern:
             decorators.append('unsafe')
@@ -5482,7 +5482,7 @@ impl ${selfName} for ${baseName} {
             cast = [CGGeneric(string.Template("""\
 pub struct ${name}Cast;
 impl ${name}Cast {
-    #[inline(always)]
+    #[inline]
     pub fn to_ref<'a, T: ${toBound}+Reflectable>(base: JSRef<'a, T>) -> Option<JSRef<'a, ${name}>> {
         match base.${checkFn}() {
             true => Some(unsafe { mem::transmute(base) }),
@@ -5490,7 +5490,7 @@ impl ${name}Cast {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, ${name}>> {
         match base.${checkFn}() {
             true => Some(unsafe { mem::transmute(base) }),
@@ -5498,7 +5498,7 @@ impl ${name}Cast {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     #[allow(unrooted_must_root)]
     pub fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<${name}>> {
         unsafe {
@@ -5509,7 +5509,7 @@ impl ${name}Cast {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_temporary<T: ${toBound}+Reflectable>(base: Temporary<T>) -> Option<Temporary<${name}>> {
         match base.root().r().${checkFn}() {
             true => Some(unsafe { mem::transmute(base) }),
@@ -5517,28 +5517,28 @@ impl ${name}Cast {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, ${name}> {
         unsafe { mem::transmute(derived) }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, ${name}> {
         unsafe { mem::transmute(derived) }
     }
 
-    #[inline(always)]
+    #[inline]
     #[allow(unrooted_must_root)]
     pub fn from_layout_js<T: ${fromBound}+Reflectable>(derived: &LayoutJS<T>) -> LayoutJS<${name}> {
         unsafe { mem::transmute_copy(derived) }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<${name}> {
         unsafe { mem::transmute(derived) }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_actual<'a, T: ${fromBound}+Reflectable>(derived: &'a T) -> &'a ${name} {
         unsafe { mem::transmute(derived) }
     }
