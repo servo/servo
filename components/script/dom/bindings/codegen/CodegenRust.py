@@ -2165,11 +2165,11 @@ assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
 let proto_or_iface_array = get_proto_or_iface_array(global);
-let cached_object: *mut JSObject = *proto_or_iface_array.offset(%s as isize);
+let cached_object: *mut JSObject = (*proto_or_iface_array)[%s as usize];
 if cached_object.is_null() {
     let tmp: *mut JSObject = CreateInterfaceObjects(cx, global, receiver);
     assert!(!tmp.is_null());
-    *proto_or_iface_array.offset(%s as isize) = tmp;
+    (*proto_or_iface_array)[%s as usize] = tmp;
     tmp
 } else {
     cached_object
