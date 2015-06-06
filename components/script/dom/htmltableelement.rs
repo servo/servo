@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary, OptionalRootable, RootedReference};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -79,21 +79,14 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     // https://www.whatwg.org/html/#dom-table-caption
     fn SetCaption(self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        let old_caption = self.GetCaption();
 
-        match old_caption {
-            Some(htmlelem) => {
-                let htmlelem_root = htmlelem.root();
-                let old_caption_node: JSRef<Node> = NodeCast::from_ref(htmlelem_root.r());
-                assert!(node.RemoveChild(old_caption_node).is_ok());
-            }
-            None => ()
+        if let Some(ref caption) = self.GetCaption().root() {
+            assert!(node.RemoveChild(NodeCast::from_ref(caption.r())).is_ok());
         }
 
-        new_caption.map(|caption| {
-            let new_caption_node: JSRef<Node> = NodeCast::from_ref(caption);
-            assert!(node.AppendChild(new_caption_node).is_ok());
-        });
+        if let Some(caption) = new_caption {
+            assert!(node.AppendChild(NodeCast::from_ref(caption)).is_ok());
+        }
     }
 }
 
