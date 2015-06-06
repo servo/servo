@@ -259,7 +259,9 @@ impl ResourceManager {
             }
         }
 
-        self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
+        self.user_agent.as_ref().map(|ua| {
+            load_data.preserved_headers.set(UserAgent(ua.clone()));
+        });
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
                         -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
