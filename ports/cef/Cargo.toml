@@ -8,6 +8,12 @@ name = "embedding"
 path = "lib.rs"
 crate-type = ["dylib"]
 
+[dependencies]
+log = "*"
+url = "*"
+libc = "*"
+objc = "0.1"
+
 [dependencies.servo]
 path = "../../components/servo"
 
@@ -62,29 +68,19 @@ git = "https://github.com/servo/rust-png"
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
-[dependencies.core_foundation]
-git = "https://github.com/servo/rust-core-foundation"
-
-[dependencies.core_graphics]
-git = "https://github.com/servo/rust-core-graphics"
-
-[dependencies.core_text]
-git = "https://github.com/servo/rust-core-text"
-
-[dependencies.cocoa]
-git = "https://github.com/servo/rust-cocoa"
-
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
 
-[dependencies.cgl]
-git = "https://github.com/servo/rust-cgl"
+[target.x86_64-apple-darwin.dependencies]
+cocoa = "*"
+core-foundation = "*"
+core-graphics = "*"
 
-[dependencies]
-log = "*"
-url = "*"
-libc = "*"
-objc = "0.1"
+[target.x86_64-apple-darwin.dependencies.core-text]
+git = "https://github.com/servo/core-text-rs"
+
+[target.x86_64-apple-darwin.dependencies.cgl]
+git = "https://github.com/servo/cgl-rs"
 
 [target.i686-unknown-linux-gnu.dependencies]
 x11 = "*"

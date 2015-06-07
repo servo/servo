@@ -47,21 +47,6 @@ git = "https://github.com/servo/rust-stb-image"
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
-[dependencies.fontconfig]
-git = "https://github.com/servo/rust-fontconfig"
-
-[dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
-
-[dependencies.core_foundation]
-git = "https://github.com/servo/rust-core-foundation"
-
-[dependencies.core_graphics]
-git = "https://github.com/servo/rust-core-graphics"
-
-[dependencies.core_text]
-git = "https://github.com/servo/rust-core-text"
-
 [dependencies.skia]
 git = "https://github.com/servo/skia"
 
@@ -80,3 +65,28 @@ rustc-serialize = "0.3"
 libc = "*"
 rand = "*"
 harfbuzz = "0.1"
+
+[target.x86_64-apple-darwin.dependencies]
+core-foundation = "*"
+core-graphics = "*"
+
+[target.i686-unknown-linux-gnu.dependencies.fontconfig]
+git = "https://github.com/servo/rust-fontconfig"
+
+[target.x86_64-unknown-linux-gnu.dependencies.fontconfig]
+git = "https://github.com/servo/rust-fontconfig"
+
+[target.arm-linux-androideabi.dependencies.fontconfig]
+git = "https://github.com/servo/rust-fontconfig"
+
+[target.i686-unknown-linux-gnu.dependencies.freetype]
+git = "https://github.com/servo/rust-freetype"
+
+[target.x86_64-unknown-linux-gnu.dependencies.freetype]
+git = "https://github.com/servo/rust-freetype"
+
+[target.arm-linux-androideabi.dependencies.freetype]
+git = "https://github.com/servo/rust-freetype"
+
+[target.x86_64-apple-darwin.dependencies.core-text]
+git = "https://github.com/servo/core-text-rs"

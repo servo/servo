@@ -11,6 +11,12 @@ path = "lib.rs"
 window = ["glutin/window"]
 headless = ["glutin/headless"]
 
+[dependencies]
+time = "0.1.12"
+bitflags = "*"
+libc = "*"
+url = "*"
+
 [dependencies.compositing]
 path = "../../components/compositing"
 
@@ -39,15 +45,14 @@ branch = "servo"
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
 
-[dependencies.cgl]
-git = "https://github.com/servo/rust-cgl"
-
-[dependencies.egl]
-git = "https://github.com/servo/rust-egl"
-
-[dependencies]
-time = "0.1.12"
-bitflags = "*"
-libc = "*"
-url = "*"
+[target.i686-unknown-linux-gnu.dependencies]
 x11 = "*"
+
+[target.x86_64-unknown-linux-gnu.dependencies]
+x11 = "*"
+
+[target.x86_64-apple-darwin.dependencies.cgl]
+git = "https://github.com/servo/cgl-rs"
+
+[target.arm-linux-androideabi.dependencies.egl]
+git = "https://github.com/servo/rust-egl"

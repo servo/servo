@@ -52,17 +52,11 @@ git = "https://github.com/servo/rust-layers"
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
-[dependencies.core_graphics]
-git = "https://github.com/servo/rust-core-graphics"
-
-[dependencies.core_text]
-git = "https://github.com/servo/rust-core-text"
-
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
 
 [dependencies.clipboard]
-git = "https://github.com/servo/rust-x11-clipboard"
+git = "https://github.com/aweinstock314/rust-clipboard"
 
 [dependencies]
 log = "*"
@@ -70,3 +64,9 @@ num = "0.1.24"
 url = "0.2.35"
 time = "0.1.17"
 libc = "*"
+
+[target.x86_64-apple-darwin.dependencies]
+core-graphics = "*"
+
+[target.x86_64-apple-darwin.dependencies.core-text]
+git = "https://github.com/servo/core-text-rs"
