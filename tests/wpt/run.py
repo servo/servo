@@ -40,7 +40,7 @@ def set_defaults(paths, kwargs):
 
     if kwargs["binary"] is None:
         bin_dir = "release" if kwargs["release"] else "debug"
-        bin_path = servo_path("components", "servo", "target", bin_dir, "servo")
+        bin_path = servo_path("target", bin_dir, "servo")
 
         kwargs["binary"] = bin_path
 

@@ -44,7 +44,7 @@ def PowerCollector(OutputDir, Benchmarks, LayoutThreads, Renderer):
                 power_dir, "power-Layout%d-set%d.csv" % (layoutT, ExpNum))
             TimeFiles = path.join(
                 time_dir, "time-Layout%d-set%d.csv" % (layoutT, ExpNum))
-            ServoCmd = "(time ../../components/servo/target/release/servo -x -y %d %s %s) 2> %s" % \
+            ServoCmd = "(time ../../target/release/servo -x -y %d %s %s) 2> %s" % \
                        (layoutT, Renderer, Benchmarks, TimeFiles)
             Metrics = path.join(
                 etc_dir, "metrics-Layout%d-set%d-css.csv" % (layoutT, ExpNum))
