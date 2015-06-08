@@ -806,7 +806,9 @@ fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<Transfor
                 result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
             }
             &TransformOperation::Perspective(..) => {
-                result.push(TransformOperation::Perspective(Au(0)));
+                // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
+                let identity = ComputedMatrix::identity();
+                result.push(TransformOperation::Matrix(identity));
             }
         }
     }
