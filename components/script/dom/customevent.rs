@@ -53,7 +53,7 @@ impl CustomEvent {
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<Root<CustomEvent>>{
-        Ok(CustomEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable, init.detail))
+        Ok(CustomEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable, HandleValue { ptr: &init.detail }))
     }
 }
 

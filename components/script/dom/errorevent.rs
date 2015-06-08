@@ -108,7 +108,8 @@ impl ErrorEvent {
         let event = ErrorEvent::new(global, type_,
                                 bubbles, cancelable,
                                 msg, file_name,
-                                line_num, col_num, init.error);
+                                line_num, col_num,
+                                HandleValue { ptr: &init.error });
         Ok(event)
     }
 

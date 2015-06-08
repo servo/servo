@@ -967,16 +967,30 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isAny():
         assert not isEnforceRange and not isClamp
 
-        declType = CGGeneric("HandleValue")
+        declType = ""
+        default = ""
+        if isMember == "Dictionary":
+            declType = CGGeneric("JSVal")
 
-        if defaultValue is None:
-            default = None
-        elif isinstance(defaultValue, IDLNullValue):
-            default = "HandleValue::null()"
-        elif isinstance(defaultValue, IDLUndefinedValue):
-            default = "HandleValue::undefined()"
+            if defaultValue is None:
+                default = None
+            elif isinstance(defaultValue, IDLNullValue):
+                default = "NullValue()"
+            elif isinstance(defaultValue, IDLUndefinedValue):
+                default = "UndefinedValue()"
+            else:
+                raise TypeError("Can't handle non-null, non-undefined default value here")
         else:
-            raise TypeError("Can't handle non-null, non-undefined default value here")
+            declType = CGGeneric("HandleValue")
+
+            if defaultValue is None:
+                default = None
+            elif isinstance(defaultValue, IDLNullValue):
+                default = "HandleValue::null()"
+            elif isinstance(defaultValue, IDLUndefinedValue):
+                default = "HandleValue::undefined()"
+            else:
+                raise TypeError("Can't handle non-null, non-undefined default value here")
 
         return handleOptional("${val}", declType, default)
 
@@ -4841,7 +4855,7 @@ class CGDictionary(CGThing):
         def memberInit(memberInfo):
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
-            conversion = self.getMemberConversion(memberInfo)
+            conversion = self.getMemberConversion(memberInfo, member.type)
             return CGGeneric("%s: %s,\n" % (name, conversion.define()))
 
         def memberInsert(memberInfo):
@@ -4905,7 +4919,7 @@ class CGDictionary(CGThing):
             declType = CGWrapper(info.declType, pre="Option<", post=">")
         return declType.define()
 
-    def getMemberConversion(self, memberInfo):
+    def getMemberConversion(self, memberInfo, memberType):
         def indent(s):
             return CGIndenter(CGGeneric(s), 8).define()
 
@@ -4915,6 +4929,8 @@ class CGDictionary(CGThing):
         declType = info.declType
         replacements = { "val": "rval.handle()" }
         conversion = string.Template(templateBody).substitute(replacements)
+        if memberType.isAny():
+            conversion = "%s.get()" % conversion
 
         assert (member.defaultValue is None) == (default is None)
         if not default:
