@@ -21,33 +21,28 @@ pub fn resources_dir_path() -> PathBuf {
         Some(ref path) => PathBuf::from(path),
         None => {
             // FIXME: Find a way to not rely on the executable being
-            // under `<servo source>/components/servo/target`
-            // or `<servo source>/components/servo/target/release`.
+            // under `<servo source>[/$target_triple]/target/debug`
+            // or `<servo source>[/$target_triple]/target/release`.
             let mut path = env::current_exe().ok().expect("can't get exe path");
             path.pop();
             path.push("resources");
             if !path.is_dir() {   // resources dir not in same dir as exe?
-                path.pop();
+                // exe is probably in target/{debug,release} so we need to go back to topdir
                 path.pop();
                 path.pop();
                 path.pop();
                 path.push("resources");
-                if !path.is_dir() {  // self_exe_path() is probably in .../target/release
+                if !path.is_dir() {
+                    // exe is probably in target/$target_triple/{debug,release} so go back one more
                     path.pop();
                     path.pop();
                     path.push("resources");
-                    if !path.is_dir() { // self_exe_path() is probably in .../target/release
-                        path.pop();
-                        path.pop();
-                        path.push("resources");
-                    }
                 }
             }
             path
         }
     }
 }
-
 
 pub fn read_resource_file(relative_path_components: &[&str]) -> io::Result<Vec<u8>> {
     let mut path = resources_dir_path();

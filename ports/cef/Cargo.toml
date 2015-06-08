@@ -12,7 +12,6 @@ crate-type = ["dylib"]
 log = "*"
 url = "*"
 libc = "*"
-objc = "0.1"
 
 [dependencies.servo]
 path = "../../components/servo"
@@ -72,6 +71,7 @@ git = "https://github.com/servo/rust-stb-image"
 git = "https://github.com/servo/gleam"
 
 [target.x86_64-apple-darwin.dependencies]
+objc = "0.1"
 cocoa = "*"
 core-foundation = "*"
 core-graphics = "*"

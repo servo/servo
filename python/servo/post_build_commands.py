@@ -137,8 +137,7 @@ class MachCommands(CommandBase):
         if not path.exists(path.join(self.config["tools"]["rust-root"], "doc")):
             Registrar.dispatch("bootstrap-rust-docs", context=self.context)
         rust_docs = path.join(self.config["tools"]["rust-root"], "doc")
-        docs = path.join(
-            self.context.topdir, "components", "servo", "target", "doc")
+        docs = path.join(self.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
 
@@ -167,4 +166,4 @@ class MachCommands(CommandBase):
         self.doc([])
         import webbrowser
         webbrowser.open("file://" + path.abspath(path.join(
-            self.servo_crate(), "target", "doc", "servo", "index.html")))
+            self.get_target_dir(), "doc", "servo", "index.html")))
