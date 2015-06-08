@@ -51,7 +51,7 @@ Run `./mach build-gonk` from the root directory
 
 ## Copy the files to the Flame
 
-To reduce the size of libmozjs.so (`ports/gonk/target/arm-linux-androideabi/build/mozjs-sys-*/out/libmozjs.so`),
+To reduce the size of libmozjs.so (`target/arm-linux-androideabi/build/mozjs-sys-*/out/libmozjs.so`),
 you can run `strip` on it. Use the one in your toolchain (`$ANDROID_TOOLCHAIN/bin/arm-linux-androideabi-strip libmozjs.so`).
 
 Make sure the device is on, connected to wifi, with high or no screen timeout.
@@ -64,7 +64,7 @@ adb remount
 adb push /path/to/stripped/mozjs.so system/lib
 
 # Copy b2s
-adb push ports/gonk/target/arm-linux-androideabi system/bin
+adb push target/arm-linux-androideabi system/bin
 
 # Copy resources
 adb shell mkdir sdcard/servo
