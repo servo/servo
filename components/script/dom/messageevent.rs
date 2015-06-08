@@ -71,7 +71,8 @@ impl MessageEvent {
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Root<MessageEvent>> {
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
-                                   init.data, init.origin.clone(), init.lastEventId.clone());
+                                   HandleValue { ptr: &init.data },
+                                   init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
 }
