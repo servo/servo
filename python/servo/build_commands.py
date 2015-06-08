@@ -147,7 +147,7 @@ class MachCommands(CommandBase):
         opts = params or []
         features = []
 
-        base_path = path.join("components", "servo", "target")
+        base_path = self.get_target_dir()
         release_path = path.join(base_path, "release", "servo")
         dev_path = path.join(base_path, "debug", "servo")
 
