@@ -27,8 +27,9 @@
         },
 
         testCallSimpleMethod: function() {
+          var label = document.getElementById("lb");
           for (var i=0; i<ITERATIONS; ++i) {
-             window.alert('');
+             label.blur();
           }
         },
 
@@ -50,9 +51,9 @@
         var res = document.getElementById("results");
         res.innerHTML = '';
         for (t in tests) {
-          var beginTime = Date.now();
+          var beginTime = performance.now();
           tests[t]();
-          var endTime = Date.now();
+          var endTime = performance.now();
           var diff = ((endTime - beginTime) / ITERATIONS * 1000000).toFixed(0);
           res.innerHTML = res.innerHTML  + t + ": " + diff + " ns<br>";
         }
