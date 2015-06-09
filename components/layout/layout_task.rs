@@ -312,7 +312,6 @@ impl LayoutTask {
         let reporter_name = format!("layout-reporter-{}", id.0);
         mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
 
-
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
         let (image_cache_sender, image_cache_receiver) = channel();
