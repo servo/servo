@@ -301,8 +301,25 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
-        self.drawtarget.fill_rect(rect, self.state.fill_style.to_pattern_ref(),
-                                  Some(&self.state.draw_options));
+        if self.need_to_draw_shadow() {
+            let source_rect = self.state.transform.transform_rect(rect);
+            let new_draw_target = self.create_draw_target_for_shadow(&source_rect);
+
+            new_draw_target.fill_rect(rect, self.state.fill_style.to_pattern_ref(),
+                                      Some(&self.state.draw_options));
+
+            self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
+                                                     &Point2D(source_rect.origin.x as AzFloat,
+                                                              source_rect.origin.y as AzFloat),
+                                                     &self.state.shadow_color,
+                                                     &Point2D(self.state.shadow_offset_x as AzFloat,
+                                                              self.state.shadow_offset_y as AzFloat),
+                                                     (self.state.shadow_blur / 2.0f64) as AzFloat,
+                                                     self.state.draw_options.composition);
+        } else {
+            self.drawtarget.fill_rect(rect, self.state.fill_style.to_pattern_ref(),
+                                      Some(&self.state.draw_options));
+        }
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
@@ -609,6 +626,24 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn set_shadow_color(&mut self, value: AzColor) {
         self.state.shadow_color = value;
+    }
+
+    fn need_to_draw_shadow(&self) -> bool {
+        self.state.shadow_color.a > 0.0f32 &&
+        self.state.shadow_offset_x != 0.0f64 ||
+        self.state.shadow_offset_y != 0.0f64 ||
+        self.state.shadow_blur != 0.0f64
+    }
+
+    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
+        let draw_target = self.drawtarget.create_similar_draw_target(&Size2D(source_rect.size.width as i32,
+                                                                             source_rect.size.height as i32),
+                                                                     self.drawtarget.get_format());
+        let matrix = Matrix2D::identity().translate(-source_rect.origin.x as AzFloat,
+                                                    -source_rect.origin.y as AzFloat)
+                                         .mul(&self.state.transform);
+        draw_target.set_transform(&matrix);
+        draw_target
     }
 }
 
