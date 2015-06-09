@@ -262,6 +262,7 @@ impl<'a> AttrHelpers<'a> for &'a Attr {
         *self.value.borrow_mut() = value;
 
         if namespace_is_null {
+            *self.presentational_hints.borrow_mut() = vtable_for(&node).presentational_hints(self);
             vtable_for(&node).after_set_attr(self)
         }
     }

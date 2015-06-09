@@ -37,6 +37,7 @@ use dom::event::Event;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::node::{Node, NodeHelpers, NodeTypeId, CloneChildrenFlag};
 
+use style::properties::PropertyDeclaration;
 use util::str::DOMString;
 
 use string_cache::Atom;
@@ -78,6 +79,14 @@ pub trait VirtualMethods {
         match self.super_type() {
             Some(ref s) => s.parse_plain_attribute(name, value),
             _ => AttrValue::String(value),
+        }
+    }
+
+    /// ...
+    fn presentational_hints(&self, attribute: JSRef<Attr>) -> Vec<PropertyDeclaration> {
+        match self.super_type() {
+            Some(ref s) => s.presentational_hints(attribute),
+            _ => Vec::new(),
         }
     }
 
