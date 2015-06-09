@@ -12,7 +12,7 @@ use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
 
-use collections::BTreeMap;
+use std::collections::BTreeMap;
 use msg::constellation_msg::PipelineId;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
