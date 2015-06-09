@@ -5,6 +5,7 @@
 #![feature(core)]
 #![feature(collections)]
 
+extern crate core;
 extern crate canvas_traits;
 extern crate azure;
 extern crate cssparser;
