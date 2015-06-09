@@ -11,14 +11,12 @@
 #![crate_type = "rlib"]
 
 #![feature(box_syntax, core)]
-#![feature(collections)]
 
 #![allow(non_snake_case)]
 
 #[macro_use]
 extern crate log;
 
-extern crate collections;
 extern crate core;
 extern crate devtools_traits;
 extern crate rustc_serialize;

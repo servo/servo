@@ -9,7 +9,6 @@
 
 #[macro_use] extern crate log;
 
-extern crate collections;
 extern crate libc;
 #[macro_use]
 extern crate profile_traits;

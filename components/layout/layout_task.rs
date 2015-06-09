@@ -861,7 +861,7 @@ impl LayoutTask {
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
-                    stacking_context.print(String::from_str("#"));
+                    stacking_context.print("#".to_owned());
                 }
 
                 rw_data.stacking_context = Some(stacking_context.clone());
