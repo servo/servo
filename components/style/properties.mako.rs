@@ -3131,17 +3131,24 @@ pub mod longhands {
         pub mod computed_value {
             use values::CSSFloat;
             use values::computed;
-            use values::specified;
 
             #[derive(Clone, Copy, Debug, PartialEq)]
             pub struct ComputedMatrix {
                 pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
                 pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
                 pub m31: CSSFloat, pub m32: CSSFloat, pub m33: CSSFloat, pub m34: CSSFloat,
-                pub m41: computed::LengthAndPercentage,
-                pub m42: computed::LengthAndPercentage,
-                pub m43: CSSFloat,
-                pub m44: CSSFloat,
+                pub m41: CSSFloat, pub m42: CSSFloat, pub m43: CSSFloat, pub m44: CSSFloat,
+            }
+
+            impl ComputedMatrix {
+                pub fn identity() -> ComputedMatrix {
+                    ComputedMatrix {
+                        m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
+                        m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
+                        m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
+                        m41: 0.0, m42: 0.0, m43: 0.0, m44: 1.0
+                    }
+                }
             }
 
             #[derive(Clone, Debug, PartialEq)]
@@ -3152,30 +3159,14 @@ pub mod longhands {
                           computed::LengthAndPercentage,
                           computed::Length),
                 Scale(CSSFloat, CSSFloat, CSSFloat),
-                Rotate(CSSFloat, CSSFloat, CSSFloat, specified::Angle),
+                Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
                 Perspective(computed::Length),
             }
 
             pub type T = Option<Vec<ComputedOperation>>;
         }
 
-        #[derive(Clone, Debug, PartialEq)]
-        pub struct SpecifiedMatrix {
-            m11: CSSFloat, m12: CSSFloat, m13: CSSFloat, m14: CSSFloat,
-            m21: CSSFloat, m22: CSSFloat, m23: CSSFloat, m24: CSSFloat,
-            m31: CSSFloat, m32: CSSFloat, m33: CSSFloat, m34: CSSFloat,
-            m41: specified::LengthAndPercentage,
-            m42: specified::LengthAndPercentage,
-            m43: specified::Length,
-            m44: CSSFloat,
-        }
-
-        impl ToCss for SpecifiedMatrix {
-            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
-                // TODO(pcwalton)
-                Ok(())
-            }
-        }
+        pub use self::computed_value::ComputedMatrix as SpecifiedMatrix;
 
         fn parse_two_lengths_or_percentages(input: &mut Parser)
                                             -> Result<(specified::LengthAndPercentage,
@@ -3259,19 +3250,12 @@ pub mod longhands {
                             if values.len() != 6 {
                                 return Err(())
                             }
-                            let (tx, ty, tz) =
-                                (specified::Length::Absolute(Au::from_f32_px(values[4])),
-                                 specified::Length::Absolute(Au::from_f32_px(values[5])),
-                                 specified::Length::Absolute(Au(0)));
-                            let (tx, ty) =
-                                (specified::LengthAndPercentage::from_length(tx),
-                                 specified::LengthAndPercentage::from_length(ty));
                             result.push(SpecifiedOperation::Matrix(
                                     SpecifiedMatrix {
                                         m11: values[0], m12: values[1], m13: 0.0, m14: 0.0,
                                         m21: values[2], m22: values[3], m23: 0.0, m24: 0.0,
                                         m31:       0.0, m32:       0.0, m33: 1.0, m34: 0.0,
-                                        m41:        tx, m42:        ty, m43:  tz, m44: 1.0
+                                        m41: values[4], m42: values[5], m43: 0.0, m44: 1.0
                                     }));
                             Ok(())
                         }))
@@ -3284,19 +3268,12 @@ pub mod longhands {
                             if values.len() != 16 {
                                 return Err(())
                             }
-                            let (tx, ty, tz) =
-                                (specified::Length::Absolute(Au::from_f32_px(values[12])),
-                                 specified::Length::Absolute(Au::from_f32_px(values[13])),
-                                 specified::Length::Absolute(Au::from_f32_px(values[14])));
-                            let (tx, ty) =
-                                (specified::LengthAndPercentage::from_length(tx),
-                                 specified::LengthAndPercentage::from_length(ty));
                             result.push(SpecifiedOperation::Matrix(
                                     SpecifiedMatrix {
                                         m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
                                         m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
                                         m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                                        m41:         tx, m42:         ty, m43:         tz, m44: values[15]
+                                        m41: values[12], m42: values[13], m43: values[14], m44: values[15]
                                     }));
                             Ok(())
                         }))
@@ -3490,21 +3467,12 @@ pub mod longhands {
                 for operation in self.0.iter() {
                     match *operation {
                         SpecifiedOperation::Matrix(ref matrix) => {
-                            let m = computed_value::ComputedMatrix {
-                                m11: matrix.m11, m12: matrix.m12, m13: matrix.m13, m14: matrix.m14,
-                                m21: matrix.m21, m22: matrix.m22, m23: matrix.m23, m24: matrix.m24,
-                                m31: matrix.m31, m32: matrix.m32, m33: matrix.m33, m34: matrix.m34,
-                                m41: matrix.m41.to_computed_value(context),
-                                m42: matrix.m42.to_computed_value(context),
-                                m43: matrix.m43.to_computed_value(context).to_f32_px(),
-                                m44: matrix.m44
-                            };
-                            result.push(computed_value::ComputedOperation::Matrix(m));
+                            result.push(computed_value::ComputedOperation::Matrix(*matrix));
                         }
                         SpecifiedOperation::Translate(ref tx, ref ty, ref tz) => {
                             result.push(computed_value::ComputedOperation::Translate(tx.to_computed_value(context),
-                                                                                    ty.to_computed_value(context),
-                                                                                    tz.to_computed_value(context)));
+                                                                                     ty.to_computed_value(context),
+                                                                                     tz.to_computed_value(context)));
                         }
                         SpecifiedOperation::Scale(sx, sy, sz) => {
                             result.push(computed_value::ComputedOperation::Scale(sx, sy, sz));
@@ -4023,6 +3991,7 @@ pub mod longhands {
                 TextIndent,
                 TextShadow,
                 Top,
+                Transform,
                 VerticalAlign,
                 Visibility,
                 Width,
@@ -4030,7 +3999,7 @@ pub mod longhands {
                 ZIndex,
             }
 
-            pub static ALL_TRANSITION_PROPERTIES: [TransitionProperty; 44] = [
+            pub static ALL_TRANSITION_PROPERTIES: [TransitionProperty; 45] = [
                 TransitionProperty::BackgroundColor,
                 TransitionProperty::BackgroundPosition,
                 TransitionProperty::BorderBottomColor,
@@ -4070,6 +4039,7 @@ pub mod longhands {
                 TransitionProperty::TextIndent,
                 TransitionProperty::TextShadow,
                 TransitionProperty::Top,
+                TransitionProperty::Transform,
                 TransitionProperty::VerticalAlign,
                 TransitionProperty::Visibility,
                 TransitionProperty::Width,
@@ -4120,6 +4090,7 @@ pub mod longhands {
                         TransitionProperty::TextIndent => dest.write_str("text-indent"),
                         TransitionProperty::TextShadow => dest.write_str("text-shadow"),
                         TransitionProperty::Top => dest.write_str("top"),
+                        TransitionProperty::Transform => dest.write_str("transform"),
                         TransitionProperty::VerticalAlign => dest.write_str("vertical-align"),
                         TransitionProperty::Visibility => dest.write_str("visibility"),
                         TransitionProperty::Width => dest.write_str("width"),
@@ -4196,6 +4167,7 @@ pub mod longhands {
                 "text-indent" => Ok(TransitionProperty::TextIndent),
                 "text-shadow" => Ok(TransitionProperty::TextShadow),
                 "top" => Ok(TransitionProperty::Top),
+                "transform" => Ok(TransitionProperty::Transform),
                 "vertical-align" => Ok(TransitionProperty::VerticalAlign),
                 "visibility" => Ok(TransitionProperty::Visibility),
                 "width" => Ok(TransitionProperty::Width),

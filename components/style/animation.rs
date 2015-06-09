@@ -17,7 +17,11 @@ use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::transition_property;
-use values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, LengthOrPercentage, Length, Time};
+use properties::longhands::transform::computed_value::ComputedMatrix;
+use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
+use properties::longhands::transform::computed_value::T as TransformList;
+use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use values::computed::{LengthAndPercentage, LengthOrPercentage, Length, Time};
 use values::CSSFloat;
 use cssparser::{RGBA, Color};
 
@@ -91,6 +95,10 @@ impl PropertyAnimation {
                         TransitionProperty::TextShadow => {
                             AnimatedProperty::TextShadow(old_style.get_effects().text_shadow.clone(),
                                                          new_style.get_effects().text_shadow.clone())
+                        }
+                        TransitionProperty::Transform => {
+                            AnimatedProperty::Transform(old_style.get_effects().transform.clone(),
+                                                        new_style.get_effects().transform.clone())
                         }
                     }
                 }
@@ -220,6 +228,7 @@ impl PropertyAnimation {
             [TextIndent; mutate_inheritedtext; text_indent],
             [TextShadow; mutate_effects; text_shadow],
             [Top; mutate_positionoffsets; top],
+            [Transform; mutate_effects; transform],
             [VerticalAlign; mutate_box; vertical_align],
             [Visibility; mutate_inheritedbox; visibility],
             [Width; mutate_box; width],
@@ -274,6 +283,7 @@ enum AnimatedProperty {
     TextIndent(LengthOrPercentage, LengthOrPercentage),
     TextShadow(TextShadowList, TextShadowList),
     Top(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    Transform(TransformList, TransformList),
     VerticalAlign(VerticalAlign, VerticalAlign),
     Visibility(Visibility, Visibility),
     Width(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
@@ -329,6 +339,7 @@ impl AnimatedProperty {
             AnimatedProperty::Visibility(ref a, ref b) => a == b,
             AnimatedProperty::WordSpacing(ref a, ref b) => a == b,
             AnimatedProperty::ZIndex(ref a, ref b) => a == b,
+            AnimatedProperty::Transform(ref a, ref b) => a == b,
         }
     }
 }
@@ -492,6 +503,17 @@ impl Interpolate for LengthOrPercentage {
             }
             (_, _) => None,
         }
+    }
+}
+
+impl Interpolate for LengthAndPercentage {
+    #[inline]
+    fn interpolate(&self, other: &LengthAndPercentage, time: f32)
+                   -> Option<LengthAndPercentage> {
+        Some(LengthAndPercentage {
+            length: self.length.interpolate(&other.length, time).unwrap(),
+            percentage: self.percentage.interpolate(&other.percentage, time).unwrap(),
+        })
     }
 }
 
@@ -667,6 +689,159 @@ impl Interpolate for TextShadowList {
             Ordering::Less => other.0.iter().chain(repeat(&zero)).zip(other.0.iter()).map(interpolate_each).collect(),
             _ => self.0.iter().zip(other.0.iter().chain(repeat(&zero))).map(interpolate_each).collect(),
         }))
+    }
+}
+
+/// Check if it's possible to do a direct numerical interpolation
+/// between these two transform lists.
+/// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
+fn can_interpolate_list(from_list: &Vec<TransformOperation>,
+                        to_list: &Vec<TransformOperation>) -> bool {
+    // Lists must be equal length
+    if from_list.len() != to_list.len() {
+        return false;
+    }
+
+    // Each transform operation must match primitive type in other list
+    for (from, to) in from_list.iter().zip(to_list.iter()) {
+        match (from, to) {
+            (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
+            (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
+            (&TransformOperation::Translate(..), &TransformOperation::Translate(..)) |
+            (&TransformOperation::Scale(..), &TransformOperation::Scale(..)) |
+            (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
+            (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => {}
+            _ => {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+/// Interpolate two transform lists.
+/// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+fn interpolate_transform_list(from_list: &Vec<TransformOperation>,
+                              to_list: &Vec<TransformOperation>,
+                              time: f32) -> TransformList {
+    let mut result = vec!();
+
+    if can_interpolate_list(from_list, to_list) {
+        for (from, to) in from_list.iter().zip(to_list.iter()) {
+            match (from, to) {
+                (&TransformOperation::Matrix(from),
+                 &TransformOperation::Matrix(_to)) => {
+                    // TODO(gw): Implement matrix decomposition and interpolation
+                    result.push(TransformOperation::Matrix(from));
+                }
+                (&TransformOperation::Skew(fx, fy),
+                 &TransformOperation::Skew(tx, ty)) => {
+                    let ix = fx.interpolate(&tx, time).unwrap();
+                    let iy = fy.interpolate(&ty, time).unwrap();
+                    result.push(TransformOperation::Skew(ix, iy));
+                }
+                (&TransformOperation::Translate(fx, fy, fz),
+                 &TransformOperation::Translate(tx, ty, tz)) => {
+                    let ix = fx.interpolate(&tx, time).unwrap();
+                    let iy = fy.interpolate(&ty, time).unwrap();
+                    let iz = fz.interpolate(&tz, time).unwrap();
+                    result.push(TransformOperation::Translate(ix, iy, iz));
+                }
+                (&TransformOperation::Scale(fx, fy, fz),
+                 &TransformOperation::Scale(tx, ty, tz)) => {
+                    let ix = fx.interpolate(&tx, time).unwrap();
+                    let iy = fy.interpolate(&ty, time).unwrap();
+                    let iz = fz.interpolate(&tz, time).unwrap();
+                    result.push(TransformOperation::Scale(ix, iy, iz));
+                }
+                (&TransformOperation::Rotate(fx, fy, fz, fa),
+                 &TransformOperation::Rotate(_tx, _ty, _tz, _ta)) => {
+                    // TODO(gw): Implement matrix decomposition and interpolation
+                    result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                }
+                (&TransformOperation::Perspective(fd),
+                 &TransformOperation::Perspective(_td)) => {
+                    // TODO(gw): Implement matrix decomposition and interpolation
+                    result.push(TransformOperation::Perspective(fd));
+                }
+                _ => {
+                    // This should be unreachable due to the can_interpolate_list() call.
+                    unreachable!();
+                }
+            }
+        }
+    } else {
+        // TODO(gw): Implement matrix decomposition and interpolation
+        result.push_all(from_list);
+    }
+
+    Some(result)
+}
+
+/// Build an equivalent 'identity transform function list' based
+/// on an existing transform list.
+/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<TransformOperation> {
+    let mut result = vec!();
+
+    for operation in list {
+        match operation {
+            &TransformOperation::Matrix(..) => {
+                let identity = ComputedMatrix::identity();
+                result.push(TransformOperation::Matrix(identity));
+            }
+            &TransformOperation::Skew(..) => {
+                result.push(TransformOperation::Skew(0.0, 0.0));
+            }
+            &TransformOperation::Translate(..) => {
+                result.push(TransformOperation::Translate(LengthAndPercentage::zero(),
+                                                          LengthAndPercentage::zero(),
+                                                          Au(0)));
+            }
+            &TransformOperation::Scale(..) => {
+                result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
+            }
+            &TransformOperation::Rotate(..) => {
+                result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
+            }
+            &TransformOperation::Perspective(..) => {
+                // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
+                let identity = ComputedMatrix::identity();
+                result.push(TransformOperation::Matrix(identity));
+            }
+        }
+    }
+
+    result
+}
+
+impl Interpolate for TransformList {
+    #[inline]
+    fn interpolate(&self, other: &TransformList, time: f32) -> Option<TransformList> {
+        // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+        let result = match (self, other) {
+            (&Some(ref from_list), &Some(ref to_list)) => {
+                // Two lists of transforms
+                interpolate_transform_list(from_list, &to_list, time)
+            }
+            (&Some(ref from_list), &None) => {
+                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                let to_list = build_identity_transform_list(from_list);
+                interpolate_transform_list(from_list, &to_list, time)
+            }
+            (&None, &Some(ref to_list)) => {
+                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                let from_list = build_identity_transform_list(to_list);
+                interpolate_transform_list(&from_list, to_list, time)
+            }
+            (&None, &None) => {
+                // http://dev.w3.org/csswg/css-transforms/#none-none-animation
+                None
+            }
+        };
+
+        Some(result)
     }
 }
 
