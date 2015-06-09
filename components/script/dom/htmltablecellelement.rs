@@ -20,14 +20,25 @@ use string_cache::Atom;
 
 use std::cell::Cell;
 use std::cmp::max;
+use std::intrinsics;
 
 const DEFAULT_COLSPAN: u32 = 1;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[jstraceable]
 pub enum HTMLTableCellElementTypeId {
     HTMLTableDataCellElement,
     HTMLTableHeaderCellElement,
+}
+
+impl PartialEq for HTMLTableCellElementTypeId {
+    #[inline]
+    #[allow(unsafe_code)]
+    fn eq(&self, other: &HTMLTableCellElementTypeId) -> bool {
+        unsafe {
+            intrinsics::discriminant_value(self) == intrinsics::discriminant_value(other)
+        }
+    }
 }
 
 #[dom_struct]
@@ -143,3 +154,4 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         }
     }
 }
+

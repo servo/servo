@@ -9,6 +9,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
+use std::intrinsics;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -42,10 +43,20 @@ impl HTMLMediaElement {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[jstraceable]
 pub enum HTMLMediaElementTypeId {
     HTMLAudioElement,
     HTMLVideoElement,
+}
+
+impl PartialEq for HTMLMediaElementTypeId {
+    #[inline]
+    #[allow(unsafe_code)]
+    fn eq(&self, other: &HTMLMediaElementTypeId) -> bool {
+        unsafe {
+            intrinsics::discriminant_value(self) == intrinsics::discriminant_value(other)
+        }
+    }
 }
 
