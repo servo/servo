@@ -26,7 +26,7 @@ use text::TextRun;
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
 
-use collections::linked_list::{self, LinkedList};
+use std::collections::linked_list::{self, LinkedList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use geom::approxeq::ApproxEq;
 use geom::num::Zero;
@@ -297,7 +297,7 @@ impl StackingContext {
 
             if opts::get().dump_display_list_optimized {
                 println!("**** optimized display list. Tile bounds: {:?}", tile_bounds);
-                display_list.print_items(String::from_str("*"));
+                display_list.print_items("*".to_owned());
             }
 
             // Sort positioned children according to z-index.
@@ -560,7 +560,7 @@ impl StackingContext {
     pub fn print(&self, mut indentation: String) {
         // We cover the case of an empty string.
         if indentation.len() == 0 {
-            indentation = String::from_str("####");
+            indentation = "####".to_owned();
         }
 
         // We grow the indentation by 4 characters if needed.
