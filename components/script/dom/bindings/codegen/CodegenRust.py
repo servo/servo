@@ -2309,15 +2309,19 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
 assert!(((*JS_GetClass(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
-let proto_or_iface_array = get_proto_or_iface_array(global.get());
-rval.set((*proto_or_iface_array)[%s as usize]);
-if !rval.get().is_null() {
+let proto_or_iface_array = RootedObject::new(cx, get_proto_or_iface_array(global.get()));
+let proto_or_iface_array = JSArray::from_obj(cx, proto_or_iface_array.handle()).unwrap();
+
+let mut proto = RootedValue::new(cx, UndefinedValue());
+proto_or_iface_array.get(%s as u32, proto.handle_mut());
+if proto.ptr.is_object() {
+    rval.set(proto.ptr.to_object());
     return;
 }
 
 CreateInterfaceObjects(cx, global, receiver, rval);
 assert!(!rval.get().is_null());
-(*proto_or_iface_array)[%s as usize] = rval.get();
+proto_or_iface_array.set_object(%s as u32, rval.handle());
 """ % (self.id, self.id))
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
@@ -4469,12 +4473,7 @@ let this: *const %s = native_from_reflector::<%s>(obj);
         assert(False)
 
 def finalizeHook(descriptor, hookName, context):
-    release = ""
-    if descriptor.isGlobal():
-        release += """\
-finalize_global(obj);
-"""
-    release += """\
+    release = """\
 let _ = Box::from_raw(this as *mut %s);
 debug!("%s finalize: {:p}", this);\
 """ % (descriptor.concreteType, descriptor.concreteType)
@@ -4488,13 +4487,10 @@ class CGClassTraceHook(CGAbstractClassHook):
         args = [Argument('*mut JSTracer', 'trc'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, TRACE_HOOK_NAME, 'void',
                                      args)
-        self.traceGlobal = descriptor.isGlobal()
 
     def generate_code(self):
         body = [CGGeneric("if this.is_null() { return; } // GC during obj creation\n"
                           "(*this).trace(%s);" % self.args[0].name)]
-        if self.traceGlobal:
-            body += [CGGeneric("trace_global(trc, obj);")]
         return CGList(body, "\n")
 
 class CGClassConstructHook(CGAbstractExternMethod):
@@ -5104,8 +5100,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{find_enum_string_index, get_array_index_from_id}',
-            'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
-            'dom::bindings::utils::{finalize_global, trace_global}',
+            'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array, JSArray}',
             'dom::bindings::utils::has_property_on_prototype',
             'dom::bindings::utils::is_platform_object',
             'dom::bindings::utils::{Reflectable}',

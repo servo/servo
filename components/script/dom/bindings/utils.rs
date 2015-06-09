@@ -21,6 +21,7 @@ use libc::c_uint;
 use std::boxed;
 use std::ffi::CString;
 use std::ptr;
+use std::mem;
 use std::cmp::PartialEq;
 use std::default::Default;
 use js::glue::UnwrapObject;
@@ -34,6 +35,8 @@ use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty, JS_SetProperty};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty, JS_DefineProperty1};
 use js::jsapi::{JS_GetReservedSlot, JS_SetReservedSlot};
+use js::jsapi::{JS_GetElement, JS_SetElement, JS_SetElement1};
+use js::jsapi::{JS_IsArrayObject1, JS_NewArrayObject1};
 use js::jsapi::{JSContext, JSObject, JSClass, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
@@ -47,7 +50,7 @@ use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::DOMCallbacks;
 use js::jsval::JSVal;
-use js::jsval::{PrivateValue, NullValue};
+use js::jsval::{ObjectValue, PrivateValue, NullValue};
 use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue};
 use js::rust::ToString;
 use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
@@ -163,10 +166,10 @@ unsafe impl Sync for DOMJSClass {}
 
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
-pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
+pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut JSObject {
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as *mut ProtoOrIfaceArray
+        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_object()
     }
 }
 
@@ -331,20 +334,68 @@ pub unsafe extern fn throwing_constructor(cx: *mut JSContext, _argc: c_uint,
     return 0;
 }
 
-/// An array of *mut JSObject of size PrototypeList::ID::Count
-pub type ProtoOrIfaceArray = [*mut JSObject; PrototypeList::ID::Count as usize];
+/// JSArray wraps a Handle to an Array object and provides an easy
+/// way to set and get elements on the Array.
+pub struct JSArray {
+    handle: HandleObject,
+    cx: *mut JSContext,
+}
+
+impl JSArray {
+    /// Create a new JS Array object
+    ///
+    /// This returns a *mut JSObject which must be rooted first.
+    /// After rooting, pass a handle to JSArray::from_obj to use
+    /// JSArray.
+    pub fn new(cx: *mut JSContext, len: usize) -> *mut JSObject {
+        unsafe {
+            JS_NewArrayObject1(cx, len as ::libc::size_t)
+        }
+    }
+    /// Start treating a handle as a Array object.
+    pub fn from_obj(cx: *mut JSContext, handle: HandleObject) -> Option<JSArray> {
+        unsafe {
+            if JS_IsArrayObject1(cx, handle) == 0 {
+                return None;
+            }
+        }
+        Some(JSArray {
+            handle: handle,
+            cx: cx,
+        })
+    }
+
+    /// Set an array element at a given index to the given value.
+    pub fn set(&self, idx: u32, obj: HandleValue) {
+        unsafe {
+            assert!(JS_SetElement(self.cx, self.handle, idx, obj) != 0);
+        }
+    }
+
+    /// Set an array element at a given index to the given object.
+    pub fn set_object(&self, idx: u32, obj: HandleObject) {
+        unsafe {
+            assert!(JS_SetElement1(self.cx, self.handle, idx, obj) != 0);
+        }
+    }
+
+    /// Get the value of an array element at a given index.
+    pub fn get(&self, idx: u32, rval: MutableHandleValue) {
+        unsafe {
+            assert!(JS_GetElement(self.cx, self.handle, idx, rval) != 0);
+        }
+    }
+}
 
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
-pub fn initialize_global(global: *mut JSObject) {
-    let proto_array: Box<ProtoOrIfaceArray> = box ()
-        ([0 as *mut JSObject; PrototypeList::ID::Count as usize]);
+pub fn initialize_global(cx: *mut JSContext, global: *mut JSObject) {
+    let proto_array = JSArray::new(cx, PrototypeList::ID::Count as usize);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        let box_ = boxed::into_raw(proto_array);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
-                           PrivateValue(box_ as *const libc::c_void));
+                           ObjectValue(&*proto_array));
     }
 }
 
@@ -596,25 +647,9 @@ pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass,
         }
         let _ac = JSAutoCompartment::new(cx, obj.ptr);
         JS_InitStandardClasses(cx, obj.handle());
-        initialize_global(obj.ptr);
+        initialize_global(cx, obj.ptr);
         JS_FireOnNewGlobalObject(cx, obj.handle());
         obj.ptr
-    }
-}
-
-/// Drop the resources held by reserved slots of a global object
-pub unsafe fn finalize_global(obj: *mut JSObject) {
-    let _: Box<ProtoOrIfaceArray> =
-        Box::from_raw(get_proto_or_iface_array(obj));
-}
-
-/// Trace the resources held by reserved slots of a global object
-pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
-    let array = get_proto_or_iface_array(obj);
-    for &proto in (*array).iter() {
-        if !proto.is_null() {
-            trace_object(tracer, "prototype", proto);
-        }
     }
 }
 
