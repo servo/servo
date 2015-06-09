@@ -23,11 +23,18 @@ use std::cmp::max;
 
 const DEFAULT_COLSPAN: u32 = 1;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[jstraceable]
 pub enum HTMLTableCellElementTypeId {
-    HTMLTableDataCellElement,
-    HTMLTableHeaderCellElement,
+    HTMLTableDataCellElement = 0,
+    HTMLTableHeaderCellElement = 1,
+}
+
+impl PartialEq for HTMLTableCellElementTypeId {
+    #[inline]
+    fn eq(&self, other: &HTMLTableCellElementTypeId) -> bool {
+        (*self as u8) == (*other as u8)
+    }
 }
 
 #[dom_struct]
@@ -143,3 +150,4 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         }
     }
 }
+
