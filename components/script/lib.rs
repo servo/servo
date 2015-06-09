@@ -25,7 +25,6 @@ extern crate log;
 extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;
-extern crate collections;
 extern crate geom;
 extern crate html5ever;
 extern crate encoding;
