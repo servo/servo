@@ -10,7 +10,6 @@
 #![feature(plugin)]
 #![feature(std_misc)]
 #![feature(str_char)]
-#![feature(thread_local)]
 #![feature(unsafe_no_drop_flag)]
 
 #![deny(unsafe_code)]
@@ -40,7 +39,6 @@ extern crate alloc;
 extern crate azure;
 extern crate canvas_traits;
 extern crate clock_ticks;
-extern crate collections;
 extern crate cssparser;
 extern crate encoding;
 extern crate geom;
