@@ -1302,6 +1302,8 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
+    # TODO: Return the value through a MutableHandleValue outparam
+    # https://github.com/servo/servo/issues/6307
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
@@ -2708,12 +2710,13 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                         FakeCastableDescriptor(self.descriptor),
                         "obj.handle()", self.unwrapFailureCode, "object"))
         unwrapThis = CGGeneric(
-            "let thisobj = JS_ComputeThis(cx, vp);\n"
-            "if !thisobj.is_null_or_undefined() && !thisobj.is_object() {\n"
+            "let args = CallArgs::from_vp(vp, argc);\n"
+            "let thisobj = args.thisv();\n"
+            "if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {\n"
             "    return JSFalse;\n"
             "}\n"
-            "let obj = if thisobj.is_object() {\n"
-            "    RootedObject::new(cx, thisobj.to_object())\n"
+            "let obj = if thisobj.get().is_object() {\n"
+            "    RootedObject::new(cx, thisobj.get().to_object())\n"
             "} else {\n"
             "    RootedObject::new(cx, GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null()))\n"
             "};\n"
@@ -5039,7 +5042,7 @@ class CGBindingRoot(CGThing):
         # Add imports
         curr = CGImports(curr, descriptors + callbackDescriptors, mainCallbacks, [
             'js',
-            'js::{JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
+            'js::JS_CALLEE',
             'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IMPLEMENTS_BARRIERS}',
             'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
             'js::{JSCLASS_RESERVED_SLOTS_MASK}',
