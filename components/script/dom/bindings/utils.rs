@@ -23,6 +23,7 @@ use std::ffi::CString;
 use std::ptr;
 use std::cmp::PartialEq;
 use std::default::Default;
+use std::cell::UnsafeCell;
 use js::glue::UnwrapObject;
 use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction, JSTraceOp};
@@ -42,7 +43,7 @@ use js::jsapi::{JS_FireOnNewGlobalObject, JSVersion};
 use js::jsapi::JS_DeletePropertyById1;
 use js::jsapi::JS_ObjectToOuterObject;
 use js::jsapi::JS_NewObjectWithUniqueType;
-use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, MutableHandleObject, Heap};
+use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, MutableHandleObject};
 use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::DOMCallbacks;
@@ -375,13 +376,13 @@ pub fn reflect_dom_object<T: Reflectable>
 #[servo_lang = "reflector"]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
-    object: Heap<*mut JSObject>,
+    object: UnsafeCell<*mut JSObject>,
 }
 
 #[allow(unrooted_must_root)]
 impl PartialEq for Reflector {
     fn eq(&self, other: &Reflector) -> bool {
-        self.object.get() == other.object.get()
+        unsafe { *self.object.get() == *other.object.get() }
     }
 }
 
@@ -389,27 +390,30 @@ impl Reflector {
     /// Get the reflector.
     #[inline]
     pub fn get_jsobject(&self) -> HandleObject {
-        self.object.handle()
+        HandleObject { ptr: self.object.get() }
     }
 
     /// Initialize the reflector. (May be called only once.)
     pub fn set_jsobject(&mut self, object: *mut JSObject) {
-        assert!(self.object.get().is_null());
-        assert!(!object.is_null());
-        self.object.set(object);
+        unsafe {
+            let obj = self.object.get();
+            assert!((*obj).is_null());
+            assert!(!object.is_null());
+            *obj = object;
+        }
     }
 
     /// Return a pointer to the memory location at which the JS reflector
     /// object is stored. Used to root the reflector, as
     /// required by the JSAPI rooting APIs.
-    pub fn rootable(&self) -> &Heap<*mut JSObject> {
-        &self.object
+    pub fn rootable(&self) -> *mut *mut JSObject {
+        self.object.get()
     }
 
     /// Create an uninitialized `Reflector`.
     pub fn new() -> Reflector {
         Reflector {
-            object: Heap::default()
+            object: UnsafeCell::new(ptr::null_mut())
         }
     }
 }

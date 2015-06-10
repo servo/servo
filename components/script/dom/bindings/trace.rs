@@ -45,6 +45,7 @@ use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
 use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
+use js::jsapi::JS_CallUnbarrieredObjectTracer;
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use layout_interface::{LayoutRPC, LayoutChan};
@@ -110,7 +111,15 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 /// Trace the `JSObject` held by `reflector`.
 #[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
-    trace_object(tracer, description, reflector.rootable())
+    unsafe {
+        let name = CString::new(description).unwrap();
+        (*tracer).debugPrinter_ = None;
+        (*tracer).debugPrintIndex_ = !0;
+        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
+        debug!("tracing reflector {}", description);
+        JS_CallUnbarrieredObjectTracer(tracer, reflector.rootable(),
+                                       GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
+    }
 }
 
 /// Trace a `JSObject`.
