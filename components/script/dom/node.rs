@@ -53,7 +53,7 @@ use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
 use util::namespace;
-use util::str::{DOMString, null_str_as_empty};
+use util::str::DOMString;
 use selectors::parser::{Selector, AttrSelector, NamespaceConstraint};
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::matching::matches;
@@ -2078,7 +2078,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn SetTextContent(self, value: Option<DOMString>) {
-        let value = null_str_as_empty(&value);
+        let value = value.unwrap_or(String::new());
         match self.type_id {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
