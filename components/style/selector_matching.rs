@@ -10,8 +10,8 @@ use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::parser::PseudoElement;
 use selectors::tree::TNode;
 use std::process;
+use smallvec::VecLike;
 use util::resource_files::read_resource_file;
-use util::smallvec::VecLike;
 
 use legacy::PresentationalHintSynthesis;
 use media_queries::Device;

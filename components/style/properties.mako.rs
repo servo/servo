@@ -12,12 +12,12 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use util::fnv::FnvHasher;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use util::geometry::Au;
 use url::Url;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss};
+use fnv::FnvHasher;
 use geom::SideOffsets2D;
 use geom::size::Size2D;
 
@@ -5932,4 +5932,3 @@ fn compute_font_hash(font: &mut style_structs::Font) {
     font.font_family.hash(&mut hasher);
     font.hash = hasher.finish()
 }
-

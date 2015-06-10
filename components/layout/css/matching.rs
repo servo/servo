@@ -12,6 +12,7 @@ use css::node_style::StyledNode;
 use data::{LayoutDataAccess, LayoutDataWrapper};
 use incremental::{self, RestyleDamage};
 use opaque_node::OpaqueNodeMethods;
+use smallvec::SmallVec16;
 use wrapper::{LayoutElement, LayoutNode, TLayoutNode};
 
 use script::dom::characterdata::CharacterDataTypeId;
@@ -34,7 +35,6 @@ use style::selector_matching::{Stylist, DeclarationBlock};
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
-use util::smallvec::SmallVec16;
 use util::vec::ForgetfulSink;
 
 pub struct ApplicableDeclarations {

@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use geom::{Point2D, Rect, Size2D};
+use smallvec::SmallVec8;
 use std::borrow::ToOwned;
 use std::mem;
 use std::slice;
 use std::rc::Rc;
 use std::cell::RefCell;
 use util::cache::HashCache;
-use util::smallvec::SmallVec8;
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
 use std::sync::Arc;
