@@ -100,7 +100,8 @@ impl ToJSValConvertible for () {
 }
 
 impl ToJSValConvertible for JSVal {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+        rval.set(*self);
         if unsafe { JS_WrapValue(cx, rval) } == 0 {
             panic!("JS_WrapValue failed.");
         }
@@ -108,7 +109,8 @@ impl ToJSValConvertible for JSVal {
 }
 
 impl ToJSValConvertible for HandleValue {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+        rval.set(self.get());
         if unsafe { JS_WrapValue(cx, rval) } == 0 {
             panic!("JS_WrapValue failed.");
         }
