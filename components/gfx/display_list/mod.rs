@@ -245,7 +245,7 @@ pub struct StackingContext {
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Matrix4<AzFloat>,
+    pub transform: Matrix4,
 }
 
 impl StackingContext {
@@ -255,7 +255,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               transform: &Matrix4<AzFloat>,
+               transform: &Matrix4,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
                layer: Option<Arc<PaintLayer>>)
@@ -276,7 +276,7 @@ impl StackingContext {
     pub fn optimize_and_draw_into_context(&self,
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
-                                          transform: &Matrix4<AzFloat>,
+                                          transform: &Matrix4,
                                           clip_rect: Option<&Rect<Au>>) {
         let transform = transform.mul(&self.transform);
         let temporary_draw_target =
