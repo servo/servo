@@ -52,6 +52,7 @@ use devtools_traits::NodeInfo;
 use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
+use util::namespace;
 use util::str::{DOMString, null_str_as_empty};
 use selectors::parser::{Selector, AttrSelector, NamespaceConstraint};
 use selectors::parser::parse_author_origin_selector_list_from_str;
@@ -2470,8 +2471,10 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // https://dom.spec.whatwg.org/#dom-node-lookupprefix
     fn LookupPrefix(self, namespace: Option<DOMString>) -> Option<DOMString> {
+        let namespace = namespace::from_domstring(namespace);
+
         // Step 1.
-        if null_str_as_empty(&namespace).is_empty() {
+        if namespace == ns!("") {
             return None;
         }
 
