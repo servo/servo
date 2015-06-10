@@ -34,7 +34,6 @@ use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
 use std::fmt;
-use std::str::FromStr;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
@@ -720,13 +719,10 @@ pub struct TableColumnFragmentInfo {
 impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
     pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
-        let span = {
-            let element = node.as_element();
-            element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
-                let n: Option<u32> = FromStr::from_str(string).ok();
-                n
-            }).unwrap_or(0)
-        };
+        let element = node.as_element();
+        let span = element.get_attr(&ns!(""), &atom!("span"))
+                          .and_then(|string| string.parse().ok())
+                          .unwrap_or(0);
         TableColumnFragmentInfo {
             span: span,
         }
