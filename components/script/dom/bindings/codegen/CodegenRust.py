@@ -177,14 +177,15 @@ class CGMethodCall(CGThing):
                 requiredArgs -= 1
             return requiredArgs
 
-        def getPerSignatureCall(signature, argConversionStartsAt=0, signatureIndex=0):
+
+        signatures = method.signatures()
+        def getPerSignatureCall(signature, argConversionStartsAt=0):
+            signatureIndex = signatures.index(signature)
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       nativeMethodName + '_'*signatureIndex,
                                       static, descriptor,
                                       method, argConversionStartsAt)
 
-
-        signatures = method.signatures()
         if len(signatures) == 1:
             # Special case: we can just do a per-signature method call
             # here for our one signature and not worry about switching
@@ -215,12 +216,7 @@ class CGMethodCall(CGThing):
             if len(possibleSignatures) == 1:
                 # easy case!
                 signature = possibleSignatures[0]
-
-
-                sigIndex = signatures.index(signature)
-                argCountCases.append(
-                    CGCase(str(argCount), getPerSignatureCall(signature,
-                                                              signatureIndex=sigIndex)))
+                argCountCases.append(CGCase(str(argCount), getPerSignatureCall(signature)))
                 continue
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
@@ -249,15 +245,12 @@ class CGMethodCall(CGThing):
                 sigs = filter(filterLambda, possibleSignatures)
                 assert len(sigs) < 2
                 if len(sigs) > 0:
+                    call = getPerSignatureCall(sigs[0], distinguishingIndex)
                     if condition is None:
-                        caseBody.append(
-                            getPerSignatureCall(sigs[0], distinguishingIndex,
-                                                possibleSignatures.index(sigs[0])))
+                        caseBody.append(call)
                     else:
                         caseBody.append(CGGeneric("if " + condition + " {"))
-                        caseBody.append(CGIndenter(
-                                getPerSignatureCall(sigs[0], distinguishingIndex,
-                                                    possibleSignatures.index(sigs[0]))))
+                        caseBody.append(CGIndenter(call))
                         caseBody.append(CGGeneric("}"))
                     return True
                 return False
@@ -318,7 +311,7 @@ class CGMethodCall(CGThing):
                     # distinguishingIndex + 1, since we already converted
                     # distinguishingIndex.
                     caseBody.append(CGIndenter(
-                            getPerSignatureCall(sig, distinguishingIndex + 1, idx), 4))
+                            getPerSignatureCall(sig, distinguishingIndex + 1), 4))
                     caseBody.append(CGIndenter(CGGeneric("}")))
 
                 caseBody.append(CGGeneric("}"))
