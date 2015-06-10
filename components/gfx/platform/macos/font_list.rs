@@ -23,19 +23,15 @@ pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
 pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F: FnMut(String) {
     debug!("Looking for faces of family: {}", family_name);
 
-    let family_collection =
-        core_text::font_collection::create_for_family(family_name);
-    match family_collection {
-        Some(family_collection) => {
-            let family_descriptors = family_collection.get_descriptors();
-            for descref in family_descriptors.iter() {
-                let descref: CTFontDescriptorRef = unsafe { mem::transmute(descref) };
-                let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
-                let postscript_name = desc.font_name();
-                callback(postscript_name);
-            }
+    let family_collection = core_text::font_collection::create_for_family(family_name);
+    if let Some(family_collection) = family_collection {
+        let family_descriptors = family_collection.get_descriptors();
+        for descref in family_descriptors.iter() {
+            let descref: CTFontDescriptorRef = unsafe { mem::transmute(descref) };
+            let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
+            let postscript_name = desc.font_name();
+            callback(postscript_name);
         }
-        None => {}
     }
 }
 

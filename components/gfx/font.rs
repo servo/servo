@@ -140,9 +140,8 @@ impl Font {
             text: text.to_owned(),
             options: options.clone(),
         };
-        match self.shape_cache.find(&lookup_key) {
-            None => {}
-            Some(glyphs) => return glyphs.clone(),
+        if let Some(glyphs) = self.shape_cache.find(&lookup_key) {
+            return glyphs.clone();
         }
 
         let mut glyphs = GlyphStore::new(text.chars().count(),
@@ -159,12 +158,9 @@ impl Font {
 
     fn make_shaper<'a>(&'a mut self, options: &ShapingOptions) -> &'a Shaper {
         // fast path: already created a shaper
-        match self.shaper {
-            Some(ref mut shaper) => {
-                shaper.set_options(options);
-                return shaper
-            },
-            None => {}
+        if let Some(ref mut shaper) = self.shaper {
+            shaper.set_options(options);
+            return shaper
         }
 
         let shaper = Shaper::new(self, options);
