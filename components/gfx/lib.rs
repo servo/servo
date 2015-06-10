@@ -18,6 +18,7 @@ extern crate log;
 
 extern crate azure;
 #[macro_use] extern crate bitflags;
+extern crate fnv;
 extern crate geom;
 extern crate layers;
 extern crate libc;
@@ -32,6 +33,7 @@ extern crate net_traits;
 extern crate util;
 extern crate msg;
 extern crate rand;
+extern crate smallvec;
 extern crate string_cache;
 extern crate style;
 extern crate skia;

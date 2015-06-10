@@ -60,6 +60,7 @@ use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutDat
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
+use smallvec::VecLike;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use util::str::is_whitespace;
 use std::borrow::ToOwned;
@@ -75,7 +76,6 @@ use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::UnsignedIntegerAttribute;
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use util::smallvec::VecLike;
 use url::Url;
 
 /// Allows some convenience methods on generic layout nodes.
