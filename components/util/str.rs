@@ -19,22 +19,6 @@ pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 
-pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
-    // We don't use map_default because it would allocate "".to_owned() even
-    // for Some.
-    match *s {
-        Some(ref s) => s.clone(),
-        None => "".to_owned()
-    }
-}
-
-pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
-    match *s {
-        Some(ref s) => s,
-        None => ""
-    }
-}
-
 /// Whitespace as defined by HTML5 § 2.4.1.
 // TODO(SimonSapin) Maybe a custom Pattern can be more efficient?
 const WHITESPACE: &'static [char] = &[' ', '\t', '\x0a', '\x0c', '\x0d'];
