@@ -90,7 +90,7 @@ pub struct Line {
     ///
     /// The ranges that describe these lines would be:
     ///
-    /// | [0, 2)   | [2, 3)      | [3, 4)      | [4, 5)   |
+    /// | [0, 2)   | [2, 3)      | [3, 5)      | [5, 6)   |
     /// |----------|-------------|-------------|----------|
     /// | 'I like' | 'truffles,' | '<img> yes' | 'I do.'  |
     pub range: Range<FragmentIndex>,
