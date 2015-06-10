@@ -10,6 +10,7 @@ use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
 use canvas_traits::CanvasMsg;
 use msg::compositor_msg::LayerId;
+use fnv::FnvHasher;
 use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
@@ -27,7 +28,6 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
-use util::fnv::FnvHasher;
 use util::geometry::Au;
 use util::opts;
 

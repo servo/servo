@@ -15,7 +15,9 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate bitflags;
 
+extern crate fnv;
 extern crate geom;
+extern crate smallvec;
 extern crate url;
 
 #[macro_use]

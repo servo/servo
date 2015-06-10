@@ -12,8 +12,8 @@ use selectors::matching::DeclarationBlock;
 use node::TElementAttributes;
 use properties::PropertyDeclaration;
 use selector_matching::Stylist;
+use smallvec::VecLike;
 
-use util::smallvec::VecLike;
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
 #[derive(Copy, Clone, PartialEq, Eq)]

@@ -40,7 +40,7 @@ use util::linked_list::prepend_from;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::mem::HeapSizeOf;
 use util::range::Range;
-use util::smallvec::SmallVec8;
+use smallvec::SmallVec8;
 use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -1135,5 +1135,3 @@ impl fmt::Debug for DisplayItem {
         )
     }
 }
-
-

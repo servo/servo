@@ -13,6 +13,7 @@ use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, Immutab
 use flow::{InorderFlowTraversal};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
+use smallvec::SmallVec8;
 use text::TextRunScanner;
 
 use gfx::display_list::OpaqueNode;
@@ -21,7 +22,6 @@ use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
 use style::properties::ComputedValues;
-use util::smallvec::SmallVec8;
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
 static DECIMAL: [char; 10] = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ];
@@ -556,4 +556,3 @@ fn push_numeric_representation(mut value: i32, system: &[char], accumulator: &mu
     // Step 3.
     accumulator.extend(string.iter().cloned().rev())
 }
-

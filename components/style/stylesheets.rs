@@ -18,7 +18,7 @@ use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use font_face::{FontFaceRule, parse_font_face_block};
-use util::smallvec::SmallVec2;
+use smallvec::SmallVec2;
 use viewport::ViewportRule;
 
 

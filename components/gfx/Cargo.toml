@@ -58,6 +58,7 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies]
 log = "*"
+fnv = "1.0"
 url = "0.2.35"
 time = "0.1.12"
 bitflags = "*"
@@ -65,6 +66,7 @@ rustc-serialize = "0.3"
 libc = "*"
 rand = "*"
 harfbuzz = "0.1"
+smallvec = "0.1"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "*"
