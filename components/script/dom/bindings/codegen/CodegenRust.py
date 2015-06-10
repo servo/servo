@@ -1426,7 +1426,7 @@ class MethodDefiner(PropertyDefiner):
 
         def specData(m):
             if "selfHostedName" in m:
-                selfHostedName = 'b"%s" as *const u8 as *const i8' % m["selfHostedName"]
+                selfHostedName = '%s as *const u8 as *const i8' % str_to_const_array(m["selfHostedName"])
                 assert not m.get("methodInfo", True)
                 accessor = "None"
                 jitinfo = "0 as *const JSJitInfo"
@@ -2983,7 +2983,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in forwardToAttrName)
         return CGGeneric("""\
 let mut v = RootedValue::new(cx, UndefinedValue());
-if JS_GetProperty(cx, obj, b"%s".as_ptr() as *const i8, v.handle_mut()) == 0 {
+if JS_GetProperty(cx, obj, %s as *const u8 as *const i8, v.handle_mut()) == 0 {
     return JSFalse;
 }
 if !v.ptr.is_object() {
@@ -2991,8 +2991,8 @@ if !v.ptr.is_object() {
     return JSFalse;
 }
 let target_obj = RootedObject::new(cx, v.ptr.to_object());
-JS_SetProperty(cx, target_obj.handle(), b"%s".as_ptr() as *const i8, args.get(0))
-""" % (attrName, attrName, forwardToAttrName))
+JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const i8, args.get(0))
+""" % (str_to_const_array(attrName), attrName, str_to_const_array(forwardToAttrName)))
 
 class CGMemberJITInfo(CGThing):
     """
@@ -4442,7 +4442,7 @@ class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, "className", "*const i8", args)
         self.descriptor = descriptor
     def getBody(self):
-        return 'b"%s" as *const u8 as *const i8' % self.descriptor.name
+        return '%s as *const u8 as *const i8' % str_to_const_array(self.descriptor.name)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
