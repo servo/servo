@@ -16,6 +16,7 @@ use platform::font_template::FontTemplateData;
 use smallvec::SmallVec8;
 use util::cache::HashCache;
 use util::geometry::Au;
+use util::mem::HeapSizeOf;
 
 use std::borrow::{self, ToOwned};
 use std::cell::RefCell;
@@ -282,6 +283,13 @@ impl FontContext {
     /// Returns a reference to the font cache task.
     pub fn font_cache_task(&self) -> FontCacheTask {
         self.font_cache_task.clone()
+    }
+}
+
+impl HeapSizeOf for FontContext {
+    fn heap_size_of_children(&self) -> usize {
+        // FIXME(njn): Measure other fields eventually.
+        self.platform_handle.heap_size_of_children()
     }
 }
 
