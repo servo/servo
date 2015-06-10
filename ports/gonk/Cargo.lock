@@ -363,7 +363,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#1b49f8ce1c4e8ade720dd940d1964c657a96817f"
+source = "git+https://github.com/servo/rust-geom#270d0246b79fbf86fc2938c4952cae74e4025fcf"
 dependencies = [
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -550,7 +550,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#ca37ca2949c46f91e37f28fa31ad6c1e8036f2d0"
+source = "git+https://github.com/servo/rust-layers#36d02af1bf0d37894fdb77ab3c1860a6e7b554ae"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
