@@ -622,7 +622,7 @@ impl WorkerThread {
                          stacking_context.overflow.origin.y.to_f32_px()));
 
             // Apply the translation to paint the tile we want.
-            let matrix: Matrix4 = identity();
+            let matrix: Matrix4<AzFloat> = identity();
             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
                                           -tile_bounds.origin.y as AzFloat,

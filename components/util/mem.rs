@@ -193,7 +193,7 @@ known_heap_size!(0, u8, u16, u32, u64, usize);
 known_heap_size!(0, i8, i16, i32, i64, isize);
 known_heap_size!(0, bool, f32, f64);
 
-known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>);
+known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>, Matrix4<T>);
 
-known_heap_size!(0, Au, Color, Cursor, Matrix4);
+known_heap_size!(0, Au, Color, Cursor);
 known_heap_size!(0, Range<T>);

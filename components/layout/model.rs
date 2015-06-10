@@ -426,11 +426,11 @@ pub fn padding_from_style(style: &ComputedValues, containing_block_inline_size: 
 }
 
 pub trait ToGfxMatrix {
-    fn to_gfx_matrix(&self) -> Matrix4;
+    fn to_gfx_matrix(&self) -> Matrix4<f32>;
 }
 
 impl ToGfxMatrix for ComputedMatrix {
-    fn to_gfx_matrix(&self) -> Matrix4 {
+    fn to_gfx_matrix(&self) -> Matrix4<f32> {
         Matrix4 {
             m11: self.m11 as f32, m12: self.m12 as f32, m13: self.m13 as f32, m14: self.m14 as f32,
             m21: self.m21 as f32, m22: self.m22 as f32, m23: self.m23 as f32, m24: self.m24 as f32,
