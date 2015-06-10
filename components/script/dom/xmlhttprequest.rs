@@ -56,7 +56,6 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
 use std::default::Default;
-use std::str::FromStr;
 use std::sync::{Mutex, Arc};
 use std::sync::mpsc::{channel, Sender, TryRecvError};
 use std::thread::sleep_ms;
@@ -634,7 +633,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
     fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
-            name.eq_ignore_case(&FromStr::from_str(h.name()).unwrap())
+            name.eq_ignore_case(&h.name().parse().unwrap())
         }).map(|h| {
             ByteString::new(h.value_string().into_bytes())
         })
