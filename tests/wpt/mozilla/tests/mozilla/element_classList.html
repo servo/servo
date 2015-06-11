@@ -6,10 +6,10 @@
         <script src="/resources/testharnessreport.js"></script>
         <script>
           test(function() {
-            let div = document.createElement("div");
+            var div = document.createElement("div");
             div.className = "foo bar";
 
-            let classList = div.classList;
+            var classList = div.classList;
             div.className = "";
 
             assert_equals(classList.item(0), null, "classList.item(0) must return null when all classes have been removed");
