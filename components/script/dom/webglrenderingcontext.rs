@@ -13,6 +13,9 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::htmlcanvaselement::{HTMLCanvasElement};
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
+use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
+use dom::webglrenderbuffer::{WebGLRenderbuffer, WebGLRenderbufferHelpers};
+use dom::webgltexture::{WebGLTexture, WebGLTextureHelpers};
 use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
 use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
 use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelpers};
@@ -128,6 +131,13 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
         })
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
+    fn GetExtension(self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
+        // TODO(ecoal95) we actually do not support extensions.
+        // `getSupportedExtensions` cannot be implemented as of right now (see #544)
+        0 as *mut JSObject
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn AttachShader(self, program: Option<JSRef<WebGLProgram>>, shader: Option<JSRef<WebGLShader>>) {
         let program_id = match program {
@@ -142,12 +152,31 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BindBuffer(self, buffer_type: u32, buffer: Option<JSRef<WebGLBuffer>>) {
-        let buffer_id = match buffer {
-            Some(buffer) => buffer.get_id(),
-            None => return,
-        };
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id))).unwrap()
+    fn BindBuffer(self, target: u32, buffer: Option<JSRef<WebGLBuffer>>) {
+        let id = buffer.map(|buf| buf.get_id()).unwrap_or(0);
+        self.renderer.send(
+            CanvasMsg::WebGL(CanvasWebGLMsg::BindBuffer(target, id))).unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    fn BindFramebuffer(self, target: u32, framebuffer: Option<JSRef<WebGLFramebuffer>>) {
+        let id = framebuffer.map(|fb| fb.get_id()).unwrap_or(0);
+        self.renderer.send(
+            CanvasMsg::WebGL(CanvasWebGLMsg::BindFramebuffer(target, id))).unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    fn BindRenderbuffer(self, target: u32, renderbuffer: Option<JSRef<WebGLRenderbuffer>>) {
+        let id = renderbuffer.map(|rb| rb.get_id()).unwrap_or(0);
+        self.renderer.send(
+            CanvasMsg::WebGL(CanvasWebGLMsg::BindRenderbuffer(target, id))).unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn BindTexture(self, target: u32, texture: Option<JSRef<WebGLTexture>>) {
+        let id = texture.map(|tex| tex.get_id()).unwrap_or(0);
+        self.renderer.send(
+            CanvasMsg::WebGL(CanvasWebGLMsg::BindTexture(target, id))).unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -191,25 +220,98 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CompileShader(shader_id))).unwrap()
     }
 
+    // TODO(ecoal95): Probably in the future we should keep track of the
+    // generated objects, either here or in the webgl task
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(self) -> Option<Temporary<WebGLBuffer>> {
-        let (sender, receiver) = channel::<u32>();
+        let (sender, receiver) = channel();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateBuffer(sender))).unwrap();
-        Some(WebGLBuffer::new(self.global.root().r(), receiver.recv().unwrap()))
+        receiver.recv().unwrap()
+            .map(|buffer_id| WebGLBuffer::new(self.global.root().r(), *buffer_id))
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    fn CreateFramebuffer(self) -> Option<Temporary<WebGLFramebuffer>> {
+        let (sender, receiver) = channel();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateFramebuffer(sender))).unwrap();
+        receiver.recv().unwrap()
+            .map(|fb_id| WebGLFramebuffer::new(self.global.root().r(), *fb_id))
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    fn CreateRenderbuffer(self) -> Option<Temporary<WebGLRenderbuffer>> {
+        let (sender, receiver) = channel();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateRenderbuffer(sender))).unwrap();
+        receiver.recv().unwrap()
+            .map(|program_id| WebGLRenderbuffer::new(self.global.root().r(), *program_id))
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn CreateTexture(self) -> Option<Temporary<WebGLTexture>> {
+        let (sender, receiver) = channel();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateTexture(sender))).unwrap();
+        receiver.recv().unwrap()
+            .map(|texture_id| WebGLTexture::new(self.global.root().r(), *texture_id))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateProgram(self) -> Option<Temporary<WebGLProgram>> {
-        let (sender, receiver) = channel::<u32>();
+        let (sender, receiver) = channel();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateProgram(sender))).unwrap();
-        Some(WebGLProgram::new(self.global.root().r(), receiver.recv().unwrap()))
+        receiver.recv().unwrap()
+            .map(|program_id| WebGLProgram::new(self.global.root().r(), *program_id))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    // TODO(ecoal95): Check if constants are cross-platform or if we must make a translation
+    // between WebGL constants and native ones.
     fn CreateShader(self, shader_type: u32) -> Option<Temporary<WebGLShader>> {
-        let (sender, receiver) = channel::<u32>();
+        let (sender, receiver) = channel();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateShader(shader_type, sender))).unwrap();
-        Some(WebGLShader::new(self.global.root().r(), receiver.recv().unwrap()))
+        receiver.recv().unwrap()
+            .map(|shader_id| WebGLShader::new(self.global.root().r(), *shader_id))
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn DeleteBuffer(self, buffer: Option<JSRef<WebGLBuffer>>) {
+        if let Some(buffer) = buffer {
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteBuffer(buffer.get_id()))).unwrap();
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    fn DeleteFramebuffer(self, framebuffer: Option<JSRef<WebGLFramebuffer>>) {
+        if let Some(framebuffer) = framebuffer {
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteFramebuffer(framebuffer.get_id()))).unwrap();
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    fn DeleteRenderbuffer(self, renderbuffer: Option<JSRef<WebGLRenderbuffer>>) {
+        if let Some(renderbuffer) = renderbuffer {
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteRenderbuffer(renderbuffer.get_id()))).unwrap();
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn DeleteTexture(self, texture: Option<JSRef<WebGLTexture>>) {
+        if let Some(texture) = texture {
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteTexture(texture.get_id()))).unwrap();
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn DeleteProgram(self, program: Option<JSRef<WebGLProgram>>) {
+        if let Some(program) = program {
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteProgram(program.get_id()))).unwrap();
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn DeleteShader(self, shader: Option<JSRef<WebGLShader>>) {
+        if let Some(shader) = shader {
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(shader.get_id()))).unwrap();
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
@@ -228,69 +330,62 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
             Some(program) => program.get_id(),
             None => return -1,
         };
-        let (sender, receiver) = channel::<i32>();
+        let (sender, receiver) = channel();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(program_id, name, sender))).unwrap();
         receiver.recv().unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderInfoLog(self, shader: Option<JSRef<WebGLShader>>) -> Option<DOMString> {
-        let shader_id = match shader {
-            Some(shader) => shader.get_id(),
-            None => return None,
-        };
-        let (sender, receiver) = channel::<String>();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderInfoLog(shader_id, sender))).unwrap();
-        let info = receiver.recv().unwrap();
-        Some(info)
+        if let Some(shader) = shader {
+            let (sender, receiver) = channel();
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderInfoLog(shader.get_id(), sender))).unwrap();
+            Some(receiver.recv().unwrap())
+        } else {
+            None
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderParameter(self, _: *mut JSContext, shader: Option<JSRef<WebGLShader>>, param_id: u32) -> JSVal {
-        let shader_id = match shader {
-            Some(shader) => shader.get_id(),
-            None => return NullValue(),
-        };
-        let (sender, receiver) = channel::<i32>();
-        let msg = CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, sender));
-        self.renderer.send(msg).unwrap();
-        Int32Value(receiver.recv().unwrap())
+        if let Some(shader) = shader {
+            let (sender, receiver) = channel();
+            self.renderer.send(
+                CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(shader.get_id(), param_id, sender))).unwrap();
+            Int32Value(receiver.recv().unwrap())
+        } else {
+            NullValue()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetUniformLocation(self,
                           program: Option<JSRef<WebGLProgram>>,
                           name: DOMString) -> Option<Temporary<WebGLUniformLocation>> {
-        let program_id = match program {
-            Some(program) => program.get_id(),
-            None => return None,
-        };
-        let (sender, receiver) = channel::<u32>();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(program_id, name, sender))).unwrap();
-        Some(WebGLUniformLocation::new(self.global.root().r(), receiver.recv().unwrap()))
+        if let Some(program) = program {
+            let (sender, receiver) = channel();
+            self.renderer.send(
+                CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(program.get_id(), name, sender))).unwrap();
+            receiver.recv().unwrap()
+                .map(|location| WebGLUniformLocation::new(self.global.root().r(), location))
+        } else {
+            None
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn LinkProgram(self, program: Option<JSRef<WebGLProgram>>) {
-        let program_id = match program {
-            Some(program) => program.get_id(),
-            None => return,
-        };
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::LinkProgram(program_id))).unwrap()
+        if let Some(program) = program {
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::LinkProgram(program.get_id()))).unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn ShaderSource(self, shader: Option<JSRef<WebGLShader>>, source: DOMString) {
-        let shader_id = match shader {
-            Some(shader) => shader.get_id(),
-            None => return,
-        };
-        let source_lines: Vec<String> = source.trim()
-                                              .split(|c: char| c == '\n')
-                                              .map(|line: &str| String::from_str(line) + "\n")
-                                              .collect();
-        let msg = CanvasMsg::WebGL(CanvasWebGLMsg::ShaderSource(shader_id, source_lines));
-        self.renderer.send(msg).unwrap()
+        if let Some(shader) = shader {
+            self.renderer.send(
+                CanvasMsg::WebGL(CanvasWebGLMsg::ShaderSource(shader.get_id(), source))).unwrap();
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -303,10 +398,12 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
             Some(uniform) => uniform.get_id(),
             None => return,
         };
+
         let data = match data {
             Some(data) => data,
             None => return,
         };
+
         let data_vec: Vec<f32>;
         unsafe {
             let data_f32 = JS_GetFloat32ArrayData(data, cx);

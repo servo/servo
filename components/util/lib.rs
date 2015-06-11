@@ -24,7 +24,6 @@ extern crate azure;
 extern crate alloc;
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate cssparser;
-extern crate fnv as fnv_;
 extern crate geom;
 extern crate getopts;
 extern crate layers;
@@ -34,14 +33,11 @@ extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;
-extern crate smallvec as smallvec_;
+extern crate smallvec;
 extern crate string_cache;
 extern crate url;
 
 use std::sync::Arc;
-
-pub use fnv_ as fnv;
-pub use smallvec_ as smallvec;
 
 pub mod bezier;
 pub mod cache;

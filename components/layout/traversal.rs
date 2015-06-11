@@ -154,7 +154,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 
             // Check to see whether we can share a style with someone.
             let style_sharing_candidate_cache =
-                self.layout_context.style_sharing_candidate_cache();
+                &mut self.layout_context.style_sharing_candidate_cache();
             let sharing_result = unsafe {
                 node.share_style_if_possible(style_sharing_candidate_cache,
                                              parent_opt.clone())
@@ -181,7 +181,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                         node.cascade_node(self.layout_context.shared,
                                           parent_opt,
                                           &applicable_declarations,
-                                          self.layout_context.applicable_declarations_cache(),
+                                          &mut self.layout_context.applicable_declarations_cache(),
                                           &self.layout_context.shared.new_animations_sender);
                     }
 

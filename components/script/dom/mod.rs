@@ -165,7 +165,7 @@
 //!
 //! * adding the new IDL file at `components/script/dom/webidls/Foo.webidl`;
 //! * creating `components/script/dom/foo.rs`;
-//! * listing `foo.rs` in components/script/dom/mod.rs`;
+//! * listing `foo.rs` in `components/script/dom/mod.rs`;
 //! * defining the DOM struct `Foo` with a `#[dom_struct]` attribute, a
 //!   superclass or `Reflector` member, and other members as appropriate;
 //! * implementing the
@@ -332,6 +332,9 @@ pub mod webglprogram;
 pub mod webglrenderingcontext;
 pub mod webglshader;
 pub mod webgluniformlocation;
+pub mod webgltexture;
+pub mod webglframebuffer;
+pub mod webglrenderbuffer;
 pub mod websocket;
 pub mod window;
 pub mod worker;
@@ -343,3 +346,4 @@ pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
 
 pub mod testbinding;
+pub mod testbindingproxy;

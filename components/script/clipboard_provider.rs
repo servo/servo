@@ -5,7 +5,7 @@
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 
-use collections::borrow::ToOwned;
+use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 
 pub trait ClipboardProvider {

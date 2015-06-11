@@ -19,9 +19,9 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
 use js::jsapi::{JSContext, JSObject};
-use util::fnv::FnvHasher;
 use util::str::DOMString;
 
+use fnv::FnvHasher;
 use libc::{c_char, size_t};
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry::{Occupied, Vacant};

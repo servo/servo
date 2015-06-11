@@ -12,7 +12,7 @@ use js::jsapi::{JSContext, JSObject};
 use js::jsfriendapi::bindgen::{JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData};
 use libc::uint8_t;
 use std::vec::Vec;
-use collections::slice;
+use std::slice;
 use std::ptr;
 
 #[dom_struct]

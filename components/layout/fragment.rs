@@ -856,7 +856,7 @@ impl Fragment {
                 self.border_box.size,
                 SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(
                         "…".to_owned()))));
-        let ellipsis_fragments = TextRunScanner::new().scan_for_runs(layout_context.font_context(),
+        let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
         ellipsis_fragments.fragments.into_iter().next().unwrap()
@@ -1005,7 +1005,7 @@ impl Fragment {
 
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
         let font_style = self.style.get_font_arc();
-        let font_metrics = text::font_metrics_for_style(layout_context.font_context(), font_style);
+        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(), font_style);
         text::line_height_from_style(&*self.style, &font_metrics)
     }
 
@@ -1819,7 +1819,7 @@ impl Fragment {
                 // See CSS 2.1 § 10.8.1.
                 let block_flow = info.flow_ref.as_immutable_block();
                 let font_style = self.style.get_font_arc();
-                let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
+                let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
                                                                 font_style);
                 InlineMetrics::from_block_height(&font_metrics,
                                                  block_flow.base.position.size.block,

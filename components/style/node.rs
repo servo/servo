@@ -7,7 +7,7 @@
 
 use legacy::UnsignedIntegerAttribute;
 use properties::PropertyDeclaration;
-use util::smallvec::VecLike;
+use smallvec::VecLike;
 
 use selectors::matching::DeclarationBlock;
 pub use selectors::tree::{TNode, TElement};

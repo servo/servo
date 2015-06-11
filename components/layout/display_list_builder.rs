@@ -1163,16 +1163,13 @@ impl FragmentDisplayListBuilding for Fragment {
                 let matrix = match operation {
                     &transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
                         let theta = f32::consts::PI_2 - theta.radians();
-                        let transform = Matrix4::create_rotation(ax, ay, az, theta);
-                        pre_transform.mul(&transform).mul(&post_transform)
+                        Matrix4::create_rotation(ax, ay, az, theta)
                     }
                     &transform::ComputedOperation::Perspective(d) => {
-                        let transform = Matrix4::create_perspective(d.to_f32_px());
-                        pre_transform.mul(&transform).mul(&post_transform)
+                        Matrix4::create_perspective(d.to_f32_px())
                     }
                     &transform::ComputedOperation::Scale(sx, sy, sz) => {
-                        let transform = Matrix4::create_scale(sx, sy, sz);
-                        pre_transform.mul(&transform).mul(&post_transform)
+                        Matrix4::create_scale(sx, sy, sz)
                     }
                     &transform::ComputedOperation::Translate(tx, ty, tz) => {
                         let tx = tx.to_au(border_box.size.width).to_f32_px();
@@ -1181,17 +1178,17 @@ impl FragmentDisplayListBuilding for Fragment {
                         Matrix4::create_translation(tx, ty, tz)
                     }
                     &transform::ComputedOperation::Matrix(m) => {
-                        let transform = m.to_gfx_matrix(&border_box.size);
-                        pre_transform.mul(&transform).mul(&post_transform)
+                        m.to_gfx_matrix()
                     }
                     &transform::ComputedOperation::Skew(sx, sy) => {
-                        let transform = Matrix4::create_skew(sx, sy);
-                        pre_transform.mul(&transform).mul(&post_transform)
+                        Matrix4::create_skew(sx, sy)
                     }
                 };
 
                 transform = transform.mul(&matrix);
             }
+
+            transform = pre_transform.mul(&transform).mul(&post_transform);
         }
 
         // FIXME(pcwalton): Is this vertical-writing-direction-safe?

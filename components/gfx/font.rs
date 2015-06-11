@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use geom::{Point2D, Rect, Size2D};
+use smallvec::SmallVec8;
 use std::borrow::ToOwned;
 use std::mem;
 use std::slice;
 use std::rc::Rc;
 use std::cell::RefCell;
 use util::cache::HashCache;
-use util::smallvec::SmallVec8;
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
 use std::sync::Arc;
@@ -140,9 +140,8 @@ impl Font {
             text: text.to_owned(),
             options: options.clone(),
         };
-        match self.shape_cache.find(&lookup_key) {
-            None => {}
-            Some(glyphs) => return glyphs.clone(),
+        if let Some(glyphs) = self.shape_cache.find(&lookup_key) {
+            return glyphs.clone();
         }
 
         let mut glyphs = GlyphStore::new(text.chars().count(),
@@ -159,12 +158,9 @@ impl Font {
 
     fn make_shaper<'a>(&'a mut self, options: &ShapingOptions) -> &'a Shaper {
         // fast path: already created a shaper
-        match self.shaper {
-            Some(ref mut shaper) => {
-                shaper.set_options(options);
-                return shaper
-            },
-            None => {}
+        if let Some(ref mut shaper) = self.shaper {
+            shaper.set_options(options);
+            return shaper
         }
 
         let shaper = Shaper::new(self, options);
