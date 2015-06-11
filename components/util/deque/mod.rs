@@ -45,8 +45,7 @@
 // NB: the "buffer pool" strategy is not done for speed, but rather for
 //     correctness. For more info, see the comment on `swap_buffer`
 
-// FIXME: all atomic operations in this module use a SeqCst ordering. That is
-//      probably overkill
+// FIXME: more than likely, more atomic operations than necessary use SeqCst
 
 pub use self::Stolen::{Empty, Abort, Data};
 
@@ -58,7 +57,7 @@ use std::ptr;
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicIsize, AtomicPtr};
-use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 
 // Once the queue is less than 1/K full, then it will be downsized. Note that
 // the deque requires that this number be less than 2.
@@ -240,8 +239,8 @@ impl<T: Send + 'static> Deque<T> {
     }
 
     unsafe fn push(&self, data: T) {
-        let mut b = self.bottom.load(SeqCst);
-        let t = self.top.load(SeqCst);
+        let mut b = self.bottom.load(Relaxed);
+        let t = self.top.load(Relaxed);
         let mut a = self.array.load(SeqCst);
         let size = b - t;
         if size >= (*a).size() - 1 {
@@ -256,11 +255,11 @@ impl<T: Send + 'static> Deque<T> {
     }
 
     unsafe fn pop(&self) -> Option<T> {
-        let b = self.bottom.load(SeqCst);
+        let b = self.bottom.load(Relaxed);
         let a = self.array.load(SeqCst);
         let b = b - 1;
         self.bottom.store(b, SeqCst);
-        let t = self.top.load(SeqCst);
+        let t = self.top.load(Relaxed);
         let size = b - t;
         if size < 0 {
             self.bottom.store(t, SeqCst);
@@ -282,12 +281,12 @@ impl<T: Send + 'static> Deque<T> {
     }
 
     unsafe fn steal(&self) -> Stolen<T> {
-        let t = self.top.load(SeqCst);
-        let old = self.array.load(SeqCst);
-        let b = self.bottom.load(SeqCst);
-        let a = self.array.load(SeqCst);
+        let t = self.top.load(Relaxed);
+        let old = self.array.load(Relaxed);
+        let b = self.bottom.load(Relaxed);
         let size = b - t;
         if size <= 0 { return Empty }
+        let a = self.array.load(SeqCst);
         if size % (*a).size() == 0 {
             if a == old && t == self.top.load(SeqCst) {
                 return Empty
