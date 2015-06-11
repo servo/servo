@@ -11,8 +11,8 @@ test(function() {assert_throws("SyntaxError", function(){new WebSocket("wss://fo
 test(function() {assert_throws("SyntaxError", function(){new WebSocket("http://"+location.host+"/")})});
 test(function() {assert_throws("SyntaxError", function(){new WebSocket("mailto:example@example.org")})});
 test(function() {assert_throws("SyntaxError", function(){new WebSocket("about:blank")})});
-test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/#")})});
-test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/#test")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket(SCHEME_DOMAIN_PORT+"/#")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket(SCHEME_DOMAIN_PORT+"/#test")})});
 test(function() {assert_throws("SyntaxError", function(){new WebSocket("?test")})});
 test(function() {assert_throws("SyntaxError", function(){new WebSocket("#test")})});
 </script>
