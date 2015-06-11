@@ -6,6 +6,6 @@
 <div id=log></div>
 <script>
 test(function() {
-  assert_true(new WebSocket("ws://"+location.host+"/") instanceof WebSocket);
+  assert_true(new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message') instanceof WebSocket);
 });
 </script>
