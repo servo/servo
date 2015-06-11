@@ -601,9 +601,11 @@ impl LayoutTask {
                     self.exit_now(possibly_locked_rw_data, exit_type);
                     break
                 }
+                Msg::CollectReports(_) => {
+                    // Just ignore these messages at this point.
+                }
                 _ => {
-                    panic!("layout: message that wasn't `ExitNow` received after \
-                           `PrepareToExitMsg`")
+                    panic!("layout: unexpected message received after `PrepareToExitMsg`")
                 }
             }
         }
