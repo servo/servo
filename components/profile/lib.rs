@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
+#![feature(convert)]
 #![feature(iter_arith)]
 #![cfg_attr(target_os="linux", feature(page_size))]
 #![feature(slice_extras)]

@@ -39,7 +39,7 @@ use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, WindowSizeData};
 use png;
-use profile_traits::mem::{self, Reporter, ReporterRequest};
+use profile_traits::mem::{self, Reporter, ReporterRequest, ReportKind};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
 use std::collections::HashMap;
@@ -501,11 +501,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
                 let mut reports = vec![];
                 let name = "compositor-task";
+                // These are both `ExplicitUnknownLocationSize` because the memory might be in the
+                // GPU or on the heap.
                 reports.push(mem::Report {
-                    path: path![name, "surface-map"], size: self.surface_map.mem(),
+                    path: path![name, "surface-map"],
+                    kind: ReportKind::ExplicitUnknownLocationSize,
+                    size: self.surface_map.mem(),
                 });
                 reports.push(mem::Report {
-                    path: path![name, "layer-tree"], size: self.scene.get_memory_usage(),
+                    path: path![name, "layer-tree"],
+                    kind: ReportKind::ExplicitUnknownLocationSize,
+                    size: self.scene.get_memory_usage(),
                 });
                 reports_chan.send(reports);
             }
