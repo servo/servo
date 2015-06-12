@@ -70,7 +70,7 @@ pub enum Canvas2dMsg {
     SetShadowOffsetX(f64),
     SetShadowOffsetY(f64),
     SetShadowBlur(f64),
-    SetShadowColor(AzColor),
+    SetShadowColor(RGBA),
 }
 
 #[derive(Clone)]
@@ -453,5 +453,18 @@ impl CompositionOrBlending {
         }
 
         None
+    }
+}
+
+pub trait ToAzColor {
+    fn to_azcolor(&self) -> AzColor;
+}
+
+impl ToAzColor for RGBA {
+    fn to_azcolor(&self) -> AzColor {
+        color::rgba(self.red as AzFloat,
+                    self.green as AzFloat,
+                    self.blue as AzFloat,
+                    self.alpha as AzFloat)
     }
 }

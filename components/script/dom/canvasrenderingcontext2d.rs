@@ -27,7 +27,6 @@ use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx_traits::color;
 
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
@@ -1108,16 +1107,9 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
     fn SetShadowColor(self, value: DOMString) {
-        match parse_color(&value) {
-            Ok(rgba) => {
-                self.state.borrow_mut().shadow_color = rgba;
-                self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowColor(
-                                                            color::rgba(rgba.red,
-                                                                        rgba.green,
-                                                                        rgba.blue,
-                                                                        rgba.alpha)))).unwrap()
-            },
-            _ => {}
+        if let Ok(color) = parse_color(&value) {
+            self.state.borrow_mut().shadow_color = color;
+            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowColor(color))).unwrap()
         }
     }
 }

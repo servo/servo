@@ -39,9 +39,6 @@ path = "../style"
 [dependencies.gfx]
 path = "../gfx"
 
-[dependencies.gfx_traits]
-path = "../gfx_traits"
-
 [dependencies.canvas]
 path = "../canvas"
 
