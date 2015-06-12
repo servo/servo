@@ -77,6 +77,12 @@ pub enum Canvas2dMsg {
 #[derive(Clone)]
 pub enum CanvasWebGLMsg {
     GetContextAttributes(Sender<GLContextAttributes>),
+    ActiveTexture(u32),
+    BlendColor(f32, f32, f32, f32),
+    BlendEquation(u32),
+    BlendEquationSeparate(u32, u32),
+    BlendFunc(u32, u32),
+    BlendFuncSeparate(u32, u32, u32, u32),
     AttachShader(u32, u32),
     BufferData(u32, Vec<f32>, u32),
     Clear(u32),
