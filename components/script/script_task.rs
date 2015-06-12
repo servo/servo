@@ -70,7 +70,7 @@ use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
-use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
 use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
@@ -1042,18 +1042,44 @@ impl ScriptTask {
             let rt = JS_GetRuntime(cx);
             let mut stats = ::std::mem::zeroed();
             if CollectServoSizes(rt, &mut stats) {
-                let mut report = |mut path_suffix, size| {
-                    let mut path = path!["pages", path_seg, "js"];
+                let mut report = |mut path_suffix, kind, size| {
+                    let mut path = path![path_seg, "js"];
                     path.append(&mut path_suffix);
-                    reports.push(Report { path: path, size: size as usize })
+                    reports.push(Report {
+                        path: path,
+                        kind: kind,
+                        size: size as usize,
+                    })
                 };
 
-                report(path!["gc-heap", "used"], stats.gcHeapUsed);
-                report(path!["gc-heap", "unused"], stats.gcHeapUnused);
-                report(path!["gc-heap", "admin"], stats.gcHeapAdmin);
-                report(path!["gc-heap", "decommitted"], stats.gcHeapDecommitted);
-                report(path!["malloc-heap"], stats.mallocHeap);
-                report(path!["non-heap"], stats.nonHeap);
+                // A note about possibly confusing terminology: the JS GC "heap" is allocated via
+                // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
+                // `ExplicitNonHeapSize` as its kind.
+
+                report(path!["gc-heap", "used"],
+                       ReportKind::ExplicitNonHeapSize,
+                       stats.gcHeapUsed);
+
+                report(path!["gc-heap", "unused"],
+                       ReportKind::ExplicitNonHeapSize,
+                       stats.gcHeapUnused);
+
+                report(path!["gc-heap", "admin"],
+                       ReportKind::ExplicitNonHeapSize,
+                       stats.gcHeapAdmin);
+
+                report(path!["gc-heap", "decommitted"],
+                       ReportKind::ExplicitNonHeapSize,
+                       stats.gcHeapDecommitted);
+
+                // SpiderMonkey uses the system heap, not jemalloc.
+                report(path!["malloc-heap"],
+                       ReportKind::ExplicitSystemHeapSize,
+                       stats.mallocHeap);
+
+                report(path!["non-heap"],
+                       ReportKind::ExplicitNonHeapSize,
+                       stats.nonHeap);
             }
         }
         reports
