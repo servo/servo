@@ -350,7 +350,8 @@ impl<'a> CanvasPaintTask<'a> {
                                                                                    dest_rect.size.height as f32)));
             let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
 
-            write_image(&new_draw_target, image_data, source_rect.size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+            write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.alpha);
 
             self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
                                                      &Point2D(shadow_src_rect.origin.x as AzFloat,
@@ -361,7 +362,8 @@ impl<'a> CanvasPaintTask<'a> {
                                                      (self.state.shadow_blur / 2.0f64) as AzFloat,
                                                      self.state.draw_options.composition);
         } else {
-            write_image(&self.drawtarget, image_data, source_rect.size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+            write_image(&self.drawtarget, image_data, source_rect.size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.alpha);
         }
     }
 
@@ -379,7 +381,8 @@ impl<'a> CanvasPaintTask<'a> {
                                                                                    dest_rect.size.height as f32)));
             let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
 
-            write_image(&new_draw_target, image_data, source_rect.size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+            write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.alpha);
 
             self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
                                                      &Point2D(shadow_src_rect.origin.x as AzFloat,
@@ -391,7 +394,8 @@ impl<'a> CanvasPaintTask<'a> {
                                                      self.state.draw_options.composition);
         } else {
             // Writes on target canvas
-            write_image(&self.drawtarget, image_data, image_size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+            write_image(&self.drawtarget, image_data, image_size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.alpha);
         }
     }
 
@@ -613,7 +617,8 @@ impl<'a> CanvasPaintTask<'a> {
                          image_data_rect.origin.y + source_rect.origin.y),
             Size2D::new(source_rect.size.width, source_rect.size.height));
 
-        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect, dest_rect, true, self.state.draw_options.alpha)
+        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect,
+                     dest_rect, true, self.state.draw_options.alpha)
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
