@@ -13,7 +13,6 @@ use paint_context::PaintContext;
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
 use geom::Matrix4;
-use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -386,7 +385,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         // in case it dies in transit to the compositor task.
         let mut native_surface: NativeSurface =
             layers::platform::surface::NativeSurface::new(native_graphics_context!(self),
-                                                          Size2D(width as i32, height as i32),
+                                                          Size2D::new(width as i32, height as i32),
                                                           width as i32 * 4);
         native_surface.mark_wont_leak();
 
@@ -463,10 +462,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 // the compositor is concerned.
                 let overflow_relative_page_position = page_position + stacking_context.overflow.origin;
                 let layer_position =
-                    Rect(Point2D(overflow_relative_page_position.x.to_nearest_px() as f32,
-                                 overflow_relative_page_position.y.to_nearest_px() as f32),
-                         Size2D(stacking_context.overflow.size.width.to_nearest_px() as f32,
-                                stacking_context.overflow.size.height.to_nearest_px() as f32));
+                    Rect::new(Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
+                                           overflow_relative_page_position.y.to_nearest_px() as f32),
+                              Size2D::new(stacking_context.overflow.size.width.to_nearest_px() as f32,
+                                          stacking_context.overflow.size.height.to_nearest_px() as f32));
                 properties.push(LayerProperties {
                     id: paint_layer.id,
                     rect: layer_position,
@@ -587,7 +586,7 @@ impl WorkerThread {
                                stacking_context: Arc<StackingContext>,
                                scale: f32)
                                -> DrawTarget {
-        let size = Size2D(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
+        let size = Size2D::new(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
         let draw_target = if !opts::get().gpu_painting {
             DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
         } else {
@@ -618,11 +617,11 @@ impl WorkerThread {
             // Apply a translation to start at the boundaries of the stacking context, since the
             // layer's origin starts at its overflow rect's origin.
             let tile_bounds = tile.page_rect.translate(
-                &Point2D(stacking_context.overflow.origin.x.to_f32_px(),
-                         stacking_context.overflow.origin.y.to_f32_px()));
+                &Point2D::new(stacking_context.overflow.origin.x.to_f32_px(),
+                              stacking_context.overflow.origin.y.to_f32_px()));
 
             // Apply the translation to paint the tile we want.
-            let matrix: Matrix4 = identity();
+            let matrix = Matrix4::identity();
             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
                                           -tile_bounds.origin.y as AzFloat,
@@ -647,17 +646,17 @@ impl WorkerThread {
                 // Overlay a transparent solid color to identify the thread that
                 // painted this tile.
                 let color = THREAD_TINT_COLORS[thread_id % THREAD_TINT_COLORS.len()];
-                paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
-                                                     Size2D(Au::from_px(size.width),
-                                                            Au::from_px(size.height))),
+                paint_context.draw_solid_color(&Rect::new(Point2D::new(Au(0), Au(0)),
+                                                          Size2D::new(Au::from_px(size.width),
+                                                                      Au::from_px(size.height))),
                                                color);
             }
             if opts::get().paint_flashing {
                 // Overlay a random transparent color.
                 let color = *rand::thread_rng().choose(&THREAD_TINT_COLORS[..]).unwrap();
-                paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
-                                                     Size2D(Au::from_px(size.width),
-                                                            Au::from_px(size.height))),
+                paint_context.draw_solid_color(&Rect::new(Point2D::new(Au(0), Au(0)),
+                                                          Size2D::new(Au::from_px(size.width),
+                                                                      Au::from_px(size.height))),
                                                color);
             }
         }

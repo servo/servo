@@ -699,7 +699,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.wants_scroll_events() == WantsScrollEventsFlag::WantsScrollEvents {
-                    layer.clamp_scroll_offset_and_scroll_layer(TypedPoint2D(0f32, 0f32) - origin);
+                    layer.clamp_scroll_offset_and_scroll_layer(Point2D::typed(0f32, 0f32) - origin);
                 }
                 true
             }
@@ -957,14 +957,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                          window_size: &TypedSize2D<LayerPixel, f32>,
                          new_display_ports: &mut HashMap<PipelineId, Vec<(LayerId, Rect<Au>)>>) {
             let visible_rect =
-                Rect(Point2D::zero(), *window_size).translate(&-*layer.content_offset.borrow())
-                                                   .intersection(&*layer.bounds.borrow())
-                                                   .unwrap_or(Rect::zero())
-                                                   .to_untyped();
-            let visible_rect = Rect(Point2D(Au::from_f32_px(visible_rect.origin.x),
-                                            Au::from_f32_px(visible_rect.origin.y)),
-                                    Size2D(Au::from_f32_px(visible_rect.size.width),
-                                           Au::from_f32_px(visible_rect.size.height)));
+                Rect::new(Point2D::zero(), *window_size).translate(&-*layer.content_offset.borrow())
+                                                        .intersection(&*layer.bounds.borrow())
+                                                        .unwrap_or(Rect::zero())
+                                                        .to_untyped();
+            let visible_rect = Rect::new(Point2D::new(Au::from_f32_px(visible_rect.origin.x),
+                                                      Au::from_f32_px(visible_rect.origin.y)),
+                                         Size2D::new(Au::from_f32_px(visible_rect.size.width),
+                                                     Au::from_f32_px(visible_rect.size.height)));
 
             let extra_layer_data = layer.extra_data.borrow();
             if !new_display_ports.contains_key(&extra_layer_data.pipeline_id) {
@@ -1087,11 +1087,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // Scroll as needed
         let window_size = self.window_size.as_f32();
-        let page_delta: TypedPoint2D<LayerPixel, f32> = TypedPoint2D(
+        let page_delta: TypedPoint2D<LayerPixel, f32> = Point2D::typed(
             window_size.width.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5,
             window_size.height.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5);
 
-        let cursor = TypedPoint2D(-1f32, -1f32);  // Make sure this hits the base layer.
+        let cursor = Point2D::typed(-1f32, -1f32);  // Make sure this hits the base layer.
         match self.scene.root {
             Some(ref mut layer) => {
                 layer.handle_scroll_event(page_delta, cursor);
@@ -1167,8 +1167,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn send_viewport_rect_for_layer(&self, layer: Rc<Layer<CompositorData>>) {
         if layer.extra_data.borrow().id == LayerId::null() {
-            let layer_rect = Rect(-layer.extra_data.borrow().scroll_offset.to_untyped(),
-                                  layer.bounds.borrow().size.to_untyped());
+            let layer_rect = Rect::new(-layer.extra_data.borrow().scroll_offset.to_untyped(),
+                                       layer.bounds.borrow().size.to_untyped());
             let pipeline = self.get_pipeline(layer.pipeline_id());
             let ScriptControlChan(ref chan) = pipeline.script_chan;
             chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
@@ -1437,7 +1437,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         let clip_rect_for_children = if masks_to_bounds {
-            Rect(Point2D::zero(), clipped_layer_bounds.size)
+            Rect::new(Point2D::zero(), clipped_layer_bounds.size)
         } else {
             clipped_layer_bounds.translate(&clip_rect.origin)
         };
