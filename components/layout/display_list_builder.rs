@@ -22,7 +22,6 @@ use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
 use table_cell::CollapsedBordersForCell;
 
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
-use geom::matrix::identity;
 use geom::Matrix4;
 use gfx_traits::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
@@ -392,18 +391,18 @@ impl FragmentDisplayListBuilding for Fragment {
         // wide.
         let image_aspect_ratio = (image.width as f64) / (image.height as f64);
         let bounds_aspect_ratio = bounds.size.width.to_f64_px() / bounds.size.height.to_f64_px();
-        let intrinsic_size = Size2D(Au::from_px(image.width as i32),
-                                    Au::from_px(image.height as i32));
+        let intrinsic_size = Size2D::new(Au::from_px(image.width as i32),
+                                         Au::from_px(image.height as i32));
         match (style.get_background().background_size.clone(),
                image_aspect_ratio < bounds_aspect_ratio) {
             (background_size::T::Contain, false) | (background_size::T::Cover, true) => {
-                Size2D(bounds.size.width,
-                       Au::from_f64_px(bounds.size.width.to_f64_px() / image_aspect_ratio))
+                Size2D::new(bounds.size.width,
+                            Au::from_f64_px(bounds.size.width.to_f64_px() / image_aspect_ratio))
             }
 
             (background_size::T::Contain, true) | (background_size::T::Cover, false) => {
-                Size2D(Au::from_f64_px(bounds.size.height.to_f64_px() * image_aspect_ratio),
-                       bounds.size.height)
+                Size2D::new(Au::from_f64_px(bounds.size.height.to_f64_px() * image_aspect_ratio),
+                            bounds.size.height)
             }
 
             (background_size::T::Explicit(background_size::ExplicitSize {
@@ -412,7 +411,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }), _) => {
                 let width = MaybeAuto::from_style(width, bounds.size.width)
                                       .specified_or_default(intrinsic_size.width);
-                Size2D(width, Au::from_f64_px(width.to_f64_px() / image_aspect_ratio))
+                Size2D::new(width, Au::from_f64_px(width.to_f64_px() / image_aspect_ratio))
             }
 
             (background_size::T::Explicit(background_size::ExplicitSize {
@@ -421,14 +420,14 @@ impl FragmentDisplayListBuilding for Fragment {
             }), _) => {
                 let height = MaybeAuto::from_style(height, bounds.size.height)
                                        .specified_or_default(intrinsic_size.height);
-                Size2D(Au::from_f64_px(height.to_f64_px() * image_aspect_ratio), height)
+                Size2D::new(Au::from_f64_px(height.to_f64_px() * image_aspect_ratio), height)
             }
 
             (background_size::T::Explicit(background_size::ExplicitSize {
                 width,
                 height
             }), _) => {
-                Size2D(MaybeAuto::from_style(width, bounds.size.width)
+                Size2D::new(MaybeAuto::from_style(width, bounds.size.width)
                                  .specified_or_default(intrinsic_size.width),
                        MaybeAuto::from_style(height, bounds.size.height)
                                  .specified_or_default(intrinsic_size.height))
@@ -542,7 +541,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                     Cursor::DefaultCursor),
                                            clip),
                 image: image.clone(),
-                stretch_size: Size2D(image_size.width, image_size.height),
+                stretch_size: Size2D::new(image_size.width, image_size.height),
                 image_rendering: style.get_effects().image_rendering.clone(),
             }), level);
         }
@@ -561,10 +560,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // between the starting point and the ending point.
         let delta = match gradient.angle_or_corner {
             AngleOrCorner::Angle(angle) => {
-                Point2D(Au::from_f32_px(angle.radians().sin() *
-                                           absolute_bounds.size.width.to_f32_px() / 2.0),
-                        Au::from_f32_px(-angle.radians().cos() *
-                                           absolute_bounds.size.height.to_f32_px() / 2.0))
+                Point2D::new(Au::from_f32_px(angle.radians().sin() *
+                                             absolute_bounds.size.width.to_f32_px() / 2.0),
+                             Au::from_f32_px(-angle.radians().cos() *
+                                             absolute_bounds.size.height.to_f32_px() / 2.0))
             }
             AngleOrCorner::Corner(horizontal, vertical) => {
                 let x_factor = match horizontal {
@@ -575,8 +574,8 @@ impl FragmentDisplayListBuilding for Fragment {
                     VerticalDirection::Top => -1,
                     VerticalDirection::Bottom => 1,
                 };
-                Point2D(absolute_bounds.size.width * x_factor / 2,
-                        absolute_bounds.size.height * y_factor / 2)
+                Point2D::new(absolute_bounds.size.width * x_factor / 2,
+                             absolute_bounds.size.height * y_factor / 2)
             }
         };
 
@@ -643,8 +642,8 @@ impl FragmentDisplayListBuilding for Fragment {
             })
         }
 
-        let center = Point2D(absolute_bounds.origin.x + absolute_bounds.size.width / 2,
-                             absolute_bounds.origin.y + absolute_bounds.size.height / 2);
+        let center = Point2D::new(absolute_bounds.origin.x + absolute_bounds.size.width / 2,
+                                  absolute_bounds.origin.y + absolute_bounds.size.height / 2);
 
         let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
             base: BaseDisplayItem::new(*absolute_bounds,
@@ -669,8 +668,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.iter().rev() {
-            let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D(box_shadow.offset_x,
-                                                                           box_shadow.offset_y)),
+            let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
+                                                                                box_shadow.offset_y)),
                                        box_shadow.blur_radius,
                                        box_shadow.spread_radius);
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
@@ -681,7 +680,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                            (*clip).clone()),
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
-                offset: Point2D(box_shadow.offset_x, box_shadow.offset_y),
+                offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
                 clip_mode: if box_shadow.inset {
@@ -867,12 +866,12 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         // FIXME(pcwalton, #2795): Get the real container size.
-        let clip_origin = Point2D(stacking_relative_border_box.origin.x + style_clip_rect.left,
-                                  stacking_relative_border_box.origin.y + style_clip_rect.top);
+        let clip_origin = Point2D::new(stacking_relative_border_box.origin.x + style_clip_rect.left,
+                                       stacking_relative_border_box.origin.y + style_clip_rect.top);
         let right = style_clip_rect.right.unwrap_or(stacking_relative_border_box.size.width);
         let bottom = style_clip_rect.bottom.unwrap_or(stacking_relative_border_box.size.height);
-        let clip_size = Size2D(right - clip_origin.x, bottom - clip_origin.y);
-        (*parent_clip).clone().intersect_rect(&Rect(clip_origin, clip_size))
+        let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
+        (*parent_clip).clone().intersect_rect(&Rect::new(clip_origin, clip_size))
     }
 
     fn build_display_list(&mut self,
@@ -1030,7 +1029,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 // to back).
                 let text_color = self.style().get_color().color;
                 for text_shadow in self.style.get_effects().text_shadow.0.iter().rev() {
-                    let offset = &Point2D(text_shadow.offset_x, text_shadow.offset_y);
+                    let offset = &Point2D::new(text_shadow.offset_x, text_shadow.offset_y);
                     let color = self.style().resolve_color(text_shadow.color);
                     self.build_display_list_for_text_fragment(display_list,
                                                               &**text_fragment,
@@ -1047,7 +1046,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                           text_color,
                                                           &stacking_relative_content_box,
                                                           None,
-                                                          &Point2D(Au(0), Au(0)),
+                                                          &Point2D::new(Au(0), Au(0)),
                                                           clip);
 
                 if opts::get().show_debug_fragment_borders {
@@ -1142,15 +1141,15 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                .relative_containing_block_mode,
                                                                CoordinateSystem::Parent);
 
-        let mut transform = identity();
+        let mut transform = Matrix4::identity();
 
         if let Some(ref operations) = self.style().get_effects().transform {
             let transform_origin = self.style().get_effects().transform_origin;
             let transform_origin =
-                Point2D(model::specified(transform_origin.horizontal,
-                                         border_box.size.width).to_f32_px(),
-                        model::specified(transform_origin.vertical,
-                                         border_box.size.height).to_f32_px());
+                Point2D::new(model::specified(transform_origin.horizontal,
+                                              border_box.size.width).to_f32_px(),
+                             model::specified(transform_origin.vertical,
+                                              border_box.size.height).to_f32_px());
 
             let pre_transform = Matrix4::create_translation(transform_origin.x,
                                                             transform_origin.y,
@@ -1193,7 +1192,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // FIXME(pcwalton): Is this vertical-writing-direction-safe?
         let margin = self.margin.to_physical(base_flow.writing_mode);
-        let overflow = base_flow.overflow.translate(&-Point2D(margin.left, Au(0)));
+        let overflow = base_flow.overflow.translate(&-Point2D::new(margin.left, Au(0)));
 
         // Create the filter pipeline.
         let effects = self.style().get_effects();
@@ -1241,10 +1240,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                             layout_context: &LayoutContext) {
         let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
         let content_size = self.content_box().size.to_physical(self.style.writing_mode);
-        let iframe_rect = Rect(Point2D((offset.x + border_padding.left).to_f32_px(),
-                                       (offset.y + border_padding.top).to_f32_px()),
-                               Size2D(content_size.width.to_f32_px(),
-                                      content_size.height.to_f32_px()));
+        let iframe_rect = Rect::new(Point2D::new((offset.x + border_padding.left).to_f32_px(),
+                                                 (offset.y + border_padding.top).to_f32_px()),
+                                    Size2D::new(content_size.width.to_f32_px(),
+                                                content_size.height.to_f32_px()));
 
         debug!("finalizing position and size of iframe for {:?},{:?}",
                iframe_fragment.pipeline_id,
@@ -1726,8 +1725,8 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 
         let thread_id = self.thread_id;
         let stacking_context_relative_bounds =
-            Rect(self.stacking_relative_position,
-                 self.position.size.to_physical(self.writing_mode));
+            Rect::new(self.stacking_relative_position,
+                      self.position.size.to_physical(self.writing_mode));
 
         let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
         color.a = 1.0;

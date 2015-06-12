@@ -7,7 +7,7 @@ use windowing::{MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl;
 use geom::length::Length;
-use geom::matrix::identity;
+use geom::matrix::Matrix4;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::size::TypedSize2D;
 use geom::rect::Rect;
@@ -59,7 +59,7 @@ impl CompositorData {
             scroll_policy: layer_properties.scroll_policy,
             requested_epoch: Epoch(0),
             painted_epoch: Epoch(0),
-            scroll_offset: TypedPoint2D(0., 0.),
+            scroll_offset: Point2D::typed(0., 0.),
         };
 
         Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
@@ -201,7 +201,7 @@ impl CompositorLayer for Layer<CompositorData> {
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
-        self.handle_scroll_event(TypedPoint2D(0f32, 0f32), TypedPoint2D(-1f32, -1f32));
+        self.handle_scroll_event(Point2D::typed(0f32, 0f32), Point2D::typed(-1f32, -1f32));
         self.update_layer_except_bounds(layer_properties);
     }
 
@@ -332,8 +332,8 @@ impl CompositorLayer for Layer<CompositorData> {
         let min_x = (layer_size.width - content_size.width).get().min(0.0);
         let min_y = (layer_size.height - content_size.height).get().min(0.0);
         let new_offset : TypedPoint2D<LayerPixel, f32> =
-            Point2D(Length::new(new_offset.x.get().clamp(&min_x, &0.0)),
-                    Length::new(new_offset.y.get().clamp(&min_y, &0.0)));
+            Point2D::new(Length::new(new_offset.x.get().clamp(&min_x, &0.0)),
+                         Length::new(new_offset.y.get().clamp(&min_y, &0.0)));
 
         if self.extra_data.borrow().scroll_offset == new_offset {
             return ScrollEventResult::ScrollPositionUnchanged;
@@ -392,7 +392,7 @@ impl CompositorLayer for Layer<CompositorData> {
         // Only scroll this layer if it's not fixed-positioned.
         if self.extra_data.borrow().scroll_policy != ScrollPolicy::FixedPosition {
             let new_offset = new_offset.to_untyped();
-            *self.transform.borrow_mut() = identity().translate(new_offset.x, new_offset.y, 0.0);
+            *self.transform.borrow_mut() = Matrix4::identity().translate(new_offset.x, new_offset.y, 0.0);
             *self.content_offset.borrow_mut() = Point2D::from_untyped(&new_offset);
             result = true
         }

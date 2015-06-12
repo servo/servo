@@ -6,7 +6,7 @@ use compositor_task::{CompositorEventListener, CompositorReceiver, Msg};
 use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
+use geom::size::Size2D;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile_traits::mem;
@@ -55,8 +55,8 @@ impl NullCompositor {
         {
             let ConstellationChan(ref chan) = compositor.constellation_chan;
             chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
-                initial_viewport: TypedSize2D(640_f32, 480_f32),
-                visible_viewport: TypedSize2D(640_f32, 480_f32),
+                initial_viewport: Size2D::typed(640_f32, 480_f32),
+                visible_viewport: Size2D::typed(640_f32, 480_f32),
                 device_pixel_ratio: ScaleFactor::new(1.0),
             })).unwrap();
         }

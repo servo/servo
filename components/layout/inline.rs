@@ -1467,7 +1467,7 @@ impl Flow for InlineFlow {
     fn compute_absolute_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         let mut containing_block_positions = Vec::new();
-        let container_size = Size2D(self.base.block_container_inline_size, Au(0));
+        let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
         for (fragment_index, fragment) in self.fragments.fragments.iter().enumerate() {
             if let SpecificFragmentInfo::InlineAbsolute(_) = fragment.specific {
                 let containing_block_range =

@@ -1047,7 +1047,7 @@ impl BlockFlow {
         self.base.floats.add_float(&info);
 
         // FIXME (mbrubeck) Get the correct container size for self.base.floats;
-        let container_size = Size2D(self.base.block_container_inline_size, Au(0));
+        let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
 
         // Move in from the margin edge, as per CSS 2.1 § 9.5, floats may not overlap anything on
         // their margin edges.
@@ -1669,7 +1669,7 @@ impl Flow for BlockFlow {
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
         // account.  Must handle vertical writing modes.
-        let container_size = Size2D(self.base.block_container_inline_size, Au(0));
+        let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
 
         if self.is_root() {
             self.base.clip = ClippingRegion::max();
@@ -1776,7 +1776,7 @@ impl Flow for BlockFlow {
             //
             // FIXME(pcwalton): Is this vertical-writing-direction-safe?
             let margin = self.fragment.margin.to_physical(self.base.writing_mode);
-            origin_for_children = Point2D(-margin.left, Au(0)) + relative_offset;
+            origin_for_children = Point2D::new(-margin.left, Au(0)) + relative_offset;
             clip_in_child_coordinate_system =
                 self.base.clip.translate(&-self.base.stacking_relative_position);
         } else {
@@ -1789,7 +1789,7 @@ impl Flow for BlockFlow {
                 let visible_rect =
                     match layout_context.shared.visible_rects.get(&self.layer_id(0)) {
                         Some(visible_rect) => *visible_rect,
-                        None => Rect(Point2D::zero(), layout_context.shared.screen_size),
+                        None => Rect::new(Point2D::zero(), layout_context.shared.screen_size),
                     };
 
                 let screen_size = layout_context.shared.screen_size;
