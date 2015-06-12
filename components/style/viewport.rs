@@ -417,8 +417,8 @@ impl ViewportConstraints {
         //
         // Note: DEVICE-ADAPT § 5. states that relative length values are
         // resolved against initial values
-        let initial_viewport = Size2D(Au::from_f32_px(initial_viewport.width.get()),
-                                      Au::from_f32_px(initial_viewport.height.get()));
+        let initial_viewport = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
+                                           Au::from_f32_px(initial_viewport.height.get()));
 
         macro_rules! to_pixel_length {
             ($value:ident, $dimension:ident) => {
@@ -496,7 +496,7 @@ impl ViewportConstraints {
         });
 
         Some(ViewportConstraints {
-            size: TypedSize2D(width.to_f32_px(), height.to_f32_px()),
+            size: Size2D::typed(width.to_f32_px(), height.to_f32_px()),
 
             // TODO: compute a zoom factor for 'auto' as suggested by DEVICE-ADAPT § 10.
             initial_zoom: ScaleFactor::new(initial_zoom.unwrap_or(1.)),

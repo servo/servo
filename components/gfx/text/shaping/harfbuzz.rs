@@ -130,7 +130,7 @@ impl ShapedGlyphData {
                     *y_pos = *y_pos - y_advance;
                 }
 
-                Some(Point2D(x_offset, *y_pos - y_offset))
+                Some(Point2D::new(x_offset, *y_pos - y_offset))
             };
 
             ShapedGlyphEntry {

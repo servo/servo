@@ -1072,7 +1072,7 @@ impl BaseFlow {
         let position_with_overflow = self.position
                                          .to_physical(self.writing_mode, container_size)
                                          .union(&self.overflow);
-        let bounds = Rect(self.stacking_relative_position, position_with_overflow.size);
+        let bounds = Rect::new(self.stacking_relative_position, position_with_overflow.size);
 
         let all_items = match self.display_list_building_result {
             DisplayListBuildingResult::None => Vec::new(),

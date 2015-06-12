@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use geom::size::TypedSize2D;
+use geom::size::Size2D;
 use style::stylesheets::{Stylesheet, CSSRuleIteratorExt};
 use style::stylesheets::Origin;
 use style::media_queries::*;
@@ -349,7 +349,7 @@ fn test_mq_malformed_expressions() {
 fn test_matching_simple() {
     let device = Device {
         media_type: MediaType::Screen,
-        viewport_size: TypedSize2D(200.0, 100.0),
+        viewport_size: Size2D::typed(200.0, 100.0),
     };
 
     media_query_test(&device, "@media not all { a { color: red; } }", 0);
@@ -368,7 +368,7 @@ fn test_matching_simple() {
 fn test_matching_width() {
     let device = Device {
         media_type: MediaType::Screen,
-        viewport_size: TypedSize2D(200.0, 100.0),
+        viewport_size: Size2D::typed(200.0, 100.0),
     };
 
     media_query_test(&device, "@media { a { color: red; } }", 1);
@@ -412,7 +412,7 @@ fn test_matching_width() {
 fn test_matching_invalid() {
     let device = Device {
         media_type: MediaType::Screen,
-        viewport_size: TypedSize2D(200.0, 100.0),
+        viewport_size: Size2D::typed(200.0, 100.0),
     };
 
     media_query_test(&device, "@media fridge { a { color: red; } }", 0);

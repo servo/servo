@@ -8,7 +8,7 @@
 use geometry::ScreenPx;
 
 use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
+use geom::size::{Size2D, TypedSize2D};
 use layers::geometry::DevicePixel;
 use getopts;
 use num_cpus;
@@ -230,7 +230,7 @@ pub fn default_opts() -> Opts {
         trace_layout: false,
         devtools_port: None,
         webdriver_port: None,
-        initial_window_size: TypedSize2D(800, 600),
+        initial_window_size: Size2D::typed(800, 600),
         user_agent: None,
         dump_flow_tree: false,
         dump_display_list: false,
@@ -375,10 +375,10 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
             let res: Vec<u32> = res_string.split('x').map(|r| r.parse().unwrap()).collect();
-            TypedSize2D(res[0], res[1])
+            Size2D::typed(res[0], res[1])
         }
         None => {
-            TypedSize2D(800, 600)
+            Size2D::typed(800, 600)
         }
     };
 
