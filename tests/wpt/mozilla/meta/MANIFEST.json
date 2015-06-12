@@ -539,12 +539,6 @@
             "url": "/_mozilla/mozilla/union.html"
           }
         ],
-        "mozilla/websocket_connection_fail.html": [
-          {
-            "path": "mozilla/websocket_connection_fail.html",
-            "url": "/_mozilla/mozilla/websocket_connection_fail.html"
-          }
-        ],
         "mozilla/window.html": [
           {
             "path": "mozilla/window.html",

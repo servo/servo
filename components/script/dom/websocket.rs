@@ -141,16 +141,7 @@ impl WebSocket {
 
         // TODO Client::connect does not conform to RFC 6455
         // see https://github.com/cyderize/rust-websocket/issues/38
-        let request = match Client::connect(parsed_url) {
-            Ok(request) => request,
-            Err(_) => {
-                let global_root = ws_root.global.root();
-                let address = Trusted::new(global_root.r().get_cx(), ws_root, global_root.r().script_chan().clone());
-                let task = box WebSocketTaskHandler::new(address, WebSocketTask::Close);
-                global_root.r().script_chan().send(ScriptMsg::RunnableMsg(task)).unwrap();
-                return Ok(Temporary::from_rooted(ws_root));
-            }
-        };
+        let request = Client::connect(parsed_url).unwrap();
         let response = request.send().unwrap();
         response.validate().unwrap();
         ws_root.ready_state.set(WebSocketRequestState::Open);
