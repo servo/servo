@@ -27,7 +27,10 @@ impl WebGLShaderPrecisionFormat {
         }
     }
 
-    pub fn new(global: GlobalRef, range_min: i32, range_max: i32, precision: i32) -> Temporary<WebGLShaderPrecisionFormat> {
+    pub fn new(global: GlobalRef,
+               range_min: i32,
+               range_max: i32,
+               precision: i32) -> Temporary<WebGLShaderPrecisionFormat> {
         reflect_dom_object(
             box WebGLShaderPrecisionFormat::new_inherited(range_min, range_max, precision),
             global,

@@ -466,19 +466,19 @@ interface WebGLRenderingContextBase
     //sequence<DOMString>? getSupportedExtensions();
     object? getExtension(DOMString name);
 
-    //void activeTexture(GLenum texture);
+    void activeTexture(GLenum texture);
     void attachShader(WebGLProgram? program, WebGLShader? shader);
     //void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
     void bindBuffer(GLenum target, WebGLBuffer? buffer);
     void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
     void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
     void bindTexture(GLenum target, WebGLTexture? texture);
-    //void blendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-    //void blendEquation(GLenum mode);
-    //void blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha);
-    //void blendFunc(GLenum sfactor, GLenum dfactor);
-    //void blendFuncSeparate(GLenum srcRGB, GLenum dstRGB,
-    //                       GLenum srcAlpha, GLenum dstAlpha);
+    void blendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+    void blendEquation(GLenum mode);
+    void blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha);
+    void blendFunc(GLenum sfactor, GLenum dfactor);
+    void blendFuncSeparate(GLenum srcRGB, GLenum dstRGB,
+                           GLenum srcAlpha, GLenum dstAlpha);
 
     // typedef (ArrayBuffer or ArrayBufferView) BufferDataSource;
     //void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
