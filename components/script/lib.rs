@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(custom_attribute)]
 #![feature(plugin)]
-#![feature(rustc_private)]
 #![feature(std_misc)]
 
 #![deny(unsafe_code)]
@@ -26,10 +25,10 @@ extern crate log;
 extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;
-extern crate collections;
 extern crate geom;
 extern crate html5ever;
 extern crate encoding;
+extern crate fnv;
 extern crate hyper;
 extern crate js;
 extern crate libc;
@@ -44,6 +43,7 @@ extern crate canvas_traits;
 extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
+extern crate smallvec;
 extern crate util;
 extern crate websocket;
 #[macro_use]

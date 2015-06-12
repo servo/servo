@@ -27,6 +27,7 @@ use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
+use fnv::FnvHasher;
 use geom::matrix;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -72,7 +73,6 @@ use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
 use util::cursor::Cursor;
-use util::fnv::FnvHasher;
 use util::geometry::{Au, MAX_RECT};
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
@@ -311,7 +311,6 @@ impl LayoutTask {
         let reporter = box chan.clone();
         let reporter_name = format!("layout-reporter-{}", id.0);
         mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
-
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
@@ -602,9 +601,11 @@ impl LayoutTask {
                     self.exit_now(possibly_locked_rw_data, exit_type);
                     break
                 }
+                Msg::CollectReports(_) => {
+                    // Just ignore these messages at this point.
+                }
                 _ => {
-                    panic!("layout: message that wasn't `ExitNow` received after \
-                           `PrepareToExitMsg`")
+                    panic!("layout: unexpected message received after `PrepareToExitMsg`")
                 }
             }
         }
@@ -861,7 +862,7 @@ impl LayoutTask {
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
-                    stacking_context.print(String::from_str("#"));
+                    stacking_context.print("#".to_owned());
                 }
 
                 rw_data.stacking_context = Some(stacking_context.clone());
@@ -889,7 +890,7 @@ impl LayoutTask {
         };
 
         debug!("layout: received layout request for: {}", self.url.serialize());
-        if log_enabled!(log::DEBUG) {
+        if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
 

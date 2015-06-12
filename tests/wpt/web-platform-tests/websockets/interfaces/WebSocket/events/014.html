@@ -8,7 +8,7 @@
 var events = ['onclose', 'onopen', 'onerror', 'onmessage'];
 for (var i = 0; i < events.length; ++i) {
   test(function() {
-    var ws = new WebSocket(SCHEME_AND_DOMAIN+'/');
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/empty-message');
     var foo = function() {}
     ws[events[i]] = foo;
     assert_equals(ws[events[i]], foo, events[i]);

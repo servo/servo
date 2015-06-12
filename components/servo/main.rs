@@ -28,6 +28,7 @@ extern crate util;
 // The window backed by glutin
 extern crate glutin_app as app;
 extern crate time;
+extern crate env_logger;
 
 #[cfg(target_os="android")]
 #[macro_use]
@@ -43,6 +44,8 @@ use compositing::windowing::WindowEvent;
 use std::borrow::ToOwned;
 
 fn main() {
+    env_logger::init().unwrap();
+
     // Parse the command line options and store them globally
     if opts::from_cmdline_args(&*get_args()) {
         setup_logging();

@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(collections)]
 #![feature(hash)]
-#![feature(rustc_private)]
 #![feature(custom_attribute, custom_derive)]
 #![plugin(string_cache_plugin)]
 #![plugin(plugins)]
@@ -16,8 +15,9 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate bitflags;
 
-extern crate collections;
+extern crate fnv;
 extern crate geom;
+extern crate smallvec;
 extern crate url;
 
 #[macro_use]

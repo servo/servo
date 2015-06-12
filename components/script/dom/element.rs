@@ -61,6 +61,7 @@ use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 
 use devtools_traits::AttrInfo;
+use smallvec::VecLike;
 use style;
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
@@ -70,7 +71,6 @@ use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use util::geometry::Au;
 use util::namespace;
-use util::smallvec::VecLike;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use cssparser::Color;
@@ -561,7 +561,7 @@ pub trait ElementHelpers<'a> {
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
     fn get_root_element(self) -> Temporary<Element>;
-    fn lookup_prefix(self, namespace: Option<DOMString>) -> Option<DOMString>;
+    fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -722,21 +722,23 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
-    fn lookup_prefix(self, namespace: Option<DOMString>) -> Option<DOMString> {
+    fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString> {
         for node in NodeCast::from_ref(self).inclusive_ancestors() {
             match ElementCast::to_ref(node.root().r()) {
                 Some(element) => {
                     // Step 1.
-                    if element.GetNamespaceURI() == namespace && element.GetPrefix().is_some() {
-                        return element.GetPrefix();
+                    if *element.namespace() == namespace {
+                        if let Some(prefix) = element.GetPrefix() {
+                            return Some(prefix);
+                        }
                     }
 
                     // Step 2.
                     let attrs = element.Attributes().root();
                     for i in 0..attrs.r().Length() {
                         let attr = attrs.r().Item(i).unwrap().root();
-                        if attr.r().GetPrefix() == Some("xmlns".to_owned()) &&
-                           Some(attr.r().Value()) == namespace {
+                        if *attr.r().prefix() == Some(atom!("xmlns")) &&
+                           **attr.r().value() == *namespace.0 {
                             return Some(attr.r().LocalName());
                         }
                     }

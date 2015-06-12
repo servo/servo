@@ -58,13 +58,14 @@ def notify_win(title, text):
     FLASHW_TIMERNOFG = 0x0C
 
     params = FLASHWINDOW(sizeof(FLASHWINDOW),
-                        windll.kernel32.GetConsoleWindow(),
-                        FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
+                         windll.kernel32.GetConsoleWindow(),
+                         FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
     FlashWindowEx(params)
 
 
 def notify_darwin(title, text):
-    import Foundation, objc
+    import Foundation
+    import objc
 
     NSUserNotification = objc.lookUpClass("NSUserNotification")
     NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")
@@ -291,7 +292,7 @@ class MachCommands(CommandBase):
             opts += ["--release"]
 
         opts += ["--target", "arm-linux-androideabi"]
-        env=self.build_env(gonk=True)
+        env = self.build_env(gonk=True)
         build_start = time()
         with cd(path.join("ports", "gonk")):
             ret = subprocess.call(["cargo", "build"] + opts, env=env)
@@ -303,7 +304,6 @@ class MachCommands(CommandBase):
         print("Gonk build completed in %0.2fs" % elapsed)
 
         return ret
-
 
     @Command('build-tests',
              description='Build the Servo test suites',
@@ -329,7 +329,6 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
-
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def clean(self, manifest_path, params, verbose=False):

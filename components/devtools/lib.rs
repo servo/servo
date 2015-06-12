@@ -10,15 +10,13 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(box_syntax, core, rustc_private)]
-#![feature(collections)]
+#![feature(box_syntax, core)]
 
 #![allow(non_snake_case)]
 
 #[macro_use]
 extern crate log;
 
-extern crate collections;
 extern crate core;
 extern crate devtools_traits;
 extern crate rustc_serialize;

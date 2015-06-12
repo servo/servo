@@ -6,11 +6,9 @@
 #![feature(collections)]
 #![feature(core)]
 #![cfg_attr(target_os="linux", feature(page_size))]
-#![feature(rustc_private)]
 
 #[macro_use] extern crate log;
 
-extern crate collections;
 extern crate libc;
 #[macro_use]
 extern crate profile_traits;

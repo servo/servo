@@ -16,7 +16,7 @@ use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
-use dom::bindings::utils::{Reflector, Reflectable};
+use dom::bindings::utils::Reflector;
 use dom::blob::Blob;
 use util::str::DOMString;
 
@@ -28,7 +28,7 @@ use std::ptr;
 
 #[dom_struct]
 pub struct TestBinding {
-    reflector: Reflector,
+    reflector_: Reflector,
     global: GlobalField,
 }
 
@@ -366,4 +366,3 @@ impl TestBinding {
     pub fn SetBooleanAttributeStatic(_: GlobalRef, _: bool) {}
     pub fn ReceiveVoidStatic(_: GlobalRef) {}
 }
-

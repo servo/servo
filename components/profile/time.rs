@@ -4,10 +4,10 @@
 
 //! Timing functions.
 
-use collections::BTreeMap;
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::f64;
 use std::sync::mpsc::{channel, Receiver};
 use std::thread::sleep_ms;

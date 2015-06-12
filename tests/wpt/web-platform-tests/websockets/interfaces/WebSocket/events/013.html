@@ -8,7 +8,7 @@
 var events = ['onclose', 'onopen', 'onerror', 'onmessage'];
 for (var i = 0; i < events.length; ++i) {
   test(function(t) {
-    var ws = new WebSocket(SCHEME_AND_DOMAIN+'/');
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/empty-message');
     var obj = {handleEvent:this.unreached_func("handleEvent was called")};
     ws[events[i]] = obj;
     assert_equals(ws[events[i]], obj);

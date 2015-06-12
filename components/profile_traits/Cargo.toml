@@ -9,5 +9,5 @@ path = "lib.rs"
 
 [dependencies]
 time = "0.1.12"
-url = "0.2.16"
+url = "0.2.35"
 

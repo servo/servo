@@ -193,7 +193,7 @@ reason: \"certificate verify failed\" }]))";
         if !req.headers().has::<AcceptEncoding>() {
             req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
         }
-        if log_enabled!(log::INFO) {
+        if log_enabled!(log::LogLevel::Info) {
             info!("{}", load_data.method);
             for header in req.headers().iter() {
                 info!(" - {}", header);
@@ -257,7 +257,7 @@ reason: \"certificate verify failed\" }]))";
 
         // Dump headers, but only do the iteration if info!() is enabled.
         info!("got HTTP response {}, headers:", response.status);
-        if log_enabled!(log::INFO) {
+        if log_enabled!(log::LogLevel::Info) {
             for header in response.headers.iter() {
                 info!(" - {}", header);
             }

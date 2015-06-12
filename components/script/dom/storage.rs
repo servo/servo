@@ -17,12 +17,11 @@ use dom::window::WindowHelpers;
 use util::str::DOMString;
 use page::IterablePage;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
+use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use url::Url;
 
 use script_task::{ScriptTask, ScriptMsg, MainThreadRunnable};
-
-use collections::borrow::ToOwned;
 
 #[dom_struct]
 pub struct Storage {

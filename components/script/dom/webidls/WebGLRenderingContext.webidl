@@ -485,15 +485,15 @@ interface WebGLRenderingContextBase
     //[WebGLHandlesContextLoss] boolean isContextLost();
 
     //sequence<DOMString>? getSupportedExtensions();
-    //object? getExtension(DOMString name);
+    object? getExtension(DOMString name);
 
     //void activeTexture(GLenum texture);
     void attachShader(WebGLProgram? program, WebGLShader? shader);
     //void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
     void bindBuffer(GLenum target, WebGLBuffer? buffer);
-    //void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
-    //void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
-    //void bindTexture(GLenum target, WebGLTexture? texture);
+    void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
+    void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
+    void bindTexture(GLenum target, WebGLTexture? texture);
     //void blendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
     //void blendEquation(GLenum mode);
     //void blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha);
@@ -533,20 +533,20 @@ interface WebGLRenderingContextBase
     //                       GLint x, GLint y, GLsizei width, GLsizei height);
 
     WebGLBuffer? createBuffer();
-    //WebGLFramebuffer? createFramebuffer();
+    WebGLFramebuffer? createFramebuffer();
     WebGLProgram? createProgram();
-    //WebGLRenderbuffer? createRenderbuffer();
+    WebGLRenderbuffer? createRenderbuffer();
     WebGLShader? createShader(GLenum type);
-    //WebGLTexture? createTexture();
+    WebGLTexture? createTexture();
 
     //void cullFace(GLenum mode);
 
-    //void deleteBuffer(WebGLBuffer? buffer);
-    //void deleteFramebuffer(WebGLFramebuffer? framebuffer);
-    //void deleteProgram(WebGLProgram? program);
-    //void deleteRenderbuffer(WebGLRenderbuffer? renderbuffer);
-    //void deleteShader(WebGLShader? shader);
-    //void deleteTexture(WebGLTexture? texture);
+    void deleteBuffer(WebGLBuffer? buffer);
+    void deleteFramebuffer(WebGLFramebuffer? framebuffer);
+    void deleteProgram(WebGLProgram? program);
+    void deleteRenderbuffer(WebGLRenderbuffer? renderbuffer);
+    void deleteShader(WebGLShader? shader);
+    void deleteTexture(WebGLTexture? texture);
 
     //void depthFunc(GLenum func);
     //void depthMask(GLboolean flag);

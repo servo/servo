@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(path_ext)]
 #![feature(plugin)]
-#![feature(rustc_private)]
 #![feature(std_misc)]
 
 #![plugin(regex_macros)]
@@ -16,7 +15,6 @@
 extern crate net_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
-extern crate collections;
 extern crate flate2;
 extern crate geom;
 extern crate hyper;

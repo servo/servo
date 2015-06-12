@@ -26,7 +26,7 @@ use text::TextRun;
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
 
-use collections::linked_list::{self, LinkedList};
+use std::collections::linked_list::{self, LinkedList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use geom::approxeq::ApproxEq;
 use geom::num::Zero;
@@ -40,7 +40,7 @@ use util::linked_list::prepend_from;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::mem::HeapSizeOf;
 use util::range::Range;
-use util::smallvec::SmallVec8;
+use smallvec::SmallVec8;
 use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -245,7 +245,7 @@ pub struct StackingContext {
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Matrix4<AzFloat>,
+    pub transform: Matrix4,
 }
 
 impl StackingContext {
@@ -255,7 +255,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               transform: &Matrix4<AzFloat>,
+               transform: &Matrix4,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
                layer: Option<Arc<PaintLayer>>)
@@ -276,7 +276,7 @@ impl StackingContext {
     pub fn optimize_and_draw_into_context(&self,
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
-                                          transform: &Matrix4<AzFloat>,
+                                          transform: &Matrix4,
                                           clip_rect: Option<&Rect<Au>>) {
         let transform = transform.mul(&self.transform);
         let temporary_draw_target =
@@ -297,7 +297,7 @@ impl StackingContext {
 
             if opts::get().dump_display_list_optimized {
                 println!("**** optimized display list. Tile bounds: {:?}", tile_bounds);
-                display_list.print_items(String::from_str("*"));
+                display_list.print_items("*".to_owned());
             }
 
             // Sort positioned children according to z-index.
@@ -560,7 +560,7 @@ impl StackingContext {
     pub fn print(&self, mut indentation: String) {
         // We cover the case of an empty string.
         if indentation.len() == 0 {
-            indentation = String::from_str("####");
+            indentation = "####".to_owned();
         }
 
         // We grow the indentation by 4 characters if needed.
@@ -1135,5 +1135,3 @@ impl fmt::Debug for DisplayItem {
         )
     }
 }
-
-

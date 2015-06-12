@@ -8,10 +8,8 @@
 #![feature(core)]
 #![feature(filling_drop)]
 #![feature(plugin)]
-#![feature(rustc_private)]
 #![feature(std_misc)]
 #![feature(str_char)]
-#![feature(thread_local)]
 #![feature(unsafe_no_drop_flag)]
 
 #![deny(unsafe_code)]
@@ -41,9 +39,9 @@ extern crate alloc;
 extern crate azure;
 extern crate canvas_traits;
 extern crate clock_ticks;
-extern crate collections;
 extern crate cssparser;
 extern crate encoding;
+extern crate fnv;
 extern crate geom;
 extern crate gfx;
 extern crate gfx_traits;
@@ -54,6 +52,7 @@ extern crate png;
 extern crate script;
 extern crate script_traits;
 extern crate selectors;
+extern crate smallvec;
 extern crate string_cache;
 extern crate style;
 extern crate url;

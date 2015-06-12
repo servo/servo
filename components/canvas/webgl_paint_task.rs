@@ -4,7 +4,7 @@
 
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use geom::size::Size2D;
-
+use core::nonzero::NonZero;
 use gleam::gl;
 use gleam::gl::types::{GLsizei};
 
@@ -49,11 +49,9 @@ impl WebGLPaintTask {
         match message {
             CanvasWebGLMsg::GetContextAttributes(sender) => self.get_context_attributes(sender),
             CanvasWebGLMsg::AttachShader(program_id, shader_id) => self.attach_shader(program_id, shader_id),
-            CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id) => self.bind_buffer(buffer_type, buffer_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) => self.buffer_data(buffer_type, data, usage),
             CanvasWebGLMsg::Clear(mask) => self.clear(mask),
             CanvasWebGLMsg::ClearColor(r, g, b, a) => self.clear_color(r, g, b, a),
-            CanvasWebGLMsg::CreateBuffer(chan) => self.create_buffer(chan),
             CanvasWebGLMsg::DrawArrays(mode, first, count) => self.draw_arrays(mode, first, count),
             CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) => self.enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
@@ -64,8 +62,22 @@ impl WebGLPaintTask {
             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
                 self.get_uniform_location(program_id, name, chan),
             CanvasWebGLMsg::CompileShader(shader_id) => self.compile_shader(shader_id),
+            CanvasWebGLMsg::CreateBuffer(chan) => self.create_buffer(chan),
+            CanvasWebGLMsg::CreateFramebuffer(chan) => self.create_framebuffer(chan),
+            CanvasWebGLMsg::CreateRenderbuffer(chan) => self.create_renderbuffer(chan),
+            CanvasWebGLMsg::CreateTexture(chan) => self.create_texture(chan),
             CanvasWebGLMsg::CreateProgram(chan) => self.create_program(chan),
             CanvasWebGLMsg::CreateShader(shader_type, chan) => self.create_shader(shader_type, chan),
+            CanvasWebGLMsg::DeleteBuffer(id) => self.delete_buffer(id),
+            CanvasWebGLMsg::DeleteFramebuffer(id) => self.delete_framebuffer(id),
+            CanvasWebGLMsg::DeleteRenderbuffer(id) => self.delete_renderbuffer(id),
+            CanvasWebGLMsg::DeleteTexture(id) => self.delete_texture(id),
+            CanvasWebGLMsg::DeleteProgram(id) => self.delete_program(id),
+            CanvasWebGLMsg::DeleteShader(id) => self.delete_shader(id),
+            CanvasWebGLMsg::BindBuffer(target, id) => self.bind_buffer(target, id),
+            CanvasWebGLMsg::BindFramebuffer(target, id) => self.bind_framebuffer(target, id),
+            CanvasWebGLMsg::BindRenderbuffer(target, id) => self.bind_renderbuffer(target, id),
+            CanvasWebGLMsg::BindTexture(target, id) => self.bind_texture(target, id),
             CanvasWebGLMsg::LinkProgram(program_id) => self.link_program(program_id),
             CanvasWebGLMsg::ShaderSource(shader_id, source) => self.shader_source(shader_id, source),
             CanvasWebGLMsg::Uniform4fv(uniform_id, data) => self.uniform_4fv(uniform_id, data),
@@ -121,10 +133,6 @@ impl WebGLPaintTask {
         gl::attach_shader(program_id, shader_id);
     }
 
-    fn bind_buffer(&self, buffer_type: u32, buffer_id: u32) {
-        gl::bind_buffer(buffer_type, buffer_id);
-    }
-
     fn buffer_data(&self, buffer_type: u32, data: Vec<f32>, usage: u32) {
         gl::buffer_data(buffer_type, &data, usage);
     }
@@ -137,23 +145,121 @@ impl WebGLPaintTask {
         gl::clear_color(r, g, b, a);
     }
 
-    fn create_buffer(&self, chan: Sender<u32>) {
-        let buffers = gl::gen_buffers(1);
-        chan.send(buffers[0]).unwrap();
+    fn create_buffer(&self, chan: Sender<Option<NonZero<u32>>>) {
+        let buffer = gl::gen_buffers(1)[0];
+        let buffer = if buffer == 0 {
+            None
+        } else {
+            Some(unsafe { NonZero::new(buffer) })
+        };
+        chan.send(buffer).unwrap();
     }
 
-    fn compile_shader(&self, shader_id: u32) {
-        gl::compile_shader(shader_id);
+    fn create_framebuffer(&self, chan: Sender<Option<NonZero<u32>>>) {
+        let framebuffer = gl::gen_framebuffers(1)[0];
+        let framebuffer = if framebuffer == 0 {
+            None
+        } else {
+            Some(unsafe { NonZero::new(framebuffer) })
+        };
+        chan.send(framebuffer).unwrap();
     }
 
-    fn create_program(&self, chan: Sender<u32>) {
+    fn create_renderbuffer(&self, chan: Sender<Option<NonZero<u32>>>) {
+        let renderbuffer = gl::gen_renderbuffers(1)[0];
+        let renderbuffer = if renderbuffer == 0 {
+            None
+        } else {
+            Some(unsafe { NonZero::new(renderbuffer) })
+        };
+        chan.send(renderbuffer).unwrap();
+    }
+
+    fn create_texture(&self, chan: Sender<Option<NonZero<u32>>>) {
+        let texture = gl::gen_framebuffers(1)[0];
+        let texture = if texture == 0 {
+            None
+        } else {
+            Some(unsafe { NonZero::new(texture) })
+        };
+        chan.send(texture).unwrap();
+    }
+
+    fn create_program(&self, chan: Sender<Option<NonZero<u32>>>) {
         let program = gl::create_program();
+        let program = if program == 0 {
+            None
+        } else {
+            Some(unsafe { NonZero::new(program) })
+        };
         chan.send(program).unwrap();
     }
 
-    fn create_shader(&self, shader_type: u32, chan: Sender<u32>) {
+    fn create_shader(&self, shader_type: u32, chan: Sender<Option<NonZero<u32>>>) {
         let shader = gl::create_shader(shader_type);
+        let shader = if shader == 0 {
+            None
+        } else {
+            Some(unsafe { NonZero::new(shader) })
+        };
         chan.send(shader).unwrap();
+    }
+
+    #[inline]
+    fn delete_buffer(&self, id: u32) {
+        gl::delete_buffers(&[id]);
+    }
+
+    #[inline]
+    fn delete_renderbuffer(&self, id: u32) {
+        gl::delete_renderbuffers(&[id]);
+    }
+
+    #[inline]
+    fn delete_framebuffer(&self, id: u32) {
+        gl::delete_framebuffers(&[id]);
+    }
+
+    #[inline]
+    fn delete_texture(&self, id: u32) {
+        gl::delete_textures(&[id]);
+    }
+
+    #[inline]
+    fn delete_program(&self, id: u32) {
+        gl::delete_program(id);
+    }
+
+    #[inline]
+    fn delete_shader(&self, id: u32) {
+        gl::delete_shader(id);
+    }
+
+    #[inline]
+    fn bind_buffer(&self, target: u32, id: u32) {
+        gl::bind_buffer(target, id);
+    }
+
+    #[inline]
+    fn bind_framebuffer(&self, target: u32, id: u32) {
+        gl::bind_framebuffer(target, id);
+    }
+
+    #[inline]
+    fn bind_renderbuffer(&self, target: u32, id: u32) {
+        gl::bind_renderbuffer(target, id);
+    }
+
+    #[inline]
+    fn bind_texture(&self, target: u32, id: u32) {
+        gl::bind_texture(target, id);
+    }
+
+    // TODO(ecoal95): This is not spec-compliant, we must check
+    // the version of GLSL used. This functionality should probably
+    // be in the WebGLShader object
+    fn compile_shader(&self, shader_id: u32) {
+        gl::compile_shader(shader_id);
     }
 
     fn draw_arrays(&self, mode: u32, first: i32, count: i32) {
@@ -179,9 +285,15 @@ impl WebGLPaintTask {
         chan.send(parameter as i32).unwrap();
     }
 
-    fn get_uniform_location(&self, program_id: u32, name: String, chan: Sender<u32>) {
-        let uniform_location = gl::get_uniform_location(program_id, &name);
-        chan.send(uniform_location as u32).unwrap();
+    fn get_uniform_location(&self, program_id: u32, name: String, chan: Sender<Option<i32>>) {
+        let location = gl::get_uniform_location(program_id, &name);
+        let location = if location == -1 {
+            None
+        } else {
+            Some(location)
+        };
+
+        chan.send(location).unwrap();
     }
 
     fn link_program(&self, program_id: u32) {
@@ -218,13 +330,12 @@ impl WebGLPaintTask {
         unimplemented!()
     }
 
-    fn shader_source(&self, shader_id: u32, source_lines: Vec<String>) {
-        let mut lines: Vec<&[u8]> = source_lines.iter().map(|line| line.as_bytes()).collect();
-        gl::shader_source(shader_id, &mut lines);
+    fn shader_source(&self, shader_id: u32, source: String) {
+        gl::shader_source(shader_id, &[source.as_bytes()]);
     }
 
-    fn uniform_4fv(&self, uniform_id: u32, data: Vec<f32>) {
-        gl::uniform_4f(uniform_id as i32, data[0], data[1], data[2], data[3]);
+    fn uniform_4fv(&self, uniform_id: i32, data: Vec<f32>) {
+        gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]);
     }
 
     fn use_program(&self, program_id: u32) {

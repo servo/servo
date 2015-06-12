@@ -17,7 +17,6 @@ use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
 
-use collections::VecDeque;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
@@ -25,6 +24,7 @@ use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use std::cmp::max;
+use std::collections::VecDeque;
 use std::fmt;
 use std::mem;
 use std::sync::Arc;
@@ -90,7 +90,7 @@ pub struct Line {
     ///
     /// The ranges that describe these lines would be:
     ///
-    /// | [0, 2)   | [2, 3)      | [3, 4)      | [4, 5)   |
+    /// | [0, 2)   | [2, 3)      | [3, 5)      | [5, 6)   |
     /// |----------|-------------|-------------|----------|
     /// | 'I like' | 'truffles,' | '<img> yes' | 'I do.'  |
     pub range: Range<FragmentIndex>,

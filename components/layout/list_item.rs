@@ -106,7 +106,7 @@ impl Flow for ListItemFlow {
             marker.assign_replaced_block_size_if_necessary(containing_block_block_size);
 
             let font_metrics =
-                text::font_metrics_for_style(layout_context.font_context(),
+                text::font_metrics_for_style(&mut layout_context.font_context(),
                                              marker.style.get_font_arc());
             let line_height = text::line_height_from_style(&*marker.style, &font_metrics);
             let item_inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
