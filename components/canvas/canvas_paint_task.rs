@@ -268,7 +268,7 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
                             Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
                             Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
-                            Canvas2dMsg::SetShadowColor(rgba) => painter.set_shadow_color(rgba),
+                            Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azcolor()),
                         }
                     },
                     CanvasMsg::Common(message) => {
