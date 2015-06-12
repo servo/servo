@@ -22,8 +22,10 @@ fn main() {
         .env("PYTHONPATH", &mako)
         .env("TEMPLATE", &template)
         .arg("-c")
-        .arg("from os import environ; from mako.template import Template;\
-             print(Template(filename=environ['TEMPLATE']).render())")
+        .arg("from os import environ; from mako.template import Template; \
+              from mako import exceptions; \n\
+              try:\n    print(Template(filename=environ['TEMPLATE']).render());\n\
+              except:\n    print exceptions.html_error_template().render()")
         .stderr(Stdio::inherit())
         .output()
         .unwrap();
