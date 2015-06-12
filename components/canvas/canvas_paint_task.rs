@@ -54,40 +54,6 @@ impl<'a> CanvasPaintTask<'a> {
         image_data
     }
 
-    /// It writes image data to the canvas
-    /// source_rect: the area of the image data to be written
-    /// dest_rect: The area of the canvas where the imagedata will be copied
-    /// smoothing_enabled: if smoothing is applied to the copied pixels
-    fn write_pixels(&self, imagedata: &[u8],
-                    image_size: Size2D<f64>,
-                    source_rect: Rect<f64>,
-                    dest_rect: Rect<f64>,
-                    smoothing_enabled: bool) {
-        // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-        // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
-        // to apply a smoothing algorithm to the image data when it is scaled.
-        // Otherwise, the image must be rendered using nearest-neighbor interpolation.
-        let filter = if smoothing_enabled {
-            Filter::Linear
-        } else {
-            Filter::Point
-        };
-        // azure_hl operates with integers. We need to cast the image size
-        let image_size = image_size.to_i32();
-
-        let source_surface = self.drawtarget.create_source_surface_from_data(
-            &imagedata,
-            image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
-
-        let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(self.state.draw_options.alpha, CompositionOp::Over, AntialiasMode::None);
-
-        self.drawtarget.draw_surface(source_surface,
-                                     dest_rect.to_azfloat(),
-                                     source_rect.to_azfloat(),
-                                     draw_surface_options, draw_options);
-    }
-
     /// dirty_rect: original dirty_rect provided by the putImageData call
     /// image_data_rect: the area of the image to be copied
     /// Result: It retuns the modified dirty_rect by the rules described in
@@ -136,23 +102,6 @@ impl<'a> CanvasPaintTask<'a> {
 
         dirty_rect
     }
-
-    /// It writes an image to the destination canvas
-    /// imagedata: Pixel information of the image to be written. It takes RGBA8
-    /// image_size: The size of the image to be written
-    /// dest_rect: Area of the destination canvas where the pixels will be copied
-    /// smoothing_enabled: It determines if smoothing is applied to the image result
-    fn write_image(&self, mut imagedata: Vec<u8>,
-                   image_size: Size2D<f64>, dest_rect: Rect<f64>, smoothing_enabled: bool) {
-        if imagedata.len() == 0 {
-            return
-        }
-        let image_rect = Rect(Point2D(0f64, 0f64), image_size);
-        // rgba -> bgra
-        byte_swap(&mut imagedata);
-        self.write_pixels(&imagedata, image_size, image_rect, dest_rect, smoothing_enabled);
-    }
-
 }
 
 pub struct CanvasPaintTask<'a> {
@@ -378,7 +327,27 @@ impl<'a> CanvasPaintTask<'a> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = crop_image(image_data, image_size, source_rect);
-        self.write_image(image_data, source_rect.size, dest_rect, smoothing_enabled);
+
+        if self.need_to_draw_shadow() {
+            let shadow_src_rect = self.state.transform.transform_rect(&Rect(Point2D(dest_rect.origin.x as f32,
+                                                                                    dest_rect.origin.y as f32),
+                                                                            Size2D(dest_rect.size.width as f32,
+                                                                                   dest_rect.size.height as f32)));
+            let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
+
+            write_image(&new_draw_target, image_data, source_rect.size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+
+            self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
+                                                     &Point2D(shadow_src_rect.origin.x as AzFloat,
+                                                              shadow_src_rect.origin.y as AzFloat),
+                                                     &self.state.shadow_color,
+                                                     &Point2D(self.state.shadow_offset_x as AzFloat,
+                                                              self.state.shadow_offset_y as AzFloat),
+                                                     (self.state.shadow_blur / 2.0f64) as AzFloat,
+                                                     self.state.draw_options.composition);
+        } else {
+            write_image(&self.drawtarget, image_data, source_rect.size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+        }
     }
 
     fn draw_image_self(&self, image_size: Size2D<f64>,
@@ -386,9 +355,29 @@ impl<'a> CanvasPaintTask<'a> {
                        smoothing_enabled: bool) {
         // Reads pixels from source image
         // In this case source and target are the same canvas
-        let imagedata = self.read_pixels(source_rect, image_size);
-        // Writes on target canvas
-        self.write_image(imagedata, image_size, dest_rect, smoothing_enabled);
+        let image_data = self.read_pixels(source_rect, image_size);
+
+        if self.need_to_draw_shadow() {
+            let shadow_src_rect = self.state.transform.transform_rect(&Rect(Point2D(dest_rect.origin.x as f32,
+                                                                                    dest_rect.origin.y as f32),
+                                                                            Size2D(dest_rect.size.width as f32,
+                                                                                   dest_rect.size.height as f32)));
+            let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
+
+            write_image(&new_draw_target, image_data, source_rect.size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+
+            self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
+                                                     &Point2D(shadow_src_rect.origin.x as AzFloat,
+                                                              shadow_src_rect.origin.y as AzFloat),
+                                                     &self.state.shadow_color,
+                                                     &Point2D(self.state.shadow_offset_x as AzFloat,
+                                                              self.state.shadow_offset_y as AzFloat),
+                                                     (self.state.shadow_blur / 2.0f64) as AzFloat,
+                                                     self.state.draw_options.composition);
+        } else {
+            // Writes on target canvas
+            write_image(&self.drawtarget, image_data, image_size, dest_rect, smoothing_enabled, self.state.draw_options.alpha);
+        }
     }
 
     fn move_to(&self, point: &Point2D<AzFloat>) {
@@ -609,7 +598,7 @@ impl<'a> CanvasPaintTask<'a> {
                     image_data_rect.origin.y + source_rect.origin.y),
             Size2D(source_rect.size.width, source_rect.size.height));
 
-        self.write_pixels(&imagedata, image_data_rect.size, source_rect, dest_rect, true)
+        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect, dest_rect, true, self.state.draw_options.alpha)
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
@@ -676,6 +665,65 @@ fn crop_image(image_data: Vec<u8>,
         src += stride as usize;
     }
     new_image_data
+}
+
+/// It writes an image to the destination target
+/// draw_target: the destination target where the image_data will be copied
+/// image_data: Pixel information of the image to be written. It takes RGBA8
+/// image_size: The size of the image to be written
+/// dest_rect: Area of the destination target where the pixels will be copied
+/// smoothing_enabled: It determines if smoothing is applied to the image result
+fn write_image(draw_target: &DrawTarget,
+               mut image_data: Vec<u8>,
+               image_size: Size2D<f64>,
+               dest_rect: Rect<f64>,
+               smoothing_enabled: bool,
+               global_alpha: f32) {
+    if image_data.len() == 0 {
+        return
+    }
+    let image_rect = Rect(Point2D(0f64, 0f64), image_size);
+    // rgba -> bgra
+    byte_swap(&mut image_data);
+    write_pixels(&draw_target, &image_data, image_size, image_rect, dest_rect, smoothing_enabled, global_alpha);
+}
+
+/// It writes image data to the target
+/// draw_target: the destination target where the imagedata will be copied
+/// source_rect: the area of the image data to be written
+/// dest_rect: The area of the target where the imagedata will be copied
+/// smoothing_enabled: if smoothing is applied to the copied pixels
+fn write_pixels(draw_target: &DrawTarget,
+                image_data: &[u8],
+                image_size: Size2D<f64>,
+                source_rect: Rect<f64>,
+                dest_rect: Rect<f64>,
+                smoothing_enabled: bool,
+                global_alpha: f32) {
+    // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
+    // to apply a smoothing algorithm to the image data when it is scaled.
+    // Otherwise, the image must be rendered using nearest-neighbor interpolation.
+    let filter = if smoothing_enabled {
+        Filter::Linear
+    } else {
+        Filter::Point
+    };
+    // azure_hl operates with integers. We need to cast the image size
+    let image_size = image_size.to_i32();
+
+    let source_surface = draw_target.create_source_surface_from_data(
+        &image_data,
+        image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
+
+    let draw_surface_options = DrawSurfaceOptions::new(filter, true);
+    let draw_options = DrawOptions::new(global_alpha, CompositionOp::Over, AntialiasMode::None);
+
+    draw_target.draw_surface(source_surface,
+                             dest_rect.to_azfloat(),
+                             source_rect.to_azfloat(),
+                             draw_surface_options,
+                             draw_options);
 }
 
 pub trait SizeToi32 {
