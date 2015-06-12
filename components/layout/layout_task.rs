@@ -28,7 +28,7 @@ use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use fnv::FnvHasher;
-use geom::matrix;
+use geom::Matrix4;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::scale_factor::ScaleFactor;
@@ -295,7 +295,7 @@ impl LayoutTask {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> LayoutTask {
-        let screen_size = Size2D(Au(0), Au(0));
+        let screen_size = Size2D::new(Au(0), Au(0));
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
@@ -867,13 +867,13 @@ impl LayoutTask {
                 let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
                                                            root_background_color,
                                                            ScrollPolicy::Scrollable));
-                let origin = Rect(Point2D(Au(0), Au(0)), root_size);
+                let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
 
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
                                                                      0,
-                                                                     &matrix::identity(),
+                                                                     &Matrix4::identity(),
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
                                                                      Some(paint_layer)));
@@ -916,8 +916,8 @@ impl LayoutTask {
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_screen_size = rw_data.screen_size;
-        let current_screen_size = Size2D(Au::from_f32_px(initial_viewport.width.get()),
-                                         Au::from_f32_px(initial_viewport.height.get()));
+        let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
+                                              Au::from_f32_px(initial_viewport.height.get()));
         rw_data.screen_size = current_screen_size;
 
         // Handle conditions where the entire flow tree is invalid.
@@ -931,8 +931,8 @@ impl LayoutTask {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
-                rw_data.screen_size = Size2D(Au::from_f32_px(constraints.size.width.get()),
-                                             Au::from_f32_px(constraints.size.height.get()));
+                rw_data.screen_size = Size2D::new(Au::from_f32_px(constraints.size.width.get()),
+                                                  Au::from_f32_px(constraints.size.height.get()));
                 let device = Device::new(MediaType::Screen, constraints.size);
                 rw_data.stylist.set_device(device);
 
@@ -1035,8 +1035,8 @@ impl LayoutTask {
         let mut must_regenerate_display_lists = false;
         let mut old_visible_rects = HashMap::with_hash_state(Default::default());
         let inflation_amount =
-            Size2D(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
-                   rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
+            Size2D::new(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
+                        rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
         for &(ref layer_id, ref new_visible_rect) in new_visible_rects.iter() {
             match rw_data.visible_rects.get(layer_id) {
                 None => {
@@ -1251,7 +1251,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        let point = Point2D(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();
@@ -1278,7 +1278,7 @@ impl LayoutRPC for LayoutRPCImpl {
     fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
                   -> Result<MouseOverResponse, ()> {
         let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
-        let point = Point2D(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();

@@ -324,14 +324,14 @@ impl CollapsedBordersForCell {
 
         // FIXME(pcwalton): Get the real container size.
         let mut logical_bounds =
-            LogicalRect::from_physical(writing_mode, *border_bounds, Size2D(Au(0), Au(0)));
+            LogicalRect::from_physical(writing_mode, *border_bounds, Size2D::new(Au(0), Au(0)));
         logical_bounds.start.i = logical_bounds.start.i - inline_start_offset;
         logical_bounds.start.b = logical_bounds.start.b - block_start_offset;
         logical_bounds.size.inline = logical_bounds.size.inline + inline_start_offset +
             inline_end_offset;
         logical_bounds.size.block = logical_bounds.size.block + block_start_offset +
             block_end_offset;
-        *border_bounds = logical_bounds.to_physical(writing_mode, Size2D(Au(0), Au(0)))
+        *border_bounds = logical_bounds.to_physical(writing_mode, Size2D::new(Au(0), Au(0)))
     }
 
     pub fn adjust_border_colors_and_styles_for_painting(

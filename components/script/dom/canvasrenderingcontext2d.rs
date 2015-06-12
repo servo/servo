@@ -155,13 +155,13 @@ impl CanvasRenderingContext2D {
                   image_size: Size2D<f64>,
                   sx: f64, sy: f64, sw: f64, sh: f64,
                   dx: f64, dy: f64, dw: f64, dh: f64) -> (Rect<f64>, Rect<f64>) {
-        let image_rect = Rect(Point2D(0f64, 0f64),
-                              Size2D(image_size.width as f64, image_size.height as f64));
+        let image_rect = Rect::new(Point2D::new(0f64, 0f64),
+                                   Size2D::new(image_size.width as f64, image_size.height as f64));
 
         // The source rectangle is the rectangle whose corners are the four points (sx, sy),
         // (sx+sw, sy), (sx+sw, sy+sh), (sx, sy+sh).
-        let source_rect = Rect(Point2D(sx.min(sx+sw), sy.min(sy+sh)),
-                               Size2D(sw.abs(), sh.abs()));
+        let source_rect = Rect::new(Point2D::new(sx.min(sx+sw), sy.min(sy+sh)),
+                                    Size2D::new(sw.abs(), sh.abs()));
 
         // When the source rectangle is outside the source image,
         // the source rectangle must be clipped to the source image
@@ -178,13 +178,13 @@ impl CanvasRenderingContext2D {
 
         // The destination rectangle is the rectangle whose corners are the four points (dx, dy),
         // (dx+dw, dy), (dx+dw, dy+dh), (dx, dy+dh).
-        let dest_rect = Rect(Point2D(dx.min(dx+dest_rect_width_scaled), dy.min(dy+dest_rect_height_scaled)),
-                             Size2D(dest_rect_width_scaled.abs(), dest_rect_height_scaled.abs()));
+        let dest_rect = Rect::new(Point2D::new(dx.min(dx+dest_rect_width_scaled), dy.min(dy+dest_rect_height_scaled)),
+                                  Size2D::new(dest_rect_width_scaled.abs(), dest_rect_height_scaled.abs()));
 
-        let source_rect = Rect(Point2D(source_rect_clipped.origin.x,
-                                     source_rect_clipped.origin.y),
-                             Size2D(source_rect_clipped.size.width,
-                                    source_rect_clipped.size.height));
+        let source_rect = Rect::new(Point2D::new(source_rect_clipped.origin.x,
+                                                 source_rect_clipped.origin.y),
+                                    Size2D::new(source_rect_clipped.size.width,
+                                                source_rect_clipped.size.height));
 
         return (source_rect, dest_rect)
     }
@@ -220,7 +220,7 @@ impl CanvasRenderingContext2D {
         }
 
         let canvas_size = canvas.get_size();
-        let image_size = Size2D(canvas_size.width as f64, canvas_size.height as f64);
+        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         // 2. Establish the source and destination rectangles
         let (source_rect, dest_rect) = self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
 
@@ -287,7 +287,7 @@ impl CanvasRenderingContext2D {
             ImageResponse::PlaceholderLoaded(_) | ImageResponse::None => return None,
         };
 
-        let image_size = Size2D(img.width as f64, img.height as f64);
+        let image_size = Size2D::new(img.width as f64, img.height as f64);
         let mut image_data = match img.pixels {
             PixelsByColorType::RGBA8(ref pixels) => pixels.to_vec(),
             PixelsByColorType::K8(_) => panic!("K8 color type not supported"),
@@ -320,7 +320,7 @@ impl CanvasRenderingContext2D {
             return None;
         }
 
-        Some(Rect(Point2D(x as f32, y as f32), Size2D(w as f32, h as f32)))
+        Some(Rect::new(Point2D::new(x as f32, y as f32), Size2D::new(w as f32, h as f32)))
     }
 }
 
@@ -703,7 +703,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::MoveTo(Point2D(x as f32, y as f32)))).unwrap();
+        let msg = CanvasMsg::Canvas2d(
+            Canvas2dMsg::MoveTo(
+                Point2D::new(x as f32, y as f32)));
+        self.renderer.send(msg).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-lineto
@@ -712,15 +715,19 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::LineTo(Point2D(x as f32, y as f32)))).unwrap();
+        let msg = CanvasMsg::Canvas2d(
+            Canvas2dMsg::LineTo(
+                Point2D::new(x as f32, y as f32)));
+        self.renderer.send(msg).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-rect
     fn Rect(self, x: f64, y: f64, width: f64, height: f64) {
         if [x, y, width, height].iter().all(|val| val.is_finite()) {
-            let rect = Rect(Point2D(x as f32, y as f32),
-                            Size2D(width as f32, height as f32));
-            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Rect(rect))).unwrap();
+            let rect = Rect::new(Point2D::new(x as f32, y as f32),
+                                 Size2D::new(width as f32, height as f32));
+            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::Rect(rect));
+            self.renderer.send(msg).unwrap();
         }
     }
 
@@ -731,8 +738,11 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::QuadraticCurveTo(Point2D(cpx as f32, cpy as f32),
-                                                            Point2D(x as f32, y as f32)))).unwrap();
+        let msg = CanvasMsg::Canvas2d(
+            Canvas2dMsg::QuadraticCurveTo(
+                Point2D::new(cpx as f32, cpy as f32),
+                Point2D::new(x as f32, y as f32)));
+        self.renderer.send(msg).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto
@@ -742,9 +752,12 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::BezierCurveTo(Point2D(cp1x as f32, cp1y as f32),
-                                                            Point2D(cp2x as f32, cp2y as f32),
-                                                            Point2D(x as f32, y as f32)))).unwrap();
+        let msg = CanvasMsg::Canvas2d(
+            Canvas2dMsg::BezierCurveTo(
+                Point2D::new(cp1x as f32, cp1y as f32),
+                Point2D::new(cp2x as f32, cp2y as f32),
+                Point2D::new(x as f32, y as f32)));
+        self.renderer.send(msg).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
@@ -760,8 +773,12 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return Err(IndexSize);
         }
 
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Arc(Point2D(x as f32, y as f32), r as f32,
-                                                                start as f32, end as f32, ccw))).unwrap();
+        let msg = CanvasMsg::Canvas2d(
+            Canvas2dMsg::Arc(
+                Point2D::new(x as f32, y as f32), r as f32,
+                start as f32, end as f32, ccw));
+
+        self.renderer.send(msg).unwrap();
         Ok(())
     }
 
@@ -773,9 +790,13 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         if r < 0.0 {
             return Err(IndexSize);
         }
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::ArcTo(Point2D(cp1x as f32, cp1y as f32),
-                                                                  Point2D(cp2x as f32, cp2y as f32),
-                                                                  r as f32))).unwrap();
+
+        let msg = CanvasMsg::Canvas2d(
+            Canvas2dMsg::ArcTo(
+                Point2D::new(cp1x as f32, cp1y as f32),
+                Point2D::new(cp2x as f32, cp2y as f32),
+                r as f32));
+        self.renderer.send(msg).unwrap();
         Ok(())
     }
 
@@ -907,9 +928,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
 
         let (sender, receiver) = channel::<Vec<u8>>();
-        let dest_rect = Rect(Point2D(sx as f64, sy as f64), Size2D(sw as f64, sh as f64));
+        let dest_rect = Rect::new(Point2D::new(sx as f64, sy as f64),
+                                  Size2D::new(sw as f64, sh as f64));
         let canvas_size = self.canvas.root().r().get_size();
-        let canvas_size = Size2D(canvas_size.width as f64, canvas_size.height as f64);
+        let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender))).unwrap();
         let data = receiver.recv().unwrap();
         Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
@@ -929,8 +951,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_size = imagedata.get_size();
-        let image_data_size = Size2D(image_data_size.width as f64, image_data_size.height as f64);
-        let image_data_rect = Rect(Point2D(dx, dy), image_data_size);
+        let image_data_size = Size2D::new(image_data_size.width as f64, image_data_size.height as f64);
+        let image_data_rect = Rect::new(Point2D::new(dx, dy), image_data_size);
         let dirty_rect = None;
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
         self.renderer.send(msg).unwrap();
@@ -955,11 +977,11 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         // they will be TypeError by WebIDL spec before call this methods.
 
         let data = imagedata.get_data_array(&self.global.root().r());
-        let image_data_rect = Rect(Point2D(dx, dy),
-                                   Size2D(imagedata.Width() as f64,
-                                          imagedata.Height() as f64));
-        let dirty_rect = Some(Rect(Point2D(dirtyX, dirtyY),
-                                   Size2D(dirtyWidth, dirtyHeight)));
+        let image_data_rect = Rect::new(Point2D::new(dx, dy),
+                                        Size2D::new(imagedata.Width() as f64,
+                                                    imagedata.Height() as f64));
+        let dirty_rect = Some(Rect::new(Point2D::new(dirtyX, dirtyY),
+                                        Size2D::new(dirtyWidth, dirtyHeight)));
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
         self.renderer.send(msg).unwrap();
         self.mark_as_dirty();
@@ -1019,7 +1041,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                     ImageResponse::PlaceholderLoaded(_) | ImageResponse::None => return Err(InvalidState),
                 };
 
-                let image_size = Size2D(img.width as f64, img.height as f64);
+                let image_size = Size2D::new(img.width as f64, img.height as f64);
                 let image_data = match img.pixels {
                     PixelsByColorType::RGBA8(ref pixels) => pixels.to_vec(),
                     PixelsByColorType::K8(_) => panic!("K8 color type not supported"),
@@ -1030,7 +1052,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                 if let Some(rep) = RepetitionStyle::from_str(&repetition) {
                     return Ok(CanvasPattern::new(self.global.root().r(),
                                                  image_data,
-                                                 Size2D(image_size.width as i32, image_size.height as i32),
+                                                 Size2D::new(image_size.width as i32, image_size.height as i32),
                                                  rep));
                 }
                 return Err(Syntax);

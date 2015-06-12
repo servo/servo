@@ -534,7 +534,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_init_load(&mut self, url: Url) {
-        let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
+        let window_rect = Rect::new(Point2D::zero(), self.window_size.visible_viewport);
         let root_pipeline_id =
             self.new_pipeline(None, Some(window_rect), None, LoadData::new(url.clone()));
         self.handle_load_start_msg(&root_pipeline_id);

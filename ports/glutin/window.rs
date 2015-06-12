@@ -7,7 +7,7 @@
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
+use geom::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use glutin;
 use layers::geometry::DevicePixel;
@@ -26,7 +26,7 @@ use NestedEventLoopListener;
 #[cfg(feature = "window")]
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
-use geom::point::{Point2D, TypedPoint2D};
+use geom::point::Point2D;
 #[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode};
 #[cfg(feature = "window")]
@@ -90,9 +90,9 @@ impl Window {
             window: glutin_window,
             event_queue: RefCell::new(vec!()),
             mouse_down_button: Cell::new(None),
-            mouse_down_point: Cell::new(Point2D(0, 0)),
+            mouse_down_point: Cell::new(Point2D::new(0, 0)),
 
-            mouse_pos: Cell::new(Point2D(0, 0)),
+            mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
         };
 
@@ -113,7 +113,8 @@ impl Window {
             match g_nested_event_loop_listener {
                 None => {}
                 Some(listener) => {
-                    (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize(TypedSize2D(width, height)));
+                    (*listener).handle_event_from_nested_event_loop(
+                        WindowEvent::Resize(Size2D::typed(width, height)));
                 }
             }
         }
@@ -169,7 +170,7 @@ impl Window {
                 }
             }
             Event::Resized(width, height) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D(width, height)));
+                self.event_queue.borrow_mut().push(WindowEvent::Resize(Size2D::typed(width, height)));
             }
             Event::MouseInput(element_state, mouse_button) => {
                 if mouse_button == MouseButton::Left ||
@@ -179,9 +180,9 @@ impl Window {
                    }
             }
             Event::MouseMoved((x, y)) => {
-                self.mouse_pos.set(Point2D(x, y));
+                self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue.borrow_mut().push(
-                    WindowEvent::MouseWindowMoveEventClass(TypedPoint2D(x as f32, y as f32)));
+                    WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
                 if self.ctrl_pressed() {
@@ -220,8 +221,8 @@ impl Window {
     /// Helper function to send a scroll event.
     fn scroll_window(&self, dx: f32, dy: f32) {
         let mouse_pos = self.mouse_pos.get();
-        let event = WindowEvent::Scroll(TypedPoint2D(dx as f32, dy as f32),
-                                        TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
+        let event = WindowEvent::Scroll(Point2D::typed(dx as f32, dy as f32),
+                                        Point2D::typed(mouse_pos.x as i32, mouse_pos.y as i32));
         self.event_queue.borrow_mut().push(event);
     }
 
@@ -233,21 +234,21 @@ impl Window {
         let max_pixel_dist = 10f64;
         let event = match action {
             ElementState::Pressed => {
-                self.mouse_down_point.set(Point2D(x, y));
+                self.mouse_down_point.set(Point2D::new(x, y));
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(MouseButton::Left, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseDown(MouseButton::Left, Point2D::typed(x as f32, y as f32))
             }
             ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, TypedPoint2D(x as f32, y as f32));
+                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, Point2D::typed(x as f32, y as f32));
                 match self.mouse_down_button.get() {
                     None => mouse_up_event,
                     Some(but) if button == but => {
-                        let pixel_dist = self.mouse_down_point.get() - Point2D(x, y);
+                        let pixel_dist = self.mouse_down_point.get() - Point2D::new(x, y);
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
                             self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(mouse_up_event));
-                            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D(x as f32, y as f32))
+                            MouseWindowEvent::Click(MouseButton::Left, Point2D::typed(x as f32, y as f32))
                         } else {
                             mouse_up_event
                         }
@@ -462,12 +463,12 @@ impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
         let scale_factor = self.window.hidpi_factor() as u32;
         let (width, height) = self.window.get_inner_size().unwrap();
-        TypedSize2D(width * scale_factor, height * scale_factor)
+        Size2D::typed(width * scale_factor, height * scale_factor)
     }
 
     fn size(&self) -> TypedSize2D<ScreenPx, f32> {
         let (width, height) = self.window.get_inner_size().unwrap();
-        TypedSize2D(width as f32, height as f32)
+        Size2D::typed(width as f32, height as f32)
     }
 
     fn present(&self) {
@@ -672,11 +673,11 @@ impl Window {
 #[cfg(feature = "headless")]
 impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
-        TypedSize2D(self.width, self.height)
+        Size2D::typed(self.width, self.height)
     }
 
     fn size(&self) -> TypedSize2D<ScreenPx, f32> {
-        TypedSize2D(self.width as f32, self.height as f32)
+        Size2D::typed(self.width as f32, self.height as f32)
     }
 
     fn present(&self) {

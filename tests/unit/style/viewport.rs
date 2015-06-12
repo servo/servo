@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser;
-use geom::size::TypedSize2D;
+use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
@@ -51,7 +51,7 @@ macro_rules! assert_decl_len {
 
 #[test]
 fn empty_viewport_rule() {
-    let device = Device::new(MediaType::Screen, TypedSize2D(800., 600.));
+    let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
 
     test_viewport_rule("@viewport {}", &device, |declarations, css| {
         println!("{}", css);
@@ -74,7 +74,7 @@ macro_rules! assert_decl_eq {
 
 #[test]
 fn simple_viewport_rules() {
-    let device = Device::new(MediaType::Screen, TypedSize2D(800., 600.));
+    let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
 
     test_viewport_rule("@viewport { width: auto; height: auto;\
                                     zoom: auto; min-zoom: 0; max-zoom: 200%;\
@@ -107,7 +107,7 @@ fn simple_viewport_rules() {
 
 #[test]
 fn cascading_within_viewport_rule() {
-    let device = Device::new(MediaType::Screen, TypedSize2D(800., 600.));
+    let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
 
     // normal order of appearance
     test_viewport_rule("@viewport { min-width: 200px; min-width: auto; }",
@@ -172,7 +172,7 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
-    let device = Device::new(MediaType::Screen, TypedSize2D(800., 600.));
+    let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
 
     let stylesheets = vec![
         stylesheet!("@viewport { min-width: 100px; min-height: 100px; zoom: 1; }", UserAgent),
@@ -217,11 +217,11 @@ fn constrain_viewport() {
         }
     }
 
-    let initial_viewport = TypedSize2D(800., 600.);
+    let initial_viewport = Size2D::typed(800., 600.);
     assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("")),
                None);
 
-    let initial_viewport = TypedSize2D(800., 600.);
+    let initial_viewport = Size2D::typed(800., 600.);
     assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
                Some(ViewportConstraints {
                    size: initial_viewport,
@@ -234,10 +234,10 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    let initial_viewport = TypedSize2D(200., 150.);
+    let initial_viewport = Size2D::typed(200., 150.);
     assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
                Some(ViewportConstraints {
-                   size: TypedSize2D(320., 240.),
+                   size: Size2D::typed(320., 240.),
 
                    initial_zoom: ScaleFactor::new(1.),
                    min_zoom: None,
@@ -247,7 +247,7 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    let initial_viewport = TypedSize2D(800., 600.);
+    let initial_viewport = Size2D::typed(800., 600.);
     assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
                Some(ViewportConstraints {
                    size: initial_viewport,
@@ -260,7 +260,7 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    let initial_viewport = TypedSize2D(800., 600.);
+    let initial_viewport = Size2D::typed(800., 600.);
     assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 800px; height: 600px;\
                                                                      zoom: 1;\
                                                                      user-zoom: zoom;\

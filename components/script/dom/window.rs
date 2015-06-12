@@ -1020,10 +1020,10 @@ impl Window {
 }
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
-    let clip_rect = Rect(Point2D(clip_rect.origin.x.to_f32_px(),
-                                 clip_rect.origin.y.to_f32_px()),
-                         Size2D(clip_rect.size.width.to_f32_px(),
-                                clip_rect.size.height.to_f32_px()));
+    let clip_rect = Rect::new(Point2D::new(clip_rect.origin.x.to_f32_px(),
+                                           clip_rect.origin.y.to_f32_px()),
+                              Size2D::new(clip_rect.size.width.to_f32_px(),
+                                          clip_rect.size.height.to_f32_px()));
 
     // We only need to move the clip rect if the viewport is getting near the edge of
     // our preexisting clip rect. We use half of the size of the viewport as a heuristic

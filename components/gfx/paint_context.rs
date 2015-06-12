@@ -107,11 +107,11 @@ impl<'a> PaintContext<'a> {
         let rect = bounds.to_nearest_azure_rect();
         let path_builder = self.draw_target.create_path_builder();
 
-        let left_top = Point2D(rect.origin.x, rect.origin.y);
-        let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
-        let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
-        let right_bottom = Point2D(rect.origin.x + rect.size.width,
-                                   rect.origin.y + rect.size.height);
+        let left_top = Point2D::new(rect.origin.x, rect.origin.y);
+        let right_top = Point2D::new(rect.origin.x + rect.size.width, rect.origin.y);
+        let left_bottom = Point2D::new(rect.origin.x, rect.origin.y + rect.size.height);
+        let right_bottom = Point2D::new(rect.origin.x + rect.size.width,
+                                        rect.origin.y + rect.size.height);
 
         path_builder.move_to(left_top);
         path_builder.line_to(right_top);
@@ -130,7 +130,7 @@ impl<'a> PaintContext<'a> {
                       bounds: &Rect<Au>,
                       image: Arc<Image>,
                       image_rendering: image_rendering::T) {
-        let size = Size2D(image.width as i32, image.height as i32);
+        let size = Size2D::new(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {
             PixelsByColorType::RGBA8(ref pixels) => (4, pixels, SurfaceFormat::B8G8R8A8),
             PixelsByColorType::K8(ref pixels) => (1, pixels, SurfaceFormat::A8),
@@ -145,8 +145,8 @@ impl<'a> PaintContext<'a> {
                                                                             size,
                                                                             stride as i32,
                                                                             source_format);
-        let source_rect = Rect(Point2D(0.0, 0.0),
-                               Size2D(image.width as AzFloat, image.height as AzFloat));
+        let source_rect = Rect::new(Point2D::new(0.0, 0.0),
+                                    Size2D::new(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_nearest_azure_rect();
 
         // TODO(pcwalton): According to CSS-IMAGES-3 § 5.3, nearest-neighbor interpolation is a
@@ -169,10 +169,10 @@ impl<'a> PaintContext<'a> {
 
     pub fn clear(&self) {
         let pattern = ColorPattern::new(color::transparent());
-        let rect = Rect(Point2D(self.page_rect.origin.x as AzFloat,
-                                self.page_rect.origin.y as AzFloat),
-                        Size2D(self.screen_rect.size.width as AzFloat,
-                               self.screen_rect.size.height as AzFloat));
+        let rect = Rect::new(Point2D::new(self.page_rect.origin.x as AzFloat,
+                                          self.page_rect.origin.y as AzFloat),
+                             Size2D::new(self.screen_rect.size.width as AzFloat,
+                                         self.screen_rect.size.height as AzFloat));
         let mut draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         draw_options.set_composition_op(CompositionOp::Source);
         self.draw_target.make_current();
@@ -390,9 +390,9 @@ impl<'a> PaintContext<'a> {
         // T = top, B = bottom, L = left, R = right
 
         let box_TL = bounds.origin;
-        let box_TR = box_TL + Point2D(bounds.size.width, 0.0);
-        let box_BL = box_TL + Point2D(0.0, bounds.size.height);
-        let box_BR = box_TL + Point2D(bounds.size.width, bounds.size.height);
+        let box_TR = box_TL + Point2D::new(bounds.size.width, 0.0);
+        let box_BL = box_TL + Point2D::new(0.0, bounds.size.height);
+        let box_BR = box_TL + Point2D::new(bounds.size.width, bounds.size.height);
 
         let rad_R: AzFloat = 0.;
         let rad_BR = rad_R  + f32::consts::FRAC_PI_4;
@@ -404,19 +404,19 @@ impl<'a> PaintContext<'a> {
         let rad_TR = rad_T  + f32::consts::FRAC_PI_4;
 
         fn dx(x: AzFloat) -> Point2D<AzFloat> {
-            Point2D(x, 0.)
+            Point2D::new(x, 0.)
         }
 
         fn dy(y: AzFloat) -> Point2D<AzFloat> {
-            Point2D(0., y)
+            Point2D::new(0., y)
         }
 
         fn dx_if(cond: bool, dx: AzFloat) -> Point2D<AzFloat> {
-            Point2D(if cond { dx } else { 0. }, 0.)
+            Point2D::new(if cond { dx } else { 0. }, 0.)
         }
 
         fn dy_if(cond: bool, dy: AzFloat) -> Point2D<AzFloat> {
-            Point2D(0., if cond { dy } else { 0. })
+            Point2D::new(0., if cond { dy } else { 0. })
         }
 
         match direction {
@@ -434,8 +434,8 @@ impl<'a> PaintContext<'a> {
 
                 if radius.top_right != 0. {
                     // the origin is the center of the arcs we're about to draw.
-                    let origin = edge_TR + Point2D((border.right - radius.top_right).max(0.),
-                                                   radius.top_right);
+                    let origin = edge_TR + Point2D::new((border.right - radius.top_right).max(0.),
+                                                        radius.top_right);
                     // the elbow is the inside of the border's curve.
                     let distance_to_elbow = (radius.top_right - border.top).max(0.);
 
@@ -447,7 +447,7 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(edge_BL);
 
                 if radius.top_left != 0. {
-                    let origin = edge_TL + Point2D(-(border.left - radius.top_left).max(0.),
+                    let origin = edge_TL + Point2D::new(-(border.left - radius.top_left).max(0.),
                                                    radius.top_left);
                     let distance_to_elbow = (radius.top_left - border.top).max(0.);
 
@@ -468,7 +468,7 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(corner_TL);
 
                 if radius.top_left != 0. {
-                    let origin = edge_TL + Point2D(radius.top_left,
+                    let origin = edge_TL + Point2D::new(radius.top_left,
                                                    -(border.top - radius.top_left).max(0.));
                     let distance_to_elbow = (radius.top_left - border.left).max(0.);
 
@@ -481,7 +481,7 @@ impl<'a> PaintContext<'a> {
 
                 if radius.bottom_left != 0. {
                     let origin = edge_BL +
-                        Point2D(radius.bottom_left,
+                        Point2D::new(radius.bottom_left,
                                 (border.bottom - radius.bottom_left).max(0.));
                     let distance_to_elbow = (radius.bottom_left - border.left).max(0.);
 
@@ -502,8 +502,8 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(edge_TL);
 
                 if radius.top_right != 0. {
-                    let origin = edge_TR + Point2D(-radius.top_right,
-                                                   -(border.top - radius.top_right).max(0.));
+                    let origin = edge_TR + Point2D::new(-radius.top_right,
+                                                        -(border.top - radius.top_right).max(0.));
                     let distance_to_elbow = (radius.top_right - border.right).max(0.);
 
                     path_builder.arc(origin, distance_to_elbow, rad_R, rad_TR, true);
@@ -515,7 +515,7 @@ impl<'a> PaintContext<'a> {
 
                 if radius.bottom_right != 0. {
                     let origin = edge_BR +
-                        Point2D(-radius.bottom_right,
+                        Point2D::new(-radius.bottom_right,
                                 (border.bottom - radius.bottom_right).max(0.));
                     let distance_to_elbow = (radius.bottom_right - border.right).max(0.);
 
@@ -536,8 +536,8 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(edge_TR);
 
                 if radius.bottom_right != 0. {
-                    let origin = edge_BR + Point2D((border.right - radius.bottom_right).max(0.),
-                                                   -radius.bottom_right);
+                    let origin = edge_BR + Point2D::new((border.right - radius.bottom_right).max(0.),
+                                                        -radius.bottom_right);
                     let distance_to_elbow = (radius.bottom_right - border.bottom).max(0.);
 
                     path_builder.arc(origin, distance_to_elbow,   rad_B, rad_BR, true);
@@ -548,7 +548,7 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(corner_BL);
 
                 if radius.bottom_left != 0. {
-                    let origin = edge_BL - Point2D((border.left - radius.bottom_left).max(0.),
+                    let origin = edge_BL - Point2D::new((border.left - radius.bottom_left).max(0.),
                                                    radius.bottom_left);
                     let distance_to_elbow = (radius.bottom_left - border.bottom).max(0.);
 
@@ -579,35 +579,35 @@ impl<'a> PaintContext<'a> {
         //   \ 6        5 /
         //    +----------+
 
-        path_builder.move_to(Point2D(bounds.origin.x + radii.top_left, bounds.origin.y));   // 1
-        path_builder.line_to(Point2D(bounds.max_x() - radii.top_right, bounds.origin.y));   // 2
-        path_builder.arc(Point2D(bounds.max_x() - radii.top_right,
-                                 bounds.origin.y + radii.top_right),
+        path_builder.move_to(Point2D::new(bounds.origin.x + radii.top_left, bounds.origin.y));   // 1
+        path_builder.line_to(Point2D::new(bounds.max_x() - radii.top_right, bounds.origin.y));   // 2
+        path_builder.arc(Point2D::new(bounds.max_x() - radii.top_right,
+                                      bounds.origin.y + radii.top_right),
                          radii.top_right,
                          1.5f32 * f32::consts::FRAC_PI_2,
                          f32::consts::PI_2,
-                         false);                                                            // 3
-        path_builder.line_to(Point2D(bounds.max_x(), bounds.max_y() - radii.bottom_right)); // 4
-        path_builder.arc(Point2D(bounds.max_x() - radii.bottom_right,
-                                 bounds.max_y() - radii.bottom_right),
+                         false);                                                                 // 3
+        path_builder.line_to(Point2D::new(bounds.max_x(), bounds.max_y() - radii.bottom_right)); // 4
+        path_builder.arc(Point2D::new(bounds.max_x() - radii.bottom_right,
+                                      bounds.max_y() - radii.bottom_right),
                          radii.bottom_right,
                          0.0,
                          f32::consts::FRAC_PI_2,
-                         false);                                                            // 5
-        path_builder.line_to(Point2D(bounds.origin.x + radii.bottom_left, bounds.max_y())); // 6
-        path_builder.arc(Point2D(bounds.origin.x + radii.bottom_left,
+                         false);                                                                 // 5
+        path_builder.line_to(Point2D::new(bounds.origin.x + radii.bottom_left, bounds.max_y())); // 6
+        path_builder.arc(Point2D::new(bounds.origin.x + radii.bottom_left,
                                  bounds.max_y() - radii.bottom_left),
                          radii.bottom_left,
                          f32::consts::FRAC_PI_2,
                          f32::consts::PI,
-                         false);                                                            // 7
-        path_builder.line_to(Point2D(bounds.origin.x, bounds.origin.y + radii.top_left));   // 8
-        path_builder.arc(Point2D(bounds.origin.x + radii.top_left,
-                                 bounds.origin.y + radii.top_left),
+                         false);                                                                 // 7
+        path_builder.line_to(Point2D::new(bounds.origin.x, bounds.origin.y + radii.top_left));   // 8
+        path_builder.arc(Point2D::new(bounds.origin.x + radii.top_left,
+                                      bounds.origin.y + radii.top_left),
                          radii.top_left,
                          f32::consts::PI,
                          1.5f32 * f32::consts::FRAC_PI_2,
-                         false);                                                            // 1
+                         false);                                                                 // 1
     }
 
     fn draw_dashed_border_segment(&self,
@@ -634,26 +634,26 @@ impl<'a> PaintContext<'a> {
         let (start, end)  = match direction {
             Direction::Top => {
                 let y = rect.origin.y + border.top * 0.5;
-                let start = Point2D(rect.origin.x, y);
-                let end = Point2D(rect.origin.x + rect.size.width, y);
+                let start = Point2D::new(rect.origin.x, y);
+                let end = Point2D::new(rect.origin.x + rect.size.width, y);
                 (start, end)
             }
             Direction::Left => {
                 let x = rect.origin.x + border.left * 0.5;
-                let start = Point2D(x, rect.origin.y + rect.size.height);
-                let end = Point2D(x, rect.origin.y + border.top);
+                let start = Point2D::new(x, rect.origin.y + rect.size.height);
+                let end = Point2D::new(x, rect.origin.y + border.top);
                 (start, end)
             }
             Direction::Right => {
                 let x = rect.origin.x + rect.size.width - border.right * 0.5;
-                let start = Point2D(x, rect.origin.y);
-                let end = Point2D(x, rect.origin.y + rect.size.height);
+                let start = Point2D::new(x, rect.origin.y);
+                let end = Point2D::new(x, rect.origin.y + rect.size.height);
                 (start, end)
             }
             Direction::Bottom => {
                 let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
-                let start = Point2D(rect.origin.x + rect.size.width, y);
-                let end = Point2D(rect.origin.x + border.left, y);
+                let start = Point2D::new(rect.origin.x + rect.size.width, y);
+                let end = Point2D::new(rect.origin.x + border.left, y);
                 (start, end)
             }
         };
@@ -684,12 +684,12 @@ impl<'a> PaintContext<'a> {
                                                  shrink_factor * border.right,
                                                  shrink_factor * border.bottom,
                                                  shrink_factor * border.left);
-        let left_top        = Point2D(rect.origin.x, rect.origin.y);
-        let scaled_left_top = left_top + Point2D(scaled_border.left,
-                                                 scaled_border.top);
-        return Rect(scaled_left_top,
-                    Size2D(rect.size.width - 2.0 * scaled_border.right,
-                           rect.size.height - 2.0 * scaled_border.bottom));
+        let left_top        = Point2D::new(rect.origin.x, rect.origin.y);
+        let scaled_left_top = left_top + Point2D::new(scaled_border.left,
+                                                      scaled_border.top);
+        return Rect::new(scaled_left_top,
+                         Size2D::new(rect.size.width - 2.0 * scaled_border.right,
+                                     rect.size.height - 2.0 * scaled_border.bottom));
     }
 
     fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
@@ -906,7 +906,7 @@ impl<'a> PaintContext<'a> {
 
         // FIXME(pcwalton): This surface might be bigger than necessary and waste memory.
         let size = self.draw_target.get_size(); //Az size.
-        let mut size = Size2D(size.width, size.height); //Geom::Size.
+        let mut size = Size2D::new(size.width, size.height); //Geom::Size.
 
         // Pre-calculate if there is a blur expansion need.
         let accum_blur = filters::calculate_accumulated_blur(filters);
@@ -914,13 +914,13 @@ impl<'a> PaintContext<'a> {
         if accum_blur > Au(0) {
             // Set the correct size.
             let side_inflation = accum_blur * BLUR_INFLATION_FACTOR;
-            size = Size2D(size.width + (side_inflation.to_nearest_px() * 2) as i32,
-                          size.height + (side_inflation.to_nearest_px() * 2) as i32);
+            size = Size2D::new(size.width + (side_inflation.to_nearest_px() * 2) as i32,
+                               size.height + (side_inflation.to_nearest_px() * 2) as i32);
 
             // Calculate the transform matrix.
             let old_transform = self.draw_target.get_transform();
-            let inflated_size = Rect(Point2D(0.0, 0.0), Size2D(size.width as AzFloat,
-                                                               size.height as AzFloat));
+            let inflated_size = Rect::new(Point2D::new(0.0, 0.0), Size2D::new(size.width as AzFloat,
+                                                                              size.height as AzFloat));
             let temporary_draw_target_bounds = old_transform.transform_rect(&inflated_size);
             matrix = Matrix2D::identity().translate(
                 -temporary_draw_target_bounds.origin.x as AzFloat,
@@ -948,9 +948,9 @@ impl<'a> PaintContext<'a> {
         // Set up transforms.
         let old_transform = self.draw_target.get_transform();
         self.draw_target.set_transform(&Matrix2D::identity());
-        let rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
+        let rect = Rect::new(Point2D::new(0.0, 0.0), self.draw_target.get_size().to_azure_size());
 
-        let rect_temporary = Rect(Point2D(0.0, 0.0), temporary_draw_target.get_size().to_azure_size());
+        let rect_temporary = Rect::new(Point2D::new(0.0, 0.0), temporary_draw_target.get_size().to_azure_size());
 
         // Create the Azure filter pipeline.
         let mut accum_blur = Au(0);
@@ -1111,10 +1111,10 @@ pub trait ToAzurePoint {
 
 impl ToAzurePoint for Point2D<Au> {
     fn to_nearest_azure_point(&self) -> Point2D<AzFloat> {
-        Point2D(self.x.to_nearest_px() as AzFloat, self.y.to_nearest_px() as AzFloat)
+        Point2D::new(self.x.to_nearest_px() as AzFloat, self.y.to_nearest_px() as AzFloat)
     }
     fn to_azure_point(&self) -> Point2D<AzFloat> {
-        Point2D(self.x.to_f32_px(), self.y.to_f32_px())
+        Point2D::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
@@ -1125,13 +1125,13 @@ pub trait ToAzureRect {
 
 impl ToAzureRect for Rect<Au> {
     fn to_nearest_azure_rect(&self) -> Rect<AzFloat> {
-        Rect(self.origin.to_nearest_azure_point(), Size2D(self.size.width.to_nearest_px() as AzFloat,
-                                                  self.size.height.to_nearest_px() as AzFloat))
+        Rect::new(self.origin.to_nearest_azure_point(), Size2D::new(self.size.width.to_nearest_px() as AzFloat,
+                                                                    self.size.height.to_nearest_px() as AzFloat))
 
     }
     fn to_azure_rect(&self) -> Rect<AzFloat> {
-        Rect(self.origin.to_azure_point(), Size2D(self.size.width.to_f32_px(),
-                                                        self.size.height.to_f32_px()))
+        Rect::new(self.origin.to_azure_point(), Size2D::new(self.size.width.to_f32_px(),
+                                                            self.size.height.to_f32_px()))
     }
 }
 
@@ -1141,7 +1141,7 @@ pub trait ToAzureSize {
 
 impl ToAzureSize for AzIntSize {
     fn to_azure_size(&self) -> Size2D<AzFloat> {
-        Size2D(self.width as AzFloat, self.height as AzFloat)
+        Size2D::new(self.width as AzFloat, self.height as AzFloat)
     }
 }
 
@@ -1151,19 +1151,19 @@ trait ToAzureIntSize {
 
 impl ToAzureIntSize for Size2D<Au> {
     fn to_azure_int_size(&self) -> Size2D<i32> {
-        Size2D(self.width.to_nearest_px() as i32, self.height.to_nearest_px() as i32)
+        Size2D::new(self.width.to_nearest_px() as i32, self.height.to_nearest_px() as i32)
     }
 }
 
 impl ToAzureIntSize for Size2D<AzFloat> {
     fn to_azure_int_size(&self) -> Size2D<i32> {
-        Size2D(self.width as i32, self.height as i32)
+        Size2D::new(self.width as i32, self.height as i32)
     }
 }
 
 impl ToAzureIntSize for Size2D<i32> {
     fn to_azure_int_size(&self) -> Size2D<i32> {
-        Size2D(self.width, self.height)
+        Size2D::new(self.width, self.height)
     }
 }
 
@@ -1243,7 +1243,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
                         y: (origin.y + glyph_offset.y).to_f32_px(),
                     }
                 };
-                origin = Point2D(origin.x + glyph_advance, origin.y);
+                origin = Point2D::new(origin.x + glyph_advance, origin.y);
                 azglyphs.push(azglyph)
             };
         }
@@ -1306,25 +1306,25 @@ impl DrawTargetExtensions for DrawTarget {
 
         let (outer_rect, inner_rect) = (outer_rect.to_nearest_azure_rect(), inner_rect.to_nearest_azure_rect());
         let path_builder = self.create_path_builder();
-        path_builder.move_to(Point2D(outer_rect.max_x(), outer_rect.origin.y));     // 1
-        path_builder.line_to(Point2D(outer_rect.origin.x, outer_rect.origin.y));    // 2
-        path_builder.line_to(Point2D(outer_rect.origin.x, outer_rect.max_y()));     // 3
-        path_builder.line_to(Point2D(outer_rect.max_x(), outer_rect.max_y()));      // 4
-        path_builder.line_to(Point2D(outer_rect.max_x(), inner_rect.origin.y));     // 5
-        path_builder.line_to(Point2D(inner_rect.max_x(), inner_rect.origin.y));     // 6
-        path_builder.line_to(Point2D(inner_rect.max_x(), inner_rect.max_y()));      // 7
-        path_builder.line_to(Point2D(inner_rect.origin.x, inner_rect.max_y()));     // 8
-        path_builder.line_to(inner_rect.origin);                                    // 9
-        path_builder.line_to(Point2D(outer_rect.max_x(), inner_rect.origin.y));     // 10
+        path_builder.move_to(Point2D::new(outer_rect.max_x(), outer_rect.origin.y));     // 1
+        path_builder.line_to(Point2D::new(outer_rect.origin.x, outer_rect.origin.y));    // 2
+        path_builder.line_to(Point2D::new(outer_rect.origin.x, outer_rect.max_y()));     // 3
+        path_builder.line_to(Point2D::new(outer_rect.max_x(), outer_rect.max_y()));      // 4
+        path_builder.line_to(Point2D::new(outer_rect.max_x(), inner_rect.origin.y));     // 5
+        path_builder.line_to(Point2D::new(inner_rect.max_x(), inner_rect.origin.y));     // 6
+        path_builder.line_to(Point2D::new(inner_rect.max_x(), inner_rect.max_y()));      // 7
+        path_builder.line_to(Point2D::new(inner_rect.origin.x, inner_rect.max_y()));     // 8
+        path_builder.line_to(inner_rect.origin);                                         // 9
+        path_builder.line_to(Point2D::new(outer_rect.max_x(), inner_rect.origin.y));     // 10
         path_builder.finish()
     }
 
     fn create_rectangular_path(&self, rect: &Rect<Au>) -> Path {
         let path_builder = self.create_path_builder();
         path_builder.move_to(rect.origin.to_nearest_azure_point());
-        path_builder.line_to(Point2D(rect.max_x(), rect.origin.y).to_nearest_azure_point());
-        path_builder.line_to(Point2D(rect.max_x(), rect.max_y()).to_nearest_azure_point());
-        path_builder.line_to(Point2D(rect.origin.x, rect.max_y()).to_nearest_azure_point());
+        path_builder.line_to(Point2D::new(rect.max_x(), rect.origin.y).to_nearest_azure_point());
+        path_builder.line_to(Point2D::new(rect.max_x(), rect.max_y()).to_nearest_azure_point());
+        path_builder.line_to(Point2D::new(rect.origin.x, rect.max_y()).to_nearest_azure_point());
         path_builder.finish()
     }
 }
@@ -1373,7 +1373,7 @@ impl TemporaryDrawTarget {
     fn from_main_draw_target(main_draw_target: &DrawTarget) -> TemporaryDrawTarget {
         TemporaryDrawTarget {
             draw_target: main_draw_target.clone(),
-            offset: Point2D(0.0, 0.0),
+            offset: Point2D::new(0.0, 0.0),
         }
     }
 
@@ -1385,8 +1385,8 @@ impl TemporaryDrawTarget {
         let temporary_draw_target_bounds =
             draw_target_transform.transform_rect(&bounds.to_azure_rect());
         let temporary_draw_target_size =
-            Size2D(temporary_draw_target_bounds.size.width.ceil() as i32,
-                   temporary_draw_target_bounds.size.height.ceil() as i32);
+            Size2D::new(temporary_draw_target_bounds.size.width.ceil() as i32,
+                        temporary_draw_target_bounds.size.height.ceil() as i32);
         let temporary_draw_target =
             main_draw_target.create_similar_draw_target(&temporary_draw_target_size,
                                                         main_draw_target.get_format());
@@ -1405,14 +1405,14 @@ impl TemporaryDrawTarget {
     fn draw_filter(self, main_draw_target: &DrawTarget, filter: FilterNode) {
         let main_draw_target_transform = main_draw_target.get_transform();
         let temporary_draw_target_size = self.draw_target.get_size();
-        let temporary_draw_target_size = Size2D(temporary_draw_target_size.width as AzFloat,
-                                                temporary_draw_target_size.height as AzFloat);
+        let temporary_draw_target_size = Size2D::new(temporary_draw_target_size.width as AzFloat,
+                                                     temporary_draw_target_size.height as AzFloat);
 
         // Blit the blur onto the tile. We undo the transforms here because we want to directly
         // stack the temporary draw target onto the tile.
         main_draw_target.set_transform(&Matrix2D::identity());
         main_draw_target.draw_filter(&filter,
-                                     &Rect(Point2D(0.0, 0.0), temporary_draw_target_size),
+                                     &Rect::new(Point2D::new(0.0, 0.0), temporary_draw_target_size),
                                      &self.offset,
                                      DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None));
         main_draw_target.set_transform(&main_draw_target_transform);
