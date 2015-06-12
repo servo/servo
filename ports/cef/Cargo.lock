@@ -247,7 +247,7 @@ dependencies = [
 [[package]]
 name = "egl"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-egl#c0159346b3adfdcf13f2cd86f5ee41750a72c078"
+source = "git+https://github.com/servo/rust-egl#b21a3eafc321bd498231fcd4f4704fd90898ebf4"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -836,10 +836,11 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#705d8647a48c37b43bc3746e7d0ecd2dfaa70519"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#0fd217b95d806bdcb6d381cf092ca8776de273c8"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
@@ -1020,6 +1021,7 @@ dependencies = [
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
+ "gfx_traits 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
