@@ -26,7 +26,7 @@ system-cargo = false
 [build]
 # Set "mode = dev" or use `mach build --dev` to build the project with warning.
 # or Set "mode = release" or use `mach build --release` for optimized build.
-# Defaults ""
+# Defaults to prompting before building
 #mode = "dev"
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
@@ -35,7 +35,8 @@ debug-mozjs = false
 
 # Android information
 [android]
-# Defaults sdk = "" ndk = "" toolchain = ""
+# Defaults to "unspecified" and will instead pull from the 
+# ANDROID_SDK/ANDROID_NDK/ANDROID_TOOLCHAIN env vars
 #sdk = "/opt/android-sdk"
 #ndk = "/opt/android-ndk"
 #toolchain = "/opt/android-toolchain"
@@ -44,6 +45,6 @@ debug-mozjs = false
 # Please fill the ndk/toolchain for android too
 [gonk]
 # Path to B2G repo and build
-# Defaults b2g = ""
+# Defaults to the value of $GONKDIR
 #b2g = "/opt/B2G"
 product = "flame"
