@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure::AzFloat;
+use azure::azure::{AzFloat, AzColor};
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
@@ -171,6 +171,10 @@ struct CanvasPaintState<'a> {
     stroke_opts: StrokeOptions<'a>,
     /// The current 2D transform matrix.
     transform: Matrix2D<f32>,
+    shadow_offset_x: f64,
+    shadow_offset_y: f64,
+    shadow_blur: f64,
+    shadow_color: AzColor,
 }
 
 impl<'a> CanvasPaintState<'a> {
@@ -187,6 +191,10 @@ impl<'a> CanvasPaintState<'a> {
             stroke_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
             transform: Matrix2D::identity(),
+            shadow_offset_x: 0.0,
+            shadow_offset_y: 0.0,
+            shadow_blur: 0.0,
+            shadow_color: color::transparent(),
         }
     }
 }
@@ -257,6 +265,10 @@ impl<'a> CanvasPaintTask<'a> {
                                 => painter.get_image_data(dest_rect, canvas_size, chan),
                             Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
                                 => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
+                            Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
+                            Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
+                            Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
+                            Canvas2dMsg::SetShadowColor(rgba) => painter.set_shadow_color(rgba),
                         }
                     },
                     CanvasMsg::Common(message) => {
@@ -581,6 +593,22 @@ impl<'a> CanvasPaintTask<'a> {
             Size2D(source_rect.size.width, source_rect.size.height));
 
         self.write_pixels(&imagedata, image_data_rect.size, source_rect, dest_rect, true)
+    }
+
+    fn set_shadow_offset_x(&mut self, value: f64) {
+        self.state.shadow_offset_x = value;
+    }
+
+    fn set_shadow_offset_y(&mut self, value: f64) {
+        self.state.shadow_offset_y = value;
+    }
+
+    fn set_shadow_blur(&mut self, value: f64) {
+        self.state.shadow_blur = value;
+    }
+
+    fn set_shadow_color(&mut self, value: AzColor) {
+        self.state.shadow_color = value;
     }
 }
 

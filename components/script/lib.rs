@@ -26,6 +26,7 @@ extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;
 extern crate geom;
+extern crate gfx_traits;
 extern crate html5ever;
 extern crate encoding;
 extern crate fnv;

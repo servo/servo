@@ -27,6 +27,7 @@ use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx_traits::color;
 
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
@@ -80,6 +81,10 @@ struct CanvasContextState {
     line_join: LineJoinStyle,
     miter_limit: f64,
     transform: Matrix2D<f32>,
+    shadow_offset_x: f64,
+    shadow_offset_y: f64,
+    shadow_blur: f64,
+    shadow_color: RGBA,
 }
 
 impl CanvasContextState {
@@ -101,6 +106,10 @@ impl CanvasContextState {
             line_join: LineJoinStyle::Miter,
             miter_limit: 10.0,
             transform: Matrix2D::identity(),
+            shadow_offset_x: 0.0,
+            shadow_offset_y: 0.0,
+            shadow_blur: 0.0,
+            shadow_color: RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0 }, // transparent black
         }
     }
 }
@@ -1055,6 +1064,61 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         self.state.borrow_mut().miter_limit = limit;
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetMiterLimit(limit as f32))).unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
+    fn ShadowOffsetX(self) -> f64 {
+        self.state.borrow().shadow_offset_x
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
+    fn SetShadowOffsetX(self, value: f64) {
+        self.state.borrow_mut().shadow_offset_x = value;
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowOffsetX(value))).unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
+    fn ShadowOffsetY(self) -> f64 {
+        self.state.borrow().shadow_offset_y
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
+    fn SetShadowOffsetY(self, value: f64) {
+        self.state.borrow_mut().shadow_offset_y = value;
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowOffsetY(value))).unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
+    fn ShadowBlur(self) -> f64 {
+        self.state.borrow().shadow_blur
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
+    fn SetShadowBlur(self, value: f64) {
+        self.state.borrow_mut().shadow_blur = value;
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowBlur(value))).unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
+    fn ShadowColor(self) -> DOMString {
+        let mut result = String::new();
+        serialize(&self.state.borrow().shadow_color, &mut result).unwrap();
+        result
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
+    fn SetShadowColor(self, value: DOMString) {
+        match parse_color(&value) {
+            Ok(rgba) => {
+                self.state.borrow_mut().shadow_color = rgba;
+                self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowColor(
+                                                            color::rgba(rgba.red,
+                                                                        rgba.green,
+                                                                        rgba.blue,
+                                                                        rgba.alpha)))).unwrap()
+            },
+            _ => {}
+        }
     }
 }
 
