@@ -28,6 +28,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_state::DefaultState;
 use std::default::Default;
 use std::ffi::CString;
+use std::intrinsics;
 use std::ptr;
 use url::Url;
 
@@ -40,7 +41,7 @@ pub enum ListenerPhase {
     Bubbling,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone)]
 #[jstraceable]
 pub enum EventTargetTypeId {
     Node(NodeTypeId),
@@ -49,6 +50,42 @@ pub enum EventTargetTypeId {
     Worker,
     WorkerGlobalScope(WorkerGlobalScopeTypeId),
     XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
+}
+
+impl PartialEq for EventTargetTypeId {
+    #[inline]
+    fn eq(&self, other: &EventTargetTypeId) -> bool {
+        match (*self, *other) {
+            (EventTargetTypeId::Node(this_type), EventTargetTypeId::Node(other_type)) => {
+                this_type == other_type
+            }
+            _ => self.eq_slow(other)
+        }
+    }
+}
+
+impl EventTargetTypeId {
+    #[allow(unsafe_code)]
+    fn eq_slow(&self, other: &EventTargetTypeId) -> bool {
+        match (*self, *other) {
+            (EventTargetTypeId::Node(this_type), EventTargetTypeId::Node(other_type)) => {
+                this_type == other_type
+            }
+            (EventTargetTypeId::WorkerGlobalScope(this_type),
+             EventTargetTypeId::WorkerGlobalScope(other_type)) => {
+                this_type == other_type
+            }
+            (EventTargetTypeId::XMLHttpRequestEventTarget(this_type),
+             EventTargetTypeId::XMLHttpRequestEventTarget(other_type)) => {
+                this_type == other_type
+            }
+            (_, _) => {
+                unsafe {
+                    intrinsics::discriminant_value(self) == intrinsics::discriminant_value(other)
+                }
+            }
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq)]

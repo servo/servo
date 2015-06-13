@@ -36,6 +36,7 @@ use string_cache::Atom;
 
 use std::borrow::ToOwned;
 use std::default::Default;
+use std::intrinsics;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -303,7 +304,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[jstraceable]
 pub enum HTMLElementTypeId {
     HTMLElement,
@@ -372,5 +373,27 @@ pub enum HTMLElementTypeId {
     HTMLTrackElement,
     HTMLUListElement,
     HTMLUnknownElement,
+}
+
+impl PartialEq for HTMLElementTypeId {
+    #[inline]
+    #[allow(unsafe_code)]
+    fn eq(&self, other: &HTMLElementTypeId) -> bool {
+        match (*self, *other) {
+            (HTMLElementTypeId::HTMLMediaElement(this_type),
+             HTMLElementTypeId::HTMLMediaElement(other_type)) => {
+                this_type == other_type
+            }
+            (HTMLElementTypeId::HTMLTableCellElement(this_type),
+             HTMLElementTypeId::HTMLTableCellElement(other_type)) => {
+                this_type == other_type
+            }
+            (_, _) => {
+                unsafe {
+                    intrinsics::discriminant_value(self) == intrinsics::discriminant_value(other)
+                }
+            }
+        }
+    }
 }
 

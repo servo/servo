@@ -42,10 +42,17 @@ impl HTMLMediaElement {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[jstraceable]
 pub enum HTMLMediaElementTypeId {
-    HTMLAudioElement,
-    HTMLVideoElement,
+    HTMLAudioElement = 0,
+    HTMLVideoElement = 1,
+}
+
+impl PartialEq for HTMLMediaElementTypeId {
+    #[inline]
+    fn eq(&self, other: &HTMLMediaElementTypeId) -> bool {
+        (*self as u8) == (*other as u8)
+    }
 }
 
