@@ -1018,7 +1018,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                     "    Err(_) => return 0,\n"
                     "}" % typeName)
 
-        return handleOptional(template, declType, handleDefaultNull("%s::empty()" % typeName))
+        return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 
     if type.isVoid():
         # This one only happens for return values, and its easy: Just
@@ -4869,8 +4869,8 @@ class CGDictionary(CGThing):
 
         return string.Template(
             "impl ${selfName} {\n"
-            "    pub fn empty() -> ${selfName} {\n"
-            "        ${selfName}::new(ptr::null_mut(), HandleValue::null()).unwrap()\n"
+            "    pub fn empty(cx: *mut JSContext) -> ${selfName} {\n"
+            "        ${selfName}::new(cx, HandleValue::null()).unwrap()\n"
             "    }\n"
             "    pub fn new(cx: *mut JSContext, val: HandleValue) -> Result<${selfName}, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
