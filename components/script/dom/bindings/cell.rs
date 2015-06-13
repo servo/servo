@@ -40,7 +40,8 @@ impl<T> DOMRefCell<T> {
     /// so you have to be careful in trace code!
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_gc_trace<'a>(&'a self) -> &'a T {
-        debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
+        // FIXME: IN_GC isn't reliable enough - doesn't catch minor GCs
+        //debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
         &*self.value.as_unsafe_cell().get()
     }
 
