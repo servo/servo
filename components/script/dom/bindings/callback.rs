@@ -166,7 +166,7 @@ pub struct CallSetup {
     /// The compartment we were in before the call.
     old_compartment: *mut JSCompartment,
     /// The exception handling used for the call.
-    _handling: ExceptionHandling,
+    handling: ExceptionHandling,
 }
 
 impl CallSetup {
@@ -186,7 +186,7 @@ impl CallSetup {
                                             unsafe { return_address() }),
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
-            _handling: handling,
+            handling: handling,
         }
     }
 
@@ -200,6 +200,7 @@ impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe { JS_LeaveCompartment(self.cx, self.old_compartment); }
         let need_to_deal_with_exception =
+            self.handling == ExceptionHandling::Report &&
             unsafe { JS_IsExceptionPending(self.cx) } != 0;
         if need_to_deal_with_exception {
             unsafe {
