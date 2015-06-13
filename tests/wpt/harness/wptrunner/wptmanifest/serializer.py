@@ -3,7 +3,9 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
-from parser import precedence
+from parser import atoms, precedence
+
+atom_names = {v:"@%s" % k for (k,v) in atoms.iteritems()}
 
 named_escapes = set(["\a", "\b", "\f", "\n", "\r", "\t", "\v"])
 
@@ -79,6 +81,9 @@ class ManifestSerializer(NodeVisitor):
         else:
             quote = ""
         return [quote + escape(node.data, extras=quote) + quote]
+
+    def visit_AtomNode(self, node):
+        return [atom_names[node.data]]
 
     def visit_ConditionalNode(self, node):
         return ["if %s: %s" % tuple(self.visit(item)[0] for item in node.children)]
