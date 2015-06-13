@@ -2379,7 +2379,7 @@ let traps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
     defineProperty: Some(%s),
-    ownPropertyKeys: None,
+    ownPropertyKeys: Some(proxyhandler::own_property_keys),
     delete_: Some(%s),
     enumerate: None,
     preventExtensions: Some(proxyhandler::prevent_extensions),
