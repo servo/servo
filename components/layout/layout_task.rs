@@ -9,7 +9,7 @@
 
 use animation;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, SharedLayoutContextWrapper};
+use context::{SharedLayoutContext, SharedLayoutContextWrapper, heap_size_of_local_context};
 use css::node_style::StyledNode;
 use data::{LayoutDataAccess, LayoutDataWrapper};
 use display_list_builder::ToGfxColor;
@@ -575,9 +575,27 @@ impl LayoutTask {
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(Report {
-            path: path!["pages", format!("url({})", self.url), "display-list"],
+            path: path!["pages", format!("url({})", self.url), "layout-task", "display-list"],
             size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
         });
+
+        // The LayoutTask has a context in TLS...
+        reports.push(Report {
+            path: path!["pages", format!("url({})", self.url), "layout-task", "local-context"],
+            size: heap_size_of_local_context(),
+        });
+
+        // ... as do each of the LayoutWorkers, if present.
+        if let Some(ref traversal) = rw_data.parallel_traversal {
+            let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
+            for (i, size) in sizes.iter().enumerate() {
+                reports.push(Report {
+                    path: path!["pages", format!("url({})", self.url),
+                                format!("layout-worker-{}-local-context", i)],
+                    size: *size
+                });
+            }
+        }
 
         reports_chan.send(reports);
     }

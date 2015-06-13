@@ -5,6 +5,7 @@
 //! Data structure measurement.
 
 use libc::{c_void, size_t};
+use std::cell::RefCell;
 use std::collections::LinkedList;
 use std::mem::transmute;
 use std::sync::Arc;
@@ -89,6 +90,12 @@ impl<T: HeapSizeOf> HeapSizeOf for Option<T> {
 impl<T: HeapSizeOf> HeapSizeOf for Arc<T> {
     fn heap_size_of_children(&self) -> usize {
         (**self).heap_size_of_children()
+    }
+}
+
+impl<T: HeapSizeOf> HeapSizeOf for RefCell<T> {
+    fn heap_size_of_children(&self) -> usize {
+        self.borrow().heap_size_of_children()
     }
 }
 

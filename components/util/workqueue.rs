@@ -36,6 +36,8 @@ enum WorkerMsg<QueueData: 'static, WorkData: 'static> {
     Start(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUsize, *const QueueData),
     /// Tells the worker to stop. It can be restarted again with a `WorkerMsg::Start`.
     Stop,
+    /// Tells the worker to measure the heap size of its TLS using the supplied function.
+    HeapSizeOfTLS(fn() -> usize),
     /// Tells the worker thread to terminate.
     Exit,
 }
@@ -45,6 +47,7 @@ unsafe impl<QueueData: 'static, WorkData: 'static> Send for WorkerMsg<QueueData,
 /// Messages to the supervisor.
 enum SupervisorMsg<QueueData: 'static, WorkData: 'static> {
     Finished,
+    HeapSizeOfTLS(usize),
     ReturnDeque(usize, Worker<WorkUnit<QueueData, WorkData>>),
 }
 
@@ -102,6 +105,10 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                 WorkerMsg::Start(deque, ref_count, queue_data) => (deque, ref_count, queue_data),
                 WorkerMsg::Stop => panic!("unexpected stop message"),
                 WorkerMsg::Exit => return,
+                WorkerMsg::HeapSizeOfTLS(f) => {
+                    self.chan.send(SupervisorMsg::HeapSizeOfTLS(f())).unwrap();
+                    continue;
+                }
             };
 
             let mut back_off_sleep = 0 as u32;
@@ -335,9 +342,30 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         for _ in 0..self.workers.len() {
             match self.port.recv().unwrap() {
                 SupervisorMsg::ReturnDeque(index, deque) => self.workers[index].deque = Some(deque),
+                SupervisorMsg::HeapSizeOfTLS(_) => panic!("unexpected HeapSizeOfTLS message"),
                 SupervisorMsg::Finished => panic!("unexpected finished message!"),
             }
         }
+    }
+
+    /// Synchronously measure memory usage of any thread-local storage.
+    pub fn heap_size_of_tls(&self, f: fn() -> usize) -> Vec<usize> {
+        // Tell the workers to measure themselves.
+        for worker in self.workers.iter() {
+            worker.chan.send(WorkerMsg::HeapSizeOfTLS(f)).unwrap()
+        }
+
+        // Wait for the workers to finish measuring themselves.
+        let mut sizes = vec![];
+        for _ in 0..self.workers.len() {
+            match self.port.recv().unwrap() {
+                SupervisorMsg::HeapSizeOfTLS(size) => {
+                    sizes.push(size);
+                }
+                _ => panic!("unexpected message!"),
+            }
+        }
+        sizes
     }
 
     pub fn shutdown(&mut self) {
