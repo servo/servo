@@ -29,7 +29,7 @@ impl<'a> CanvasPaintTask<'a> {
     fn read_pixels(&self, read_rect: Rect<f64>, canvas_size: Size2D<f64>) -> Vec<u8>{
         let read_rect = read_rect.to_i32();
         let canvas_size = canvas_size.to_i32();
-        let canvas_rect = Rect(Point2D(0i32, 0i32), canvas_size);
+        let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
         let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
 
         let mut image_data = Vec::new();
@@ -147,7 +147,7 @@ impl<'a> CanvasPaintTask<'a> {
         if imagedata.len() == 0 {
             return
         }
-        let image_rect = Rect(Point2D(0f64, 0f64), image_size);
+        let image_rect = Rect::new(Point2D::new(0f64, 0f64), image_size);
         // rgba -> bgra
         byte_swap(&mut imagedata);
         self.write_pixels(&imagedata, image_size, image_rect, dest_rect, smoothing_enabled);
@@ -301,15 +301,15 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
-        let draw_rect = Rect(rect.origin,
+        let draw_rect = Rect::new(rect.origin,
             match self.state.fill_style {
                 Pattern::Surface(ref surface) => {
                     let surface_size = surface.size();
                     match (surface.repeat_x, surface.repeat_y) {
                         (true, true) => rect.size,
-                        (true, false) => Size2D(rect.size.width, surface_size.height as f32),
-                        (false, true) => Size2D(surface_size.width as f32, rect.size.height),
-                        (false, false) => Size2D(surface_size.width as f32, surface_size.height as f32),
+                        (true, false) => Size2D::new(rect.size.width, surface_size.height as f32),
+                        (false, true) => Size2D::new(surface_size.width as f32, rect.size.height),
+                        (false, false) => Size2D::new(surface_size.width as f32, surface_size.height as f32),
                     }
                 },
                 _ => rect.size,
@@ -398,11 +398,11 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn rect(&self, rect: &Rect<f32>) {
-        self.path_builder.move_to(Point2D(rect.origin.x, rect.origin.y));
-        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width, rect.origin.y));
-        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width,
-                                          rect.origin.y + rect.size.height));
-        self.path_builder.line_to(Point2D(rect.origin.x, rect.origin.y + rect.size.height));
+        self.path_builder.move_to(Point2D::new(rect.origin.x, rect.origin.y));
+        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width, rect.origin.y));
+        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width,
+                                               rect.origin.y + rect.size.height));
+        self.path_builder.line_to(Point2D::new(rect.origin.x, rect.origin.y + rect.size.height));
         self.path_builder.close();
     }
 
@@ -462,12 +462,12 @@ impl<'a> CanvasPaintTask<'a> {
         // first tangent point
         let anx = (cp1.x - cp0.x) / a2.sqrt();
         let any = (cp1.y - cp0.y) / a2.sqrt();
-        let tp1 = Point2D::<AzFloat>(cp1.x - anx * d, cp1.y - any * d);
+        let tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
 
         // second tangent point
         let bnx = (cp1.x - cp2.x) / b2.sqrt();
         let bny = (cp1.y - cp2.y) / b2.sqrt();
-        let tp2 = Point2D::<AzFloat>(cp1.x - bnx * d, cp1.y - bny * d);
+        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
 
         // arc center and angles
         let anticlockwise = direction < 0.0;
@@ -478,7 +478,7 @@ impl<'a> CanvasPaintTask<'a> {
 
         self.line_to(&tp1);
         if [cx, cy, angle_start, angle_end].iter().all(|x| x.is_finite()) {
-            self.arc(&Point2D::<AzFloat>(cx, cy), radius,
+            self.arc(&Point2D::new(cx, cy), radius,
                      angle_start, angle_end, anticlockwise);
         }
     }
@@ -577,8 +577,8 @@ impl<'a> CanvasPaintTask<'a> {
         // rgba -> bgra
         byte_swap(&mut imagedata);
 
-        let image_rect = Rect(Point2D(0f64, 0f64),
-                               Size2D(image_data_rect.size.width, image_data_rect.size.height));
+        let image_rect = Rect::new(Point2D::new(0f64, 0f64),
+                                   Size2D::new(image_data_rect.size.width, image_data_rect.size.height));
 
         // Dirty rectangle defines the area of the source image to be copied
         // on the destination canvas
@@ -602,10 +602,10 @@ impl<'a> CanvasPaintTask<'a> {
         // data structure's Canvas Pixel ArrayBuffer to the pixel with coordinate
         // (dx+x, dy+y) in the rendering context's scratch bitmap.
         // It also clips the destination rectangle to the canvas area
-        let dest_rect = Rect(
-            Point2D(image_data_rect.origin.x + source_rect.origin.x,
-                    image_data_rect.origin.y + source_rect.origin.y),
-            Size2D(source_rect.size.width, source_rect.size.height));
+        let dest_rect = Rect::new(
+            Point2D::new(image_data_rect.origin.x + source_rect.origin.x,
+                         image_data_rect.origin.y + source_rect.origin.y),
+            Size2D::new(source_rect.size.width, source_rect.size.height));
 
         self.write_pixels(&imagedata, image_data_rect.size, source_rect, dest_rect, true)
     }
@@ -664,8 +664,8 @@ pub trait SizeToi32 {
 
 impl SizeToi32 for Size2D<f64> {
     fn to_i32(&self) -> Size2D<i32> {
-        Size2D(self.width.to_i32().unwrap(),
-               self.height.to_i32().unwrap())
+        Size2D::new(self.width.to_i32().unwrap(),
+                    self.height.to_i32().unwrap())
     }
 }
 
@@ -676,17 +676,17 @@ pub trait RectToi32 {
 
 impl RectToi32 for Rect<f64> {
     fn to_i32(&self) -> Rect<i32> {
-        Rect(Point2D(self.origin.x.to_i32().unwrap(),
-                     self.origin.y.to_i32().unwrap()),
-             Size2D(self.size.width.to_i32().unwrap(),
-                    self.size.height.to_i32().unwrap()))
+        Rect::new(Point2D::new(self.origin.x.to_i32().unwrap(),
+                               self.origin.y.to_i32().unwrap()),
+                  Size2D::new(self.size.width.to_i32().unwrap(),
+                              self.size.height.to_i32().unwrap()))
     }
 
     fn ceil(&self) -> Rect<f64> {
-        Rect(Point2D(self.origin.x.ceil(),
-                     self.origin.y.ceil()),
-             Size2D(self.size.width.ceil(),
-                    self.size.height.ceil()))
+        Rect::new(Point2D::new(self.origin.x.ceil(),
+                               self.origin.y.ceil()),
+                  Size2D::new(self.size.width.ceil(),
+                              self.size.height.ceil()))
     }
 
 }
@@ -697,7 +697,7 @@ pub trait ToAzFloat {
 
 impl ToAzFloat for Rect<f64> {
     fn to_azfloat(&self) -> Rect<AzFloat> {
-        Rect(Point2D(self.origin.x as AzFloat, self.origin.y as AzFloat),
-             Size2D(self.size.width as AzFloat, self.size.height as AzFloat))
+        Rect::new(Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
+                  Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat))
     }
 }

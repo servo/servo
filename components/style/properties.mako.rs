@@ -3896,7 +3896,7 @@ pub mod longhands {
                             p2y = try!(input.expect_number());
                             Ok(())
                         }));
-                        let (p1, p2) = (Point2D(p1x, p1y), Point2D(p2x, p2y));
+                        let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
                         Ok(TransitionTimingFunction::CubicBezier(p1, p2))
                     },
                     "steps" => {

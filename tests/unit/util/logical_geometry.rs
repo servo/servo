@@ -24,7 +24,7 @@ fn modes() -> [WritingMode; 10] {
 
 #[test]
 fn test_size_round_trip() {
-    let physical = Size2D(1u32, 2u32);
+    let physical = Size2D::new(1u32, 2u32);
     for &mode in modes().iter() {
         let logical = LogicalSize::from_physical(mode, physical);
         assert!(logical.to_physical(mode) == physical);
@@ -35,8 +35,8 @@ fn test_size_round_trip() {
 
 #[test]
 fn test_point_round_trip() {
-    let physical = Point2D(1u32, 2u32);
-    let container = Size2D(100, 200);
+    let physical = Point2D::new(1u32, 2u32);
+    let container = Size2D::new(100, 200);
     for &mode in modes().iter() {
         let logical = LogicalPoint::from_physical(mode, physical, container);
         assert!(logical.to_physical(mode, container) == physical);
@@ -60,8 +60,8 @@ fn test_margin_round_trip() {
 
 #[test]
 fn test_rect_round_trip() {
-    let physical = Rect(Point2D(1u32, 2u32), Size2D(3u32, 4u32));
-    let container = Size2D(100, 200);
+    let physical = Rect::new(Point2D::new(1u32, 2u32), Size2D::new(3u32, 4u32));
+    let container = Size2D::new(100, 200);
     for &mode in modes().iter() {
         let logical = LogicalRect::from_physical(mode, physical, container);
         assert!(logical.to_physical(mode, container) == physical);

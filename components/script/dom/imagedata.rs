@@ -68,7 +68,7 @@ impl<'a> ImageDataHelpers for JSRef<'a, ImageData> {
     }
 
     fn get_size(&self) -> Size2D<i32> {
-        Size2D(self.Width() as i32, self.Height() as i32)
+        Size2D::new(self.Width() as i32, self.Height() as i32)
     }
 }
 

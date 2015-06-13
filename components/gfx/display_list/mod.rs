@@ -472,14 +472,13 @@ impl StackingContext {
                     DisplayItem::BorderClass(ref border) => {
                         // If the point is inside the border, it didn't hit the border!
                         let interior_rect =
-                            Rect(Point2D(border.base.bounds.origin.x + border.border_widths.left,
-                                         border.base.bounds.origin.y + border.border_widths.top),
-                                 Size2D(border.base.bounds.size.width -
-                                            (border.border_widths.left +
-                                             border.border_widths.right),
-                                        border.base.bounds.size.height -
-                                            (border.border_widths.top +
-                                             border.border_widths.bottom)));
+                            Rect::new(
+                                Point2D::new(border.base.bounds.origin.x + border.border_widths.left,
+                                             border.base.bounds.origin.y + border.border_widths.top),
+                                Size2D::new(border.base.bounds.size.width -
+                                                (border.border_widths.left + border.border_widths.right),
+                                            border.base.bounds.size.height -
+                                                (border.border_widths.top + border.border_widths.bottom)));
                         if geometry::rect_contains_point(interior_rect, point) {
                             continue
                         }
@@ -499,9 +498,9 @@ impl StackingContext {
         point = point - self.bounds.origin;
 
         debug_assert!(!topmost_only || result.is_empty());
-        let frac_point = self.transform.transform_point(&Point2D(point.x.to_f32_px(),
+        let frac_point = self.transform.transform_point(&Point2D::new(point.x.to_f32_px(),
                                                                  point.y.to_f32_px()));
-        point = Point2D(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
+        point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
 
         // Iterate through display items in reverse stacking order. Steps here refer to the
         // painting steps in CSS 2.1 Appendix E.
