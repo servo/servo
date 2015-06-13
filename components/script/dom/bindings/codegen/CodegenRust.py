@@ -1440,7 +1440,7 @@ class MethodDefiner(PropertyDefiner):
                     jitinfo = "0 as *const JSJitInfo"
                     accessor = 'Some(%s)' % m.get("nativeName", m["name"])
             if m["name"].startswith("@@"):
-                return ('SymbolCode::%s as i32' % m["name"][2:], accessor, jitinfo, m["length"], m["flags"], selfHostedName)
+                return ('(SymbolCode::%s as i32 + 1)' % m["name"][2:], accessor, jitinfo, m["length"], m["flags"], selfHostedName)
             return (str_to_const_array(m["name"]), accessor, jitinfo, m["length"], m["flags"], selfHostedName)
 
 
