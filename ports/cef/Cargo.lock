@@ -1021,7 +1021,6 @@ dependencies = [
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
- "gfx_traits 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
