@@ -46,11 +46,12 @@ use js::jsapi::JS_NewObjectWithUniqueType;
 use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, MutableHandleObject};
 use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
-use js::jsapi::DOMCallbacks;
+use js::jsapi::{DOMCallbacks, JSWrapObjectCallbacks};
 use js::jsval::JSVal;
 use js::jsval::{PrivateValue, NullValue};
 use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue};
 use js::rust::ToString;
+use js::glue::{WrapperNew, GetCrossCompartmentWrapper};
 use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
 use js::JSFUN_CONSTRUCTOR;
 use js;
@@ -622,19 +623,26 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     }
 }
 
-/// Callback to outerize windows when wrapping.
-pub unsafe extern fn wrap_for_same_compartment(cx: *mut JSContext,
-                                               _existing: HandleObject,
-                                               obj: HandleObject)
-                                               -> *mut JSObject {
+unsafe extern fn wrap(cx: *mut JSContext,
+                      existing: HandleObject,
+                      obj: HandleObject)
+                      -> *mut JSObject {
+    // FIXME terrible idea. need security wrappers
+    WrapperNew(cx, obj, GetCrossCompartmentWrapper())
+}
+
+unsafe extern fn pre_wrap(cx: *mut JSContext, _existing: HandleObject,
+                          obj: HandleObject, _object_passed_to_wrap: HandleObject)
+                          -> *mut JSObject {
+    let _ac = JSAutoCompartment::new(cx, obj.get());
     JS_ObjectToOuterObject(cx, obj)
 }
 
-/// Callback to outerize windows before wrapping.
-pub unsafe extern fn pre_wrap(cx: *mut JSContext, _existing: HandleObject,
-                       obj: HandleObject, _object_passed_to_wrap: HandleObject) -> *mut JSObject {
-    JS_ObjectToOuterObject(cx, obj)
-}
+/// Callback table for use with JS_SetWrapObjectCallbacks
+pub const WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
+    wrap: Some(wrap),
+    preWrap: Some(pre_wrap),
+};
 
 /// Callback to outerize windows.
 pub unsafe extern fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> *mut JSObject {
