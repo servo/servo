@@ -17,6 +17,7 @@ use azure::azure::{AzFloat, AzColor};
 use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
+use azure::azure_hl::{SurfacePattern, SurfaceFormat};
 use cssparser::RGBA;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -177,10 +178,32 @@ impl RadialGradientStyle {
 }
 
 #[derive(Clone)]
+pub struct SurfaceStyle {
+    pub surface_data: Vec<u8>,
+    pub surface_size: Size2D<i32>,
+    pub repeat_x: bool,
+    pub repeat_y: bool,
+}
+
+impl SurfaceStyle {
+    pub fn new(surface_data: Vec<u8>, surface_size: Size2D<i32>, repeat_x: bool, repeat_y: bool)
+        -> SurfaceStyle {
+        SurfaceStyle {
+            surface_data: surface_data,
+            surface_size: surface_size,
+            repeat_x: repeat_x,
+            repeat_y: repeat_y,
+        }
+    }
+}
+
+
+#[derive(Clone)]
 pub enum FillOrStrokeStyle {
     Color(RGBA),
     LinearGradient(LinearGradientStyle),
     RadialGradient(RadialGradientStyle),
+    Surface(SurfaceStyle),
 }
 
 impl FillOrStrokeStyle {
@@ -220,6 +243,18 @@ impl FillOrStrokeStyle {
                     radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
                     &Matrix2D::identity()))
+            },
+            FillOrStrokeStyle::Surface(ref surface_style) => {
+                let source_surface = drawtarget.create_source_surface_from_data(
+                    &surface_style.surface_data,
+                    surface_style.surface_size,
+                    surface_style.surface_size.width * 4,
+                    SurfaceFormat::B8G8R8A8);
+
+                Pattern::Surface(SurfacePattern::new(
+                    source_surface.azure_source_surface,
+                    surface_style.repeat_x,
+                    surface_style.repeat_y))
             }
         }
     }
@@ -272,6 +307,26 @@ impl LineJoinStyle {
             "round" => Some(LineJoinStyle::Round),
             "bevel" => Some(LineJoinStyle::Bevel),
             "miter" => Some(LineJoinStyle::Miter),
+            _ => None
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum RepetitionStyle {
+    Repeat,
+    RepeatX,
+    RepeatY,
+    NoRepeat,
+}
+
+impl RepetitionStyle {
+    pub fn from_str(string: &str) -> Option<RepetitionStyle> {
+        match string {
+            "repeat" => Some(RepetitionStyle::Repeat),
+            "repeat-x" => Some(RepetitionStyle::RepeatX),
+            "repeat-y" => Some(RepetitionStyle::RepeatY),
+            "no-repeat" => Some(RepetitionStyle::NoRepeat),
             _ => None
         }
     }

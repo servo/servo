@@ -9,13 +9,14 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::Error::{IndexSize, NotSupported, Type, InvalidState};
+use dom::bindings::error::Error::{IndexSize, NotSupported, Type, InvalidState, Syntax};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Rootable, Temporary, Unrooted};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
+use dom::canvaspattern::CanvasPattern;
 use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::htmlimageelement::{HTMLImageElement, HTMLImageElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
@@ -29,7 +30,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
-use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
+use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
 use canvas::canvas_paint_task::CanvasPaintTask;
 
@@ -865,7 +866,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                     Canvas2dMsg::SetFillStyle(gradient_root.r().to_fill_or_stroke_style()));
                 self.renderer.send(msg).unwrap();
             }
-            _ => {}
+            StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+                self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
+                                                       pattern.root().r().to_fill_or_stroke_style()))).unwrap();
+            }
         }
     }
 
@@ -995,6 +999,44 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(CanvasGradient::new(self.global.root().r(),
                                CanvasGradientStyle::Radial(
                                    RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
+    fn CreatePattern(self, image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                    repetition: DOMString) -> Fallible<Temporary<CanvasPattern>> {
+        match image {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
+                let image = image.root();
+                let image_element = image.r();
+
+                let url = match image_element.get_url() {
+                    Some(url) => url,
+                    None => return Err(InvalidState),
+                };
+
+                let img = match self.request_image_from_cache(url) {
+                    ImageResponse::Loaded(img) => img,
+                    ImageResponse::PlaceholderLoaded(_) | ImageResponse::None => return Err(InvalidState),
+                };
+
+                let image_size = Size2D(img.width as f64, img.height as f64);
+                let image_data = match img.pixels {
+                    PixelsByColorType::RGBA8(ref pixels) => pixels.to_vec(),
+                    PixelsByColorType::K8(_) => panic!("K8 color type not supported"),
+                    PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
+                    PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
+                };
+
+                if let Some(rep) = RepetitionStyle::from_str(&repetition) {
+                    return Ok(CanvasPattern::new(self.global.root().r(),
+                                                 image_data,
+                                                 Size2D(image_size.width as i32, image_size.height as i32),
+                                                 rep));
+                }
+                return Err(Syntax);
+            },
+            _ => return Err(Type("Not implemented".to_owned())),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
