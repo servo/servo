@@ -28,7 +28,7 @@ use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
 use euclid::point::Point2D;
 #[cfg(feature = "window")]
-use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode};
+use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 #[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
 #[cfg(feature = "window")]
@@ -187,15 +187,25 @@ impl Window {
             Event::MouseWheel(delta) => {
                 if self.ctrl_pressed() {
                     // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
-                    if delta < 0 {
+                    let dy = match delta {
+                        MouseScrollDelta::LineDelta(_, dy) => dy,
+                        MouseScrollDelta::PixelDelta(_, dy) => dy
+                    };
+                    if dy < 0.0 {
                         self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0/1.1));
-                    } else if delta > 0 {
+                    } else if dy > 0.0 {
                         self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                     }
                 } else {
-                    let dx = 0.0;
-                    let dy = delta as f32;
-                    self.scroll_window(dx, dy);
+                    match delta {
+                        MouseScrollDelta::LineDelta(dx, dy) => {
+                            // this should use the actual line height
+                            // of the frame under the mouse
+                            let line_height = 57.0;
+                            self.scroll_window(dx, dy * line_height);
+                        }
+                        MouseScrollDelta::PixelDelta(dx, dy) => self.scroll_window(dx, dy)
+                    }
                 }
             },
             Event::Refresh => {
