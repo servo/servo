@@ -321,6 +321,7 @@ pub mod textdecoder;
 pub mod textencoder;
 pub mod treewalker;
 pub mod uievent;
+pub mod url;
 pub mod urlhelper;
 pub mod urlsearchparams;
 pub mod userscripts;
