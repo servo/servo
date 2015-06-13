@@ -137,7 +137,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
             };
 
             match self.runtime.evaluate_script(
-                self.reflector().get_jsobject().get(), source, url.serialize(), 1) {
+                self.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
                 Err(_) => {
                     println!("evaluate_script failed");
