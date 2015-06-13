@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
-use dom::bindings::error::ErrorResult;
+use dom::bindings::error::{ErrorResult, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{RootCollection, Root};
 use dom::bindings::refcounted::LiveDOMReferences;
@@ -179,7 +179,13 @@ impl DedicatedWorkerGlobalScope {
                 match runtime.evaluate_script(
                     global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
                     Ok(_) => (),
-                    Err(_) => println!("evaluate_script failed")
+                    Err(_) => {
+                        // TODO: An error needs to be dispatched to the parent.
+                        // https://github.com/servo/servo/issues/6422
+                        println!("evaluate_script failed");
+                        let _ar = JSAutoRequest::new(runtime.cx());
+                        report_pending_exception(runtime.cx(), global.r().reflector().get_jsobject().get());
+                    }
                 }
             }
 
