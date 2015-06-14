@@ -32,6 +32,9 @@ import tidy
 
 @CommandProvider
 class MachCommands(CommandBase):
+    DEFAULT_RENDER_MODE = "cpu"
+    HELP_RENDER_MODE = "Value can be 'cpu', 'gpu' or 'both' (default " + DEFAULT_RENDER_MODE + ")"
+
     def __init__(self, context):
         CommandBase.__init__(self, context)
         if not hasattr(self.context, "built_tests"):
@@ -96,13 +99,24 @@ class MachCommands(CommandBase):
     @CommandArgument('params', default=None, nargs="...",
                      help="Optionally select test based on "
                           "test file directory")
-    def test(self, params):
+    @CommandArgument('--render-mode', '-rm', default=DEFAULT_RENDER_MODE,
+                     help="The render mode to be used on all tests. " +
+                          HELP_RENDER_MODE)
+    def test(self, params, render_mode=DEFAULT_RENDER_MODE):
         if params:
             return self.infer_test_by_dir(params)
 
+        test_and_args = [
+            ("tidy", {}),
+            ("ref", {"kind": render_mode}),
+            ("wpt", {}),
+            ("css", {}),
+            ("unit", {}),
+        ]
         test_start = time()
-        for t in ["tidy", "ref", "wpt", "css", "unit"]:
-            Registrar.dispatch("test-%s" % t, context=self.context)
+        for t, args in test_and_args:
+            Registrar.dispatch("test-%s" % t, context=self.context, **args)
+
         elapsed = time() - test_start
 
         print("Tests completed in %0.2fs" % elapsed)
@@ -134,8 +148,8 @@ class MachCommands(CommandBase):
     @Command('test-ref',
              description='Run the reference tests',
              category='testing')
-    @CommandArgument('--kind', '-k', default=None,
-                     help="'cpu' or 'gpu' (default both)")
+    @CommandArgument('--kind', '-k', default=DEFAULT_RENDER_MODE,
+                     help=HELP_RENDER_MODE)
     @CommandArgument('--name', default=None,
                      help="Only run tests that match this pattern. If the "
                           "path to the ref test directory is included, it "
@@ -143,11 +157,12 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'servo_params', default=None, nargs=argparse.REMAINDER,
         help="Command-line arguments to be passed through to Servo")
-    def test_ref(self, kind=None, name=None, servo_params=None):
+    def test_ref(self, kind=DEFAULT_RENDER_MODE, name=None, servo_params=None):
         self.ensure_bootstrapped()
         self.ensure_built_tests()
+        assert kind is not None, 'kind cannot be None, see help'
 
-        kinds = ["cpu", "gpu"] if kind is None else [kind]
+        kinds = ["cpu", "gpu"] if kind == 'both' else [kind]
         test_path = path.join(self.context.topdir, "tests", "ref")
         error = False
 
