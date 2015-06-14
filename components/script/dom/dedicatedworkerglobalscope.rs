@@ -34,6 +34,7 @@ use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
 use js::jsapi::{JSContext, RootedValue, HandleValue};
+use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::Url;
@@ -241,6 +242,8 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
             ScriptMsg::DOMMessage(data) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 let target = EventTargetCast::from_ref(self);
+                let _ar = JSAutoRequest::new(scope.get_cx());
+                let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 let mut message = RootedValue::new(scope.get_cx(), UndefinedValue());
                 data.read(GlobalRef::Worker(scope), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
