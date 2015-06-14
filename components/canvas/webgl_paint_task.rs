@@ -361,19 +361,35 @@ impl WebGLPaintTask {
         gl::enable_vertex_attrib_array(attrib_id);
     }
 
-    fn get_attrib_location(&self, program_id: u32, name: String, chan: Sender<i32> ) {
+    fn get_attrib_location(&self, program_id: u32, name: String, chan: Sender<Option<i32>> ) {
         let attrib_location = gl::get_attrib_location(program_id, &name);
+
+        let attrib_location = if attrib_location == -1 {
+            None
+        } else {
+            Some(attrib_location)
+        };
+
         chan.send(attrib_location).unwrap();
     }
 
-    fn get_shader_info_log(&self, shader_id: u32, chan: Sender<String>) {
+    fn get_shader_info_log(&self, shader_id: u32, chan: Sender<Option<String>>) {
+        // TODO(ecoal95): Right now we always return a value, we should
+        // check for gl errors and return None there
         let info = gl::get_shader_info_log(shader_id);
-        chan.send(info).unwrap();
+        chan.send(Some(info)).unwrap();
     }
 
-    fn get_shader_parameter(&self, shader_id: u32, param_id: u32, chan: Sender<i32>) {
-        let parameter = gl::get_shader_iv(shader_id, param_id);
-        chan.send(parameter as i32).unwrap();
+    fn get_shader_parameter(&self, shader_id: u32, param_id: u32, chan: Sender<WebGLShaderParameter>) {
+        let result = match param_id {
+            gl::SHADER_TYPE =>
+                WebGLShaderParameter::Int(gl::get_shader_iv(shader_id, param_id)),
+            gl::DELETE_STATUS | gl::COMPILE_STATUS =>
+                WebGLShaderParameter::Bool(gl::get_shader_iv(shader_id, param_id) != 0),
+            _ => panic!("Unexpected shader parameter type"),
+        };
+
+        chan.send(result).unwrap();
     }
 
     fn get_uniform_location(&self, program_id: u32, name: String, chan: Sender<Option<i32>>) {

@@ -569,7 +569,7 @@ interface WebGLRenderingContextBase
     //WebGLShaderPrecisionFormat? getShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype);
     DOMString? getShaderInfoLog(WebGLShader? shader);
 
-    //DOMString? getShaderSource(WebGLShader? shader);
+    DOMString? getShaderSource(WebGLShader? shader);
 
     //any getTexParameter(GLenum target, GLenum pname);
 

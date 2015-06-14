@@ -106,9 +106,9 @@ pub enum CanvasWebGLMsg {
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
     EnableVertexAttribArray(u32),
-    GetAttribLocation(u32, String, Sender<i32>),
-    GetShaderInfoLog(u32, Sender<String>),
-    GetShaderParameter(u32, u32, Sender<i32>),
+    GetShaderInfoLog(u32, Sender<Option<String>>),
+    GetShaderParameter(u32, u32, Sender<WebGLShaderParameter>),
+    GetAttribLocation(u32, String, Sender<Option<i32>>),
     GetUniformLocation(u32, String, Sender<Option<i32>>),
     LinkProgram(u32),
     ShaderSource(u32, String),
@@ -118,6 +118,24 @@ pub enum CanvasWebGLMsg {
     Viewport(i32, i32, i32, i32),
     DrawingBufferWidth(Sender<i32>),
     DrawingBufferHeight(Sender<i32>),
+}
+
+#[derive(Clone)]
+pub enum WebGLError {
+    InvalidEnum,
+    InvalidOperation,
+    InvalidValue,
+    OutOfMemory,
+    ContextLost,
+}
+
+pub type WebGLResult<T> = Result<T, WebGLError>;
+
+#[derive(Clone)]
+pub enum WebGLShaderParameter {
+    Int(i32),
+    Bool(bool),
+    Invalid,
 }
 
 #[derive(Clone)]
