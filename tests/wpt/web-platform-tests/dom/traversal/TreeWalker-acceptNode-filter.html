@@ -85,23 +85,21 @@ test(function()
     assert_node(walker.currentNode, { type: Element, id: 'B1' });
 }, 'Testing with undefined filter');
 
-// XXX Servo breaks the test when a callback isn't callable
 test(function()
 {
     var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, {});
-    assert_throws(null, function () { walker.firstChild(); });
+    assert_throws(new TypeError(), function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(null, function () { walker.nextNode(); });
+    assert_throws(new TypeError(), function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with object lacking acceptNode property');
 
-// XXX Servo breaks the test when a callback isn't callable
 test(function()
 {
     var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, { acceptNode: "foo" });
-    assert_throws(null, function () { walker.firstChild(); });
+    assert_throws(new TypeError(), function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(null, function () { walker.nextNode(); });
+    assert_throws(new TypeError(), function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with object with non-function acceptNode property');
 
@@ -125,33 +123,31 @@ test(function()
     assert_node(walker.firstChild(), { type: Element, id: 'A1' });
 }, 'Testing acceptNode callee');
 
-// XXX Looks like Servo is doing something wrong when a callback function throws
 test(function()
 {
+    var test_error = { name: "test" };
     var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT,
                                            function(node) {
-                                               throw('filter exception');
-                                               return /*NodeFilter.*/FILTER_ACCEPT;
+                                               throw test_error;
                                            });
-    assert_throws(null, function () { walker.firstChild(); });
+    assert_throws(test_error, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(null, function () { walker.nextNode(); });
+    assert_throws(test_error, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with filter function that throws');
 
-// XXX Looks like Servo is doing something wrong when a callback function throws
 test(function()
 {
+    var test_error = { name: "test" };
     var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT,
                                            {
                                                acceptNode : function(node) {
-                                                   throw('filter exception');
-                                                   return /*NodeFilter.*/FILTER_ACCEPT;
+                                                   throw test_error;
                                                }
                                            });
-    assert_throws(null, function () { walker.firstChild(); });
+    assert_throws(test_error, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(null, function () { walker.nextNode(); });
+    assert_throws(test_error, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with filter object that throws');
 
