@@ -38,6 +38,14 @@ pub enum CanvasMsg {
 }
 
 #[derive(Clone)]
+pub enum CanvasCommonMsg {
+    Close,
+    Recreate(Size2D<i32>),
+    SendPixelContents(Sender<Vec<u8>>),
+    SendNativeSurface(Sender<NativeSurface>),
+}
+
+#[derive(Clone)]
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
@@ -102,7 +110,7 @@ pub enum CanvasWebGLMsg {
     DeleteProgram(u32),
     DeleteShader(u32),
     BindBuffer(u32, u32),
-    BindFramebuffer(u32, u32),
+    BindFramebuffer(u32, WebGLFramebufferBindingRequest),
     BindRenderbuffer(u32, u32),
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
@@ -133,20 +141,17 @@ pub enum WebGLError {
 pub type WebGLResult<T> = Result<T, WebGLError>;
 
 #[derive(Clone)]
+pub enum WebGLFramebufferBindingRequest {
+    Explicit(u32),
+    Default,
+}
+
+#[derive(Clone)]
 pub enum WebGLShaderParameter {
     Int(i32),
     Bool(bool),
     Invalid,
 }
-
-#[derive(Clone)]
-pub enum CanvasCommonMsg {
-    Close,
-    Recreate(Size2D<i32>),
-    SendPixelContents(Sender<Vec<u8>>),
-    SendNativeSurface(Sender<NativeSurface>),
-}
-
 
 #[derive(Clone)]
 pub struct CanvasGradientStop {

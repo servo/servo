@@ -69,7 +69,7 @@ pub trait WebGLShaderHelpers {
     fn set_source(self, src: String);
 }
 
-impl<'a> WebGLShaderHelpers for JSRef<'a, WebGLShader> {
+impl<'a> WebGLShaderHelpers for &'a WebGLShader {
     fn id(self) -> u32 {
         self.id
     }

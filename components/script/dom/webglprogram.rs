@@ -5,9 +5,17 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
+use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
+use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
+
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLError};
+use std::sync::mpsc::{channel, Sender};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLProgram {
@@ -47,7 +55,7 @@ pub trait WebGLProgramHelpers {
     fn delete(self);
     fn link(self);
     fn use_program(self);
-    fn attach_shader(self, shader: JSRef<WebGLShader>) -> WebGLResult<()>;
+    fn attach_shader(self, shader: &WebGLShader) -> WebGLResult<()>;
     fn get_attrib_location(self, name: String) -> WebGLResult<Option<i32>>;
     fn get_uniform_location(self, name: String) -> WebGLResult<Option<i32>>;
 }
@@ -72,7 +80,7 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
     }
 
     /// glAttachShader
-    fn attach_shader(self, shader: &'a WebGLShader) -> WebGLResult<()> {
+    fn attach_shader(self, shader: &WebGLShader) -> WebGLResult<()> {
         let shader_slot = match shader.gl_type() {
             constants::FRAGMENT_SHADER => &self.fragment_shader,
             constants::VERTEX_SHADER => &self.vertex_shader,
@@ -85,7 +93,7 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        shader_slot.set(Some(JS::from_rooted(shader)));
+        shader_slot.set(Some(JS::from_ref(shader)));
 
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::AttachShader(self.id, shader.id()))).unwrap();
 
