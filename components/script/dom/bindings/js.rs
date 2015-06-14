@@ -192,7 +192,7 @@ impl MutHeapJSVal {
     }
 }
 
- 
+
 /// A holder that provides interior mutability for GC-managed values such as
 /// `JS<T>`.
 #[must_root]
@@ -200,7 +200,7 @@ impl MutHeapJSVal {
 pub struct MutHeap<T: HeapGCValue+Copy> {
     val: Cell<T>,
 }
- 
+
 impl<T: HeapGCValue+Copy> MutHeap<T> {
     /// Create a new `MutHeap`.
     pub fn new(initial: T) -> MutHeap<T> {
@@ -208,7 +208,7 @@ impl<T: HeapGCValue+Copy> MutHeap<T> {
             val: Cell::new(initial),
         }
     }
- 
+
     /// Set this `MutHeap` to the given value.
     pub fn set(&self, val: T) {
         self.val.set(val)
