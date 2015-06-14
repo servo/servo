@@ -5304,10 +5304,8 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-                'match self.parent.get_callable_property(cx, "${methodName}") {\n'
-                '    Err(_) => return Err(JSFailed),\n'
-                '    Ok(callable) => callable,\n'
-                '}').substitute(replacements)
+            'try!(self.parent.get_callable_property(cx, "${methodName}"))'
+        ).substitute(replacements)
         if not self.singleOperation:
             return 'JS::Rooted<JS::Value> callable(cx);\n' + getCallableFromProp
         return (
