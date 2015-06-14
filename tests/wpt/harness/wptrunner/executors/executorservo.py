@@ -62,10 +62,9 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_data = None
         self.result_flag = threading.Event()
 
-        debug_args, command = browser_command(self.binary, ["--cpu", "--hard-fail", "-z",
-                                                            "-u", "Servo/wptrunner",
-                                                            self.test_url(test)],
-                                              self.debug_info)
+        debug_args, command = browser_command(self.binary,
+            ["--cpu", "--hard-fail", "-u", "Servo/wptrunner", "-z", self.test_url(test)],
+            self.debug_info)
 
         self.command = command
 
@@ -101,15 +100,18 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
                 self.proc.wait()
 
             proc_is_running = True
-            if self.result_flag.is_set() and self.result_data is not None:
-                self.result_data["test"] = test.url
-                result = self.convert_result(test, self.result_data)
-            else:
-                if self.proc.poll() is not None:
+
+            if self.result_flag.is_set():
+                if self.result_data is not None:
+                    self.result_data["test"] = test.url
+                    result = self.convert_result(test, self.result_data)
+                else:
+                    self.proc.wait()
                     result = (test.result_cls("CRASH", None), [])
                     proc_is_running = False
-                else:
-                    result = (test.result_cls("TIMEOUT", None), [])
+            else:
+                result = (test.result_cls("TIMEOUT", None), [])
+
 
             if proc_is_running:
                 if self.pause_after_test:
@@ -188,8 +190,8 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
         with TempFilename(self.tempdir) as output_path:
             self.command = [self.binary, "--cpu", "--hard-fail", "--exit",
-                            "-Z", "disable-text-aa,disable-canvas-aa", "--output=%s" % output_path,
-                            full_url]
+                            "-u", "Servo/wptrunner", "-Z", "disable-text-aa",
+                            "--output=%s" % output_path, full_url]
 
             env = os.environ.copy()
             env["HOST_FILE"] = self.hosts_path
@@ -200,7 +202,8 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
             try:
                 self.proc.run()
-                rv = self.proc.wait(timeout=test.timeout)
+                timeout = test.timeout * self.timeout_multiplier + 5
+                rv = self.proc.wait(timeout=timeout)
             except KeyboardInterrupt:
                 self.proc.kill()
                 raise

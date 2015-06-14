@@ -84,7 +84,7 @@ class ServoWebDriverProtocol(Protocol):
 
 
 class ServoWebDriverRun(object):
-    def __init__(self, func, session, url, timeout):
+    def __init__(self, func, session, url, timeout, current_timeout=None):
         self.func = func
         self.result = None
         self.session = session
@@ -93,18 +93,10 @@ class ServoWebDriverRun(object):
         self.result_flag = threading.Event()
 
     def run(self):
-        timeout = self.timeout
-
-        try:
-            self.session.timeouts.script = timeout + extra_timeout
-        except IOError:
-            self.logger.error("Lost webdriver connection")
-            return Stop
-
         executor = threading.Thread(target=self._run)
         executor.start()
 
-        flag = self.result_flag.wait(timeout + 2 * extra_timeout)
+        flag = self.result_flag.wait(self.timeout + extra_timeout)
         if self.result is None:
             assert not flag
             self.result = False, ("EXTERNAL-TIMEOUT", None)
@@ -144,6 +136,7 @@ class ServoWebDriverTestharnessExecutor(TestharnessExecutor):
         self.protocol = ServoWebDriverProtocol(self, browser, capabilities=capabilities)
         with open(os.path.join(here, "testharness_servodriver.js")) as f:
             self.script = f.read()
+        self.timeout = None
 
     def on_protocol_change(self, new_protocol):
         pass
@@ -154,10 +147,20 @@ class ServoWebDriverTestharnessExecutor(TestharnessExecutor):
     def do_test(self, test):
         url = self.test_url(test)
 
+        timeout = test.timeout * self.timeout_multiplier + extra_timeout
+
+        if timeout != self.timeout:
+            try:
+                self.protocol.session.timeouts.script = timeout
+                self.timeout = timeout
+            except IOError:
+                self.logger.error("Lost webdriver connection")
+                return Stop
+
         success, data = ServoWebDriverRun(self.do_testharness,
                                           self.protocol.session,
                                           url,
-                                          test.timeout * self.timeout_multiplier).run()
+                                          timeout).run()
 
         if success:
             return self.convert_result(test, data)
@@ -172,8 +175,9 @@ class ServoWebDriverTestharnessExecutor(TestharnessExecutor):
                                "url": strip_server(url),
                                "timeout_multiplier": self.timeout_multiplier,
                                "timeout": timeout * 1000}))
-        if "test" not in result:
-            result["test"] = strip_server(url)
+        # Prevent leaking every page in history until Servo develops a more sane
+        # page cache
+        session.back()
         return result
 
 
@@ -194,7 +198,7 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
         self.protocol = ServoWebDriverProtocol(self, browser,
                                                capabilities=capabilities)
         self.implementation = RefTestImplementation(self)
-
+        self.timeout = None
         with open(os.path.join(here, "reftest-wait_servodriver.js")) as f:
             self.wait_script = f.read()
 
@@ -217,7 +221,17 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
             return test.result_cls("ERROR", message), []
 
     def screenshot(self, test):
-        timeout = test.timeout * self.timeout_multiplier if self.debug_info is None else None
+        timeout = (test.timeout * self.timeout_multiplier + extra_timeout
+                   if self.debug_info is None else None)
+
+        if self.timeout != timeout:
+            try:
+                self.protocol.session.timeouts.script = timeout
+                self.timeout = timeout
+            except IOError:
+                self.logger.error("Lost webdriver connection")
+                return Stop
+
         return ServoWebDriverRun(self._screenshot,
                                  self.protocol.session,
                                  self.test_url(test),

@@ -20,7 +20,7 @@ __wptrunner__ = {"product": "chrome",
 
 
 def check_args(**kwargs):
-    require_arg(kwargs, "binary")
+    require_arg(kwargs, "webdriver_binary")
 
 
 def browser_kwargs(**kwargs):
@@ -28,15 +28,16 @@ def browser_kwargs(**kwargs):
             "webdriver_binary": kwargs["webdriver_binary"]}
 
 
-def executor_kwargs(test_type, server_config, cache_manager, **kwargs):
+def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+                    **kwargs):
     from selenium.webdriver import DesiredCapabilities
 
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, **kwargs)
     executor_kwargs["close_after_done"] = True
-    executor_kwargs["capabilities"] = dict(DesiredCapabilities.CHROME.items() +
-                                           {"chromeOptions":
-                                            {"binary": kwargs["binary"]}}.items())
+    executor_kwargs["capabilities"] = dict(DesiredCapabilities.CHROME.items())
+    if kwargs["binary"] is not None:
+        executor_kwargs["capabilities"]["chromeOptions"] = {"binary": kwargs["binary"]}
 
     return executor_kwargs
 

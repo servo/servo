@@ -122,7 +122,7 @@ The easiest way to update the test harness is using git:
     git init .
     git remote add origin https://github.com/w3c/wptrunner
     git fetch origin
-    git checkout master origin/master
+    git checkout -f origin/master
     cd ../../..
 
 At this point you should commit the updated files in the *servo* git repository.
