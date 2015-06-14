@@ -9,7 +9,7 @@ use dom::bindings::js::{Temporary, JSRef};
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLFramebufferBindingRequest};
 use std::sync::mpsc::{channel, Sender};
 use std::cell::Cell;
 
@@ -55,7 +55,9 @@ impl<'a> WebGLFramebufferHelpers for JSRef<'a, WebGLFramebuffer> {
     }
 
     fn bind(&self, target: u32) {
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindFramebuffer(target, self.id))).unwrap();
+        self.renderer.send(
+            CanvasMsg::WebGL(
+                CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id)))).unwrap();
     }
 
     fn delete(&self) {

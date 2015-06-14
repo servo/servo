@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg, WebGLShaderParameter};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg, WebGLShaderParameter, WebGLFramebufferBindingRequest};
 use geom::size::Size2D;
 use core::nonzero::NonZero;
 use gleam::gl;
@@ -109,8 +109,8 @@ impl WebGLPaintTask {
                 self.delete_shader(id),
             CanvasWebGLMsg::BindBuffer(target, id) =>
                 self.bind_buffer(target, id),
-            CanvasWebGLMsg::BindFramebuffer(target, id) =>
-                self.bind_framebuffer(target, id),
+            CanvasWebGLMsg::BindFramebuffer(target, request) =>
+                self.bind_framebuffer(target, request),
             CanvasWebGLMsg::BindRenderbuffer(target, id) =>
                 self.bind_renderbuffer(target, id),
             CanvasWebGLMsg::BindTexture(target, id) =>
@@ -329,7 +329,13 @@ impl WebGLPaintTask {
     }
 
     #[inline]
-    fn bind_framebuffer(&self, target: u32, id: u32) {
+    fn bind_framebuffer(&self, target: u32, request: WebGLFramebufferBindingRequest) {
+        let id = match request {
+            WebGLFramebufferBindingRequest::Explicit(id) => id,
+            WebGLFramebufferBindingRequest::Default =>
+                self.gl_context.borrow_draw_buffer().unwrap().get_framebuffer(),
+        };
+
         gl::bind_framebuffer(target, id);
     }
 

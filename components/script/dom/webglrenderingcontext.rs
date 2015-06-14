@@ -3,10 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas::webgl_paint_task::WebGLPaintTask;
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
-    WebGLContextAttributes, WebGLRenderingContextMethods, WebGLRenderingContextConstants};
+use canvas_traits::
+            {CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg, WebGLError,
+             WebGLShaderParameter, WebGLFramebufferBindingRequest};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::
+            {self, WebGLContextAttributes, WebGLRenderingContextMethods};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -196,6 +199,9 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
     fn BindBuffer(self, target: u32, buffer: Option<JSRef<WebGLBuffer>>) {
         if let Some(buffer) = buffer {
             buffer.bind(target)
+        } else {
+            // Unbind the current buffer
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindBuffer(target, 0))).unwrap()
         }
     }
 
@@ -203,6 +209,11 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
     fn BindFramebuffer(self, target: u32, framebuffer: Option<JSRef<WebGLFramebuffer>>) {
         if let Some(framebuffer) = framebuffer {
             framebuffer.bind(target)
+        } else {
+            // Bind the default framebuffer
+            self.renderer.send(
+                CanvasMsg::WebGL(
+                    CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default))).unwrap()
         }
     }
 
@@ -210,6 +221,9 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
     fn BindRenderbuffer(self, target: u32, renderbuffer: Option<JSRef<WebGLRenderbuffer>>) {
         if let Some(renderbuffer) = renderbuffer {
             renderbuffer.bind(target)
+        } else {
+            // Unbind the currently bound renderbuffer
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindRenderbuffer(target, 0))).unwrap()
         }
     }
 
