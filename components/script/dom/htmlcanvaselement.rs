@@ -98,7 +98,7 @@ impl HTMLCanvasElement {
     }
 
     pub fn get_size(&self) -> Size2D<i32> {
-        Size2D(self.width.get() as i32, self.height.get() as i32)
+        Size2D::new(self.width.get() as i32, self.height.get() as i32)
     }
 }
 

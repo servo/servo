@@ -62,7 +62,9 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_data = None
         self.result_flag = threading.Event()
 
-        debug_args, command = browser_command(self.binary, ["--cpu", "--hard-fail", "-z", self.test_url(test)],
+        debug_args, command = browser_command(self.binary, ["--cpu", "--hard-fail", "-z",
+                                                            "-u", "Servo/wptrunner",
+                                                            self.test_url(test)],
                                               self.debug_info)
 
         self.command = command

@@ -228,8 +228,8 @@ pub struct RunMetrics {
 
 impl RunMetrics {
     pub fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
-        let bounds = Rect(Point2D(Au(0), -ascent),
-                          Size2D(advance, ascent + descent));
+        let bounds = Rect::new(Point2D::new(Au(0), -ascent),
+                               Size2D::new(advance, ascent + descent));
 
         // TODO(Issue #125): support loose and tight bounding boxes; using the
         // ascent+descent and advance is sometimes too generous and

@@ -62,13 +62,14 @@ interface CanvasRenderingContext2D {
   CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
   [Throws]
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
-  //CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
+  [Throws]
+  CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 
   // shadows
-  //         attribute unrestricted double shadowOffsetX; // (default 0)
-  //         attribute unrestricted double shadowOffsetY; // (default 0)
-  //         attribute unrestricted double shadowBlur; // (default 0)
-  //         attribute DOMString shadowColor; // (default transparent black)
+  attribute unrestricted double shadowOffsetX; // (default 0)
+  attribute unrestricted double shadowOffsetY; // (default 0)
+  attribute unrestricted double shadowBlur; // (default 0)
+  attribute DOMString shadowColor; // (default transparent black)
 
   // rects
   //[LenientFloat]

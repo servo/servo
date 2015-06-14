@@ -335,6 +335,8 @@ pub mod webgluniformlocation;
 pub mod webgltexture;
 pub mod webglframebuffer;
 pub mod webglrenderbuffer;
+pub mod webglactiveinfo;
+pub mod webglshaderprecisionformat;
 pub mod websocket;
 pub mod window;
 pub mod worker;

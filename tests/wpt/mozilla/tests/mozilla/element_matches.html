@@ -9,7 +9,7 @@
 
   <script>
   test(function() {
-    let test = document.getElementById("foo");
+    var test = document.getElementById("foo");
 
     assert_equals(test.matches("#foo"), true, "test-1");
     assert_equals(test.matches("#not-foo"), false, "test-2");

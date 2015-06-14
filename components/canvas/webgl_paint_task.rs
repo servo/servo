@@ -47,46 +47,90 @@ impl WebGLPaintTask {
 
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
         match message {
-            CanvasWebGLMsg::GetContextAttributes(sender) => self.get_context_attributes(sender),
-            CanvasWebGLMsg::AttachShader(program_id, shader_id) => self.attach_shader(program_id, shader_id),
-            CanvasWebGLMsg::BufferData(buffer_type, data, usage) => self.buffer_data(buffer_type, data, usage),
-            CanvasWebGLMsg::Clear(mask) => self.clear(mask),
-            CanvasWebGLMsg::ClearColor(r, g, b, a) => self.clear_color(r, g, b, a),
-            CanvasWebGLMsg::DrawArrays(mode, first, count) => self.draw_arrays(mode, first, count),
-            CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) => self.enable_vertex_attrib_array(attrib_id),
+            CanvasWebGLMsg::GetContextAttributes(sender) =>
+                self.get_context_attributes(sender),
+            CanvasWebGLMsg::ActiveTexture(target) =>
+                self.active_texture(target),
+            CanvasWebGLMsg::BlendColor(r, g, b, a) =>
+                self.blend_color(r, g, b, a),
+            CanvasWebGLMsg::BlendEquation(mode) =>
+                self.blend_equation(mode),
+            CanvasWebGLMsg::BlendEquationSeparate(mode_rgb, mode_alpha) =>
+                self.blend_equation_separate(mode_rgb, mode_alpha),
+            CanvasWebGLMsg::BlendFunc(src, dest) =>
+                self.blend_func(src, dest),
+            CanvasWebGLMsg::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha) =>
+                self.blend_func_separate(src_rgb, dest_rgb, src_alpha, dest_alpha),
+            CanvasWebGLMsg::AttachShader(program_id, shader_id) =>
+                self.attach_shader(program_id, shader_id),
+            CanvasWebGLMsg::BufferData(buffer_type, data, usage) =>
+                self.buffer_data(buffer_type, data, usage),
+            CanvasWebGLMsg::Clear(mask) =>
+                self.clear(mask),
+            CanvasWebGLMsg::ClearColor(r, g, b, a) =>
+                self.clear_color(r, g, b, a),
+            CanvasWebGLMsg::DrawArrays(mode, first, count) =>
+                self.draw_arrays(mode, first, count),
+            CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) =>
+                self.enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
                 self.get_attrib_location(program_id, name, chan),
-            CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) => self.get_shader_info_log(shader_id, chan),
+            CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) =>
+                self.get_shader_info_log(shader_id, chan),
             CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) =>
                 self.get_shader_parameter(shader_id, param_id, chan),
             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
                 self.get_uniform_location(program_id, name, chan),
-            CanvasWebGLMsg::CompileShader(shader_id) => self.compile_shader(shader_id),
-            CanvasWebGLMsg::CreateBuffer(chan) => self.create_buffer(chan),
-            CanvasWebGLMsg::CreateFramebuffer(chan) => self.create_framebuffer(chan),
-            CanvasWebGLMsg::CreateRenderbuffer(chan) => self.create_renderbuffer(chan),
-            CanvasWebGLMsg::CreateTexture(chan) => self.create_texture(chan),
-            CanvasWebGLMsg::CreateProgram(chan) => self.create_program(chan),
-            CanvasWebGLMsg::CreateShader(shader_type, chan) => self.create_shader(shader_type, chan),
-            CanvasWebGLMsg::DeleteBuffer(id) => self.delete_buffer(id),
-            CanvasWebGLMsg::DeleteFramebuffer(id) => self.delete_framebuffer(id),
-            CanvasWebGLMsg::DeleteRenderbuffer(id) => self.delete_renderbuffer(id),
-            CanvasWebGLMsg::DeleteTexture(id) => self.delete_texture(id),
-            CanvasWebGLMsg::DeleteProgram(id) => self.delete_program(id),
-            CanvasWebGLMsg::DeleteShader(id) => self.delete_shader(id),
-            CanvasWebGLMsg::BindBuffer(target, id) => self.bind_buffer(target, id),
-            CanvasWebGLMsg::BindFramebuffer(target, id) => self.bind_framebuffer(target, id),
-            CanvasWebGLMsg::BindRenderbuffer(target, id) => self.bind_renderbuffer(target, id),
-            CanvasWebGLMsg::BindTexture(target, id) => self.bind_texture(target, id),
-            CanvasWebGLMsg::LinkProgram(program_id) => self.link_program(program_id),
-            CanvasWebGLMsg::ShaderSource(shader_id, source) => self.shader_source(shader_id, source),
-            CanvasWebGLMsg::Uniform4fv(uniform_id, data) => self.uniform_4fv(uniform_id, data),
-            CanvasWebGLMsg::UseProgram(program_id) => self.use_program(program_id),
+            CanvasWebGLMsg::CompileShader(shader_id) =>
+                self.compile_shader(shader_id),
+            CanvasWebGLMsg::CreateBuffer(chan) =>
+                self.create_buffer(chan),
+            CanvasWebGLMsg::CreateFramebuffer(chan) =>
+                self.create_framebuffer(chan),
+            CanvasWebGLMsg::CreateRenderbuffer(chan) =>
+                self.create_renderbuffer(chan),
+            CanvasWebGLMsg::CreateTexture(chan) =>
+                self.create_texture(chan),
+            CanvasWebGLMsg::CreateProgram(chan) =>
+                self.create_program(chan),
+            CanvasWebGLMsg::CreateShader(shader_type, chan) =>
+                self.create_shader(shader_type, chan),
+            CanvasWebGLMsg::DeleteBuffer(id) =>
+                self.delete_buffer(id),
+            CanvasWebGLMsg::DeleteFramebuffer(id) =>
+                self.delete_framebuffer(id),
+            CanvasWebGLMsg::DeleteRenderbuffer(id) =>
+                self.delete_renderbuffer(id),
+            CanvasWebGLMsg::DeleteTexture(id) =>
+                self.delete_texture(id),
+            CanvasWebGLMsg::DeleteProgram(id) =>
+                self.delete_program(id),
+            CanvasWebGLMsg::DeleteShader(id) =>
+                self.delete_shader(id),
+            CanvasWebGLMsg::BindBuffer(target, id) =>
+                self.bind_buffer(target, id),
+            CanvasWebGLMsg::BindFramebuffer(target, id) =>
+                self.bind_framebuffer(target, id),
+            CanvasWebGLMsg::BindRenderbuffer(target, id) =>
+                self.bind_renderbuffer(target, id),
+            CanvasWebGLMsg::BindTexture(target, id) =>
+                self.bind_texture(target, id),
+            CanvasWebGLMsg::LinkProgram(program_id) =>
+                self.link_program(program_id),
+            CanvasWebGLMsg::ShaderSource(shader_id, source) =>
+                self.shader_source(shader_id, source),
+            CanvasWebGLMsg::Uniform4fv(uniform_id, data) =>
+                self.uniform_4fv(uniform_id, data),
+            CanvasWebGLMsg::UseProgram(program_id) =>
+                self.use_program(program_id),
             CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) =>
                 self.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset),
-            CanvasWebGLMsg::Viewport(x, y, width, height) => self.viewport(x, y, width, height),
-            CanvasWebGLMsg::DrawingBufferWidth(sender) => self.send_drawing_buffer_width(sender),
-            CanvasWebGLMsg::DrawingBufferHeight(sender) => self.send_drawing_buffer_height(sender),
+            CanvasWebGLMsg::Viewport(x, y, width, height) =>
+                self.viewport(x, y, width, height),
+            CanvasWebGLMsg::DrawingBufferWidth(sender) =>
+                self.send_drawing_buffer_width(sender),
+            CanvasWebGLMsg::DrawingBufferHeight(sender) =>
+                self.send_drawing_buffer_height(sender),
         }
     }
 
@@ -117,30 +161,74 @@ impl WebGLPaintTask {
         Ok(chan)
     }
 
+    #[inline]
     fn get_context_attributes(&self, sender: Sender<GLContextAttributes>) {
         sender.send(*self.gl_context.borrow_attributes()).unwrap()
     }
 
+    #[inline]
     fn send_drawing_buffer_width(&self, sender: Sender<i32>) {
         sender.send(self.size.width).unwrap()
     }
 
+    #[inline]
     fn send_drawing_buffer_height(&self, sender: Sender<i32>) {
         sender.send(self.size.height).unwrap()
     }
 
+    #[inline]
+    fn active_texture(&self, texture: u32) {
+        gl::active_texture(texture);
+    }
+
+    #[inline]
+    fn blend_color(&self, r: f32, g: f32, b: f32, a: f32) {
+        gl::blend_color(r, g, b, a);
+    }
+
+    #[inline]
+    fn blend_equation(&self, mode: u32) {
+        gl::blend_equation(mode);
+    }
+
+    #[inline]
+    fn blend_equation_separate(&self, mode_rgb: u32, mode_alpha: u32) {
+        gl::blend_equation_separate(mode_rgb, mode_alpha);
+    }
+
+    #[inline]
+    fn blend_func(&self, src_factor: u32, dest_factor: u32) {
+        gl::blend_func(src_factor, dest_factor);
+    }
+
+    #[inline]
+    fn blend_func_separate(&self,
+                           src_rgb_factor: u32,
+                           dest_rgb_factor: u32,
+                           src_alpha_factor: u32,
+                           dest_alpha_factor: u32) {
+        gl::blend_func_separate(src_rgb_factor,
+                                dest_rgb_factor,
+                                src_alpha_factor,
+                                dest_alpha_factor);
+    }
+
+    #[inline]
     fn attach_shader(&self, program_id: u32, shader_id: u32) {
         gl::attach_shader(program_id, shader_id);
     }
 
+    #[inline]
     fn buffer_data(&self, buffer_type: u32, data: Vec<f32>, usage: u32) {
         gl::buffer_data(buffer_type, &data, usage);
     }
 
+    #[inline]
     fn clear(&self, mask: u32) {
         gl::clear(mask);
     }
 
+    #[inline]
     fn clear_color(&self, r: f32, g: f32, b: f32, a: f32) {
         gl::clear_color(r, g, b, a);
     }
@@ -258,14 +346,17 @@ impl WebGLPaintTask {
     // TODO(ecoal95): This is not spec-compliant, we must check
     // the version of GLSL used. This functionality should probably
     // be in the WebGLShader object
+    #[inline]
     fn compile_shader(&self, shader_id: u32) {
         gl::compile_shader(shader_id);
     }
 
+    #[inline]
     fn draw_arrays(&self, mode: u32, first: i32, count: i32) {
         gl::draw_arrays(mode, first, count);
     }
 
+    #[inline]
     fn enable_vertex_attrib_array(&self, attrib_id: u32) {
         gl::enable_vertex_attrib_array(attrib_id);
     }
@@ -296,8 +387,35 @@ impl WebGLPaintTask {
         chan.send(location).unwrap();
     }
 
+    #[inline]
     fn link_program(&self, program_id: u32) {
         gl::link_program(program_id);
+    }
+
+    #[inline]
+    fn shader_source(&self, shader_id: u32, source: String) {
+        gl::shader_source(shader_id, &[source.as_bytes()]);
+    }
+
+    #[inline]
+    fn uniform_4fv(&self, uniform_id: i32, data: Vec<f32>) {
+        gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]);
+    }
+
+    #[inline]
+    fn use_program(&self, program_id: u32) {
+        gl::use_program(program_id);
+    }
+
+    #[inline]
+    fn vertex_attrib_pointer_f32(&self, attrib_id: u32, size: i32,
+                              normalized: bool, stride: i32, offset: i64) {
+        gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32);
+    }
+
+    #[inline]
+    fn viewport(&self, x: i32, y: i32, width: i32, height: i32) {
+        gl::viewport(x, y, width, height);
     }
 
     fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
@@ -328,27 +446,6 @@ impl WebGLPaintTask {
         // FIXME(ecoal95): We need to make a clone of the surface in order to
         // implement this
         unimplemented!()
-    }
-
-    fn shader_source(&self, shader_id: u32, source: String) {
-        gl::shader_source(shader_id, &[source.as_bytes()]);
-    }
-
-    fn uniform_4fv(&self, uniform_id: i32, data: Vec<f32>) {
-        gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]);
-    }
-
-    fn use_program(&self, program_id: u32) {
-        gl::use_program(program_id);
-    }
-
-    fn vertex_attrib_pointer_f32(&self, attrib_id: u32, size: i32,
-                              normalized: bool, stride: i32, offset: i64) {
-        gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32);
-    }
-
-    fn viewport(&self, x: i32, y: i32, width: i32, height: i32) {
-        gl::viewport(x, y, width, height);
     }
 
     fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {

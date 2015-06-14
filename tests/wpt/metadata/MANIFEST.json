@@ -25117,7 +25117,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "XMLHttpRequest/preserve-ua-header-on-redirect.htm": [
+          {
+            "path": "XMLHttpRequest/preserve-ua-header-on-redirect.htm",
+            "url": "/XMLHttpRequest/preserve-ua-header-on-redirect.htm"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

@@ -11,7 +11,7 @@
         <div id="bar" class="myClass"></p>
         <script>
             test(function() {
-                let div = document.getElementById("foo");
+                var div = document.getElementById("foo");
                 assert_equals(document.querySelector("#foo"), div);
 
                 div = document.getElementById("foo\\bar");
@@ -26,8 +26,8 @@
             }, "Document");
 
             test(function() {
-                let body = document.body;
-                let div = document.getElementById("foo");
+                var body = document.body;
+                var div = document.getElementById("foo");
                 assert_equals(body.querySelector("#foo"), div);
 
                 div = document.getElementById("foo\\bar");
@@ -42,17 +42,17 @@
             }, "Element");
 
             test(function() {
-                let docfrag = document.createDocumentFragment();
+                var docfrag = document.createDocumentFragment();
 
-                let div = document.createElement("div");
+                var div = document.createElement("div");
                 div.id = "foo";
                 div.className = "myClass";
 
-                let child = document.createElement("div");
+                var child = document.createElement("div");
                 div.appendChild(child);
                 docfrag.appendChild(div);
 
-                let p = document.createElement("p");
+                var p = document.createElement("p");
                 p.id = "bar";
                 p.className = "myClass";
                 docfrag.appendChild(p);

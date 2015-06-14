@@ -14,7 +14,7 @@ use std::thread;
 use std::sync::mpsc::Sender;
 use std::io::Read;
 
-use geom::point::TypedPoint2D;
+use geom::point::Point2D;
 
 use errno::errno;
 use libc::c_int;
@@ -167,7 +167,7 @@ fn read_input_device(device_path: &Path,
                             let delta_y = slotA.y - first_y;
                             let dist = delta_x * delta_x + delta_y * delta_y;
                             if dist < 16 {
-                                let click_pt = TypedPoint2D(slotA.x as f32, slotA.y as f32);
+                                let click_pt = Point2D::typed(slotA.x as f32, slotA.y as f32);
                                 println!("Dispatching click!");
                                 sender.send(
                                     WindowEvent::MouseWindowEventClass(
@@ -193,8 +193,8 @@ fn read_input_device(device_path: &Path,
                     } else {
                         println!("Touch move x: {}, y: {}", slotA.x, slotA.y);
                         sender.send(
-                            WindowEvent::Scroll(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32),
-                                                TypedPoint2D(slotA.x, slotA.y))).ok().unwrap();
+                            WindowEvent::Scroll(Point2D::typed((slotA.x - last_x) as f32, (slotA.y - last_y) as f32),
+                                                Point2D::typed(slotA.x, slotA.y))).ok().unwrap();
                         last_x = slotA.x;
                         last_y = slotA.y;
                         if touch_count >= 2 {

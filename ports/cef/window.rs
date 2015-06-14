@@ -18,7 +18,7 @@ use wrappers::CefWrap;
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
+use geom::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
@@ -86,7 +86,7 @@ impl Window {
 
         Rc::new(Window {
             cef_browser: RefCell::new(None),
-            size: TypedSize2D(width, height)
+            size: Size2D::typed(width, height)
         })
     }
 
@@ -199,7 +199,7 @@ impl WindowMethods for Window {
                         }
                     }
 
-                    TypedSize2D(rect.width as u32, rect.height as u32)
+                    Size2D::typed(rect.width as u32, rect.height as u32)
                 }
             }
         }
@@ -208,14 +208,14 @@ impl WindowMethods for Window {
     fn size(&self) -> TypedSize2D<ScreenPx,f32> {
         let browser = self.cef_browser.borrow();
         match *browser {
-            None => TypedSize2D(400.0, 300.0),
+            None => Size2D::typed(400.0, 300.0),
             Some(ref browser) => {
                 let mut rect = cef_rect_t::zero();
                 browser.get_host()
                        .get_client()
                        .get_render_handler()
                        .get_view_rect((*browser).clone(), &mut rect);
-                TypedSize2D(rect.width as f32, rect.height as f32)
+                Size2D::typed(rect.width as f32, rect.height as f32)
             }
         }
     }

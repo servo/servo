@@ -7,7 +7,7 @@
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
+use geom::size::{Size2D, TypedSize2D};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
@@ -784,12 +784,12 @@ impl Drop for Window {
 impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
-        TypedSize2D(self.width as u32, self.height as u32)
+        Size2D::typed(self.width as u32, self.height as u32)
     }
 
     /// Returns the size of the window in density-independent "px" units.
     fn size(&self) -> TypedSize2D<ScreenPx, f32> {
-        TypedSize2D(self.width as f32, self.height as f32)
+        Size2D::typed(self.width as f32, self.height as f32)
     }
 
     /// Presents the window to the screen (perhaps by page flipping).

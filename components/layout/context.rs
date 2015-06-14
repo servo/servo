@@ -29,6 +29,7 @@ use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
 use util::geometry::Au;
+use util::mem::HeapSizeOf;
 use util::opts;
 
 struct LocalLayoutContext {
@@ -37,7 +38,20 @@ struct LocalLayoutContext {
     style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
 }
 
+impl HeapSizeOf for LocalLayoutContext {
+    // FIXME(njn): measure other fields eventually.
+    fn heap_size_of_children(&self) -> usize {
+        self.font_context.heap_size_of_children()
+    }
+}
+
 thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<LocalLayoutContext>>> = RefCell::new(None));
+
+pub fn heap_size_of_local_context() -> usize {
+    LOCAL_CONTEXT_KEY.with(|r| {
+        r.borrow().clone().map_or(0, |context| context.heap_size_of_children())
+    })
+}
 
 fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
                                -> Rc<LocalLayoutContext> {

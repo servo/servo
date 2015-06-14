@@ -224,7 +224,7 @@ impl ReportsTree {
         }
 
         let mebi = 1024f64 * 1024f64;
-        let count_str = if self.count > 1 { format!(" {}", self.count) } else { "".to_owned() };
+        let count_str = if self.count > 1 { format!(" [{}]", self.count) } else { "".to_owned() };
         println!("|{}{:8.2} MiB -- {}{}",
                  indent_str, (self.size as f64) / mebi, self.path_seg, count_str);
 
