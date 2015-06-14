@@ -27,6 +27,7 @@ use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 use util::str::DOMString;
 
 use js::jsapi::{JSContext, HandleValue, RootedValue};
+use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use url::UrlParser;
 
@@ -101,7 +102,8 @@ impl Worker {
 
         let global = worker.r().global.root();
         let target = EventTargetCast::from_ref(worker.r());
-
+        let _ar = JSAutoRequest::new(global.r().get_cx());
+        let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
         let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
         data.read(global.r(), message.handle_mut());
         MessageEvent::dispatch_jsval(target, global.r(), message.handle());
