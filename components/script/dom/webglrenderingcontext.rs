@@ -3,10 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas::webgl_paint_task::WebGLPaintTask;
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
-    WebGLContextAttributes, WebGLRenderingContextMethods, WebGLRenderingContextConstants};
+use canvas_traits::
+            {CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg, WebGLError,
+             WebGLShaderParameter, WebGLFramebufferBindingRequest};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::
+            {self, WebGLContextAttributes, WebGLRenderingContextMethods};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -22,7 +25,7 @@ use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelper
 use euclid::size::Size2D;
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
-use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value};
+use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
 use std::mem;
 use std::ptr;
 use std::sync::mpsc::{channel, Sender};
@@ -115,10 +118,10 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         // TODO(ecoal95): Implement the missing parameters from the spec
         let mut rval = RootedValue::new(cx, UndefinedValue());
         match parameter {
-            WebGLRenderingContextConstants::VERSION =>
+            constants::VERSION =>
                 "WebGL 1.0".to_jsval(cx, rval.handle_mut()),
-            WebGLRenderingContextConstants::RENDERER |
-            WebGLRenderingContextConstants::VENDOR =>
+            constants::RENDERER |
+            constants::VENDOR =>
                 "Mozilla/Servo".to_jsval(cx, rval.handle_mut()),
             _ => rval.ptr = NullValue(),
         }
@@ -198,6 +201,9 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     fn BindBuffer(self, target: u32, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
             buffer.bind(target)
+        } else {
+            // Unbind the current buffer
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindBuffer(target, 0))).unwrap()
         }
     }
 
@@ -205,6 +211,11 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     fn BindFramebuffer(self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
             framebuffer.bind(target)
+        } else {
+            // Bind the default framebuffer
+            self.renderer.send(
+                CanvasMsg::WebGL(
+                    CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default))).unwrap()
         }
     }
 
@@ -212,6 +223,9 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     fn BindRenderbuffer(self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
             renderbuffer.bind(target)
+        } else {
+            // Unbind the currently bound renderbuffer
+            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindRenderbuffer(target, 0))).unwrap()
         }
     }
 
@@ -224,7 +238,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     #[allow(unsafe_code)]
-    fn BufferData(self, cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
+    fn BufferData(self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
         let data = match data {
             Some(data) => data,
             None => return,
@@ -448,7 +462,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     fn VertexAttribPointer(self, attrib_id: u32, size: i32, data_type: u32,
                            normalized: bool, stride: i32, offset: i64) {
         match data_type {
-            WebGLRenderingContextConstants::FLOAT => {
+            constants::FLOAT => {
                let msg = CanvasMsg::WebGL(
                    CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset));
                 self.renderer.send(msg).unwrap()

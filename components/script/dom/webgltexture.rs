@@ -50,7 +50,7 @@ pub trait WebGLTextureHelpers {
 }
 
 impl<'a> WebGLTextureHelpers for &'a WebGLTexture {
-    fn id(&self) -> u32 {
+    fn id(self) -> u32 {
         self.id
     }
 

@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, JSRef};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
@@ -44,9 +44,9 @@ impl WebGLBuffer {
 }
 
 pub trait WebGLBufferHelpers {
-    fn id(&self) -> u32;
-    fn bind(&self, target: u32);
-    fn delete(&self);
+    fn id(self) -> u32;
+    fn bind(self, target: u32);
+    fn delete(self);
 }
 
 impl<'a> WebGLBufferHelpers for &'a WebGLBuffer {
