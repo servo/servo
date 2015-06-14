@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, codemap, visit, ast_map};
+use syntax::{ast, codemap, visit};
 use syntax::attr::AttrMetaMethods;
+use rustc::ast_map;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
@@ -159,8 +160,8 @@ impl LintPass for UnrootedPass {
 
         let t = expr_ty(cx.tcx, &*expr);
         match t.sty {
-            ty::ty_struct(did, _) |
-            ty::ty_enum(did, _) => {
+            ty::TyStruct(did, _) |
+            ty::TyEnum(did, _) => {
                 if ty::has_attr(cx.tcx, did, "must_root") {
                     cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
                                  &format!("Expression of type {} must be rooted", t.repr(cx.tcx)));
