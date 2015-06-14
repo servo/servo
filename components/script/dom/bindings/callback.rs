@@ -99,16 +99,15 @@ impl CallbackInterface {
                                  -> Fallible<JSVal> {
         let mut callable = UndefinedValue();
         unsafe {
-            let name = CString::new(name).unwrap();
-            if JS_GetProperty(cx, self.callback(), name.as_ptr(), &mut callable) == 0 {
+            let c_name = CString::new(name).unwrap();
+            if JS_GetProperty(cx, self.callback(), c_name.as_ptr(), &mut callable) == 0 {
                 return Err(Error::JSFailed);
             }
 
             if !callable.is_object() ||
                JS_ObjectIsCallable(cx, callable.to_object()) == 0 {
-                // FIXME(#347)
-                //ThrowErrorMessage(cx, MSG_NOT_CALLABLE, description.get());
-                return Err(Error::JSFailed);
+                return Err(Error::Type(
+                    format!("The value of the {} property is not callable", name)));
             }
         }
         Ok(callable)
