@@ -1429,6 +1429,8 @@ class MethodDefiner(PropertyDefiner):
             return ""
 
         def specData(m):
+            # TODO: Use something like JS_FNSPEC
+            # https://github.com/servo/servo/issues/6391
             if "selfHostedName" in m:
                 selfHostedName = '%s as *const u8 as *const i8' % str_to_const_array(m["selfHostedName"])
                 assert not m.get("methodInfo", True)

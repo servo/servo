@@ -663,6 +663,7 @@ unsafe extern fn wrap(cx: *mut JSContext,
                       obj: HandleObject)
                       -> *mut JSObject {
     // FIXME terrible idea. need security wrappers
+    // https://github.com/servo/servo/issues/2382
     WrapperNew(cx, obj, GetCrossCompartmentWrapper())
 }
 
@@ -674,7 +675,7 @@ unsafe extern fn pre_wrap(cx: *mut JSContext, _existing: HandleObject,
 }
 
 /// Callback table for use with JS_SetWrapObjectCallbacks
-pub const WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
+pub static WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
     wrap: Some(wrap),
     preWrap: Some(pre_wrap),
 };

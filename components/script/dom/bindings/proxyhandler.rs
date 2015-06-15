@@ -88,6 +88,7 @@ pub unsafe extern fn own_property_keys(cx: *mut JSContext,
                                        proxy: HandleObject,
                                        props: *mut AutoIdVector) -> u8 {
     // FIXME: implement this
+    // https://github.com/servo/servo/issues/6390
     JSTrue
 }
 
