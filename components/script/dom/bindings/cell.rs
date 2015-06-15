@@ -41,6 +41,7 @@ impl<T> DOMRefCell<T> {
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_gc_trace<'a>(&'a self) -> &'a T {
         // FIXME: IN_GC isn't reliable enough - doesn't catch minor GCs
+        // https://github.com/servo/servo/issues/6389
         //debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
         &*self.value.as_unsafe_cell().get()
     }

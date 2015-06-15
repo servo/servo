@@ -306,7 +306,7 @@ fn define_properties(cx: *mut JSContext, obj: HandleObject,
 fn create_interface_prototype_object(cx: *mut JSContext, global: HandleObject,
                                      proto_class: &'static JSClass,
                                      members: &'static NativeProperties,
-                                     mut rval: MutableHandleObject) {
+                                     rval: MutableHandleObject) {
     unsafe {
         rval.set(JS_NewObjectWithUniqueType(cx, proto_class, global));
         assert!(!rval.get().is_null());
@@ -628,6 +628,7 @@ unsafe extern fn wrap(cx: *mut JSContext,
                       obj: HandleObject)
                       -> *mut JSObject {
     // FIXME terrible idea. need security wrappers
+    // https://github.com/servo/servo/issues/2382
     WrapperNew(cx, obj, GetCrossCompartmentWrapper())
 }
 
@@ -639,7 +640,7 @@ unsafe extern fn pre_wrap(cx: *mut JSContext, _existing: HandleObject,
 }
 
 /// Callback table for use with JS_SetWrapObjectCallbacks
-pub const WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
+pub static WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
     wrap: Some(wrap),
     preWrap: Some(pre_wrap),
 };
