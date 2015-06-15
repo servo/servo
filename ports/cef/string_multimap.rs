@@ -4,9 +4,8 @@
 
 use eutil::slice_to_str;
 use libc::c_int;
+use std::boxed;
 use std::collections::BTreeMap;
-use std::mem;
-use std::string::String;
 use string::{cef_string_userfree_utf16_alloc, cef_string_userfree_utf16_free};
 use string::{cef_string_utf16_set};
 use types::{cef_string_multimap_t,cef_string_t};
@@ -15,10 +14,7 @@ use types::{cef_string_multimap_t,cef_string_t};
 
 #[no_mangle]
 pub extern "C" fn cef_string_multimap_alloc() -> *mut cef_string_multimap_t {
-    unsafe {
-         let smm: Box<BTreeMap<String, Vec<*mut cef_string_t>>> = box BTreeMap::new();
-         mem::transmute(smm)
-    }
+    boxed::into_raw(box BTreeMap::new())
 }
 
 #[no_mangle]
@@ -138,8 +134,7 @@ pub extern "C" fn cef_string_multimap_clear(smm: *mut cef_string_multimap_t) {
 pub extern "C" fn cef_string_multimap_free(smm: *mut cef_string_multimap_t) {
     unsafe {
         if smm.is_null() { return; }
-        let v: Box<BTreeMap<String, Vec<*mut cef_string_t>>> = mem::transmute(smm);
         cef_string_multimap_clear(smm);
-        drop(v);
+        drop(Box::from_raw(smm));
     }
 }
