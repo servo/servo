@@ -970,6 +970,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         declType = ""
         default = ""
         if isMember == "Dictionary":
+            # TODO: Need to properly root dictionaries
+            # https://github.com/servo/servo/issues/6381
             declType = CGGeneric("JSVal")
 
             if defaultValue is None:
@@ -997,6 +999,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isObject():
         assert not isEnforceRange and not isClamp
 
+        # TODO: Need to root somehow
+        # https://github.com/servo/servo/issues/6382
         declType = CGGeneric("*mut JSObject")
         templateBody = wrapObjectTemplate("${val}.get().to_object()",
                                           "ptr::null_mut()",
