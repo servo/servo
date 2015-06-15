@@ -266,12 +266,12 @@ impl<'a> CanvasPaintTask<'a> {
         );
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(draw_rect, |new_draw_target: &DrawTarget| {
-                new_draw_target.fill_rect(draw_rect, self.state.fill_style.to_pattern_ref(),
+            self.draw_with_shadow(&draw_rect, |new_draw_target: &DrawTarget| {
+                new_draw_target.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
                                           Some(&self.state.draw_options));
             });
         } else {
-            self.drawtarget.fill_rect(draw_rect, self.state.fill_style.to_pattern_ref(),
+            self.drawtarget.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
                                       Some(&self.state.draw_options));
         }
     }
@@ -334,8 +334,8 @@ impl<'a> CanvasPaintTask<'a> {
         let image_data = crop_image(image_data, image_size, source_rect);
 
         if self.need_to_draw_shadow() {
-            let rect = Rect(Point2D(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
-                            Size2D(dest_rect.size.width as f32, dest_rect.size.height as f32));
+            let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
+                                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
 
             self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
                 write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
@@ -355,8 +355,8 @@ impl<'a> CanvasPaintTask<'a> {
         let image_data = self.read_pixels(source_rect, image_size);
 
         if self.need_to_draw_shadow() {
-            let rect = Rect(Point2D(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
-                            Size2D(dest_rect.size.width as f32, dest_rect.size.height as f32));
+            let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
+                                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
 
             self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
                 write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
@@ -557,7 +557,7 @@ impl<'a> CanvasPaintTask<'a> {
         // rgba -> bgra
         byte_swap(&mut imagedata);
 
-        let image_rect = Rect::new(Point2D::new(0f64, 0f64),
+        let image_rect = Rect::new(Point2D::zero(),
                                    Size2D::new(image_data_rect.size.width, image_data_rect.size.height));
 
         // Dirty rectangle defines the area of the source image to be copied
@@ -607,7 +607,7 @@ impl<'a> CanvasPaintTask<'a> {
         self.state.shadow_color = value;
     }
 
-    // https://html.spec.whatwg.org/multipage/scripting.html#when-shadows-are-drawn
+    // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
     fn need_to_draw_shadow(&self) -> bool {
         self.state.shadow_color.a != 0.0f32 &&
         (self.state.shadow_offset_x != 0.0f64 ||
@@ -616,8 +616,8 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
-        let draw_target = self.drawtarget.create_similar_draw_target(&Size2D(source_rect.size.width as i32,
-                                                                             source_rect.size.height as i32),
+        let draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(source_rect.size.width as i32,
+                                                                                  source_rect.size.height as i32),
                                                                      self.drawtarget.get_format());
         let matrix = Matrix2D::identity().translate(-source_rect.origin.x as AzFloat,
                                                     -source_rect.origin.y as AzFloat)
@@ -633,11 +633,11 @@ impl<'a> CanvasPaintTask<'a> {
         let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
         draw_shadow_source(&new_draw_target);
         self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
-                                                 &Point2D(shadow_src_rect.origin.x as AzFloat,
-                                                          shadow_src_rect.origin.y as AzFloat),
+                                                 &Point2D::new(shadow_src_rect.origin.x as AzFloat,
+                                                               shadow_src_rect.origin.y as AzFloat),
                                                  &self.state.shadow_color,
-                                                 &Point2D(self.state.shadow_offset_x as AzFloat,
-                                                          self.state.shadow_offset_y as AzFloat),
+                                                 &Point2D::new(self.state.shadow_offset_x as AzFloat,
+                                                               self.state.shadow_offset_y as AzFloat),
                                                  (self.state.shadow_blur / 2.0f64) as AzFloat,
                                                  self.state.draw_options.composition);
     }
@@ -689,7 +689,7 @@ fn write_image(draw_target: &DrawTarget,
     if image_data.len() == 0 {
         return
     }
-    let image_rect = Rect(Point2D(0f64, 0f64), image_size);
+    let image_rect = Rect::new(Point2D::zero(), image_size);
     // rgba -> bgra
     byte_swap(&mut image_data);
     write_pixels(&draw_target, &image_data, image_size, image_rect, dest_rect, smoothing_enabled, global_alpha);
