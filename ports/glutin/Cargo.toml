@@ -16,6 +16,7 @@ time = "0.1.12"
 bitflags = "*"
 libc = "*"
 url = "*"
+gleam = "0.1"
 
 [dependencies.compositing]
 path = "../../components/compositing"
@@ -42,9 +43,6 @@ path = "../../components/util"
 git = "https://github.com/servo/glutin"
 branch = "servo"
 
-[dependencies.gleam]
-git = "https://github.com/servo/gleam"
-
 [target.i686-unknown-linux-gnu.dependencies]
 x11 = "*"
 
@@ -54,8 +52,8 @@ x11 = "*"
 [target.arm-unknown-linux-gnueabihf.dependencies]
 x11 = "*"
 
-[target.x86_64-apple-darwin.dependencies.cgl]
-git = "https://github.com/servo/cgl-rs"
+[target.x86_64-apple-darwin.dependencies]
+cgl = "0.1"
 
 [target.arm-linux-androideabi.dependencies.egl]
 git = "https://github.com/servo/rust-egl"

@@ -52,9 +52,6 @@ git = "https://github.com/servo/rust-layers"
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
-[dependencies.gleam]
-git = "https://github.com/servo/gleam"
-
 [dependencies.clipboard]
 git = "https://github.com/aweinstock314/rust-clipboard"
 
@@ -64,6 +61,7 @@ num = "0.1.24"
 url = "0.2.35"
 time = "0.1.17"
 libc = "*"
+gleam = "0.1"
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "*"
