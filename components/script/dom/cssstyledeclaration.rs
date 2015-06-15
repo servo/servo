@@ -211,7 +211,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 6
-        let mut synthesized_declaration = String::from_str(&property);
+        let mut synthesized_declaration = property;
         synthesized_declaration.push_str(": ");
         synthesized_declaration.push_str(&value);
 

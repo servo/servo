@@ -1038,7 +1038,7 @@ fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
 }
 
 fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: &ReflowReason) {
-    let mut debug_msg = String::from_str("****");
+    let mut debug_msg = "****".to_owned();
     debug_msg.push_str(match *goal {
         ReflowGoal::ForDisplay => "\tForDisplay",
         ReflowGoal::ForScriptQuery => "\tForScriptQuery",
