@@ -121,9 +121,8 @@ pub extern "C" fn cef_string_multimap_clear(smm: *mut cef_string_multimap_t) {
         if smm.is_null() { return; }
         if (*smm).len() == 0 { return; }
         for (_, val) in (*smm).iter_mut() {
-            while (*val).len() != 0 {
-                let cs = (*val).pop();
-                cef_string_userfree_utf16_free(cs.unwrap());
+            while let Some(cs) = (*val).pop() {
+                cef_string_userfree_utf16_free(cs);
             }
         }
         (*smm).clear();
