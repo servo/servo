@@ -2299,7 +2299,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     def __init__(self, descriptor, name, idPrefix="", pub=False):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('HandleObject', 'receiver'),
-                Argument('MutableHandleObject', 'mut rval')]
+                Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   'void', args, pub=pub)
         self.id = idPrefix + "ID::" + self.descriptor.name
@@ -4888,7 +4888,7 @@ class CGDictionary(CGThing):
             "}\n"
             "\n"
             "impl ToJSValConvertible for ${selfName} {\n"
-            "    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {\n"
+            "    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {\n"
             "        let obj = unsafe { RootedObject::new(cx, JS_NewObject(cx, ptr::null())) };\n"
             "${insertMembers}"
             "        rval.set(ObjectOrNullValue(obj.ptr))\n"

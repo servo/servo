@@ -94,13 +94,13 @@ pub trait FromJSValConvertible {
 
 
 impl ToJSValConvertible for () {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(UndefinedValue());
     }
 }
 
 impl ToJSValConvertible for JSVal {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(*self);
         if unsafe { JS_WrapValue(cx, rval) } == 0 {
             panic!("JS_WrapValue failed.");
@@ -109,7 +109,7 @@ impl ToJSValConvertible for JSVal {
 }
 
 impl ToJSValConvertible for HandleValue {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(self.get());
         if unsafe { JS_WrapValue(cx, rval) } == 0 {
             panic!("JS_WrapValue failed.");
@@ -118,7 +118,7 @@ impl ToJSValConvertible for HandleValue {
 }
 
 impl ToJSValConvertible for bool {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(BooleanValue(*self));
     }
 }
@@ -131,7 +131,7 @@ impl FromJSValConvertible for bool {
 }
 
 impl ToJSValConvertible for i8 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
@@ -145,7 +145,7 @@ impl FromJSValConvertible for i8 {
 }
 
 impl ToJSValConvertible for u8 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
@@ -159,7 +159,7 @@ impl FromJSValConvertible for u8 {
 }
 
 impl ToJSValConvertible for i16 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
@@ -173,7 +173,7 @@ impl FromJSValConvertible for i16 {
 }
 
 impl ToJSValConvertible for u16 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
@@ -186,7 +186,7 @@ impl FromJSValConvertible for u16 {
 }
 
 impl ToJSValConvertible for i32 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self));
     }
 }
@@ -199,7 +199,7 @@ impl FromJSValConvertible for i32 {
 }
 
 impl ToJSValConvertible for u32 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(UInt32Value(*self));
     }
 }
@@ -212,7 +212,7 @@ impl FromJSValConvertible for u32 {
 }
 
 impl ToJSValConvertible for i64 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
             rval.set(RUST_JS_NumberValue(*self as f64));
         }
@@ -227,7 +227,7 @@ impl FromJSValConvertible for i64 {
 }
 
 impl ToJSValConvertible for u64 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
             rval.set(RUST_JS_NumberValue(*self as f64));
         }
@@ -242,7 +242,7 @@ impl FromJSValConvertible for u64 {
 }
 
 impl ToJSValConvertible for f32 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
             rval.set(RUST_JS_NumberValue(*self as f64));
         }
@@ -258,7 +258,7 @@ impl FromJSValConvertible for f32 {
 }
 
 impl ToJSValConvertible for f64 {
-    fn to_jsval(&self, _cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
             rval.set(RUST_JS_NumberValue(*self));
         }
@@ -296,7 +296,7 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
 }
 
 impl ToJSValConvertible for str {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
             let string_utf16: Vec<u16> = self.utf16_units().collect();
             let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr() as *const i16,
@@ -419,7 +419,7 @@ impl FromJSValConvertible for USVString {
 }
 
 impl ToJSValConvertible for ByteString {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
             let jsstr = JS_NewStringCopyN(cx, self.as_ptr() as *const libc::c_char,
                                           self.len() as libc::size_t);
@@ -472,7 +472,7 @@ impl FromJSValConvertible for ByteString {
 }
 
 impl ToJSValConvertible for Reflector {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
         rval.set(ObjectValue(unsafe { &*obj }));
@@ -614,7 +614,7 @@ impl<'a, T: Reflectable> ToJSValConvertible for &'a T {
 }
 
 impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         match self {
             &Some(ref value) => value.to_jsval(cx, rval),
             &None => rval.set(NullValue()),
@@ -623,7 +623,7 @@ impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
 }
 
 impl<T: ToJSValConvertible> ToJSValConvertible for Option<Rc<T>> {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         match self {
             &Some(ref value) => (**value).to_jsval(cx, rval),
             &None => rval.set(NullValue()),
@@ -645,7 +645,7 @@ impl<X: default::Default, T: FromJSValConvertible<Config=X>> FromJSValConvertibl
 }
 
 impl ToJSValConvertible for *mut JSObject {
-    fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(ObjectOrNullValue(*self));
         unsafe {
             assert!(JS_WrapValue(cx, rval) != 0);

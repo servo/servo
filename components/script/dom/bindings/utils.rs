@@ -309,7 +309,7 @@ fn define_properties(cx: *mut JSContext, obj: HandleObject,
 fn create_interface_prototype_object(cx: *mut JSContext, global: HandleObject,
                                      proto_class: &'static JSClass,
                                      members: &'static NativeProperties,
-                                     mut rval: MutableHandleObject) {
+                                     rval: MutableHandleObject) {
     unsafe {
         rval.set(JS_NewObjectWithUniqueType(cx, proto_class, global));
         assert!(!rval.get().is_null());
