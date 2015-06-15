@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use rustc::ast_map;
 use rustc::lint::Context;
 use rustc::middle::{ty, def};
 
 use syntax::ptr::P;
-use syntax::{ast, ast_map};
+use syntax::ast;
 use syntax::ast::{TyPath, Path, AngleBracketedParameters, PathSegment, Ty};
 use syntax::attr::mark_used;
 
