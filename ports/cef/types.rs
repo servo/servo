@@ -13,8 +13,10 @@ use net::net_error_list::NetError;
 
 pub use self::cef_rect as cef_rect_t;
 
+use std::collections::BTreeMap;
+
 pub enum cef_string_map_t {}
-pub enum cef_string_multimap_t {}
+pub type cef_string_multimap_t = BTreeMap<String, Vec<*mut cef_string_t>>;
 pub type cef_string_list_t = Vec<String>;
 pub enum cef_text_input_context_t {}
 pub enum cef_event_handle_t {}
