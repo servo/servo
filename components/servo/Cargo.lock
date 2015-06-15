@@ -80,7 +80,7 @@ dependencies = [
  "cssparser 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx_traits 0.0.1",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "gleam 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -102,10 +102,10 @@ dependencies = [
 
 [[package]]
 name = "cgl"
-version = "0.0.1"
-source = "git+https://github.com/servo/cgl-rs#ee2ba57c0cc576d13eb7b9413a3981291410d3b8"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "gleam 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -148,7 +148,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "gleam 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout_traits 0.0.1",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -464,8 +464,8 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.0.1"
-source = "git+https://github.com/servo/gleam#0108e2a6c7ca4dc471bfb94ba1ed368335e4da28"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -501,11 +501,11 @@ name = "glutin_app"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
+ "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "gleam 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.0.26 (git+https://github.com/servo/glutin?branch=servo)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -588,12 +588,12 @@ dependencies = [
 [[package]]
 name = "io-surface"
 version = "0.1.0"
-source = "git+https://github.com/servo/io-surface-rs#51c187a698f832d52d8fe8a833d47a38c4c8cf06"
+source = "git+https://github.com/servo/io-surface-rs#7f8d819c7c2cef9ba6e057478bc13f01fe5e5a96"
 dependencies = [
- "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
+ "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "gleam 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -625,14 +625,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#e566d3fc6ec80fe3aaf8ce67785683c99c46a015"
+source = "git+https://github.com/servo/rust-layers#76d90799f152a78c35c90d9d7a9311a68e98937a"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
- "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
+ "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "gleam 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "io-surface 0.1.0 (git+https://github.com/servo/io-surface-rs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -857,13 +857,13 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#c402c86f8d4472785e04e59505feb28638101700"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#5d126b050569545204ddb5b9101be64850ebfe5a"
 dependencies = [
- "cgl 0.0.1 (git+https://github.com/servo/cgl-rs)",
+ "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "gleam 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
