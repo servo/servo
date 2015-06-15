@@ -40,7 +40,7 @@ pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const c
         if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
-            let s = String::from_str(result);
+            let s = String::from(result);
             let csv = cef_string_userfree_utf16_alloc();
             cef_string_utf16_set((*value).str as *const u16, (*value).length, csv, 1);
             (*v).insert(s, csv);
@@ -55,7 +55,7 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
         if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
-            match (*v).get(&String::from_str(result)) {
+            match (*v).get(&String::from(result)) {
                 Some(s) => {
                     cef_string_utf16_set((**s).str as *const u16, (**s).length, value, 1);
                     1

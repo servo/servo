@@ -101,10 +101,10 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
         // TODO(ecoal95): Implement the missing parameters from the spec
         match parameter {
             WebGLRenderingContextConstants::VERSION =>
-                DOMString::from_str("WebGL 1.0").to_jsval(cx),
+                DOMString::from("WebGL 1.0").to_jsval(cx),
             WebGLRenderingContextConstants::RENDERER |
             WebGLRenderingContextConstants::VENDOR =>
-                DOMString::from_str("Mozilla/Servo").to_jsval(cx),
+                DOMString::from("Mozilla/Servo").to_jsval(cx),
             _ => NullValue(),
         }
     }
