@@ -190,6 +190,21 @@ impl Handler {
         }
     }
 
+    fn handle_get_current_url(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.get_root_pipeline());
+
+        let (sender, reciever) = channel();
+
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        let cmd_msg = WebDriverCommandMsg::GetUrl(pipeline_id, sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        //Wait to get a load event
+        let url = reciever.recv().unwrap();
+
+        Ok(WebDriverResponse::Generic(ValueResponse::new(url.serialize().to_json())))
+    }
+
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         const_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Back)).unwrap();
@@ -486,6 +501,7 @@ impl WebDriverHandler for Handler {
         match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
+            WebDriverCommand::GetCurrentUrl => self.handle_get_current_url(),
             WebDriverCommand::GoBack => self.handle_go_back(),
             WebDriverCommand::GoForward => self.handle_go_forward(),
             WebDriverCommand::GetTitle => self.handle_get_title(),

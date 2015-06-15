@@ -906,6 +906,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     self.webdriver.load_channel = Some((id, reply));
                 }
             },
+            WebDriverCommandMsg::GetUrl(pipeline_id, reply) => {
+                let pipeline = self.pipeline(pipeline_id);
+                reply.send(pipeline.url.clone()).unwrap();
+            }
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
                 let pipeline = self.pipeline(pipeline_id);
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
