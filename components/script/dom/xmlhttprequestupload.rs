@@ -5,7 +5,7 @@
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestUploadDerived;
 use dom::bindings::codegen::Bindings::XMLHttpRequestUploadBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Temporary;
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
@@ -23,7 +23,7 @@ impl XMLHttpRequestUpload {
                 XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
         }
     }
-    pub fn new(global: GlobalRef) -> Temporary<XMLHttpRequestUpload> {
+    pub fn new(global: GlobalRef) -> Root<XMLHttpRequestUpload> {
         reflect_dom_object(box XMLHttpRequestUpload::new_inherited(),
                            global,
                            XMLHttpRequestUploadBinding::Wrap)

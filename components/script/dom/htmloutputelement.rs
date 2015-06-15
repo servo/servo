@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -30,7 +30,7 @@ impl HTMLOutputElementDerived for EventTarget {
 impl HTMLOutputElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLOutputElement {
+                     document: &Document) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLOutputElement, localName, prefix, document)
@@ -40,15 +40,15 @@ impl HTMLOutputElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLOutputElement> {
+               document: &Document) -> Root<HTMLOutputElement> {
         let element = HTMLOutputElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOutputElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
-    fn Validity(self) -> Temporary<ValidityState> {
-        let window = window_from_node(self).root();
+impl<'a> HTMLOutputElementMethods for &'a HTMLOutputElement {
+    fn Validity(self) -> Root<ValidityState> {
+        let window = window_from_node(self);
         ValidityState::new(window.r())
     }
 }

@@ -6,11 +6,10 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
-use dom::bindings::js::{OptionalRootable, Rootable, RootedReference};
+use dom::bindings::js::{JS, MutNullableHeap};
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
-use dom::node::Node;
 use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 
@@ -125,7 +124,7 @@ pub struct Attr {
 
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue, name: Atom, namespace: Namespace,
-                     prefix: Option<Atom>, owner: Option<JSRef<Element>>) -> Attr {
+                     prefix: Option<Atom>, owner: Option<&Element>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
@@ -133,13 +132,13 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: MutNullableHeap::new(owner.map(JS::from_rooted)),
+            owner: MutNullableHeap::new(owner.map(JS::from_ref)),
         }
     }
 
-    pub fn new(window: JSRef<Window>, local_name: Atom, value: AttrValue,
+    pub fn new(window: &Window, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
-               prefix: Option<Atom>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
+               prefix: Option<Atom>, owner: Option<&Element>) -> Root<Attr> {
         reflect_dom_object(
             box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
             GlobalRef::Window(window),
@@ -162,7 +161,7 @@ impl Attr {
     }
 }
 
-impl<'a> AttrMethods for JSRef<'a, Attr> {
+impl<'a> AttrMethods for &'a Attr {
     // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(self) -> DOMString {
         (**self.local_name()).to_owned()
@@ -177,8 +176,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn SetValue(self, value: DOMString) {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
-            Some(o) => {
-                let owner = o.root();
+            Some(owner) => {
                 let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
                 self.set_value(AttrSettingType::ReplacedAttr, value, owner.r());
             }
@@ -225,7 +223,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
-    fn GetOwnerElement(self) -> Option<Temporary<Element>> {
+    fn GetOwnerElement(self) -> Option<Root<Element>> {
         self.owner()
     }
 
@@ -236,19 +234,19 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 }
 
 pub trait AttrHelpers<'a> {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>);
+    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: &Element);
     fn value(self) -> Ref<'a, AttrValue>;
     fn local_name(self) -> &'a Atom;
-    fn set_owner(self, owner: Option<JSRef<Element>>);
-    fn owner(self) -> Option<Temporary<Element>>;
+    fn set_owner(self, owner: Option<&Element>);
+    fn owner(self) -> Option<Root<Element>>;
     fn summarize(self) -> AttrInfo;
 }
 
-impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>) {
-        assert!(Some(owner) == self.owner().root().r());
+impl<'a> AttrHelpers<'a> for &'a Attr {
+    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: &Element) {
+        assert!(Some(owner) == self.owner().r());
 
-        let node: JSRef<Node> = NodeCast::from_ref(owner);
+        let node = NodeCast::from_ref(owner);
         let namespace_is_null = self.namespace == ns!("");
 
         match set_type {
@@ -265,21 +263,21 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     }
 
     fn value(self) -> Ref<'a, AttrValue> {
-        self.extended_deref().value.borrow()
+        self.value.borrow()
     }
 
     fn local_name(self) -> &'a Atom {
-        &self.extended_deref().local_name
+        &self.local_name
     }
 
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
-    fn set_owner(self, owner: Option<JSRef<Element>>) {
+    fn set_owner(self, owner: Option<&Element>) {
         let ref ns = self.namespace;
-        match (self.owner().root().r(), owner) {
+        match (self.owner().r(), owner) {
             (None, Some(new)) => {
                 // Already in the list of attributes of new owner.
-                assert!(new.get_attribute(&ns, &self.local_name).root().r() == Some(self))
+                assert!(new.get_attribute(&ns, &self.local_name) == Some(Root::from_ref(self)))
             }
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
@@ -287,11 +285,11 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
             }
             (old, new) => assert!(old == new)
         }
-        self.owner.set(owner.map(JS::from_rooted))
+        self.owner.set(owner.map(JS::from_ref))
     }
 
-    fn owner(self) -> Option<Temporary<Element>> {
-        self.owner.get().map(Temporary::from_rooted)
+    fn owner(self) -> Option<Root<Element>> {
+        self.owner.get().map(Root::from_rooted)
     }
 
     fn summarize(self) -> AttrInfo {
@@ -311,7 +309,7 @@ pub trait AttrHelpersForLayout {
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
     unsafe fn local_name_atom_forever(&self) -> Atom;
-    unsafe fn value(&self) -> &AttrValue;
+    unsafe fn value_for_layout(&self) -> &AttrValue;
 }
 
 #[allow(unsafe_code)]
@@ -354,7 +352,7 @@ impl AttrHelpersForLayout for Attr {
     }
 
     #[inline]
-    unsafe fn value(&self) -> &AttrValue {
+    unsafe fn value_for_layout(&self) -> &AttrValue {
         self.value.borrow_for_layout()
     }
 }

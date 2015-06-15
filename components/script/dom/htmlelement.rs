@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, Temporary};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Error::Syntax;
 use dom::bindings::utils::Reflectable;
@@ -37,12 +37,19 @@ use string_cache::Atom;
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::intrinsics;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct HTMLElement {
     element: Element,
     style_decl: MutNullableHeap<JS<CSSStyleDeclaration>>,
     dataset: MutNullableHeap<JS<DOMStringMap>>,
+}
+
+impl PartialEq for HTMLElement {
+    fn eq(&self, other: &HTMLElement) -> bool {
+        self as *const HTMLElement == &*other
+    }
 }
 
 impl HTMLElementDerived for EventTarget {
@@ -58,7 +65,7 @@ impl HTMLElement {
     pub fn new_inherited(type_id: HTMLElementTypeId,
                          tag_name: DOMString,
                          prefix: Option<DOMString>,
-                         document: JSRef<Document>) -> HTMLElement {
+                         document: &Document) -> HTMLElement {
         HTMLElement {
             element:
                 Element::new_inherited(ElementTypeId::HTMLElement(type_id), tag_name, ns!(HTML), prefix, document),
@@ -68,7 +75,7 @@ impl HTMLElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
         let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
@@ -79,9 +86,9 @@ trait PrivateHTMLElementHelpers {
     fn update_sequentially_focusable_status(self);
 }
 
-impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
+impl<'a> PrivateHTMLElementHelpers for &'a HTMLElement {
     fn is_body_or_frameset(self) -> bool {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
     }
 
@@ -105,7 +112,6 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
                 },
                 _ => {
                     if let Some(attr) = element.get_attribute(&ns!(""), &atom!("draggable")) {
-                        let attr = attr.root();
                         let attr = attr.r();
                         let value = attr.value();
                         let is_true = match *value {
@@ -124,10 +130,10 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
     }
 }
 
-impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
-    fn Style(self) -> Temporary<CSSStyleDeclaration> {
+impl<'a> HTMLElementMethods for &'a HTMLElement {
+    fn Style(self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
-            let global = window_from_node(self).root();
+            let global = window_from_node(self);
             CSSStyleDeclaration::new(global.r(), self, CSSModificationAccess::ReadWrite)
         })
     }
@@ -145,39 +151,39 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     global_event_handlers!(NoOnload);
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset
-    fn Dataset(self) -> Temporary<DOMStringMap> {
+    fn Dataset(self) -> Root<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }
 
-    fn GetOnload(self) -> Option<EventHandlerNonNull> {
+    fn GetOnload(self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let win = window_from_node(self).root();
+            let win = window_from_node(self);
             win.r().GetOnload()
         } else {
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+            let target = EventTargetCast::from_ref(self);
             target.get_event_handler_common("load")
         }
     }
 
-    fn SetOnload(self, listener: Option<EventHandlerNonNull>) {
+    fn SetOnload(self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let win = window_from_node(self).root();
+            let win = window_from_node(self);
             win.r().SetOnload(listener)
         } else {
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+            let target = EventTargetCast::from_ref(self);
             target.set_event_handler_common("load", listener)
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(self) {
-        let maybe_input: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
+        let maybe_input: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(self);
         if let Some(i) = maybe_input {
             if i.Disabled() {
                 return;
             }
         }
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
         element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
     }
@@ -186,8 +192,8 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Focus(self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        let document = document_from_node(self).root();
+        let element = ElementCast::from_ref(self);
+        let document = document_from_node(self);
         let document = document.r();
         document.begin_focus_transaction();
         document.request_focus(element);
@@ -197,12 +203,12 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(self) {
         // TODO: Run the unfocusing steps.
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         if !node.get_focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        let document = document_from_node(self).root();
+        let document = document_from_node(self);
         document.r().begin_focus_transaction();
         // If `request_focus` is not called, focus will be set to None.
         document.r().commit_focus_transaction(FocusType::Element);
@@ -229,22 +235,21 @@ fn to_snake_case(name: DOMString) -> DOMString {
     attr_name
 }
 
-impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
+impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
     fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.chars()
                .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
             return Err(Syntax);
         }
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_custom_attribute(to_snake_case(name), value)
     }
 
     fn get_custom_attr(self, local_name: DOMString) -> Option<DOMString> {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.get_attribute(&ns!(""), &local_name).map(|attr| {
-            let attr = attr.root();
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -253,19 +258,19 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
     }
 
     fn delete_custom_attr(self, local_name: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.remove_attribute(&ns!(""), &local_name);
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
+impl<'a> VirtualMethods for &'a HTMLElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &JSRef<Element> = ElementCast::from_borrowed_ref(self);
+        let element: &&Element = ElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }
@@ -278,18 +283,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         self.update_sequentially_focusable_status();
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
 
         let name = attr.local_name();
         if name.starts_with("on") {
-            let window = window_from_node(*self).root();
+            let window = window_from_node(*self);
             let (cx, url, reflector) = (window.r().get_cx(),
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
-            let evtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+            let evtarget = EventTargetCast::from_ref(*self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   &name[2..],
                                                   (**attr.value()).to_owned());

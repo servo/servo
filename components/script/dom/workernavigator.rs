@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::navigatorinfo;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -24,14 +24,14 @@ impl WorkerNavigator {
         }
     }
 
-    pub fn new(global: JSRef<WorkerGlobalScope>) -> Temporary<WorkerNavigator> {
+    pub fn new(global: &WorkerGlobalScope) -> Root<WorkerNavigator> {
         reflect_dom_object(box WorkerNavigator::new_inherited(),
                            GlobalRef::Worker(global),
                            WorkerNavigatorBinding::Wrap)
     }
 }
 
-impl<'a> WorkerNavigatorMethods for JSRef<'a, WorkerNavigator> {
+impl<'a> WorkerNavigatorMethods for &'a WorkerNavigator {
     fn Product(self) -> DOMString {
         navigatorinfo::Product()
     }

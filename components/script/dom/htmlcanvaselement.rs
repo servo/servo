@@ -12,13 +12,11 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap, HeapGCValue, Rootable};
-use dom::bindings::js::Temporary;
-use dom::bindings::js::Unrooted;
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, HeapGCValue, Root};
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::{Element, AttributeHandlers};
+use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -27,7 +25,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderingContextHelpers};
 
 use util::str::{DOMString, parse_unsigned_integer};
-use js::jsapi::{JSContext};
+use js::jsapi::{JSContext, HandleValue};
 use js::jsval::JSVal;
 use offscreen_gl_context::GLContextAttributes;
 
@@ -58,6 +56,12 @@ pub struct HTMLCanvasElement {
     height: Cell<u32>,
 }
 
+impl PartialEq for HTMLCanvasElement {
+    fn eq(&self, other: &HTMLCanvasElement) -> bool {
+        self as *const HTMLCanvasElement == &*other
+    }
+}
+
 impl HTMLCanvasElementDerived for EventTarget {
     fn is_htmlcanvaselement(&self) -> bool {
         *self.type_id() ==
@@ -69,7 +73,7 @@ impl HTMLCanvasElementDerived for EventTarget {
 impl HTMLCanvasElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLCanvasElement {
+                     document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLCanvasElement, localName, prefix, document),
@@ -82,7 +86,7 @@ impl HTMLCanvasElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLCanvasElement> {
+               document: &Document) -> Root<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
     }
@@ -139,37 +143,37 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
 }
 
 pub trait HTMLCanvasElementHelpers {
-    fn get_or_init_2d_context(self) -> Option<Temporary<CanvasRenderingContext2D>>;
+    fn get_or_init_2d_context(self) -> Option<Root<CanvasRenderingContext2D>>;
     fn get_or_init_webgl_context(self,
                                  cx: *mut JSContext,
-                                 attrs: Option<&JSVal>) -> Option<Temporary<WebGLRenderingContext>>;
+                                 attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>>;
     fn is_valid(self) -> bool;
 }
 
-impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
-    fn get_or_init_2d_context(self) -> Option<Temporary<CanvasRenderingContext2D>> {
+impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
+    fn get_or_init_2d_context(self) -> Option<Root<CanvasRenderingContext2D>> {
         if self.context.get().is_none() {
-            let window = window_from_node(self).root();
+            let window = window_from_node(self);
             let size = self.get_size();
             let context = CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size);
-            self.context.set(Some(CanvasContext::Context2d(JS::from_rooted(context))));
+            self.context.set(Some(CanvasContext::Context2d(JS::from_rooted(&context))));
         }
 
         match self.context.get().unwrap() {
-            CanvasContext::Context2d(context) => Some(Temporary::from_rooted(context)),
+            CanvasContext::Context2d(context) => Some(context.root()),
             _   => None,
         }
     }
 
     fn get_or_init_webgl_context(self,
                                  cx: *mut JSContext,
-                                 attrs: Option<&JSVal>) -> Option<Temporary<WebGLRenderingContext>> {
+                                 attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>> {
         if self.context.get().is_none() {
-            let window = window_from_node(self).root();
+            let window = window_from_node(self);
             let size = self.get_size();
 
             let attrs = if let Some(webgl_attributes) = attrs {
-                if let Ok(ref attrs) = WebGLContextAttributes::new(cx, *webgl_attributes) {
+                if let Ok(ref attrs) = WebGLContextAttributes::new(cx, webgl_attributes) {
                     From::from(attrs)
                 } else {
                     debug!("Unexpected error on conversion of WebGLContextAttributes");
@@ -181,12 +185,12 @@ impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
 
             let maybe_ctx = WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size, attrs);
 
-            self.context.set(maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_rooted(ctx))));
+            self.context.set(maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_rooted(&ctx))));
         }
 
         if let Some(context) = self.context.get() {
             match context {
-                CanvasContext::WebGL(context) => Some(Temporary::from_rooted(context)),
+                CanvasContext::WebGL(context) => Some(context.root()),
                 _ => None,
             }
         } else {
@@ -199,13 +203,13 @@ impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
     }
 }
 
-impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
+impl<'a> HTMLCanvasElementMethods for &'a HTMLCanvasElement {
     fn Width(self) -> u32 {
         self.width.get()
     }
 
     fn SetWidth(self, width: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
@@ -214,38 +218,38 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn SetHeight(self, height: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
     fn GetContext(self,
                   cx: *mut JSContext,
                   id: DOMString,
-                  attributes: Vec<JSVal>)
+                  attributes: Vec<HandleValue>)
         -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match &*id {
             "2d" => {
                 self.get_or_init_2d_context()
                     .map(|ctx| CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(
-                                   Unrooted::from_temporary(ctx)))
+                                   ctx))
             }
             "webgl" | "experimental-webgl" => {
-                self.get_or_init_webgl_context(cx, attributes.get(0))
+                self.get_or_init_webgl_context(cx, attributes.get(0).map(|p| *p))
                     .map(|ctx| CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(
-                                   Unrooted::from_temporary(ctx)))
+                                   ctx))
             }
             _ => None
         }
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
+impl<'a> VirtualMethods for &'a HTMLCanvasElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let element: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }
@@ -267,7 +271,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         }
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }

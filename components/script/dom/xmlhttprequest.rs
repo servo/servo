@@ -14,8 +14,8 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidState, InvalidAccess};
 use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, OptionalRootable};
-use dom::bindings::js::{Rootable, Temporary};
+use dom::bindings::js::{JS, MutNullableHeap};
+use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
@@ -40,7 +40,7 @@ use hyper::http::RawStatus;
 use hyper::mime::{self, Mime};
 use hyper::method::Method;
 
-use js::jsapi::{JS_ParseJSON, JSContext};
+use js::jsapi::{JS_ParseJSON, JSContext, RootedValue};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
@@ -154,7 +154,7 @@ impl XMLHttpRequest {
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
+            upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
             response_url: "".to_owned(),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
@@ -181,14 +181,14 @@ impl XMLHttpRequest {
             response_status: Cell::new(Ok(())),
         }
     }
-    pub fn new(global: GlobalRef) -> Temporary<XMLHttpRequest> {
+    pub fn new(global: GlobalRef) -> Root<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
                            global,
                            XMLHttpRequestBinding::Wrap)
     }
 
     // https://xhr.spec.whatwg.org/#constructors
-    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<XMLHttpRequest>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
 
@@ -209,7 +209,7 @@ impl XMLHttpRequest {
             fn response_available(&self, response: CORSResponse) {
                 if response.network_error {
                     let mut context = self.xhr.lock().unwrap();
-                    let xhr = context.xhr.to_temporary().root();
+                    let xhr = context.xhr.root();
                     xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Network));
                     *context.sync_status.borrow_mut() = Some(Err(Network));
                     return;
@@ -243,7 +243,7 @@ impl XMLHttpRequest {
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
             fn headers_available(&self, metadata: Metadata) {
-                let xhr = self.xhr.to_temporary().root();
+                let xhr = self.xhr.root();
                 let rv = xhr.r().process_headers_available(self.cors_request.clone(),
                                                            self.gen_id,
                                                            metadata);
@@ -254,12 +254,12 @@ impl XMLHttpRequest {
 
             fn data_available(&self, payload: Vec<u8>) {
                 self.buf.borrow_mut().push_all(&payload);
-                let xhr = self.xhr.to_temporary().root();
+                let xhr = self.xhr.root();
                 xhr.r().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
             fn response_complete(&self, status: Result<(), String>) {
-                let xhr = self.xhr.to_temporary().root();
+                let xhr = self.xhr.root();
                 let rv = xhr.r().process_response_complete(self.gen_id, status);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
@@ -267,7 +267,7 @@ impl XMLHttpRequest {
 
         impl PreInvoke for XHRContext {
             fn should_invoke(&self) -> bool {
-                let xhr = self.xhr.to_temporary().root();
+                let xhr = self.xhr.root();
                 xhr.r().generation_id.get() == self.gen_id
             }
         }
@@ -280,7 +280,7 @@ impl XMLHttpRequest {
     }
 }
 
-impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
+impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate
@@ -462,8 +462,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
-    fn Upload(self) -> Temporary<XMLHttpRequestUpload> {
-        Temporary::from_rooted(self.upload)
+    fn Upload(self) -> Root<XMLHttpRequestUpload> {
+        self.upload.root()
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
@@ -491,7 +491,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         if !self.sync.get() {
             // Step 8
             let upload_target = self.upload.root();
-            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target.r());
+            let event_target = EventTargetCast::from_ref(upload_target.r());
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
@@ -669,33 +669,38 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     // https://xhr.spec.whatwg.org/#the-response-attribute
     #[allow(unsafe_code)]
     fn Response(self, cx: *mut JSContext) -> JSVal {
+         let mut rval = RootedValue::new(cx, UndefinedValue());
          match self.response_type.get() {
             _empty | Text => {
                 let ready_state = self.ready_state.get();
                 if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
-                    self.text_response().to_jsval(cx)
+                    self.text_response().to_jsval(cx, rval.handle_mut());
                 } else {
-                    "".to_jsval(cx)
+                    "".to_jsval(cx, rval.handle_mut());
                 }
             },
-            _ if self.ready_state.get() != XMLHttpRequestState::Done => NullValue(),
+            _ if self.ready_state.get() != XMLHttpRequestState::Done => {
+                return NullValue()
+            },
             Json => {
                 let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.utf16_units().collect();
-                let mut vp = UndefinedValue();
                 unsafe {
-                    if JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp) == 0 {
+                    if JS_ParseJSON(cx,
+                                    decoded.as_ptr() as *const i16,
+                                    decoded.len() as u32,
+                                    rval.handle_mut()) == 0 {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
                 }
-                vp
             }
             _ => {
                 // XXXManishearth handle other response types
-                self.response.borrow().to_jsval(cx)
+                self.response.borrow().to_jsval(cx, rval.handle_mut());
             }
         }
+        rval.ptr
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute
@@ -712,8 +717,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
-    fn GetResponseXML(self) -> Option<Temporary<Document>> {
-        self.response_xml.get().map(Temporary::from_rooted)
+    fn GetResponseXML(self) -> Option<Root<Document>> {
+        self.response_xml.get().map(Root::from_rooted)
     }
 }
 
@@ -731,7 +736,7 @@ pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 trait PrivateXMLHttpRequestHelpers {
     fn change_ready_state(self, XMLHttpRequestState);
-    fn process_headers_available(&self, cors_request: Option<CORSRequest>,
+    fn process_headers_available(self, cors_request: Option<CORSRequest>,
                                  gen_id: GenerationId, metadata: Metadata) -> Result<(), Error>;
     fn process_data_available(self, gen_id: GenerationId, payload: Vec<u8>);
     fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>) -> ErrorResult;
@@ -750,7 +755,7 @@ trait PrivateXMLHttpRequestHelpers {
              global: GlobalRef) -> ErrorResult;
 }
 
-impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
+impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
     fn change_ready_state(self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
@@ -758,12 +763,12 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let event = Event::new(global.r(),
                                "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
-                               EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+                               EventCancelable::Cancelable);
+        let target = EventTargetCast::from_ref(self);
         event.r().fire(target);
     }
 
-    fn process_headers_available(&self, cors_request: Option<CORSRequest>,
+    fn process_headers_available(self, cors_request: Option<CORSRequest>,
                                  gen_id: GenerationId, metadata: Metadata) -> Result<(), Error> {
         match cors_request {
             Some(ref req) => {
@@ -943,13 +948,13 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let progressevent = ProgressEvent::new(global.r(),
                                                type_, false, false,
                                                total.is_some(), loaded,
-                                               total.unwrap_or(0)).root();
-        let target: JSRef<EventTarget> = if upload {
+                                               total.unwrap_or(0));
+        let target = if upload {
             EventTargetCast::from_ref(upload_target.r())
         } else {
             EventTargetCast::from_ref(self)
         };
-        let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
+        let event = EventCast::from_ref(progressevent.r());
         event.fire(target);
     }
 
@@ -974,7 +979,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         impl Runnable for XHRTimeout {
             fn handler(self: Box<XHRTimeout>) {
                 let this = *self;
-                let xhr = this.xhr.to_temporary().root();
+                let xhr = this.xhr.root();
                 if xhr.r().ready_state.get() != XMLHttpRequestState::Done {
                     xhr.r().process_partial_response(XHRProgress::Errored(this.gen_id, Timeout));
                 }
@@ -1137,7 +1142,7 @@ impl Extractable for SendParam {
             },
             eURLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
-                usp.root().r().serialize(None).as_bytes().to_owned()
+                usp.r().serialize(None).as_bytes().to_owned()
             },
         }
     }
