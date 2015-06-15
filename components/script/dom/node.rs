@@ -1049,6 +1049,7 @@ impl<'a> NodeHelpers for &'a Node {
 pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Root<Node> {
     unsafe {
+        // https://github.com/servo/servo/issues/6383
         let candidate: uintptr_t = mem::transmute(candidate.0);
 //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
 //                                                                                  candidate);
