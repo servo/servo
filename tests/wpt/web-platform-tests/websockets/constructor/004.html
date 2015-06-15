@@ -6,18 +6,28 @@
 <div id=log></div>
 <script>
 // empty string
-test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/", "")})});
+test(function() {
+  assert_throws("SyntaxError", function() {
+    new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message', "")
+  })
+});
 
 // chars below U+0020 except U+0000; U+0000 is tested in a separate test
 for (var i = 1; i < 0x20; ++i) {
-test(function() {
-  assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/", "a"+String.fromCharCode(i)+"b")}, 'char code '+i);
-})
+  test(function() {
+    assert_throws("SyntaxError", function() {
+      new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message',
+                    "a"+String.fromCharCode(i)+"b")
+    }, 'char code '+i);
+  })
 }
 // some chars above U+007E
 for (var i = 0x7F; i < 0x100; ++i) {
-test(function() {
-  assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/", "a"+String.fromCharCode(i)+"b")}, 'char code '+i);
-})
+  test(function() {
+    assert_throws("SyntaxError", function() {
+      new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message',
+                    "a"+String.fromCharCode(i)+"b")
+    }, 'char code '+i);
+  })
 }
 </script>
