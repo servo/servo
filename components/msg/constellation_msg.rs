@@ -336,6 +336,7 @@ impl MozBrowserEvent {
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
+    GetUrl(PipelineId, IpcSender<Url>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
     TakeScreenshot(PipelineId, IpcSender<Option<Image>>)
 }
