@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
 use url::Url;
-use webdriver_msg::{WebDriverScriptCommand, LoadComplete};
+use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
 
 #[derive(Clone)]
 pub struct ConstellationChan(pub Sender<Msg>);
@@ -328,7 +328,7 @@ impl MozBrowserEvent {
 }
 
 pub enum WebDriverCommandMsg {
-    LoadUrl(PipelineId, LoadData, Sender<LoadComplete>),
+    LoadUrl(PipelineId, LoadData, Sender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
     TakeScreenshot(PipelineId, Sender<Option<png::Image>>)
 }

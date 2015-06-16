@@ -22,7 +22,7 @@ use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId, N
                              WebDriverCommandMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::sync::mpsc::{channel, Receiver};
-use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult};
+use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
@@ -42,7 +42,7 @@ use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 
-use std::thread::sleep_ms;
+use std::thread::{self, sleep_ms};
 
 pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
     let handler = Handler::new(constellation_chan);
@@ -172,13 +172,22 @@ impl Handler {
 
         let load_data = LoadData::new(url);
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender);
+        let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender.clone());
         const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
-        //Wait to get a load event
-        reciever.recv().unwrap();
+        let timeout = self.load_timeout;
+        let timeout_chan = sender.clone();
+        thread::spawn(move || {
+            sleep_ms(timeout);
+            let _ = timeout_chan.send(LoadStatus::LoadTimeout);
+        });
 
-        Ok(WebDriverResponse::Void)
+        //Wait to get a load event
+        match reciever.recv().unwrap() {
+            LoadStatus::LoadComplete => Ok(WebDriverResponse::Void),
+            LoadStatus::LoadTimeout => Err(WebDriverError::new(ErrorStatus::Timeout,
+                                                               "Load timed out"))
+        }
     }
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
