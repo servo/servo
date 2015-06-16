@@ -250,6 +250,10 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
+        if is_zero_size_gradient(&self.state.fill_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
         let draw_rect = Rect::new(rect.origin,
             match self.state.fill_style {
                 Pattern::Surface(ref surface) => {
@@ -281,14 +285,19 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn stroke_rect(&self, rect: &Rect<f32>) {
-        match self.state.stroke_style {
-            Pattern::Color(ref color) => {
-                self.drawtarget.stroke_rect(rect, color, &self.state.stroke_opts, &self.state.draw_options)
-            }
-            _ => {
-                // TODO(pcwalton)
-            }
-        };
+        if is_zero_size_gradient(&self.state.stroke_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        if self.need_to_draw_shadow() {
+            self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
+                new_draw_target.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
+                                            &self.state.stroke_opts, &self.state.draw_options);
+            });
+        } else {
+            self.drawtarget.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
+                                        &self.state.stroke_opts, &self.state.draw_options);
+        }
     }
 
     fn begin_path(&mut self) {
@@ -300,26 +309,24 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill(&self) {
-        match self.state.fill_style {
-            Pattern::Color(ref color) => {
-                self.drawtarget.fill(&self.path_builder.finish(), color, &self.state.draw_options);
-            }
-            _ => {
-                // TODO(pcwalton)
-            }
-        };
+        if is_zero_size_gradient(&self.state.fill_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        self.drawtarget.fill(&self.path_builder.finish(),
+                             self.state.fill_style.to_pattern_ref(),
+                             &self.state.draw_options);
     }
 
     fn stroke(&self) {
-        match self.state.stroke_style {
-            Pattern::Color(ref color) => {
-                self.drawtarget.stroke(&self.path_builder.finish(),
-                                       color, &self.state.stroke_opts, &self.state.draw_options);
-            }
-            _ => {
-                // TODO
-            }
-        };
+        if is_zero_size_gradient(&self.state.stroke_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        self.drawtarget.stroke(&self.path_builder.finish(),
+                               self.state.stroke_style.to_pattern_ref(),
+                               &self.state.stroke_opts,
+                               &self.state.draw_options);
     }
 
     fn clip(&self) {
@@ -731,6 +738,15 @@ fn write_pixels(draw_target: &DrawTarget,
                              source_rect.to_azfloat(),
                              draw_surface_options,
                              draw_options);
+}
+
+fn is_zero_size_gradient(pattern: &Pattern) -> bool {
+    if let &Pattern::LinearGradient(ref gradient) = pattern {
+        if gradient.is_zero_size() {
+            return true;
+        }
+    }
+    return false;
 }
 
 pub trait SizeToi32 {

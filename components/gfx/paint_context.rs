@@ -19,7 +19,7 @@ use azure::azure_hl::{DrawOptions, DrawSurfaceOptions, DrawTarget, ExtendMode, F
 use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
 use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, FilterNode, LinearGradientPattern};
 use azure::azure_hl::{JoinStyle, CapStyle};
-use azure::azure_hl::{PatternRef, Path, PathBuilder, CompositionOp, AntialiasMode};
+use azure::azure_hl::{Pattern, PatternRef, Path, PathBuilder, CompositionOp, AntialiasMode};
 use azure::scaled_font::ScaledFont;
 use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
@@ -291,7 +291,9 @@ impl<'a> PaintContext<'a> {
         let mut path_builder = self.draw_target.create_path_builder();
         self.create_border_path_segment(&mut path_builder, bounds, direction, border, radii);
         let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
-        self.draw_target.fill(&path_builder.finish(), &ColorPattern::new(color), &draw_options);
+        self.draw_target.fill(&path_builder.finish(),
+                              Pattern::Color(ColorPattern::new(color)).to_pattern_ref(),
+                              &draw_options);
     }
 
     fn push_rounded_rect_clip(&self, bounds: &Rect<f32>, radii: &BorderRadii<AzFloat>) {
@@ -1023,7 +1025,7 @@ impl<'a> PaintContext<'a> {
 
         // Draw the shadow, and blur if we need to.
         temporary_draw_target.draw_target.fill(&path,
-                                               &ColorPattern::new(color),
+                                               Pattern::Color(ColorPattern::new(color)).to_pattern_ref(),
                                                &DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None));
         self.blur_if_necessary(temporary_draw_target, blur_radius);
 
