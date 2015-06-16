@@ -21,6 +21,8 @@ extern crate util;
 extern crate uuid;
 extern crate webdriver;
 
+mod keys;
+
 use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -39,7 +41,8 @@ use url::Url;
 use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
 use util::task::spawn_named;
 use uuid::Uuid;
-use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters,
+                         SendKeysParameters};
 use webdriver::command::{Parameters, SwitchToFrameParameters, TimeoutsParameters};
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
 use webdriver::common::{LocatorStrategy, WebElement};
@@ -47,6 +50,7 @@ use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::{WebDriverExtensionRoute};
 use webdriver::response::{NewSessionResponse, ValueResponse, WebDriverResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
+use keys::keycodes_to_keys;
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![(Post, "/session/{sessionId}/servo/prefs/get", ServoExtensionRoute::GetPrefs),
@@ -203,6 +207,7 @@ impl WebDriverSession {
         }
     }
 }
+
 
 impl Handler {
     pub fn new(constellation_chan: ConstellationChan) -> Handler {
@@ -595,6 +600,31 @@ impl Handler {
         }
     }
 
+    fn handle_element_send_keys(&self,
+                                element: &WebElement,
+                                keys: &SendKeysParameters) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.frame_pipeline());
+
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd = WebDriverScriptCommand::FocusElement(element.id.clone(), sender);
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        // TODO: distinguish the not found and not focusable cases
+        try!(receiver.recv().unwrap().or_else(|_| Err(WebDriverError::new(
+            ErrorStatus::StaleElementReference, "Element not found or not focusable"))));
+
+        let keys = try!(keycodes_to_keys(&keys.value).or_else(|_|
+            Err(WebDriverError::new(ErrorStatus::UnsupportedOperation, "Failed to convert keycodes"))));
+
+        let cmd_msg = WebDriverCommandMsg::SendKeys(pipeline_id, keys);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        Ok(WebDriverResponse::Void)
+    }
+
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
         let mut img = None;
         let pipeline_id = try!(self.root_pipeline());
@@ -705,6 +735,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetElementTagName(ref element) => self.handle_element_tag_name(element),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
+            WebDriverCommand::ElementSendKeys(ref element, ref keys) =>
+                self.handle_element_send_keys(element, keys),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => {
