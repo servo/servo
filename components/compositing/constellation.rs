@@ -1048,6 +1048,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
                 pipeline.script_chan.send(control_msg).unwrap();
             },
+            WebDriverCommandMsg::SendKeys(pipeline_id, cmd) => {
+                let pipeline = self.pipeline(pipeline_id);
+                for (key, mods, state) in cmd {
+                    let event = CompositorEvent::KeyEvent(key, state, mods);
+                    pipeline.script_chan.send(
+                        ConstellationControlMsg::SendEvent(pipeline.id, event)).unwrap();
+                }
+            },
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
                 let current_pipeline_id = self.root_frame_id.map(|frame_id| {
                     let frame = self.frames.get(&frame_id).unwrap();
