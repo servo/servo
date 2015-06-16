@@ -61,7 +61,7 @@ pub struct WindowSizeData {
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum KeyState {
     Pressed,
     Released,
@@ -360,6 +360,7 @@ pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
     Refresh(PipelineId, IpcSender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
+    SendKeys(PipelineId, Vec<(Key, KeyModifiers, KeyState)>),
     TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
 }
 
