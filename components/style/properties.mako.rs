@@ -5732,6 +5732,12 @@ pub fn cascade(viewport_size: Size2D<Au>,
         box_.display = box_.display.to_computed_value(&context);
     }
 
+    // The initial value of outline width may be changed at computed value time.
+    if !context.outline_style_present {
+        let outline = unsafe { style_outline.make_unique() };
+        outline.outline_width = Au(0);
+    }
+
     if is_root_element {
         context.root_font_size = context.font_size;
     }
@@ -5778,6 +5784,11 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
             // Like calling to_computed_value, which wouldn't type check.
             border.border_${side}_width = Au(0);
         % endfor
+    }
+    {
+        // Initial value of outline-style is always none for anonymous box.
+        let outline = unsafe { result.outline.make_unique() };
+        outline.outline_width = Au(0);
     }
     // None of the teaks on 'display' apply here.
     result
