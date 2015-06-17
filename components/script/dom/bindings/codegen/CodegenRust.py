@@ -1429,25 +1429,26 @@ class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
     """
-    def __init__(self, child, descriptors, callbacks, imports):
+    def __init__(self, child, descriptors, callbacks, imports, ignored_warnings=None):
         """
         Adds a set of imports.
         """
-        ignored_warnings = [
-            # Allow unreachable_code because we use 'break' in a way that
-            # sometimes produces two 'break's in a row. See for example
-            # CallbackMember.getArgConversions.
-            'unreachable_code',
-            'non_camel_case_types',
-            'non_upper_case_globals',
-            'unused_parens',
-            'unused_imports',
-            'unused_variables',
-            'unused_unsafe',
-            'unused_mut',
-            'unused_assignments',
-            'dead_code',
-        ]
+        if ignored_warnings is None:
+            ignored_warnings = [
+                # Allow unreachable_code because we use 'break' in a way that
+                # sometimes produces two 'break's in a row. See for example
+                # CallbackMember.getArgConversions.
+                'unreachable_code',
+                'non_camel_case_types',
+                'non_upper_case_globals',
+                'unused_parens',
+                'unused_imports',
+                'unused_variables',
+                'unused_unsafe',
+                'unused_mut',
+                'unused_assignments',
+                'dead_code',
+            ]
 
         def componentTypes(type):
             if type.nullable():
@@ -1496,7 +1497,9 @@ class CGImports(CGWrapper):
 
         imports += ['dom::types::%s' % getIdentifier(t).name for t in types if isImportable(t)]
 
-        statements = ['#![allow(%s)]' % ','.join(ignored_warnings)]
+        statements = []
+        if len(ignored_warnings) > 0:
+            statements.append('#![allow(%s)]' % ','.join(ignored_warnings))
         statements.extend('use %s;' % i for i in sorted(set(imports)))
 
         CGWrapper.__init__(self, child,
@@ -1815,7 +1818,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                 CGUnionConversionStruct(t, provider)
             ])
 
-    return CGImports(CGList(SortedDictValues(unionStructs), "\n\n"), [], [], imports)
+    return CGImports(CGList(SortedDictValues(unionStructs), "\n\n"), [], [], imports, ignored_warnings=[])
 
 
 class Argument():
@@ -5415,7 +5418,7 @@ class GlobalGenRoots():
             'js::jsapi::JSContext',
             'js::jsapi::JSObject',
             'libc',
-        ])
+        ], ignored_warnings=[])
 
     @staticmethod
     def InterfaceTypes(config):
@@ -5438,8 +5441,7 @@ class GlobalGenRoots():
     def InheritTypes(config):
 
         descriptors = config.getDescriptors(register=True, isCallback=False)
-        allprotos = [CGGeneric("#![allow(unused_imports)]\n"),
-                     CGGeneric("use dom::types::*;\n"),
+        allprotos = [CGGeneric("use dom::types::*;\n"),
                      CGGeneric("use dom::bindings::js::{JS, JSRef, LayoutJS, Rootable, Temporary};\n"),
                      CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                      CGGeneric("use dom::bindings::utils::Reflectable;\n"),

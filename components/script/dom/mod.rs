@@ -190,8 +190,9 @@ pub mod macros;
 
 pub mod bindings;
 
-#[path="bindings/codegen/InterfaceTypes.rs"]
-pub mod types;
+pub mod types {
+    include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
+}
 
 pub mod activation;
 pub mod attr;
