@@ -79,7 +79,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
         let name = owner.parsed_name(name);
-        owner.remove_attribute_by_name(&Atom::from_slice(&name)).ok_or(Error::NotFound)
+        owner.remove_attribute_by_name(&name).ok_or(Error::NotFound)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns
