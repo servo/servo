@@ -322,7 +322,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     pub fn has_children(self) -> bool {
-        self.first_child().is_some()
+        TLayoutNode::first_child(&self).is_some()
     }
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
@@ -347,34 +347,34 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> TNode<'ln> for LayoutNode<'ln> {
+impl<'ln> TNode for LayoutNode<'ln> {
     type Element = LayoutElement<'ln>;
 
-    fn parent_node(self) -> Option<LayoutNode<'ln>> {
+    fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn first_child(self) -> Option<LayoutNode<'ln>> {
+    fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn last_child(self) -> Option<LayoutNode<'ln>> {
+    fn last_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn prev_sibling(self) -> Option<LayoutNode<'ln>> {
+    fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn next_sibling(self) -> Option<LayoutNode<'ln>> {
+    fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
@@ -382,7 +382,7 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    fn as_element(self) -> LayoutElement<'ln> {
+    fn as_element(&self) -> LayoutElement<'ln> {
         unsafe {
             let elem: LayoutJS<Element> = match ElementCast::to_layout_js(&self.node) {
                 Some(elem) => elem,
@@ -395,15 +395,15 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
         }
     }
 
-    fn is_element(self) -> bool {
+    fn is_element(&self) -> bool {
         self.node_is_element()
     }
 
-    fn is_document(self) -> bool {
+    fn is_document(&self) -> bool {
         self.node_is_document()
     }
 
-    fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
         assert!(self.is_element());
         let name = if self.is_html_element_in_html_document() {
             &attr.lower_name
@@ -422,7 +422,7 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
         }
     }
 
-    fn is_html_element_in_html_document(self) -> bool {
+    fn is_html_element_in_html_document(&self) -> bool {
         unsafe {
             match ElementCast::to_layout_js(&self.node) {
                 Some(elem) => elem.html_element_in_html_document_for_layout(),
@@ -430,36 +430,34 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
             }
         }
     }
+}
 
-    fn has_changed(self) -> bool {
+impl<'ln> LayoutNode<'ln> {
+    pub fn has_changed(&self) -> bool {
         unsafe { self.node.get_flag(HAS_CHANGED) }
     }
 
-    unsafe fn set_changed(self, value: bool) {
+    pub unsafe fn set_changed(&self, value: bool) {
         self.node.set_flag(HAS_CHANGED, value)
     }
 
-    fn is_dirty(self) -> bool {
+    pub fn is_dirty(&self) -> bool {
         unsafe { self.node.get_flag(IS_DIRTY) }
     }
 
-    unsafe fn set_dirty(self, value: bool) {
+    pub unsafe fn set_dirty(&self, value: bool) {
         self.node.set_flag(IS_DIRTY, value)
     }
 
-    fn has_dirty_siblings(self) -> bool {
-        unsafe { self.node.get_flag(HAS_DIRTY_SIBLINGS) }
-    }
-
-    unsafe fn set_dirty_siblings(self, value: bool) {
+    pub unsafe fn set_dirty_siblings(&self, value: bool) {
         self.node.set_flag(HAS_DIRTY_SIBLINGS, value);
     }
 
-    fn has_dirty_descendants(self) -> bool {
+    pub fn has_dirty_descendants(&self) -> bool {
         unsafe { self.node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
 
-    unsafe fn set_dirty_descendants(self, value: bool) {
+    pub unsafe fn set_dirty_descendants(&self, value: bool) {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
     }
 }
@@ -529,19 +527,19 @@ impl<'le> LayoutElement<'le> {
     }
 }
 
-impl<'le> TElement<'le> for LayoutElement<'le> {
+impl<'le> TElement for LayoutElement<'le> {
     #[inline]
-    fn get_local_name(self) -> &'le Atom {
+    fn get_local_name<'a>(&'a self) -> &'a Atom {
         self.element.local_name()
     }
 
     #[inline]
-    fn get_namespace(self) -> &'le Namespace {
+    fn get_namespace<'a>(&'a self) -> &'a Namespace {
         use script::dom::element::ElementHelpers;
         self.element.namespace()
     }
 
-    fn is_link(self) -> bool {
+    fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
         let node: &Node = NodeCast::from_actual(self.element);
         match node.type_id_for_layout() {
@@ -558,17 +556,17 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn is_unvisited_link(self) -> bool {
+    fn is_unvisited_link(&self) -> bool {
         self.is_link()
     }
 
     #[inline]
-    fn is_visited_link(self) -> bool {
+    fn is_visited_link(&self) -> bool {
         false
     }
 
     #[inline]
-    fn get_hover_state(self) -> bool {
+    fn get_hover_state(&self) -> bool {
         unsafe {
             let node: &Node = NodeCast::from_actual(self.element);
             node.get_hover_state_for_layout()
@@ -576,7 +574,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_focus_state(self) -> bool {
+    fn get_focus_state(&self) -> bool {
         unsafe {
             let node: &Node = NodeCast::from_actual(self.element);
             node.get_focus_state_for_layout()
@@ -584,14 +582,14 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_id(self) -> Option<Atom> {
+    fn get_id(&self) -> Option<Atom> {
         unsafe {
             self.element.get_attr_atom_for_layout(&ns!(""), &atom!("id"))
         }
     }
 
     #[inline]
-    fn get_disabled_state(self) -> bool {
+    fn get_disabled_state(&self) -> bool {
         unsafe {
             let node: &Node = NodeCast::from_actual(self.element);
             node.get_disabled_state_for_layout()
@@ -599,7 +597,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_enabled_state(self) -> bool {
+    fn get_enabled_state(&self) -> bool {
         unsafe {
             let node: &Node = NodeCast::from_actual(self.element);
             node.get_enabled_state_for_layout()
@@ -607,28 +605,28 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_checked_state(self) -> bool {
+    fn get_checked_state(&self) -> bool {
         unsafe {
             self.element.get_checked_state_for_layout()
         }
     }
 
     #[inline]
-    fn get_indeterminate_state(self) -> bool {
+    fn get_indeterminate_state(&self) -> bool {
         unsafe {
             self.element.get_indeterminate_state_for_layout()
         }
     }
 
     #[inline]
-    fn has_class(self, name: &Atom) -> bool {
+    fn has_class(&self, name: &Atom) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)
         }
     }
 
     #[inline(always)]
-    fn each_class<F>(self, mut callback: F) where F: FnMut(&Atom) {
+    fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         unsafe {
             match self.element.get_classes_for_layout() {
                 None => {}
@@ -642,7 +640,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn has_nonzero_border(self) -> bool {
+    fn has_servo_nonzero_border(&self) -> bool {
         unsafe {
             match self.element.get_attr_for_layout(&ns!(""), &atom!("border")) {
                 None | Some(&AttrValue::UInt(_, 0)) => false,
@@ -652,8 +650,8 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 }
 
-impl<'le> TElementAttributes<'le> for LayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
+impl<'le> TElementAttributes for LayoutElement<'le> {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         unsafe {
@@ -661,19 +659,19 @@ impl<'le> TElementAttributes<'le> for LayoutElement<'le> {
         }
     }
 
-    fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
+    fn get_unsigned_integer_attribute(&self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
             self.element.get_unsigned_integer_attribute_for_layout(attribute)
         }
     }
 
     #[inline]
-    fn get_attr(self, namespace: &Namespace, name: &Atom) -> Option<&'le str> {
+    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
     #[inline]
-    fn get_attrs(self, name: &Atom) -> Vec<&'le str> {
+    fn get_attrs<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
         unsafe {
             self.element.get_attr_vals_for_layout(name)
         }
