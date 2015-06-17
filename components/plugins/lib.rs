@@ -13,7 +13,7 @@
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[jstraceable]`, and `#[must_root]`.
 //!                       Use this for structs that correspond to a DOM type
 
-#![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private, collections)]
+#![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private)]
 
 #[macro_use]
 extern crate syntax;

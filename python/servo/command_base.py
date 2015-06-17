@@ -130,8 +130,14 @@ class CommandBase(object):
             self._cargo_build_id = open(filename).read().strip()
         return self._cargo_build_id
 
+    def get_target_dir(self):
+        if "CARGO_TARGET_DIR" in os.environ:
+            return os.environ["CARGO_TARGET_DIR"]
+        else:
+            return path.join(self.context.topdir, "target")
+
     def get_binary_path(self, release, dev):
-        base_path = path.join("components", "servo", "target")
+        base_path = self.get_target_dir()
         release_path = path.join(base_path, "release", "servo")
         dev_path = path.join(base_path, "debug", "servo")
 
@@ -198,6 +204,9 @@ class CommandBase(object):
 
         if "CARGO_HOME" not in env:
             env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
+
+        if "CARGO_TARGET_DIR" not in env:
+            env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
 
         if extra_lib:
             if sys.platform == "darwin":

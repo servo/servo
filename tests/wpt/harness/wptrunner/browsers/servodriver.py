@@ -42,7 +42,7 @@ def browser_kwargs(**kwargs):
             "debug_info": kwargs["debug_info"]}
 
 
-def executor_kwargs(test_type, server_config, cache_manager, **kwargs):
+def executor_kwargs(test_type, server_config, cache_manager, run_info_data, **kwargs):
     rv = base_executor_kwargs(test_type, server_config,
                               cache_manager, **kwargs)
     return rv

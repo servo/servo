@@ -51,20 +51,11 @@ git = "https://github.com/servo/rust-selectors"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.html5ever]
-git = "https://github.com/servo/html5ever"
-
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
-
-[dependencies.string_cache]
-git = "https://github.com/servo/string-cache"
-
-[dependencies.string_cache_plugin]
-git = "https://github.com/servo/string-cache"
 
 [dependencies.url]
 version = "0.2.33"
@@ -88,3 +79,6 @@ num = "0.1.24"
 websocket = "0.12"
 uuid = "0.1.16"
 smallvec = "0.1"
+html5ever = "0.1"
+string_cache = "0.1"
+string_cache_plugin = "0.1"

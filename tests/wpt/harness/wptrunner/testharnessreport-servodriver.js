@@ -9,7 +9,9 @@ add_completion_callback(function() {
         var test_results = tests.map(function(x) {
             return {name:x.name, status:x.status, message:x.message, stack:x.stack}
         });
-        var results = JSON.stringify({tests:test_results,
+        var id = location.pathname + location.search + location.hash;
+        var results = JSON.stringify({test: id,
+                                      tests:test_results,
                                       status: status.status,
                                       message: status.message,
                                       stack: status.stack});

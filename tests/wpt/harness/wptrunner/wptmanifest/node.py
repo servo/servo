@@ -93,6 +93,10 @@ class ValueNode(Node):
         raise TypeError
 
 
+class AtomNode(ValueNode):
+    pass
+
+
 class ConditionalNode(Node):
     pass
 

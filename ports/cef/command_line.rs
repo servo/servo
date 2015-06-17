@@ -36,7 +36,7 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
         for i in 0..(argc as usize) {
             let slice = ffi::CStr::from_ptr(*argv.offset(i as isize) as *const c_char);
             let s = str::from_utf8(slice.to_bytes()).unwrap();
-            a.push(String::from_str(s));
+            a.push(s.to_owned());
         }
         let cl = command_line_new();
         (*cl).argc = argc;

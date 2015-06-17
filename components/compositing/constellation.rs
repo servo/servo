@@ -190,7 +190,7 @@ pub struct SendableFrameTree {
 }
 
 struct WebDriverData {
-    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadComplete>)>
+    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadStatus>)>
 }
 
 impl WebDriverData {
@@ -709,7 +709,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let mut webdriver_reset = false;
         if let Some((ref expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             if expected_pipeline_id == pipeline_id {
-                reply_chan.send(webdriver_msg::LoadComplete).unwrap();
+                let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
                 webdriver_reset = true;
             }
         }

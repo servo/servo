@@ -5,5 +5,10 @@
 <script src=../constants.js?pipe=sub></script>
 <div id=log></div>
 <script>
-test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/", 'a'+String.fromCharCode(0)+'b')})});
+test(function() {
+  assert_throws("SyntaxError", function() {
+    new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message',
+                  'a' + String.fromCharCode(0) + 'b')
+  })
+});
 </script>
