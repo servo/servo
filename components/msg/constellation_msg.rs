@@ -247,6 +247,8 @@ pub enum Msg {
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
+    /// Requests that the constellation set the contents of the clipboard
+    SetClipboardContents(String),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Notifies the constellation that the viewport has been constrained in some manner

@@ -50,14 +50,14 @@ fn test_textinput_get_sorted_selection() {
     let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.adjust_horizontal(2, Selection::Selected);
-    let (begin, end) = textinput.get_sorted_selection();
+    let (begin, end) = textinput.get_sorted_selection().unwrap();
     assert_eq!(begin.index, 2);
     assert_eq!(end.index, 4);
 
     textinput.clear_selection();
 
     textinput.adjust_horizontal(-2, Selection::Selected);
-    let (begin, end) = textinput.get_sorted_selection();
+    let (begin, end) = textinput.get_sorted_selection().unwrap();
     assert_eq!(begin.index, 2);
     assert_eq!(end.index, 4);
 }
