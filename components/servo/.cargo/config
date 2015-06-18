@@ -3,3 +3,7 @@ paths = ["../../support/android-rs-glue"]
 [target.arm-linux-androideabi]
 linker = "../../target/debug/apk-builder"
 ar = "arm-linux-androideabi-ar"
+
+[target.arm-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc"
+ar = "arm-linux-gnueabihf-ar"
