@@ -12,6 +12,7 @@ crate-type = ["dylib"]
 log = "*"
 url = "*"
 libc = "*"
+gleam = "0.1"
 
 [dependencies.servo]
 path = "../../components/servo"
@@ -67,20 +68,15 @@ git = "https://github.com/servo/rust-png"
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
-[dependencies.gleam]
-git = "https://github.com/servo/gleam"
-
 [target.x86_64-apple-darwin.dependencies]
 objc = "0.1"
-cocoa = "*"
-core-foundation = "*"
-core-graphics = "*"
+cocoa = "0.1"
+core-foundation = "0.1"
+core-graphics = "0.1"
+cgl = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"
-
-[target.x86_64-apple-darwin.dependencies.cgl]
-git = "https://github.com/servo/cgl-rs"
 
 [target.i686-unknown-linux-gnu.dependencies]
 x11 = "*"
