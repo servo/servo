@@ -25,7 +25,7 @@ extern crate servo;
 extern crate compositing;
 
 extern crate azure;
-extern crate geom;
+extern crate euclid;
 extern crate gfx;
 extern crate gleam;
 extern crate glutin_app;

@@ -21,8 +21,8 @@ use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
 use table_cell::CollapsedBordersForCell;
 
-use geom::{Point2D, Rect, Size2D, SideOffsets2D};
-use geom::Matrix4;
+use euclid::{Point2D, Rect, Size2D, SideOffsets2D};
+use euclid::Matrix4;
 use gfx_traits::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};

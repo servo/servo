@@ -47,7 +47,7 @@ use table_wrapper::TableWrapperFlow;
 use multicol::MulticolFlow;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;

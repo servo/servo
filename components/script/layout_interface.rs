@@ -8,8 +8,8 @@
 
 use dom::node::LayoutData;
 
-use geom::point::Point2D;
-use geom::rect::Rect;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
 use libc::uintptr_t;
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};

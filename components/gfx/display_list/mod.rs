@@ -27,9 +27,9 @@ use azure::azure::AzFloat;
 use azure::azure_hl::Color;
 
 use std::collections::linked_list::{self, LinkedList};
-use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
-use geom::approxeq::ApproxEq;
-use geom::num::Zero;
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
+use euclid::approxeq::ApproxEq;
+use euclid::num::Zero;
 use libc::uintptr_t;
 use paint_task::PaintLayer;
 use msg::compositor_msg::LayerId;

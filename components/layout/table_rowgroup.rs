@@ -16,7 +16,7 @@ use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, 
 use table_row::{self, CollapsedBordersForRow};
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect};
+use euclid::{Point2D, Rect};
 use rustc_serialize::{Encoder, Encodable};
 use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};

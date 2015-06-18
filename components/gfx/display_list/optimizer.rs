@@ -7,7 +7,7 @@
 use display_list::{DisplayItem, DisplayList, StackingContext};
 
 use std::collections::linked_list::LinkedList;
-use geom::rect::Rect;
+use euclid::rect::Rect;
 use util::geometry::{self, Au};
 use std::sync::Arc;
 

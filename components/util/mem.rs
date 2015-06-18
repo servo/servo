@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use azure::azure_hl::Color;
 use cursor::Cursor;
-use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use geometry::Au;
 use range::Range;
 

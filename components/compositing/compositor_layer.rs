@@ -6,11 +6,11 @@ use compositor::IOCompositor;
 use windowing::{MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl;
-use geom::length::Length;
-use geom::matrix::Matrix4;
-use geom::point::{Point2D, TypedPoint2D};
-use geom::size::TypedSize2D;
-use geom::rect::Rect;
+use euclid::length::Length;
+use euclid::matrix::Matrix4;
+use euclid::point::{Point2D, TypedPoint2D};
+use euclid::size::TypedSize2D;
+use euclid::rect::Rect;
 use gfx::paint_task::Msg as PaintMsg;
 use layers::color::Color;
 use layers::geometry::LayerPixel;

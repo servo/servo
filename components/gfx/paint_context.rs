@@ -23,11 +23,11 @@ use azure::azure_hl::{Pattern, PatternRef, Path, PathBuilder, CompositionOp, Ant
 use azure::scaled_font::ScaledFont;
 use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use geom::matrix2d::Matrix2D;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::side_offsets::SideOffsets2D;
-use geom::size::Size2D;
+use euclid::matrix2d::Matrix2D;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::side_offsets::SideOffsets2D;
+use euclid::size::Size2D;
 use libc::types::common::c99::uint32_t;
 use net_traits::image::base::Image;
 use png::PixelsByColorType;

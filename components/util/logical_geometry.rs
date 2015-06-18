@@ -4,8 +4,8 @@
 
 //! Geometry in flow-relative space.
 
-use geom::{Size2D, Point2D, SideOffsets2D, Rect};
-use geom::num::Zero;
+use euclid::{Size2D, Point2D, SideOffsets2D, Rect};
+use euclid::num::Zero;
 use std::cmp::{min, max};
 use std::fmt::{self, Debug, Formatter, Error};
 use std::ops::{Add, Sub};

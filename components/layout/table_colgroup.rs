@@ -13,7 +13,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect};
+use euclid::{Point2D, Rect};
 use util::geometry::{Au, ZERO_RECT};
 use std::cmp::max;
 use std::fmt;

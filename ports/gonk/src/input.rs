@@ -14,7 +14,7 @@ use std::thread;
 use std::sync::mpsc::Sender;
 use std::io::Read;
 
-use geom::point::Point2D;
+use euclid::point::Point2D;
 
 use errno::errno;
 use libc::c_int;

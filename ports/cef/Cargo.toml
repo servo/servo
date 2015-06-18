@@ -12,6 +12,7 @@ crate-type = ["dylib"]
 log = "*"
 url = "*"
 libc = "*"
+euclid = "0.1"
 gleam = "0.1"
 
 [dependencies.servo]
@@ -52,9 +53,6 @@ path = "../../components/devtools"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
-
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"

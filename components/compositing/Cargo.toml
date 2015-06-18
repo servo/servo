@@ -43,9 +43,6 @@ path = "../devtools_traits"
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
@@ -62,6 +59,7 @@ url = "0.2.35"
 time = "0.1.17"
 libc = "*"
 gleam = "0.1"
+euclid = "0.1"
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "*"

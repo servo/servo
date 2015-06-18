@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use geom::point::Point2D;
+use euclid::point::Point2D;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter::repeat;
 use std::mem;

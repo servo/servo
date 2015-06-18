@@ -16,7 +16,7 @@ extern crate net_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
-extern crate geom;
+extern crate euclid;
 extern crate hyper;
 extern crate png;
 #[macro_use]

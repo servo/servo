@@ -11,8 +11,8 @@ use browser::{self, ServoCefBrowserExtensions};
 use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
-use geom::point::Point2D;
-use geom::size::Size2D;
+use euclid::point::Point2D;
+use euclid::size::Size2D;
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::MouseButton;

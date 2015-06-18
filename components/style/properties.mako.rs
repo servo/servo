@@ -22,8 +22,8 @@ use url::Url;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss};
 use fnv::FnvHasher;
-use geom::SideOffsets2D;
-use geom::size::Size2D;
+use euclid::SideOffsets2D;
+use euclid::size::Size2D;
 
 use values::specified::{Length, BorderStyle};
 use values::computed::{self, ToComputedValue};
@@ -3747,7 +3747,7 @@ pub mod longhands {
         use self::computed_value::{StartEnd, TransitionTimingFunction};
         use values::computed::{Context, ToComputedValue};
 
-        use geom::point::Point2D;
+        use euclid::point::Point2D;
 
         pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
         pub use self::computed_value::T as SpecifiedValue;
@@ -3795,7 +3795,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use cssparser::ToCss;
-            use geom::point::Point2D;
+            use euclid::point::Point2D;
             use std::fmt;
 
             pub use self::TransitionTimingFunction as SingleComputedValue;

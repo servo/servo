@@ -16,9 +16,6 @@ path = "../util"
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
@@ -30,6 +27,7 @@ url = "0.2.35"
 bitflags = "*"
 hyper = "0.5"
 rustc-serialize = "0.3.4"
+euclid = "0.1"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "*"

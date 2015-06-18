@@ -12,10 +12,10 @@ use paint_context::PaintContext;
 
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
-use geom::Matrix4;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use euclid::Matrix4;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
 use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
 use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
