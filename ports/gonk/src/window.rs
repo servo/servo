@@ -6,8 +6,8 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;

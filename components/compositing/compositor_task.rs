@@ -11,8 +11,8 @@ use compositor;
 use headless;
 use windowing::{WindowEvent, WindowMethods};
 
-use geom::point::Point2D;
-use geom::rect::Rect;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, FrameTreeId};

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use geom::size::Size2D;
+use euclid::size::Size2D;
 use js::jsapi::{JSContext, JSObject};
 use js::jsfriendapi::bindgen::{JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData};
 use libc::uint8_t;

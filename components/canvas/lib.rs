@@ -9,7 +9,7 @@ extern crate core;
 extern crate canvas_traits;
 extern crate azure;
 extern crate cssparser;
-extern crate geom;
+extern crate euclid;
 extern crate gfx_traits;
 extern crate util;
 extern crate gleam;

@@ -7,7 +7,7 @@
 #![feature(core)]
 extern crate core;
 extern crate azure;
-extern crate geom;
+extern crate euclid;
 extern crate cssparser;
 extern crate gfx_traits;
 extern crate layers;
@@ -19,10 +19,10 @@ use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
 use azure::azure_hl::{SurfacePattern, SurfaceFormat};
 use cssparser::RGBA;
-use geom::matrix2d::Matrix2D;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use euclid::matrix2d::Matrix2D;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
 use gfx_traits::color;
 use std::sync::mpsc::{Sender};
 use layers::platform::surface::NativeSurface;

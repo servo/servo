@@ -77,8 +77,8 @@ use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
-use geom::Rect;
-use geom::point::Point2D;
+use euclid::Rect;
+use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
 use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};

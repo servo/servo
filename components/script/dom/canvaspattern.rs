@@ -8,7 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::ToFillOrStrokeStyle;
-use geom::size::Size2D;
+use euclid::size::Size2D;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]

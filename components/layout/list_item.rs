@@ -19,7 +19,7 @@ use inline::InlineMetrics;
 use text;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect};
+use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;

@@ -9,7 +9,7 @@
 #[deny(missing_docs)]
 
 extern crate devtools_traits;
-extern crate geom;
+extern crate euclid;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
@@ -30,8 +30,8 @@ use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
 
-use geom::point::Point2D;
-use geom::rect::Rect;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.

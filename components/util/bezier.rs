@@ -6,7 +6,7 @@
 //!
 //! This is based on `WebCore/platform/graphics/UnitBezier.h` in WebKit.
 
-use geom::point::Point2D;
+use euclid::point::Point2D;
 
 const NEWTON_METHOD_ITERATIONS: u8 = 8;
 

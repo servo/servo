@@ -6,9 +6,9 @@
 //! reduce coupling between these two components.
 
 use compositor_msg::Epoch;
-use geom::rect::Rect;
-use geom::size::TypedSize2D;
-use geom::scale_factor::ScaleFactor;
+use euclid::rect::Rect;
+use euclid::size::TypedSize2D;
+use euclid::scale_factor::ScaleFactor;
 use hyper::header::Headers;
 use hyper::method::Method;
 use layers::geometry::DevicePixel;

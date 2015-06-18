@@ -17,15 +17,13 @@ bitflags = "*"
 libc = "*"
 url = "*"
 gleam = "0.1"
+euclid = "0.1"
 
 [dependencies.compositing]
 path = "../../components/compositing"
 
 [dependencies.script_traits]
 path = "../../components/script_traits"
-
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"

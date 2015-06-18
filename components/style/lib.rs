@@ -16,7 +16,7 @@
 #[macro_use] extern crate bitflags;
 
 extern crate fnv;
-extern crate geom;
+extern crate euclid;
 extern crate smallvec;
 extern crate url;
 

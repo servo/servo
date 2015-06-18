@@ -7,10 +7,10 @@ use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, Dra
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
 use canvas_traits::*;
-use geom::matrix2d::Matrix2D;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use euclid::matrix2d::Matrix2D;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
 use layers::platform::surface::NativeSurface;
 use gfx_traits::color;
 use num::ToPrimitive;

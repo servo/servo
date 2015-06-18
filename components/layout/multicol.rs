@@ -13,7 +13,7 @@ use flow::{FlowClass, Flow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect};
+use euclid::{Point2D, Rect};
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use std::fmt;

@@ -48,7 +48,7 @@ use util::geometry::{self, Au, MAX_RECT};
 use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use js::jsapi::JS_EvaluateUCScript;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};

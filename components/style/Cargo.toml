@@ -15,8 +15,6 @@ path = "../plugins"
 [dependencies.util]
 path = "../util"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
 
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
@@ -35,3 +33,4 @@ lazy_static = "0.1.10"
 smallvec = "0.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"
+euclid = "0.1"

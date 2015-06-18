@@ -4,7 +4,7 @@
 
 extern crate azure;
 #[macro_use] extern crate bitflags;
-extern crate geom;
+extern crate euclid;
 extern crate hyper;
 extern crate layers;
 extern crate png;
