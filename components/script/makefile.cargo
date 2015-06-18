@@ -28,7 +28,7 @@ $(CACHE_DIR)/.done:
 	touch $@
 
 $(OUT_DIR)/ParserResults.pkl: $(globalgen_dependencies) $(WEBIDLS)
-	$(PYTHON) $(BINDINGS_SRC)/pythonpath.py \
+	$(PYTHON) -B $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(OUT_DIR) \
 	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
@@ -37,7 +37,7 @@ $(OUT_DIR)/ParserResults.pkl: $(globalgen_dependencies) $(WEBIDLS)
 
 $(AUTOGEN_SRC): $(OUT_DIR)/Bindings/%Binding.rs: $(bindinggen_dependencies) \
 						 $(addprefix $(WEBIDLS_SRC)/,%.webidl)
-	$(PYTHON) $(BINDINGS_SRC)/pythonpath.py \
+	$(PYTHON) -B $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(OUT_DIR) \
 	  $(BINDINGS_SRC)/BindingGen.py \
