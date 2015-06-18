@@ -17,7 +17,7 @@ use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;

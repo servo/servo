@@ -5,7 +5,7 @@
 use std::ascii::AsciiExt;
 use cssparser::{Token, Parser, Delimiter};
 
-use geom::size::{Size2D, TypedSize2D};
+use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use util::geometry::{Au, ViewportPx};
 use values::specified;

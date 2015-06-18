@@ -21,7 +21,7 @@ use table_row::{TableRowFlow};
 use table_wrapper::TableLayout;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect};
+use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use std::cmp;
 use std::fmt;

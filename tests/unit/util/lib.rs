@@ -6,7 +6,7 @@
 #![plugin(plugins)]
 extern crate util;
 extern crate libc;
-extern crate geom;
+extern crate euclid;
 
 #[cfg(test)] mod cache;
 #[cfg(test)] mod logical_geometry;

@@ -24,7 +24,7 @@ extern crate azure;
 extern crate alloc;
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate cssparser;
-extern crate geom;
+extern crate euclid;
 extern crate getopts;
 extern crate layers;
 extern crate libc;

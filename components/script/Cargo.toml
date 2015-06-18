@@ -48,9 +48,6 @@ path = "../canvas_traits"
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
@@ -82,3 +79,4 @@ smallvec = "0.1"
 html5ever = "0.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"
+euclid = "0.1"

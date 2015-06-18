@@ -6,9 +6,9 @@
 
 use compositor_task::{CompositorProxy, CompositorReceiver};
 
-use geom::point::TypedPoint2D;
-use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
+use euclid::point::TypedPoint2D;
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};

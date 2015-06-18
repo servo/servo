@@ -19,7 +19,7 @@ use model::MaybeAuto;
 use wrapper::ThreadSafeLayoutNode;
 
 use cssparser::{Color, RGBA};
-use geom::{Point2D, Rect};
+use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use rustc_serialize::{Encoder, Encodable};
 use std::cmp::max;

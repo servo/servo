@@ -31,7 +31,7 @@ extern crate errno;
 extern crate compositing;
 extern crate script_traits;
 
-extern crate geom;
+extern crate euclid;
 extern crate libc;
 extern crate msg;
 extern crate gleam;

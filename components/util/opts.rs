@@ -7,8 +7,8 @@
 
 use geometry::ScreenPx;
 
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use layers::geometry::DevicePixel;
 use getopts;
 use num_cpus;
