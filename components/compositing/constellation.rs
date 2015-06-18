@@ -642,10 +642,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
             // Reuse the script task if the URL is same-origin
             if same_script {
-                debug!("Constellation: loading same-origin iframe at {:?}", url);
+                debug!("Constellation: loading same-origin iframe, \
+                        parent url {:?}, iframe url {:?}", source_url, url);
                 Some(source_pipeline.script_chan.clone())
             } else {
-                debug!("Constellation: loading cross-origin iframe at {:?}", url);
+                debug!("Constellation: loading cross-origin iframe, \
+                        parent url {:?}, iframe url {:?}", source_url, url);
                 None
             }
         };

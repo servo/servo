@@ -39,13 +39,14 @@ extern crate layers;
 extern crate egl;
 extern crate url;
 extern crate net;
+extern crate net_traits;
 extern crate env_logger;
 
 #[link(name = "stlport")]
 extern {}
 
 use util::opts;
-use net::resource_task;
+use net_traits::hosts;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
@@ -64,7 +65,7 @@ fn main() {
     // Parse the command line options and store them globally
     opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice());
 
-    resource_task::global_init();
+    hosts::global_init();
 
     let window = if opts::get().headless {
         None

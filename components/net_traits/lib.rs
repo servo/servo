@@ -4,11 +4,14 @@
 
 #![feature(box_syntax)]
 #![feature(custom_derive)]
+#![feature(box_raw)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(vec_push_all)]
 #![plugin(serde_macros)]
+
+#![plugin(regex_macros)]
 
 extern crate euclid;
 extern crate hyper;
@@ -16,6 +19,7 @@ extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 extern crate png;
+extern crate regex;
 extern crate serde;
 extern crate stb_image;
 extern crate url;
@@ -28,13 +32,19 @@ use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
+use regex::Regex;
 use serde::{Deserializer, Serializer};
 use url::Url;
 
 use std::thread;
 
+pub mod hosts;
 pub mod image_cache_task;
 pub mod storage_task;
+
+pub static IPV4_REGEX: Regex = regex!(
+    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
 
 /// Image handling.
 ///
@@ -342,4 +352,3 @@ impl Iterator for ProgressMsgPortIterator {
         }
     }
 }
-

@@ -4,6 +4,7 @@
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::hosts::replace_hosts;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
@@ -95,7 +96,11 @@ fn load(mut load_data: LoadData,
     //        repository DOES exist, please update this constant to use it.
     let max_redirects = 50;
     let mut iters = 0;
-    let mut url = load_data.url.clone();
+    // URL of the document being loaded, as seen by all the higher-level code.
+    let mut doc_url = load_data.url.clone();
+    // URL that we actually fetch from the network, after applying the replacements
+    // specified in the hosts file.
+    let mut url = replace_hosts(&load_data.url);
     let mut redirected_to = HashSet::new();
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -105,7 +110,8 @@ fn load(mut load_data: LoadData,
     let viewing_source = url.scheme == "view-source";
     if viewing_source {
         let inner_url = load_data.url.non_relative_scheme_data().unwrap();
-        url = Url::parse(inner_url).unwrap();
+        doc_url = Url::parse(inner_url).unwrap();
+        url = replace_hosts(&doc_url);
         match &*url.scheme {
             "http" | "https" => {}
             _ => {
@@ -176,8 +182,11 @@ reason: \"certificate verify failed\" }]))";
             }
         };
 
-        // Preserve the `host` header set automatically by Request.
-        let host = req.headers().get::<Host>().unwrap().clone();
+        //Ensure that the host header is set from the original url
+        let host = Host {
+            hostname: doc_url.serialize_host().unwrap(),
+            port: doc_url.port_or_default()
+        };
 
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
@@ -204,9 +213,9 @@ reason: \"certificate verify failed\" }]))";
         }
 
         let (tx, rx) = ipc::channel().unwrap();
-        resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
-                                                       tx,
-                                                       CookieSource::HTTP)).unwrap();
+        resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(doc_url.clone(),
+                                                            tx,
+                                                            CookieSource::HTTP)).unwrap();
         if let Some(cookie_list) = rx.recv().unwrap() {
             let mut v = Vec::new();
             v.push(cookie_list.into_bytes());
@@ -291,7 +300,7 @@ reason: \"certificate verify failed\" }]))";
         if let Some(cookies) = response.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                    resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
+                    resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(doc_url.clone(),
                                                                         cookies,
                                                                         CookieSource::HTTP)).unwrap();
                 }
@@ -340,15 +349,16 @@ reason: \"certificate verify failed\" }]))";
                         }
                         _ => {}
                     }
-                    let new_url = match UrlParser::new().base_url(&url).parse(&new_url) {
+                    let new_doc_url = match UrlParser::new().base_url(&doc_url).parse(&new_url) {
                         Ok(u) => u,
                         Err(e) => {
-                            send_error(url, e.to_string(), start_chan);
+                            send_error(doc_url, e.to_string(), start_chan);
                             return;
                         }
                     };
-                    info!("redirecting to {}", new_url);
-                    url = new_url;
+                    info!("redirecting to {}", new_doc_url);
+                    url = replace_hosts(&new_doc_url);
+                    doc_url = new_doc_url;
 
                     // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
                     // historically UAs have rewritten POST->GET on 301 and 302 responses.
@@ -358,12 +368,12 @@ reason: \"certificate verify failed\" }]))";
                         load_data.method = Method::Get;
                     }
 
-                    if redirected_to.contains(&url) {
-                        send_error(url, "redirect loop".to_string(), start_chan);
+                    if redirected_to.contains(&doc_url) {
+                        send_error(doc_url, "redirect loop".to_string(), start_chan);
                         return;
                     }
 
-                    redirected_to.insert(url.clone());
+                    redirected_to.insert(doc_url.clone());
                     continue;
                 }
                 None => ()
@@ -374,7 +384,7 @@ reason: \"certificate verify failed\" }]))";
         if viewing_source {
             adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
         }
-        let mut metadata: Metadata = Metadata::default(url);
+        let mut metadata: Metadata = Metadata::default(doc_url);
         metadata.set_content_type(match adjusted_headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
