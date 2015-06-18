@@ -43,14 +43,14 @@ use js::jsapi::{JS_FireOnNewGlobalObject, JSVersion};
 use js::jsapi::JS_DeletePropertyById1;
 use js::jsapi::JS_ObjectToOuterObject;
 use js::jsapi::JS_NewObjectWithUniqueType;
-use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, MutableHandleObject};
+use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, Heap, MutableHandleObject};
 use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::{DOMCallbacks, JSWrapObjectCallbacks};
 use js::jsval::JSVal;
 use js::jsval::{PrivateValue, NullValue};
 use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue};
-use js::rust::ToString;
+use js::rust::{GCMethods, ToString};
 use js::glue::{WrapperNew, GetCrossCompartmentWrapper};
 use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
 use js::JSFUN_CONSTRUCTOR;
@@ -609,16 +609,25 @@ pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass,
 
 /// Drop the resources held by reserved slots of a global object
 pub unsafe fn finalize_global(obj: *mut JSObject) {
+    let protolist = get_proto_or_iface_array(obj);
+    let list = (*protolist).as_mut_ptr();
+    for idx in 0..(PrototypeList::ID::Count as isize) {
+        let entry = list.offset(idx);
+        let value = *entry;
+        if <*mut JSObject>::needs_post_barrier(value) {
+            <*mut JSObject>::relocate(entry);
+        }
+    }
     let _: Box<ProtoOrIfaceArray> =
-        Box::from_raw(get_proto_or_iface_array(obj));
+        Box::from_raw(protolist);
 }
 
 /// Trace the resources held by reserved slots of a global object
 pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     let array = get_proto_or_iface_array(obj);
-    for &proto in (*array).iter() {
+    for proto in (&*array).iter() {
         if !proto.is_null() {
-            trace_object(tracer, "prototype", proto);
+            trace_object(tracer, "prototype", &*(proto as *const *mut JSObject as *const Heap<*mut JSObject>));
         }
     }
 }

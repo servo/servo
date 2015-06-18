@@ -2327,7 +2327,10 @@ if !rval.get().is_null() {
 CreateInterfaceObjects(cx, global, receiver, rval);
 assert!(!rval.get().is_null());
 (*proto_or_iface_array)[%s as usize] = rval.get();
-""" % (self.id, self.id))
+if <*mut JSObject>::needs_post_barrier(rval.get()) {
+    <*mut JSObject>::post_barrier((*proto_or_iface_array).as_mut_ptr().offset(%s as isize))
+}
+""" % (self.id, self.id, self.id))
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
@@ -5102,6 +5105,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+            'js::rust::GCMethods',
             'js::{JSTrue, JSFalse}',
             'dom::bindings',
             'dom::bindings::global::GlobalRef',
