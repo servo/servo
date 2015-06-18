@@ -54,6 +54,9 @@ pub struct PaintContext<'a> {
     /// clipping region used by the last display item. We cache the last value so that we avoid
     /// pushing and popping clipping regions unnecessarily.
     pub transient_clip: Option<ClippingRegion>,
+    /// If true, this layer is part of a 3d rendering context.
+    /// A temporary hack to disable clipping optimizations on 3d layers.
+    pub layer_is_3d: bool,
 }
 
 #[derive(Copy, Clone)]

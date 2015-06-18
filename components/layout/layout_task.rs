@@ -35,7 +35,7 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::Size2D;
 use gfx_traits::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
-use gfx::display_list::{StackingContext};
+use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
@@ -873,10 +873,12 @@ impl LayoutTask {
                                                                      &origin,
                                                                      &origin,
                                                                      0,
-                                                                     &Matrix4::identity(),
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
-                                                                     Some(paint_layer)));
+                                                                     Some(paint_layer),
+                                                                     Matrix4::identity(),
+                                                                     Matrix4::identity(),
+                                                                     true));
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
