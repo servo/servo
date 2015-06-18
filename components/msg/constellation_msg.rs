@@ -212,6 +212,8 @@ pub enum Msg {
     Failure(Failure),
     InitLoadUrl(Url),
     LoadComplete(PipelineId),
+    /// Dispatched after the DOM load event has fired on a document
+    DOMLoad(PipelineId, Option<(PipelineId, SubpageId)>),
     FrameRect(PipelineId, SubpageId, Rect<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),

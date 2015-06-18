@@ -275,6 +275,7 @@ pub trait DocumentHelpers<'a> {
     fn load_async(self, load: LoadType, listener: Box<AsyncResponseTarget + Send>);
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
     fn finish_load(self, load: LoadType);
+    fn notify_constellation_load(self);
     fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>);
     fn get_current_parser(self) -> Option<Temporary<ServoHTMLParser>>;
 }
@@ -949,6 +950,17 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn finish_load(self, load: LoadType) {
         let mut loader = self.loader.borrow_mut();
         loader.finish_load(load);
+    }
+
+    fn notify_constellation_load(self) {
+        let window = self.window.root();
+        let pipeline_id = window.r().pipeline();
+        let parent_info = window.r().parent_info();
+        let ConstellationChan(ref chan) = window.r().constellation_chan();
+        let event = ConstellationMsg::DOMLoad(pipeline_id,
+                                              parent_info);
+        chan.send(event).unwrap();
+
     }
 
     fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>) {
@@ -1877,6 +1889,8 @@ impl DocumentProgressHandler {
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(frame_element.r());
             event.r().fire(target);
         });
+
+        document.r().notify_constellation_load();
 
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
         document.r().trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
