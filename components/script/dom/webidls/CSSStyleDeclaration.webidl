@@ -93,6 +93,10 @@ partial interface CSSStyleDeclaration {
 
   [TreatNullAs=EmptyString] attribute DOMString transform;
   [TreatNullAs=EmptyString] attribute DOMString transformOrigin;
+  [TreatNullAs=EmptyString] attribute DOMString perspective;
+  [TreatNullAs=EmptyString] attribute DOMString perspectiveOrigin;
+  [TreatNullAs=EmptyString] attribute DOMString transformStyle;
+  [TreatNullAs=EmptyString] attribute DOMString backfaceVisibility;
 
   [TreatNullAs=EmptyString] attribute DOMString direction;
 
