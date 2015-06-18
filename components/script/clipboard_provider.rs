@@ -12,7 +12,7 @@ pub trait ClipboardProvider {
     // blocking method to get the clipboard contents
     fn clipboard_contents(&mut self) -> String;
     // blocking method to set the clipboard contents
-    fn set_clipboard_contents(&mut self, &str);
+    fn set_clipboard_contents(&mut self, String);
 }
 
 impl ClipboardProvider for ConstellationChan {
@@ -21,8 +21,8 @@ impl ClipboardProvider for ConstellationChan {
         self.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
         rx.recv().unwrap()
     }
-    fn set_clipboard_contents(&mut self, _: &str) {
-        panic!("not yet implemented");
+    fn set_clipboard_contents(&mut self, s: String) {
+        self.0.send(ConstellationMsg::SetClipboardContents(s)).unwrap();
     }
 }
 
@@ -42,7 +42,7 @@ impl ClipboardProvider for DummyClipboardContext {
     fn clipboard_contents(&mut self) -> String {
         self.content.clone()
     }
-    fn set_clipboard_contents(&mut self, s: &str) {
-        self.content = s.to_owned();
+    fn set_clipboard_contents(&mut self, s: String) {
+        self.content = s;
     }
 }
