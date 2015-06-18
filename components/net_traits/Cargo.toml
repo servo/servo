@@ -24,4 +24,5 @@ log = "*"
 url = "0.2.35"
 hyper = "0.5"
 euclid = "0.1"
-
+regex = "0.1.33"
+regex_macros = "0.1.19"

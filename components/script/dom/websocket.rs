@@ -19,11 +19,14 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use net_traits::hosts::replace_hosts;
 use script_task::Runnable;
 use script_task::ScriptMsg;
 use std::cell::{Cell, RefCell};
 use std::borrow::ToOwned;
 use util::str::DOMString;
+
+use hyper::header::Host;
 
 use websocket::Message;
 use websocket::ws::sender::Sender as Sender_Object;
@@ -138,9 +141,18 @@ impl WebSocket {
         // fixed to follow the RFC 6455 properly
         let (parsed_url, _, _, _, _) = try!(parse_web_socket_url(&ws.r().url));
 
+        // URL that we actually fetch from the network, after applying the replacements
+        // specified in the hosts file.
+        let net_url = replace_hosts(&parsed_url);
+
+        let host = Host {
+            hostname: parsed_url.serialize_host().unwrap(),
+            port: parsed_url.port_or_default()
+        };
+
         // TODO Client::connect does not conform to RFC 6455
         // see https://github.com/cyderize/rust-websocket/issues/38
-        let request = match Client::connect(parsed_url) {
+        let mut request = match Client::connect(net_url) {
             Ok(request) => request,
             Err(_) => {
                 let global_root = ws.r().global.root();
@@ -150,6 +162,7 @@ impl WebSocket {
                 return Ok(ws);
             }
         };
+        request.headers.set(host);
         let response = request.send().unwrap();
         response.validate().unwrap();
         ws.r().ready_state.set(WebSocketRequestState::Open);

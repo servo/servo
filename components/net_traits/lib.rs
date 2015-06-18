@@ -1,17 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+#![feature(alloc)]
 #![feature(box_syntax)]
 #![feature(collections)]
+#![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
+
+#![plugin(regex_macros)]
 
 extern crate euclid;
 extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate png;
+extern crate regex;
 extern crate stb_image;
 extern crate url;
 extern crate util;
@@ -27,6 +31,7 @@ use url::Url;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
+pub mod hosts;
 pub mod image_cache_task;
 pub mod storage_task;
 

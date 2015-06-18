@@ -2,15 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(alloc)]
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
 #![feature(path_ext)]
 #![feature(plugin)]
 #![feature(std_misc)]
-
-#![plugin(regex_macros)]
 
 extern crate net_traits;
 extern crate cookie as cookie_rs;
@@ -27,8 +24,6 @@ extern crate util;
 extern crate time;
 extern crate url;
 extern crate uuid;
-
-extern crate regex;
 
 pub mod about_loader;
 pub mod file_loader;
