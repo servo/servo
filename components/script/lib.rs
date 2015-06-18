@@ -33,6 +33,7 @@ extern crate hyper;
 extern crate js;
 extern crate libc;
 extern crate msg;
+extern crate net;
 extern crate net_traits;
 extern crate num;
 extern crate png;

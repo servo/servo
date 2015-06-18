@@ -31,6 +31,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
+use url::Url;
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
@@ -187,15 +188,17 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> 
     box host_table
 }
 
-pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, String>) -> LoadData {
-    if let Some(h) = load_data.url.domain_mut() {
-        unsafe {
-            if let Some(ip) = (*host_table).get(h) {
-                *h = ip.clone();
-            }
-        }
+pub fn replace_hosts(url: &Url) -> Url {
+    unsafe {
+        HOST_TABLE.and_then(|host_table| {
+            url.domain().and_then(|domain|
+                                  (*host_table).get(domain).map(|ip| {
+                                      let mut net_url = url.clone();
+                                      *net_url.domain_mut().unwrap() = ip.clone();
+                                      net_url
+                                  }))
+        }).unwrap_or(url.clone())
     }
-    return load_data;
 }
 
 struct ResourceManager {
@@ -252,12 +255,6 @@ impl ResourceManager {
     }
 
     fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
-        unsafe {
-            if let Some(host_table) = HOST_TABLE {
-                load_data = replace_hosts(load_data, host_table);
-            }
-        }
-
         self.user_agent.as_ref().map(|ua| {
             load_data.preserved_headers.set(UserAgent(ua.clone()));
         });

@@ -1043,6 +1043,7 @@ dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
+ "net 0.0.1",
  "net_traits 0.0.1",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
