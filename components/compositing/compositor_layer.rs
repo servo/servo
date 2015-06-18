@@ -7,7 +7,6 @@ use windowing::{MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl;
 use euclid::length::Length;
-use euclid::matrix::Matrix4;
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::size::TypedSize2D;
 use euclid::rect::Rect;
@@ -66,6 +65,7 @@ impl CompositorData {
                            tile_size,
                            to_layers_color(&layer_properties.background_color),
                            1.0,
+                           layer_properties.establishes_3d_context,
                            new_compositor_data))
     }
 }
@@ -190,6 +190,8 @@ pub enum ScrollEventResult {
 impl CompositorLayer for Layer<CompositorData> {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
         self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
+        *self.transform.borrow_mut() = layer_properties.transform;
+        *self.perspective.borrow_mut() = layer_properties.perspective;
 
         *self.background_color.borrow_mut() = to_layers_color(&layer_properties.background_color);
 
@@ -392,7 +394,6 @@ impl CompositorLayer for Layer<CompositorData> {
         // Only scroll this layer if it's not fixed-positioned.
         if self.extra_data.borrow().scroll_policy != ScrollPolicy::FixedPosition {
             let new_offset = new_offset.to_untyped();
-            *self.transform.borrow_mut() = Matrix4::identity().translate(new_offset.x, new_offset.y, 0.0);
             *self.content_offset.borrow_mut() = Point2D::from_untyped(&new_offset);
             result = true
         }

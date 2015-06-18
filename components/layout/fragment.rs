@@ -40,6 +40,7 @@ use string_cache::Atom;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
 use style::computed_values::{text_align, text_decoration, white_space, word_break};
+use style::computed_values::transform_style;
 use style::node::TNode;
 use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -1989,6 +1990,12 @@ impl Fragment {
         }
         if self.style().get_effects().transform.is_some() {
             return true
+        }
+        match self.style().get_used_transform_style() {
+            transform_style::T::flat | transform_style::T::preserve_3d => {
+                return true
+            }
+            transform_style::T::auto => {}
         }
 
         // Canvas always layerizes, as an special case

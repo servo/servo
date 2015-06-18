@@ -6,6 +6,7 @@ use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyState, KeyModifiers};
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use euclid::Matrix4;
 use layers::platform::surface::NativeGraphicsMetadata;
 use layers::layers::LayerBufferSet;
 use std::fmt::{Formatter, Debug};
@@ -51,6 +52,12 @@ impl LayerId {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum LayerKind {
+    Layer2D,
+    Layer3D,
+}
+
 /// The scrolling policy of a layer.
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub enum ScrollPolicy {
@@ -66,12 +73,20 @@ pub enum ScrollPolicy {
 pub struct LayerProperties {
     /// An opaque ID. This is usually the address of the flow and index of the box within it.
     pub id: LayerId,
+    /// The id of the parent layer.
+    pub parent_id: Option<LayerId>,
     /// The position and size of the layer in pixels.
     pub rect: Rect<f32>,
     /// The background color of the layer.
     pub background_color: Color,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
+    /// The transform for this layer
+    pub transform: Matrix4,
+    /// The perspective transform for this layer
+    pub perspective: Matrix4,
+    /// Whether this layer establishes a new 3d rendering context.
+    pub establishes_3d_context: bool,
 }
 
 /// The interface used by the painter to acquire draw targets for each paint frame and
