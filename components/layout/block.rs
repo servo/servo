@@ -56,10 +56,10 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{position, text_align};
-use style::properties::ComputedValues;
+use style::computed_values::{transform_style, position, text_align};
+use style::properties::{ComputedValues, TransformKind};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::computed::{LengthOrPercentageOrNone};
+use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use util::geometry::{Au, MAX_AU, MAX_RECT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
@@ -1676,6 +1676,16 @@ impl Flow for BlockFlow {
             self.base.stacking_relative_position_of_display_port = MAX_RECT;
         }
 
+        // This flow needs a layer if it has a 3d transform, or provides perspective
+        // to child layers. See http://dev.w3.org/csswg/css-transforms/#3d-rendering-contexts.
+        let transform_style = self.fragment.style().get_used_transform_style();
+        let has_3d_transform = self.fragment.style().get_transform_kind() == TransformKind::Transform3D;
+        let has_perspective = self.fragment.style().get_effects().perspective != LengthOrNone::None;
+
+        if has_3d_transform || has_perspective {
+            self.base.flags.insert(NEEDS_LAYER);
+        }
+
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,
                                                                       container_size);
@@ -1818,6 +1828,16 @@ impl Flow for BlockFlow {
 
         // Process children.
         for kid in self.base.child_iter() {
+            // If this layer preserves the 3d context of children,
+            // then children will need a render layer.
+            // TODO(gw): This isn't always correct. In some cases
+            // this may create extra layers than needed. I think
+            // there are also some edge cases where children don't
+            // get a layer when they should.
+            if transform_style == transform_style::T::preserve_3d {
+                flow::mut_base(kid).flags.insert(NEEDS_LAYER);
+            }
+
             if flow::base(kid).flags.contains(INLINE_POSITION_IS_STATIC) ||
                     flow::base(kid).flags.contains(BLOCK_POSITION_IS_STATIC) {
                 let kid_base = flow::mut_base(kid);
