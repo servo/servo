@@ -1933,12 +1933,12 @@ assert!(!obj.is_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
-            create += "let obj = create_dom_global(cx, &Class.base as *const js::Class as *const JSClass);\n"
+            create += "let obj = create_dom_global(cx, &Class.base as *const js::Class as *const JSClass, object);\n"
         else:
             create += ("let obj = with_compartment(cx, proto, || {\n"
                        "    JS_NewObject(cx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
                        "});\n" % parent)
-        create += """\
+            create += """\
 assert!(!obj.is_null());
 
 JS_SetReservedSlot(obj, DOM_OBJECT_SLOT,

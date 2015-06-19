@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
+use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class, DOM_OBJECT_SLOT};
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root, Rootable};
@@ -577,17 +577,20 @@ pub fn has_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
 }
 
 /// Create a DOM global object with the given class.
-pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass)
+pub fn create_dom_global<T: Reflectable>(cx: *mut JSContext, class: *const JSClass, global: Box<T>)
                          -> *mut JSObject {
     unsafe {
         let obj = JS_NewGlobalObject(cx, class, ptr::null_mut());
         if obj.is_null() {
             return ptr::null_mut();
         }
+        JS_SetReservedSlot(obj, DOM_OBJECT_SLOT,
+                           PrivateValue(boxed::into_raw(global) as *const libc::c_void));
+        initialize_global(obj);
+
         with_compartment(cx, obj, || {
             JS_InitStandardClasses(cx, obj);
         });
-        initialize_global(obj);
         obj
     }
 }
@@ -601,6 +604,16 @@ pub unsafe fn finalize_global(obj: *mut JSObject) {
 /// Trace the resources held by reserved slots of a global object
 pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     let array = get_proto_or_iface_array(obj);
+    for &proto in (*array).iter() {
+        if !proto.is_null() {
+            trace_object(tracer, "prototype", proto);
+        }
+    }
+}
+
+/// Trace the resources held by reserved slots of a global object
+pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
+    let array = get_proto_or_iface_array(obj) as *mut ProtoOrIfaceArray;
     for &proto in (*array).iter() {
         if !proto.is_null() {
             trace_object(tracer, "prototype", proto);
