@@ -9,11 +9,15 @@
 
 from __future__ import print_function, unicode_literals
 
+import base64
+import json
 import os
 import os.path as path
+import re
 import shutil
 import subprocess
 import sys
+import StringIO
 import tarfile
 import urllib2
 from distutils.version import LooseVersion
@@ -27,27 +31,33 @@ from mach.decorators import (
 from servo.command_base import CommandBase, cd, host_triple
 
 
-def download(desc, src, dst):
+def download(desc, src, writer):
     print("Downloading %s..." % desc)
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
         resp = urllib2.urlopen(src)
-        fsize = int(resp.info().getheader('Content-Length').strip())
+
+        fsize = None
+        if resp.info().getheader('Content-Length'):
+            fsize = int(resp.info().getheader('Content-Length').strip())
+
         recved = 0
         chunk_size = 8192
 
-        with open(dst, 'wb') as fd:
-            while True:
-                chunk = resp.read(chunk_size)
-                if not chunk:
-                    break
-                recved += len(chunk)
-                if not dumb:
+        while True:
+            chunk = resp.read(chunk_size)
+            if not chunk: break
+            recved += len(chunk)
+            if not dumb:
+                if fsize is not None:
                     pct = recved * 100.0 / fsize
                     print("\rDownloading %s: %5.1f%%" % (desc, pct), end="")
-                    sys.stdout.flush()
-                fd.write(chunk)
+                else:
+                    print("\rDownloading %s" % desc, end="")
+
+                sys.stdout.flush()
+            writer.write(chunk)
 
         if not dumb:
             print()
@@ -62,6 +72,14 @@ def download(desc, src, dst):
 
         sys.exit(1)
 
+def download_file(desc, src, dst):
+    with open(dst, 'wb') as fd:
+        download(desc, src, fd)
+
+def download_bytes(desc, src):
+    content_writer = StringIO.StringIO()
+    download(desc, src, content_writer)
+    return content_writer.getvalue()
 
 def extract(src, dst, movedir=None):
     tarfile.open(src).extractall(dst)
@@ -111,7 +129,7 @@ class MachCommands(CommandBase):
                         % self.rust_snapshot_path())
         tgz_file = rust_dir + '.tar.gz'
 
-        download("Rust snapshot", snapshot_url, tgz_file)
+        download_file("Rust snapshot", snapshot_url, tgz_file)
 
         print("Extracting Rust snapshot...")
         snap_dir = path.join(rust_dir,
@@ -142,7 +160,7 @@ class MachCommands(CommandBase):
                         % docs_name)
         tgz_file = path.join(hash_dir, 'doc.tar.gz')
 
-        download("Rust docs", snapshot_url, tgz_file)
+        download_file("Rust docs", snapshot_url, tgz_file)
 
         print("Extracting Rust docs...")
         temp_dir = path.join(hash_dir, "temp_docs")
@@ -166,7 +184,7 @@ class MachCommands(CommandBase):
                               self.cargo_build_id())
         if not force and path.exists(path.join(cargo_dir, "bin", "cargo")):
             print("Cargo already downloaded.", end=" ")
-            print("Use |bootstrap_cargo --force| to download again.")
+            print("Use |bootstrap-cargo --force| to download again.")
             return
 
         if path.isdir(cargo_dir):
@@ -177,13 +195,57 @@ class MachCommands(CommandBase):
         nightly_url = "https://static-rust-lang-org.s3.amazonaws.com/cargo-dist/%s/%s" % \
             (self.cargo_build_id(), tgz_file)
 
-        download("Cargo nightly", nightly_url, tgz_file)
+        download_file("Cargo nightly", nightly_url, tgz_file)
 
         print("Extracting Cargo nightly...")
         nightly_dir = path.join(cargo_dir,
                                 path.basename(tgz_file).replace(".tar.gz", ""))
         extract(tgz_file, cargo_dir, movedir=nightly_dir)
         print("Cargo ready.")
+
+    @Command('bootstrap-hsts-preload',
+             description='Download the HSTS preload list',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Force download even if HSTS list already exist')
+    def bootstrap_hsts_preload(self, force=False):
+        preload_filename = "hsts_preload.json"
+        preload_path = path.join(self.context.topdir, "resources")
+
+        if not force and path.exists(path.join(preload_path, preload_filename)):
+            print("HSTS preload list already downloaded.", end=" ")
+            print("Use |bootstrap-hsts-preload --force| to download again.")
+            return
+
+        chromium_hsts_url = "https://chromium.googlesource.com/chromium/src/net/+/master/http/transport_security_state_static.json?format=TEXT"
+
+        try:
+            content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
+        except URLError, e:
+            print("Unable to download chromium HSTS preload list, are you connected to the internet?")
+            sys.exit(1)
+
+        content_decoded = base64.b64decode(content_base64)
+        content_json = re.sub(r'//.*$', '', content_decoded, flags=re.MULTILINE)
+
+        try:
+            pins_and_static_preloads = json.loads(content_json)
+            entries = {
+                "entries": [
+                    {
+                        "host": e["name"],
+                        "include_subdomains": e.get("include_subdomains", False)
+                    }
+                    for e in pins_and_static_preloads["entries"]
+                ]
+            }
+
+            with open(path.join(preload_path, preload_filename), 'w') as fd:
+                json.dump(entries, fd, indent=4)
+        except ValueError, e:
+            print("Unable to parse chromium HSTS preload list, has the format changed?")
+            sys.exit(1)
 
     @Command('update-submodules',
              description='Update submodules',
