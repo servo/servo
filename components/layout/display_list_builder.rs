@@ -1527,10 +1527,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 };
 
                 let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
+                let layer = StackingContextLayer::Existing(paint_layer);
                 let stacking_context = self.fragment.create_stacking_context(&self.base,
                                                                              display_list,
                                                                              layout_context,
-                                                                             StackingContextLayer::Existing(paint_layer));
+                                                                             layer);
                 DisplayListBuildingResult::StackingContext(stacking_context)
             } else {
                 DisplayListBuildingResult::StackingContext(
