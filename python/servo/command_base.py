@@ -238,10 +238,10 @@ class CommandBase(object):
             if self.config["gonk"]["product"]:
                 env["GONK_PRODUCT"] = self.config["gonk"]["product"]
 
-            env["CC"] = "arm-linux-androideabi-gcc"
             env["ARCH_DIR"] = "arch-arm"
             env["CPPFLAGS"] = (
                 "-DANDROID -DTARGET_OS_GONK "
+                "-DANDROID_VERSION=19 "
                 "-DGR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE=1 "
                 "-isystem %(gonkdir)s/bionic/libc/%(archdir)s/include "
                 "-isystem %(gonkdir)s/bionic/libc/include/ "
@@ -250,24 +250,29 @@ class CommandBase(object):
                 "-isystem %(gonkdir)s/bionic/libm/include "
                 "-I%(gonkdir)s/system "
                 "-I%(gonkdir)s/system/core/include "
-                "-isystem %(gonkdir)s/bionic "
                 "-I%(gonkdir)s/frameworks/native/opengl/include "
                 "-I%(gonkdir)s/external/zlib "
-                "-I%(gonkdir)s/hardware/libhardware/include/hardware/ "
             ) % {"gonkdir": env["GONKDIR"], "archdir": env["ARCH_DIR"]}
             env["CXXFLAGS"] = (
-                "-O2 -mandroid -fPIC  %(cppflags)s "
-                "-I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
-                "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include "
+                "-O2 -mandroid -fPIC "
+                "-isystem %(gonkdir)s/api/cpp/include "
+                "-isystem %(gonkdir)s/external/stlport/stlport "
+                "-isystem %(gonkdir)s/bionic "
+                "-isystem %(gonkdir)s/bionic/libstdc++/include "
+                "%(cppflags)s"
             ) % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"]}
             env["CFLAGS"] = (
-                "-O2 -mandroid -fPIC  %(cppflags)s "
-                "-I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
-                "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include "
-            ) % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"]}
+                "%(cxxflags)s"
+            ) % {"cxxflags": env["CXXFLAGS"]}
 
             another_extra_path = path.join(
                 env["GONKDIR"], "prebuilts", "gcc", "linux-x86", "arm", "arm-linux-androideabi-4.7", "bin")
+
+            env["gonkdir"] = env["GONKDIR"]
+            env["gonk_toolchain_prefix"] = (
+                "%(toolchain)s/arm-linux-androideabi-"
+            ) % {"toolchain": another_extra_path}
+
             env["PATH"] = "%s%s%s" % (another_extra_path, os.pathsep, env["PATH"])
             env["LDFLAGS"] = (
                 "-mandroid -L%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
