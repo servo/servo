@@ -26,3 +26,4 @@ Servo.app
 .config.mk.last
 parser.out
 /glfw
+hsts_preload.json
