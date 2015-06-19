@@ -688,7 +688,30 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // under the mouse.
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
-                target.root().r().set_hover_state(false);
+                let target = target.root();
+                let target_ref = target.r();
+                if target_ref.get_hover_state() {
+                    target_ref.set_hover_state(false);
+
+                    let x = point.x.to_i32().unwrap_or(0);
+                    let y = point.y.to_i32().unwrap_or(0);
+
+                    let window = self.window.root();
+
+                    let mouse_event = MouseEvent::new(window.r(),
+                                                      "mouseout".to_owned(),
+                                                      EventBubbles::Bubbles,
+                                                      EventCancelable::Cancelable,
+                                                      Some(window.r()),
+                                                      0i32,
+                                                      x, y, x, y,
+                                                      false, false, false, false,
+                                                      0i16,
+                                                      None).root();
+                    let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
+                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(target_ref);
+                    event.fire(target);
+                }
             }
         }
 
@@ -700,6 +723,25 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             let target_ref = target.r();
             if !target_ref.get_hover_state() {
                 target_ref.set_hover_state(true);
+
+                let x = point.x.to_i32().unwrap_or(0);
+                let y = point.y.to_i32().unwrap_or(0);
+
+                let window = self.window.root();
+
+                let mouse_event = MouseEvent::new(window.r(),
+                                                  "mouseover".to_owned(),
+                                                  EventBubbles::Bubbles,
+                                                  EventCancelable::Cancelable,
+                                                  Some(window.r()),
+                                                  0i32,
+                                                  x, y, x, y,
+                                                  false, false, false, false,
+                                                  0i16,
+                                                  None).root();
+                let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
+                let target: JSRef<EventTarget> = EventTargetCast::from_ref(target_ref);
+                event.fire(target);
             }
         }
 
