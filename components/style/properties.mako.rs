@@ -34,13 +34,6 @@ use computed_values;
 
 use self::property_bit_field::PropertyBitField;
 
-#[derive(Copy, Clone, PartialEq)]
-pub enum TransformKind {
-    None,
-    Transform2D,
-    Transform3D,
-}
-
 <%!
 
 import re
@@ -5498,35 +5491,6 @@ impl ComputedValues {
 
         // Return the computed value if not overridden by the above exceptions
         effects.transform_style
-    }
-
-    pub fn get_transform_kind(&self) -> TransformKind {
-        // Check if the transform matrix is 2D or 3D
-        if let Some(ref transform_list) = self.get_effects().transform {
-            for transform in transform_list {
-                match transform {
-                    &computed_values::transform::ComputedOperation::Perspective(..) => {
-                        return TransformKind::Transform3D;
-                    }
-                    &computed_values::transform::ComputedOperation::Matrix(m) => {
-                        // See http://dev.w3.org/csswg/css-transforms/#2d-matrix
-                        if m.m31 != 0.0 || m.m32 != 0.0 ||
-                           m.m13 != 0.0 || m.m23 != 0.0 ||
-                           m.m43 != 0.0 || m.m14 != 0.0 ||
-                           m.m24 != 0.0 || m.m34 != 0.0 ||
-                           m.m33 != 1.0 || m.m44 != 1.0 {
-                            return TransformKind::Transform3D;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            return TransformKind::Transform2D;
-        }
-
-        // Neither perspective nor transform present
-        TransformKind::None
     }
 
     % for style_struct in STYLE_STRUCTS:
