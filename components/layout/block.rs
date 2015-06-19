@@ -56,8 +56,8 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{transform_style, position, text_align};
-use style::properties::{ComputedValues, TransformKind};
+use style::computed_values::{transform, transform_style, position, text_align};
+use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use util::geometry::{Au, MAX_AU, MAX_RECT};
@@ -615,6 +615,33 @@ impl BlockFlow {
                 BlockType::NonReplaced
             }
         }
+    }
+
+    pub fn transform_requires_layer(&self) -> bool {
+        // Check if the transform matrix is 2D or 3D
+        if let Some(ref transform_list) = self.fragment.style().get_effects().transform {
+            for transform in transform_list {
+                match transform {
+                    &transform::ComputedOperation::Perspective(..) => {
+                        return true;
+                    }
+                    &transform::ComputedOperation::Matrix(m) => {
+                        // See http://dev.w3.org/csswg/css-transforms/#2d-matrix
+                        if m.m31 != 0.0 || m.m32 != 0.0 ||
+                           m.m13 != 0.0 || m.m23 != 0.0 ||
+                           m.m43 != 0.0 || m.m14 != 0.0 ||
+                           m.m24 != 0.0 || m.m34 != 0.0 ||
+                           m.m33 != 1.0 || m.m44 != 1.0 {
+                            return true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Neither perspective nor transform present
+        false
     }
 
     /// Compute the actual inline size and position for this block.
@@ -1679,7 +1706,7 @@ impl Flow for BlockFlow {
         // This flow needs a layer if it has a 3d transform, or provides perspective
         // to child layers. See http://dev.w3.org/csswg/css-transforms/#3d-rendering-contexts.
         let transform_style = self.fragment.style().get_used_transform_style();
-        let has_3d_transform = self.fragment.style().get_transform_kind() == TransformKind::Transform3D;
+        let has_3d_transform = self.transform_requires_layer();
         let has_perspective = self.fragment.style().get_effects().perspective != LengthOrNone::None;
 
         if has_3d_transform || has_perspective {

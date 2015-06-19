@@ -7,7 +7,6 @@ use windowing::{MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl;
 use euclid::length::Length;
-use euclid::matrix::Matrix4;
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::size::TypedSize2D;
 use euclid::rect::Rect;

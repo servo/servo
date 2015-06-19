@@ -11,6 +11,7 @@ use scrolling::ScrollingTimerProxy;
 use windowing;
 use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
+use euclid::Matrix4;
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::rect::{Rect, TypedRect};
 use euclid::scale_factor::ScaleFactor;
