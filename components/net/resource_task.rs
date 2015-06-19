@@ -17,10 +17,13 @@ use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, Respo
 use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
+use util::resource_files::read_resource_file;
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
+
+use rustc_serialize::json::{decode};
 
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -28,9 +31,9 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::str::{FromStr, from_utf8};
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
-
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
@@ -152,15 +155,84 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
     }
 }
 
+fn preload_hsts_domains() -> Option<HSTSList> {
+    match read_resource_file(&["hsts_preload.json"]) {
+        Ok(bytes) => {
+            match from_utf8(&bytes) {
+                Ok(hsts_preload_content) => {
+                    HSTSList::new_from_preload(hsts_preload_content)
+                },
+                Err(_) => None
+            }
+        },
+        Err(_) => None
+    }
+}
+
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
+    let hsts_preload = preload_hsts_domains();
+
     let (setup_chan, setup_port) = channel();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
-        ResourceManager::new(setup_port, user_agent, setup_chan_clone, devtools_chan).start();
+        ResourceManager::new(setup_port, user_agent, setup_chan_clone, hsts_preload, devtools_chan).start();
     });
     setup_chan
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+pub struct HSTSEntry {
+    pub host: String,
+    pub include_subdomains: bool
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+pub struct HSTSList {
+    pub entries: Vec<HSTSEntry>
+}
+
+impl HSTSList {
+    pub fn new_from_preload(preload_content: &str) -> Option<HSTSList> {
+        match decode(preload_content) {
+            Ok(list) => Some(list),
+            Err(_) => None
+        }
+    }
+
+    pub fn always_secure(&self, host: &str) -> bool {
+        // TODO - Should this be faster than O(n)? The HSTS list is only a few
+        // hundred or maybe thousand entries...
+        self.entries.iter().any(|e| {
+            if e.include_subdomains {
+                host.ends_with(&format!(".{}", e.host)) || e.host == host
+            } else {
+                e.host == host
+            }
+        })
+    }
+
+
+    pub fn make_hsts_secure(&self, load_data: LoadData) -> LoadData {
+        if let Some(h) = load_data.url.domain() {
+            if self.always_secure(h) {
+                match &*load_data.url.scheme {
+                    "http" => {
+                        let mut secure_load_data = load_data.clone();
+                        let mut secure_url = load_data.url.clone();
+                        secure_url.scheme = "https".to_string();
+                        secure_load_data.url = secure_url;
+
+                        return secure_load_data
+                    },
+                    _ => ()
+                };
+            }
+        }
+
+        load_data
+    }
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
@@ -204,13 +276,15 @@ struct ResourceManager {
     cookie_storage: CookieStorage,
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    hsts_list: Option<HSTSList>
 }
 
 impl ResourceManager {
     fn new(from_client: Receiver<ControlMsg>,
            user_agent: Option<String>,
            resource_task: Sender<ControlMsg>,
+           hsts_list: Option<HSTSList>,
            devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
@@ -218,7 +292,8 @@ impl ResourceManager {
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
-            devtools_chan: devtools_channel
+            devtools_chan: devtools_channel,
+            hsts_list: hsts_list
         }
     }
 }
@@ -261,6 +336,11 @@ impl ResourceManager {
         self.user_agent.as_ref().map(|ua| {
             load_data.preserved_headers.set(UserAgent(ua.clone()));
         });
+
+        match self.hsts_list {
+            Some(ref l) => load_data = l.make_hsts_secure(load_data),
+            _ => ()
+        }
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
                         -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
