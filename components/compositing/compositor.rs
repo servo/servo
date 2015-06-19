@@ -11,10 +11,10 @@ use scrolling::ScrollingTimerProxy;
 use windowing;
 use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
-use geom::point::{Point2D, TypedPoint2D};
-use geom::rect::{Rect, TypedRect};
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use euclid::point::{Point2D, TypedPoint2D};
+use euclid::rect::{Rect, TypedRect};
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use gfx_traits::color;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::PaintRequest;

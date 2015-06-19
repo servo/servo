@@ -14,9 +14,6 @@ path = "../../../components/style"
 [dependencies.util]
 path = "../../../components/util"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
@@ -25,3 +22,4 @@ url = "*"
 cssparser = "0.3.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"
+euclid = "0.1"

@@ -6,8 +6,8 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use glutin;
 use layers::geometry::DevicePixel;
@@ -26,7 +26,7 @@ use NestedEventLoopListener;
 #[cfg(feature = "window")]
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
-use geom::point::Point2D;
+use euclid::point::Point2D;
 #[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode};
 #[cfg(feature = "window")]

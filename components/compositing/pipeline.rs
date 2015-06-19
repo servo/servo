@@ -8,8 +8,8 @@ use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
-use geom::rect::{TypedRect};
-use geom::scale_factor::ScaleFactor;
+use euclid::rect::{TypedRect};
+use euclid::scale_factor::ScaleFactor;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;

@@ -20,7 +20,7 @@ extern crate alloc;
 extern crate azure;
 #[macro_use] extern crate bitflags;
 extern crate fnv;
-extern crate geom;
+extern crate euclid;
 extern crate layers;
 extern crate libc;
 extern crate stb_image;

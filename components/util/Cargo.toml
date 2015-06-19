@@ -24,9 +24,6 @@ git = "https://github.com/servo/rust-selectors"
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
@@ -45,3 +42,4 @@ lazy_static = "0.1.10"
 url = "*"
 string_cache = "0.1"
 string_cache_plugin = "0.1"
+euclid = "0.1"

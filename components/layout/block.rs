@@ -48,7 +48,7 @@ use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use msg::compositor_msg::LayerId;
 use rustc_serialize::{Encoder, Encodable};

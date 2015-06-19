@@ -31,7 +31,7 @@ use js::jsapi::{JSContext};
 use js::jsval::JSVal;
 use offscreen_gl_context::GLContextAttributes;
 
-use geom::size::Size2D;
+use euclid::size::Size2D;
 
 use std::cell::Cell;
 use std::default::Default;

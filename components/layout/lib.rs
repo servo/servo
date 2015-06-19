@@ -42,7 +42,7 @@ extern crate clock_ticks;
 extern crate cssparser;
 extern crate encoding;
 extern crate fnv;
-extern crate geom;
+extern crate euclid;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate layout_traits;

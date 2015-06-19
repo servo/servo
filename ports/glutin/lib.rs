@@ -9,7 +9,7 @@
 #[macro_use] extern crate bitflags;
 #[cfg(target_os="macos")] extern crate cgl;
 extern crate compositing;
-extern crate geom;
+extern crate euclid;
 extern crate gleam;
 extern crate glutin;
 extern crate layers;
@@ -24,7 +24,7 @@ extern crate url;
 #[cfg(target_os="linux")] extern crate x11;
 
 use compositing::windowing::WindowEvent;
-use geom::scale_factor::ScaleFactor;
+use euclid::scale_factor::ScaleFactor;
 use std::rc::Rc;
 use window::Window;
 use util::opts;

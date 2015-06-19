@@ -19,7 +19,7 @@ use dom::webgltexture::{WebGLTexture, WebGLTextureHelpers};
 use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
 use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
 use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelpers};
-use geom::size::Size2D;
+use euclid::size::Size2D;
 use js::jsapi::{JSContext, JSObject};
 use js::jsfriendapi::bindgen::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, NullValue, Int32Value};

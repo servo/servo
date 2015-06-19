@@ -11,7 +11,7 @@ use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use geom::Point2D;
+use euclid::Point2D;
 use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
 use harfbuzz::{RUST_hb_blob_create, RUST_hb_face_create_for_tables};
 use harfbuzz::{hb_blob_t};

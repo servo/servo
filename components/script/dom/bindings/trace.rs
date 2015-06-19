@@ -38,9 +38,9 @@ use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
-use geom::matrix2d::Matrix2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use euclid::matrix2d::Matrix2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;

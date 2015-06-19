@@ -46,7 +46,7 @@ use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionHel
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::{Window, WindowHelpers};
-use geom::rect::Rect;
+use euclid::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
 use devtools_traits::NodeInfo;
 use parse::html::parse_html_fragment;
