@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::resource_task::{new_resource_task, parse_hostsfile, replace_hosts};
+use net::resource_task::{
+    new_resource_task, parse_hostsfile, replace_hosts, HSTSList, HSTSEntry
+};
 use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::ProgressMsg;
 use std::borrow::ToOwned;
@@ -15,6 +17,126 @@ use url::Url;
 fn test_exit() {
     let resource_task = new_resource_task(None, None);
     resource_task.send(ControlMsg::Exit).unwrap();
+}
+
+#[test]
+fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
+    let mock_preload_content = "derp";
+    match HSTSList::new_from_preload(mock_preload_content) {
+        Some(_) => assert!(false, "preload list should not have parsed"),
+        None => assert!(true)
+    }
+}
+
+#[test]
+fn test_parse_hsts_preload_should_return_none_when_json_contains_no_entries_key() {
+    let mock_preload_content = "{\"nothing\": \"to see here\"}";
+    match HSTSList::new_from_preload(mock_preload_content) {
+        Some(_) => assert!(false, "preload list should not have parsed"),
+        None => assert!(true)
+    }
+}
+
+#[test]
+fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
+    let mock_preload_content = "{\
+                                     \"entries\": [\
+                                        {\"host\": \"mozilla.org\",\
+                                         \"include_subdomains\": false}\
+                                     ]\
+                                 }";
+    let hsts_list = HSTSList::new_from_preload(mock_preload_content);
+    let entries = hsts_list.unwrap().entries;
+
+    assert!(entries.get(0).unwrap().host == "mozilla.org");
+    assert!(entries.get(0).unwrap().include_subdomains == false);
+}
+
+#[test]
+fn test_hsts_list_with_no_entries_does_not_always_secure() {
+    let hsts_list = HSTSList {
+        entries: Vec::new()
+    };
+
+    assert!(hsts_list.always_secure("mozilla.org") == false);
+}
+
+#[test]
+fn test_hsts_list_with_exact_domain_entry_is_always_secure() {
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: false}]
+    };
+
+    assert!(hsts_list.always_secure("mozilla.org") == true);
+}
+
+#[test]
+fn test_hsts_list_with_subdomain_when_include_subdomains_is_true_is_always_secure() {
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: true}]
+    };
+
+    assert!(hsts_list.always_secure("servo.mozilla.org") == true);
+}
+
+#[test]
+fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_always_secure() {
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: false}]
+    };
+
+    assert!(hsts_list.always_secure("servo.mozilla.org") == false);
+}
+
+#[test]
+fn test_hsts_list_with_subdomain_when_host_is_not_a_subdomain_is_not_always_secure() {
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: true}]
+    };
+
+    assert!(hsts_list.always_secure("servo-mozilla.org") == false);
+}
+
+#[test]
+fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_always_secure() {
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: true}]
+    };
+
+    assert!(hsts_list.always_secure("mozilla.org") == true);
+}
+
+#[test]
+fn test_make_hsts_secure_doesnt_affect_non_http_schemas() {
+    let load_data = LoadData::new(Url::parse("file://mozilla.org").unwrap(), None);
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: false}]
+    };
+    let secure_load_data = hsts_list.make_hsts_secure(load_data);
+
+    assert!(&secure_load_data.url.scheme == "file");
+}
+
+#[test]
+fn test_make_hsts_secure_sets_secure_schema_on_subdomains_when_include_subdomains_is_true() {
+    let load_data = LoadData::new(Url::parse("http://servo.mozilla.org").unwrap(), None);
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: true}]
+    };
+    let secure_load_data = hsts_list.make_hsts_secure(load_data);
+
+    assert!(&secure_load_data.url.scheme == "https");
+}
+
+#[test]
+fn test_make_hsts_secure_forces_an_http_host_in_list_to_https() {
+    let load_data = LoadData::new(Url::parse("http://mozilla.org").unwrap(), None);
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: false}]
+    };
+    let secure_load_data = hsts_list.make_hsts_secure(load_data);
+
+    assert!(&secure_load_data.url.scheme == "https");
 }
 
 #[test]

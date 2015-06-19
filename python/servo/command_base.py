@@ -324,5 +324,7 @@ class CommandBase(object):
            not path.exists(path.join(
                 self.config["tools"]["cargo-root"], "cargo", "bin", "cargo")):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
+        if not path.exists(path.join("resources", "hsts_preload.json")):
+            Registrar.dispatch("bootstrap-hsts-preload", context=self.context)
 
         self.context.bootstrapped = True
