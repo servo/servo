@@ -130,7 +130,7 @@ def write_results(module, results):
 
 # Print usage if command line args are incorrect
 def print_usage():
-    print("USAGE: {0} servo_binary jquery_base_dir test|update".format(sys.argv[0]))
+    print("USAGE: {0} test|update servo_binary jquery_base_dir".format(sys.argv[0]))
 
 
 # Run a simple HTTP server to serve up the jQuery test suite
