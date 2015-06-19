@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDataElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLDataElementDerived for EventTarget {
 impl HTMLDataElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLDataElement {
+                     document: &Document) -> HTMLDataElement {
         HTMLDataElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataElement, localName, prefix, document)
         }
@@ -37,7 +37,7 @@ impl HTMLDataElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLDataElement> {
+               document: &Document) -> Root<HTMLDataElement> {
         let element = HTMLDataElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDataElementBinding::Wrap)
     }

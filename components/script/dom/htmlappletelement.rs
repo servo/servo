@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLAppletElementBinding::HTMLAppletElemen
 use dom::attr::AttrValue;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeHandlers, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -35,7 +35,7 @@ impl HTMLAppletElementDerived for EventTarget {
 impl HTMLAppletElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLAppletElement {
+                     document: &Document) -> HTMLAppletElement {
         HTMLAppletElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLAppletElement, localName, prefix, document)
@@ -45,19 +45,19 @@ impl HTMLAppletElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLAppletElement> {
+               document: &Document) -> Root<HTMLAppletElement> {
         let element = HTMLAppletElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAppletElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
+impl<'a> HTMLAppletElementMethods for &'a HTMLAppletElement {
     // https://html.spec.whatwg.org/#the-applet-element:dom-applet-name
     make_getter!(Name);
     make_atomic_setter!(SetName, "name");
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLAppletElement> {
+impl<'a> VirtualMethods for &'a HTMLAppletElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
     }

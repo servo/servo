@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable, Rootable};
 use dom::element::{Element, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -15,7 +14,7 @@ use std::borrow::ToOwned;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {
-    fn as_element(&self) -> Temporary<Element>;
+    fn as_element<'a>(&'a self) -> &'a Element;
 
     // Is this particular instance of the element activatable?
     fn is_instance_activatable(&self) -> bool;
@@ -27,32 +26,32 @@ pub trait Activatable {
     fn canceled_activation(&self);
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, event: JSRef<Event>, target: JSRef<EventTarget>);
+    fn activation_behavior(&self, event: &Event, target: &EventTarget);
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
 
     // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
     fn synthetic_click_activation(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
-        let element = self.as_element().root();
+        let element = self.as_element();
         // Step 1
-        if element.r().click_in_progress() {
+        if element.click_in_progress() {
             return;
         }
         // Step 2
-        element.r().set_click_in_progress(true);
+        element.set_click_in_progress(true);
         // Step 3
         self.pre_click_activation();
 
         // Step 4
         // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
-        let win = window_from_node(element.r()).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(element.r());
+        let win = window_from_node(element);
+        let target = EventTargetCast::from_ref(element);
         let mouse = MouseEvent::new(win.r(), "click".to_owned(),
                                     EventBubbles::DoesNotBubble, EventCancelable::NotCancelable, Some(win.r()), 1,
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
-                                    0, None).root();
-        let event: JSRef<Event> = EventCast::from_ref(mouse.r());
+                                    0, None);
+        let event = EventCast::from_ref(mouse.r());
         event.fire(target);
 
         // Step 5
@@ -64,6 +63,6 @@ pub trait Activatable {
         }
 
         // Step 6
-        element.r().set_click_in_progress(false);
+        element.set_click_in_progress(false);
     }
 }

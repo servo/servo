@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::FileOrString;
 use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary, Unrooted};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
@@ -38,29 +38,29 @@ pub struct FormData {
 }
 
 impl FormData {
-    fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: GlobalRef) -> FormData {
+    fn new_inherited(form: Option<&HTMLFormElement>, global: GlobalRef) -> FormData {
         FormData {
             reflector_: Reflector::new(),
             data: DOMRefCell::new(HashMap::new()),
             global: GlobalField::from_rooted(&global),
-            form: form.map(|f| JS::from_rooted(f)),
+            form: form.map(|f| JS::from_ref(f)),
         }
     }
 
-    pub fn new(form: Option<JSRef<HTMLFormElement>>, global: GlobalRef) -> Temporary<FormData> {
+    pub fn new(form: Option<&HTMLFormElement>, global: GlobalRef) -> Root<FormData> {
         reflect_dom_object(box FormData::new_inherited(form, global),
                            global, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
+    pub fn Constructor(global: GlobalRef, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
         Ok(FormData::new(form, global))
     }
 }
 
-impl<'a> FormDataMethods for JSRef<'a, FormData> {
+impl<'a> FormDataMethods for &'a FormData {
     #[allow(unrooted_must_root)]
-    fn Append(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
-        let file = FormDatum::FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
+    fn Append(self, name: DOMString, value: &Blob, filename: Option<DOMString>) {
+        let file = FormDatum::FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
         let mut data = self.data.borrow_mut();
         match data.entry(name) {
             Occupied(entry) => entry.into_mut().push(file),
@@ -90,7 +90,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
             match data[&name][0].clone() {
                 FormDatum::StringData(ref s) => Some(eString(s.clone())),
                 FormDatum::FileData(ref f) => {
-                    Some(eFile(Unrooted::from_js(*f)))
+                    Some(eFile(f.root()))
                 }
             }
         } else {
@@ -104,8 +104,8 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
         data.contains_key(&name)
     }
     #[allow(unrooted_must_root)]
-    fn Set(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
-        let file = FormDatum::FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
+    fn Set(self, name: DOMString, value: &Blob, filename: Option<DOMString>) {
+        let file = FormDatum::FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
         self.data.borrow_mut().insert(name, vec!(file));
     }
 
@@ -115,13 +115,13 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
 }
 
 trait PrivateFormDataHelpers{
-  fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File>;
+  fn get_file_from_blob(self, value: &Blob, filename: Option<DOMString>) -> Root<File>;
 }
 
-impl PrivateFormDataHelpers for FormData {
-    fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
+impl<'a> PrivateFormDataHelpers for &'a FormData {
+    fn get_file_from_blob(self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
         let global = self.global.root();
-        let f: Option<JSRef<File>> = FileCast::to_ref(value);
+        let f: Option<&File> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_owned()));
         File::new(global.r(), value, name)
     }

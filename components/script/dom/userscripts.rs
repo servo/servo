@@ -5,10 +5,10 @@
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::{JSRef, OptionalRootable, Rootable, RootedReference};
+use dom::bindings::js::{RootedReference};
 use dom::element::AttributeHandlers;
 use dom::htmlheadelement::HTMLHeadElement;
-use dom::node::{Node, NodeHelpers};
+use dom::node::NodeHelpers;
 use util::opts;
 use util::resource_files::resources_dir_path;
 use std::borrow::ToOwned;
@@ -16,11 +16,11 @@ use std::fs::read_dir;
 use std::path::PathBuf;
 
 
-pub fn load_script(head: JSRef<HTMLHeadElement>) {
+pub fn load_script(head: &HTMLHeadElement) {
     if let Some(ref path_str) = opts::get().userscripts {
-        let node: &JSRef<Node> = NodeCast::from_borrowed_ref(&head);
-        let first_child = node.GetFirstChild().root();
-        let doc = node.owner_doc().root();
+        let node = NodeCast::from_borrowed_ref(&head);
+        let first_child = node.GetFirstChild();
+        let doc = node.owner_doc();
         let doc = doc.r();
 
         let path = if &**path_str == "" {
@@ -42,10 +42,10 @@ pub fn load_script(head: JSRef<HTMLHeadElement>) {
                 Ok(ref s) if s.ends_with(".js") => "file://".to_owned() + &s[..],
                 _ => continue
             };
-            let new_script = doc.CreateElement("script".to_owned()).unwrap().root();
+            let new_script = doc.CreateElement("script".to_owned()).unwrap();
             let new_script = new_script.r();
             new_script.set_string_attribute(&atom!("src"), name);
-            let new_script_node: &JSRef<Node> = NodeCast::from_borrowed_ref(&new_script);
+            let new_script_node = NodeCast::from_borrowed_ref(&new_script);
             node.InsertBefore(*new_script_node, first_child.r()).unwrap();
         }
     }

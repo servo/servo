@@ -8,18 +8,19 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
-use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString};
+use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject, JSString};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewStringCopyN};
-use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
-use js::jsapi::{JS_ReportErrorFlagsAndNumber, JS_StrictPropertyStub};
-use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
+use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
+use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
+use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
+use js::jsapi::AutoIdVector;
+use js::jsapi::GetObjectProto;
 use js::jsval::ObjectValue;
 use js::glue::GetProxyExtra;
-use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
+use js::glue::{SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
-use js::glue::RUST_js_GetErrorMessage;
-use js::glue::AutoIdVector;
-use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
+use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY};
+use js::{JSTrue, JSFalse};
 
 use libc;
 use std::mem;
@@ -32,60 +33,78 @@ static JSPROXYSLOT_EXPANDO: u32 = 0;
 /// Otherwise, walk along the prototype chain to find a property with that
 /// name.
 pub unsafe extern fn get_property_descriptor(cx: *mut JSContext,
-                                             proxy: *mut JSObject,
-                                             id: jsid, set: bool,
-                                             desc: *mut JSPropertyDescriptor)
-                                             -> bool {
-    let handler = GetProxyHandler(proxy);
-    if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, set, desc) {
-        return false;
+                                             proxy: HandleObject,
+                                             id: HandleId,
+                                             desc: MutableHandle<JSPropertyDescriptor>)
+                                             -> u8 {
+    let handler = GetProxyHandler(proxy.get());
+    if InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) == 0 {
+        return JSFalse;
     }
-    if !(*desc).obj.is_null() {
-        return true;
-    }
-
-    //let proto = JS_GetPrototype(proxy);
-    let proto = GetObjectProto(proxy);
-    if proto.is_null() {
-        (*desc).obj = ptr::null_mut();
-        return true;
+    if !desc.get().obj.is_null() {
+        return JSTrue;
     }
 
-    JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, desc) != 0
+    let mut proto = RootedObject::new(cx, ptr::null_mut());
+    if GetObjectProto(cx, proxy, proto.handle_mut()) == 0 {
+        desc.get().obj = ptr::null_mut();
+        return JSTrue;
+    }
+
+    JS_GetPropertyDescriptorById(cx, proto.handle(), id, desc)
 }
 
 /// Defines an expando on the given `proxy`.
-pub unsafe extern fn define_property(cx: *mut JSContext, proxy: *mut JSObject,
-                                     id: jsid, desc: *mut JSPropertyDescriptor)
-                                     -> bool {
-    static JSMSG_GETTER_ONLY: libc::c_uint = 160;
-
+pub unsafe extern fn define_property(cx: *mut JSContext, proxy: HandleObject,
+                                     id: HandleId, desc: Handle<JSPropertyDescriptor>,
+                                     result: *mut ObjectOpResult)
+                                     -> u8 {
     //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
-    let setter: *const libc::c_void = mem::transmute((*desc).setter);
+    let setter: *const libc::c_void = mem::transmute(desc.get().setter);
     let setter_stub: *const libc::c_void = mem::transmute(JS_StrictPropertyStub);
-    if ((*desc).attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
-        return JS_ReportErrorFlagsAndNumber(cx,
-                                            JSREPORT_WARNING | JSREPORT_STRICT |
-                                            JSREPORT_STRICT_MODE_ERROR,
-                                            Some(RUST_js_GetErrorMessage), ptr::null_mut(),
-                                            JSMSG_GETTER_ONLY) != 0;
+    if (desc.get().attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
+        (*result).code_ = JSErrNum::JSMSG_GETTER_ONLY as u32;
+        return JSTrue;
     }
 
-    let expando = ensure_expando_object(cx, proxy);
-    return JS_DefinePropertyById(cx, expando, id, (*desc).value, (*desc).getter,
-                                 (*desc).setter, (*desc).attrs) != 0;
+    let expando = RootedObject::new(cx, ensure_expando_object(cx, proxy));
+    JS_DefinePropertyById6(cx, expando.handle(), id, desc, result)
 }
 
 /// Deletes an expando off the given `proxy`.
-pub unsafe extern fn delete(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                            bp: *mut bool) -> bool {
-    let expando = get_expando_object(proxy);
-    if expando.is_null() {
-        *bp = true;
-        return true;
+pub unsafe extern fn delete(cx: *mut JSContext, proxy: HandleObject, id: HandleId,
+                            bp: *mut ObjectOpResult) -> u8 {
+    let expando = RootedObject::new(cx, get_expando_object(proxy));
+    if expando.ptr.is_null() {
+        (*bp).code_ = 0 /* OkCode */;
+        return JSTrue;
     }
 
-    return delete_property_by_id(cx, expando, id, &mut *bp);
+    delete_property_by_id(cx, expando.handle(), id, bp)
+}
+
+/// Stub for ownPropertyKeys
+pub unsafe extern fn own_property_keys(cx: *mut JSContext,
+                                       proxy: HandleObject,
+                                       props: *mut AutoIdVector) -> u8 {
+    // FIXME: implement this
+    // https://github.com/servo/servo/issues/6390
+    JSTrue
+}
+
+/// Controls whether the Extensible bit can be changed
+pub unsafe extern fn prevent_extensions(_cx: *mut JSContext,
+                                        _proxy: HandleObject,
+                                        result: *mut ObjectOpResult) -> u8 {
+    (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as u32;
+    return JSTrue;
+}
+
+/// Reports whether the object is Extensible
+pub unsafe extern fn is_extensible(_cx: *mut JSContext, _proxy: HandleObject,
+                                   succeeded: *mut u8) -> u8 {
+    *succeeded = JSTrue;
+    return JSTrue;
 }
 
 /// Returns the stringification of an object with class `name`.
@@ -103,10 +122,10 @@ pub fn object_to_string(cx: *mut JSContext, name: &str) -> *mut JSString {
 }
 
 /// Get the expando object, or null if there is none.
-pub fn get_expando_object(obj: *mut JSObject) -> *mut JSObject {
+pub fn get_expando_object(obj: HandleObject) -> *mut JSObject {
     unsafe {
-        assert!(is_dom_proxy(obj));
-        let val = GetProxyExtra(obj, JSPROXYSLOT_EXPANDO);
+        assert!(is_dom_proxy(obj.get()));
+        let val = GetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO);
         if val.is_undefined() {
             ptr::null_mut()
         } else {
@@ -117,18 +136,16 @@ pub fn get_expando_object(obj: *mut JSObject) -> *mut JSObject {
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-pub fn ensure_expando_object(cx: *mut JSContext, obj: *mut JSObject)
+pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject)
                              -> *mut JSObject {
     unsafe {
-        assert!(is_dom_proxy(obj));
+        assert!(is_dom_proxy(obj.get()));
         let mut expando = get_expando_object(obj);
         if expando.is_null() {
-            expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(),
-                                                 ptr::null_mut(),
-                                                 GetObjectParent(obj));
+            expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null());
             assert!(!expando.is_null());
 
-            SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
+            SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
         }
         return expando;
     }
@@ -142,18 +159,4 @@ pub fn fill_property_descriptor(desc: &mut JSPropertyDescriptor,
     desc.attrs = if readonly { JSPROP_READONLY } else { 0 } | JSPROP_ENUMERATE;
     desc.getter = None;
     desc.setter = None;
-    desc.shortid = 0;
-}
-
-/// No-op required hook.
-pub unsafe extern fn get_own_property_names(_cx: *mut JSContext,
-                                            _obj: *mut JSObject,
-                                            _v: *mut AutoIdVector) -> bool {
-    true
-}
-
-/// No-op required hook.
-pub unsafe extern fn enumerate(_cx: *mut JSContext, _obj: *mut JSObject,
-                               _v: *mut AutoIdVector) -> bool {
-    true
 }

@@ -9,7 +9,7 @@
 
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
-use dom::bindings::js::{JS, JSRef, Rootable, Root, Unrooted};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::DocumentHelpers;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
@@ -21,7 +21,7 @@ use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::ResourceTask;
 
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
-use js::glue::{GetGlobalForObjectCrossCompartment};
+use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetClass};
 use url::Url;
@@ -30,9 +30,9 @@ use url::Url;
 #[derive(Copy, Clone)]
 pub enum GlobalRef<'a> {
     /// A reference to a `Window` object.
-    Window(JSRef<'a, window::Window>),
+    Window(&'a window::Window),
     /// A reference to a `WorkerGlobalScope` object.
-    Worker(JSRef<'a, WorkerGlobalScope>),
+    Worker(&'a WorkerGlobalScope),
 }
 
 /// A stack-based rooted reference to a global object.
@@ -55,15 +55,6 @@ pub enum GlobalField {
     Worker(JS<WorkerGlobalScope>),
 }
 
-/// An unrooted reference to a global object.
-#[must_root]
-pub enum GlobalUnrooted {
-    /// An unrooted reference to a `Window` object.
-    Window(Unrooted<window::Window>),
-    /// An unrooted reference to a `WorkerGlobalScope` object.
-    Worker(Unrooted<WorkerGlobalScope>),
-}
-
 impl<'a> GlobalRef<'a> {
     /// Get the `JSContext` for the `JSRuntime` associated with the thread
     /// this global object is on.
@@ -76,7 +67,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Extract a `Window`, causing task failure if the global object is not
     /// a `Window`.
-    pub fn as_window<'b>(&'b self) -> JSRef<'b, window::Window> {
+    pub fn as_window<'b>(&'b self) -> &'b window::Window {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
@@ -104,7 +95,7 @@ impl<'a> GlobalRef<'a> {
     pub fn resource_task(&self) -> ResourceTask {
         match *self {
             GlobalRef::Window(ref window) => {
-                let doc = window.Document().root();
+                let doc = window.Document();
                 let doc = doc.r();
                 let loader = doc.loader();
                 loader.resource_task.clone()
@@ -182,8 +173,8 @@ impl GlobalField {
     /// Create a new `GlobalField` from a rooted reference.
     pub fn from_rooted(global: &GlobalRef) -> GlobalField {
         match *global {
-            GlobalRef::Window(window) => GlobalField::Window(JS::from_rooted(window)),
-            GlobalRef::Worker(worker) => GlobalField::Worker(JS::from_rooted(worker)),
+            GlobalRef::Window(window) => GlobalField::Window(JS::from_ref(window)),
+            GlobalRef::Worker(worker) => GlobalField::Worker(JS::from_ref(worker)),
         }
     }
 
@@ -196,30 +187,20 @@ impl GlobalField {
     }
 }
 
-impl GlobalUnrooted {
-    /// Create a stack-bounded root for this reference.
-    pub fn root(&self) -> GlobalRoot {
-        match *self {
-            GlobalUnrooted::Window(ref window) => GlobalRoot::Window(window.root()),
-            GlobalUnrooted::Worker(ref worker) => GlobalRoot::Worker(worker.root()),
-        }
-    }
-}
-
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
+pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         match native_from_reflector_jsmanaged(global) {
-            Ok(window) => return GlobalUnrooted::Window(window),
+            Ok(window) => return GlobalRoot::Window(window),
             Err(_) => (),
         }
 
         match native_from_reflector_jsmanaged(global) {
-            Ok(worker) => return GlobalUnrooted::Worker(worker),
+            Ok(worker) => return GlobalRoot::Worker(worker),
             Err(_) => (),
         }
 

@@ -25,20 +25,18 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::js::{JS, JSRef, OptionalRootable, RootCollection};
-use dom::bindings::js::{RootCollectionPtr, Rootable, RootedReference};
-use dom::bindings::js::Temporary;
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
+use dom::bindings::js::{JS, RootCollection, trace_roots};
+use dom::bindings::js::{RootCollectionPtr, Root, RootedReference};
+use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
-use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
+use dom::bindings::trace::{JSTraceable, trace_traceables, RootedVec};
+use dom::bindings::utils::{WRAP_CALLBACKS, DOM_CALLBACKS};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler,
                     DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
-use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
 use dom::uievent::UIEvent;
-use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
@@ -80,9 +78,11 @@ use util::task_state;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
-use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
-use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
+use js::jsapi::{JSContext, JSRuntime, JSTracer};
+use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
+use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
+use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::Url;
 
@@ -113,7 +113,8 @@ unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
         }
     });
 
-    trace_collections(tr);
+    trace_traceables(tr);
+    trace_roots(tr);
 }
 
 /// A document load that is in the process of fetching the requested resource. Contains
@@ -353,8 +354,8 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                 unsafe {
                     let page = owner.page.borrow_for_script_deallocation();
                     for page in page.iter() {
-                        let window = page.window_for_script_deallocation();
-                        (*window.unsafe_get()).clear_js_runtime_for_script_deallocation();
+                        let window = page.window();
+                        window.r().clear_js_runtime_for_script_deallocation();
                     }
                 }
             }
@@ -393,6 +394,8 @@ impl ScriptTaskFactory for ScriptTask {
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         spawn_named_with_send_on_failure(format!("ScriptTask {:?}", id), task_state::SCRIPT, move || {
+            let roots = RootCollection::new();
+            let _stack_roots_tls = StackRootTLS::new(&roots);
             let script_task = ScriptTask::new(box compositor as Box<ScriptListener>,
                                               script_port,
                                               NonWorkerScriptChan(script_chan),
@@ -407,6 +410,7 @@ impl ScriptTaskFactory for ScriptTask {
             SCRIPT_TASK_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_task as *const _);
             });
+
             let mut failsafe = ScriptMemoryFailsafe::new(&script_task);
 
             let new_load = InProgressLoad::new(id, parent_info, layout_chan, window_size,
@@ -421,17 +425,22 @@ impl ScriptTaskFactory for ScriptTask {
     }
 }
 
-unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) {
+unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut libc::c_void) {
     match status {
-        JSGC_BEGIN => task_state::enter(task_state::IN_GC),
-        JSGC_END   => task_state::exit(task_state::IN_GC),
-        _ => (),
+        JSGCStatus::JSGC_BEGIN => task_state::enter(task_state::IN_GC),
+        JSGCStatus::JSGC_END   => task_state::exit(task_state::IN_GC),
     }
+}
+
+unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
+    _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
+    // XXX implement me
+    return DOMProxyShadowsResult::ShadowCheckFailed;
 }
 
 impl ScriptTask {
     pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
-                               -> Option<Temporary<ServoHTMLParser>> {
+                               -> Option<Root<ServoHTMLParser>> {
         SCRIPT_TASK_ROOT.with(|root| {
             let script_task = unsafe { &*root.borrow().unwrap() };
             script_task.handle_page_fetch_complete(id, subpage, metadata)
@@ -467,25 +476,10 @@ impl ScriptTask {
                devtools_chan: Option<DevtoolsControlChan>)
                -> ScriptTask {
         let runtime = ScriptTask::new_rt_and_cx();
-        let wrap_for_same_compartment = wrap_for_same_compartment as
-            unsafe extern "C" fn(*mut JSContext, *mut JSObject) -> *mut JSObject;
-        let pre_wrap = pre_wrap as
-            unsafe extern fn(*mut JSContext, *mut JSObject, *mut JSObject,
-                             libc::c_uint) -> *mut JSObject;
 
         unsafe {
-            // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
-            // and JSCompartment::wrap crashes if that happens. The only way
-            // to retrieve the default callback is as the result of
-            // JS_SetWrapObjectCallbacks, which is why we call it twice.
-            let callback = JS_SetWrapObjectCallbacks(runtime.rt(),
-                                                     None,
-                                                     Some(wrap_for_same_compartment),
-                                                     None);
             JS_SetWrapObjectCallbacks(runtime.rt(),
-                                      callback,
-                                      Some(wrap_for_same_compartment),
-                                      Some(pre_wrap));
+                                      &WRAP_CALLBACKS);
         }
 
         let (devtools_sender, devtools_receiver) = channel();
@@ -525,15 +519,22 @@ impl ScriptTask {
         let runtime = Runtime::new();
 
         unsafe {
-            JS_SetExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
+            JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
+            JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_refcounted_objects), ptr::null_mut());
         }
 
         // Needed for debug assertions about whether GC is running.
         if cfg!(debug_assertions) {
             unsafe {
-                JS_SetGCCallback(runtime.rt(),
-                    Some(debug_gc_callback as unsafe extern "C" fn(*mut JSRuntime, JSGCStatus)));
+                JS_SetGCCallback(runtime.rt(), Some(debug_gc_callback), ptr::null_mut());
             }
+        }
+
+        unsafe {
+            SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
+            SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
+            // Pre barriers aren't working correctly at the moment
+            DisableIncrementalGC(runtime.rt());
         }
 
         runtime
@@ -558,9 +559,6 @@ impl ScriptTask {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
-        let roots = RootCollection::new();
-        let _stack_roots_tls = StackRootTLS::new(&roots);
-
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
         let mut resizes = vec!();
@@ -570,7 +568,7 @@ impl ScriptTask {
             if let Some(page) = page.as_ref() {
                 for page in page.iter() {
                     // Only process a resize if layout is idle.
-                    let window = page.window().root();
+                    let window = page.window();
                     if window.r().layout_is_idle() {
                         let resize_event = window.r().steal_resize_event();
                         match resize_event {
@@ -699,7 +697,7 @@ impl ScriptTask {
         let page = self.page.borrow();
         if let Some(page) = page.as_ref() {
             for page in page.iter() {
-                let window = page.window().root();
+                let window = page.window();
                 let pending_reflows = window.r().get_pending_reflow_count();
                 if pending_reflows > 0 {
                     window.r().reflow(ReflowGoal::ForDisplay,
@@ -848,7 +846,7 @@ impl ScriptTask {
         let page = self.page.borrow();
         if let Some(ref page) = page.as_ref() {
             if let Some(ref page) = page.find(id) {
-                let window = page.window().root();
+                let window = page.window();
                 window.r().set_resize_event(size);
                 return;
             }
@@ -865,7 +863,7 @@ impl ScriptTask {
         let page = self.page.borrow();
         if let Some(page) = page.as_ref() {
             if let Some(ref inner_page) = page.find(id) {
-                let window = inner_page.window().root();
+                let window = inner_page.window();
                 if window.r().set_page_clip_rect_with_new_viewport(rect) {
                     let page = get_page(page, id);
                     self.rebuild_and_force_reflow(&*page, ReflowReason::Viewport);
@@ -884,7 +882,7 @@ impl ScriptTask {
     /// Handle a request to load a page in a new child frame of an existing page.
     fn handle_resource_loaded(&self, pipeline: PipelineId, load: LoadType) {
         let page = get_page(&self.root_page(), pipeline);
-        let doc = page.document().root();
+        let doc = page.document();
         doc.r().finish_load(load);
     }
 
@@ -899,7 +897,7 @@ impl ScriptTask {
         // If not in pending loads, the page should exist by now.
         let page = self.root_page();
         let page = page.find(pipeline_id).expect("GetCurrentState sent to nonexistent pipeline");
-        let doc = page.document().root();
+        let doc = page.document();
 
         // Check if document load event has fired. If the document load
         // event has fired, this also guarantees that the first reflow
@@ -913,7 +911,7 @@ impl ScriptTask {
 
         // Checks if the html element has reftest-wait attribute present.
         // See http://testthewebforward.org/docs/reftests.html
-        let html_element = doc.r().GetDocumentElement().root();
+        let html_element = doc.r().GetDocumentElement();
         let reftest_wait = html_element.r().map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
         if reftest_wait {
             return ScriptState::DocumentLoading;
@@ -936,7 +934,7 @@ impl ScriptTask {
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
 
-        let parent_window = parent_page.window().root();
+        let parent_window = parent_page.window();
         let chan = layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap();
         let layout_chan = LayoutChan(chan.clone());
         // Kick off the fetch for the new resource.
@@ -948,7 +946,7 @@ impl ScriptTask {
 
     fn handle_loads_complete(&self, pipeline: PipelineId) {
         let page = get_page(&self.root_page(), pipeline);
-        let doc = page.document().root();
+        let doc = page.document();
         let doc = doc.r();
         if doc.loader().is_blocked() {
             return;
@@ -970,7 +968,7 @@ impl ScriptTask {
         let page = self.root_page();
         let page = page.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.");
-        let window = page.window().root();
+        let window = page.window();
         window.r().handle_fire_timer(timer_id);
     }
 
@@ -979,7 +977,7 @@ impl ScriptTask {
         let page = self.root_page();
         let page = page.find(id).expect("ScriptTask: received freeze msg for a
                     pipeline ID not associated with this script task. This is a bug.");
-        let window = page.window().root();
+        let window = page.window();
         window.r().freeze();
     }
 
@@ -994,7 +992,7 @@ impl ScriptTask {
             self.rebuild_and_force_reflow(&*page, ReflowReason::CachedPageNeededReflow);
         }
 
-        let window = page.window().root();
+        let window = page.window();
         window.r().thaw();
     }
 
@@ -1004,11 +1002,11 @@ impl ScriptTask {
         let borrowed_page = self.root_page();
         let page = borrowed_page.find(parent_pipeline_id).unwrap();
 
-        let doc = page.document().root();
-        let frame_element = self.find_iframe(doc.r(), subpage_id).root();
+        let doc = page.document();
+        let frame_element = self.find_iframe(doc.r(), subpage_id);
 
         if let Some(ref frame_element) = frame_element {
-            let element: JSRef<Element> = ElementCast::from_ref(frame_element.r());
+            let element = ElementCast::from_ref(frame_element.r());
             doc.r().begin_focus_transaction();
             doc.r().request_focus(element);
             doc.r().commit_focus_transaction(FocusType::Parent);
@@ -1024,9 +1022,9 @@ impl ScriptTask {
         let borrowed_page = self.root_page();
 
         let frame_element = borrowed_page.find(parent_pipeline_id).and_then(|page| {
-            let doc = page.document().root();
+            let doc = page.document();
             self.find_iframe(doc.r(), subpage_id)
-        }).root();
+        });
 
         if let Some(ref frame_element) = frame_element {
             frame_element.r().dispatch_mozbrowser_event(event);
@@ -1040,9 +1038,9 @@ impl ScriptTask {
         let borrowed_page = self.root_page();
 
         let frame_element = borrowed_page.find(containing_pipeline_id).and_then(|page| {
-            let doc = page.document().root();
+            let doc = page.document();
             self.find_iframe(doc.r(), old_subpage_id)
-        }).root();
+        });
 
         frame_element.r().unwrap().update_subpage_id(new_subpage_id);
     }
@@ -1053,7 +1051,7 @@ impl ScriptTask {
         let page = self.root_page();
         match page.find(pipeline_id) {
             Some(page) => {
-                let window = page.window().root();
+                let window = page.window();
                 window.r().handle_reflow_complete_msg(reflow_id);
             }
             None => {
@@ -1067,7 +1065,7 @@ impl ScriptTask {
         let page = self.root_page();
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
-        let window = page.window().root();
+        let window = page.window();
         window.r().set_window_size(new_size);
         page.set_reflow_status(true);
     }
@@ -1089,7 +1087,7 @@ impl ScriptTask {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
-                                  metadata: Metadata) -> Option<Temporary<ServoHTMLParser>> {
+                                  metadata: Metadata) -> Option<Root<ServoHTMLParser>> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         });
@@ -1110,7 +1108,7 @@ impl ScriptTask {
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let page = get_page(&self.root_page(), pipeline_id);
-        let document = page.document().root();
+        let document = page.document();
         document.r().send_title_to_compositor();
     }
 
@@ -1146,7 +1144,7 @@ impl ScriptTask {
 
         // If root is being exited, shut down all pages
         let page = self.root_page();
-        let window = page.window().root();
+        let window = page.window();
         if window.r().pipeline() == id {
             debug!("shutting down layout for root page {:?}", id);
             shut_down_layout(&page, exit_type);
@@ -1163,13 +1161,13 @@ impl ScriptTask {
     /// Handles when layout task finishes all animation in one tick
     fn handle_tick_all_animations(&self, id: PipelineId) {
         let page = get_page(&self.root_page(), id);
-        let document = page.document().root();
+        let document = page.document();
         document.r().invoke_animation_callbacks();
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Temporary<ServoHTMLParser> {
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoHTMLParser> {
         let final_url = metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
@@ -1191,11 +1189,11 @@ impl ScriptTask {
             // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
             borrowed_page.as_ref().and_then(|borrowed_page| {
                 borrowed_page.find(parent_id).and_then(|page| {
-                    let doc = page.document().root();
+                    let doc = page.document();
                     self.find_iframe(doc.r(), subpage_id)
                 })
             })
-        }).root();
+        });
 
         // Create a new frame tree entry.
         let page = Rc::new(Page::new(incomplete.pipeline_id, final_url.clone()));
@@ -1268,7 +1266,7 @@ impl ScriptTask {
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
-                                 incomplete.window_size).root();
+                                 incomplete.window_size);
 
         let last_modified: Option<DOMString> = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
@@ -1292,22 +1290,24 @@ impl ScriptTask {
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
-                                     loader).root();
+                                     loader);
 
         let frame_element = frame_element.r().map(|elem| ElementCast::from_ref(elem));
         window.r().init_browser_context(document.r(), frame_element);
 
         // Create the root frame
         page.set_frame(Some(Frame {
-            document: JS::from_rooted(document.r()),
-            window: JS::from_rooted(window.r()),
+            document: JS::from_rooted(&document),
+            window: JS::from_rooted(&window),
         }));
 
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
+            let _ar = JSAutoRequest::new(self.get_cx());
             let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
-            let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
-            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
+            let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
+            window.r().evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
+            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval.handle(),
                                                           StringificationBehavior::Empty);
             strval.unwrap_or("".to_owned())
         } else {
@@ -1337,8 +1337,8 @@ impl ScriptTask {
         }
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
-        let node: JSRef<Node> = NodeCast::from_ref(node);
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: &Element) {
+        let node = NodeCast::from_ref(node);
         let rect = node.get_bounding_content_box();
         let point = Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px());
         // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
@@ -1350,20 +1350,20 @@ impl ScriptTask {
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
     fn rebuild_and_force_reflow(&self, page: &Page, reason: ReflowReason) {
-        let document = page.document().root();
+        let document = page.document();
         document.r().dirty_all_nodes();
-        let window = window_from_node(document.r()).root();
+        let window = window_from_node(document.r());
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
     }
 
     /// Find an iframe element in a provided document.
-    fn find_iframe(&self, doc: JSRef<Document>, subpage_id: SubpageId)
-                   -> Option<Temporary<HTMLIFrameElement>> {
-        let doc: JSRef<Node> = NodeCast::from_ref(doc);
+    fn find_iframe(&self, doc: &Document, subpage_id: SubpageId)
+                   -> Option<Root<HTMLIFrameElement>> {
+        let doc = NodeCast::from_ref(doc);
 
         doc.traverse_preorder()
-            .filter_map(HTMLIFrameElementCast::to_temporary)
-            .find(|node| node.root().r().subpage_id() == Some(subpage_id))
+            .filter_map(HTMLIFrameElementCast::to_root)
+            .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -1399,7 +1399,7 @@ impl ScriptTask {
                     _marker = AutoDOMEventMarker::new(self);
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
-                let document = page.document().root();
+                let document = page.document();
                 // We temporarily steal the list of targets over which the mouse is to pass it to
                 // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
@@ -1414,7 +1414,7 @@ impl ScriptTask {
                     _marker = AutoDOMEventMarker::new(self);
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
-                let document = page.document().root();
+                let document = page.document();
                 document.r().dispatch_key_event(
                     key, state, modifiers, &mut *self.compositor.borrow_mut());
             }
@@ -1431,7 +1431,7 @@ impl ScriptTask {
             _marker = AutoDOMEventMarker::new(self);
         }
         let page = get_page(&self.root_page(), pipeline_id);
-        let document = page.document().root();
+        let document = page.document();
         document.r().handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
     }
 
@@ -1443,9 +1443,9 @@ impl ScriptTask {
             Some(subpage_id) => {
                 let borrowed_page = self.root_page();
                 let iframe = borrowed_page.find(pipeline_id).and_then(|page| {
-                    let doc = page.document().root();
+                    let doc = page.document();
                     self.find_iframe(doc.r(), subpage_id)
-                }).root();
+                });
                 if let Some(iframe) = iframe.r() {
                     iframe.navigate_child_browsing_context(load_data.url);
                 }
@@ -1461,8 +1461,8 @@ impl ScriptTask {
     /// for the given pipeline.
     fn trigger_fragment(&self, pipeline_id: PipelineId, fragment: String) {
         let page = get_page(&self.root_page(), pipeline_id);
-        let document = page.document().root();
-        match document.r().find_fragment_node(fragment).root() {
+        let document = page.document();
+        match document.r().find_fragment_node(fragment) {
             Some(ref node) => {
                 self.scroll_fragment_point(pipeline_id, node.r());
             }
@@ -1473,16 +1473,15 @@ impl ScriptTask {
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData) {
         let page = get_page(&self.root_page(), pipeline_id);
-        let window = page.window().root();
+        let window = page.window();
         window.r().set_window_size(new_size);
         window.r().force_reflow(ReflowGoal::ForDisplay,
                                 ReflowQueryType::NoQuery,
                                 ReflowReason::WindowResize);
 
-        let document = page.document().root();
+        let document = page.document();
         let fragment_node = window.r().steal_fragment_name()
-                                      .and_then(|name| document.r().find_fragment_node(name))
-                                      .root();
+                                      .and_then(|name| document.r().find_fragment_node(name));
         match fragment_node {
             Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
             None => {}
@@ -1493,10 +1492,10 @@ impl ScriptTask {
         let uievent = UIEvent::new(window.r(),
                                    "resize".to_owned(), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
-                                   0i32).root();
-        let event: JSRef<Event> = EventCast::from_ref(uievent.r());
+                                   0i32);
+        let event = EventCast::from_ref(uievent.r());
 
-        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
+        let wintarget = EventTargetCast::from_ref(window.r());
         event.fire(wintarget);
     }
 
@@ -1560,7 +1559,7 @@ impl ScriptTask {
             None => return,
         };
 
-        let document = page.document().root();
+        let document = page.document();
         let final_url = document.r().url();
 
         document.r().set_ready_state(DocumentReadyState::Interactive);
@@ -1570,7 +1569,7 @@ impl ScriptTask {
         document.r().disarm_reflow_timeout();
         document.r().content_changed(NodeCast::from_ref(document.r()),
                                      NodeDamage::OtherNodeDamage);
-        let window = window_from_node(document.r()).root();
+        let window = window_from_node(document.r());
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
 
         // No more reflow required
@@ -1625,7 +1624,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
         // Tell the layout task to begin shutting down, and wait until it
         // processed this message.
         let (response_chan, response_port) = channel();
-        let window = page.window().root();
+        let window = page.window();
         let LayoutChan(chan) = window.r().layout_chan();
         if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
@@ -1635,7 +1634,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
 
     // Drop our references to the JSContext and DOM objects.
     for page in page_tree.iter() {
-        let window = page.window().root();
+        let window = page.window();
         window.r().clear_js_runtime();
         // Sever the connection between the global and the DOM tree
         page.set_frame(None);

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLLIElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLIElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -26,7 +26,7 @@ impl HTMLLIElementDerived for EventTarget {
 }
 
 impl HTMLLIElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLIElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLLIElement {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLIElement, localName, prefix, document)
         }
@@ -35,7 +35,7 @@ impl HTMLLIElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLLIElement> {
+               document: &Document) -> Root<HTMLLIElement> {
         let element = HTMLLIElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLIElementBinding::Wrap)
     }

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
@@ -32,24 +32,24 @@ impl NodeList {
         }
     }
 
-    pub fn new(window: JSRef<Window>,
-               list_type: NodeListType) -> Temporary<NodeList> {
+    pub fn new(window: &Window,
+               list_type: NodeListType) -> Root<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
                            GlobalRef::Window(window), NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list<T>(window: JSRef<Window>, iter: T)
-                              -> Temporary<NodeList>
-                              where T: Iterator<Item=Temporary<Node>> {
-        NodeList::new(window, NodeListType::Simple(iter.map(JS::from_rooted).collect()))
+    pub fn new_simple_list<T>(window: &Window, iter: T)
+                              -> Root<NodeList>
+                              where T: Iterator<Item=Root<Node>> {
+        NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
     }
 
-    pub fn new_child_list(window: JSRef<Window>, node: JSRef<Node>) -> Temporary<NodeList> {
-        NodeList::new(window, NodeListType::Children(JS::from_rooted(node)))
+    pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
+        NodeList::new(window, NodeListType::Children(JS::from_ref(node)))
     }
 }
 
-impl<'a> NodeListMethods for JSRef<'a, NodeList> {
+impl<'a> NodeListMethods for &'a NodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
     fn Length(self) -> u32 {
         match self.list_type {
@@ -62,10 +62,10 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn Item(self, index: u32) -> Option<Temporary<Node>> {
+    fn Item(self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
-            NodeListType::Simple(ref elems) => Some(Temporary::from_rooted(elems[index as usize].clone())),
+            NodeListType::Simple(ref elems) => Some(elems[index as usize].root()),
             NodeListType::Children(ref node) => {
                 let node = node.root();
                 node.r().children().nth(index as usize)
@@ -73,7 +73,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
         }
     }
 
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Node>> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

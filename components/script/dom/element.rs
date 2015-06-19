@@ -29,9 +29,8 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::Error::NoModificationAllowed;
-use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap};
-use dom::bindings::js::{OptionalRootable, Rootable, RootedReference};
-use dom::bindings::js::{Temporary, TemporaryPushable};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
@@ -42,7 +41,6 @@ use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
@@ -113,6 +111,12 @@ impl ElementDerived for EventTarget {
     }
 }
 
+impl PartialEq for Element {
+    fn eq(&self, other: &Element) -> bool {
+        self as *const Element == &*other
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[jstraceable]
 pub enum ElementTypeId {
@@ -131,14 +135,14 @@ pub enum ElementCreator {
 //
 impl Element {
     pub fn create(name: QualName, prefix: Option<Atom>,
-                  document: JSRef<Document>, creator: ElementCreator)
-                  -> Temporary<Element> {
+                  document: &Document, creator: ElementCreator)
+                  -> Root<Element> {
         create_element(name, prefix, document, creator)
     }
 
     pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString,
                          namespace: Namespace, prefix: Option<DOMString>,
-                         document: JSRef<Document>) -> Element {
+                         document: &Document) -> Element {
         Element {
             node: Node::new_inherited(NodeTypeId::Element(type_id), document),
             local_name: Atom::from_slice(&local_name),
@@ -154,7 +158,7 @@ impl Element {
     pub fn new(local_name: DOMString,
                namespace: Namespace,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<Element> {
+               document: &Document) -> Root<Element> {
         Node::reflect_node(
             box Element::new_inherited(ElementTypeId::Element, local_name, namespace, prefix, document),
             document,
@@ -181,8 +185,6 @@ pub trait RawLayoutElementHelpers {
                                                         -> Option<u32>;
 
     fn local_name<'a>(&'a self) -> &'a Atom;
-    fn namespace<'a>(&'a self) -> &'a Namespace;
-    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
 }
 
 #[inline]
@@ -504,14 +506,6 @@ impl RawLayoutElementHelpers for Element {
     fn local_name<'a>(&'a self) -> &'a Atom {
         &self.local_name
     }
-
-    fn namespace<'a>(&'a self) -> &'a Namespace {
-        &self.namespace
-    }
-
-    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>> {
-        &self.style_attribute
-    }
 }
 
 pub trait LayoutElementHelpers {
@@ -560,18 +554,18 @@ pub trait ElementHelpers<'a> {
     fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
-    fn get_root_element(self) -> Temporary<Element>;
+    fn get_root_element(self) -> Root<Element>;
     fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString>;
 }
 
-impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
+impl<'a> ElementHelpers<'a> for &'a Element {
     fn html_element_in_html_document(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
     fn local_name(self) -> &'a Atom {
-        &self.extended_deref().local_name
+        &self.local_name
     }
 
     fn parsed_name(self, name: DOMString) -> DOMString {
@@ -583,30 +577,30 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn namespace(self) -> &'a Namespace {
-        &self.extended_deref().namespace
+        &self.namespace
     }
 
     fn prefix(self) -> &'a Option<DOMString> {
-        &self.extended_deref().prefix
+        &self.prefix
     }
 
     fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
-        self.extended_deref().attrs.borrow()
+        self.attrs.borrow()
     }
 
     fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
-        self.extended_deref().attrs.borrow_mut()
+        self.attrs.borrow_mut()
     }
 
     fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>> {
-        &self.extended_deref().style_attribute
+        &self.style_attribute
     }
 
     fn summarize(self) -> Vec<AttrInfo> {
-        let attrs = self.Attributes().root();
+        let attrs = self.Attributes();
         let mut summarized = vec!();
         for i in 0..attrs.r().Length() {
-            let attr = attrs.r().Item(i).unwrap().root();
+            let attr = attrs.r().Item(i).unwrap();
             summarized.push(attr.r().summarize());
         }
         summarized
@@ -702,7 +696,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let mut writer = vec![];
         match serialize(&mut writer, &node,
                         SerializeOpts {
@@ -715,10 +709,10 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     // https://html.spec.whatwg.org/multipage/#root-element
-    fn get_root_element(self) -> Temporary<Element> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+    fn get_root_element(self) -> Root<Element> {
+        let node = NodeCast::from_ref(self);
         node.inclusive_ancestors()
-            .filter_map(ElementCast::to_temporary)
+            .filter_map(ElementCast::to_root)
             .last()
             .expect("We know inclusive_ancestors will return `self` which is an element")
     }
@@ -726,7 +720,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
     fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString> {
         for node in NodeCast::from_ref(self).inclusive_ancestors() {
-            match ElementCast::to_ref(node.root().r()) {
+            match ElementCast::to_ref(node.r()) {
                 Some(element) => {
                     // Step 1.
                     if *element.namespace() == namespace {
@@ -736,9 +730,9 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
                     }
 
                     // Step 2.
-                    let attrs = element.Attributes().root();
+                    let attrs = element.Attributes();
                     for i in 0..attrs.r().Length() {
-                        let attr = attrs.r().Item(i).unwrap().root();
+                        let attr = attrs.r().Item(i).unwrap();
                         if *attr.r().prefix() == Some(atom!("xmlns")) &&
                            **attr.r().value() == *namespace.0 {
                             return Some(attr.r().LocalName());
@@ -760,13 +754,13 @@ pub trait FocusElementHelpers {
     fn is_actually_disabled(self) -> bool;
 }
 
-impl<'a> FocusElementHelpers for JSRef<'a, Element> {
+impl<'a> FocusElementHelpers for &'a Element {
     fn is_focusable_area(self) -> bool {
         if self.is_actually_disabled() {
             return false;
         }
         // TODO: Check whether the element is being rendered (i.e. not hidden).
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         if node.get_flag(SEQUENTIALLY_FOCUSABLE) {
             return true;
         }
@@ -783,7 +777,7 @@ impl<'a> FocusElementHelpers for JSRef<'a, Element> {
     }
 
     fn is_actually_disabled(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
@@ -805,10 +799,10 @@ pub trait AttributeHandlers {
     /// Returns the attribute with given namespace and case-sensitive local
     /// name, if any.
     fn get_attribute(self, namespace: &Namespace, local_name: &Atom)
-                     -> Option<Temporary<Attr>>;
+                     -> Option<Root<Attr>>;
     /// Returns the first attribute with any namespace and given case-sensitive
     /// name, if any.
-    fn get_attribute_by_name(self, name: DOMString) -> Option<Temporary<Attr>>;
+    fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>>;
     fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>);
     fn set_attribute_from_parser(self,
                                  name: QualName,
@@ -819,19 +813,19 @@ pub trait AttributeHandlers {
     fn do_set_attribute<F>(self, local_name: Atom, value: AttrValue,
                            name: Atom, namespace: Namespace,
                            prefix: Option<Atom>, cb: F)
-        where F: Fn(JSRef<Attr>) -> bool;
+        where F: Fn(&Attr) -> bool;
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
 
     /// Removes the first attribute with any given namespace and case-sensitive local
     /// name, if any.
     fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
-                        -> Option<Temporary<Attr>>;
+                        -> Option<Root<Attr>>;
     /// Removes the first attribute with any namespace and given case-sensitive name.
-    fn remove_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>>;
+    fn remove_attribute_by_name(self, name: &Atom) -> Option<Root<Attr>>;
     /// Removes the first attribute that satisfies `find`.
-    fn do_remove_attribute<F>(self, find: F) -> Option<Temporary<Attr>>
-        where F: Fn(JSRef<Attr>) -> bool;
+    fn do_remove_attribute<F>(self, find: F) -> Option<Root<Attr>>
+        where F: Fn(&Attr) -> bool;
 
     fn has_class(self, name: &Atom) -> bool;
 
@@ -851,36 +845,34 @@ pub trait AttributeHandlers {
     fn set_uint_attribute(self, local_name: &Atom, value: u32);
 }
 
-impl<'a> AttributeHandlers for JSRef<'a, Element> {
-    fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
+impl<'a> AttributeHandlers for &'a Element {
+    fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
         let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
         attributes.iter()
                   .map(|attr| attr.root())
                   .find(|attr| attr.r().namespace() == namespace)
-                  .map(|x| Temporary::from_rooted(x.r()))
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    fn get_attribute_by_name(self, name: DOMString) -> Option<Temporary<Attr>> {
+    fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>> {
         let name = &Atom::from_slice(&self.parsed_name(name));
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
         attrs.iter().map(|attr| attr.root())
              .find(|a| a.r().name() == name)
-             .map(|x| Temporary::from_rooted(x.r()))
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
-        for ref attr in attrs.iter().map(|attr| attr.root()) {
+        for ref attr in attrs.iter() {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let attr_local_name = attr.local_name();
+            let attr = attr.root();
+            let attr_local_name = attr.r().local_name();
             if attr_local_name == local_name {
-                attributes.push(JS::from_rooted(attr));
+                attributes.push(JS::from_rooted(&attr));
             }
         }
     }
@@ -938,7 +930,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                            namespace: Namespace,
                            prefix: Option<Atom>,
                            cb: F)
-        where F: Fn(JSRef<Attr>) -> bool
+        where F: Fn(&Attr) -> bool
     {
         let idx = self.attrs.borrow().iter()
                                      .map(|attr| attr.root())
@@ -946,10 +938,10 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let (idx, set_type) = match idx {
             Some(idx) => (idx, AttrSettingType::ReplacedAttr),
             None => {
-                let window = window_from_node(self).root();
+                let window = window_from_node(self);
                 let attr = Attr::new(window.r(), local_name, value.clone(),
                                      name, namespace.clone(), prefix, Some(self));
-                self.attrs.borrow_mut().push_unrooted(&attr);
+                self.attrs.borrow_mut().push(JS::from_rooted(&attr));
                 (self.attrs.borrow().len() - 1, AttrSettingType::FirstSetAttr)
             }
         };
@@ -968,18 +960,18 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
-                        -> Option<Temporary<Attr>> {
+                        -> Option<Root<Attr>> {
         self.do_remove_attribute(|attr| {
             attr.namespace() == namespace && attr.local_name() == local_name
         })
     }
 
-    fn remove_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>> {
+    fn remove_attribute_by_name(self, name: &Atom) -> Option<Root<Attr>> {
         self.do_remove_attribute(|attr| attr.name() == name)
     }
 
-    fn do_remove_attribute<F>(self, find: F) -> Option<Temporary<Attr>>
-        where F: Fn(JSRef<Attr>) -> bool
+    fn do_remove_attribute<F>(self, find: F) -> Option<Root<Attr>>
+        where F: Fn(&Attr) -> bool
     {
         let idx = self.attrs.borrow().iter()
                                      .map(|attr| attr.root())
@@ -997,9 +989,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 vtable_for(&NodeCast::from_ref(self)).after_remove_attr(attr.r().name());
             }
 
-            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let node = NodeCast::from_ref(self);
             if node.is_in_doc() {
-                let document = document_from_node(self).root();
+                let document = document_from_node(self);
                 let damage = if attr.r().local_name() == &atom!("style") {
                     NodeDamage::NodeStyleDamaged
                 } else {
@@ -1007,21 +999,21 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 };
                 document.r().content_changed(node, damage);
             }
-            Temporary::from_rooted(attr.r())
+            attr
         })
     }
 
     fn has_class(self, name: &Atom) -> bool {
         let quirks_mode = {
-            let node: JSRef<Node> = NodeCast::from_ref(self);
-            let owner_doc = node.owner_doc().root();
+            let node = NodeCast::from_ref(self);
+            let owner_doc = node.owner_doc();
             owner_doc.r().quirks_mode()
         };
         let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
-        self.get_attribute(&ns!(""), &atom!("class")).root().map(|attr| {
+        self.get_attribute(&ns!(""), &atom!("class")).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -1063,7 +1055,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             return "".to_owned();
         }
         let url = self.get_string_attribute(local_name);
-        let doc = document_from_node(self).root();
+        let doc = document_from_node(self);
         let base = doc.r().url();
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
@@ -1078,7 +1070,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn get_string_attribute(self, local_name: &Atom) -> DOMString {
         match self.get_attribute(&ns!(""), local_name) {
-            Some(x) => x.root().r().Value(),
+            Some(x) => x.r().Value(),
             None => "".to_owned()
         }
     }
@@ -1088,7 +1080,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom> {
-        self.get_attribute(&ns!(""), local_name).root().map(|attr| {
+        self.get_attribute(&ns!(""), local_name).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -1112,7 +1104,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
-        let attribute = self.get_attribute(&ns!(""), local_name).root();
+        let attribute = self.get_attribute(&ns!(""), local_name);
         match attribute {
             Some(ref attribute) => {
                 match *attribute.r().value() {
@@ -1130,7 +1122,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 }
 
-impl<'a> ElementMethods for JSRef<'a, Element> {
+impl<'a> ElementMethods for &'a Element {
     // https://dom.spec.whatwg.org/#dom-element-namespaceuri
     fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace {
@@ -1185,25 +1177,25 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-classlist
-    fn ClassList(self) -> Temporary<DOMTokenList> {
+    fn ClassList(self) -> Root<DOMTokenList> {
         self.class_list.or_init(|| DOMTokenList::new(self, &atom!("class")))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
-    fn Attributes(self) -> Temporary<NamedNodeMap> {
+    fn Attributes(self) -> Root<NamedNodeMap> {
         self.attr_list.or_init(|| {
             let doc = {
-                let node: JSRef<Node> = NodeCast::from_ref(self);
-                node.owner_doc().root()
+                let node = NodeCast::from_ref(self);
+                node.owner_doc()
             };
-            let window = doc.r().window().root();
+            let window = doc.r().window();
             NamedNodeMap::new(window.r(), self)
         })
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(self, name: DOMString) -> Option<DOMString> {
-        self.get_attribute_by_name(name).root()
+        self.get_attribute_by_name(name)
                      .map(|s| s.r().Value())
     }
 
@@ -1212,7 +1204,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
         let namespace = &namespace::from_domstring(namespace);
-        self.get_attribute(namespace, &Atom::from_slice(&local_name)).root()
+        self.get_attribute(namespace, &Atom::from_slice(&local_name))
                      .map(|attr| attr.r().Value())
     }
 
@@ -1282,28 +1274,28 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
-    fn GetElementsByTagName(self, localname: DOMString) -> Temporary<HTMLCollection> {
-        let window = window_from_node(self).root();
+    fn GetElementsByTagName(self, localname: DOMString) -> Root<HTMLCollection> {
+        let window = window_from_node(self);
         HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), localname)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
     fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>,
-                              localname: DOMString) -> Temporary<HTMLCollection> {
-        let window = window_from_node(self).root();
+                              localname: DOMString) -> Root<HTMLCollection> {
+        let window = window_from_node(self);
         HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), localname, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
-    fn GetElementsByClassName(self, classes: DOMString) -> Temporary<HTMLCollection> {
-        let window = window_from_node(self).root();
+    fn GetElementsByClassName(self, classes: DOMString) -> Root<HTMLCollection> {
+        let window = window_from_node(self);
         HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(self) -> Temporary<DOMRectList> {
-        let win = window_from_node(self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+    fn GetClientRects(self) -> Root<DOMRectList> {
+        let win = window_from_node(self);
+        let node = NodeCast::from_ref(self);
         let raw_rects = node.get_content_boxes();
         let rects = raw_rects.iter().map(|rect| {
             DOMRect::new(win.r(),
@@ -1314,9 +1306,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
-    fn GetBoundingClientRect(self) -> Temporary<DOMRect> {
-        let win = window_from_node(self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+    fn GetBoundingClientRect(self) -> Root<DOMRect> {
+        let win = window_from_node(self);
+        let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         DOMRect::new(
             win.r(),
@@ -1334,11 +1326,11 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
     fn SetInnerHTML(self, value: DOMString) -> Fallible<()> {
-        let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        let context_node = NodeCast::from_ref(self);
         // Step 1.
         let frag = try!(context_node.parse_fragment(value));
         // Step 2.
-        Node::replace_all(Some(NodeCast::from_ref(frag.root().r())), context_node);
+        Node::replace_all(Some(NodeCast::from_ref(frag.r())), context_node);
         Ok(())
     }
 
@@ -1349,8 +1341,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn SetOuterHTML(self, value: DOMString) -> Fallible<()> {
-        let context_document = document_from_node(self).root();
-        let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        let context_document = document_from_node(self);
+        let context_node = NodeCast::from_ref(self);
         // Step 1.
         let context_parent = match context_node.GetParentNode() {
             None => {
@@ -1358,7 +1350,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                 return Ok(());
             },
             Some(parent) => parent,
-        }.root();
+        };
 
         let parent = match context_parent.r().type_id() {
             // Step 3.
@@ -1369,45 +1361,45 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                 let body_elem = Element::create(QualName::new(ns!(HTML), atom!(body)),
                                                 None, context_document.r(),
                                                 ElementCreator::ScriptCreated);
-                NodeCast::from_temporary(body_elem)
+                NodeCast::from_root(body_elem)
             },
             _ => context_node.GetParentNode().unwrap()
-        }.root();
+        };
 
         // Step 5.
         let frag = try!(parent.r().parse_fragment(value));
         // Step 6.
-        try!(context_parent.r().ReplaceChild(NodeCast::from_ref(frag.root().r()),
+        try!(context_parent.r().ReplaceChild(NodeCast::from_ref(frag.r()),
                                              context_node));
         Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
-    fn GetPreviousElementSibling(self) -> Option<Temporary<Element>> {
+    fn GetPreviousElementSibling(self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).preceding_siblings()
-                                .filter_map(ElementCast::to_temporary).next()
+                                .filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
-    fn GetNextElementSibling(self) -> Option<Temporary<Element>> {
+    fn GetNextElementSibling(self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).following_siblings()
-                                .filter_map(ElementCast::to_temporary).next()
+                                .filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
-    fn Children(self) -> Temporary<HTMLCollection> {
-        let window = window_from_node(self).root();
+    fn Children(self) -> Root<HTMLCollection> {
+        let window = window_from_node(self);
         HTMLCollection::children(window.r(), NodeCast::from_ref(self))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
-    fn GetFirstElementChild(self) -> Option<Temporary<Element>> {
+    fn GetFirstElementChild(self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
-    fn GetLastElementChild(self) -> Option<Temporary<Element>> {
-        NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_temporary).next()
+    fn GetLastElementChild(self) -> Option<Root<Element>> {
+        NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
@@ -1426,14 +1418,14 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+    fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+        let root = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        let root: JSRef<Node> = NodeCast::from_ref(self);
+    fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Root<NodeList>> {
+        let root = NodeCast::from_ref(self);
         root.query_selector_all(selectors)
     }
 
@@ -1454,7 +1446,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 
@@ -1463,23 +1455,22 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                let root: JSRef<Node> = NodeCast::from_ref(self);
+                let root = NodeCast::from_ref(self);
                 Ok(matches(selectors, &root, &mut None))
             }
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-element-closest
-    fn Closest(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+    fn Closest(self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                let root: JSRef<Node> = NodeCast::from_ref(self);
+                let root = NodeCast::from_ref(self);
                 for element in root.inclusive_ancestors() {
-                    let element = element.root();
                     if let Some(element) = ElementCast::to_ref(element.r()) {
                         if matches(selectors, &NodeCast::from_ref(element), &mut None) {
-                            return Ok(Some(Temporary::from_rooted(element)));
+                            return Ok(Some(Root::from_ref(element)));
                         }
                     }
                 }
@@ -1489,22 +1480,22 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, Element> {
+impl<'a> VirtualMethods for &'a Element {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let node: &JSRef<Node> = NodeCast::from_borrowed_ref(self);
+        let node: &&Node = NodeCast::from_borrowed_ref(self);
         Some(node as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
-                let doc = document_from_node(*self).root();
+                let doc = document_from_node(*self);
                 let base_url = doc.r().url();
                 let value = attr.value();
                 let style = Some(parse_style_attribute(&value, &base_url));
@@ -1517,7 +1508,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             &atom!("class") => {
                 // Modifying a class can change style.
                 if node.is_in_doc() {
-                    let document = document_from_node(*self).root();
+                    let document = document_from_node(*self);
                     document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
             }
@@ -1525,7 +1516,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 // Modifying an ID might change style.
                 let value = attr.value();
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self).root();
+                    let doc = document_from_node(*self);
                     if !value.is_empty() {
                         let value = value.atom().unwrap().clone();
                         doc.r().register_named_element(*self, value);
@@ -1536,26 +1527,26 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => {
                 // Modifying any other attribute might change arbitrary things.
                 if node.is_in_doc() {
-                    let document = document_from_node(*self).root();
+                    let document = document_from_node(*self);
                     document.r().content_changed(node, NodeDamage::OtherNodeDamage);
                 }
             }
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() = None;
 
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self).root();
+                    let doc = document_from_node(*self);
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
             }
@@ -1563,7 +1554,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 // Modifying an ID can change style.
                 let value = attr.value();
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self).root();
+                    let doc = document_from_node(*self);
                     if !value.is_empty() {
                         let value = value.atom().unwrap().clone();
                         doc.r().unregister_named_element(*self, value);
@@ -1574,14 +1565,14 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             &atom!("class") => {
                 // Modifying a class can change style.
                 if node.is_in_doc() {
-                    let document = document_from_node(*self).root();
+                    let document = document_from_node(*self);
                     document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
             }
             _ => {
                 // Modifying any other attribute might change arbitrary things.
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self).root();
+                    let doc = document_from_node(*self);
                     doc.r().content_changed(node, NodeDamage::OtherNodeDamage);
                 }
             }
@@ -1603,8 +1594,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
-            let doc = document_from_node(*self).root();
+        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
+            let doc = document_from_node(*self);
             let value = attr.r().Value();
             if !value.is_empty() {
                 let value = Atom::from_slice(&value);
@@ -1620,8 +1611,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
-            let doc = document_from_node(*self).root();
+        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
+            let doc = document_from_node(*self);
             let value = attr.r().Value();
             if !value.is_empty() {
                 let value = Atom::from_slice(&value);
@@ -1631,10 +1622,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 }
 
-impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
+impl<'a> style::node::TElement<'a> for &'a Element {
     fn is_link(self) -> bool {
         // FIXME: This is HTML only.
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
@@ -1675,19 +1666,18 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         get_namespace(self)
     }
     fn get_hover_state(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_hover_state()
     }
     fn get_focus_state(self) -> bool {
         // TODO: Also check whether the top-level browsing context has the system focus,
         // and whether this element is a browsing context container.
         // https://html.spec.whatwg.org/multipage/#selector-focus
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_focus_state()
     }
     fn get_id(self) -> Option<Atom> {
         self.get_attribute(&ns!(""), &atom!("id")).map(|attr| {
-            let attr = attr.root();
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -1698,22 +1688,22 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         })
     }
     fn get_disabled_state(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_disabled_state()
     }
     fn get_enabled_state(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_enabled_state()
     }
     fn get_checked_state(self) -> bool {
-        let input_element: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
+        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(self);
         match input_element {
             Some(input) => input.Checked(),
             None => false,
         }
     }
     fn get_indeterminate_state(self) -> bool {
-        let input_element: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
+        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(self);
         match input_element {
             Some(input) => input.get_indeterminate_state(),
             None => false,
@@ -1731,7 +1721,7 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     fn each_class<F>(self, mut callback: F)
         where F: FnMut(&Atom)
     {
-        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("class")).root() {
+        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("class")) {
             if let Some(tokens) = attr.r().value().tokens() {
                 for token in tokens {
                     callback(token)
@@ -1740,7 +1730,7 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         }
     }
     fn has_nonzero_border(self) -> bool {
-        let table_element: Option<JSRef<HTMLTableElement>> = HTMLTableElementCast::to_ref(self);
+        let table_element: Option<&HTMLTableElement> = HTMLTableElementCast::to_ref(self);
         match table_element {
             None => false,
             Some(this) => {
@@ -1757,20 +1747,20 @@ pub trait ActivationElementHelpers<'a> {
     fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)>;
     fn click_in_progress(self) -> bool;
     fn set_click_in_progress(self, click: bool);
-    fn nearest_activable_element(self) -> Option<Temporary<Element>>;
-    fn authentic_click_activation<'b>(self, event: JSRef<'b, Event>);
+    fn nearest_activable_element(self) -> Option<Root<Element>>;
+    fn authentic_click_activation<'b>(self, event: &'b Event);
 }
 
-impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
+impl<'a> ActivationElementHelpers<'a> for &'a Element {
     fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)> {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
+                let element = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
                 Some(element as &'a (Activatable + 'a))
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-                let element: &'a JSRef<'a, HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(self).unwrap();
+                let element = HTMLAnchorElementCast::to_borrowed_ref(self).unwrap();
                 Some(element as &'a (Activatable + 'a))
             },
             _ => {
@@ -1787,26 +1777,25 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn click_in_progress(self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.get_flag(CLICK_IN_PROGRESS)
     }
 
     fn set_click_in_progress(self, click: bool) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.set_flag(CLICK_IN_PROGRESS, click)
     }
 
     // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
-    fn nearest_activable_element(self) -> Option<Temporary<Element>> {
+    fn nearest_activable_element(self) -> Option<Root<Element>> {
         match self.as_maybe_activatable() {
-            Some(el) => Some(Temporary::from_rooted(el.as_element().root().r())),
+            Some(el) => Some(Root::from_ref(el.as_element())),
             None => {
-                let node: JSRef<Node> = NodeCast::from_ref(self);
+                let node = NodeCast::from_ref(self);
                 for node in node.ancestors() {
-                    let node = node.root();
                     if let Some(node) = ElementCast::to_ref(node.r()) {
                         if node.as_maybe_activatable().is_some() {
-                            return Some(Temporary::from_rooted(node))
+                            return Some(Root::from_ref(node))
                         }
                     }
                 }
@@ -1821,19 +1810,19 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     ///
     /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
     /// If the spec says otherwise, check with Manishearth first
-    fn authentic_click_activation<'b>(self, event: JSRef<'b, Event>) {
+    fn authentic_click_activation<'b>(self, event: &'b Event) {
         // Not explicitly part of the spec, however this helps enforce the invariants
         // required to save state between pre-activation and post-activation
         // since we cannot nest authentic clicks (unlike synthetic click activation, where
         // the script can generate more click events from the handler)
         assert!(!self.click_in_progress());
 
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         // Step 2 (requires canvas support)
         // Step 3
         self.set_click_in_progress(true);
         // Step 4
-        let e = self.nearest_activable_element().root();
+        let e = self.nearest_activable_element();
         match e {
             Some(ref el) => match el.r().as_maybe_activatable() {
                 Some(elem) => {
