@@ -143,7 +143,7 @@ impl CallbackInterface {
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
                                              p: &T,
-                                             mut rval: MutableHandleObject) {
+                                             rval: MutableHandleObject) {
     rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
 

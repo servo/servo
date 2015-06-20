@@ -84,9 +84,9 @@ pub unsafe extern fn delete(cx: *mut JSContext, proxy: HandleObject, id: HandleI
 }
 
 /// Stub for ownPropertyKeys
-pub unsafe extern fn own_property_keys(cx: *mut JSContext,
-                                       proxy: HandleObject,
-                                       props: *mut AutoIdVector) -> u8 {
+pub unsafe extern fn own_property_keys(_cx: *mut JSContext,
+                                       _proxy: HandleObject,
+                                       _props: *mut AutoIdVector) -> u8 {
     // FIXME: implement this
     // https://github.com/servo/servo/issues/6390
     JSTrue

@@ -26,7 +26,6 @@ use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderi
 
 use util::str::{DOMString, parse_unsigned_integer};
 use js::jsapi::{JSContext, HandleValue};
-use js::jsval::JSVal;
 use offscreen_gl_context::GLContextAttributes;
 
 use euclid::size::Size2D;

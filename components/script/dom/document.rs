@@ -1719,7 +1719,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(self, cx: *mut JSContext, name: DOMString, found: &mut bool)
+    fn NamedGetter(self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
                    -> *mut JSObject {
         #[jstraceable]
         struct NamedElementFilter {

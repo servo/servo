@@ -1046,7 +1046,7 @@ impl<'a> NodeHelpers for &'a Node {
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
 #[allow(unsafe_code)]
-pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
+pub fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Root<Node> {
     unsafe {
         // https://github.com/servo/servo/issues/6383

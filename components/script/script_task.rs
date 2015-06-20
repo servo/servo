@@ -780,7 +780,7 @@ impl ScriptTask {
             ScriptMsg::MainThreadRunnableMsg(runnable) =>
                 runnable.handler(self),
             ScriptMsg::RefcountCleanup(addr) =>
-                LiveDOMReferences::cleanup(self.get_cx(), addr),
+                LiveDOMReferences::cleanup(addr),
             ScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
         }
