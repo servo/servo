@@ -4,33 +4,24 @@
 
 use eutil::slice_to_str;
 use libc::{c_int};
+use std::boxed;
 use std::collections::BTreeMap;
-use std::mem;
-use std::string::String;
 use string::{cef_string_userfree_utf16_alloc, cef_string_userfree_utf16_free};
 use string::{cef_string_utf16_set};
 use types::{cef_string_map_t, cef_string_t};
-
-fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut BTreeMap<String, *mut cef_string_t> {
-    sm as *mut BTreeMap<String, *mut cef_string_t>
-}
 
 //cef_string_map
 
 #[no_mangle]
 pub extern "C" fn cef_string_map_alloc() -> *mut cef_string_map_t {
-    unsafe {
-         let sm: Box<BTreeMap<String, *mut cef_string_t>> = box BTreeMap::new();
-         mem::transmute(sm)
-    }
+    boxed::into_raw(box BTreeMap::new())
 }
 
 #[no_mangle]
 pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
     unsafe {
         if sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
-        (*v).len() as c_int
+        (*sm).len() as c_int
     }
 }
 
@@ -38,11 +29,10 @@ pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
 pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *const cef_string_t) -> c_int {
     unsafe {
         if sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             let csv = cef_string_userfree_utf16_alloc();
             cef_string_utf16_set((*value).str as *const u16, (*value).length, csv, 1);
-            (*v).insert(result.to_owned(), csv);
+            (*sm).insert(result.to_owned(), csv);
             1
         })
     }
@@ -52,12 +42,10 @@ pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const c
 pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *mut cef_string_t) -> c_int {
     unsafe {
         if sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
-            match (*v).get(result) {
+            match (*sm).get(result) {
                 Some(s) => {
-                    cef_string_utf16_set((**s).str as *const u16, (**s).length, value, 1);
-                    1
+                    cef_string_utf16_set((**s).str as *const u16, (**s).length, value, 1)
                 }
                 None => 0
             }
@@ -69,48 +57,44 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
 pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
     unsafe {
         if index < 0 || sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
-        if index as usize > (*v).len() - 1 { return 0; }
+        if index as usize > (*sm).len() - 1 { return 0; }
 
-        for (i, k) in (*v).keys().enumerate() {
-            if i == index as usize {
+        match (*sm).keys().nth(index as usize) {
+            Some(k) => {
                 cef_string_utf16_set(k.as_bytes().as_ptr() as *const u16,
                                      k.len() as u64,
                                      value,
-                                     1);
-                return 1;
-            }
+                                     1)
+            },
+            None => 0,
         }
     }
-    0
 }
 
 #[no_mangle]
 pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
     unsafe {
         if index < 0 || sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
-        if index as usize > (*v).len() - 1 { return 0; }
+        if index as usize > (*sm).len() - 1 { return 0; }
 
-        for (i, val) in (*v).values().enumerate() {
-            if i == index as usize {
+        match (*sm).values().nth(index as usize) {
+            Some(val) => {
                 cef_string_utf16_set((**val).str as *const u16, (**val).length, value, 1);
-                return 1;
-            }
+                1
+            },
+            None => 0,
         }
     }
-    0
 }
 
 #[no_mangle]
 pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
     unsafe {
         if sm.is_null() { return; }
-        let v = string_map_to_treemap(sm);
-        for val in (*v).values() {
+        for val in (*sm).values() {
             cef_string_userfree_utf16_free(*val);
         }
-        (*v).clear();
+        (*sm).clear();
     }
 }
 
@@ -118,7 +102,7 @@ pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
 pub extern "C" fn cef_string_map_free(sm: *mut cef_string_map_t) {
     unsafe {
         if sm.is_null() { return; }
-        let _v: Box<BTreeMap<String, *mut cef_string_t>> = mem::transmute(sm);
         cef_string_map_clear(sm);
+        drop(Box::from_raw(sm));
     }
 }
