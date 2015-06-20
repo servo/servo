@@ -89,19 +89,19 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
     unsafe {
        if copy != 0 {
            if !src.is_null() && src_len > 0 {
-             (*output).str = libc::calloc(1, src_len + 1) as *mut u8;
-             if (*output).str.is_null() {
-                 return 0;
-             }
+               (*output).str = libc::calloc(1, src_len + 1) as *mut u8;
+               if (*output).str.is_null() {
+                   return 0;
+               }
 
-             ptr::copy(src, (*output).str, src_len as usize);
-             (*output).length = src_len;
-             (*output).dtor = Some(string_utf8_dtor as extern "C" fn(*mut u8));
+               ptr::copy(src, (*output).str, src_len as usize);
+               (*output).length = src_len;
+               (*output).dtor = Some(string_utf8_dtor as extern "C" fn(*mut u8));
            }
        } else {
-         (*output).str = src as *mut _;
-         (*output).length = src_len;
-         (*output).dtor = None;
+           (*output).str = src as *mut _;
+           (*output).length = src_len;
+           (*output).dtor = None;
        }
     }
     return 1;
@@ -169,20 +169,20 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
     unsafe {
        if copy != 0 {
            if !src.is_null() && src_len > 0 {
-             (*output).str = libc::calloc(1, (src_len + 1) * mem::size_of::<c_ushort>() as u64) as
-                 *mut u16;
-             if (*output).str.is_null() {
-                 return 0;
-             }
+               (*output).str = libc::calloc(1, (src_len + 1) * mem::size_of::<c_ushort>() as u64) as
+                   *mut u16;
+               if (*output).str.is_null() {
+                   return 0;
+               }
 
-             ptr::copy(src, (*output).str, src_len as usize);
-             (*output).length = src_len;
-             (*output).dtor = Some(string_utf16_dtor as extern "C" fn(*mut c_ushort));
+               ptr::copy(src, (*output).str, src_len as usize);
+               (*output).length = src_len;
+               (*output).dtor = Some(string_utf16_dtor as extern "C" fn(*mut c_ushort));
            }
        } else {
-         (*output).str = src as *mut _;
-         (*output).length = src_len;
-         (*output).dtor = None;
+           (*output).str = src as *mut _;
+           (*output).length = src_len;
+           (*output).dtor = None;
        }
     }
     return 1;
@@ -227,20 +227,20 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
     unsafe {
        if copy != 0 {
            if !src.is_null() && src_len > 0 {
-             (*output).str = libc::calloc(1, (src_len + 1) * mem::size_of::<wchar_t>() as u64) as
-                 *mut wchar_t;
-             if (*output).str.is_null() {
-                 return 0;
-             }
+               (*output).str = libc::calloc(1, (src_len + 1) * mem::size_of::<wchar_t>() as u64) as
+                   *mut wchar_t;
+               if (*output).str.is_null() {
+                   return 0;
+               }
 
-             ptr::copy(src, (*output).str, src_len as usize);
-             (*output).length = src_len;
-             (*output).dtor = Some(string_wide_dtor as extern "C" fn(*mut wchar_t));
+               ptr::copy(src, (*output).str, src_len as usize);
+               (*output).length = src_len;
+               (*output).dtor = Some(string_wide_dtor as extern "C" fn(*mut wchar_t));
            }
        } else {
-         (*output).str = src as *mut _;
-         (*output).length = src_len;
-         (*output).dtor = None;
+           (*output).str = src as *mut _;
+           (*output).length = src_len;
+           (*output).dtor = None;
        }
     }
     return 1;
