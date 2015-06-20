@@ -36,6 +36,7 @@ use script_task::ScriptChan;
 
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
+use canvas_traits::WebGLError;
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use euclid::matrix2d::Matrix2D;
@@ -297,6 +298,7 @@ no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 no_jsmanaged_fields!(RepetitionStyle);
+no_jsmanaged_fields!(WebGLError);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

@@ -558,7 +558,7 @@ interface WebGLRenderingContextBase
     //any getBufferParameter(GLenum target, GLenum pname);
     any getParameter(GLenum pname);
 
-    //[WebGLHandlesContextLoss] GLenum getError();
+    [WebGLHandlesContextLoss] GLenum getError();
 
     //any getFramebufferAttachmentParameter(GLenum target, GLenum attachment,
     //                                      GLenum pname);

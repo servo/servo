@@ -128,8 +128,9 @@ pub enum CanvasWebGLMsg {
     DrawingBufferHeight(Sender<i32>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum WebGLError {
+    NoError,
     InvalidEnum,
     InvalidOperation,
     InvalidValue,
