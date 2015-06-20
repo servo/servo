@@ -4,7 +4,6 @@
 
 use libc::{c_int};
 use std::boxed;
-use std::mem;
 use std::slice;
 use string::cef_string_utf16_set;
 use types::{cef_string_list_t,cef_string_t};
@@ -41,7 +40,7 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
         if index as usize > (*lt).len() - 1 { return 0; }
         let ref string = (*lt)[index as usize];
         let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
-        cef_string_utf16_set(mem::transmute(utf16_chars.as_ptr()), utf16_chars.len() as u64, value, 1)
+        cef_string_utf16_set(utf16_chars.as_ptr(), utf16_chars.len() as u64, value, 1)
     }
 }
 
