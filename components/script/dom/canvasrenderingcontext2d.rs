@@ -1124,6 +1124,9 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
     fn SetShadowOffsetX(self, value: f64) {
+        if !value.is_finite() || value == self.state.borrow().shadow_offset_x {
+            return;
+        }
         self.state.borrow_mut().shadow_offset_x = value;
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowOffsetX(value))).unwrap()
     }
@@ -1135,6 +1138,9 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
     fn SetShadowOffsetY(self, value: f64) {
+        if !value.is_finite() || value == self.state.borrow().shadow_offset_y {
+            return;
+        }
         self.state.borrow_mut().shadow_offset_y = value;
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowOffsetY(value))).unwrap()
     }
@@ -1146,6 +1152,9 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
     fn SetShadowBlur(self, value: f64) {
+        if !value.is_finite() || value < 0f64 || value == self.state.borrow().shadow_blur {
+            return;
+        }
         self.state.borrow_mut().shadow_blur = value;
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetShadowBlur(value))).unwrap()
     }
@@ -1173,8 +1182,12 @@ impl Drop for CanvasRenderingContext2D {
 }
 
 pub fn parse_color(string: &str) -> Result<RGBA,()> {
-    match CSSColor::parse(&mut Parser::new(&string)) {
-        Ok(CSSColor::RGBA(rgba)) => Ok(rgba),
+    let mut parser = Parser::new(&string);
+    match CSSColor::parse(&mut parser) {
+        Ok(CSSColor::RGBA(rgba)) => {
+            if parser.is_exhausted() { Ok(rgba) }
+            else { Err(()) }
+        },
         _ => Err(()),
     }
 }
