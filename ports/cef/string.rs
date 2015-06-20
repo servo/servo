@@ -71,7 +71,7 @@ pub extern "C" fn cef_string_utf8_clear(cs: *mut cef_string_utf8_t) {
         (*cs).dtor.map(|dtor| dtor((*cs).str));
         (*cs).length = 0;
         (*cs).str = 0 as *mut u8;
-        (*cs).dtor = mem::transmute(0 as *const u8);
+        (*cs).dtor = None;
     }
 }
 
@@ -101,7 +101,7 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
        } else {
          (*output).str = mem::transmute(src);
          (*output).length = src_len;
-         (*output).dtor = mem::transmute(0 as *const u8);
+         (*output).dtor = None;
        }
     }
     return 1;
@@ -151,7 +151,7 @@ pub extern "C" fn cef_string_utf16_clear(cs: *mut cef_string_utf16_t) {
         (*cs).dtor.map(|dtor| dtor((*cs).str));
         (*cs).length = 0;
         (*cs).str = 0 as *mut c_ushort;
-        (*cs).dtor = mem::transmute(0 as *const u8);
+        (*cs).dtor = None;
     }
 }
 
@@ -182,7 +182,7 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
        } else {
          (*output).str = mem::transmute(src);
          (*output).length = src_len;
-         (*output).dtor = mem::transmute(0 as *const u8);
+         (*output).dtor = None;
        }
     }
     return 1;
@@ -209,7 +209,7 @@ pub extern "C" fn cef_string_wide_clear(cs: *mut cef_string_wide_t) {
         (*cs).dtor.map(|dtor| dtor((*cs).str));
         (*cs).length = 0;
         (*cs).str = 0 as *mut wchar_t;
-        (*cs).dtor = mem::transmute(0 as *const u8);
+        (*cs).dtor = None;
     }
 }
 
@@ -240,7 +240,7 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
        } else {
          (*output).str = mem::transmute(src);
          (*output).length = src_len;
-         (*output).dtor = mem::transmute(0 as *const u8);
+         (*output).dtor = None;
        }
     }
     return 1;
