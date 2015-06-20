@@ -16,7 +16,6 @@ use js::jsapi::{JS_ReportErrorNumber1, JSErrorFormatString, JSExnType};
 use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
-use js::JSFalse;
 
 use libc;
 use std::ffi::CString;

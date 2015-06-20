@@ -633,7 +633,7 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 }
 
 unsafe extern fn wrap(cx: *mut JSContext,
-                      existing: HandleObject,
+                      _existing: HandleObject,
                       obj: HandleObject)
                       -> *mut JSObject {
     // FIXME terrible idea. need security wrappers

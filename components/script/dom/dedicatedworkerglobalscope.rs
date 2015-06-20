@@ -258,8 +258,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
                 runnable.handler()
             },
             ScriptMsg::RefcountCleanup(addr) => {
-                let scope = WorkerGlobalScopeCast::from_ref(self);
-                LiveDOMReferences::cleanup(scope.get_cx(), addr);
+                LiveDOMReferences::cleanup(addr);
             }
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);

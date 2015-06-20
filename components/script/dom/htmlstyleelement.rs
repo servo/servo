@@ -67,7 +67,7 @@ impl<'a> StyleElementHelpers for &'a HTMLStyleElement {
 
         let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
         let mq_str = match mq_attribute {
-            Some(a) => String::from_str(&**a.r().value()),
+            Some(a) => String::from(&**a.r().value()),
             None => String::new(),
         };
         let mut css_parser = CssParser::new(&mq_str);

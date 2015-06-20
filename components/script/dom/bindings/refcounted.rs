@@ -65,11 +65,11 @@ impl<T: Reflectable> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
-    pub fn new(cx: *mut JSContext, ptr: &T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
+    pub fn new(_cx: *mut JSContext, ptr: &T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
-            let refcount = live_references.addref(cx, &*ptr as *const T);
+            let refcount = live_references.addref(&*ptr as *const T);
             Trusted {
                 ptr: &*ptr as *const T as *const libc::c_void,
                 refcount: refcount,
@@ -144,7 +144,7 @@ impl LiveDOMReferences {
         });
     }
 
-    fn addref<T: Reflectable>(&self, cx: *mut JSContext, ptr: *const T) -> Arc<Mutex<usize>> {
+    fn addref<T: Reflectable>(&self, ptr: *const T) -> Arc<Mutex<usize>> {
         let mut table = self.table.borrow_mut();
         match table.entry(ptr as *const libc::c_void) {
             Occupied(mut entry) => {
@@ -161,7 +161,7 @@ impl LiveDOMReferences {
     }
 
     /// Unpin the given DOM object if its refcount is 0.
-    pub fn cleanup(cx: *mut JSContext, raw_reflectable: TrustedReference) {
+    pub fn cleanup(raw_reflectable: TrustedReference) {
         let TrustedReference(raw_reflectable) = raw_reflectable;
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
