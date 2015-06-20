@@ -99,7 +99,7 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
              (*output).dtor = Some(string_utf8_dtor as extern "C" fn(*mut u8));
            }
        } else {
-         (*output).str = mem::transmute(src);
+         (*output).str = src as *mut _;
          (*output).length = src_len;
          (*output).dtor = None;
        }
@@ -180,7 +180,7 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
              (*output).dtor = Some(string_utf16_dtor as extern "C" fn(*mut c_ushort));
            }
        } else {
-         (*output).str = mem::transmute(src);
+         (*output).str = src as *mut _;
          (*output).length = src_len;
          (*output).dtor = None;
        }
@@ -238,7 +238,7 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
              (*output).dtor = Some(string_wide_dtor as extern "C" fn(*mut wchar_t));
            }
        } else {
-         (*output).str = mem::transmute(src);
+         (*output).str = src as *mut _;
          (*output).length = src_len;
          (*output).dtor = None;
        }
@@ -311,8 +311,8 @@ pub fn empty_utf16_string() -> cef_string_utf16_t {
 
 pub fn string_to_userfree_string(string: cef_string_utf16_t) -> cef_string_userfree_utf16_t {
     unsafe {
-        let allocation: cef_string_userfree_utf16_t =
-            mem::transmute(libc::malloc(mem::size_of::<cef_string_utf16_t>() as size_t));
+        let allocation = libc::malloc(mem::size_of::<cef_string_utf16_t>() as size_t)
+            as cef_string_userfree_utf16_t;
         ptr::write(allocation, string);
         allocation
     }
