@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use libc::{c_int};
+use std::boxed;
 use std::mem;
 use std::slice;
 use string::cef_string_utf16_set;
@@ -18,10 +19,7 @@ fn string_list_to_vec(lt: *mut cef_string_list_t) -> *mut Vec<String> {
 
 #[no_mangle]
 pub extern "C" fn cef_string_list_alloc() -> *mut cef_string_list_t {
-    unsafe {
-         let lt: Box<Vec<String>> = box vec!();
-         mem::transmute(lt)
-    }
+    boxed::into_raw(box vec!())
 }
 
 #[no_mangle]
@@ -67,9 +65,8 @@ pub extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
 pub extern "C" fn cef_string_list_free(lt: *mut cef_string_list_t) {
     unsafe {
         if lt.is_null() { return; }
-        let v: Box<Vec<String>> = mem::transmute(lt);
         cef_string_list_clear(lt);
-        drop(v);
+        drop(Box::from_raw(lt));
     }
 }
 
@@ -79,6 +76,6 @@ pub extern "C" fn cef_string_list_copy(lt: *mut cef_string_list_t) -> *mut cef_s
         if lt.is_null() { return 0 as *mut cef_string_list_t; }
         let v = string_list_to_vec(lt);
         let copy = (*v).clone();
-        mem::transmute(box copy)
+        boxed::into_raw(box copy)
     }
 }
