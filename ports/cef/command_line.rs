@@ -32,12 +32,11 @@ fn command_line_new() -> *mut command_line_t {
 
 pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
-        let mut a: Vec<String> = vec!();
-        for i in 0..(argc as usize) {
-            let slice = ffi::CStr::from_ptr(*argv.offset(i as isize) as *const c_char);
-            let s = str::from_utf8(slice.to_bytes()).unwrap();
-            a.push(s.to_owned());
-        }
+        let args = slice::from_raw_parts(argv, argc as usize);
+        let a = args.iter().map(|&arg| {
+            let slice = ffi::CStr::from_ptr(arg as *const c_char);
+            str::from_utf8(slice.to_bytes()).unwrap().to_owned()
+        }).collect();
         let cl = command_line_new();
         (*cl).argc = argc;
         (*cl).argv = a;
