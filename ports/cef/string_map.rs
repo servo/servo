@@ -6,14 +6,9 @@ use eutil::slice_to_str;
 use libc::{c_int};
 use std::boxed;
 use std::collections::BTreeMap;
-use std::string::String;
 use string::{cef_string_userfree_utf16_alloc, cef_string_userfree_utf16_free};
 use string::{cef_string_utf16_set};
 use types::{cef_string_map_t, cef_string_t};
-
-fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut BTreeMap<String, *mut cef_string_t> {
-    sm as *mut BTreeMap<String, *mut cef_string_t>
-}
 
 //cef_string_map
 
@@ -26,8 +21,7 @@ pub extern "C" fn cef_string_map_alloc() -> *mut cef_string_map_t {
 pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
     unsafe {
         if sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
-        (*v).len() as c_int
+        (*sm).len() as c_int
     }
 }
 
@@ -35,11 +29,10 @@ pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
 pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *const cef_string_t) -> c_int {
     unsafe {
         if sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             let csv = cef_string_userfree_utf16_alloc();
             cef_string_utf16_set((*value).str as *const u16, (*value).length, csv, 1);
-            (*v).insert(result.to_owned(), csv);
+            (*sm).insert(result.to_owned(), csv);
             1
         })
     }
@@ -49,9 +42,8 @@ pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const c
 pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *mut cef_string_t) -> c_int {
     unsafe {
         if sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
-            match (*v).get(result) {
+            match (*sm).get(result) {
                 Some(s) => {
                     cef_string_utf16_set((**s).str as *const u16, (**s).length, value, 1);
                     1
@@ -66,10 +58,9 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
 pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
     unsafe {
         if index < 0 || sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
-        if index as usize > (*v).len() - 1 { return 0; }
+        if index as usize > (*sm).len() - 1 { return 0; }
 
-        for (i, k) in (*v).keys().enumerate() {
+        for (i, k) in (*sm).keys().enumerate() {
             if i == index as usize {
                 cef_string_utf16_set(k.as_bytes().as_ptr() as *const u16,
                                      k.len() as u64,
@@ -86,10 +77,9 @@ pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, va
 pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
     unsafe {
         if index < 0 || sm.is_null() { return 0; }
-        let v = string_map_to_treemap(sm);
-        if index as usize > (*v).len() - 1 { return 0; }
+        if index as usize > (*sm).len() - 1 { return 0; }
 
-        for (i, val) in (*v).values().enumerate() {
+        for (i, val) in (*sm).values().enumerate() {
             if i == index as usize {
                 cef_string_utf16_set((**val).str as *const u16, (**val).length, value, 1);
                 return 1;
@@ -103,11 +93,10 @@ pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, 
 pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
     unsafe {
         if sm.is_null() { return; }
-        let v = string_map_to_treemap(sm);
-        for val in (*v).values() {
+        for val in (*sm).values() {
             cef_string_userfree_utf16_free(*val);
         }
-        (*v).clear();
+        (*sm).clear();
     }
 }
 
