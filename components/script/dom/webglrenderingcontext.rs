@@ -26,6 +26,7 @@ use euclid::size::Size2D;
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
+use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -53,6 +54,7 @@ pub struct WebGLRenderingContext {
     global: GlobalField,
     renderer: Sender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
+    last_error: Cell<WebGLError>,
 }
 
 impl WebGLRenderingContext {
@@ -67,6 +69,7 @@ impl WebGLRenderingContext {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(&global),
             renderer: chan,
+            last_error: Cell::new(WebGLError::NoError),
             canvas: JS::from_ref(canvas),
         })
     }
@@ -127,6 +130,20 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             _ => rval.ptr = NullValue(),
         }
         rval.ptr
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn GetError(self) -> u32 {
+        let error_code = match self.last_error.get() {
+            WebGLError::NoError => constants::NO_ERROR,
+            WebGLError::InvalidEnum => constants::INVALID_ENUM,
+            WebGLError::InvalidValue => constants::INVALID_VALUE,
+            WebGLError::InvalidOperation => constants::INVALID_OPERATION,
+            WebGLError::OutOfMemory => constants::OUT_OF_MEMORY,
+            WebGLError::ContextLost => constants::CONTEXT_LOST_WEBGL,
+        };
+        self.last_error.set(WebGLError::NoError);
+        error_code
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
@@ -482,9 +499,12 @@ pub trait WebGLRenderingContextHelpers {
 }
 
 impl<'a> WebGLRenderingContextHelpers for &'a WebGLRenderingContext {
-    fn handle_webgl_error(&self, _: WebGLError) {
-        debug!("WebGL error received");
-        // ignore for now
+    fn handle_webgl_error(&self, err: WebGLError) {
+        // If an error has been detected no further errors must be
+        // recorded until `getError` has been called
+        if self.last_error.get() == WebGLError::NoError {
+            self.last_error.set(err);
+        }
     }
 }
 
