@@ -210,27 +210,21 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
     }
 
     unsafe {
-        let proto = match proto_class {
-            Some(proto_class) => {
-                let proto = create_interface_prototype_object(cx, global, proto_proto,
-                                                              proto_class, members);
-                JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
-                                   PrivateValue(dom_class as *const libc::c_void));
-                proto
-            },
-            None => ptr::null_mut()
-        };
+        if !rval.get().is_null() {
+            JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
+                               PrivateValue(dom_class as *const libc::c_void))
+        }
 
         if let Some((native, name, nargs)) = constructor {
             let s = CString::new(name).unwrap();
-            let interface = create_interface_object(cx, global, receiver,
-                                    native, nargs, proto,
+            let interface = create_interface_object(cx, receiver,
+                                    native, nargs, rval.handle(),
                                     members, s.as_ptr());
             for ctor in named_constructors.iter() {
                 if let Some((cnative, cname, cnargs)) = *ctor {
                     let cs = CString::new(cname).unwrap();
-                    create_interface_object(cx, global, receiver,
-                                            cnative, cnargs, proto,
+                    create_interface_object(cx, receiver,
+                                            cnative, cnargs, rval.handle(),
                                             members, cs.as_ptr());
                 }
             }

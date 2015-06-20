@@ -2284,11 +2284,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constructor = 'None'
 
         call = """\
-return do_create_interface_objects(cx, global, receiver, parent_proto.handle(),
+return do_create_interface_objects(cx, receiver, parent_proto.handle(),
                                    %s, %s,
                                    named_constructors,
                                    %s,
-                                   &sNativeProperties);""" % (protoClass, constructor, domClass)
+                                   &sNativeProperties, rval);""" % (protoClass, constructor, domClass)
 
         createArray = """\
 let mut named_constructors: Vec<Option<(NonNullJSNative, &'static str, u32)>> = vec![];
@@ -4559,7 +4559,7 @@ class CGClassNameConstructHook(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor,
                                         CONSTRUCT_HOOK_NAME + "_" +
                                             self._ctor.identifier.name,
-                                        'JSBool', args)
+                                        'u8', args)
 
     def define(self):
         return CGAbstractExternMethod.define(self)
@@ -4567,13 +4567,14 @@ class CGClassNameConstructHook(CGAbstractExternMethod):
     def definition_body(self):
         preamble = CGGeneric("""\
 let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
-let global = global.root();
+let args = CallArgs::from_vp(vp, argc);
 """)
         name = self._ctor.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
         callGenerator = CGMethodCall(["global.r()"], nativeName, True,
                                      self.descriptor, self._ctor)
         return CGList([preamble, callGenerator])
+
 
 class CGClassFinalizeHook(CGAbstractClassHook):
     """

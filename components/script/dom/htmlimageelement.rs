@@ -156,18 +156,17 @@ impl HTMLImageElement {
 
     pub fn Image(global: GlobalRef,
                  width: Option<u32>,
-                 height: Option<u32>) -> Fallible<Temporary<HTMLImageElement>> {
+                 height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();
-        let document = document.root();
-        let image = HTMLImageElement::new("img".to_owned(), None, document.r()).root();
+        let image = HTMLImageElement::new("img".to_owned(), None, document.r());
         if let Some(w) = width {
-            image.r().SetWidth(w);
+            image.SetWidth(w);
         }
         if let Some(h) = height {
-            image.r().SetHeight(h);
+            image.SetHeight(h);
         }
 
-        Ok(Temporary::from_rooted(image.r()))
+        Ok(image)
     }
 }
 
