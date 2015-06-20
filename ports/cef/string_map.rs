@@ -45,8 +45,7 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
         slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             match (*sm).get(result) {
                 Some(s) => {
-                    cef_string_utf16_set((**s).str as *const u16, (**s).length, value, 1);
-                    1
+                    cef_string_utf16_set((**s).str as *const u16, (**s).length, value, 1)
                 }
                 None => 0
             }
@@ -65,8 +64,7 @@ pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, va
                 cef_string_utf16_set(k.as_bytes().as_ptr() as *const u16,
                                      k.len() as u64,
                                      value,
-                                     1);
-                1
+                                     1)
             },
             None => 0,
         }
