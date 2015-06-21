@@ -8,7 +8,7 @@ use construct::{ConstructionItem, ConstructionResult};
 use incremental::RestyleDamage;
 use msg::constellation_msg::ConstellationChan;
 use parallel::DomParallelInfo;
-use script::dom::node::SharedLayoutData;
+use script::dom::node::{LayoutNodeHelpers, SharedLayoutData};
 use script::layout_interface::LayoutChan;
 use std::cell::{Ref, RefMut};
 use std::mem;
@@ -116,20 +116,20 @@ pub trait LayoutDataAccess {
 impl<'ln> LayoutDataAccess for LayoutNode<'ln> {
     #[inline(always)]
     unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
-        mem::transmute(self.get().layout_data_unchecked())
+        mem::transmute(self.get_jsmanaged().layout_data_unchecked())
     }
 
     #[inline(always)]
     fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data())
+            mem::transmute(self.get_jsmanaged().layout_data())
         }
     }
 
     #[inline(always)]
     fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data_mut())
+            mem::transmute(self.get_jsmanaged().layout_data_mut())
         }
     }
 }

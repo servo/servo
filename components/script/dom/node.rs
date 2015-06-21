@@ -1091,6 +1091,13 @@ pub trait LayoutNodeHelpers {
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
     #[allow(unsafe_code)]
     unsafe fn set_flag(&self, flag: NodeFlags, value: bool);
+
+    #[allow(unsafe_code)]
+    unsafe fn layout_data(&self) -> Ref<Option<LayoutData>>;
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>>;
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData>;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1161,6 +1168,24 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         }
 
         (*this).flags.set(flags);
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data(&self) -> Ref<Option<LayoutData>> {
+        (*self.unsafe_get()).layout_data.borrow()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>> {
+        (*self.unsafe_get()).layout_data.borrow_mut()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
+        (*self.unsafe_get()).layout_data.borrow_unchecked()
     }
 }
 
@@ -1459,22 +1484,6 @@ impl Node {
 
             unique_id: DOMRefCell::new(String::new()),
         }
-    }
-
-    #[inline]
-    pub fn layout_data(&self) -> Ref<Option<LayoutData>> {
-        self.layout_data.borrow()
-    }
-
-    #[inline]
-    pub fn layout_data_mut(&self) -> RefMut<Option<LayoutData>> {
-        self.layout_data.borrow_mut()
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    pub unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
-        self.layout_data.borrow_unchecked()
     }
 
     // https://dom.spec.whatwg.org/#concept-node-adopt

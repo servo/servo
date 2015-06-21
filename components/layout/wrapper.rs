@@ -889,11 +889,11 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         layout_data_wrapper_ref.data.after_style.is_some()
     }
 
-    /// Borrows the layout data without checking. Fails on a conflicting borrow.
+    /// Borrows the layout data without checking.
     #[inline(always)]
     fn borrow_layout_data_unchecked<'a>(&'a self) -> *const Option<LayoutDataWrapper> {
         unsafe {
-            mem::transmute(self.get().layout_data_unchecked())
+            self.node.borrow_layout_data_unchecked()
         }
     }
 
@@ -902,9 +902,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
     pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get().layout_data())
-        }
+        self.node.borrow_layout_data()
     }
 
     /// Borrows the layout data mutably. Fails on a conflicting borrow.
@@ -912,9 +910,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get().layout_data_mut())
-        }
+        self.node.mutate_layout_data()
     }
 
     /// Traverses the tree in postorder.
