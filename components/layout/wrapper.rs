@@ -80,10 +80,6 @@ pub trait TLayoutNode {
     /// Creates a new layout node with the same lifetime as this layout node.
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> Self;
 
-    /// Returns the type ID of this node. Fails if this node is borrowed mutably. Returns `None`
-    /// if this is a pseudo-element; otherwise, returns `Some`.
-    fn type_id(&self) -> Option<NodeTypeId>;
-
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
@@ -118,12 +114,6 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         }
     }
 
-    fn type_id(&self) -> Option<NodeTypeId> {
-        unsafe {
-            Some(self.node.type_id_for_layout())
-        }
-    }
-
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
     }
@@ -136,6 +126,13 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 }
 
 impl<'ln> LayoutNode<'ln> {
+    /// Returns the type ID of this node.
+    pub fn type_id(&self) -> NodeTypeId {
+        unsafe {
+            self.node.type_id_for_layout()
+        }
+    }
+
     pub fn dump(self) {
         self.dump_indent(0);
     }
@@ -294,14 +291,14 @@ impl<'ln> TNode for LayoutNode<'ln> {
 
     fn is_element(&self) -> bool {
         match self.type_id() {
-            Some(NodeTypeId::Element(..)) => true,
+            NodeTypeId::Element(..) => true,
             _ => false
         }
     }
 
     fn is_document(&self) -> bool {
         match self.type_id() {
-            Some(NodeTypeId::Document(..)) => true,
+            NodeTypeId::Document(..) => true,
             _ => false
         }
     }
@@ -630,15 +627,6 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    /// Returns `None` if this is a pseudo-element.
-    fn type_id(&self) -> Option<NodeTypeId> {
-        if self.pseudo != PseudoElementType::Normal {
-            return None
-        }
-
-        self.node.type_id()
-    }
-
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         self.node.get_jsmanaged()
     }
@@ -674,6 +662,16 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             node: self.node.clone(),
             pseudo: pseudo,
         }
+    }
+
+    /// Returns the type ID of this node.
+    /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
+    pub fn type_id(&self) -> Option<NodeTypeId> {
+        if self.pseudo != PseudoElementType::Normal {
+            return None
+        }
+
+        Some(self.node.type_id())
     }
 
     pub fn debug_id(self) -> usize {
