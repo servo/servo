@@ -21,8 +21,6 @@
 //!
 //! Rules of the road for this file:
 //!
-//! * You must not use `.get()`; instead, use `.unsafe_get()`.
-//!
 //! * Do not call any methods on DOM nodes without checking to see whether they use borrow flags.
 //!
 //!   o Instead of `get_attr()`, use `.get_attr_val_for_layout()`.
@@ -90,12 +88,6 @@ pub trait TLayoutNode {
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
-
-    /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
-    /// and as such is marked `unsafe`.
-    unsafe fn get<'a>(&'a self) -> &'a Node {
-        &*self.get_jsmanaged().unsafe_get()
-    }
 
     fn node_is_element(&self) -> bool {
         match self.type_id() {
@@ -738,10 +730,6 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
 
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         self.node.get_jsmanaged()
-    }
-
-    unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
-        &*self.get_jsmanaged().unsafe_get()
     }
 
     fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
