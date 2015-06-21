@@ -21,7 +21,7 @@ use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, UnsafeFlow};
 use sequential;
-use wrapper::{LayoutNode, TLayoutNode};
+use wrapper::LayoutNode;
 
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
