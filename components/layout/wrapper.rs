@@ -52,7 +52,7 @@ use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementH
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
-use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
 use script::dom::node::{Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
@@ -153,12 +153,6 @@ pub trait TLayoutNode {
         }
     }
 
-    /// If this is a text node or generated content, copies out its content. If this is not a text
-    /// node, fails.
-    ///
-    /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
-    fn text_content(&self) -> Vec<ContentItem>;
-
     /// Returns the first child of this node.
     fn first_child(&self) -> Option<Self>;
 }
@@ -202,30 +196,6 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn text_content(&self) -> Vec<ContentItem> {
-        unsafe {
-            let text: Option<LayoutJS<Text>> = TextCast::to_layout_js(self.get_jsmanaged());
-            if let Some(text) = text {
-                return vec![
-                    ContentItem::String(
-                        CharacterDataCast::from_layout_js(&text).data_for_layout().to_owned())
-                ];
-            }
-            let input: Option<LayoutJS<HTMLInputElement>> =
-                HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
-            if let Some(input) = input {
-                return vec![ContentItem::String(input.get_value_for_layout())];
-            }
-            let area: Option<LayoutJS<HTMLTextAreaElement>> =
-                HTMLTextAreaElementCast::to_layout_js(self.get_jsmanaged());
-            if let Some(area) = area {
-                return vec![ContentItem::String(area.get_value_for_layout())];
-            }
-
-            panic!("not text!")
         }
     }
 }
@@ -757,22 +727,6 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
             self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
-
-    fn text_content(&self) -> Vec<ContentItem> {
-        if self.pseudo != PseudoElementType::Normal {
-            let layout_data_ref = self.borrow_layout_data();
-            let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
-
-            if self.pseudo.is_before() {
-                let before_style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
-                return get_content(&before_style.get_box().content)
-            } else {
-                let after_style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
-                return get_content(&after_style.get_box().content)
-            }
-        }
-        self.node.text_content()
-    }
 }
 
 impl<'ln> ThreadSafeLayoutNode<'ln> {
@@ -1035,6 +989,46 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             Some(NodeTypeId::Element(..)) | Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text(..))) => true,
             _ => false
         }
+    }
+
+    /// If this is a text node, generated content, or a form element, copies out
+    /// its content. Otherwise, panics.
+    ///
+    /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
+    pub fn text_content(&self) -> Vec<ContentItem> {
+        if self.pseudo != PseudoElementType::Normal {
+            let layout_data_ref = self.borrow_layout_data();
+            let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+
+            if self.pseudo.is_before() {
+                let before_style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
+                return get_content(&before_style.get_box().content)
+            } else {
+                let after_style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
+                return get_content(&after_style.get_box().content)
+            }
+        }
+
+        let this = unsafe { self.get_jsmanaged() };
+        let text = TextCast::to_layout_js(this);
+        if let Some(text) = text {
+            let data = unsafe {
+                CharacterDataCast::from_layout_js(&text).data_for_layout().to_owned()
+            };
+            return vec![ContentItem::String(data)];
+        }
+        let input = HTMLInputElementCast::to_layout_js(this);
+        if let Some(input) = input {
+            let data = unsafe { input.get_value_for_layout() };
+            return vec![ContentItem::String(data)];
+        }
+        let area = HTMLTextAreaElementCast::to_layout_js(this);
+        if let Some(area) = area {
+            let data = unsafe { area.get_value_for_layout() };
+            return vec![ContentItem::String(data)];
+        }
+
+        panic!("not text!")
     }
 }
 
