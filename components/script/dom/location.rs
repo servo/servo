@@ -42,14 +42,44 @@ impl<'a> LocationMethods for &'a Location {
         self.window.root().r().load_url(url);
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-hash
+    fn Hash(self) -> USVString {
+        UrlHelper::Hash(&self.get_url())
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-href
     fn Href(self) -> USVString {
         UrlHelper::Href(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-host
+    fn Host(self) -> USVString {
+        UrlHelper::Host(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-hostname
+    fn Hostname(self) -> USVString {
+        UrlHelper::Hostname(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-password
+    fn Password(self) -> USVString {
+        UrlHelper::Password(&self.get_url())
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-pathname
     fn Pathname(self) -> USVString {
         UrlHelper::Pathname(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-port
+    fn Port(self) -> USVString {
+        UrlHelper::Port(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-protocol
+    fn Protocol(self) -> USVString {
+        UrlHelper::Protocol(&self.get_url())
     }
 
     // https://url.spec.whatwg.org/#URLUtils-stringification-behavior
@@ -62,9 +92,9 @@ impl<'a> LocationMethods for &'a Location {
         UrlHelper::Search(&self.get_url())
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-hash
-    fn Hash(self) -> USVString {
-        UrlHelper::Hash(&self.get_url())
+    // https://url.spec.whatwg.org/#dom-urlutils-username
+    fn Username(self) -> USVString {
+        UrlHelper::Username(&self.get_url())
     }
 }
 
