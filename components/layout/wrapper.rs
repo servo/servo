@@ -75,16 +75,6 @@ use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
 
-/// Allows some convenience methods on generic layout nodes.
-pub trait TLayoutNode {
-    /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> Self;
-
-    /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
-    /// call and as such is marked `unsafe`.
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
-}
-
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 #[derive(Copy, Clone)]
@@ -103,20 +93,15 @@ impl<'a> PartialEq for LayoutNode<'a> {
     }
 }
 
-impl<'ln> TLayoutNode for LayoutNode<'ln> {
-    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
+impl<'ln> LayoutNode<'ln> {
+    /// Creates a new layout node with the same lifetime as this layout node.
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
             node: *node,
             chain: self.chain,
         }
     }
 
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
-        &self.node
-    }
-}
-
-impl<'ln> LayoutNode<'ln> {
     /// Returns the type ID of this node.
     pub fn type_id(&self) -> NodeTypeId {
         unsafe {
@@ -179,6 +164,8 @@ impl<'ln> LayoutNode<'ln> {
 
     }
 
+    /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
+    /// call and as such is marked `unsafe`.
     pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
     }
@@ -603,21 +590,15 @@ pub struct ThreadSafeLayoutNode<'ln> {
     pseudo: PseudoElementType,
 }
 
-impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
+impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: self.node.new_with_this_lifetime(node),
             pseudo: PseudoElementType::Normal,
         }
     }
 
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
-        self.node.get_jsmanaged()
-    }
-}
-
-impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
     pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
@@ -633,6 +614,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             node: self.node.clone(),
             pseudo: pseudo,
         }
+    }
+
+    /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
+    /// call and as such is marked `unsafe`.
+    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
+        self.node.get_jsmanaged()
     }
 
     /// Returns the type ID of this node.

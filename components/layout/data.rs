@@ -14,7 +14,7 @@ use std::cell::{Ref, RefMut};
 use std::mem;
 use std::sync::Arc;
 use style::properties::ComputedValues;
-use wrapper::{LayoutNode, TLayoutNode};
+use wrapper::LayoutNode;
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
