@@ -48,8 +48,7 @@ use script::dom::characterdata::{CharacterDataTypeId, LayoutCharacterDataHelpers
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
-use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
-use script::dom::htmliframeelement::HTMLIFrameElement;
+use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
@@ -88,56 +87,6 @@ pub trait TLayoutNode {
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
-
-    /// If this is an image element, returns its URL. If this is not an image element, fails.
-    ///
-    /// FIXME(pcwalton): Don't copy URLs.
-    fn image_url(&self) -> Option<Url> {
-        unsafe {
-            match HTMLImageElementCast::to_layout_js(self.get_jsmanaged()) {
-                Some(elem) => elem.image_url().as_ref().map(|url| (*url).clone()),
-                None => panic!("not an image!")
-            }
-        }
-    }
-
-    fn renderer(&self) -> Option<Sender<CanvasMsg>> {
-        unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
-                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.and_then(|elem| elem.get_renderer())
-        }
-    }
-
-    fn canvas_width(&self) -> u32 {
-        unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
-                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.unwrap().get_canvas_width()
-        }
-    }
-
-    fn canvas_height(&self) -> u32 {
-        unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
-                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.unwrap().get_canvas_height()
-        }
-    }
-
-    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
-    /// not an iframe element, fails.
-    fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
-        unsafe {
-            let iframe_element: LayoutJS<HTMLIFrameElement> =
-                match HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged()) {
-                    Some(elem) => elem,
-                    None => panic!("not an iframe element!")
-                };
-            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
-             (*iframe_element.unsafe_get()).subpage_id().unwrap())
-        }
-    }
 
     /// Returns the first child of this node.
     fn first_child(&self) -> Option<Self>;
@@ -1021,6 +970,49 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
 
         panic!("not text!")
+    }
+
+    /// If this is an image element, returns its URL. If this is not an image element, fails.
+    ///
+    /// FIXME(pcwalton): Don't copy URLs.
+    pub fn image_url(&self) -> Option<Url> {
+        unsafe {
+            HTMLImageElementCast::to_layout_js(self.get_jsmanaged())
+                .expect("not an image!")
+                .image_url()
+        }
+    }
+
+    pub fn renderer(&self) -> Option<Sender<CanvasMsg>> {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.and_then(|elem| elem.get_renderer())
+        }
+    }
+
+    pub fn canvas_width(&self) -> u32 {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_width()
+        }
+    }
+
+    pub fn canvas_height(&self) -> u32 {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_height()
+        }
+    }
+
+    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
+    /// not an iframe element, fails.
+    pub fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
+        unsafe {
+            let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged())
+                .expect("not an iframe element!");
+            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
+             (*iframe_element.unsafe_get()).subpage_id().unwrap())
+        }
     }
 }
 
