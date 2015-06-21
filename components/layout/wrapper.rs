@@ -83,9 +83,6 @@ pub trait TLayoutNode {
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
-
-    /// Returns the first child of this node.
-    fn first_child(&self) -> Option<Self>;
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -116,12 +113,6 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
-    }
-
-    fn first_child(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
     }
 }
 
@@ -176,14 +167,8 @@ impl<'ln> LayoutNode<'ln> {
 
     /// Returns an iterator over this node's children.
     pub fn children(self) -> LayoutNodeChildrenIterator<'ln> {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn first_child<T: TLayoutNode>(this: T) -> Option<T> {
-            this.first_child()
-        }
-
         LayoutNodeChildrenIterator {
-            current: first_child(self),
+            current: self.first_child(),
         }
     }
 
@@ -216,7 +201,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     pub fn has_children(self) -> bool {
-        TLayoutNode::first_child(&self).is_some()
+        self.first_child().is_some()
     }
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
@@ -630,20 +615,6 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         self.node.get_jsmanaged()
     }
-
-    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo != PseudoElementType::Normal {
-            return None
-        }
-
-        if self.has_before_pseudo() {
-            return Some(self.with_pseudo(PseudoElementType::Before(self.get_before_display())));
-        }
-
-        unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
 }
 
 impl<'ln> ThreadSafeLayoutNode<'ln> {
@@ -680,6 +651,20 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn flow_debug_id(self) -> usize {
         self.node.flow_debug_id()
+    }
+
+    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        if self.pseudo != PseudoElementType::Normal {
+            return None
+        }
+
+        if self.has_before_pseudo() {
+            return Some(self.with_pseudo(PseudoElementType::Before(self.get_before_display())));
+        }
+
+        unsafe {
+            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
     }
 
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
