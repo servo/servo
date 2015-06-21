@@ -2492,59 +2492,59 @@ impl<'a> VirtualMethods for &'a Node {
     }
 }
 
-impl<'a> style::node::TNode<'a> for &'a Node {
+impl<'a> style::node::TNode for &'a Node {
     type Element = &'a Element;
 
-    fn parent_node(self) -> Option<&'a Node> {
+    fn parent_node(&self) -> Option<&'a Node> {
         (*self).parent_node.get()
                .map(|node| node.root().get_unsound_ref_forever())
     }
 
-    fn first_child(self) -> Option<&'a Node> {
+    fn first_child(&self) -> Option<&'a Node> {
         (*self).first_child.get()
                .map(|node| node.root().get_unsound_ref_forever())
     }
 
-    fn last_child(self) -> Option<&'a Node> {
+    fn last_child(&self) -> Option<&'a Node> {
         (*self).last_child.get()
                .map(|node| node.root().get_unsound_ref_forever())
     }
 
-    fn prev_sibling(self) -> Option<&'a Node> {
+    fn prev_sibling(&self) -> Option<&'a Node> {
         (*self).prev_sibling.get()
                .map(|node| node.root().get_unsound_ref_forever())
     }
 
-    fn next_sibling(self) -> Option<&'a Node> {
+    fn next_sibling(&self) -> Option<&'a Node> {
         (*self).next_sibling.get()
                .map(|node| node.root().get_unsound_ref_forever())
     }
 
-    fn is_document(self) -> bool {
+    fn is_document(&self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
         fn is_document<'a, T: DocumentDerived>(this: &T) -> bool {
             this.is_document()
         }
 
-        is_document(self)
+        is_document(*self)
     }
 
-    fn is_element(self) -> bool {
+    fn is_element(&self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
         fn is_element<'a, T: ElementDerived>(this: &T) -> bool {
             this.is_element()
         }
 
-        is_element(self)
+        is_element(*self)
     }
 
-    fn as_element(self) -> &'a Element {
-        ElementCast::to_ref(self).unwrap()
+    fn as_element(&self) -> &'a Element {
+        ElementCast::to_ref(*self).unwrap()
     }
 
-    fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
         where F: Fn(&str) -> bool
     {
         let local_name = {
@@ -2577,25 +2577,9 @@ impl<'a> style::node::TNode<'a> for &'a Node {
         }
     }
 
-    fn is_html_element_in_html_document(self) -> bool {
+    fn is_html_element_in_html_document(&self) -> bool {
         self.as_element().html_element_in_html_document()
     }
-
-    fn has_changed(self) -> bool { self.get_has_changed() }
-    #[allow(unsafe_code)]
-    unsafe fn set_changed(self, value: bool) { self.set_has_changed(value) }
-
-    fn is_dirty(self) -> bool { self.get_is_dirty() }
-    #[allow(unsafe_code)]
-    unsafe fn set_dirty(self, value: bool) { self.set_is_dirty(value) }
-
-    fn has_dirty_siblings(self) -> bool { self.get_has_dirty_siblings() }
-    #[allow(unsafe_code)]
-    unsafe fn set_dirty_siblings(self, value: bool) { self.set_has_dirty_siblings(value) }
-
-    fn has_dirty_descendants(self) -> bool { self.get_has_dirty_descendants() }
-    #[allow(unsafe_code)]
-    unsafe fn set_dirty_descendants(self, value: bool) { self.set_has_dirty_descendants(value) }
 }
 
 pub trait DisabledStateHelpers {

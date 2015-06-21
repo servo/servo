@@ -68,7 +68,6 @@ use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
-use style::node::TNode;
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
