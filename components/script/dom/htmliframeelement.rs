@@ -180,7 +180,7 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
             element::get_attr_for_layout(ElementCast::from_actual(&*self),
                                          &ns!(""),
                                          &atom!("width")).map(|attribute| {
-                str::parse_length(&**(*attribute.unsafe_get()).value_for_layout())
+                str::parse_length(&**attribute.value_for_layout())
             }).unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
@@ -191,7 +191,7 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
             element::get_attr_for_layout(ElementCast::from_actual(&*self),
                                          &ns!(""),
                                          &atom!("height")).map(|attribute| {
-                str::parse_length(&**(*attribute.unsafe_get()).value_for_layout())
+                str::parse_length(&**attribute.value_for_layout())
             }).unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }

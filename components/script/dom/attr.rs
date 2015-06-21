@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::js::{Root, RootedReference, LayoutJS};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::window::Window;
@@ -313,23 +313,21 @@ pub trait AttrHelpersForLayout {
 }
 
 #[allow(unsafe_code)]
-impl AttrHelpersForLayout for Attr {
+impl AttrHelpersForLayout for LayoutJS<Attr> {
     #[inline]
     unsafe fn value_forever(&self) -> &'static AttrValue {
         // This transmute is used to cheat the lifetime restriction.
-        mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout())
+        mem::transmute::<&AttrValue, &AttrValue>((*self.unsafe_get()).value.borrow_for_layout())
     }
 
     #[inline]
     unsafe fn value_ref_forever(&self) -> &'static str {
-        // This transmute is used to cheat the lifetime restriction.
-        let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
-        &**value
+        &**self.value_forever()
     }
 
     #[inline]
     unsafe fn value_atom_forever(&self) -> Option<Atom> {
-        let value = self.value.borrow_for_layout();
+        let value = (*self.unsafe_get()).value.borrow_for_layout();
         match *value {
             AttrValue::Atom(ref val) => Some(val.clone()),
             _ => None,
@@ -339,8 +337,7 @@ impl AttrHelpersForLayout for Attr {
     #[inline]
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]> {
         // This transmute is used to cheat the lifetime restriction.
-        let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
-        match *value {
+        match *self.value_forever() {
             AttrValue::TokenList(_, ref tokens) => Some(tokens),
             _ => None,
         }
@@ -348,11 +345,11 @@ impl AttrHelpersForLayout for Attr {
 
     #[inline]
     unsafe fn local_name_atom_forever(&self) -> Atom {
-        self.local_name.clone()
+        (*self.unsafe_get()).local_name.clone()
     }
 
     #[inline]
     unsafe fn value_for_layout(&self) -> &AttrValue {
-        self.value.borrow_for_layout()
+        (*self.unsafe_get()).value.borrow_for_layout()
     }
 }
