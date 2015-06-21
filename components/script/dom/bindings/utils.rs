@@ -200,7 +200,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    proto_proto: HandleObject,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
-                                   named_constructors: Vec<Option<(NonNullJSNative, &'static str, u32)>>,
+                                   named_constructors: &[Option<(NonNullJSNative, &'static str, u32)>],
                                    dom_class: *const DOMClass,
                                    members: &'static NativeProperties,
                                    rval: MutableHandleObject) {
@@ -212,23 +212,22 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
     unsafe {
         if !rval.get().is_null() {
             JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               PrivateValue(dom_class as *const libc::c_void))
+                               PrivateValue(dom_class as *const libc::c_void));
         }
 
         if let Some((native, name, nargs)) = constructor {
             let s = CString::new(name).unwrap();
-            let interface = create_interface_object(cx, receiver,
+            create_interface_object(cx, receiver,
                                     native, nargs, rval.handle(),
                                     members, s.as_ptr());
             for ctor in named_constructors.iter() {
                 if let Some((cnative, cname, cnargs)) = *ctor {
                     let cs = CString::new(cname).unwrap();
-                    create_interface_object(cx, receiver,
-                                            cnative, cnargs, rval.handle(),
-                                            members, cs.as_ptr());
+                    let constructor = RootedObject::new(cx, create_constructor(cx, cnative, cnargs, cs.as_ptr()));
+                    assert!(!constructor.ptr.is_null());
+                    define_constructor(cx, receiver, rval.handle(), cs.as_ptr(), constructor.handle());
                 }
             }
-            interface
         }
     }
 
@@ -240,6 +239,43 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
     }
 }
 
+fn create_constructor(cx: *mut JSContext,
+                      constructor_native: NonNullJSNative,
+                      ctor_nargs: u32,
+                      name: *const libc::c_char) -> *mut JSObject {
+    unsafe {
+        let fun = JS_NewFunction(cx, Some(constructor_native), ctor_nargs,
+                                 JSFUN_CONSTRUCTOR, name);
+        assert!(!fun.is_null());
+
+        let constructor = JS_GetFunctionObject(fun);
+        assert!(!constructor.is_null());
+
+        constructor
+    }
+}
+
+fn define_constructor(cx: *mut JSContext,
+                      receiver: HandleObject,
+                      proto: HandleObject,
+                      name: *const libc::c_char,
+                      constructor: HandleObject) {
+    unsafe {
+        let mut already_defined = 0;
+        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut already_defined) != 0);
+
+        if already_defined == 0 {
+            assert!(JS_DefineProperty1(cx, receiver, name,
+                                      constructor,
+                                      0, None, None) != 0);
+        }
+
+        if !proto.get().is_null() {
+            assert!(JS_LinkConstructorAndPrototype(cx, constructor, proto) != 0);
+        }
+    }
+}
+
 /// Creates the *interface object*.
 /// Fails on JSAPI failure.
 fn create_interface_object(cx: *mut JSContext,
@@ -248,39 +284,22 @@ fn create_interface_object(cx: *mut JSContext,
                            ctor_nargs: u32, proto: HandleObject,
                            members: &'static NativeProperties,
                            name: *const libc::c_char) {
-    unsafe {
-        let fun = JS_NewFunction(cx, Some(constructor_native), ctor_nargs,
-                                 JSFUN_CONSTRUCTOR, name);
-        assert!(!fun.is_null());
+    let constructor = RootedObject::new(cx, create_constructor(cx, constructor_native, ctor_nargs, name));
+    assert!(!constructor.ptr.is_null());
 
-        let constructor = RootedObject::new(cx, JS_GetFunctionObject(fun));
-        assert!(!constructor.ptr.is_null());
-
-        if let Some(static_methods) = members.static_methods {
-            define_methods(cx, constructor.handle(), static_methods);
-        }
-
-        if let Some(static_properties) = members.static_attrs {
-            define_properties(cx, constructor.handle(), static_properties);
-        }
-
-        if let Some(constants) = members.consts {
-            define_constants(cx, constructor.handle(), constants);
-        }
-
-        if !proto.get().is_null() {
-            assert!(JS_LinkConstructorAndPrototype(cx, constructor.handle(), proto) != 0);
-        }
-
-        let mut already_defined = 0;
-        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut already_defined) != 0);
-
-        if already_defined == 0 {
-            assert!(JS_DefineProperty1(cx, receiver, name,
-                                       constructor.handle(),
-                                       0, None, None) != 0);
-        }
+    if let Some(static_methods) = members.static_methods {
+        define_methods(cx, constructor.handle(), static_methods);
     }
+
+    if let Some(static_properties) = members.static_attrs {
+        define_properties(cx, constructor.handle(), static_properties);
+    }
+
+    if let Some(constants) = members.consts {
+        define_constants(cx, constructor.handle(), constants);
+    }
+
+    define_constructor(cx, receiver, proto, name, constructor.handle());
 }
 
 /// Defines constants on `obj`.

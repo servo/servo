@@ -2284,29 +2284,29 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constructor = 'None'
 
         call = """\
-return do_create_interface_objects(cx, receiver, parent_proto.handle(),
-                                   %s, %s,
-                                   named_constructors,
-                                   %s,
-                                   &sNativeProperties, rval);""" % (protoClass, constructor, domClass)
+do_create_interface_objects(cx, receiver, parent_proto.handle(),
+                            %s, %s,
+                            &named_constructors,
+                            %s,
+                            &sNativeProperties, rval);""" % (protoClass, constructor, domClass)
 
         createArray = """\
-let mut named_constructors: Vec<Option<(NonNullJSNative, &'static str, u32)>> = vec![];
-"""
-        arr =[
-            CGGeneric(getParentProto),
-            CGGeneric(createArray),
-            CGGeneric(call % self.properties.variableNames())
-        ]
+let named_constructors: [Option<(NonNullJSNative, &'static str, u32)>; %d] = [
+""" % len(self.descriptor.interface.namedConstructors)
         for ctor in self.descriptor.interface.namedConstructors:
             constructHook = CONSTRUCT_HOOK_NAME + "_" + ctor.identifier.name;
             constructArgs = methodLength(ctor)
             constructor = 'Some((%s as NonNullJSNative, "%s", %d))' % (
                 constructHook, ctor.identifier.name, constructArgs)
-            named_call = "named_constructors.push(%s);" % constructor;
-            arr.insert(2, CGGeneric(named_call))
+            createArray += constructor
+            createArray += ","
+        createArray += "];"
 
-        return CGList(arr, "\n")
+        return CGList([
+            CGGeneric(getParentProto),
+            CGGeneric(createArray),
+            CGGeneric(call % self.properties.variableNames())
+        ], "\n")
 
 class CGGetPerInterfaceObject(CGAbstractMethod):
     """
