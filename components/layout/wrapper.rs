@@ -89,20 +89,6 @@ pub trait TLayoutNode {
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
 
-    fn node_is_element(&self) -> bool {
-        match self.type_id() {
-            Some(NodeTypeId::Element(..)) => true,
-            _ => false
-        }
-    }
-
-    fn node_is_document(&self) -> bool {
-        match self.type_id() {
-            Some(NodeTypeId::Document(..)) => true,
-            _ => false
-        }
-    }
-
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     ///
     /// FIXME(pcwalton): Don't copy URLs.
@@ -358,11 +344,17 @@ impl<'ln> TNode for LayoutNode<'ln> {
     }
 
     fn is_element(&self) -> bool {
-        self.node_is_element()
+        match self.type_id() {
+            Some(NodeTypeId::Element(..)) => true,
+            _ => false
+        }
     }
 
     fn is_document(&self) -> bool {
-        self.node_is_document()
+        match self.type_id() {
+            Some(NodeTypeId::Document(..)) => true,
+            _ => false
+        }
     }
 
     fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
