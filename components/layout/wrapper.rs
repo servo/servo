@@ -1121,7 +1121,7 @@ pub trait PostorderNodeMutTraversal {
 }
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from LayoutNode/ThreadSafeLayoutNode.
+/// Must be transmutable to and from LayoutNode.
 pub type UnsafeLayoutNode = (usize, usize);
 
 pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
