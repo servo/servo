@@ -649,19 +649,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         }
 
         if self.has_before_pseudo() {
-            // FIXME(pcwalton): This logic looks weird. Is it right?
-            match self.pseudo {
-                PseudoElementType::Normal => {
-                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(self.get_before_display()));
-                    return Some(pseudo_before_node)
-                }
-                PseudoElementType::Before(display::T::inline) => {}
-                PseudoElementType::Before(_) => {
-                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(display::T::inline));
-                    return Some(pseudo_before_node)
-                }
-                _ => {}
-            }
+            return Some(self.with_pseudo(PseudoElementType::Before(self.get_before_display())));
         }
 
         unsafe {
