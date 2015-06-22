@@ -17,7 +17,7 @@ use wrapper::LayoutNode;
 use wrapper::{PostorderNodeMutTraversal};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
-use geom::point::Point2D;
+use euclid::point::Point2D;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
 

@@ -25,7 +25,7 @@ extern crate servo;
 extern crate compositing;
 
 extern crate azure;
-extern crate geom;
+extern crate euclid;
 extern crate gfx;
 extern crate gleam;
 extern crate glutin_app;
@@ -44,6 +44,10 @@ extern crate stb_image;
 
 extern crate libc;
 extern crate url as std_url;
+
+#[cfg(target_os="macos")]
+#[link_args="-Xlinker -undefined -Xlinker dynamic_lookup"]
+extern { }
 
 #[cfg(target_os="macos")]
 extern crate cgl;

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::DOMRectListBinding;
 use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
 use dom::window::Window;
@@ -18,37 +18,37 @@ pub struct DOMRectList {
 }
 
 impl DOMRectList {
-    fn new_inherited<T>(window: JSRef<Window>, rects: T) -> DOMRectList
-                        where T: Iterator<Item=Temporary<DOMRect>> {
+    fn new_inherited<T>(window: &Window, rects: T) -> DOMRectList
+                        where T: Iterator<Item=Root<DOMRect>> {
         DOMRectList {
             reflector_: Reflector::new(),
-            rects: rects.map(JS::from_rooted).collect(),
-            window: JS::from_rooted(window),
+            rects: rects.map(|r| JS::from_rooted(&r)).collect(),
+            window: JS::from_ref(window),
         }
     }
 
-    pub fn new<T>(window: JSRef<Window>, rects: T) -> Temporary<DOMRectList>
-                  where T: Iterator<Item=Temporary<DOMRect>> {
+    pub fn new<T>(window: &Window, rects: T) -> Root<DOMRectList>
+                  where T: Iterator<Item=Root<DOMRect>> {
         reflect_dom_object(box DOMRectList::new_inherited(window, rects),
                            GlobalRef::Window(window), DOMRectListBinding::Wrap)
     }
 }
 
-impl<'a> DOMRectListMethods for JSRef<'a, DOMRectList> {
+impl<'a> DOMRectListMethods for &'a DOMRectList {
     fn Length(self) -> u32 {
         self.rects.len() as u32
     }
 
-    fn Item(self, index: u32) -> Option<Temporary<DOMRect>> {
+    fn Item(self, index: u32) -> Option<Root<DOMRect>> {
         let rects = &self.rects;
         if index < rects.len() as u32 {
-            Some(Temporary::from_rooted(rects[index as usize].clone()))
+            Some(rects[index as usize].root())
         } else {
             None
         }
     }
 
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<DOMRect>> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<DOMRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

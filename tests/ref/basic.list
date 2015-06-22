@@ -334,7 +334,8 @@ resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b
 experimental == viewport_rule.html viewport_rule_ref.html
 == visibility_hidden.html visibility_hidden_ref.html
 
-flaky_cpu == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
+== webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
+== webgl-context/draw_arrays_simple.html webgl-context/draw_arrays_simple_ref.html
 
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html
 == whitespace_pre.html whitespace_pre_ref.html
@@ -343,5 +344,5 @@ flaky_cpu == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
 == word_spacing_a.html word_spacing_ref.html
 
 
-# This file is must be sorted alphabetically.
+# This file must be sorted alphabetically.
 # Please run `./mach test-tidy` to check your changes.

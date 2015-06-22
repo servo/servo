@@ -32,19 +32,19 @@ pub trait PresentationalHintSynthesis {
     /// `common_style_affecting_attributes` or `rare_style_affecting_attributes` as appropriate. If
     /// you don't, you risk strange random nondeterministic failures due to false positives in
     /// style sharing.
-    fn synthesize_presentational_hints_for_legacy_attributes<'a,N,V>(
+    fn synthesize_presentational_hints_for_legacy_attributes<N,V>(
         &self, node: &N, matching_rules_list: &mut V, shareable: &mut bool)
-            where N: TNode<'a>,
-                  N::Element: TElementAttributes<'a>,
+            where N: TNode,
+                  N::Element: TElementAttributes,
                   V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
 impl PresentationalHintSynthesis for Stylist {
-    fn synthesize_presentational_hints_for_legacy_attributes<'a,N,V>(
+    fn synthesize_presentational_hints_for_legacy_attributes<N,V>(
         &self, node: &N, matching_rules_list: &mut V, shareable: &mut bool)
-             where N: TNode<'a>,
-                 N::Element: TElementAttributes<'a>,
-                 V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
+             where N: TNode,
+                   N::Element: TElementAttributes,
+                   V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         let element = node.as_element();
 
         let length = matching_rules_list.len();

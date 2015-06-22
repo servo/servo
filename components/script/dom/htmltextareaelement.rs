@@ -13,8 +13,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLEle
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, LayoutJS, OptionalRootable, Rootable};
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
@@ -63,9 +62,9 @@ pub trait LayoutHTMLTextAreaElementHelpers {
 
 pub trait RawLayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_cols_for_layout(&self) -> u32;
+    unsafe fn get_cols_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn get_rows_for_layout(&self) -> u32;
+    unsafe fn get_rows_for_layout(self) -> u32;
 }
 
 impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
@@ -76,16 +75,16 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     }
 }
 
-impl RawLayoutHTMLTextAreaElementHelpers for HTMLTextAreaElement {
+impl<'a> RawLayoutHTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_cols_for_layout(&self) -> u32 {
+    unsafe fn get_cols_for_layout(self) -> u32 {
         self.cols.get()
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_rows_for_layout(&self) -> u32 {
+    unsafe fn get_rows_for_layout(self) -> u32 {
         self.rows.get()
     }
 }
@@ -96,8 +95,8 @@ static DEFAULT_ROWS: u32 = 2;
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLTextAreaElement {
-        let chan = document.window().root().r().constellation_chan();
+                     document: &Document) -> HTMLTextAreaElement {
+        let chan = document.window().r().constellation_chan();
         HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
@@ -111,13 +110,13 @@ impl HTMLTextAreaElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
+               document: &Document) -> Root<HTMLTextAreaElement> {
         let element = HTMLTextAreaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTextAreaElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
+impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
     // TODO A few of these attributes have default values and additional
     // constraints
 
@@ -172,13 +171,13 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn DefaultValue(self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn SetDefaultValue(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value));
 
         // if the element's dirty value flag is false, then the element's
@@ -210,7 +209,7 @@ pub trait HTMLTextAreaElementHelpers {
     fn reset(self);
 }
 
-impl<'a> HTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
+impl<'a> HTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
     fn mutable(self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-fe-mutable
@@ -228,40 +227,40 @@ trait PrivateHTMLTextAreaElementHelpers {
     fn dispatch_change_event(self);
 }
 
-impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
+impl<'a> PrivateHTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
     fn force_relayout(self) {
-        let doc = document_from_node(self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let doc = document_from_node(self);
+        let node = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
     fn dispatch_change_event(self) {
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
                                "input".to_owned(),
                                EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
+                               EventCancelable::NotCancelable);
 
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         target.dispatch_event(event.r());
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
+impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -281,14 +280,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -308,7 +307,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -325,15 +324,15 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        if node.ancestors().any(|ancestor| ancestor.root().r().is_htmlfieldsetelement()) {
+        let node = NodeCast::from_ref(*self);
+        if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
             node.check_disabled_attribute();
         }
     }
 
-    fn child_inserted(&self, child: JSRef<Node>) {
+    fn child_inserted(&self, child: &Node) {
         if let Some(s) = self.super_type() {
             s.child_inserted(child);
         }
@@ -344,7 +343,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     // copied and modified from htmlinputelement.rs
-    fn handle_event(&self, event: JSRef<Event>) {
+    fn handle_event(&self, event: &Event) {
         if let Some(s) = self.super_type() {
             s.handle_event(event);
         }
@@ -352,10 +351,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
         if &*event.Type() == "click" && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
 
-            let doc = document_from_node(*self).root();
+            let doc = document_from_node(*self);
             doc.r().request_focus(ElementCast::from_ref(*self));
         } else if &*event.Type() == "keydown" && !event.DefaultPrevented() {
-            let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
+            let keyevent: Option<&KeyboardEvent> = KeyboardEventCast::to_ref(event);
             keyevent.map(|kevent| {
                 match self.textinput.borrow_mut().handle_keydown(kevent) {
                     KeyReaction::TriggerDefaultAction => (),
@@ -363,10 +362,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                         self.value_changed.set(true);
 
                         if event.IsTrusted() {
-                            let window = window_from_node(*self).root();
+                            let window = window_from_node(*self);
                             let window = window.r();
                             let chan = window.script_chan();
-                            let handler = Trusted::new(window.get_cx(), *self , chan.clone());
+                            let handler = Trusted::new(window.get_cx(), *self, chan.clone());
                             let dispatcher = ChangeEventRunnable {
                                 element: handler,
                             };
@@ -382,8 +381,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 }
 
-impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
-    fn to_element(self) -> JSRef<'a, Element> {
+impl<'a> FormControl<'a> for &'a HTMLTextAreaElement {
+    fn to_element(self) -> &'a Element {
         ElementCast::from_ref(self)
     }
 }
@@ -394,7 +393,7 @@ pub struct ChangeEventRunnable {
 
 impl Runnable for ChangeEventRunnable {
     fn handler(self: Box<ChangeEventRunnable>) {
-        let target = self.element.to_temporary().root();
+        let target = self.element.root();
         target.r().dispatch_change_event();
     }
 }

@@ -5,7 +5,7 @@
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -32,7 +32,7 @@ impl HTMLTableSectionElementDerived for EventTarget {
 }
 
 impl HTMLTableSectionElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableSectionElement,
@@ -44,30 +44,30 @@ impl HTMLTableSectionElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
-               -> Temporary<HTMLTableSectionElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+               -> Root<HTMLTableSectionElement> {
         let element = HTMLTableSectionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableSectionElementBinding::Wrap)
     }
 }
 
 pub trait HTMLTableSectionElementHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_background_color(self) -> Option<RGBA>;
 }
 
-impl HTMLTableSectionElementHelpers for HTMLTableSectionElement {
-    fn get_background_color(&self) -> Option<RGBA> {
+impl<'a> HTMLTableSectionElementHelpers for &'a HTMLTableSectionElement {
+    fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLTableSectionElement> {
+impl<'a> VirtualMethods for &'a HTMLTableSectionElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
@@ -80,7 +80,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableSectionElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }

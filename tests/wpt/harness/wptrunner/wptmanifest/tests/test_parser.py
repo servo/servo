@@ -67,5 +67,13 @@ key:
                   ]]]]]]
         )
 
+    def test_atom_0(self):
+        with self.assertRaises(parser.ParseError):
+            self.parse("key: @Unknown")
+
+    def test_atom_1(self):
+        with self.assertRaises(parser.ParseError):
+            self.parse("key: @true")
+
 if __name__ == "__main__":
     unittest.main()

@@ -13,11 +13,11 @@ use selectors::matching::DeclarationBlock;
 pub use selectors::tree::{TNode, TElement};
 use string_cache::{Atom, Namespace};
 
-pub trait TElementAttributes<'a> : Copy {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, &mut V)
+pub trait TElementAttributes {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32>;
+    fn get_unsigned_integer_attribute(&self, attribute: UnsignedIntegerAttribute) -> Option<u32>;
 
-    fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str>;
-    fn get_attrs(self, attr: &Atom) -> Vec<&'a str>;
+    fn get_attr<'a>(&'a self, namespace: &Namespace, attr: &Atom) -> Option<&'a str>;
+    fn get_attrs<'a>(&'a self, attr: &Atom) -> Vec<&'a str>;
 }

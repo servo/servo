@@ -10,11 +10,17 @@ interface URLUtils {
   readonly attribute USVString href;
   //readonly attribute USVString origin;
   //         attribute USVString protocol;
+  readonly attribute USVString protocol;
   //         attribute USVString username;
+  readonly attribute USVString username;
   //         attribute USVString password;
+  readonly attribute USVString password;
   //         attribute USVString host;
+  readonly attribute USVString host;
   //         attribute USVString hostname;
+  readonly attribute USVString hostname;
   //         attribute USVString port;
+  readonly attribute USVString port;
   //         attribute USVString pathname;
   readonly attribute USVString pathname;
   //         attribute USVString search;

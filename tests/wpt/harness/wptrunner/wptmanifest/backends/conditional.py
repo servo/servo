@@ -115,6 +115,9 @@ class Compiler(NodeVisitor):
     def visit_ValueNode(self, node):
         return (lambda x: True, node.data)
 
+    def visit_AtomNode(self, node):
+        return (lambda x: True, node.data)
+
     def visit_ConditionalNode(self, node):
         return self.visit(node.children[0]), self.visit(node.children[1])
 

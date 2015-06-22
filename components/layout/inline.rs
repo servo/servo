@@ -17,7 +17,7 @@ use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -950,6 +950,7 @@ impl InlineFlow {
     fn justify_inline_fragments(fragments: &mut InlineFragments,
                                 line: &Line,
                                 slack_inline_size: Au) {
+        #![allow(unsafe_code)] // #6376
         // Fast path.
         if slack_inline_size == Au(0) {
             return
@@ -984,9 +985,9 @@ impl InlineFlow {
             // FIXME(pcwalton): This is an awful lot of uniqueness making. I don't see any easy way
             // to get rid of it without regressing the performance of the non-justified case,
             // though.
-            let run = scanned_text_fragment_info.run.make_unique();
+            let run = unsafe { scanned_text_fragment_info.run.make_unique() };
             {
-                let glyph_runs = run.glyphs.make_unique();
+                let glyph_runs = unsafe { run.glyphs.make_unique() };
                 for mut glyph_run in glyph_runs.iter_mut() {
                     let mut range = glyph_run.range.intersect(&fragment_range);
                     if range.is_empty() {
@@ -994,7 +995,7 @@ impl InlineFlow {
                     }
                     range.shift_by(-glyph_run.range.begin());
 
-                    let glyph_store = glyph_run.glyph_store.make_unique();
+                    let glyph_store = unsafe { glyph_run.glyph_store.make_unique() };
                     glyph_store.distribute_extra_space_in_range(&range,
                                                                 space_per_expansion_opportunity);
                 }
@@ -1467,7 +1468,7 @@ impl Flow for InlineFlow {
     fn compute_absolute_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         let mut containing_block_positions = Vec::new();
-        let container_size = Size2D(self.base.block_container_inline_size, Au(0));
+        let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
         for (fragment_index, fragment) in self.fragments.fragments.iter().enumerate() {
             if let SpecificFragmentInfo::InlineAbsolute(_) = fragment.specific {
                 let containing_block_range =

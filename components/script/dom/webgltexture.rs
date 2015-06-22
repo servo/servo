@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, JSRef};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
@@ -23,17 +23,17 @@ impl WebGLTexture {
         }
     }
 
-    pub fn new(global: GlobalRef, id: u32) -> Temporary<WebGLTexture> {
+    pub fn new(global: GlobalRef, id: u32) -> Root<WebGLTexture> {
         reflect_dom_object(box WebGLTexture::new_inherited(id), global, WebGLTextureBinding::Wrap)
     }
 }
 
 pub trait WebGLTextureHelpers {
-    fn get_id(&self) -> u32;
+    fn get_id(self) -> u32;
 }
 
-impl<'a> WebGLTextureHelpers for JSRef<'a, WebGLTexture> {
-    fn get_id(&self) -> u32 {
+impl<'a> WebGLTextureHelpers for &'a WebGLTexture {
+    fn get_id(self) -> u32 {
         self.id
     }
 }

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::Range;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
@@ -22,7 +22,7 @@ use encoding::label::encoding_from_whatwg_label;
 
 use libc::uint8_t;
 use js::jsapi::{JSContext, JSObject};
-use js::jsfriendapi::bindgen::{JS_NewUint8Array, JS_GetUint8ArrayData};
+use js::jsapi::{JS_NewUint8Array, JS_GetUint8ArrayData};
 
 #[dom_struct]
 pub struct TextEncoder {
@@ -40,7 +40,7 @@ impl TextEncoder {
         }
     }
 
-    pub fn new(global: GlobalRef, encoding: DOMString, encoder: EncodingRef) -> Temporary<TextEncoder> {
+    pub fn new(global: GlobalRef, encoding: DOMString, encoder: EncodingRef) -> Root<TextEncoder> {
         reflect_dom_object(box TextEncoder::new_inherited(encoding, encoder),
                            global,
                            TextEncoderBinding::Wrap)
@@ -48,7 +48,7 @@ impl TextEncoder {
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
     pub fn Constructor(global: GlobalRef,
-                       label: DOMString) -> Fallible<Temporary<TextEncoder>> {
+                       label: DOMString) -> Fallible<Root<TextEncoder>> {
         let encoding = match encoding_from_whatwg_label(&label) {
             Some(enc) => enc,
             None => {
@@ -69,7 +69,7 @@ impl TextEncoder {
     }
 }
 
-impl<'a> TextEncoderMethods for JSRef<'a, TextEncoder> {
+impl<'a> TextEncoderMethods for &'a TextEncoder {
     // https://encoding.spec.whatwg.org/#dom-textencoder-encoding
     fn Encoding(self) -> DOMString {
         self.encoding.clone()
@@ -83,7 +83,7 @@ impl<'a> TextEncoderMethods for JSRef<'a, TextEncoder> {
             let length = encoded.len() as u32;
             let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
 
-            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, cx);
+            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, ptr::null());
             ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
             return js_object;
         }

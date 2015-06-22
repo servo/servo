@@ -31,7 +31,7 @@ extern crate errno;
 extern crate compositing;
 extern crate script_traits;
 
-extern crate geom;
+extern crate euclid;
 extern crate libc;
 extern crate msg;
 extern crate gleam;
@@ -40,6 +40,9 @@ extern crate egl;
 extern crate url;
 extern crate net;
 extern crate env_logger;
+
+#[link(name = "stlport")]
+extern {}
 
 use util::opts;
 use net::resource_task;

@@ -8,8 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, RootedReference};
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -57,17 +56,17 @@ impl MouseEvent {
         }
     }
 
-    pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<MouseEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<MouseEvent> {
         reflect_dom_object(box MouseEvent::new_inherited(),
                            GlobalRef::Window(window),
                            MouseEventBinding::Wrap)
     }
 
-    pub fn new(window: JSRef<Window>,
+    pub fn new(window: &Window,
                type_: DOMString,
                canBubble: EventBubbles,
                cancelable: EventCancelable,
-               view: Option<JSRef<Window>>,
+               view: Option<&Window>,
                detail: i32,
                screenX: i32,
                screenY: i32,
@@ -78,19 +77,19 @@ impl MouseEvent {
                shiftKey: bool,
                metaKey: bool,
                button: i16,
-               relatedTarget: Option<JSRef<EventTarget>>) -> Temporary<MouseEvent> {
-        let ev = MouseEvent::new_uninitialized(window).root();
+               relatedTarget: Option<&EventTarget>) -> Root<MouseEvent> {
+        let ev = MouseEvent::new_uninitialized(window);
         ev.r().InitMouseEvent(type_, canBubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable,
                               view, detail,
                               screenX, screenY, clientX, clientY,
                               ctrlKey, altKey, shiftKey, metaKey,
                               button, relatedTarget);
-        Temporary::from_rooted(ev.r())
+        ev
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
+                       init: &MouseEventBinding::MouseEventInit) -> Fallible<Root<MouseEvent>> {
         let bubbles = if init.parent.parent.parent.bubbles {
             EventBubbles::Bubbles
         } else {
@@ -99,7 +98,7 @@ impl MouseEvent {
         let cancelable = if init.parent.parent.parent.cancelable {
             EventCancelable::Cancelable
         } else {
-            EventCancelable::NotCancelable
+        EventCancelable::NotCancelable
         };
         let event = MouseEvent::new(global.as_window(), type_,
                                     bubbles,
@@ -114,7 +113,7 @@ impl MouseEvent {
     }
 }
 
-impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
+impl<'a> MouseEventMethods for &'a MouseEvent {
     fn ScreenX(self) -> i32 {
         self.screen_x.get()
     }
@@ -151,15 +150,15 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
         self.button.get()
     }
 
-    fn GetRelatedTarget(self) -> Option<Temporary<EventTarget>> {
-        self.related_target.get().map(Temporary::from_rooted)
+    fn GetRelatedTarget(self) -> Option<Root<EventTarget>> {
+        self.related_target.get().map(Root::from_rooted)
     }
 
     fn InitMouseEvent(self,
                       typeArg: DOMString,
                       canBubbleArg: bool,
                       cancelableArg: bool,
-                      viewArg: Option<JSRef<Window>>,
+                      viewArg: Option<&Window>,
                       detailArg: i32,
                       screenXArg: i32,
                       screenYArg: i32,
@@ -170,13 +169,13 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       shiftKeyArg: bool,
                       metaKeyArg: bool,
                       buttonArg: i16,
-                      relatedTargetArg: Option<JSRef<EventTarget>>) {
-        let event: JSRef<Event> = EventCast::from_ref(self);
+                      relatedTargetArg: Option<&EventTarget>) {
+        let event: &Event = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }
 
-        let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
+        let uievent: &UIEvent = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.set(screenXArg);
         self.screen_y.set(screenYArg);
@@ -187,7 +186,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
         self.shift_key.set(shiftKeyArg);
         self.meta_key.set(metaKeyArg);
         self.button.set(buttonArg);
-        self.related_target.set(relatedTargetArg.map(JS::from_rooted));
+        self.related_target.set(relatedTargetArg.map(JS::from_ref));
     }
 }
 

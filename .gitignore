@@ -1,19 +1,11 @@
+/.servo
 /.cargo
-/Cargo.lock
+/.servobuild
 /target
-/components/servo/target
-/ports/gonk/target
-/ports/cef/target
 /ports/android/bin
 /ports/android/libs
 /ports/android/local.properties
 /ports/android/obj
-/components/script/dom/bindings/codegen/*.rs
-/components/script/dom/bindings/codegen/_cache
-/components/script/dom/bindings/codegen/Bindings
-/components/script/dom/bindings/codegen/test/*.rs
-/.servobuild
-/.servo
 /tests/wpt/_virtualenv
 *~
 *#
@@ -34,4 +26,3 @@ Servo.app
 .config.mk.last
 parser.out
 /glfw
-

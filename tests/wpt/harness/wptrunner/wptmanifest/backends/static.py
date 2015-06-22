@@ -68,6 +68,9 @@ class Compiler(NodeVisitor):
     def visit_ValueNode(self, node):
         return node.data
 
+    def visit_AtomNode(self, node):
+        return node.data
+
     def visit_ListNode(self, node):
         return [self.visit(child) for child in node.children]
 

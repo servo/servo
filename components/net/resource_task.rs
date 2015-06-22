@@ -28,7 +28,6 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
@@ -122,8 +121,8 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         });
         metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type,
                                                     &partial_body).map(|(toplevel, sublevel)| {
-            let mime_tp: TopLevel = FromStr::from_str(&toplevel).unwrap();
-            let mime_sb: SubLevel = FromStr::from_str(&sublevel).unwrap();
+            let mime_tp: TopLevel = toplevel.parse().unwrap();
+            let mime_sb: SubLevel = sublevel.parse().unwrap();
             ContentType(Mime(mime_tp, mime_sb, vec!()))
         });
 
@@ -259,7 +258,9 @@ impl ResourceManager {
             }
         }
 
-        self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
+        self.user_agent.as_ref().map(|ua| {
+            load_data.preserved_headers.set(UserAgent(ua.clone()));
+        });
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
                         -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {

@@ -47,7 +47,7 @@ use table_wrapper::TableWrapperFlow;
 use multicol::MulticolFlow;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;
@@ -1072,7 +1072,7 @@ impl BaseFlow {
         let position_with_overflow = self.position
                                          .to_physical(self.writing_mode, container_size)
                                          .union(&self.overflow);
-        let bounds = Rect(self.stacking_relative_position, position_with_overflow.size);
+        let bounds = Rect::new(self.stacking_relative_position, position_with_overflow.size);
 
         let all_items = match self.display_list_building_result {
             DisplayListBuildingResult::None => Vec::new(),

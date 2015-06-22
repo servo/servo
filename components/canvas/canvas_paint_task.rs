@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure::AzFloat;
+use azure::azure::{AzFloat, AzColor};
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
 use canvas_traits::*;
-use geom::matrix2d::Matrix2D;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use euclid::matrix2d::Matrix2D;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
 use layers::platform::surface::NativeSurface;
 use gfx_traits::color;
 use num::ToPrimitive;
@@ -29,7 +29,7 @@ impl<'a> CanvasPaintTask<'a> {
     fn read_pixels(&self, read_rect: Rect<f64>, canvas_size: Size2D<f64>) -> Vec<u8>{
         let read_rect = read_rect.to_i32();
         let canvas_size = canvas_size.to_i32();
-        let canvas_rect = Rect(Point2D(0i32, 0i32), canvas_size);
+        let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
         let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
 
         let mut image_data = Vec::new();
@@ -52,40 +52,6 @@ impl<'a> CanvasPaintTask<'a> {
         }
 
         image_data
-    }
-
-    /// It writes image data to the canvas
-    /// source_rect: the area of the image data to be written
-    /// dest_rect: The area of the canvas where the imagedata will be copied
-    /// smoothing_enabled: if smoothing is applied to the copied pixels
-    fn write_pixels(&self, imagedata: &[u8],
-                    image_size: Size2D<f64>,
-                    source_rect: Rect<f64>,
-                    dest_rect: Rect<f64>,
-                    smoothing_enabled: bool) {
-        // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-        // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
-        // to apply a smoothing algorithm to the image data when it is scaled.
-        // Otherwise, the image must be rendered using nearest-neighbor interpolation.
-        let filter = if smoothing_enabled {
-            Filter::Linear
-        } else {
-            Filter::Point
-        };
-        // azure_hl operates with integers. We need to cast the image size
-        let image_size = image_size.to_i32();
-
-        let source_surface = self.drawtarget.create_source_surface_from_data(
-            &imagedata,
-            image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
-
-        let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(self.state.draw_options.alpha, CompositionOp::Over, AntialiasMode::None);
-
-        self.drawtarget.draw_surface(source_surface,
-                                     dest_rect.to_azfloat(),
-                                     source_rect.to_azfloat(),
-                                     draw_surface_options, draw_options);
     }
 
     /// dirty_rect: original dirty_rect provided by the putImageData call
@@ -136,23 +102,6 @@ impl<'a> CanvasPaintTask<'a> {
 
         dirty_rect
     }
-
-    /// It writes an image to the destination canvas
-    /// imagedata: Pixel information of the image to be written. It takes RGBA8
-    /// image_size: The size of the image to be written
-    /// dest_rect: Area of the destination canvas where the pixels will be copied
-    /// smoothing_enabled: It determines if smoothing is applied to the image result
-    fn write_image(&self, mut imagedata: Vec<u8>,
-                   image_size: Size2D<f64>, dest_rect: Rect<f64>, smoothing_enabled: bool) {
-        if imagedata.len() == 0 {
-            return
-        }
-        let image_rect = Rect(Point2D(0f64, 0f64), image_size);
-        // rgba -> bgra
-        byte_swap(&mut imagedata);
-        self.write_pixels(&imagedata, image_size, image_rect, dest_rect, smoothing_enabled);
-    }
-
 }
 
 pub struct CanvasPaintTask<'a> {
@@ -171,6 +120,10 @@ struct CanvasPaintState<'a> {
     stroke_opts: StrokeOptions<'a>,
     /// The current 2D transform matrix.
     transform: Matrix2D<f32>,
+    shadow_offset_x: f64,
+    shadow_offset_y: f64,
+    shadow_blur: f64,
+    shadow_color: AzColor,
 }
 
 impl<'a> CanvasPaintState<'a> {
@@ -187,6 +140,10 @@ impl<'a> CanvasPaintState<'a> {
             stroke_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
             transform: Matrix2D::identity(),
+            shadow_offset_x: 0.0,
+            shadow_offset_y: 0.0,
+            shadow_blur: 0.0,
+            shadow_color: color::transparent(),
         }
     }
 }
@@ -257,6 +214,10 @@ impl<'a> CanvasPaintTask<'a> {
                                 => painter.get_image_data(dest_rect, canvas_size, chan),
                             Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
                                 => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
+                            Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
+                            Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
+                            Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
+                            Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azcolor()),
                         }
                     },
                     CanvasMsg::Common(message) => {
@@ -289,8 +250,34 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
-        self.drawtarget.fill_rect(rect, self.state.fill_style.to_pattern_ref(),
-                                  Some(&self.state.draw_options));
+        if is_zero_size_gradient(&self.state.fill_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        let draw_rect = Rect::new(rect.origin,
+            match self.state.fill_style {
+                Pattern::Surface(ref surface) => {
+                    let surface_size = surface.size();
+                    match (surface.repeat_x, surface.repeat_y) {
+                        (true, true) => rect.size,
+                        (true, false) => Size2D::new(rect.size.width, surface_size.height as f32),
+                        (false, true) => Size2D::new(surface_size.width as f32, rect.size.height),
+                        (false, false) => Size2D::new(surface_size.width as f32, surface_size.height as f32),
+                    }
+                },
+                _ => rect.size,
+            }
+        );
+
+        if self.need_to_draw_shadow() {
+            self.draw_with_shadow(&draw_rect, |new_draw_target: &DrawTarget| {
+                new_draw_target.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
+                                          Some(&self.state.draw_options));
+            });
+        } else {
+            self.drawtarget.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
+                                      Some(&self.state.draw_options));
+        }
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
@@ -298,14 +285,19 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn stroke_rect(&self, rect: &Rect<f32>) {
-        match self.state.stroke_style {
-            Pattern::Color(ref color) => {
-                self.drawtarget.stroke_rect(rect, color, &self.state.stroke_opts, &self.state.draw_options)
-            }
-            _ => {
-                // TODO(pcwalton)
-            }
-        };
+        if is_zero_size_gradient(&self.state.stroke_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        if self.need_to_draw_shadow() {
+            self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
+                new_draw_target.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
+                                            &self.state.stroke_opts, &self.state.draw_options);
+            });
+        } else {
+            self.drawtarget.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
+                                        &self.state.stroke_opts, &self.state.draw_options);
+        }
     }
 
     fn begin_path(&mut self) {
@@ -317,26 +309,24 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill(&self) {
-        match self.state.fill_style {
-            Pattern::Color(ref color) => {
-                self.drawtarget.fill(&self.path_builder.finish(), color, &self.state.draw_options);
-            }
-            _ => {
-                // TODO(pcwalton)
-            }
-        };
+        if is_zero_size_gradient(&self.state.fill_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        self.drawtarget.fill(&self.path_builder.finish(),
+                             self.state.fill_style.to_pattern_ref(),
+                             &self.state.draw_options);
     }
 
     fn stroke(&self) {
-        match self.state.stroke_style {
-            Pattern::Color(ref color) => {
-                self.drawtarget.stroke(&self.path_builder.finish(),
-                                       color, &self.state.stroke_opts, &self.state.draw_options);
-            }
-            _ => {
-                // TODO
-            }
-        };
+        if is_zero_size_gradient(&self.state.stroke_style) {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        self.drawtarget.stroke(&self.path_builder.finish(),
+                               self.state.stroke_style.to_pattern_ref(),
+                               &self.state.stroke_opts,
+                               &self.state.draw_options);
     }
 
     fn clip(&self) {
@@ -349,7 +339,19 @@ impl<'a> CanvasPaintTask<'a> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = crop_image(image_data, image_size, source_rect);
-        self.write_image(image_data, source_rect.size, dest_rect, smoothing_enabled);
+
+        if self.need_to_draw_shadow() {
+            let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
+                                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
+
+            self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
+                write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
+                            smoothing_enabled, self.state.draw_options.alpha);
+            });
+        } else {
+            write_image(&self.drawtarget, image_data, source_rect.size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.alpha);
+        }
     }
 
     fn draw_image_self(&self, image_size: Size2D<f64>,
@@ -357,9 +359,21 @@ impl<'a> CanvasPaintTask<'a> {
                        smoothing_enabled: bool) {
         // Reads pixels from source image
         // In this case source and target are the same canvas
-        let imagedata = self.read_pixels(source_rect, image_size);
-        // Writes on target canvas
-        self.write_image(imagedata, image_size, dest_rect, smoothing_enabled);
+        let image_data = self.read_pixels(source_rect, image_size);
+
+        if self.need_to_draw_shadow() {
+            let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
+                                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
+
+            self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
+                write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
+                            smoothing_enabled, self.state.draw_options.alpha);
+            });
+        } else {
+            // Writes on target canvas
+            write_image(&self.drawtarget, image_data, image_size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.alpha);
+        }
     }
 
     fn move_to(&self, point: &Point2D<AzFloat>) {
@@ -371,11 +385,11 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn rect(&self, rect: &Rect<f32>) {
-        self.path_builder.move_to(Point2D(rect.origin.x, rect.origin.y));
-        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width, rect.origin.y));
-        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width,
-                                          rect.origin.y + rect.size.height));
-        self.path_builder.line_to(Point2D(rect.origin.x, rect.origin.y + rect.size.height));
+        self.path_builder.move_to(Point2D::new(rect.origin.x, rect.origin.y));
+        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width, rect.origin.y));
+        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width,
+                                               rect.origin.y + rect.size.height));
+        self.path_builder.line_to(Point2D::new(rect.origin.x, rect.origin.y + rect.size.height));
         self.path_builder.close();
     }
 
@@ -435,12 +449,12 @@ impl<'a> CanvasPaintTask<'a> {
         // first tangent point
         let anx = (cp1.x - cp0.x) / a2.sqrt();
         let any = (cp1.y - cp0.y) / a2.sqrt();
-        let tp1 = Point2D::<AzFloat>(cp1.x - anx * d, cp1.y - any * d);
+        let tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
 
         // second tangent point
         let bnx = (cp1.x - cp2.x) / b2.sqrt();
         let bny = (cp1.y - cp2.y) / b2.sqrt();
-        let tp2 = Point2D::<AzFloat>(cp1.x - bnx * d, cp1.y - bny * d);
+        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
 
         // arc center and angles
         let anticlockwise = direction < 0.0;
@@ -451,7 +465,7 @@ impl<'a> CanvasPaintTask<'a> {
 
         self.line_to(&tp1);
         if [cx, cy, angle_start, angle_end].iter().all(|x| x.is_finite()) {
-            self.arc(&Point2D::<AzFloat>(cx, cy), radius,
+            self.arc(&Point2D::new(cx, cy), radius,
                      angle_start, angle_end, anticlockwise);
         }
     }
@@ -550,8 +564,8 @@ impl<'a> CanvasPaintTask<'a> {
         // rgba -> bgra
         byte_swap(&mut imagedata);
 
-        let image_rect = Rect(Point2D(0f64, 0f64),
-                               Size2D(image_data_rect.size.width, image_data_rect.size.height));
+        let image_rect = Rect::new(Point2D::zero(),
+                                   Size2D::new(image_data_rect.size.width, image_data_rect.size.height));
 
         // Dirty rectangle defines the area of the source image to be copied
         // on the destination canvas
@@ -575,12 +589,64 @@ impl<'a> CanvasPaintTask<'a> {
         // data structure's Canvas Pixel ArrayBuffer to the pixel with coordinate
         // (dx+x, dy+y) in the rendering context's scratch bitmap.
         // It also clips the destination rectangle to the canvas area
-        let dest_rect = Rect(
-            Point2D(image_data_rect.origin.x + source_rect.origin.x,
-                    image_data_rect.origin.y + source_rect.origin.y),
-            Size2D(source_rect.size.width, source_rect.size.height));
+        let dest_rect = Rect::new(
+            Point2D::new(image_data_rect.origin.x + source_rect.origin.x,
+                         image_data_rect.origin.y + source_rect.origin.y),
+            Size2D::new(source_rect.size.width, source_rect.size.height));
 
-        self.write_pixels(&imagedata, image_data_rect.size, source_rect, dest_rect, true)
+        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect,
+                     dest_rect, true, self.state.draw_options.alpha)
+    }
+
+    fn set_shadow_offset_x(&mut self, value: f64) {
+        self.state.shadow_offset_x = value;
+    }
+
+    fn set_shadow_offset_y(&mut self, value: f64) {
+        self.state.shadow_offset_y = value;
+    }
+
+    fn set_shadow_blur(&mut self, value: f64) {
+        self.state.shadow_blur = value;
+    }
+
+    fn set_shadow_color(&mut self, value: AzColor) {
+        self.state.shadow_color = value;
+    }
+
+    // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
+    fn need_to_draw_shadow(&self) -> bool {
+        self.state.shadow_color.a != 0.0f32 &&
+        (self.state.shadow_offset_x != 0.0f64 ||
+         self.state.shadow_offset_y != 0.0f64 ||
+         self.state.shadow_blur != 0.0f64)
+    }
+
+    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
+        let draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(source_rect.size.width as i32,
+                                                                                  source_rect.size.height as i32),
+                                                                     self.drawtarget.get_format());
+        let matrix = Matrix2D::identity().translate(-source_rect.origin.x as AzFloat,
+                                                    -source_rect.origin.y as AzFloat)
+                                         .mul(&self.state.transform);
+        draw_target.set_transform(&matrix);
+        draw_target
+    }
+
+    fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
+        where F: FnOnce(&DrawTarget)
+    {
+        let shadow_src_rect = self.state.transform.transform_rect(rect);
+        let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
+        draw_shadow_source(&new_draw_target);
+        self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
+                                                 &Point2D::new(shadow_src_rect.origin.x as AzFloat,
+                                                               shadow_src_rect.origin.y as AzFloat),
+                                                 &self.state.shadow_color,
+                                                 &Point2D::new(self.state.shadow_offset_x as AzFloat,
+                                                               self.state.shadow_offset_y as AzFloat),
+                                                 (self.state.shadow_blur / 2.0f64) as AzFloat,
+                                                 self.state.draw_options.composition);
     }
 }
 
@@ -615,14 +681,82 @@ fn crop_image(image_data: Vec<u8>,
     new_image_data
 }
 
+/// It writes an image to the destination target
+/// draw_target: the destination target where the image_data will be copied
+/// image_data: Pixel information of the image to be written. It takes RGBA8
+/// image_size: The size of the image to be written
+/// dest_rect: Area of the destination target where the pixels will be copied
+/// smoothing_enabled: It determines if smoothing is applied to the image result
+fn write_image(draw_target: &DrawTarget,
+               mut image_data: Vec<u8>,
+               image_size: Size2D<f64>,
+               dest_rect: Rect<f64>,
+               smoothing_enabled: bool,
+               global_alpha: f32) {
+    if image_data.len() == 0 {
+        return
+    }
+    let image_rect = Rect::new(Point2D::zero(), image_size);
+    // rgba -> bgra
+    byte_swap(&mut image_data);
+    write_pixels(&draw_target, &image_data, image_size, image_rect, dest_rect, smoothing_enabled, global_alpha);
+}
+
+/// It writes image data to the target
+/// draw_target: the destination target where the imagedata will be copied
+/// source_rect: the area of the image data to be written
+/// dest_rect: The area of the target where the imagedata will be copied
+/// smoothing_enabled: if smoothing is applied to the copied pixels
+fn write_pixels(draw_target: &DrawTarget,
+                image_data: &[u8],
+                image_size: Size2D<f64>,
+                source_rect: Rect<f64>,
+                dest_rect: Rect<f64>,
+                smoothing_enabled: bool,
+                global_alpha: f32) {
+    // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
+    // to apply a smoothing algorithm to the image data when it is scaled.
+    // Otherwise, the image must be rendered using nearest-neighbor interpolation.
+    let filter = if smoothing_enabled {
+        Filter::Linear
+    } else {
+        Filter::Point
+    };
+    // azure_hl operates with integers. We need to cast the image size
+    let image_size = image_size.to_i32();
+
+    let source_surface = draw_target.create_source_surface_from_data(
+        &image_data,
+        image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
+
+    let draw_surface_options = DrawSurfaceOptions::new(filter, true);
+    let draw_options = DrawOptions::new(global_alpha, CompositionOp::Over, AntialiasMode::None);
+
+    draw_target.draw_surface(source_surface,
+                             dest_rect.to_azfloat(),
+                             source_rect.to_azfloat(),
+                             draw_surface_options,
+                             draw_options);
+}
+
+fn is_zero_size_gradient(pattern: &Pattern) -> bool {
+    if let &Pattern::LinearGradient(ref gradient) = pattern {
+        if gradient.is_zero_size() {
+            return true;
+        }
+    }
+    return false;
+}
+
 pub trait SizeToi32 {
     fn to_i32(&self) -> Size2D<i32>;
 }
 
 impl SizeToi32 for Size2D<f64> {
     fn to_i32(&self) -> Size2D<i32> {
-        Size2D(self.width.to_i32().unwrap(),
-               self.height.to_i32().unwrap())
+        Size2D::new(self.width.to_i32().unwrap(),
+                    self.height.to_i32().unwrap())
     }
 }
 
@@ -633,17 +767,17 @@ pub trait RectToi32 {
 
 impl RectToi32 for Rect<f64> {
     fn to_i32(&self) -> Rect<i32> {
-        Rect(Point2D(self.origin.x.to_i32().unwrap(),
-                     self.origin.y.to_i32().unwrap()),
-             Size2D(self.size.width.to_i32().unwrap(),
-                    self.size.height.to_i32().unwrap()))
+        Rect::new(Point2D::new(self.origin.x.to_i32().unwrap(),
+                               self.origin.y.to_i32().unwrap()),
+                  Size2D::new(self.size.width.to_i32().unwrap(),
+                              self.size.height.to_i32().unwrap()))
     }
 
     fn ceil(&self) -> Rect<f64> {
-        Rect(Point2D(self.origin.x.ceil(),
-                     self.origin.y.ceil()),
-             Size2D(self.size.width.ceil(),
-                    self.size.height.ceil()))
+        Rect::new(Point2D::new(self.origin.x.ceil(),
+                               self.origin.y.ceil()),
+                  Size2D::new(self.size.width.ceil(),
+                              self.size.height.ceil()))
     }
 
 }
@@ -654,7 +788,7 @@ pub trait ToAzFloat {
 
 impl ToAzFloat for Rect<f64> {
     fn to_azfloat(&self) -> Rect<AzFloat> {
-        Rect(Point2D(self.origin.x as AzFloat, self.origin.y as AzFloat),
-             Size2D(self.size.width as AzFloat, self.size.height as AzFloat))
+        Rect::new(Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
+                  Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat))
     }
 }

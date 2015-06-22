@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTemplateElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLTemplateElementDerived for EventTarget {
 impl HTMLTemplateElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLTemplateElement {
+                     document: &Document) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLTemplateElement, localName, prefix, document)
@@ -38,7 +38,7 @@ impl HTMLTemplateElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLTemplateElement> {
+               document: &Document) -> Root<HTMLTemplateElement> {
         let element = HTMLTemplateElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTemplateElementBinding::Wrap)
     }

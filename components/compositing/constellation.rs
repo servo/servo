@@ -14,10 +14,10 @@ use pipeline::{Pipeline, CompositionPipeline};
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
-use geom::point::Point2D;
-use geom::rect::{Rect, TypedRect};
-use geom::size::Size2D;
-use geom::scale_factor::ScaleFactor;
+use euclid::point::Point2D;
+use euclid::rect::{Rect, TypedRect};
+use euclid::size::Size2D;
+use euclid::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
 use layout_traits::{LayoutControlChan, LayoutControlMsg, LayoutTaskFactory};
 use libc;
@@ -190,7 +190,7 @@ pub struct SendableFrameTree {
 }
 
 struct WebDriverData {
-    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadComplete>)>
+    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadStatus>)>
 }
 
 impl WebDriverData {
@@ -534,7 +534,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_init_load(&mut self, url: Url) {
-        let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
+        let window_rect = Rect::new(Point2D::zero(), self.window_size.visible_viewport);
         let root_pipeline_id =
             self.new_pipeline(None, Some(window_rect), None, LoadData::new(url.clone()));
         self.handle_load_start_msg(&root_pipeline_id);
@@ -709,7 +709,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let mut webdriver_reset = false;
         if let Some((ref expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             if expected_pipeline_id == pipeline_id {
-                reply_chan.send(webdriver_msg::LoadComplete).unwrap();
+                let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
                 webdriver_reset = true;
             }
         }

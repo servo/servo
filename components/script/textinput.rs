@@ -5,7 +5,6 @@
 //! Common handling of keyboard input and state management for text input controls
 
 use clipboard_provider::ClipboardProvider;
-use dom::bindings::js::JSRef;
 use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
@@ -134,19 +133,15 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Insert a character at the current editing point
     pub fn insert_char(&mut self, ch: char) {
-        if self.selection_begin.is_none() {
-            self.selection_begin = Some(self.edit_point);
-        }
-        self.replace_selection(ch.to_string());
+        self.insert_string(ch.to_string());
     }
 
     /// Insert a string at the current editing point
-    fn insert_string(&mut self, s: &str) {
-        // it looks like this could be made performant by avoiding some redundant
-        //  selection-related checks, but use the simple implementation for now
-        for ch in s.chars() {
-            self.insert_char(ch);
+    fn insert_string<S: Into<String>>(&mut self, s: S) {
+        if self.selection_begin.is_none() {
+            self.selection_begin = Some(self.edit_point);
         }
+        self.replace_selection(s.into());
     }
 
     pub fn get_sorted_selection(&self) -> (TextPoint, TextPoint) {
@@ -300,7 +295,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
-    pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
+    pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
         if let Some(key) = event.get_key() {
             self.handle_keydown_aux(key, event.get_key_modifiers())
         } else {
@@ -316,7 +311,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
            Key::V if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
-                self.insert_string(&contents);
+                self.insert_string(contents);
                 KeyReaction::DispatchInput
             },
             _ if is_printable_key(key) => {

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use geom::length::Length;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
-use geom::num::Zero;
+use euclid::length::Length;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
+use euclid::num::Zero;
 
 use std::default::Default;
 use std::i32;
@@ -15,7 +15,7 @@ use std::ops::{Add, Sub, Neg, Mul, Div, Rem};
 
 use rustc_serialize::{Encoder, Encodable};
 
-// Units for use with geom::length and geom::scale_factor.
+// Units for use with euclid::length and euclid::scale_factor.
 
 /// A normalized "pixel" at the default resolution for the display.
 ///
@@ -277,7 +277,7 @@ pub fn rect_contains_point<T:PartialOrd + Add<T, Output=T>>(rect: Rect<T>, point
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
 pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
-    Rect(Point2D(Au::from_f32_px(rect.origin.x), Au::from_f32_px(rect.origin.y)),
-         Size2D(Au::from_f32_px(rect.size.width), Au::from_f32_px(rect.size.height)))
+    Rect::new(Point2D::new(Au::from_f32_px(rect.origin.x), Au::from_f32_px(rect.origin.y)),
+              Size2D::new(Au::from_f32_px(rect.size.width), Au::from_f32_px(rect.size.height)))
 }
 

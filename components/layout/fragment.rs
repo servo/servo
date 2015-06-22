@@ -21,7 +21,7 @@ use text;
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
@@ -34,7 +34,6 @@ use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
 use std::fmt;
-use std::str::FromStr;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
@@ -720,13 +719,10 @@ pub struct TableColumnFragmentInfo {
 impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
     pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
-        let span = {
-            let element = node.as_element();
-            element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
-                let n: Option<u32> = FromStr::from_str(string).ok();
-                n
-            }).unwrap_or(0)
-        };
+        let element = node.as_element();
+        let span = element.get_attr(&ns!(""), &atom!("span"))
+                          .and_then(|string| string.parse().ok())
+                          .unwrap_or(0);
         TableColumnFragmentInfo {
             span: span,
         }
@@ -1957,7 +1953,7 @@ impl Fragment {
             relative_containing_block_size.to_physical(relative_containing_block_mode);
         let border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
         if coordinate_system == CoordinateSystem::Own && self.establishes_stacking_context() {
-            return Rect(ZERO_POINT, border_box.size)
+            return Rect::new(ZERO_POINT, border_box.size)
         }
 
         // FIXME(pcwalton): This can double-count relative position sometimes for inlines (e.g.
@@ -1974,10 +1970,10 @@ impl Fragment {
     pub fn stacking_relative_content_box(&self, stacking_relative_border_box: &Rect<Au>)
                                          -> Rect<Au> {
         let border_padding = self.border_padding.to_physical(self.style.writing_mode);
-        Rect(Point2D(stacking_relative_border_box.origin.x + border_padding.left,
-                     stacking_relative_border_box.origin.y + border_padding.top),
-             Size2D(stacking_relative_border_box.size.width - border_padding.horizontal(),
-                    stacking_relative_border_box.size.height - border_padding.vertical()))
+        Rect::new(Point2D::new(stacking_relative_border_box.origin.x + border_padding.left,
+                               stacking_relative_border_box.origin.y + border_padding.top),
+                  Size2D::new(stacking_relative_border_box.size.width - border_padding.horizontal(),
+                              stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
@@ -2033,7 +2029,7 @@ impl Fragment {
 
         // Box shadows cause us to draw outside our border box.
         for box_shadow in self.style().get_effects().box_shadow.iter() {
-            let offset = Point2D(box_shadow.offset_x, box_shadow.offset_y);
+            let offset = Point2D::new(box_shadow.offset_x, box_shadow.offset_y);
             let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
                 BLUR_INFLATION_FACTOR;
             overflow = overflow.union(&border_box.translate(&offset).inflate(inflation, inflation))

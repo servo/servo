@@ -8,7 +8,7 @@
   <div name="foo"></div>
   <script>
   test(function() {
-    let nameList = document.getElementsByName("foo");
+    var nameList = document.getElementsByName("foo");
     assert_true(nameList instanceof NodeList, "Should be NodeList");
     assert_false(nameList instanceof HTMLCollection, "Should not be HTMLCollection");
   });

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLBRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBRElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -26,7 +26,7 @@ impl HTMLBRElementDerived for EventTarget {
 }
 
 impl HTMLBRElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLBRElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLBRElement {
         HTMLBRElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBRElement, localName, prefix, document)
         }
@@ -35,7 +35,7 @@ impl HTMLBRElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLBRElement> {
+               document: &Document) -> Root<HTMLBRElement> {
         let element = HTMLBRElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBRElementBinding::Wrap)
     }

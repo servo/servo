@@ -6,7 +6,7 @@
 #![plugin(string_cache_plugin)]
 
 extern crate cssparser;
-extern crate geom;
+extern crate euclid;
 extern crate selectors;
 extern crate string_cache;
 extern crate style;

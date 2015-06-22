@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use smallvec::SmallVec8;
 use std::borrow::ToOwned;
 use std::mem;
@@ -228,8 +228,8 @@ pub struct RunMetrics {
 
 impl RunMetrics {
     pub fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
-        let bounds = Rect(Point2D(Au(0), -ascent),
-                          Size2D(advance, ascent + descent));
+        let bounds = Rect::new(Point2D::new(Au(0), -ascent),
+                               Size2D::new(advance, ascent + descent));
 
         // TODO(Issue #125): support loose and tight bounding boxes; using the
         // ascent+descent and advance is sometimes too generous and

@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_htm
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
@@ -27,33 +27,33 @@ pub struct DOMParser {
 }
 
 impl DOMParser {
-    fn new_inherited(window: JSRef<Window>) -> DOMParser {
+    fn new_inherited(window: &Window) -> DOMParser {
         DOMParser {
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window),
+            window: JS::from_ref(window),
         }
     }
 
-    pub fn new(window: JSRef<Window>) -> Temporary<DOMParser> {
+    pub fn new(window: &Window) -> Root<DOMParser> {
         reflect_dom_object(box DOMParser::new_inherited(window), GlobalRef::Window(window),
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<DOMParser>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<DOMParser>> {
         Ok(DOMParser::new(global.as_window()))
     }
 }
 
-impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
+impl<'a> DOMParserMethods for &'a DOMParser {
     // https://domparsing.spec.whatwg.org/#the-domparser-interface
     fn ParseFromString(self,
                        s: DOMString,
                        ty: DOMParserBinding::SupportedType)
-                       -> Fallible<Temporary<Document>> {
+                       -> Fallible<Root<Document>> {
         let window = self.window.root();
         let url = window.r().get_url();
         let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as usize].to_owned();
-        let doc = window.r().Document().root();
+        let doc = window.r().Document();
         let doc = doc.r();
         let loader = DocumentLoader::new(&*doc.loader());
         match ty {
@@ -63,10 +63,10 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                                              Some(content_type),
                                              None,
                                              DocumentSource::FromParser,
-                                             loader).root();
+                                             loader);
                 parse_html(document.r(), s, &url, ParseContext::Owner(None));
                 document.r().set_ready_state(DocumentReadyState::Complete);
-                Ok(Temporary::from_rooted(document.r()))
+                Ok(document)
             }
             Text_xml => {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
