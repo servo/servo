@@ -20,6 +20,63 @@ fn test_exit() {
 }
 
 #[test]
+fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_already_matched() {
+    let mut list = HSTSList {
+        entries: vec!(HSTSEntry {
+            host: "mozilla.org".to_string(),
+            include_subdomains: true
+        })
+    };
+
+    list.push("servo.mozilla.org".to_string(), false);
+
+    assert!(list.entries.len() == 1)
+}
+
+#[test]
+fn test_push_entry_to_hsts_list_should_update_existing_domain_entrys_include_subdomains() {
+    let mut list = HSTSList {
+        entries: vec!(HSTSEntry {
+            host: "mozilla.org".to_string(),
+            include_subdomains: true
+        })
+    };
+
+    assert!(list.always_secure("servo.mozilla.org"));
+
+    list.push("mozilla.org".to_string(), false);
+
+    assert!(!list.always_secure("servo.mozilla.org"))
+}
+
+#[test]
+fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
+    let mut list = HSTSList {
+        entries: vec!(HSTSEntry {
+            host: "mozilla.org".to_string(),
+            include_subdomains: false
+        })
+    };
+
+    list.push("mozilla.org".to_string(), false);
+
+    assert!(list.entries.len() == 1)
+}
+
+#[test]
+fn test_push_entry_to_hsts_list_should_add_an_entry() {
+    let mut list = HSTSList {
+        entries: Vec::new()
+    };
+
+    assert!(!list.always_secure("mozilla.org"));
+
+    list.push("mozilla.org".to_string(), true);
+
+    assert!(list.always_secure("mozilla.org"));
+}
+
+#[test]
 fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
     let mock_preload_content = "derp";
     match HSTSList::new_from_preload(mock_preload_content) {

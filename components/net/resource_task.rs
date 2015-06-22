@@ -13,11 +13,12 @@ use cookie;
 use mime_classifier::MIMEClassifier;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer};
-use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
+use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction, CookieSource};
 use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
 use util::resource_files::read_resource_file;
+use url::Url;
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
@@ -188,6 +189,16 @@ pub struct HSTSEntry {
     pub include_subdomains: bool
 }
 
+impl HSTSEntry {
+    fn matches_domain(&self, host: &str) -> bool {
+        self.host == host
+    }
+
+    fn matches_subdomain(&self, host: &str) -> bool {
+        host.ends_with(&format!(".{}", self.host))
+    }
+}
+
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct HSTSList {
     pub entries: Vec<HSTSEntry>
@@ -204,15 +215,56 @@ impl HSTSList {
     pub fn always_secure(&self, host: &str) -> bool {
         // TODO - Should this be faster than O(n)? The HSTS list is only a few
         // hundred or maybe thousand entries...
+        //
+        // Could optimise by searching for exact matches first (via a map or
+        // something), then checking for subdomains.
         self.entries.iter().any(|e| {
             if e.include_subdomains {
-                host.ends_with(&format!(".{}", e.host)) || e.host == host
+                e.matches_subdomain(host) || e.matches_domain(host)
             } else {
-                e.host == host
+                e.matches_domain(host)
             }
         })
     }
 
+    fn has_domain(&self, host: String) -> bool {
+        self.entries.iter().any(|e| {
+            e.matches_domain(&host)
+        })
+    }
+
+    pub fn has_subdomain(&self, host: String) -> bool {
+        self.entries.iter().any(|e| {
+            e.matches_subdomain(&host)
+        })
+    }
+
+    pub fn push(&mut self, host: String, include_subdomains: bool) {
+        let have_domain = self.has_domain(host.clone());
+        let have_subdomain = self.has_subdomain(host.clone());
+
+        if !have_domain && !have_subdomain {
+            self.entries.push(HSTSEntry {
+                host: host,
+                include_subdomains: include_subdomains
+            });
+        } else if !have_subdomain {
+            self.entries = self.entries.iter().fold(Vec::new(), |mut m, e| {
+                let new = HSTSEntry {
+                    host: host.clone(),
+                    include_subdomains: include_subdomains
+                };
+
+                if e.matches_domain(&host) {
+                    m.push(new);
+                } else {
+                    m.push(new);
+                }
+
+                m
+            });
+        }
+    }
 
     pub fn make_hsts_secure(&self, load_data: LoadData) -> LoadData {
         if let Some(h) = load_data.url.domain() {
@@ -300,27 +352,31 @@ impl ResourceManager {
 
 
 impl ResourceManager {
+    fn set_cookies_for_url(&mut self, request: Url, cookie_list: String, source: CookieSource) {
+        let header = Header::parse_header(&[cookie_list.into_bytes()]);
+        if let Ok(SetCookie(cookies)) = header {
+            for bare_cookie in cookies.into_iter() {
+                if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
+                    self.cookie_storage.push(cookie, source);
+                }
+            }
+        }
+    }
+
     fn start(&mut self) {
         loop {
             match self.from_client.recv().unwrap() {
               ControlMsg::Load(load_data, consumer) => {
-                self.load(load_data, consumer)
+                  self.load(load_data, consumer)
               }
               ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
-                let header = Header::parse_header(&[cookie_list.into_bytes()]);
-                if let Ok(SetCookie(cookies)) = header {
-                  for bare_cookie in cookies.into_iter() {
-                    if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
-                      self.cookie_storage.push(cookie, source);
-                    }
-                  }
-                }
+                  self.set_cookies_for_url(request, cookie_list, source)
               }
               ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                consumer.send(self.cookie_storage.cookies_for_url(&url, source)).unwrap();
+                  consumer.send(self.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
               ControlMsg::Exit => {
-                break
+                  break
               }
             }
         }
