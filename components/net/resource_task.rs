@@ -26,17 +26,22 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use rustc_serialize::json::{decode};
 
+use regex::Regex;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::str::{FromStr, from_utf8};
+use std::str::{from_utf8};
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
+static IPV4_REGEX: Regex = regex!(
+    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+);
+static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
 
 pub fn global_init() {
     //TODO: handle bad file path
@@ -240,6 +245,10 @@ impl HSTSList {
     }
 
     pub fn push(&mut self, host: String, include_subdomains: bool) {
+        if IPV4_REGEX.is_match(&host) || IPV6_REGEX.is_match(&host) {
+            return
+        }
+
         let have_domain = self.has_domain(host.clone());
         let have_subdomain = self.has_subdomain(host.clone());
 
@@ -288,16 +297,13 @@ impl HSTSList {
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
-    let ipv4_regex = regex!(
-        r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-    let ipv6_regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
     let mut host_table = HashMap::new();
     let lines: Vec<&str> = hostsfile_content.split('\n').collect();
 
     for line in lines.iter() {
         let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
         if ip_host.len() > 1 {
-            if !ipv4_regex.is_match(ip_host[0]) && !ipv6_regex.is_match(ip_host[0]) { continue; }
+            if !IPV4_REGEX.is_match(ip_host[0]) && !IPV6_REGEX.is_match(ip_host[0]) { continue; }
             let address = ip_host[0].to_owned();
 
             for token in ip_host.iter().skip(1) {
