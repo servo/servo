@@ -20,6 +20,28 @@ fn test_exit() {
 }
 
 #[test]
+fn test_push_entry_to_hsts_list_should_not_add_ipv6_addresses() {
+    let mut list = HSTSList {
+        entries: Vec::new()
+    };
+
+    list.push("2001:0db8:0000:0000:0000:ff00:0042:8329".to_string(), false);
+
+    assert!(list.entries.len() == 0)
+}
+
+#[test]
+fn test_push_entry_to_hsts_list_should_not_add_ipv4_addresses() {
+    let mut list = HSTSList {
+        entries: Vec::new()
+    };
+
+    list.push("8.8.8.8".to_string(), false);
+
+    assert!(list.entries.len() == 0)
+}
+
+#[test]
 fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_already_matched() {
     let mut list = HSTSList {
         entries: vec!(HSTSEntry {
