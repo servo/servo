@@ -187,6 +187,17 @@ fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_always_secure() {
 }
 
 #[test]
+fn test_make_hsts_secure_does_not_change_explicit_port() {
+    let load_data = LoadData::new(Url::parse("http://mozilla.org:8080/").unwrap(), None);
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry { host: "mozilla.org".to_string(), include_subdomains: false}]
+    };
+    let secure_load_data = hsts_list.make_hsts_secure(load_data);
+
+    assert!(secure_load_data.url.port().unwrap() == 8080u16);
+}
+
+#[test]
 fn test_make_hsts_secure_doesnt_affect_non_http_schemas() {
     let load_data = LoadData::new(Url::parse("file://mozilla.org").unwrap(), None);
     let hsts_list = HSTSList {
