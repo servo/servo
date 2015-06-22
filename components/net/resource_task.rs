@@ -36,6 +36,7 @@ use std::io::{BufReader, Read};
 use std::str::{from_utf8};
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use time;
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 static IPV4_REGEX: Regex = regex!(
@@ -188,13 +189,24 @@ pub fn new_resource_task(user_agent: Option<String>,
     setup_chan
 }
 
-#[derive(RustcDecodable, RustcEncodable)]
+#[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct HSTSEntry {
     pub host: String,
-    pub include_subdomains: bool
+    pub include_subdomains: bool,
+    pub max_age: Option<u64>,
+    timestamp: Option<u64>
 }
 
 impl HSTSEntry {
+    pub fn new(host: String, include_subdomains: bool, max_age: Option<u64>) -> HSTSEntry {
+        HSTSEntry {
+            host: host,
+            include_subdomains: include_subdomains,
+            max_age: max_age,
+            timestamp: Some(time::get_time().sec as u64)
+        }
+    }
+
     fn matches_domain(&self, host: &str) -> bool {
         self.host == host
     }
@@ -244,30 +256,25 @@ impl HSTSList {
         })
     }
 
-    pub fn push(&mut self, host: String, include_subdomains: bool) {
-        if IPV4_REGEX.is_match(&host) || IPV6_REGEX.is_match(&host) {
+    pub fn push(&mut self, entry: HSTSEntry) {
+        if IPV4_REGEX.is_match(&entry.host) || IPV6_REGEX.is_match(&entry.host) {
             return
         }
 
-        let have_domain = self.has_domain(host.clone());
-        let have_subdomain = self.has_subdomain(host.clone());
+        let have_domain = self.has_domain(entry.host.clone());
+        let have_subdomain = self.has_subdomain(entry.host.clone());
 
         if !have_domain && !have_subdomain {
-            self.entries.push(HSTSEntry {
-                host: host,
-                include_subdomains: include_subdomains
-            });
+            self.entries.push(entry);
         } else if !have_subdomain {
             self.entries = self.entries.iter().fold(Vec::new(), |mut m, e| {
-                let new = HSTSEntry {
-                    host: host.clone(),
-                    include_subdomains: include_subdomains
-                };
-
-                if e.matches_domain(&host) {
-                    m.push(new);
+                if e.matches_domain(&entry.host) {
+                    // Update the entry if there's an exact domain match.
+                    m.push(entry.clone());
                 } else {
-                    m.push(new);
+                    // Ignore the new details if it's a subdomain match, or not
+                    // a match at all. Just use the existing entry
+                    m.push(e.clone());
                 }
 
                 m
