@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLUListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLUListElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -26,7 +26,7 @@ impl HTMLUListElementDerived for EventTarget {
 }
 
 impl HTMLUListElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLUListElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLUListElement {
         HTMLUListElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLUListElement, localName, prefix, document)
         }
@@ -35,7 +35,7 @@ impl HTMLUListElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLUListElement> {
+               document: &Document) -> Root<HTMLUListElement> {
         let element = HTMLUListElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLUListElementBinding::Wrap)
     }

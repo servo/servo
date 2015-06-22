@@ -38,7 +38,7 @@ use std::boxed;
 use std::collections::HashMap;
 use std::mem;
 use std::ptr;
-use std::raw;
+use std::slice;
 
 pub trait CefWrap<CObject> {
     fn to_c(rust_object: Self) -> CObject;
@@ -209,10 +209,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
         }
     }
     unsafe fn to_rust(cef_string: *const cef_string_t) -> &'a [u16] {
-        mem::transmute(raw::Slice {
-            data: (*cef_string).str,
-            len: (*cef_string).length as usize,
-        })
+        slice::from_raw_parts((*cef_string).str, (*cef_string).length as usize)
     }
 }
 

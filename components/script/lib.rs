@@ -25,7 +25,7 @@ extern crate log;
 extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;
-extern crate geom;
+extern crate euclid;
 extern crate html5ever;
 extern crate encoding;
 extern crate fnv;
@@ -72,3 +72,10 @@ pub mod clipboard_provider;
 mod devtools;
 mod horribly_inefficient_timers;
 mod webdriver_handlers;
+
+#[allow(unsafe_code)]
+pub fn init() {
+    unsafe {
+        js::jsapi::JS_Init();
+    }
+}

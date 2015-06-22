@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, codemap, visit, ast_map};
+use syntax::{ast, codemap, visit};
 use syntax::attr::AttrMetaMethods;
+use rustc::ast_map;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
@@ -33,8 +34,7 @@ pub struct UnrootedPass;
 // TODO (#3874, sort of): unwrap other types like Vec/Option/HashMap/etc
 fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
-        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
-        ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) =>
+        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) =>
             lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(..) => {
                 match cx.tcx.def_map.borrow()[&ty.id] {
@@ -46,7 +46,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
                     _ => (),
                 }
             }
-            _ => (),
+        _ => (),
     };
 }
 
@@ -159,8 +159,8 @@ impl LintPass for UnrootedPass {
 
         let t = expr_ty(cx.tcx, &*expr);
         match t.sty {
-            ty::ty_struct(did, _) |
-            ty::ty_enum(did, _) => {
+            ty::TyStruct(did, _) |
+            ty::TyEnum(did, _) => {
                 if ty::has_attr(cx.tcx, did, "must_root") {
                     cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
                                  &format!("Expression of type {} must be rooted", t.repr(cx.tcx)));

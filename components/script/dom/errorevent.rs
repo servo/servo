@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, MutHeap, Rootable, Temporary};
-use js::jsapi::JSContext;
+use dom::bindings::js::{Root, MutHeapJSVal};
+use js::jsapi::{JSContext, HandleValue};
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::reflect_dom_object;
@@ -18,8 +18,8 @@ use util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
 use std::borrow::ToOwned;
-use std::cell::{Cell};
-use js::jsval::{JSVal, NullValue};
+use std::cell::Cell;
+use js::jsval::JSVal;
 
 #[dom_struct]
 pub struct ErrorEvent {
@@ -28,7 +28,7 @@ pub struct ErrorEvent {
     filename: DOMRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
-    error: MutHeap<JSVal>,
+    error: MutHeapJSVal,
 }
 
 impl ErrorEventDerived for Event {
@@ -45,11 +45,11 @@ impl ErrorEvent {
             filename: DOMRefCell::new("".to_owned()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
-            error: MutHeap::new(NullValue())
+            error: MutHeapJSVal::new()
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Temporary<ErrorEvent> {
+    pub fn new_uninitialized(global: GlobalRef) -> Root<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
                            global,
                            ErrorEventBinding::Wrap)
@@ -63,24 +63,26 @@ impl ErrorEvent {
                filename: DOMString,
                lineno: u32,
                colno: u32,
-               error: JSVal) -> Temporary<ErrorEvent> {
-        let ev = ErrorEvent::new_uninitialized(global).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
-        event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
-                        cancelable == EventCancelable::Cancelable);
+               error: HandleValue) -> Root<ErrorEvent> {
+        let ev = ErrorEvent::new_uninitialized(global);
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let ev = ev.r();
-        *ev.message.borrow_mut() = message;
-        *ev.filename.borrow_mut() = filename;
-        ev.lineno.set(lineno);
-        ev.colno.set(colno);
-        ev.error.set(error);
-        Temporary::from_rooted(ev)
+        {
+            let ev = ev.r();
+            let event = EventCast::from_ref(ev);
+            event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
+                            cancelable == EventCancelable::Cancelable);
+            *ev.message.borrow_mut() = message;
+            *ev.filename.borrow_mut() = filename;
+            ev.lineno.set(lineno);
+            ev.colno.set(colno);
+        }
+        ev.error.set(error.get());
+        ev
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Temporary<ErrorEvent>>{
+                       init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Root<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
             None => "".to_owned(),
@@ -106,13 +108,14 @@ impl ErrorEvent {
         let event = ErrorEvent::new(global, type_,
                                 bubbles, cancelable,
                                 msg, file_name,
-                                line_num, col_num, init.error);
+                                line_num, col_num,
+                                HandleValue { ptr: &init.error });
         Ok(event)
     }
 
 }
 
-impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
+impl<'a> ErrorEventMethods for &'a ErrorEvent {
     fn Lineno(self) -> u32 {
         self.lineno.get()
     }

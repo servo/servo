@@ -7,7 +7,7 @@
 #![feature(slice_patterns)]
 #![feature(step_by)]
 
-extern crate geom;
+extern crate euclid;
 extern crate hyper;
 #[macro_use]
 extern crate log;

@@ -9,7 +9,7 @@
 
 use animation;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, SharedLayoutContextWrapper};
+use context::{SharedLayoutContext, SharedLayoutContextWrapper, heap_size_of_local_context};
 use css::node_style::StyledNode;
 use data::{LayoutDataAccess, LayoutDataWrapper};
 use display_list_builder::ToGfxColor;
@@ -28,11 +28,11 @@ use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use fnv::FnvHasher;
-use geom::matrix;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::scale_factor::ScaleFactor;
-use geom::size::Size2D;
+use euclid::Matrix4;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::Size2D;
 use gfx_traits::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use gfx::display_list::{StackingContext};
@@ -68,7 +68,6 @@ use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
-use style::node::TNode;
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
@@ -295,7 +294,7 @@ impl LayoutTask {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> LayoutTask {
-        let screen_size = Size2D(Au(0), Au(0));
+        let screen_size = Size2D::new(Au(0), Au(0));
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
@@ -575,9 +574,27 @@ impl LayoutTask {
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(Report {
-            path: path!["pages", format!("url({})", self.url), "display-list"],
+            path: path!["pages", format!("url({})", self.url), "layout-task", "display-list"],
             size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
         });
+
+        // The LayoutTask has a context in TLS...
+        reports.push(Report {
+            path: path!["pages", format!("url({})", self.url), "layout-task", "local-context"],
+            size: heap_size_of_local_context(),
+        });
+
+        // ... as do each of the LayoutWorkers, if present.
+        if let Some(ref traversal) = rw_data.parallel_traversal {
+            let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
+            for (i, size) in sizes.iter().enumerate() {
+                reports.push(Report {
+                    path: path!["pages", format!("url({})", self.url),
+                                format!("layout-worker-{}-local-context", i)],
+                    size: *size
+                });
+            }
+        }
 
         reports_chan.send(reports);
     }
@@ -849,13 +866,13 @@ impl LayoutTask {
                 let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
                                                            root_background_color,
                                                            ScrollPolicy::Scrollable));
-                let origin = Rect(Point2D(Au(0), Au(0)), root_size);
+                let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
 
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
                                                                      0,
-                                                                     &matrix::identity(),
+                                                                     &Matrix4::identity(),
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
                                                                      Some(paint_layer)));
@@ -898,8 +915,8 @@ impl LayoutTask {
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_screen_size = rw_data.screen_size;
-        let current_screen_size = Size2D(Au::from_f32_px(initial_viewport.width.get()),
-                                         Au::from_f32_px(initial_viewport.height.get()));
+        let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
+                                              Au::from_f32_px(initial_viewport.height.get()));
         rw_data.screen_size = current_screen_size;
 
         // Handle conditions where the entire flow tree is invalid.
@@ -913,8 +930,8 @@ impl LayoutTask {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
-                rw_data.screen_size = Size2D(Au::from_f32_px(constraints.size.width.get()),
-                                             Au::from_f32_px(constraints.size.height.get()));
+                rw_data.screen_size = Size2D::new(Au::from_f32_px(constraints.size.width.get()),
+                                                  Au::from_f32_px(constraints.size.height.get()));
                 let device = Device::new(MediaType::Screen, constraints.size);
                 rw_data.stylist.set_device(device);
 
@@ -1017,8 +1034,8 @@ impl LayoutTask {
         let mut must_regenerate_display_lists = false;
         let mut old_visible_rects = HashMap::with_hash_state(Default::default());
         let inflation_amount =
-            Size2D(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
-                   rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
+            Size2D::new(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
+                        rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
         for &(ref layer_id, ref new_visible_rect) in new_visible_rects.iter() {
             match rw_data.visible_rects.get(layer_id) {
                 None => {
@@ -1233,7 +1250,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        let point = Point2D(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();
@@ -1260,7 +1277,7 @@ impl LayoutRPC for LayoutRPCImpl {
     fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
                   -> Result<MouseOverResponse, ()> {
         let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
-        let point = Point2D(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();

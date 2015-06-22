@@ -9,11 +9,11 @@ use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::Syntax;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::js::Root;
 use dom::window::WindowHelpers;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
@@ -26,8 +26,9 @@ use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 
 use util::str::DOMString;
 
-use js::jsapi::JSContext;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{JSContext, HandleValue, RootedValue};
+use js::jsapi::{JSAutoRequest, JSAutoCompartment};
+use js::jsval::UndefinedValue;
 use url::UrlParser;
 
 use std::borrow::ToOwned;
@@ -54,14 +55,14 @@ impl Worker {
         }
     }
 
-    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Temporary<Worker> {
+    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Root<Worker> {
         reflect_dom_object(box Worker::new_inherited(global, sender),
                            global,
                            WorkerBinding::Wrap)
     }
 
     // https://www.whatwg.org/html/#dom-worker
-    pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Temporary<Worker>> {
+    pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
         let worker_url = match UrlParser::new().base_url(&global.get_url()).parse(&script_url) {
             Ok(url) => url,
@@ -71,7 +72,7 @@ impl Worker {
         let resource_task = global.resource_task();
 
         let (sender, receiver) = channel();
-        let worker = Worker::new(global, sender.clone()).root();
+        let worker = Worker::new(global, sender.clone());
         let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
 
         if let Some(ref chan) = global.devtools_chan() {
@@ -92,48 +93,50 @@ impl Worker {
             worker_url, global.pipeline(), global.devtools_chan(), worker_ref, resource_task, global.script_chan(),
             sender, receiver);
 
-        Ok(Temporary::from_rooted(worker.r()))
+        Ok(worker)
     }
 
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: StructuredCloneData) {
-        let worker = address.to_temporary().root();
+        let worker = address.root();
 
         let global = worker.r().global.root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
-
-        let message = data.read(global.r());
-        MessageEvent::dispatch_jsval(target, global.r(), message);
+        let target = EventTargetCast::from_ref(worker.r());
+        let _ar = JSAutoRequest::new(global.r().get_cx());
+        let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
+        let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
+        data.read(global.r(), message.handle_mut());
+        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
-        let worker = address.to_temporary().root();
+        let worker = address.root();
         let global = worker.r().global.root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+        let target = EventTargetCast::from_ref(worker.r());
 
         let event = Event::new(global.r(),
                                "error".to_owned(),
                                EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
+                               EventCancelable::NotCancelable);
         event.r().fire(target);
     }
 
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
-        let worker = address.to_temporary().root();
+        let worker = address.root();
         let global = worker.r().global.root();
-        let error = UndefinedValue();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+        let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
+        let target = EventTargetCast::from_ref(worker.r());
         let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
-                                         message, filename, lineno, colno, error).root();
-        let event: JSRef<Event> = EventCast::from_ref(errorevent.r());
+                                         message, filename, lineno, colno, error.handle());
+        let event = EventCast::from_ref(errorevent.r());
         event.fire(target);
     }
 }
 
-impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
+impl<'a> WorkerMethods for &'a Worker {
+    fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();

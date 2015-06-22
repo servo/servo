@@ -8,9 +8,6 @@ build = "build.rs"
 [dependencies.compositing]
 path = "../../components/compositing"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
@@ -51,12 +48,11 @@ path = "../../components/util"
 [dependencies.egl]
 git = "https://github.com/servo/rust-egl"
 
-[dependencies.gleam]
-git = "https://github.com/servo/gleam"
-
 [dependencies]
 env_logger = "*"
 url = "0.2.16"
 time = "0.1.17"
 errno = "*"
 libc = "*"
+euclid = "0.1"
+gleam = "0.1"

@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutHeap, Rootable, Temporary};
+use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
@@ -26,8 +26,8 @@ pub struct Range {
 }
 
 impl Range {
-    fn new_inherited(start_container: JSRef<Node>, start_offset: u32,
-                     end_container: JSRef<Node>, end_offset: u32) -> Range {
+    fn new_inherited(start_container: &Node, start_offset: u32,
+                     end_container: &Node, end_offset: u32) -> Range {
         Range {
             reflector_: Reflector::new(),
             inner: Rc::new(RefCell::new(RangeInner::new(
@@ -36,16 +36,16 @@ impl Range {
         }
     }
 
-    pub fn new_with_doc(document: JSRef<Document>) -> Temporary<Range> {
+    pub fn new_with_doc(document: &Document) -> Root<Range> {
         let root = NodeCast::from_ref(document);
         Range::new(document, root, 0, root, 0)
     }
 
-    pub fn new(document: JSRef<Document>,
-               start_container: JSRef<Node>, start_offset: u32,
-               end_container: JSRef<Node>, end_offset: u32)
-               -> Temporary<Range> {
-        let window = document.window().root();
+    pub fn new(document: &Document,
+               start_container: &Node, start_offset: u32,
+               end_container: &Node, end_offset: u32)
+               -> Root<Range> {
+        let window = document.window();
         reflect_dom_object(box Range::new_inherited(start_container, start_offset,
                                                     end_container, end_offset),
                            GlobalRef::Window(window.r()),
@@ -53,8 +53,8 @@ impl Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range
-    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Range>> {
-        let document = global.as_window().Document().root();
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Range>> {
+        let document = global.as_window().Document();
         Ok(Range::new_with_doc(document.r()))
     }
 }
@@ -63,15 +63,15 @@ pub trait RangeHelpers<'a> {
     fn inner(self) -> &'a Rc<RefCell<RangeInner>>;
 }
 
-impl<'a> RangeHelpers<'a> for JSRef<'a, Range> {
+impl<'a> RangeHelpers<'a> for &'a Range {
     fn inner(self) -> &'a Rc<RefCell<RangeInner>> {
-        &self.extended_deref().inner
+        &self.inner
     }
 }
 
-impl<'a> RangeMethods for JSRef<'a, Range> {
+impl<'a> RangeMethods for &'a Range {
     // http://dom.spec.whatwg.org/#dom-range-startcontainer
-    fn StartContainer(self) -> Temporary<Node> {
+    fn StartContainer(self) -> Root<Node> {
         self.inner().borrow().start.node()
     }
 
@@ -81,7 +81,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     /// http://dom.spec.whatwg.org/#dom-range-endcontainer
-    fn EndContainer(self) -> Temporary<Node> {
+    fn EndContainer(self) -> Root<Node> {
         self.inner().borrow().end.node()
     }
 
@@ -97,12 +97,12 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer
-    fn CommonAncestorContainer(self) -> Temporary<Node> {
+    fn CommonAncestorContainer(self) -> Root<Node> {
         self.inner().borrow().common_ancestor_container()
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartnode-offset
-    fn SetStart(self, node: JSRef<Node>, offset: u32) -> ErrorResult {
+    fn SetStart(self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
             Err(Error::InvalidNodeType)
@@ -117,7 +117,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendnode-offset
-    fn SetEnd(self, node: JSRef<Node>, offset: u32) -> ErrorResult {
+    fn SetEnd(self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
             Err(Error::InvalidNodeType)
@@ -132,26 +132,26 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartbeforenode
-    fn SetStartBefore(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
+    fn SetStartBefore(self, node: &Node) -> ErrorResult {
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetStart(parent.r(), node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartafternode
-    fn SetStartAfter(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
+    fn SetStartAfter(self, node: &Node) -> ErrorResult {
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetStart(parent.r(), node.index() + 1)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendbeforenode
-    fn SetEndBefore(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
+    fn SetEndBefore(self, node: &Node) -> ErrorResult {
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetEnd(parent.r(), node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendafternode
-    fn SetEndAfter(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
+    fn SetEndAfter(self, node: &Node) -> ErrorResult {
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetEnd(parent.r(), node.index() + 1)
     }
 
@@ -161,17 +161,17 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-selectnodenode
-    fn SelectNode(self, node: JSRef<Node>) -> ErrorResult {
+    fn SelectNode(self, node: &Node) -> ErrorResult {
         self.inner().borrow_mut().select_node(node)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-selectnodecontentsnode
-    fn SelectNodeContents(self, node: JSRef<Node>) -> ErrorResult {
+    fn SelectNodeContents(self, node: &Node) -> ErrorResult {
         self.inner().borrow_mut().select_node_contents(node)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-compareboundarypointshow-sourcerange
-    fn CompareBoundaryPoints(self, how: u16, source_range: JSRef<Range>)
+    fn CompareBoundaryPoints(self, how: u16, source_range: &Range)
                              -> Fallible<i16> {
         if how > RangeConstants::END_TO_START {
             // Step 1.
@@ -179,8 +179,8 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
         }
         let this_inner = self.inner().borrow();
         let other_inner = source_range.inner().borrow();
-        let this_start_node = this_inner.start.node().root();
-        let other_start_node = other_inner.start.node().root();
+        let this_start_node = this_inner.start.node();
+        let other_start_node = other_inner.start.node();
         let this_root = this_start_node.r().inclusive_ancestors().last().unwrap();
         let other_root = other_start_node.r().inclusive_ancestors().last().unwrap();
         if this_root != other_root {
@@ -212,18 +212,18 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-clonerange
-    fn CloneRange(self) -> Temporary<Range> {
+    fn CloneRange(self) -> Root<Range> {
         let inner = self.inner().borrow();
         let start = &inner.start;
         let end = &inner.end;
-        let start_node = start.node().root();
-        let owner_doc = NodeCast::from_ref(start_node.r()).owner_doc().root();
+        let start_node = start.node();
+        let owner_doc = NodeCast::from_ref(start_node.r()).owner_doc();
         Range::new(owner_doc.r(), start_node.r(), start.offset,
-                   end.node().root().r(), end.offset)
+                   end.node().r(), end.offset)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-ispointinrangenode-offset
-    fn IsPointInRange(self, node: JSRef<Node>, offset: u32) -> Fallible<bool> {
+    fn IsPointInRange(self, node: &Node, offset: u32) -> Fallible<bool> {
         match self.inner().borrow().compare_point(node, offset) {
             Ok(Ordering::Less) => Ok(false),
             Ok(Ordering::Equal) => Ok(true),
@@ -237,7 +237,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
-    fn ComparePoint(self, node: JSRef<Node>, offset: u32) -> Fallible<i16> {
+    fn ComparePoint(self, node: &Node, offset: u32) -> Fallible<i16> {
         self.inner().borrow().compare_point(node, offset).map(|order| {
             match order {
                 Ordering::Less => -1,
@@ -248,14 +248,14 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-intersectsnodenode
-    fn IntersectsNode(self, node: JSRef<Node>) -> bool {
+    fn IntersectsNode(self, node: &Node) -> bool {
         let inner = self.inner().borrow();
         let start = &inner.start;
-        let start_node = start.node().root();
+        let start_node = start.node();
         let start_offset = start.offset;
-        let start_node_root = start_node.r().inclusive_ancestors().last().unwrap().root();
-        let node_root = node.inclusive_ancestors().last().unwrap().root();
-        if start_node_root.r() != node_root.r() {
+        let start_node_root = start_node.r().inclusive_ancestors().last().unwrap();
+        let node_root = node.inclusive_ancestors().last().unwrap();
+        if start_node_root != node_root {
             // Step 1.
             return false;
         }
@@ -265,11 +265,11 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
                 // Step 3.
                 return true;
             },
-        }.root();
+        };
         // Step 4.
         let offset = node.index();
         let end = &inner.end;
-        let end_node = end.node().root();
+        let end_node = end.node();
         let end_offset = end.offset;
         match (bp_position(parent.r(), offset + 1, start_node.r(), start_offset).unwrap(),
                bp_position(parent.r(), offset, end_node.r(), end_offset).unwrap()) {
@@ -304,13 +304,13 @@ impl RangeInner {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer
-    fn common_ancestor_container(&self) -> Temporary<Node> {
-        let start_container = self.start.node().root();
-        let end_container = self.end.node().root();
+    fn common_ancestor_container(&self) -> Root<Node> {
+        let start_container = self.start.node();
+        let end_container = self.end.node();
         // Step 1.
         for container in start_container.r().inclusive_ancestors() {
             // Step 2.
-            if container.root().r().is_inclusive_ancestor_of(end_container.r()) {
+            if container.r().is_inclusive_ancestor_of(end_container.r()) {
                 // Step 3.
                 return container;
             }
@@ -319,9 +319,9 @@ impl RangeInner {
     }
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
-    pub fn set_start(&mut self, bp_node: JSRef<Node>, bp_offset: u32) {
+    pub fn set_start(&mut self, bp_node: &Node, bp_offset: u32) {
         // Steps 1-3 handled in Range caller.
-        let end_node = self.end.node().root();
+        let end_node = self.end.node();
         let end_offset = self.end.offset;
         match bp_position(bp_node, bp_offset, end_node.r(), end_offset) {
             None | Some(Ordering::Greater) => {
@@ -335,9 +335,9 @@ impl RangeInner {
     }
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
-    pub fn set_end(&mut self, bp_node: JSRef<Node>, bp_offset: u32) {
+    pub fn set_end(&mut self, bp_node: &Node, bp_offset: u32) {
         // Steps 1-3 handled in Range caller.
-        let start_node = self.start.node().root();
+        let start_node = self.start.node();
         let start_offset = self.start.offset;
         match bp_position(bp_node, bp_offset, start_node.r(), start_offset) {
             None | Some(Ordering::Less) => {
@@ -353,18 +353,18 @@ impl RangeInner {
     // https://dom.spec.whatwg.org/#dom-range-collapsetostart
     fn collapse(&mut self, to_start: bool) {
         if to_start {
-            let start_node = self.start.node().root();
+            let start_node = self.start.node();
             self.end.set(start_node.r(), self.start.offset);
         } else {
-            let end_node = self.end.node().root();
+            let end_node = self.end.node();
             self.start.set(end_node.r(), self.end.offset);
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-range-selectnodenode
-    fn select_node(&mut self, node: JSRef<Node>) -> ErrorResult {
+    fn select_node(&mut self, node: &Node) -> ErrorResult {
         // Steps 1, 2.
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         // Step 3.
         let index = node.index();
         // Step 4.
@@ -375,7 +375,7 @@ impl RangeInner {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-selectnodecontentsnode
-    fn select_node_contents(&mut self, node: JSRef<Node>) -> ErrorResult {
+    fn select_node_contents(&mut self, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
             return Err(Error::InvalidNodeType);
@@ -390,13 +390,13 @@ impl RangeInner {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
-    fn compare_point(&self, node: JSRef<Node>, offset: u32) -> Fallible<Ordering> {
+    fn compare_point(&self, node: &Node, offset: u32) -> Fallible<Ordering> {
         let start = &self.start;
-        let start_node = start.node().root();
+        let start_node = start.node();
         let start_offset = start.offset;
-        let start_node_root = start_node.r().inclusive_ancestors().last().unwrap().root();
-        let node_root = node.inclusive_ancestors().last().unwrap().root();
-        if start_node_root.r() != node_root.r() {
+        let start_node_root = start_node.r().inclusive_ancestors().last().unwrap();
+        let node_root = node.inclusive_ancestors().last().unwrap();
+        if start_node_root != node_root {
             // Step 1.
             return Err(Error::WrongDocument);
         }
@@ -413,7 +413,7 @@ impl RangeInner {
             return Ok(Ordering::Less);
         }
         let end = &self.end;
-        let end_node = end.node().root();
+        let end_node = end.node();
         let end_offset = end.offset;
         if let Ordering::Greater = bp_position(node, offset, end_node.r(), end_offset).unwrap() {
             // Step 5.
@@ -433,27 +433,27 @@ pub struct BoundaryPoint {
 }
 
 impl BoundaryPoint {
-    fn new(node: JSRef<Node>, offset: u32) -> BoundaryPoint {
+    fn new(node: &Node, offset: u32) -> BoundaryPoint {
         debug_assert!(!node.is_doctype());
         debug_assert!(offset <= node.len());
         BoundaryPoint {
-            node: MutHeap::new(JS::from_rooted(node)),
+            node: MutHeap::new(JS::from_ref(node)),
             offset: offset,
         }
     }
 
-    pub fn node(&self) -> Temporary<Node> {
-        Temporary::from_rooted(self.node.get())
+    pub fn node(&self) -> Root<Node> {
+        self.node.get().root()
     }
 
     pub fn offset(&self) -> u32 {
         self.offset
     }
 
-    fn set(&mut self, node: JSRef<Node>, offset: u32) {
+    fn set(&mut self, node: &Node, offset: u32) {
         debug_assert!(!node.is_doctype());
         debug_assert!(offset <= node.len());
-        self.node.set(JS::from_rooted(node));
+        self.node.set(JS::from_ref(node));
         self.offset = offset;
     }
 }
@@ -461,24 +461,24 @@ impl BoundaryPoint {
 #[allow(unrooted_must_root)]
 impl PartialOrd for BoundaryPoint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        bp_position(self.node().root().r(), self.offset,
-                    other.node().root().r(), other.offset)
+        bp_position(self.node().r(), self.offset,
+                    other.node().r(), other.offset)
     }
 }
 
 #[allow(unrooted_must_root)]
 impl PartialEq for BoundaryPoint {
     fn eq(&self, other: &Self) -> bool {
-        self.node().root().r() == other.node().root().r() &&
+        self.node() == other.node() &&
         self.offset == other.offset
     }
 }
 
 // https://dom.spec.whatwg.org/#concept-range-bp-position
-fn bp_position(a_node: JSRef<Node>, a_offset: u32,
-               b_node: JSRef<Node>, b_offset: u32)
+fn bp_position(a_node: &Node, a_offset: u32,
+               b_node: &Node, b_offset: u32)
                -> Option<Ordering> {
-    if a_node == b_node {
+    if a_node as *const Node == b_node as *const Node {
         // Step 1.
         return Some(a_offset.cmp(&b_offset));
     }
@@ -495,9 +495,9 @@ fn bp_position(a_node: JSRef<Node>, a_offset: u32,
         }
     } else if position & NodeConstants::DOCUMENT_POSITION_CONTAINS != 0 {
         // Step 3-1, 3-2.
-        let b_ancestors = b_node.inclusive_ancestors();
-        let ref child = b_ancestors.map(|child| child.root()).find(|child| {
-            child.r().GetParentNode().unwrap().root().r() == a_node
+        let mut b_ancestors = b_node.inclusive_ancestors();
+        let ref child = b_ancestors.find(|child| {
+            child.r().GetParentNode().unwrap().r() == a_node
         }).unwrap();
         // Step 3-3.
         if child.r().index() < a_offset {

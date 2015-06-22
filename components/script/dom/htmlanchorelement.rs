@@ -13,8 +13,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, Temporary};
-use dom::bindings::js::OptionalRootable;
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{Element, AttributeHandlers, ElementTypeId};
@@ -47,7 +46,7 @@ impl HTMLAnchorElementDerived for EventTarget {
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLAnchorElement {
+                     document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
@@ -58,19 +57,19 @@ impl HTMLAnchorElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLAnchorElement> {
+               document: &Document) -> Root<HTMLAnchorElement> {
         let element = HTMLAnchorElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAnchorElementBinding::Wrap)
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
+impl<'a> VirtualMethods for &'a HTMLAnchorElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn handle_event(&self, event: JSRef<Event>) {
+    fn handle_event(&self, event: &Event) {
         match self.super_type() {
             Some(s) => {
                 s.handle_event(event);
@@ -87,27 +86,27 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
     }
 }
 
-impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
+impl<'a> HTMLAnchorElementMethods for &'a HTMLAnchorElement {
     fn Text(self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
     fn SetText(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 
-    fn RelList(self) -> Temporary<DOMTokenList> {
+    fn RelList(self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })
     }
 }
 
-impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
-    fn as_element(&self) -> Temporary<Element> {
-        Temporary::from_rooted(ElementCast::from_ref(*self))
+impl<'a> Activatable for &'a HTMLAnchorElement {
+    fn as_element<'b>(&'b self) -> &'b Element {
+        ElementCast::from_ref(*self)
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -125,22 +124,22 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
     }
 
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
-    fn activation_behavior(&self, event: JSRef<Event>, target: JSRef<EventTarget>) {
+    fn activation_behavior(&self, event: &Event, target: &EventTarget) {
         //Step 1. If the node document is not fully active, abort.
-        let doc = document_from_node(*self).root();
+        let doc = document_from_node(*self);
         if !doc.r().is_fully_active() {
             return;
         }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
         //Step 3. Handle <img ismap/>.
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+        let element = ElementCast::from_ref(*self);
         let mouse_event = MouseEventCast::to_ref(event).unwrap();
         let mut ismap_suffix = None;
         if let Some(element) = ElementCast::to_ref(target) {
             if target.is_htmlimageelement() && element.has_attribute(&atom!("ismap")) {
 
                 let target_node = NodeCast::to_ref(target).unwrap();
-                let rect = window_from_node(target_node).root().r().content_box_query(
+                let rect = window_from_node(target_node).r().content_box_query(
                     target_node.to_trusted_node_address());
                 ismap_suffix = Some(
                     format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
@@ -151,7 +150,7 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
 
         //TODO: Step 4. Download the link is `download` attribute is set.
 
-        let attr = element.get_attribute(&ns!(""), &atom!("href")).root();
+        let attr = element.get_attribute(&ns!(""), &atom!("href"));
         match attr {
             Some(ref href) => {
                 let value = href.r().Value() + ismap_suffix.as_ref().map(|s| &**s).unwrap_or("");

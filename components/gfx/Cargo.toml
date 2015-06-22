@@ -35,9 +35,6 @@ path = "../style"
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
@@ -53,9 +50,6 @@ git = "https://github.com/servo/skia"
 [dependencies.script_traits]
 path = "../script_traits"
 
-[dependencies.string_cache]
-git = "https://github.com/servo/string-cache"
-
 [dependencies]
 log = "*"
 fnv = "1.0"
@@ -67,6 +61,8 @@ libc = "*"
 rand = "*"
 harfbuzz = "0.1"
 smallvec = "0.1"
+string_cache = "0.1"
+euclid = "0.1"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "*"

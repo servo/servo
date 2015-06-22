@@ -155,11 +155,30 @@ pub mod codegen {
     // FIXME(#5853) we shouldn't need to
     // allow moved_no_move here
     #[allow(unrooted_must_root, moved_no_move)]
-    pub mod Bindings;
-    pub mod InterfaceTypes;
-    pub mod InheritTypes;
-    pub mod PrototypeList;
-    pub mod RegisterBindings;
-    pub mod UnionTypes;
+    pub mod Bindings {
+        include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
+    }
+    pub mod InterfaceTypes {
+        include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
+    }
+    #[allow(unused_imports)]
+    pub mod InheritTypes {
+        include!(concat!(env!("OUT_DIR"), "/InheritTypes.rs"));
+    }
+    pub mod PrototypeList {
+        include!(concat!(env!("OUT_DIR"), "/PrototypeList.rs"));
+    }
+    #[allow(unreachable_code, non_camel_case_types, non_upper_case_globals, unused_parens,
+            unused_imports, unused_variables, unused_unsafe, unused_mut, unused_assignments,
+            dead_code)]
+    pub mod RegisterBindings {
+        include!(concat!(env!("OUT_DIR"), "/RegisterBindings.rs"));
+    }
+    #[allow(unreachable_code, non_camel_case_types, non_upper_case_globals, unused_parens,
+            unused_imports, unused_variables, unused_unsafe, unused_mut, unused_assignments,
+            dead_code)]
+    pub mod UnionTypes {
+        include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));
+    }
 }
 

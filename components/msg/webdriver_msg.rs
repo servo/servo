@@ -53,4 +53,7 @@ impl ToJson for WebDriverJSValue {
     }
 }
 
-pub struct LoadComplete;
+pub enum LoadStatus {
+    LoadComplete,
+    LoadTimeout
+}

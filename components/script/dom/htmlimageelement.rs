@@ -10,10 +10,9 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementM
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, HTMLElementCast,
                                            HTMLImageElementDerived};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, LayoutJS, Rootable, Temporary};
+use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
-use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -51,7 +50,7 @@ pub trait HTMLImageElementHelpers {
     fn get_url(&self) -> Option<Url>;
 }
 
-impl<'a> HTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
+impl<'a> HTMLImageElementHelpers for &'a HTMLImageElement {
     fn get_url(&self) -> Option<Url>{
         self.url.borrow().clone()
     }
@@ -79,7 +78,7 @@ impl Responder {
 impl ImageResponder for Responder {
     fn respond(&self, image: ImageResponse) {
         // Update the image field
-        let element = self.element.to_temporary().root();
+        let element = self.element.root();
         let element_ref = element.r();
         *element_ref.image.borrow_mut() = match image {
             ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
@@ -90,17 +89,17 @@ impl ImageResponder for Responder {
 
         // Mark the node dirty
         let node = NodeCast::from_ref(element.r());
-        let document = document_from_node(node).root();
+        let document = document_from_node(node);
         document.r().content_changed(node, NodeDamage::OtherNodeDamage);
 
         // Fire image.onload
-        let window = window_from_node(document.r()).root();
+        let window = window_from_node(document.r());
         let event = Event::new(GlobalRef::Window(window.r()),
                                "load".to_owned(),
                                EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
+                               EventCancelable::NotCancelable);
         let event = event.r();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+        let target = EventTargetCast::from_ref(node);
         event.fire(target);
 
         // Trigger reflow
@@ -108,13 +107,13 @@ impl ImageResponder for Responder {
     }
 }
 
-impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
+impl<'a> PrivateHTMLImageElementHelpers for &'a HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(self, value: Option<(DOMString, &Url)>) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        let document = node.owner_doc().root();
-        let window = document.r().window().root();
+        let node = NodeCast::from_ref(self);
+        let document = node.owner_doc();
+        let window = document.r().window();
         let window = window.r();
         let image_cache = window.image_cache_task();
         match value {
@@ -137,7 +136,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 }
 
 impl HTMLImageElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLImageElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
             url: DOMRefCell::new(None),
@@ -148,7 +147,7 @@ impl HTMLImageElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLImageElement> {
+               document: &Document) -> Root<HTMLImageElement> {
         let element = HTMLImageElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLImageElementBinding::Wrap)
     }
@@ -174,7 +173,7 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     }
 }
 
-impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
+impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
     make_getter!(Alt);
 
     make_setter!(SetAlt, "alt");
@@ -190,29 +189,29 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     make_bool_getter!(IsMap);
 
     fn SetIsMap(self, is_map: bool) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
     fn Width(self) -> u32 {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
     fn SetWidth(self, width: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
     fn Height(self) -> u32 {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
     fn SetHeight(self, height: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
@@ -264,20 +263,20 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     make_setter!(SetBorder, "border");
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
+impl<'a> VirtualMethods for &'a HTMLImageElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
 
         match attr.local_name() {
             &atom!("src") => {
-                let window = window_from_node(*self).root();
+                let window = window_from_node(*self);
                 let url = window.r().get_url();
                 self.update_image(Some(((**attr.value()).to_owned(), &url)));
             },
@@ -285,7 +284,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }

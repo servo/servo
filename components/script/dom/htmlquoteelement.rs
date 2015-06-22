@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLQuoteElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLQuoteElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLQuoteElementDerived for EventTarget {
 impl HTMLQuoteElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLQuoteElement {
+                     document: &Document) -> HTMLQuoteElement {
         HTMLQuoteElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLQuoteElement, localName, prefix, document)
@@ -38,7 +38,7 @@ impl HTMLQuoteElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLQuoteElement> {
+               document: &Document) -> Root<HTMLQuoteElement> {
         let element = HTMLQuoteElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLQuoteElementBinding::Wrap)
     }

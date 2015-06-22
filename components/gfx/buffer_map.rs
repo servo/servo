@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use geom::size::Size2D;
+use euclid::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
 use layers::layers::LayerBuffer;
 use std::hash::{Hash, Hasher};

@@ -8,9 +8,9 @@ use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::InvalidState;
-use dom::bindings::error::Error::{ Syntax, Abort, Timeout};
+use dom::bindings::error::Error::{Syntax, Abort};
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JSRef, Temporary, Rootable};
+use dom::bindings::js::{Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventHelpers};
@@ -105,12 +105,12 @@ impl FileReader {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Temporary<FileReader> {
+    pub fn new(global: GlobalRef) -> Root<FileReader> {
         reflect_dom_object(box FileReader::new_inherited( global),
                            global, FileReaderBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<FileReader>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<FileReader>> {
         Ok(FileReader::new(global))
     }
 
@@ -120,23 +120,23 @@ impl FileReader {
                          read_data: ReadData) {
         impl AsyncReadingListener for FileReaderContext {
             fn data_available(&self, payload: DOMString){
-                let fr = self.fr.to_temporary().root();
+                let fr = self.fr.root();
                 fr.r().process_data_available(self.gen_id, payload);
             }
 
             fn reading_complete(&self, status: Result<DOMString, String>){
-                let fr = self.fr.to_temporary().root();
+                let fr = self.fr.root();
                 fr.r().process_result_complete(self.gen_id, status);
             }
             fn start_reading(&self){
-                let fr = self.fr.to_temporary().root();
+                let fr = self.fr.root();
                 fr.r().process_start(self.gen_id);
             }
         }
 
         impl PreInvoke for FileReaderContext {
             fn should_invoke(&self) -> bool {
-                let fr = self.fr.to_temporary().root();
+                let fr = self.fr.root();
                 fr.r().generation_id.get() == self.gen_id
             }
         }
@@ -149,7 +149,7 @@ impl FileReader {
     }
 }
 
-impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
+impl<'a> FileReaderMethods for &'a FileReader {
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
     event_handler!(progress, GetOnprogress, SetOnprogress);
     event_handler!(load, GetOnload, SetOnload);
@@ -158,7 +158,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     //https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
-    fn ReadAsArrayBuffer(self,blob: JSRef<Blob>) -> ErrorResult {
+    fn ReadAsArrayBuffer(self,blob: &Blob) -> ErrorResult {
         let global = self.global.root();
         //1. readAsArrayBuffer
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
@@ -179,7 +179,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(self,blob: JSRef<Blob>,label:Option<DOMString>) -> ErrorResult {
+    fn ReadAsText(self,blob: &Blob,label:Option<DOMString>) -> ErrorResult {
         let global = self.global.root();
         //1. readAsText
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
@@ -200,7 +200,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn ReadAsDataURL(self,blob: JSRef<Blob>) -> ErrorResult {
+    fn ReadAsDataURL(self,blob: &Blob) -> ErrorResult {
         let global = self.global.root();
         //1. readAsDataURL
         if self.ready_state.get() as u16 == FileReaderReadyState::Loading as u16 {
@@ -233,7 +233,7 @@ impl<'a> FileReaderMethods for JSRef<'a, FileReader> {
         self.dispatch_result_progress_event("loadend".to_owned());
     }
 
-    fn GetError(self) -> Option<Temporary<DOMException>> {
+    fn GetError(self) -> Option<Root<DOMException>> {
         //FIXME Return the current error state
         None
     }
@@ -264,16 +264,16 @@ trait PrivateFileReaderHelpers {
     fn terminate(self);
 }
 
-impl<'a> PrivateFileReaderHelpers for JSRef<'a, FileReader> {
+impl<'a> PrivateFileReaderHelpers for &'a FileReader {
 
     fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
                                                type_, false, false,
                                                total.is_some(), loaded,
-                                               total.unwrap_or(0)).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
+                                               total.unwrap_or(0));
+        let target: &EventTarget = EventTargetCast::from_ref(self);
+        let event: &Event = EventCast::from_ref(progressevent.r());
         event.fire(target);
     }
 
@@ -451,12 +451,12 @@ impl FileReaderManager {
 
     fn readArrayBuffer(&mut self, read_data: ReadData, progress: ReadConsumer) {
         //FIXME
-        progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Not Implemented Function"))))
+        progress.invoke(ResultAction::ResultComplete(Err(DOMString::from("Not Implemented Function"))))
     }
 
     fn readDataUrl(&mut self, read_data: ReadData, progress: ReadConsumer) {
         //FIXME
-        progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Not Implemented Function"))))
+        progress.invoke(ResultAction::ResultComplete(Err(DOMString::from("Not Implemented Function"))))
     }
 
     fn readText(&mut self, read_data: ReadData, progress: ReadConsumer) {
@@ -469,7 +469,7 @@ impl FileReaderManager {
         let enc = match encoding {
             Some(code) => code,
             None => {
-                progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Wrong Encoding"))));
+                progress.invoke(ResultAction::ResultComplete(Err(DOMString::from("Wrong Encoding"))));
                 return;
             }
         };
@@ -489,7 +489,7 @@ impl FileReaderManager {
             Ok(s) => {
                 progress.invoke(ResultAction::ResultComplete(Ok(s)));
             },
-            Err(_) => progress.invoke(ResultAction::ResultComplete(Err(DOMString::from_str("Decoding failed"))))
+            Err(_) => progress.invoke(ResultAction::ResultComplete(Err(DOMString::from("Decoding failed"))))
         };
     }
 }

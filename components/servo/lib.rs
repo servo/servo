@@ -81,6 +81,7 @@ impl Browser {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
+        script::init();
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();

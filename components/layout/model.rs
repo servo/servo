@@ -8,7 +8,7 @@
 
 use fragment::Fragment;
 
-use geom::{Matrix4, SideOffsets2D};
+use euclid::{Matrix4, SideOffsets2D};
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;

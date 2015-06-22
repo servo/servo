@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JSRef};
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -28,7 +27,7 @@ impl HTMLMediaElementDerived for EventTarget {
 
 impl HTMLMediaElement {
     pub fn new_inherited(type_id: HTMLMediaElementTypeId, tag_name: DOMString,
-                         prefix: Option<DOMString>, document: JSRef<Document>)
+                         prefix: Option<DOMString>, document: &Document)
                          -> HTMLMediaElement {
         HTMLMediaElement {
             htmlelement:
@@ -42,10 +41,17 @@ impl HTMLMediaElement {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[jstraceable]
 pub enum HTMLMediaElementTypeId {
-    HTMLAudioElement,
-    HTMLVideoElement,
+    HTMLAudioElement = 0,
+    HTMLVideoElement = 1,
+}
+
+impl PartialEq for HTMLMediaElementTypeId {
+    #[inline]
+    fn eq(&self, other: &HTMLMediaElementTypeId) -> bool {
+        (*self as u8) == (*other as u8)
+    }
 }
 

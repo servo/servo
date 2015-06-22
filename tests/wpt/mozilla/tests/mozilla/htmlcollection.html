@@ -15,16 +15,16 @@
             <p id="p3" class="bbb ccc"/>
         </div>
         <script>
-            let foo1 = document.getElementById("foo-1");
-            let foo2 = document.getElementById("foo-2");
-            let bar = document.getElementById("bar");
-            let live = document.getElementById("live");
-            let child = document.createElement("p");
-            let p1 = document.getElementById("p1");
-            let p2 = document.getElementById("p2");
-            let p3 = document.getElementById("p3");
+            var foo1 = document.getElementById("foo-1");
+            var foo2 = document.getElementById("foo-2");
+            var bar = document.getElementById("bar");
+            var live = document.getElementById("live");
+            var child = document.createElement("p");
+            var p1 = document.getElementById("p1");
+            var p2 = document.getElementById("p2");
+            var p3 = document.getElementById("p3");
 
-            let htmlcollection = null;
+            var htmlcollection = null;
 
             test(function() {
                 htmlcollection = document.getElementsByClassName("foo");
@@ -50,7 +50,7 @@
                 assert_equals(htmlcollection.length, 1);
                 assert_equals(htmlcollection.item(0), live);
 
-                let new_live = document.createElement("div");
+                var new_live = document.createElement("div");
                 new_live.className = "live";
                 document.body.appendChild(new_live);
                 assert_equals(htmlcollection.length, 2);
@@ -74,7 +74,7 @@
                 htmlcollection = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "div");
                 assert_equals(htmlcollection.length, 5);
 
-                let from_element = document.documentElement.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "div");
+                var from_element = document.documentElement.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "div");
                 assert_equals(htmlcollection.length, from_element.length);
 
                 htmlcollection = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "DIV");
@@ -103,7 +103,7 @@
                 htmlcollection = document.getElementsByClassName("aaa,bbb");
                 assert_equals(htmlcollection.length, 0);
 
-                let from_element = document.getElementById("class-example").getElementsByClassName("bbb");
+                var from_element = document.getElementById("class-example").getElementsByClassName("bbb");
                 assert_equals(from_element.length, 2);
                 assert_equals(from_element.item(0), p1);
                 assert_equals(from_element.item(1), p3);

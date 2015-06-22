@@ -80,7 +80,7 @@ pub mod specified {
     use std::ops::{Add, Mul};
     use url::Url;
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
-    use geom::size::Size2D;
+    use euclid::size::Size2D;
     use parser::ParserContext;
     use util::geometry::Au;
     use super::CSSFloat;
@@ -892,7 +892,7 @@ pub mod computed {
     use super::specified::{AngleOrCorner};
     use super::{specified, CSSFloat};
     pub use cssparser::Color as CSSColor;
-    use geom::size::Size2D;
+    use euclid::size::Size2D;
     use properties::longhands;
     use std::fmt;
     use std::ops::{Add, Mul};

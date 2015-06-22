@@ -8,17 +8,17 @@
   <div id="bar"></div>
   <script>
   test(function() {
-    let gBody = document.getElementsByTagName("body")[0];
+    var gBody = document.getElementsByTagName("body")[0];
 
     // Test the assertion with inserting node with child having id into the document (mozilla#2630)
     // This need not to port to WPF-test because this tests servo's internally flags.
     {
-      let TEST_ID = "test-9";
-      let a = document.createElement("a");
-      let b = document.createElement("b");
+      var TEST_ID = "test-9";
+      var a = document.createElement("a");
+      var b = document.createElement("b");
       a.appendChild(b).id = TEST_ID;
       gBody.appendChild(a);
-      let result = document.getElementById(TEST_ID);
+      var result = document.getElementById(TEST_ID);
       assert_equals(result, b, "test 9-0");
     }
   });

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLMeterElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMeterElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLMeterElementDerived for EventTarget {
 impl HTMLMeterElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLMeterElement {
+                     document: &Document) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMeterElement, localName, prefix, document)
         }
@@ -37,7 +37,7 @@ impl HTMLMeterElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLMeterElement> {
+               document: &Document) -> Root<HTMLMeterElement> {
         let element = HTMLMeterElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLMeterElementBinding::Wrap)
     }

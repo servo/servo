@@ -5,17 +5,16 @@
 var callback = arguments[arguments.length - 1];
 window.timeout_multiplier = %(timeout_multiplier)d;
 
-window.done = function(tests, status) {
+window.addEventListener("message", function(event) {
+  var tests = event.data[0];
+  var status = event.data[1];
   clearTimeout(timer);
-  var test_results = tests.map(function(x) {
-    return {name:x.name, status:x.status, message:x.message, stack:x.stack}
-  });
   callback({test:"%(url)s",
-            tests:test_results,
+            tests: tests,
             status: status.status,
             message: status.message,
             stack: status.stack});
-}
+}, false);
 
 window.win = window.open("%(abs_url)s", "%(window_id)s");
 

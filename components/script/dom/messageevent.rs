@@ -8,22 +8,23 @@ use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventHelpers, EventTypeId};
 use dom::eventtarget::EventTarget;
 
 use util::str::DOMString;
 
-use js::jsapi::JSContext;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{JSContext, Heap, HandleValue};
+use js::jsval::JSVal;
 
 use std::borrow::ToOwned;
+use std::default::Default;
 
 #[dom_struct]
 pub struct MessageEvent {
     event: Event,
-    data: JSVal,
+    data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
 }
@@ -35,64 +36,62 @@ impl MessageEventDerived for Event {
 }
 
 impl MessageEvent {
-    fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
-                         -> MessageEvent {
-        MessageEvent {
-            event: Event::new_inherited(EventTypeId::MessageEvent),
-            data: data,
-            origin: origin,
-            lastEventId: lastEventId,
-        }
-    }
-
-    pub fn new_uninitialized(global: GlobalRef) -> Temporary<MessageEvent> {
-        MessageEvent::new_initialized(global, UndefinedValue(), "".to_owned(), "".to_owned())
+    pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
+        MessageEvent::new_initialized(global, HandleValue::undefined(), "".to_owned(), "".to_owned())
     }
 
     pub fn new_initialized(global: GlobalRef,
-                           data: JSVal,
+                           data: HandleValue,
                            origin: DOMString,
-                           lastEventId: DOMString) -> Temporary<MessageEvent> {
-        reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
-        global,
-        MessageEventBinding::Wrap)
+                           lastEventId: DOMString) -> Root<MessageEvent> {
+        let mut ev = box MessageEvent {
+            event: Event::new_inherited(EventTypeId::MessageEvent),
+            data: Heap::default(),
+            origin: origin,
+            lastEventId: lastEventId,
+        };
+        ev.data.set(data.get());
+        reflect_dom_object(ev, global, MessageEventBinding::Wrap)
     }
 
     pub fn new(global: GlobalRef, type_: DOMString,
                bubbles: bool, cancelable: bool,
-               data: JSVal, origin: DOMString, lastEventId: DOMString)
-               -> Temporary<MessageEvent> {
-        let ev = MessageEvent::new_initialized(global, data, origin, lastEventId).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
-        event.InitEvent(type_, bubbles, cancelable);
-        Temporary::from_rooted(ev.r())
+               data: HandleValue, origin: DOMString, lastEventId: DOMString)
+               -> Root<MessageEvent> {
+        let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
+        {
+            let event = EventCast::from_ref(ev.r());
+            event.InitEvent(type_, bubbles, cancelable);
+        }
+        ev
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
-                       -> Fallible<Temporary<MessageEvent>> {
+                       -> Fallible<Root<MessageEvent>> {
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
-                                   init.data, init.origin.clone(), init.lastEventId.clone());
+                                   HandleValue { ptr: &init.data },
+                                   init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
 }
 
 impl MessageEvent {
-    pub fn dispatch_jsval(target: JSRef<EventTarget>,
+    pub fn dispatch_jsval(target: &EventTarget,
                           scope: GlobalRef,
-                          message: JSVal) {
+                          message: HandleValue) {
         let messageevent = MessageEvent::new(
             scope, "message".to_owned(), false, false, message,
-            "".to_owned(), "".to_owned()).root();
-        let event: JSRef<Event> = EventCast::from_ref(messageevent.r());
+            "".to_owned(), "".to_owned());
+        let event = EventCast::from_ref(messageevent.r());
         event.fire(target);
     }
 }
 
-impl<'a> MessageEventMethods for JSRef<'a, MessageEvent> {
+impl<'a> MessageEventMethods for &'a MessageEvent {
     fn Data(self, _cx: *mut JSContext) -> JSVal {
-        self.data
+        self.data.get()
     }
 
     fn Origin(self) -> DOMString {

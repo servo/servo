@@ -11,7 +11,7 @@ extern crate log;
 
 extern crate azure;
 extern crate devtools_traits;
-extern crate geom;
+extern crate euclid;
 extern crate gfx;
 extern crate layers;
 extern crate layout_traits;

@@ -6,9 +6,9 @@
 //! reduce coupling between these two components.
 
 use compositor_msg::Epoch;
-use geom::rect::Rect;
-use geom::size::TypedSize2D;
-use geom::scale_factor::ScaleFactor;
+use euclid::rect::Rect;
+use euclid::size::TypedSize2D;
+use euclid::scale_factor::ScaleFactor;
 use hyper::header::Headers;
 use hyper::method::Method;
 use layers::geometry::DevicePixel;
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
 use url::Url;
-use webdriver_msg::{WebDriverScriptCommand, LoadComplete};
+use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
 
 #[derive(Clone)]
 pub struct ConstellationChan(pub Sender<Msg>);
@@ -328,7 +328,7 @@ impl MozBrowserEvent {
 }
 
 pub enum WebDriverCommandMsg {
-    LoadUrl(PipelineId, LoadData, Sender<LoadComplete>),
+    LoadUrl(PipelineId, LoadData, Sender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
     TakeScreenshot(PipelineId, Sender<Option<png::Image>>)
 }

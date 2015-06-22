@@ -8,7 +8,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasrenderingcontext2d::parse_color;
@@ -37,13 +37,13 @@ impl CanvasGradient {
         }
     }
 
-    pub fn new(global: GlobalRef, style: CanvasGradientStyle) -> Temporary<CanvasGradient> {
+    pub fn new(global: GlobalRef, style: CanvasGradientStyle) -> Root<CanvasGradient> {
         reflect_dom_object(box CanvasGradient::new_inherited(style),
                            global, CanvasGradientBinding::Wrap)
     }
 }
 
-impl<'a> CanvasGradientMethods for JSRef<'a, CanvasGradient> {
+impl<'a> CanvasGradientMethods for &'a CanvasGradient {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
     fn AddColorStop(self, offset: Finite<f64>, color: String) {
         let default_black = RGBA {
@@ -61,11 +61,11 @@ impl<'a> CanvasGradientMethods for JSRef<'a, CanvasGradient> {
 }
 
 pub trait ToFillOrStrokeStyle {
-    fn to_fill_or_stroke_style(&self) -> FillOrStrokeStyle;
+    fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle;
 }
 
-impl<'a> ToFillOrStrokeStyle for JSRef<'a, CanvasGradient> {
-    fn to_fill_or_stroke_style(&self) -> FillOrStrokeStyle {
+impl<'a> ToFillOrStrokeStyle for &'a CanvasGradient {
+    fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         let gradient_stops = self.stops.borrow().clone();
         match self.style {
             CanvasGradientStyle::Linear(ref gradient) =>  {
