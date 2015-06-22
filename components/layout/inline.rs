@@ -301,22 +301,11 @@ impl LineBreaker {
     }
 
     /// Acquires a new fragment to lay out from the work list or fragment list as appropriate.
-    /// If the fragment was at the end of an old line, undoes the line break for that fragment.
     /// Note that you probably don't want to call this method directly in order to be incremental-
     /// reflow-safe; try `next_unbroken_fragment` instead.
     fn next_fragment<I>(&mut self, old_fragment_iter: &mut I) -> Option<Fragment>
                         where I: Iterator<Item=Fragment> {
-        let mut fragment;
-        if self.work_list.is_empty() {
-            match old_fragment_iter.next() {
-                None => return None,
-                Some(this_fragment) => fragment = this_fragment,
-            }
-        } else {
-            return self.work_list.pop_front()
-        }
-
-        Some(fragment)
+        self.work_list.pop_front().or_else(|| old_fragment_iter.next())
     }
 
     /// Acquires a new fragment to lay out from the work list or fragment list, merging it with any
