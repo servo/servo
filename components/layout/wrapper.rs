@@ -34,7 +34,7 @@ use canvas_traits::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::RestyleDamage;
-use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
+use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
@@ -331,6 +331,28 @@ impl<'ln> LayoutNode<'ln> {
 
     pub unsafe fn set_dirty_descendants(&self, value: bool) {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
+    }
+
+    /// Borrows the layout data without checks.
+    #[inline(always)]
+    pub unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
+        mem::transmute(self.get_jsmanaged().layout_data_unchecked())
+    }
+
+    /// Borrows the layout data immutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
+        unsafe {
+            mem::transmute(self.get_jsmanaged().layout_data())
+        }
+    }
+
+    /// Borrows the layout data mutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
+        unsafe {
+            mem::transmute(self.get_jsmanaged().layout_data_mut())
+        }
     }
 }
 

@@ -12,7 +12,7 @@ use context::{LayoutContext, SharedLayoutContextWrapper, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
-use data::{LayoutDataAccess, LayoutDataWrapper};
+use data::LayoutDataWrapper;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
 use traversal::{RecalcStyleForNode, ConstructFlows};

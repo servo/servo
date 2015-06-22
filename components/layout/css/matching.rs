@@ -9,7 +9,7 @@
 use animation;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
-use data::{LayoutDataAccess, LayoutDataWrapper};
+use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
 use opaque_node::OpaqueNodeMethods;
 use smallvec::SmallVec16;
