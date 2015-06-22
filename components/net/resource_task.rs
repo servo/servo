@@ -198,12 +198,16 @@ pub struct HSTSEntry {
 }
 
 impl HSTSEntry {
-    pub fn new(host: String, include_subdomains: bool, max_age: Option<u64>) -> HSTSEntry {
-        HSTSEntry {
-            host: host,
-            include_subdomains: include_subdomains,
-            max_age: max_age,
-            timestamp: Some(time::get_time().sec as u64)
+    pub fn new(host: String, include_subdomains: bool, max_age: Option<u64>) -> Option<HSTSEntry> {
+        if IPV4_REGEX.is_match(&host) || IPV6_REGEX.is_match(&host) {
+            None
+        } else {
+            Some(HSTSEntry {
+                host: host,
+                include_subdomains: include_subdomains,
+                max_age: max_age,
+                timestamp: Some(time::get_time().sec as u64)
+            })
         }
     }
 
@@ -257,10 +261,6 @@ impl HSTSList {
     }
 
     pub fn push(&mut self, entry: HSTSEntry) {
-        if IPV4_REGEX.is_match(&entry.host) || IPV6_REGEX.is_match(&entry.host) {
-            return
-        }
-
         let have_domain = self.has_domain(entry.host.clone());
         let have_subdomain = self.has_subdomain(entry.host.clone());
 
