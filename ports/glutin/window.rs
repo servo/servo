@@ -28,7 +28,7 @@ use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
 use euclid::point::Point2D;
 #[cfg(feature = "window")]
-use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode};
+use glutin::{Api, ElementState, Event, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
 #[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
 #[cfg(feature = "window")]
@@ -80,7 +80,10 @@ impl Window {
                             .with_parent(parent)
                             .build()
                             .unwrap();
-        unsafe { glutin_window.make_current() };
+        match unsafe { glutin_window.make_current() } {
+           Err(..) => panic!("MakeCurrent failed!"),
+           _ => {}
+        }
 
         glutin_window.set_window_resize_callback(Some(Window::nested_window_resize as fn(u32, u32)));
 
@@ -185,16 +188,26 @@ impl Window {
                     WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
+                let dx: f32;
+                let dy: f32;
+                match delta {
+                    MouseScrollDelta::LineDelta(lx, ly) => {
+                        dx = lx;
+                        dy = ly;
+                    },
+                    MouseScrollDelta::PixelDelta(px, py) => {
+                        dx = px;
+                        dy = py;
+                    },
+                };
                 if self.ctrl_pressed() {
                     // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
-                    if delta < 0 {
+                    if dy < 0.0 {
                         self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0/1.1));
-                    } else if delta > 0 {
+                    } else if dy > 0.0 {
                         self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                     }
                 } else {
-                    let dx = 0.0;
-                    let dy = delta as f32;
                     self.scroll_window(dx, dy);
                 }
             },
@@ -326,7 +339,7 @@ impl Window {
             close_event = self.handle_next_event();
         }
 
-        if close_event || self.window.is_closed() {
+        if close_event {
             events.push(WindowEvent::Quit)
         }
 
@@ -472,7 +485,7 @@ impl WindowMethods for Window {
     }
 
     fn present(&self) {
-        self.window.swap_buffers()
+        self.window.swap_buffers().is_ok();
     }
 
     fn create_compositor_channel(window: &Option<Rc<Window>>)
