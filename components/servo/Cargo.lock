@@ -876,6 +876,7 @@ dependencies = [
  "net 0.0.1",
  "net_traits 0.0.1",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
