@@ -1,0 +1,97 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="CM" author="ED" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-light-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feDistantLightAzimuthAttribute">
+        <p>
+          This test verifies that the <a>'azimuth'</a> attribute is interpreted as a clockwise value in degrees.
+        </p>
+<p>The test should show four arrows, indicating the direction of the incoming distant light.
+        As the four circles are lit by a specular lighting filter a faint shaded arc should appear.
+        The middle of each such arc should be where the corresponding arrow points.</p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if the shaded arcs are displayed only on the side indicated by the arrows. 
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-light-02-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <filter id="right">
+        <feSpecularLighting surfaceScale="5" specularConstant="100" specularExponent="10">
+          <feDistantLight azimuth="0" elevation="30"/>
+        </feSpecularLighting>
+      </filter>
+      <filter id="down">
+        <feSpecularLighting surfaceScale="5" specularConstant="100" specularExponent="10">
+          <feDistantLight azimuth="90" elevation="30"/>
+        </feSpecularLighting>
+      </filter>
+      <filter id="left">
+        <feSpecularLighting surfaceScale="5" specularConstant="100" specularExponent="10">
+          <feDistantLight azimuth="180" elevation="30"/>
+        </feSpecularLighting>
+      </filter>
+      <filter id="up">
+        <feSpecularLighting surfaceScale="5" specularConstant="100" specularExponent="10">
+          <feDistantLight azimuth="270" elevation="30"/>
+        </feSpecularLighting>
+      </filter>
+    
+      <marker id="arrow" markerWidth="10" markerHeight="10" viewBox="0 0 10 40" overflow="visible" orient="auto">
+        <path d="M-1 5l10 -5l-10 -5z"/>
+      </marker>
+    </defs>
+    
+    <text x="50%" y="3em" style="font-size:18px; text-anchor:middle">'feDistantLight' azimuth</text>
+
+    <g transform="scale(4) translate(0 50)">
+      <circle id="c1" r="10" filter="url(#right)" transform="translate(20 0)"/>
+      <circle id="c2" r="10" filter="url(#down)" transform="translate(50 0)"/>
+      <circle id="c3" r="10" filter="url(#left)" transform="translate(80 0)"/>
+      <circle id="c4" r="10" filter="url(#up)" transform="translate(110 0)"/>
+    </g>
+
+    <line marker-end="url(#arrow)" x1="0" y1="-25" x2="0" y2="25" stroke="black" stroke-width="3" transform="translate(200 180)"/>
+    <line marker-end="url(#arrow)" x1="0" y1="-25" x2="0" y2="25" stroke="black" stroke-width="3" transform="rotate(90) translate(200 -350)"/>
+    <line marker-end="url(#arrow)" x1="0" y1="-25" x2="0" y2="25" stroke="black" stroke-width="3" transform="rotate(180) translate(-440 -225)"/>
+    <line marker-end="url(#arrow)" x1="0" y1="-25" x2="0" y2="25" stroke="black" stroke-width="3" transform="rotate(270) translate(-200 50)"/>
+    
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

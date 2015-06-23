@@ -18,12 +18,13 @@ sourceImg.src = '../2x2.png'
 sourceImg.width = sourceWidth;
 sourceImg.height = sourceHeight;
 
-var destCtx = destCanvas.getContext('2d');
-destCtx.fillStyle = "#FF0000";
-destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
-destCtx.imageSmoothingEnabled = smoothingEnabled;
-// 2 arguments, the dest origin is 0,0
-// The source canvas will copied to the 0,0 position of the destination canvas
-destCtx.drawImage(sourceImg, 0, 0);
-
+sourceImg.onload = function() {
+  var destCtx = destCanvas.getContext('2d');
+  destCtx.fillStyle = "#FF0000";
+  destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+  destCtx.imageSmoothingEnabled = smoothingEnabled;
+  // 2 arguments, the dest origin is 0,0
+  // The source canvas will copied to the 0,0 position of the destination canvas
+  destCtx.drawImage(sourceImg, 0, 0);
+}
 </script>

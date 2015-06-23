@@ -1,0 +1,129 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-24-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test which verifies that the basic facilities of declarative
+        animation are working.
+      </p>
+      <p>
+        This test uses the following elements : 'animateMotion' and
+        'animateTransform'
+      </p>
+      <p>
+        The test is a nine second animation with no repeats. It shows
+        the text string "It's alive" moving, rotating and growing from
+        time 3s to 9s.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The file includes various guides that can be used to verify the
+        correctness of the animation. Pale blue guides exist for
+        the text size, location and orientation at times 3s, 6s and 9s.
+      </p>
+      <p>
+        The test is passed if the animated text covers the pale blue guides at
+        the indicated times on the test.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-24-t.svg,v $</title>
+	<defs>
+		<font id="MyFont" horiz-adv-x="416">
+			<font-face font-family="MyFont" units-per-em="1000" panose-1="2 0 0 6 3 0 0 2 0 4" ascent="700" descent="-127" alphabetic="0"/>
+			<missing-glyph horiz-adv-x="233"/>
+			<glyph unicode=" " glyph-name="space" horiz-adv-x="233"/>
+			<glyph unicode="I" glyph-name="I" horiz-adv-x="330" d="M30 700V550H90V150H30V0H300V150H240V550H300V700H30Z"/>
+			<glyph unicode="t" glyph-name="t" horiz-adv-x="417" d="M5 550V410H137V0H280V410H412V550H5Z"/>
+			<glyph unicode="s" glyph-name="s" horiz-adv-x="468" d="M34 550V410V218H291V120H34V0H434V338H177V430H434V550H34Z"/>
+			<glyph unicode="&apos;" glyph-name="quotesingle" horiz-adv-x="198" d="M35 700L73 483H125L163 700H35Z"/>
+			<glyph unicode="a" glyph-name="a" horiz-adv-x="435" d="M71 550L3 0H143L154 119H282L293 0H433L365 550H71ZM168 259L182 410H254L268 259H168Z"/>
+			<glyph unicode="l" glyph-name="l" horiz-adv-x="435" d="M37 0H425V130H180V550H37V410V0Z"/>
+			<glyph unicode="i" glyph-name="i" horiz-adv-x="217" d="M37 550V410V0H180V550H37Z"/>
+			<glyph unicode="v" glyph-name="v" horiz-adv-x="430" d="M73 0H357L430 550H282L235 140H195L148 550H0L19 410L73 0Z"/>
+			<glyph unicode="e" glyph-name="e" horiz-adv-x="442" d="M37 550V410V0H419V130H180V210H299V340H180V420H419V550H37Z"/>
+			<glyph unicode="!" glyph-name="exclam" horiz-adv-x="237" d="M46 145V0H191V145H46ZM58 220H179L194 700H43L58 220Z"/>
+		</font>
+	</defs>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font id="MyFont" horiz-adv-x="416">
+      <font-face font-family="MyFont" units-per-em="1000" panose-1="2 0 0 6 3 0 0 2 0 4" ascent="700" descent="-127" alphabetic="0"/>
+      <missing-glyph horiz-adv-x="233"/>
+      <glyph unicode=" " glyph-name="space" horiz-adv-x="233"/>
+      <glyph unicode="I" glyph-name="I" horiz-adv-x="330" d="M30 700V550H90V150H30V0H300V150H240V550H300V700H30Z"/>
+      <glyph unicode="t" glyph-name="t" horiz-adv-x="417" d="M5 550V410H137V0H280V410H412V550H5Z"/>
+      <glyph unicode="s" glyph-name="s" horiz-adv-x="468" d="M34 550V410V218H291V120H34V0H434V338H177V430H434V550H34Z"/>
+      <glyph unicode="&apos;" glyph-name="quotesingle" horiz-adv-x="198" d="M35 700L73 483H125L163 700H35Z"/>
+      <glyph unicode="a" glyph-name="a" horiz-adv-x="435" d="M71 550L3 0H143L154 119H282L293 0H433L365 550H71ZM168 259L182 410H254L268 259H168Z"/>
+      <glyph unicode="l" glyph-name="l" horiz-adv-x="435" d="M37 0H425V130H180V550H37V410V0Z"/>
+      <glyph unicode="i" glyph-name="i" horiz-adv-x="217" d="M37 550V410V0H180V550H37Z"/>
+      <glyph unicode="v" glyph-name="v" horiz-adv-x="430" d="M73 0H357L430 550H282L235 140H195L148 550H0L19 410L73 0Z"/>
+      <glyph unicode="e" glyph-name="e" horiz-adv-x="442" d="M37 550V410V0H419V130H180V210H299V340H180V420H419V550H37Z"/>
+      <glyph unicode="!" glyph-name="exclam" horiz-adv-x="237" d="M46 145V0H191V145H46ZM58 220H179L194 700H43L58 220Z"/>
+    </font>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="20">
+      <text x="70" y="110">Text from 0s to 3s</text>
+      <text x="100" y="185">Text at 6s</text>
+      <text x="100" y="220">Text at 9s</text>
+    </g>
+    <!-- Guide objects to show where the animation elements belong at which time -->
+    <g font-family="MyFont" stroke="none" fill="#bee">
+      <text transform="translate(50,90) rotate(-30)" font-size="20">It's alive!</text>
+      <text transform="translate(75,180) rotate(-15)" font-size="40">It's alive!</text>
+      <text x="100" y="270" font-size="60">It's alive!</text>
+    </g>
+    <!-- Set up a new user coordinate system so that the text string's
+            origin is at (0,0), allowing rotation and scale relative to
+            the new origin
+        -->
+    <g transform="translate(50,90)">
+      <!-- The following illustrates the use of the 'animateMotion',
+                and 'animateTransform' elements. At 3 seconds, the text:
+                * continuously moves diagonally across the viewport
+                * rotates from -30 to zero degrees
+                * scales by a factor of three.
+            -->
+      <text id="TextElement" x="0" y="0" font-family="MyFont" font-size="20" fill="#36e" transform="rotate(-30)">
+        It's alive!
+        <animateMotion path="M 0 0 L 50 180" begin="3s" dur="6s" fill="freeze"/>
+        <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="-30" to="0" begin="3s" dur="6s" fill="freeze"/>
+        <animateTransform attributeName="transform" attributeType="XML" type="scale" from="1" to="3" additive="sum" begin="3s" dur="6s" fill="freeze"/>
+      </text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

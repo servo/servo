@@ -306,6 +306,17 @@
       "origin": "*",
       "subresource": "*",
       "referrer_url": "*"
+    },
+    {
+      "name": "temporarily-disable-images-until-found-alternative-for-pil",
+      "expansion": "*",
+      "source_protocol": "*",
+      "target_protocol": "*",
+      "delivery_method": "*",
+      "redirection": "*",
+      "origin": "*",
+      "subresource": "img-tag",
+      "referrer_url": "*"
     }
   ],
 

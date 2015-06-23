@@ -1,0 +1,123 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" onload="test()">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="DS" author="ED" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: conform-viewers-03-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/conform.html#ConformingSVGViewers">
+      <p>
+        This test checks that namespace prefixes are handled correctly.
+      </p>
+      <p>
+        First, a random 20-character string is generated. The string only contains characters that are valid NCName letters.
+        This string is then used as a custom prefix for an 'href' attribute in the XLink namespace.
+        An 'image' element is created and two image references are added, one is in the "http://www.this.is.not.an/xlink" namespace,
+        and one is in the XLink namespace. Only the attribute with the 20-character prefix is actually in the XLink namespace,
+        which means that that link should be the one that is used when rendering the 'image' element. This first subtest is
+        using the setAttributeNS method.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The testcase has passed if after the script execution has taken place these conditions are met:
+      </p>
+      <ul>
+        <li>There is one pink image visible.</li>
+        <li>The image doesn't show the word "Fail"</li>
+        <li>The status message says "No exceptions"</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: conform-viewers-03-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <script>
+      <![CDATA[
+      /**
+       * Generates a 20 character string consisting of characters from the inchars parameter.
+       * The output string will have no repetitions of a character.
+       */	 
+      function generatePrefix(inchars)
+      {
+        var ncNameStart = "_abcdefghijklmnopqrstuvwxyzåäöQWERTYUIOPÅÄÖLKJHGFDSAZXCVBNM";
+
+        var prefix = ncNameStart[Math.floor(Math.random()*ncNameStart.length)];
+        var leftchars = inchars;
+        var char;
+        for(var i = 0; i < 19; i++)
+        {
+          char = leftchars[Math.floor(Math.random()*leftchars.length)];
+          leftchars = leftchars.replace(char, '');
+          prefix += char;
+        }
+        return prefix;
+      }
+
+      /** 
+       * The main body of the test.
+       */
+      function test()
+      {
+        var letters = "abcdefghijklmnopqrstuvwxyzåäö_-.QWERTYUIOPÅÄÖLKJHGFDSAZXCVBNM0123456789";
+        var prefix = generatePrefix(letters);
+        var g = document.getElementById("test-body-content");
+        var t = document.getElementById("prefix");
+        t.textContent = prefix;
+
+        var elm = document.createElementNS("http://www.w3.org/2000/svg", "image");
+        elm.setAttributeNS(null, "width", 100);
+        elm.setAttributeNS(null, "height", 100);
+        elm.setAttributeNS(null, "x", 100);
+        elm.setAttributeNS(null, "y", 100);
+        elm.setAttributeNS("http://www.w3.org/1999/xlink", prefix+":href", "../images/pinksquidj.png");
+        elm.setAttributeNS("http://www.this.is.not.an/xlink", "xlink:href", "../images/purplesquidj.png");
+        g.appendChild(elm);
+      }
+      ]]>
+    </script>
+
+    <text y="100" x="50" display="none">
+      Generated prefix 1: <tspan id="prefix">...</tspan>
+    </text>
+    <text y="220" x="50">
+      Status: <tspan id="status">No exceptions.</tspan>
+    </text>
+
+    <g xmlns:xlink="http://example.net/bar">
+      <image id="image2" width="100" height="100" x="210" y="100" xlink:href="../images/purplesquidj.png"/>
+    </g>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved 
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g> -->
+</svg>

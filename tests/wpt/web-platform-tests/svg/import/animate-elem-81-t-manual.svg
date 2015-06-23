@@ -1,0 +1,162 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-81-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This test tests the operation of the animateTransform's
+        additive behavior.
+      </p>
+      <p>
+        The first two rectangles, on the top row, show the effect of the
+        additive attribute on animateTransform. The left-most
+        animateTransforms have their additive attribute set to replace,
+        so the effect of the two transform animation is as if only the
+        highest priority one applied because it replaces the underlying
+        value. The second animateTransforms (from left to right) have
+        their additive attribute set to sum, which means the transforms
+        they produce are concatenated.
+      </p>
+      <p>
+        The last two rectangles, on the top row, show the effect of the
+        accumulate attribute on animateTransform. For the left one
+        (third on the row, from left to right), the accumulate attribute
+        is set to none. There are two repeats for the
+        animateTransform. Therefore, the transform goes twice from a
+        scale(1,1) to a scale(2,2). For the right-most animateTransform,
+        the accumulate attribute is set to sum. There are two repeats
+        and the animation goes from scale(0,0) to scale(2,2) for the
+        first iteration and then from scale(2,2) to scale(4,4) (because
+        the result of the second iteration is added to the
+        scale(2,2) result of the previous, first iteration).
+      </p>
+      <p>
+        The rectangles on the bottom row show the combination of
+        additive and cumulative behavior. The left rectangle's
+        animateTransform accumulate behavior is set to none but its
+        additive behavior is set to sum. Therefore, the transform's
+        underlying value (skewX(30)) is always pre-concatenated to the
+        animateTransform's result, which goes from "skewX(30)
+        scale(1,1)" to "skewX(30) scale(2,2)" in each of its two
+        iterations.  The right rectangle's animateTransform accumulate
+        behavior is set to sum and the additive behavior is also set to
+        sum. Therefore, the transform's underlying value is always
+        pre-concatenated, and repetitions of the scale animation
+        get added together. Consequently, the transform goes from "skewX(30)
+        scale(0,0)" to "skewX(30) scale(2,2)" for the first iteration
+        and then from "skewX(30) scale(2,2)" to "skewX(30)
+        scale(4,4)" for the second iteration.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+    	<p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test is passed if:</p>
+      <ul>
+      	<li>the scale of the upper leftmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the upper leftmost yellow rectangle</li>
+      	<li>the scale and rotation of the second upper grey rectangle from the left is smoothly animated over the course of 5 seconds to fill the second upper yellow rectangle from the left</li>
+      	<li>the scale of the upper third grey rectangle from the left is smoothly animated over the course of 2.5 seconds to completely fill the upper third yellow rectangle from the left, and then repeated once so that at time t=5 seconds it completely fills the same yellow rectangle</li>
+      	<li>the scale of the upper rightmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the upper rightmost yellow rectangle</li>
+      	<li>the scale of the lower leftmost grey rectangle is smoothly animated over the course of 2.5 seconds to completely fill the lower leftmost yellow rectangle, and then repeated once so that at time t=5 seconds it completely fills the same yellow rectangle</li>
+      	<li>the scale of the lower rightmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the lower rightmost yellow rectangle</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-81-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="25" font-size="16">&lt;animateTransform&gt;</text>
+    <defs>
+      <g id="ref" stroke="rgb(192,192,192)" fill="none">
+        <circle stroke-width="2" r="40"/>
+        <line x1="-45" x2="45"/>
+        <line y1="-45" y2="45"/>
+      </g>
+    </defs>
+    <g transform="translate(0,0)" font-size="14">
+      <g transform="translate(60,90)">
+        <rect x="-15" y="-15" width="30" height="30" transform="skewX(30)" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0" to="90" dur="5s" additive="replace" fill="freeze"/>
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" from="1,1" to="2,2" dur="5s" additive="replace" fill="freeze"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="scale(2,2)" stroke="rgb(255,180,0)" stroke-width="4" fill="none"/>
+        <text y="60" text-anchor="middle">additive=replace</text>
+      </g>
+
+      <g transform="translate(180,90)">
+        <rect x="-15" y="-15" width="30" height="30" transform="skewX(30)" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0" to="90" dur="5s" additive="sum" fill="freeze"/>
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" from="1,1" to="2,2" dur="5s" additive="sum" fill="freeze"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="skewX(30) rotate(90) scale(2,2)" stroke="rgb(255,180,0)" stroke-width="4" fill="none"/>
+        <text y="60" text-anchor="middle">additive=sum</text>
+      </g>
+
+      <g transform="translate(300,90)">
+        <rect x="-15" y="-15" width="30" height="30" transform="skewX(30)" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" from="1,1" to="2,2" dur="2.5s" repeatCount="2" accumulate="none" fill="freeze" additive="replace"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="scale(2,2)" stroke="rgb(255,180,0)" stroke-width="4" fill="none"/>
+        <text y="60" text-anchor="middle">accumulate=none</text>
+        <text y="75" text-anchor="middle">additive=replace</text>
+      </g>
+
+      <g transform="translate(420,90)">
+        <rect x="-7.5" y="-7.5" width="15" height="15" transform="skewX(30)" stroke="gray" stroke-width="2" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" from="0,0" to="2,2" dur="2.5s" repeatCount="2" accumulate="sum" fill="freeze" additive="replace"/>
+        </rect>
+        <rect x="-7.5" y="-7.5" width="15" height="15" transform="scale(4,4)" stroke="rgb(255,180,0)" stroke-width="2" fill="none"/>
+        <text y="60" text-anchor="middle">accumulate=sum</text>
+        <text y="75" text-anchor="middle">additive=replace</text>
+      </g>
+
+      <g transform="translate(300,220)">
+        <rect x="-15" y="-15" width="30" height="30" transform="skewX(30)" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" from="1,1" to="2,2" dur="2.5s" repeatCount="2" accumulate="none" fill="freeze" additive="sum"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="skewX(30) scale(2,2)" stroke="rgb(255,180,0)" stroke-width="4" fill="none"/>
+        <text y="60" text-anchor="middle">accumulate=none</text>
+        <text y="75" text-anchor="middle">additive=sum</text>
+      </g>
+
+      <g transform="translate(420,220)">
+        <rect x="-7.5" y="-7.5" width="15" height="15" transform="skewX(30)" stroke="gray" stroke-width="2" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" from="0,0" to="2,2" dur="2.5s" repeatCount="2" accumulate="sum" fill="freeze" additive="sum"/>
+        </rect>
+        <rect x="-7.5" y="-7.5" width="15" height="15" transform="skewX(30) scale(4,4)" stroke="rgb(255,180,0)" stroke-width="2" fill="none"/>
+        <text y="60" text-anchor="middle">accumulate=sum</text>
+        <text y="75" text-anchor="middle">additive=sum</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

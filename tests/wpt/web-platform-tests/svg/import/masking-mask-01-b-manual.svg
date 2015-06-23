@@ -1,0 +1,131 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: masking-mask-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/masking.html#Masking">
+      <p>
+        Test to see if the masking features using the mask element and mask
+        property are available.
+      </p>
+      <p>
+        A red rectangle is displayed in the background to help view the result
+        of transparency and masking.
+      </p>
+      <p>
+        From top to bottom, the tests are as follows.
+      </p>
+      <p>
+        In the top test, a linear gradient is used inside the mask to change the opacity
+        of the rectangle from 1.0 (at the top) to 0.5 (at the bottom).
+      </p>
+      <p>
+        In the second test, a simple 50% opaque rectangle is used as a mask.
+      </p>
+      <p>
+        In the third test, no mask is used, but a rectangle is shown with 50% opacity.
+        The second and third test should look the same.
+      </p>
+      <p>
+        Lastly, a string of text has a mask applied to it. The mask only covers a partial
+        area of the text, so the text should only be half visible. Also the mask consists
+        of 4 rectangles with various levels of opacity.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image, except
+        variations are possible in the labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: masking-mask-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+  <style type="text/css">
+  @font-face {
+     font-family: larabie-anglepoise;
+     src: url(woffs/anglepoi.woff) format("woff");
+     }
+  </style>
+    <defs>
+      <font horiz-adv-x="313">
+        <!-- Converted from Larabie Anglepoise by Batik ttf2svg -->
+        <font-face font-family="larabie-anglepoise" units-per-em="1000" panose-1="0 0 4 0 0 0 0 0 0 0" ascent="703" descent="-300" alphabetic="0"/>
+        <missing-glyph horiz-adv-x="500" d="M63 0V700H438V0H63ZM125 63H375V638H125V63Z"/>
+        <glyph unicode="S" glyph-name="S" horiz-adv-x="385" d="M371 1H29V144H264Q264 151 264 166Q265 180 265 188Q265 212 249 212H132Q83 212 55 247Q29 279 29 329V566H335V422H136V375Q136 360 144 356Q148 355 168 355H279Q327 355 352 309Q371 273 371 221V1Z"/>
+        <glyph unicode="V" glyph-name="V" horiz-adv-x="351" d="M365 563L183 -33L0 563H101L183 296L270 563H365Z"/>
+        <glyph unicode="G" glyph-name="G" horiz-adv-x="367" d="M355 1H18V564H355V420H125V144H248V211H156V355H355V1Z"/>
+        <hkern g1="V" g2="G" k="-40"/>
+      </font>
+    </defs>
+    <g font-family="SVGFreeSansASCII,sans-serif">
+    <text font-size="14" x="10" y="20">Test for mask support</text>
+    <!-- Draw a red rectangle in the background -->
+    <rect x="10" y="30" width="100" height="260" fill="red"/>
+    <!-- Apply a gradient ramp based opacity -->
+    <mask id="mask1" maskUnits="userSpaceOnUse" x="60" y="50" width="100" height="60" color-interpolation="linearRGB">
+      <defs>
+        <linearGradient gradientUnits="userSpaceOnUse" id="Grad1" x1="60" y1="50" x2="60" y2="120">
+          <stop stop-color="white" stop-opacity="1" offset="0"/>
+          <stop stop-color="white" stop-opacity="0.5" offset="1"/>
+        </linearGradient>
+      </defs>
+      <rect x="60" y="50" width="100" height="60" fill="url(#Grad1)"/>
+    </mask>
+    <rect x="60" y="50" width="100" height="60" fill="lime" mask="url(#mask1)"/>
+    <text font-size="12" x="200" y="65">Mask with linear gradient from</text>
+    <text font-size="12" x="200" y="80">opacity=1 to opactity=0.5</text>
+    <!-- Simulate a uniform opacity using a mask -->
+    <mask id="mask2" maskUnits="userSpaceOnUse" x="60" y="120" width="100" height="30" color-interpolation="linearRGB">
+      <rect x="60" y="120" width="100" height="30" fill-opacity="0.5" fill="white"/>
+    </mask>
+    <rect x="60" y="120" width="100" height="30" fill="lime" mask="url(#mask2)"/>
+    <text font-size="12" x="200" y="135">Mask with uniform opacity of 0.5</text>
+    <!-- Apply a uniform opacity -->
+    <rect x="60" y="160" width="100" height="30" fill="lime" fill-opacity="0.5"/>
+    <text font-size="12" x="200" y="175">Rectangle with uniform opacity of 0.5</text>
+    <!-- Apply a mask to text -->
+    <mask id="mask3" maskUnits="userSpaceOnUse" x="60" y="200" width="200" height="100" color-interpolation="linearRGB">
+      <rect x="60" y="200" width="200" height="25" fill="white" fill-opacity="0.5"/>
+      <rect x="60" y="225" width="200" height="25" fill="white" fill-opacity="0.2"/>
+      <rect x="60" y="250" width="200" height="25" fill="white" fill-opacity="1"/>
+      <rect x="60" y="275" width="200" height="25" fill="white" fill-opacity="0.7"/>
+    </mask>
+    <text x="60" y="280" font-family="larabie-anglepoise" font-size="110" fill="lime" mask="url(#mask3)">SVG</text>
+    <text  font-size="12" x="200" y="225">Text with mask containing rectangles</text>
+    <text  font-size="12" x="200" y="240">of various opacities</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

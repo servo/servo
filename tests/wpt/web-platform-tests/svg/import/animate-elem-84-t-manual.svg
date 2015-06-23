@@ -1,0 +1,80 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CC" author="CL" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-84-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+        <p>
+	Test animation of color keywords that resolve to animatable RGB values.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required. 
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+	The test is passed if five
+        black squares are shown, after two seconds, all five squares  turn red and
+        then smoothly animate the fill color to green over the next five seconds.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-84-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="scale(1.1) translate (50,20)">
+      <rect color="green" fill="#000000" height="100" width="100">
+        <animateColor attributeName="fill" from="#f00" to="currentColor" begin="2s" dur="5s" fill="freeze"/>
+      </rect>
+      <rect color="red" fill="#000000" height="100" width="100" y="150">
+        <animateColor attributeName="fill" from="currentColor" to="green" begin="2s" dur="5s" fill="freeze"/>
+      </rect>
+      <rect color="green" fill="#000000" x="120" height="100" width="100" y="75">
+        <animateColor attributeName="fill" from="#f00" to="green" begin="2s" dur="5s" fill="freeze"/>
+      </rect>
+      <g fill="#070">
+        <rect color="green" fill="#000000" x="240" height="100" width="100">
+          <animateColor attributeName="fill" from="#f00" to="inherit" begin="2s" dur="5s" fill="freeze"/>
+        </rect>
+      </g>
+      <g fill="#F00">
+        <rect color="green" fill="#000000" x="240" height="100" width="100" y="150">
+          <animateColor attributeName="fill" from="inherit" to="green" begin="2s" dur="5s" fill="freeze"/>
+        </rect>
+      </g>
+      <g text-anchor="middle" font-size="14">
+        <text x="50" y="130">currentColor</text>
+        <text x="170" y="55">green</text>
+        <text x="290" y="130">inherit</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

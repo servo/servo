@@ -172,18 +172,29 @@ The way to contribute is just as usual:
 * Commit locally and push that to your repo.
 * Send in a pull request based on the above.
 
-A lint is available to test for common mistakes in testcases. It can
-be run with:
+Lint tool
+---------
+
+We have a lint tool for catching common mistakes in test files. You
+can run it manually by starting the `lint` executable from the root of
+your local web-platform-tests working directory like this:
 
 ```
 ./lint
 ```
 
-in the root of the checkout. It is also run for every submitted pull
-request, and branches with lint errors will not get merged. In the
-unusual case that the lint is reporting an error for something that is
-essential to your test, there is a whitelist at
-`tools/lint/lint.whitelist` that may be updated.
+The lint tool is also run automatically for every submitted pull
+request, and reviewers will not merge branches with tests that have
+lint errors, so you must fix any errors the lint tool reports. For
+details on doing that, see the [lint-tool documentation][lint-tool].
+
+But in the unusual case of error reports for things essential to a
+certain test or that for other exceptional reasons shouldn't prevent
+a merge of a test, update and commit the `lint.whitelist` file in the
+web-platform-tests root directory to suppress the error reports. For
+details on doing that, see the [lint-tool documentation][lint-tool].
+
+[lint-tool]: https://github.com/w3c/web-platform-tests/blob/master/docs/lint-tool.md
 
 Adding command-line scripts ("tools" subdirs)
 ---------------------------------------------

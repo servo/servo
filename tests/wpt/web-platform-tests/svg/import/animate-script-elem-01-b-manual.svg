@@ -1,0 +1,90 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="CL" author="CM" status="accepted"
+    version="$Revision: 1.1 $" testname="$RCSfile: animate-script-elem-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/script.html#ScriptElement">
+      <p>
+        This tests that the 'xlink:href' attribute on the 'script' element is not animatable.
+      </p>
+      <p>
+        After loading the test and waiting one second, two rectangles
+        will appear, indicating the result of two sub-tests.  The
+        upper rectangle reflects the result of testing that an
+        attempt to animate 'xlink:href' on 'script' does not affect
+        the .href.animVal of the element.  The lower rectangle reflects
+        the result of testing that the animation attempt does not
+        cause a new script to be loaded and executed.  Black indicates
+        that the sub-test did not run, red that it failed and green
+        that it passed.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+    	<p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if both rectangles are green once they
+        appear one second after loading the test.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-script-elem-01-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='30'>Test that &lt;script xlink:href=""> is not animatable</text>
+
+    <g>
+      <rect id='r1' x='10' y='50' width='30' height='30' fill='black'/>
+      <rect id='r2' x='10' y='90' width='30' height='30' fill='green'/>
+      <g font-size='15'>
+        <text x='50' y='70'>Test script.href.animVal does not change</text>
+        <text x='50' y='110'>Test animating xlink:href="" does not load a script</text>
+      </g>
+
+      <script id='s' xlink:href='../images/empty.js'/>
+      <script>
+        function f() {
+          document.getElementById('r2').setAttribute('fill', 'red');
+        }
+
+        function g() {
+          document.getElementById('r1').setAttribute('fill', document.getElementById('s').href.animVal.indexOf('empty') >= 0 ? 'green' : 'red');
+        }
+      </script>
+      <set xlink:href='#s' attributeName='xlink:href' to='../images/f.js' dur='100s'/>
+      <set attributeName='visibility' to='hidden' dur='1s' onend='g()'/>
+    </g>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.1 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

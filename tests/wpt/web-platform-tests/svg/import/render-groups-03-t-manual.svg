@@ -1,0 +1,100 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: render-groups-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/render.html#Grouping">
+        <p>
+          Verifies implicit rendering order (paragraph 3.3) and grouping mechanism (paragraphs 3.4).
+          It also validates basic Shape, Image and text rendering.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+      <p>
+Run the test. No interaction required.
+      </p>
+      <p>
+        The rendered image should match the reference image exactly.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test renders 3  elements: a text string "SVG", then
+        a shape, then an image. Because of their definition order and coordinates, the image
+        should be on top of the rectangle and the rectangle on top of the text. None
+        of the "SVG" text string should show through the
+        rectangle and none of the rectangle should show through the image.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: render-groups-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <font horiz-adv-x="313">
+        <!-- Converted from Larabie Anglepoise by Batik ttf2svg -->
+        <font-face font-family="s-larabie-anglepoise" units-per-em="1000" panose-1="0 0 4 0 0 0 0 0 0 0" ascent="703" descent="-300" alphabetic="0"/>
+        <missing-glyph horiz-adv-x="500" d="M63 0V700H438V0H63ZM125 63H375V638H125V63Z"/>
+        <glyph unicode="S" glyph-name="S" horiz-adv-x="385" d="M371 1H29V144H264Q264 151 264 166Q265 180 265 188Q265 212 249 212H132Q83 212 55 247Q29 279 29 329V566H335V422H136V375Q136 360 144 356Q148 355 168 355H279Q327 355 352 309Q371 273 371 221V1Z"/>
+        <glyph unicode="V" glyph-name="V" horiz-adv-x="351" d="M365 563L183 -33L0 563H101L183 296L270 563H365Z"/>
+        <glyph unicode="G" glyph-name="G" horiz-adv-x="367" d="M355 1H18V564H355V420H125V144H248V211H156V355H355V1Z"/>
+        <hkern g1="V" g2="G" k="-40"/>
+      </font>
+      <style type="text/css">
+        @font-face {
+          font-family: anglepoise;
+          src: url(woffs/anglepoi.woff) format("woff");
+        }
+      </style>
+    </defs>
+    <!-- ====================================================================== -->
+    <!--  3 overlapping elements in a group with opacity    -->
+    <!-- ====================================================================== -->
+    <g transform="scale(1.8, 1.8)">
+      <!-- Background pattern -->
+      <rect x="20" y="10" width="230" height="155" fill="rgb(192, 192, 192)"/>
+      <line x1="40" y1="10" x2="40" y2="175" stroke="white" stroke-width="15"/>
+      <line x1="70" y1="10" x2="70" y2="175" stroke="white" stroke-width="15"/>
+      <line x1="100" y1="10" x2="100" y2="175" stroke="white" stroke-width="15"/>
+      <line x1="130" y1="10" x2="130" y2="175" stroke="white" stroke-width="15"/>
+      <line x1="160" y1="10" x2="160" y2="175" stroke="white" stroke-width="15"/>
+      <line x1="190" y1="10" x2="190" y2="175" stroke="white" stroke-width="15"/>
+      <line x1="220" y1="10" x2="220" y2="175" stroke="white" stroke-width="15"/>
+      <line x1="250" y1="10" x2="250" y2="175" stroke="white" stroke-width="15"/>
+      <rect x="20" y="10" width="230" height="155" fill="none" stroke="black"/>
+      <!-- The following text, rectangle and image are drawn, fully opaque, in -->
+      <!-- the order they are defined. Therefore, none of the 'A' under the    -->
+      <!-- rectangle should show. Neither should any of the rectangle under    -->
+      <!-- the image.                                                          -->
+      <text font-family="s-larabie-anglepoise, anglepoise" font-size="120" x="30" y="90">SVG</text>
+      <rect x="70" y="55" width="130" height="70" fill="rgb(130, 0, 50)"/>
+      <image x="162" y="75" width="80" height="80" xlink:href="../images/sign.png"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

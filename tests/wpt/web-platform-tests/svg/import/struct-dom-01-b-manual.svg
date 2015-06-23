@@ -1,0 +1,188 @@
+<svg version="1.1" baseProfile="basic" onload="domTest(evt)" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="VH" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: struct-dom-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#DOMInterfaces">
+        <p>
+          Verify the basic capability to handle the SVG DOM API.
+        </p>
+      <p>
+        The test is composed of a top
+        level svg element with an 'onload' event handler and a rect element. Both
+        the svg and the rect elements have an identifier. The 'onload' handler
+        invokes SVG-specific DOM API methods which use these identifiers.
+      </p>
+      <p>
+        First, the handler gets the SVG element owner of the rect element and checks it has
+        the expected identifier. Then, the handler accesses the coordinates of the rect element
+        and uses them to build a 'shadow' rectangle under the existing one. Finally, the 'shadow'
+        rectangle is created using the SVGSVGElement's createSVGRect method.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if:</p>
+      <ul>
+        <li>The text "This document's root identifier is: svg-root" is shown.</li>
+        <li>A green rectangle with a black shadow is shown.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script type="text/ecmascript" xlink:href="../resources/testharness.js"></script>
+    <script type="text/ecmascript"><![CDATA[
+      function domTest(evt) {
+
+      var svg_ns = "http://www.w3.org/2000/svg";
+
+      // Get Document
+      var target = evt.target;
+      var doc = target.ownerDocument;
+
+      //
+      // Test that our rectangle is an SVGElement instance
+      //
+      var rect = doc.getElementById("rectId");
+      var rootSVG = rect.ownerSVGElement;
+      var rootId = rootSVG.getAttribute( "id" );
+
+      // Insert a new text element to the DOM tree using the id
+      var newText = doc.createElementNS(svg_ns, 'text');
+      newText.setAttribute('x', '50');
+      newText.setAttribute('y', '100');
+      var message = "This document's root identifier is: " + rootId;
+      var textContent = doc.createTextNode(message);
+      newText.appendChild(textContent);
+      rect.parentNode.appendChild(newText);
+
+      //
+      // Now, check that our rectangle is an instance of SVGRect by accessing
+      // specific methods in order to get its x, y, width and height attributes.
+      //
+      var x = rect.x.baseVal.value; // SVGRect -&gt; SVGAnimatedLenght -&gt; SVGLength -&gt; long
+      var y = rect.y.baseVal.value;
+      var width = rect.width.baseVal.value;
+      var height = rect.height.baseVal.value;
+
+      //
+      // Now, build a new SVGRect through the SVGSVGElement interface.
+      //
+      var newRect = doc.createElementNS(svg_ns, 'rect');
+
+      //
+      // Set the x, y, width and height of this element
+      //
+      newRect.x.baseVal.value = x + 10;
+      newRect.y.baseVal.value = y + 10;
+      newRect.setAttribute("width", width);
+      newRect.setAttribute("height", height);
+
+      //
+      // Insert new element in DOM tree
+      //
+      rect.parentNode.insertBefore(newRect, rect);
+
+      //
+      // Check the pass criteria using the JS framework
+      //
+      test(function() {assert_equals(rootId, "svg-root")}, "Assert that the document's root identifier is 'svg-root'.");
+      test(function() {
+           assert_true(newRect instanceof SVGRectElement);
+           assert_equals(newRect.getAttribute('x'), String(x+10));
+           assert_equals(newRect.getAttribute('y'), String(y+10));
+           assert_equals(newRect.getAttribute('width'), String(width));
+           assert_equals(newRect.getAttribute('height'), String(height));
+      }, "Assert that 'newRect' is replica (ignoring fill) of 'rect' with different x and y.");
+      }
+
+    ]]></script>
+    <!--======================================================================-->
+    <!-- Since this test is examining the SVG DOM, it could use any language  -->
+    <!-- binding. Here is the equivalent code for the Java binding            -->
+    <!--
+
+        //
+        // Test that our rectangle is an SVGElement instance
+        //
+        SVGRectElement rect = (SVGRectElement) doc.getElementById("rectId");
+        SVGElement rootSVG = rect.getOwnerSVGElement();
+        String rootId = rootSVG.getId();
+
+        // Insert a new text element to the DOM tree using the id
+        Element newText = doc.createElement("text");
+        newText.setAttribute("x", "50");
+        newText.setAttribute("y", "100");
+        String message = "This document's root identifier is=" " + rootId" 
+        Text textContent = doc.createTextNode(message);
+        newText.appendChild(textContent);
+        rect.getParentNode().appendChild(newText);
+
+        //
+        // Now, check that our rectangle is an instance of SVGRect by accessing
+        // specific methods in order to get its x, y, width and height attributes.
+        //
+        float x = rect.getX().getBaseVal().getValue();
+        float y = rect.getY().getBaseVal().getValue();
+        float width = rect.getWidth().getBaseVal().getValue();
+        float height = rect.getHeight().getBaseVal().getValue();
+
+        //
+        // Now, build a new SVGRect through the SVGSVGElement interface.
+        //
+        SVGRectElement newRect = (SVGRectElement) doc.createElement("rect");
+
+        //
+        // Set the x, y, width and height of this element
+        //
+        newRect.getX().getBaseVal().setValue(x + 10);
+        newRect.getY().getBaseVal().setValue(y + 10);
+        newRect.getWidth().getBaseVal().setValue(width);
+        newRect.getHeight().getBaseVal().setValue(height);
+
+        //
+        // Insert new element in DOM tree
+        //
+	alert(newRect)
+        rect.getParentNode().insertBefore(newRect, rect);
+
+-->
+    <!-- ===================================================================== -->
+    <!-- The following rectangle's is accessed in the 'domTest' ECMA Script    -->
+    <!-- handler.                                                              -->
+    <!-- ===================================================================== -->
+    <rect id="rectId" x="40" y="150" width="50" height="50" fill="green"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,68 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.1 $" testname="$RCSfile: filters-composite-05-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feCompositeElement">
+      <p>
+        Testing the feComposite element and that the 'k2' and 'k3' attributes
+        are animatable. The result is an animated dissolve between two images.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Reload the testcase or click the image to run animation again.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if there is an animation effect that gradually
+        dissolves a photo of a tree into an image of a bird over the course
+        of two seconds. The final result is that the bird is fully visible
+        and the tree photo is invisible.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-composite-05-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <filter id="dissolve" x="0" y="0" width="1" height="1">
+        <feImage xlink:href="../images/stefan_252_tRNS_opti.png" result="bird"/>
+        <feComposite operator="arithmetic" in="SourceGraphic" in2="bird" k1="0" k2="1" k3="0" k4="0">
+          <animate attributeName="k2" values="1;0" dur="2" begin="0s;image.click" fill="freeze"/>
+          <animate attributeName="k3" values="0;1" dur="2" begin="0s;image.click" fill="freeze"/>
+        </feComposite>
+      </filter>
+    </defs>
+    
+    <image id="image" width="320" height="160" xlink:href="../images/tree.jpg" filter="url(#dissolve)" transform="translate(80 80)"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.1 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

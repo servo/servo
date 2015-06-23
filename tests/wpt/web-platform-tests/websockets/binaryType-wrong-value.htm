@@ -4,7 +4,7 @@
     <title>W3C WebSocket API - Create Secure WebSocket - binaryType is set to something other than blob/arraybuffer</title>
     <script type="text/javascript" src="/resources/testharness.js"></script>
     <script type="text/javascript" src="/resources/testharnessreport.js"></script>
-    <script type="text/javascript" src="websocket.js"></script>
+    <script type="text/javascript" src="websocket.js?pipe=sub"></script>
 </head>
 <body>
     <div id="log"></div>
@@ -14,21 +14,17 @@
         var testClose = async_test("W3C WebSocket API - Create WebSocket - set binaryType to something other than blob or arraybuffer - SYNTAX_ERR is returned - Connection should be closed");
 
         var wsocket = CreateWebSocket(true, false, false);
-        var isOpenCalled = false;
 
         wsocket.addEventListener('open', testOpen.step_func(function (evt) {
             assert_equals(wsocket.binaryType, "blob");
             wsocket.binaryType = "notBlobOrArrayBuffer";
             assert_equals(wsocket.binaryType, "blob");
             wsocket.close();
-            isOpenCalled = true;
             testOpen.done();
         }), true);
 
         wsocket.addEventListener('close', testClose.step_func(function (evt) {
-            assert_true(isOpenCalled, "WebSocket connection should be opened");
             assert_true(evt.wasClean, "wasClean should be true");
-            clearTimeout(timeOut);
             testClose.done();
         }), true);
 

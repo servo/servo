@@ -1,0 +1,139 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: animate-elem-31-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test animation of the display attribute.
+      </p>
+      <p>
+        The test shows two gray rectangles which are filled with colored circles during the length of the animation (8 sec). 
+        The circles in the top rectangle are displayed/hidden by animating the display attribute.
+        The circles in the bottom rectangle are serving as the reference and are displayed/hidden by animating the visibility attribute. 
+        A correct implementation should display/hide circles with the same color from the top and bottom rectangle at the same time.
+      </p>
+      <p>
+        In total there are 6 different circles (purple, green, dodgerblue, blue, yellow, cyan) in 5 positions (blue and yellow share position) that should be displayed during the test.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>While the test is running (which takes approximately 8 seconds),
+      the text "Test running" is shown.  The test passes if:</p>
+      <ul>
+        <li>While the test is running, the colored circles are variously shown and hidden.</li>
+        <li>A colored circle is shown in the top rectangle if and only if
+        the corresponding colored circle is shown in the bottom rectangle.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-31-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- GRAY TESTAREAS-->
+    <rect x="5" y="7.5" width="375" height="75" fill="silver" stroke="black" stroke-width="3"/>
+    <rect x="5" y="112.5" width="375" height="75" fill="silver" stroke="black" stroke-width="3"/>
+    <g transform="scale(1.5)" display="inline">
+
+      <!-- PURPLE CIRCLES-->
+      <circle display="inline" cx="30" cy="30" r="20" fill="purple" stroke="black" stroke-width="5"/>
+      <circle display="inline" cx="30" cy="100" r="20" fill="purple" stroke="black" stroke-width="5">
+        <animate attributeName="visibility" from="visible" to="hidden" begin="6" dur="2"/>
+      </circle>
+
+      <!-- GREEN CIRCLES-->
+      <g display="none">
+        <circle display="inline" cx="80" cy="30" r="20" fill="green" stroke="black" stroke-width="5"/>
+        <animate attributeName="display" from="none" to="inline" begin="0" dur="3" fill="freeze"/>
+      </g>
+      <circle visibility="hidden" cx="80" cy="100" r="20" fill="green" stroke="black" stroke-width="5">
+        <animate attributeName="visibility" from="hidden" to="visible" begin="0" dur="3" fill="freeze"/>
+      </circle>
+
+      <!-- DODGERBLUE CIRCLES-->
+      <circle display="none" cx="130" cy="30" r="20" fill="dodgerblue" stroke="black" stroke-width="5">
+        <set attributeName="display" to="inline" begin="2" dur="1" fill="freeze"/>
+      </circle>
+      <circle visibility="hidden" cx="130" cy="100" r="20" fill="dodgerblue" stroke="black" stroke-width="5">
+        <animate attributeName="visibility" from="hidden" to="visible" begin="1" dur="2" fill="freeze"/>
+      </circle>
+
+      <!-- BLUE CIRCLES-->
+      <g display="none">
+        <g display="inherit">
+          <circle display="inline" cx="180" cy="30" r="20" fill="blue" stroke="black" stroke-width="5"/>
+        </g>
+        <animate attributeName="display" from="inline" to="none" begin="3" dur="3" fill="freeze"/>
+      </g>
+      <circle visibility="hidden" cx="180" cy="100" r="20" fill="blue" stroke="black" stroke-width="5">
+        <animate attributeName="visibility" from="visible" to="hidden" begin="3" dur="3" fill="freeze"/>
+      </circle>
+
+      <!-- YELLOW CIRCLES-->
+      <g display="none">
+        <g display="inherit">
+          <circle display="inline" cx="180" cy="30" r="20" fill="yellow" stroke="black" stroke-width="5"/>
+        </g>
+        <animate attributeName="display" from="none" to="inherit" begin="4" dur="3" fill="freeze"/>
+      </g>
+      <circle visibility="hidden" cx="180" cy="100" r="20" fill="yellow" stroke="black" stroke-width="5">
+        <animate attributeName="visibility" from="hidden" to="visible" begin="4" dur="3" fill="freeze"/>
+      </circle>
+
+      <!-- CYAN CIRCLES-->
+      <g display="none">
+        <circle cx="230" cy="30" r="20" fill="#00ffff" stroke="black" stroke-width="5">
+          <animate attributeName="display" begin="0" dur="0.5" keyTimes="0; 0.5; 1" values="inherit; none; inherit" repeatCount="8"/>
+        </circle>
+        <animate attributeName="display" begin="0" dur="2" keyTimes="0; 0.5; 1" values="inline; none; inline" repeatCount="2" fill="freeze"/>
+      </g>
+      <g visibility="hidden">
+        <circle cx="230" cy="100" r="20" fill="#00ffff" stroke="black" stroke-width="5">
+          <animate attributeName="visibility" begin="0" dur="0.5" keyTimes="0; 0.5; 1" values="inherit; hidden; inherit" repeatCount="8"/>
+        </circle>
+        <animate attributeName="visibility" begin="0" dur="2" keyTimes="0; 0.5; 1" values="visible; hidden; visible" repeatCount="2" fill="freeze"/>
+      </g>
+      <animate attributeName="display" from="inherit" to="none" begin="6" dur="2"/>
+    </g>
+
+    <text x="385" y="40" font-size="16">display</text>
+    <text x="385" y="150" font-size="18">visibility</text>
+    <text x="5" y="235" font-size="28">Test of display attribute animation.</text>
+    <text x="5" y="265" font-size="18">Circles with same color should be visible at same time.</text>
+
+    <text x="310" y="335" display="none" fill="red">Test running...
+      <set attributeName="display" to="inline" begin="0" dur="8.5"/>
+    </text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

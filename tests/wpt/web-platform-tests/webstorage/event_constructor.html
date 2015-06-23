@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
  <head>
-  <title>Web Storage</title>
+  <title>WebStorage Test: StorageEvent - init value</title>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
  </head>
@@ -26,7 +26,7 @@
             window.addEventListener('storage', onStorageEvent, false);
             var event = new StorageEvent('storage');
             window.dispatchEvent(event);
-        });
+        }, "The initial values of storage event properties.");
     </script>
  </body>
 </html>

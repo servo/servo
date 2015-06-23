@@ -45,7 +45,8 @@
         if (hasMimeType) {
           test1.step(function() {assert_false(is_loaded, "External object loaded.")});
         } else {
-          test1.step(function() {assert_true(hasMimeType, "No Flash Player, cannot run test.")});
+          test1.set_status(test1.NOTRUN, "No Flash Player, cannot run test.");
+          test1.phase = test1.phases.HAS_RESULT;
         }
         test1.done();
       }

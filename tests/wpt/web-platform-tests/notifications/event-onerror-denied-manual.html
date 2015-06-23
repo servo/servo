@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Web Notifications Test: notification - onerror (basic)</title>
+<link rel="author" title="Apple Inc." href="http://www.apple.com/">
+<link rel="help" title="5 API" href="http://www.w3.org/TR/notifications/">
+<meta name="flags" content="">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="message"></div>
+  <div id="log"></div>
+  <script>
+    var t = async_test("the notification.onerror event can be invoked", {timeout: 50000});
+
+    function onerror_test() {
+       var notification = new Notification("New Email Received", {
+         body: "Room 101"
+       });
+       notification.onerror = t.step_func(function(e) {
+         assert_equals(Object.prototype.toString.call(e), "[object Event]", "the type of event");
+         assert_equals(e.type, "error", "The event is the expected type.")
+         t.done();
+       });
+    }
+
+    if (Notification.permission != "denied") {
+      document.getElementById("message").innerHTML = "Please deny web-platform.test in your browser's notification preferences and retry";
+      Notification.requestPermission(t.step_func(function(permission) {
+        assert_equals(permission, "denied", "notification permission");
+        onerror_test();
+      }));
+    } else {
+      onerror_test();
+    }
+  </script>
+</body>
+

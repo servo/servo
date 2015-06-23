@@ -1,0 +1,88 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: pservers-grad-04-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        Test that checks the capability of the stop element in linear and radial
+        gradients.
+      </p>
+      <p>
+        The first rectangle has a linear gradient fill with a vector starting at top left
+        and going to bottom right. The stop colors are at 20% spacing apart and are in the
+        following order : violet, blue, lime, yellow, orange, green.
+        Because the gradient vector vector goes from (0,0) to (1,1) in object bounding box space
+        and because the object bounding box has a larger width than height, the gradient vector
+        is skewed off of a pure 45 degree angle. The gradient stripes are also skewed
+        so that they are no longer perpendicular to the gradient vector.
+      </p>
+      <p>
+        The next rectangle has a radial gradient fill with a multi-color stops from innermost
+        to outermost in the following order: black, yellow, orange, blue, white, green.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">           
+      <p>
+				Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendering matches the reference image, except for
+      any differences in text due to CSS2 rules.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-04-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <linearGradient id="Grad1" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="rgb(238,130,238)" offset="0"/>
+      <stop stop-color="blue" offset="0.2"/>
+      <stop stop-color="lime" offset="0.4"/>
+      <stop stop-color="yellow" offset="0.6"/>
+      <stop stop-color="rgb(255,165,0)" offset="0.8"/>
+      <stop stop-color="green" offset="1"/>
+    </linearGradient>
+    <rect x="20" y="20" width="440" height="80" fill="url(#Grad1)"/>
+    <text font-size="30" x="20" y="130">Multi-color linear gradient.</text>
+    <!-- ====================================================================== -->
+    <!-- Radial gradient on the stroke of a rectangle                  ======== -->
+    <!-- ====================================================================== -->
+    <radialGradient id="Grad2" gradientUnits="userSpaceOnUse" cx="240" cy="210" r="220" fx="240" fy="210">
+      <stop stop-color="black" offset="0"/>
+      <stop stop-color="yellow" offset="0.2"/>
+      <stop stop-color="orange" offset="0.4"/>
+      <stop stop-color="blue" offset="0.6"/>
+      <stop stop-color="white" offset="0.8"/>
+      <stop stop-color="green" offset="1"/>
+    </radialGradient>
+    <rect x="20" y="150" width="440" height="80" fill="url(#Grad2)" stroke-width="40"/>
+    <text font-size="30" x="20" y="260">Multi-color radial gradient.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

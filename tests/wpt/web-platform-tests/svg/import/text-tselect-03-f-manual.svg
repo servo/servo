@@ -1,0 +1,157 @@
+<svg version="1.1" baseProfile="full" onload="doSelection(0,0);" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="ED" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: text-tselect-03-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextSelection">
+      <p>
+        This test demonstrates text selection of bidirectional text.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The initial result should be that the first 9 characters in logical order
+        starting from logical position 0 are selected.
+      </p>
+      <p>
+        Visually the selection is discontigous and these substrings must be selected (listed in visual order):
+      </p>
+      <p>
+        "abc"
+      </p>
+      <p>
+        the space between "c" and "ו"
+      </p>
+      <p>
+        "1"
+      </p>
+      <p>
+        the space between "3" and "ג"
+      </p>
+      <p>
+        "אבג"
+      </p>
+      <p>
+        If only the substrings listed above were selected then the test has passed.
+      </p>
+      <p>
+        A user agent that allows selecting text in logical order would have generated the same selection
+        as in this testcase if the user started the selection on the character "a" and ended it on the
+        character "1".
+
+        A user agent that allows selecting text in visual order would not have a discontigous selection
+        if the user started the selection on the character "a" and ended it on the character "1". The copied
+        text would be discontigous instead in this case.
+
+        Note that the SVG DOM method requires logical order text selection, so for both types of user agents
+        this testcase must look the same.
+      </p>
+      <p>
+        The testcase also shows what happens when the selection is modified via DOM (click the buttons below
+        the bidi-text). Compliant viewers must throw an exception when the first parameter handed
+        to SVGTextContentElement.selectSubString is out-of-range.
+        That means the variable 'startIndex' must always be in the range 0 &lt;= startIndex &lt;= 18.
+        It can be noted that the parameter 'numChars' is not restricted in this way.
+      </p>
+      <p>
+        Note that the color of the text selection is UA dependent and not defined in the SVG specification.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-tselect-03-f.svg,v $</title>
+  <defs>
+    <style type="text/css">
+	@font-face {
+	    font-family: Ezra SIL SR;
+	    src: url(woffs/EzraSILSR.woff) format("woff");
+	}
+    </style>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="SVGHebrew" unicode-range="U+000D-FEFF">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/Heb.svg#SVGHebrew"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <script>
+        var startIndex = 0;
+        var numChars = 9;
+
+        function doSelection(indexDelta, numCharsDelta)
+        {
+        try
+        {
+        document.getElementById('text').selectSubString(startIndex+indexDelta, numChars+numCharsDelta);
+        }
+        catch(e)
+        {
+        if(e.code == DOMException.INDEX_SIZE_ERR)
+        {
+        // If there was an error, re-select the last range
+        document.getElementById('text').selectSubString(startIndex, numChars);
+        return;
+        }
+        }
+
+        startIndex += indexDelta;
+        numChars += numCharsDelta;
+
+        document.getElementById('info').firstChild.data = "StartIndex: " + startIndex + ". NumChars: " + numChars;
+        }
+      </script>
+    </defs>
+
+    <g transform="translate(0,60)">
+      <text id="info" font-size="16" x="10" y="70">StartIndex: 0 NumChars: 0</text>
+
+      <text id="text" font-size="48" y="128" x="10" font-family="SVGHebrew, 'Ezra SIL SR', serif">
+        abc אבג 123 דהו def
+      </text>
+
+      <g id="buttons">
+        <rect x="10" y="160" width="100" height="20" fill="blue" onclick="doSelection(1,0);"/>
+        <text x="60" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">startIndex++</text>
+
+        <rect x="120" y="160" width="100" height="20" fill="blue" onclick="doSelection(-1,0);"/>
+        <text x="170" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">startIndex--</text>
+
+        <rect x="230" y="160" width="100" height="20" fill="blue" onclick="doSelection(0,1);"/>
+        <text x="280" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">numChars++</text>
+
+        <rect x="340" y="160" width="100" height="20" fill="blue" onclick="doSelection(0,-1);"/>
+        <text x="390" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">numChars--</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

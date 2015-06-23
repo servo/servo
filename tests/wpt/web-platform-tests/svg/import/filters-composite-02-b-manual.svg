@@ -1,0 +1,203 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-composite-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feCompositeElement">
+      <p>
+        Test which verifies the basic facilities of feComposite.
+      </p>
+      <p>
+        This test uses the following elements: &lt;path&gt;, &lt;filter&gt;
+        &lt;feImage&gt; &lt;feComposite&gt;.
+      </p>
+      <p>
+        The test case shows six pairs of overlapping triangles
+        depicting the six different feComposite operators. The
+        first row shows compositing when both triangles have
+        opacity=1. The second row shows compositing when both
+        triangles have opacity=.5. The six columns illustrate the
+        six types of compositing operations.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+     	<p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image
+        exactly, except for possible variations in the
+        labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-composite-02-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="translate(15 -60)">
+      <title>Example feComposite - Examples of feComposite operations</title>
+      <desc>Six pairs of overlapping triangles depicting the six different feComposite operators.</desc>
+      <defs>
+        <path id="Blue100" d="M 0 0 L 150 0 L 150 150 z" fill="#00ffff"/>
+        <path id="Red100" d="M 0 0 L 0 150 L 150 0 z" fill="#ff00ff"/>
+        <path id="Blue50" d="M 0 0 L 150 0 L 150 150 z" fill="#00ffff" fill-opacity="0.5"/>
+        <path id="Red50" d="M 0 0 L 0 150 L 150 0 z" fill="#ff00ff" fill-opacity="0.5"/>
+
+        <filter id="over" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue100" result="blue"/>
+          <feImage xlink:href="#Red100" result="red"/>
+          <feComposite in2="blue" in="red" operator="over"/>
+        </filter>
+
+        <filter id="over50" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue50" result="blue"/>
+          <feImage xlink:href="#Red50" result="red"/>
+          <feComposite in2="blue" in="red" operator="over"/>
+        </filter>
+
+        <filter id="in" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue100" result="blue"/>
+          <feImage xlink:href="#Red100" result="red"/>
+          <feComposite in2="blue" in="red" operator="in"/>
+        </filter>
+
+        <filter id="in50" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue50" result="blue"/>
+          <feImage xlink:href="#Red50" result="red"/>
+          <feComposite in2="blue" in="red" operator="in"/>
+        </filter>
+
+        <filter id="out" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue100" result="blue"/>
+          <feImage xlink:href="#Red100" result="red"/>
+          <feComposite in2="blue" in="red" operator="out"/>
+        </filter>
+
+        <filter id="out50" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue50" result="blue"/>
+          <feImage xlink:href="#Red50" result="red"/>
+          <feComposite in2="blue" in="red" operator="out"/>
+        </filter>
+
+        <filter id="atop" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue100" result="blue"/>
+          <feImage xlink:href="#Red100" result="red"/>
+          <feComposite in2="blue" in="red" operator="atop"/>
+        </filter>
+
+        <filter id="atop50" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue50" result="blue"/>
+          <feImage xlink:href="#Red50" result="red"/>
+          <feComposite in2="blue" in="red" operator="atop"/>
+        </filter>
+
+        <filter id="xor" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue100" result="blue"/>
+          <feImage xlink:href="#Red100" result="red"/>
+          <feComposite in2="blue" in="red" operator="xor"/>
+        </filter>
+
+        <filter id="xor50" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue50" result="blue"/>
+          <feImage xlink:href="#Red50" result="red"/>
+          <feComposite in2="blue" in="red" operator="xor"/>
+        </filter>
+
+        <filter id="arithmetic" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue100" result="blue"/>
+          <feImage xlink:href="#Red100" result="red"/>
+          <feComposite in2="blue" in="red" operator="arithmetic" k1=".5" k2=".5" k3=".5" k4=".5"/>
+        </filter>
+
+        <filter id="arithmetic50" x="0" y="0" width="1" height="1">
+          <feImage xlink:href="#Blue50" result="blue"/>
+          <feImage xlink:href="#Red50" result="red"/>
+          <feComposite in2="blue" in="red" operator="arithmetic" k1=".5" k2=".5" k3=".5" k4=".5"/>
+        </filter>
+      </defs>
+      <g font-family="Verdana" font-size="60" shape-rendering="crispEdges" transform="translate(5,70) scale(.4)">
+        <rect fill="none" stroke="blue" x="1" y="1" width="1098" height="723"/>
+        <text x="100" y="75">on first Row : opacity 1.0</text>
+        <text x="100" y="180">on second row opacity 0.5</text>
+
+        <g transform="translate(15,230)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#over)"/>
+          <text x="10" y="400">over</text>
+        </g>
+
+        <g transform="translate(15,430)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#over50)"/>
+        </g>
+
+        <g transform="translate(195,230)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#in)"/>
+          <text x="10" y="400">in</text>
+        </g>
+
+        <g transform="translate(195,430)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#in50)"/>
+        </g>
+
+        <g transform="translate(375,230)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#out)"/>
+          <text x="10" y="400">out</text>
+        </g>
+        <g transform="translate(375,430)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#out50)"/>
+        </g>
+
+        <g transform="translate(555,230)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#atop)"/>
+          <text x="10" y="400">atop</text>
+        </g>
+        <g transform="translate(555,430)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#atop50)"/>
+        </g>
+
+        <g transform="translate(735,230)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#xor)"/>
+          <text x="10" y="400">xor</text>
+        </g>
+        <g transform="translate(735,430)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#xor50)"/>
+        </g>
+        <g transform="translate(915,230)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#arithmetic)"/>
+          <text x="-25" y="400">arith-</text>
+          <text x="-25" y="470">metic</text>
+        </g>
+        <g transform="translate(915,430)">
+          <rect x="0" y="0" width="150" height="150" filter="url(#arithmetic50)"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

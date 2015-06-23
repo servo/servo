@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.2" baseProfile="tiny" id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xe="http://www.w3.org/2001/xml-events">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AE" author="CL" status="accepted"
+    version="$Revision: 1.2 $" testname="$RCSfile: fonts-overview-201-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#SVGFontsOverview">
+      <p>
+        This tests a range of values for the 'units per em' attribute.
+      </p>
+      <p>
+        The same glyph is defined three times in three fonts, but with different values
+        for units-per-em - 1,000, 10, and 10,000 - and with the other numerical values
+        that depend on units-per-em scaled accordingly. Text using these  fonts must all be displayed at the same size,
+        because the same font-size is used throughout.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	The test is passed if the three letter β are all the same size.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: fonts-overview-201-t.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <font id="beta" horiz-adv-x="550" >
+        <font-face
+          font-family="SVGbeta1"
+          font-weight="500"
+          units-per-em="1000"
+          ascent="800"
+          descent="-200"
+          unicode-range="U+03B2"
+        />
+        <missing-glyph />
+        <glyph glyph-name="beta" unicode="&#x3b2;"
+          d="M522.35 177.05c0 -103.55 -73.73 -201.4 -190.89 -201.4c-62.62 0 -123.22 22.7998 -138.37 85.5h-2.01999v-261.15h-135.34v573.7c0 136.8 37.3691 304.95 218.16 304.95c95.95 0 198.97 -40.85 198.97 -145.35c0 -94.05 -72.72 -133 -160.59 -152v-1.89999
+          c126.25 -16.15 210.08 -76 210.08 -202.35zM360.75 128.6v80.75c0 41.8 -3.03 149.15 -67.67 149.15c-15.15 0 -29.29 -8.54999 -44.44 -8.54999c-14.14 0 -20.2 18.05 -20.2 28.5c0 11.4 9.09 24.7 22.22 24.7c12.12 0 24.24 -6.64999 36.36 -6.64999
+          c45.45 0 45.45 79.8 45.45 108.3c0 42.75 2.01999 146.3 -63.63 146.3c-75.75 0 -77.77 -138.7 -77.77 -188.1v-394.25h31.31c3.03 -23.75 29.29 -49.4004 55.55 -49.4004c68.68 0 82.82 56.0508 82.82 109.25z" />
+      </font>
+      <font id="beta2" horiz-adv-x="5.50" >
+        <font-face
+          font-family="SVGbeta2"
+          font-weight="500"
+          units-per-em="10"
+          ascent="8"
+          descent="-2"
+          unicode-range="U+03B2"
+        />
+        <missing-glyph />
+        <glyph glyph-name="beta" unicode="&#x3b2;"
+          d="M5.2235 1.7705c0 -1.0355 -0.7373 -2.014 -1.9089 -2.014c-0.6262 0 -1.2322 0.227998 -1.3837 0.855h-0.0201999v-2.6115h-1.3534v5.737c0 1.368 0.373691 3.0495 2.1816 3.0495c0.9595 0 1.9897 -0.4085 1.9897 -1.4535c0 -0.9405 -0.7272 -1.33 -1.6059 -1.52v-0.0189999
+          c1.2625 -0.1615 2.1008 -0.76 2.1008 -2.0235zM3.6075 1.286v0.8075c0 0.418 -0.0303 1.4915 -0.6767 1.4915c-0.1515 0 -0.2929 -0.0854999 -0.4444 -0.0854999c-0.1414 0 -0.202 0.1805 -0.202 0.285c0 0.114 0.0909 0.247 0.2222 0.247c0.1212 0 0.2424 -0.0664999 0.3636 -0.0664999
+          c0.4545 0 0.4545 0.798 0.4545 1.083c0 0.4275 0.0201999 1.463 -0.6363 1.463c-0.7575 0 -0.7777 -1.387 -0.7777 -1.881v-3.9425h0.3131c0.0303 -0.2375 0.2929 -0.494004 0.5555 -0.494004c0.6868 0 0.8282 0.560508 0.8282 1.0925z" />
+      </font>
+      <font id="beta3" horiz-adv-x="55000" >
+        <font-face
+          font-family="SVGbeta3"
+          font-weight="500"
+          units-per-em="10000"
+          ascent="8000"
+          descent="-2000"
+          unicode-range="U+03B2"
+        />
+        <missing-glyph />
+        <glyph glyph-name="beta" unicode="&#x3b2;"
+          d="M5223.5 1770.5c0 -1035.5 -737.3 -2014.0 -1908.9 -2014.0c-626.2 0 -1232.2 227.998 -1383.7 855.0h-20.1999v-2611.5h-1353.4v5737.0c0 1368.0 373.691 3049.5 2181.6 3049.5c959.5 0 1989.7 -408.5 1989.7 -1453.5c0 -940.5 -727.2 -1330.0 -1605.9 -1520.0v-18.9999
+          c1262.5 -161.5 2100.8 -760.0 2100.8 -2023.5zM3607.5 1286.0v807.5c0 418.0 -30.3 1491.5 -676.7 1491.5c-151.5 0 -292.9 -85.4999 -444.4 -85.4999c-141.4 0 -202.0 180.5 -202.0 285.0c0 114.0 90.9 247.0 222.2 247.0c121.2 0 242.4 -66.4999 363.6 -66.4999
+          c454.5 0 454.5 798.0 454.5 1083.0c0 427.5 20.1999 1463.0 -636.3 1463.0c-757.5 0 -777.7 -1387.0 -777.7 -1881.0v-3942.5h313.1c30.3 -237.5 292.9 -494.004 555.5 -494.004c686.8 0 828.2 560.508 828.2 1092.5z" />
+      </font>
+    </defs>
+    <!-- alphabetic baseline -->
+    <path stroke-width="2" stroke="#888" d="M 50,200 H 420"/>
+    <!--  ascent  -->
+    <path stroke-width="2" stroke="#888" d="M 50, 56 H 420"/>
+    <!-- descent  -->
+    <path stroke-width="2" stroke="#888" d="M 50, 236 H 420"/>
+
+    <text  x="50" y="200" font-family="SVGbeta1" font-size="180">β</text>
+    <text  x="180" y="200" font-family="SVGbeta2" font-size="180">β</text>
+    <text  x="310" y="200" font-family="SVGbeta3" font-size="180">β</text>
+
+    <text x="60" y="260" font-size="10">1,000</text>
+    <text x="190" y="260" font-size="10">10</text>
+    <text x="320" y="260" font-size="10">10,000</text>
+    <text x="110" y="280" font-size="16">varying units-per-em values</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.2 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

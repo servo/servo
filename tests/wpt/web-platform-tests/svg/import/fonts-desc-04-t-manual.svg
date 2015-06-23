@@ -1,0 +1,154 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="CN" status="reviewed"
+    version="$Revision: 1.7 $" testname="$RCSfile: fonts-desc-04-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#SVGFontsOverview">
+      <p>
+        This test demonstrates CSS font matching based on the
+        font-style attribute.
+      </p>
+      <p>
+        The first line of text tests selecting an italic font.
+      </p>
+      <p>
+        The second line tests that order of font definition
+        does not effect correct matching.
+      </p>
+      <p>
+        The third line tests selecting an italic and an oblique font.
+        Italic can match against oblique or italic, but all other values must match exactly.
+        The letter 'a' will be an UA-dependent default font-family,
+        it should be oblique, possiblely a transformation of a
+        normal font.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The first line of text should produce a square followed
+        by a triangle.
+      </p>
+      <p>
+        The second line should produce a square followed
+        by a triangle.
+      </p>
+      <p>
+        The third line should produce in first place
+        either a triangle, a diamond, or a letter 'a' in some fallback font.
+        (All are correct,and depend on which font is chosen for fallback).
+        This is followed by two diamonds.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: fonts-desc-04-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont1" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="square" d="M0 250L500 250L500 750L0 750Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont1" font-style="italic" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="upward-triangle" d="M0 0L500 0L250 900Z"/>
+      </font>
+
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont2" font-style="italic" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="upward-triangle" d="M0 0L500 0L250 900Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont2" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="square" d="M0 250L500 250L500 750L0 750Z"/>
+      </font>
+
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont3" font-style="italic" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="square" d="M0 250L500 250L500 750L0 750Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont3" font-style="oblique" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="upward-triangle" d="M0 0L500 0L250 900Z"/>
+      </font>
+
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont4" font-style="italic" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="square" d="M0 250L500 250L500 750L0 750Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont5" font-style="oblique" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="diamond" d="M0 500L250 250L500 500L250 750Z"/>
+      </font>
+
+    </defs>
+
+    <g font-size="50">
+      <!-- This should produce a square followed by a triangle  -->
+      <text x="50" y="50" font-family="SVGFont1">a</text>
+      <text x="100" y="50" font-family="SVGFont1" font-style="italic">a</text>
+
+      <!-- This should produce a square followed by a triangle  -->
+      <text x="50" y="150" font-family="SVGFont2">a</text>
+      <text x="100" y="150" font-family="SVGFont2" font-style="italic">a</text>
+
+      <!-- This should produce a letter 'a' followed by a diamond  -->
+      <text x="50" y="250" font-family="SVGFont4" font-style="oblique">a</text>
+      <text x="100" y="250" font-family="SVGFont4,SVGFont5" font-style="oblique">a</text>
+      <text x="150" y="250" font-family="SVGFont5" font-style="italic">a</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

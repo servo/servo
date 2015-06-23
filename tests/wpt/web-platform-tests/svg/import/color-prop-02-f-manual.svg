@@ -1,0 +1,113 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Chris Lilley" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: color-prop-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/color.html#ColorProperty">
+        <p>
+          Tests if the color datatype is supported. There are multiple syntaxes for
+        specifying the same color, such as #37F and #3377FF. This test is focussed on the 
+	X11 color names, which are not part of the tiny profile.
+	Each group of circles uses four forms - 6-digit hex, rbg() integer form, rgb() percentage form,
+        and named ('X11') colors. It does not use 3-digit hex, because the colors used in this test
+        cannot be represented in three digit form.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        For each of the nine groups of circles shown here, all circles must
+        be identical in color, and the same color as in the reference image. 
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: color-prop-02-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- groups of five colors  -->
+    <g>
+      <circle cx="75" cy="40" r="20" fill="crimson"/>
+      <circle cx="115" cy="40" r="20" fill="#DC143C"/>
+      <circle cx="75" cy="80" r="20" fill="rgb(220,20,60)"/>
+      <circle cx="115" cy="80" r="20" fill="rgb(86.274509803921568627450980392157%,7.8431372549019607843137254901961%,23.529411764705882352941176470588%)"/>
+    </g>
+    <g>
+      <circle cx="200" cy="40" r="20" fill="palegreen"/>
+      <circle cx="240" cy="40" r="20" fill="#98FB98"/>
+      <circle cx="200" cy="80" r="20" fill="rgb(152, 251, 152)"/>
+      <circle cx="240" cy="80" r="20" fill="rgb(59.60784313725490196078431372549%,98.431372549019607843137254901961%,59.60784313725490196078431372549%)"/>
+    </g>
+    <g>
+      <circle cx="325" cy="40" r="20" fill="royalblue"/>
+      <circle cx="365" cy="40" r="20" fill="#4169E1"/>
+      <circle cx="325" cy="80" r="20" fill="rgb(65, 105, 225)"/>
+      <circle cx="365" cy="80" r="20" fill="rgb(25.490196078431372549019607843137%,41.176470588235294117647058823529%,88.235294117647058823529411764706%)"/>
+    </g>
+    <g>
+      <circle cx="75" cy="135" r="20" fill="firebrick"/>
+      <circle cx="115" cy="135" r="20" fill="#B22222"/>
+      <circle cx="75" cy="175" r="20" fill="rgb(178,34,34)"/>
+      <circle cx="115" cy="175" r="20" fill="rgb(69.803921568627450980392156862745%,13.333333333333333333333333333333%,13.333333333333333333333333333333%)"/>
+    </g>
+    <g>
+      <circle cx="200" cy="135" r="20" fill="seagreen"/>
+      <circle cx="240" cy="135" r="20" fill="#2E8B57"/>
+      <circle cx="200" cy="175" r="20" fill="rgb(46, 139, 87)"/>
+      <circle cx="240" cy="175" r="20" fill="rgb(18.039215686274509803921568627451%,54.509803921568627450980392156863%,34.117647058823529411764705882353%)"/>
+    </g>
+    <g>
+      <circle cx="325" cy="135" r="20" fill="mediumblue"/>
+      <circle cx="365" cy="135" r="20" fill="#0000CD"/>
+      <circle cx="325" cy="175" r="20" fill="rgb(0, 0, 205)"/>
+      <circle cx="365" cy="175" r="20" fill="rgb(0%,0%,80.39215686274509803921568627451%)"/>
+    </g>
+    <g>
+      <circle cx="75" cy="230" r="20" fill="indianred"/>
+      <circle cx="115" cy="230" r="20" fill="#CD5C5C"/>
+      <circle cx="75" cy="270" r="20" fill="rgb(205, 92, 92)"/>
+      <circle cx="115" cy="270" r="20" fill="rgb(80.39215686274509803921568627451%,36.078431372549019607843137254902%,36.078431372549019607843137254902%)"/>
+    </g>
+    <g>
+      <circle cx="200" cy="230" r="20" fill="lawngreen"/>
+      <circle cx="240" cy="230" r="20" fill="#7CFC00"/>
+      <circle cx="200" cy="270" r="20" fill="rgb(124, 252, 0)"/>
+      <circle cx="240" cy="270" r="20" fill="rgb(48.627450980392156862745098039216%,98.823529411764705882352941176471%,0%)"/>
+    </g>
+    <g>
+      <circle cx="325" cy="230" r="20" fill="mediumturquoise"/>
+      <circle cx="365" cy="230" r="20" fill="#48D1CC"/>
+      <circle cx="325" cy="270" r="20" fill="rgb(72, 209, 204)"/>
+      <circle cx="365" cy="270" r="20" fill="rgb(28.235294117647058823529411764706%,81.960784313725490196078431372549%,80%)"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

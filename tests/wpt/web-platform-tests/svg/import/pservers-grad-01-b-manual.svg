@@ -1,0 +1,69 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: pservers-grad-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+        <p>
+          Test that the viewer can handle the xlink:href attribute on
+          linear gradients. The top rectangle has a simple
+        blue (left) to lime (right) linear gradient. The lower one
+        has a different gradient definition, but
+        should look the same as the one above, because the gradient makes a
+        reference to the first gradient, without modifying any attribute.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+      <p>
+Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if there are two rectangles, both with a blue to lime gradient. 
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- Linear Gradient using a xlink:href to another linear gradient          -->
+    <!-- ====================================================================== -->
+    <linearGradient id="Grad1a" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="blue" offset="0"/>
+      <stop stop-color="lime" offset="1"/>
+    </linearGradient>
+    <linearGradient id="Grad1b" xlink:href="#Grad1a"/>
+    <rect x="20" y="20" width="440" height="80" fill="url(#Grad1a)"/>
+    <text font-size="30" x="20" y="130">Linear gradient.</text>
+    <rect x="20" y="150" width="440" height="80" fill="url(#Grad1b)"/>
+    <text font-size="30" x="20" y="260">Referencing gradient below.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,168 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CM" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-dom-11-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#InterfaceSVGSVGElement">
+      <p>
+        This tests that the getIntersectionList() and getEnclosureList()
+        methods return NodeLists that are not live.
+      </p>
+      <p>
+        After loading the test, two rectangles will be presented.  The
+        upper rectangle indicates the result of testing whether
+        getIntersectionList() returns a non-live NodeList, while the
+        lower rectangle indicates so for getEnclosureList().
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+    	<p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if both rectangles are green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-11-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='40' font-size='13'>Test getIntersectionList and getEnclosureList return value liveness</text>
+
+    <rect id='r1' x='10' y='70' width='50' height='50' fill='black'/>
+    <text x='70' y='100'>getIntersectionList</text>
+
+    <rect id='r2' x='10' y='130' width='50' height='50' fill='black'/>
+    <text x='70' y='160'>getEnclosureList</text>
+
+    <g id="g1" visibility="hidden" pointer-events="painted">
+      <circle id='c1' cx='305' cy='100' r='5'/>
+      <circle id='c2' cx='305' cy='150' r='5'/>
+    </g>
+
+    <script><![CDATA[
+			function userspace2viewport(elm, r)
+			{
+				var ctm = elm.getCTM();
+
+				var corners = [];
+				for(var i = 0; i < 4; i++)
+					corners.push(svg.createSVGPoint());
+				
+				corners[0].x = r.x;
+				corners[0].y = r.y;
+				corners[1].x = r.x + r.width;
+				corners[1].y = r.y;
+				corners[2].x = r.x + r.width;
+				corners[2].y = r.y + r.height;
+				corners[3].x = r.x;
+				corners[3].y = r.y + r.height;
+
+				for(var i = 0; i < 4; i++)
+					corners[i] = corners[i].matrixTransform(ctm);
+				
+				var min = svg.createSVGPoint();
+				var max = svg.createSVGPoint();
+				min.x = corners[0].x;
+				min.y = corners[0].y;
+				max.x = corners[0].x;
+				max.y = corners[0].y;
+				
+				for(var i = 1; i < 4; i++)
+				{
+					var x = corners[i].x;
+					var y = corners[i].y;
+					
+					if(x < min.x)
+						min.x = x;
+					else if(x > max.x)
+						max.x = x;
+					
+					if(y < min.y)
+						min.y = y;
+					else if(y > max.y)
+						max.y = y;
+				}
+				
+				var res = svg.createSVGRect();
+				res.x = min.x;
+				res.y = min.y;
+				res.width = max.x - min.x;
+				res.height = max.y - min.y;
+				return res;
+			}
+		
+      var svg = document.documentElement,
+          c = document.getElementById('c'),
+          r1 = document.getElementById('r1'),
+          r2 = document.getElementById('r2'),
+          c1 = document.getElementById('c1'),
+          c2 = document.getElementById('c2'),
+					g1 = document.getElementById('g1'),
+          r = svg.createSVGRect(),
+          nl;
+
+      try {
+        r.x = 300;
+        r.y = 95;
+        r.width = 5;
+        r.height = 5;
+		
+				r = userspace2viewport(g1, r);
+		
+        nl = svg.getIntersectionList(r, null);
+        if (nl && nl.length == 1) {
+          c1.parentNode.removeChild(c1);
+          r1.setAttribute('fill', nl.length == 1 ? 'lime' : 'red');
+        }
+      } catch (e) {
+      }
+
+      try {
+        r.x = 290;
+        r.y = 135;
+        r.width = 20;
+        r.height = 20;
+
+				r = userspace2viewport(g1, r);
+				
+        nl = svg.getEnclosureList(r, null);
+        if (nl && nl.length == 1) {
+          c2.parentNode.removeChild(c2);
+          r2.setAttribute('fill', nl.length == 1 ? 'lime' : 'red');
+        }
+      } catch (e) {
+      }
+    ]]></script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,159 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.2 $" testname="$RCSfile: filters-background-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#AccessingBackgroundImage">
+      <p>
+        Test background image processing.
+      </p>
+      <p>
+        The first subtest enables background image processing and adds an empty ‘g’ element 
+        which invokes the ShiftBGAndBlur filter. This filter takes the current accumulated 
+        background image (i.e., the entire reference graphic) as input, shifts its offscreen 
+        down, blurs it, and then writes the result to the canvas. Note that the offscreen for
+        the filter is initialized to transparent black, which allows the already rendered 
+        rectangle, circle and triangle to show through after the filter renders its own 
+        result to the canvas.
+      </p>
+      <p>
+        The second subtest enables background image processing and instead invokes the 
+        ShiftBGAndBlur filter on the inner ‘g’ element. The accumulated background at the 
+        time the filter is applied contains only the rectangle. Because the children 
+        of the inner ‘g’ (i.e., the circle and triangle) are not part of the inner ‘g’ element's 
+        background and because ShiftBGAndBlur ignores SourceGraphic, the children of the inner ‘g’
+        do not appear in the result.
+      </p>
+      <p>
+        The third subtest enables background image processing and invokes the ShiftBGAndBlur on the 
+        ‘polygon’ element that draws the triangle. The accumulated background at the time the filter 
+        is applied contains the rectangle plus the circle ignoring the effect of the ‘opacity’ 
+        property on the inner ‘g’ element. (Note that the blurred circle at the bottom does not 
+        let the rectangle show through on its left side. This is due to ignoring the effect of 
+        the ‘opacity’ property.) Because the triangle itself is not part of the accumulated background 
+        and because ShiftBGAndBlur ignores SourceGraphic, the triangle does not appear in the result.
+      </p>
+      <p>
+        The fourth subtest is the same as the third except that filter ShiftBGAndBlur_WithSourceGraphic is 
+        invoked instead of ShiftBGAndBlur. ShiftBGAndBlur_WithSourceGraphic performs the same effect as 
+        ShiftBGAndBlur, but then renders the SourceGraphic on top of the shifted, blurred background 
+        image. In this case, SourceGraphic is the blue triangle; thus, the result is the same as in 
+        the fourth case except that the triangle now appears.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>each blue rectangle has the same shapes twice inside, once without filters applied, once with (blurred)</li>
+        <li>from left to right, the blue rectangles contain the following shapes: [rectangle, circle, triangle], [rectangle], [rectangle, circle], [rectangle, circle, triangle]</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-background-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+      <defs>
+        <filter id="ShiftBGAndBlur" filterUnits="userSpaceOnUse" x="0" y="0" width="1200" height="400">
+          <desc>
+            This filter discards the SourceGraphic, if any, and just produces
+            a result consisting of the BackgroundImage shifted down 125 units
+            and then blurred.
+          </desc>
+          <feOffset in="BackgroundImage" dx="0" dy="125" />
+          <feGaussianBlur stdDeviation="8" />
+        </filter>
+        <filter id="ShiftBGAndBlur_WithSourceGraphic" 
+                filterUnits="userSpaceOnUse" x="0" y="0" width="1200" height="400">
+          <desc>
+            This filter takes the BackgroundImage, shifts it down 125 units, blurs it,
+            and then renders the SourceGraphic on top of the shifted/blurred background.
+          </desc>
+          <feOffset in="BackgroundImage" dx="0" dy="125" />
+          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+
+      <g transform="scale(0.4) translate(-200 300)">
+        <g enable-background="new" transform="translate(270,0)">
+          <desc>The second adds an empty 'g' element which invokes ShiftBGAndBlur.</desc>
+          <rect x="25" y="25" width="100" height="100" fill="fuchsia"/>
+          <g opacity=".5">
+            <circle cx="125" cy="75" r="45" fill="#D3FF00"/>
+            <polygon points="160,25 160,125 240,75" fill="#7A16FF"/>
+          </g>
+          <g filter="url(#ShiftBGAndBlur)"/>
+          <rect x="5" y="5" width="260" height="260" fill="none" stroke="blue"/>
+        </g>
+
+        <g enable-background="new" transform="translate(540,0)">
+          <desc>The third invokes ShiftBGAndBlur on the inner group.</desc>
+          <rect x="25" y="25" width="100" height="100" fill="fuchsia"/>
+          <g filter="url(#ShiftBGAndBlur)" opacity=".5">
+            <circle cx="125" cy="75" r="45" fill="#D3FF00"/>
+            <polygon points="160,25 160,125 240,75" fill="#7A16FF"/>
+          </g>
+          <rect x="5" y="5" width="260" height="260" fill="none" stroke="blue"/>
+        </g>
+
+        <g enable-background="new" transform="translate(810,0)">
+          <desc>The fourth invokes ShiftBGAndBlur on the triangle.</desc>
+          <rect x="25" y="25" width="100" height="100" fill="fuchsia"/>
+          <g opacity=".5">
+            <circle cx="125" cy="75" r="45" fill="#D3FF00"/>
+            <polygon points="160,25 160,125 240,75" fill="#7A16FF"
+                     filter="url(#ShiftBGAndBlur)"/>
+          </g>
+          <rect x="5" y="5" width="260" height="260" fill="none" stroke="blue"/>
+        </g>
+
+        <g enable-background="new" transform="translate(1080,0)">
+          <desc>The fifth invokes ShiftBGAndBlur_WithSourceGraphic on the triangle.</desc>
+          <rect x="25" y="25" width="100" height="100" fill="fuchsia"/>
+          <g opacity=".5">
+            <circle cx="125" cy="75" r="45" fill="#D3FF00"/>
+            <polygon points="160,25 160,125 240,75" fill="#7A16FF"
+                     filter="url(#ShiftBGAndBlur_WithSourceGraphic)"/>
+          </g>
+          <rect x="5" y="5" width="260" height="260" fill="none" stroke="blue"/>
+        </g>
+      </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.2 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

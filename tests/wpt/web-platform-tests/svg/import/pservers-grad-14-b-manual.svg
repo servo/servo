@@ -1,0 +1,120 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="BB" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: pservers-grad-14-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        The intent of this file is to test the 4 allowed spread methods for linear and radial gradients.
+        The 4 values (pad, reflect, repeat and default) are available for both types of gradients.
+        On the left side are the linear gradient results, and on the right, the radial results.
+        The UA should render a result equivalent to the reference image.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendered image matches the reference image, except
+      for any differences in font choice due to CSS2.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-14-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <linearGradient id="lgSpreadPad" gradientUnits="userSpaceOnUse" y1="0" x1="50" y2="0" x2="100" spreadMethod="pad">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </linearGradient>
+
+      <linearGradient id="lgSpreadReflect" gradientUnits="userSpaceOnUse" y1="0" x1="50" y2="0" x2="100" spreadMethod="reflect">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </linearGradient>
+
+      <linearGradient id="lgSpreadRepeat" gradientUnits="userSpaceOnUse" y1="0" x1="50" y2="0" x2="100" spreadMethod="repeat">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </linearGradient>
+
+      <linearGradient id="lgSpreadDefault" gradientUnits="userSpaceOnUse" y1="0" x1="50" y2="0" x2="100">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </linearGradient>
+
+      <radialGradient id="rgSpreadPad" gradientUnits="objectBoundingBox" cx="0.5" cy="0.5" r="0.2" spreadMethod="pad">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </radialGradient>
+
+      <radialGradient id="rgSpreadReflect" gradientUnits="objectBoundingBox" cx="0.5" cy="0.5" r="0.2" spreadMethod="reflect">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </radialGradient>
+
+      <radialGradient id="rgSpreadRepeat" gradientUnits="objectBoundingBox" cx="0.5" cy="0.5" r="0.2" spreadMethod="repeat">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </radialGradient>
+
+      <radialGradient id="rgSpreadDefault" gradientUnits="objectBoundingBox" cx="0.5" cy="0.5" r="0.2">
+        <stop offset="000%" stop-color="black"/>
+        <stop offset="100%" stop-color="gold"/>
+      </radialGradient>
+    </defs>
+
+    <text font-size="20" x="240" y="30" text-anchor="middle">Gradient 'spreadMethod' values</text>
+
+    <rect x="10" y="060" width="225" height="40" fill="url(#lgSpreadPad)" stroke="none"/>
+    <text font-size="16" x="10" y="55">spreadMethod="pad"</text>
+
+    <rect x="10" y="130" width="225" height="40" fill="url(#lgSpreadReflect)" stroke="none"/>
+    <text font-size="16" x="10" y="125">spreadMethod="reflect"</text>
+
+    <rect x="10" y="200" width="225" height="40" fill="url(#lgSpreadRepeat)" stroke="none"/>
+    <text font-size="16" x="10" y="195">spreadMethod="repeat"</text>
+
+    <rect x="10" y="270" width="225" height="40" fill="url(#lgSpreadDefault)" stroke="none"/>
+    <text font-size="16" x="10" y="265">spreadMethod="default"</text>
+
+
+    <rect x="245" y="060" width="225" height="40" fill="url(#rgSpreadPad)" stroke="none"/>
+    <text font-size="16" x="245" y="55">spreadMethod="pad"</text>
+
+    <rect x="245" y="130" width="225" height="40" fill="url(#rgSpreadReflect)" stroke="none"/>
+    <text font-size="16" x="245" y="125">spreadMethod="reflect"</text>
+
+    <rect x="245" y="200" width="225" height="40" fill="url(#rgSpreadRepeat)" stroke="none"/>
+    <text font-size="16" x="245" y="195">spreadMethod="repeat"</text>
+
+    <rect x="245" y="270" width="225" height="40" fill="url(#rgSpreadDefault)" stroke="none"/>
+    <text font-size="16" x="245" y="265">spreadMethod="default"</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

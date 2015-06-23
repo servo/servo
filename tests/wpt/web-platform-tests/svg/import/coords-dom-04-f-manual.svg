@@ -1,0 +1,166 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" onload="test()">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="ED" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: coords-dom-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#InterfaceSVGTransformList">
+      <p>
+	  	The test checks the SVGTransformList.consolidate method.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+		There must be 13 green rectangles visible. 
+		The text next to the first rectangle must say "Scripting enabled".
+		The other 12 lines must each say "Passed subtest #n" where n is the subtest number 1..12.
+		If anything red shows, the test has failed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-dom-04-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+	<defs>
+		<style>
+			#test-body-content rect { stroke: black; }
+		</style>
+		<script type="text/ecmascript"><![CDATA[
+		var pos = { "x": 20, "y": 40 };
+		var subtestCounter = 1;
+		var passed = true;
+		
+		function toString(m)
+		{	
+			var decimals = 0;
+			return m.a.toFixed(decimals) + "," + 
+				   m.b.toFixed(decimals) + "," + 
+				   m.c.toFixed(decimals) + "," + 
+				   m.d.toFixed(decimals) + "," + 
+				   m.e.toFixed(decimals) + "," + 
+				   m.f.toFixed(decimals);
+		}
+
+		function referenceEqual(m1,ref,eps)
+		{
+			return (Math.abs(m1.a-ref[0]) < eps &&
+					Math.abs(m1.b-ref[1]) < eps &&
+					Math.abs(m1.c-ref[2]) < eps &&
+					Math.abs(m1.d-ref[3]) < eps &&
+					Math.abs(m1.e-ref[4]) < eps &&
+					Math.abs(m1.f-ref[5]) < eps);
+		}
+
+		function assertEquals(m, ref, eps)
+		{
+			var result = document.createElementNS("http://www.w3.org/2000/svg", "text");
+			var resultrect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+			result.setAttribute("x", pos.x);
+			result.setAttribute("y", pos.y);
+			resultrect.setAttribute("fill", "lime");
+			resultrect.setAttribute("width", 15);
+			resultrect.setAttribute("height", 15);
+			resultrect.setAttribute("y", pos.y-15);
+			
+			if(referenceEqual(m, ref, eps))
+			{	
+				result.textContent = "Passed subtest #" + subtestCounter;
+			}
+			else
+			{
+				passed = false;
+				result.textContent = "Failed subtest #" + subtestCounter + ". Expected " + ref + " but got " + toString(m);
+			}
+			pos.y += 20;
+			subtestCounter++;
+			var results = document.getElementById("subteststatus");
+			results.appendChild(resultrect)
+			results.appendChild(result);
+		}
+		
+		function test()
+		{
+			eps = 0.005; // "close enough"
+			r = document.getElementById("r");
+
+			t1 = r.transform.baseVal.getItem(0);
+			t2 = r.transform.baseVal.getItem(1);
+			
+			// check that matrices are as specified in the markup
+			assertEquals(t1.matrix, [1, 0, 0, 1, 10, 10], eps);
+			assertEquals(t2.matrix, [0, 1, -1, 0, 0, 0], eps);
+
+			// consolidate
+			tfm = r.transform.baseVal.consolidate();
+			
+			// check that the consolidation is ok
+			assertEquals(tfm.matrix, [0, 1, -1, 0, 10, 10], eps);
+			
+			// check that t1 and t2 were not affected by the consolidation
+			assertEquals(t1.matrix, [1, 0, 0, 1, 10, 10], eps);
+			assertEquals(t2.matrix, [0, 1, -1, 0, 0, 0], eps);
+			
+			// check that modifying t1 has no effect on the consolidated transform
+			t1.setTranslate(10,200);
+			assertEquals(t1.matrix, [1, 0, 0, 1, 10, 200], eps);
+			assertEquals(tfm.matrix, [0, 1, -1, 0, 10, 10], eps);
+			
+			// check that modifying t2 has no effect on the consolidated transform
+			t2.setRotate(-90, 0, 0);
+			assertEquals(t2.matrix, [0, -1, 1, 0, 0, 0], eps);
+			assertEquals(tfm.matrix, [0, 1, -1, 0, 10, 10], eps);
+			
+			// check that modifying the consolidated transform has no effect on the t1 and t2 transforms
+			tfm.matrix.f = 400;
+			assertEquals(tfm.matrix, [0, 1, -1, 0, 10, 400], eps);
+			assertEquals(t1.matrix, [1, 0, 0, 1, 10, 200], eps);
+			assertEquals(t2.matrix, [0, -1, 1, 0, 0, 0], eps);
+		
+			document.getElementById("status").setAttributeNS(null, "fill", passed ? "lime" : "red");
+			document.getElementById("scriptstatus").textContent = "Scripting enabled";
+		}
+	
+	]]></script>
+	</defs>
+
+	<g transform="translate(20 -10)">
+		<g id="subteststatus" transform="translate(0,40)">
+			<rect id="status" y="5" width="15" height="15" fill="red"/>
+			<text id="scriptstatus" y="20" x="20" >Scripting disabled</text>
+		</g>
+	
+		<polyline id="r" fill="none" stroke="green" display="none" transform="translate(10 10) rotate(90)" points="0 0 30 40 80 -20" stroke-width="10"/>
+	</g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,245 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Dean Jackson" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: painting-marker-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#Markers">
+        <p>
+          Tests the rendering of markers, specifically property inheritance. For the four tests, there should
+          be two identical paths with markers drawn. 
+        </p>
+        <p>
+          The top two tests examine the rendering of markers when the marker and the path
+          referencing it share the same parent and all painting properties are specfied on
+          that parent. The first test show inheritance of the 'fill' property and the
+          second the inheritance of the 'paint' property. In both tests, the marker
+          is painting using the same properties as the referencing object. Because of
+          scaling transformations on the marker, the stroke on the second test is thinner
+          than on the referencing object.
+        </p>
+        <p>
+          The third and fourth tests examine the rendering of markers in a situation where the
+          marker and referencing path do NOT share the same parent and painting
+          properties are specified both on the parent of the marked path and on the contents
+          of the marker itself. In both cases, the marker's parent specifies
+          fill="green" stroke="blue" stroke-width="8". For the third test, the marker contents
+          override with stroke="black". For the fourth test, the marker contents
+          override with fill="black". In neither case should you see
+          fill="orange" or stroke="blue" or "stroke="purple" on the markers as these properties
+          are specified on the ancestor of the referencing object or the referencing object itself
+          and thus shouldn't affect the marker.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The path on the left is rendered using the marker elements. 
+        The path on the right is rendered using the equivalent SVG, 
+        showing what the marked path should look like.  These should be 
+        identical and match the image to the right.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-marker-02-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <clipPath id="overflowHiddenClip1" clipPathUnits="userSpaceOnUse">
+        <rect x="0" y="0" width="2" height="2"/>
+      </clipPath>
+      <clipPath id="overflowHiddenClip" clipPathUnits="userSpaceOnUse">
+        <rect x="0" y="0" width="4" height="4"/>
+      </clipPath>
+    </defs>
+    <g fill="green">
+      <text x="125" y="30" font-size="14" fill="black">Marker Rendering Properties</text>
+      <!-- ===================================================================== -->
+      <!-- Fill property                                                         -->
+      <!-- ===================================================================== -->
+      <g fill="black" stroke="none" stroke-width="8">
+        <marker id="marker1" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
+          <rect width="10" height="10"/>
+        </marker>
+        <text x="100" y="140" font-size="10" fill="black" stroke="none">Fill Property</text>
+        <path marker-start="url(#marker1)" marker-mid="url(#marker1)" marker-end="url(#marker1)" d="M 30 60 L 80 60 L 80 110 Z"/>
+        <!-- ===================================================================== -->
+        <!-- Generate the equivalent SVG                                           -->
+        <!-- ===================================================================== -->
+        <g transform="translate(120,0)">
+          <path d="M 30 60 L 80 60 L 80 110 Z"/>
+          <g transform="translate(30,60) scale(8) translate(-1, -1)">
+            <g clip-path="url(#overflowHiddenClip1)">
+              <g transform="scale(0.2, 0.2)">
+                <rect width="10" height="10"/>
+              </g>
+            </g>
+          </g>
+          <g transform="translate(80,60) scale(8) translate(-1, -1)">
+            <g clip-path="url(#overflowHiddenClip1)">
+              <g transform="scale(0.2, 0.2)">
+                <rect width="10" height="10"/>
+              </g>
+            </g>
+          </g>
+          <g transform="translate(80,110) scale(8) translate(-1, -1)">
+            <g clip-path="url(#overflowHiddenClip1)">
+              <g transform="scale(0.2, 0.2)">
+                <rect width="10" height="10"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <!-- ===================================================================== -->
+      <!-- Stroke property                                                       -->
+      <!-- ===================================================================== -->
+      <g fill="none" stroke="black" stroke-width="4">
+        <marker id="marker2" viewBox="0 0 20 20" markerWidth="4" markerHeight="4" refX="10" refY="10" markerUnits="strokeWidth">
+          <rect width="20" height="20"/>
+        </marker>
+        <text x="340" y="140" font-size="10" fill="black" stroke="none">Stroke Property</text>
+        <path marker-start="url(#marker2)" marker-mid="url(#marker2)" marker-end="url(#marker2)" d="M 270 60 L 320 60 L 320 110 Z"/>
+        <!-- ===================================================================== -->
+        <!-- Generate the equivalent SVG                                           -->
+        <!-- ===================================================================== -->
+        <g transform="translate(120,0)">
+          <path d="M 270 60 L 320 60 L 320 110 Z"/>
+          <!-- ===================================================================== -->
+          <!-- Generate the equivalent SVG                                           -->
+          <!-- ===================================================================== -->
+          <g transform="translate(270,60) scale(4) translate(-2, -2)">
+            <g clip-path="url(#overflowHiddenClip)">
+              <g transform="scale(0.2, 0.2)">
+                <rect width="20" height="20"/>
+              </g>
+            </g>
+          </g>
+          <g transform="translate(320,60) scale(4) translate(-2, -2)">
+            <g clip-path="url(#overflowHiddenClip)">
+              <g transform="scale(0.2, 0.2)">
+                <rect width="20" height="20"/>
+              </g>
+            </g>
+          </g>
+          <g transform="translate(320, 110) scale(4) translate(-2, -2)">
+            <g clip-path="url(#overflowHiddenClip)">
+              <g transform="scale(0.2, 0.2)">
+                <rect width="20" height="20"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <!-- ===================================================================== -->
+      <!-- Define marker element with parents setting painting properties        -->
+      <!-- ===================================================================== -->
+      <g fill="green" stroke="blue" stroke-width="8">
+        <marker id="marker3" viewBox="0 0 20 20" markerWidth="4" markerHeight="4" refX="10" refY="10" markerUnits="strokeWidth">
+          <rect width="20" height="20" stroke="black"/>
+        </marker>
+        <marker id="marker4" viewBox="0 0 10 10" markerWidth="4" markerHeight="4" refX="5" refY="5" markerUnits="strokeWidth">
+          <rect width="10" height="10" fill="black" stroke-width="4"/>
+        </marker>
+      </g>
+      <!-- ===================================================================== -->
+      <!-- Parent and specified properties                                       -->
+      <!-- ===================================================================== -->
+      <g fill="orange" stroke="blue">
+        <text x="90" y="270" font-size="10" fill="black" stroke="none">Mixed Properties</text>
+        <path stroke="purple" stroke-width="4" marker-start="url(#marker3)" marker-mid="url(#marker3)" marker-end="url(#marker3)" d="M 30 190 L 80 190 L 80 240 Z"/>
+        <!-- ===================================================================== -->
+        <!-- Generate the equivalent SVG                                           -->
+        <!-- ===================================================================== -->
+        <g transform="translate(120,0)">
+          <path stroke="purple" stroke-width="4" d="M 30 190 L 80 190 L 80 240 Z"/>
+          <g fill="green" stroke="black" stroke-width="8">
+            <g transform="translate(30,190) scale(4) translate(-2, -2)">
+              <g clip-path="url(#overflowHiddenClip)">
+                <g transform="scale(.2, .2)">
+                  <rect width="20" height="20"/>
+                </g>
+              </g>
+            </g>
+            <g transform="translate(80,190) scale(4) translate(-2, -2)">
+              <g clip-path="url(#overflowHiddenClip)">
+                <g transform="scale(0.2, 0.2)">
+                  <rect width="20" height="20"/>
+                </g>
+              </g>
+            </g>
+            <g transform="translate(80,240) scale(4) translate(-2, -2)">
+              <g clip-path="url(#overflowHiddenClip)">
+                <g transform="scale(0.2, 0.2)">
+                  <rect width="20" height="20"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g fill="orange" stroke="green">
+        <text x="340" y="270" font-size="10" fill="black" stroke="none">Mixed Properties</text>
+        <path stroke="purple" stroke-width="4" marker-start="url(#marker4)" marker-mid="url(#marker4)" marker-end="url(#marker4)" d="M 270 190 L 320 190 L 320 240 Z"/>
+        <!-- ===================================================================== -->
+        <!-- Generate the equivalent SVG                                           -->
+        <!-- ===================================================================== -->
+        <g transform="translate(120,0)">
+          <path stroke="purple" stroke-width="4" d="M 270 190 L 320 190 L 320 240 Z"/>
+          <g fill="black" stroke="blue" stroke-width="4">
+            <g transform="translate(270,190) scale(4) translate(-2, -2)">
+              <g clip-path="url(#overflowHiddenClip)">
+                <g transform="scale(0.4, 0.4)">
+                  <rect width="10" height="10"/>
+                </g>
+              </g>
+            </g>
+            <g transform="translate(320,190) scale(4) translate(-2, -2)">
+              <g clip-path="url(#overflowHiddenClip)">
+                <g transform="scale(0.4, 0.4)">
+                  <rect width="10" height="10"/>
+                </g>
+              </g>
+            </g>
+            <g transform="translate(320,240) scale(4) translate(-2, -2)">
+              <g clip-path="url(#overflowHiddenClip)">
+                <g transform="scale(0.4, 0.4)">
+                  <rect width="10" height="10"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

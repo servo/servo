@@ -176,6 +176,38 @@ test(function() {
 }, "namedItem name attribute multiple attributes one element");
 
 test(function() {
+  assert_true(b_opts[0] instanceof HTMLOptionElement);
+  assert_equals(b_opts[0].innerHTML, "1");
+},  "HTMLOptionsCollection [index] method return the item with index");
+
+test(function() {
+  assert_true(b_opts["b2"] instanceof HTMLOptionElement);
+  assert_equals(b_opts["b2"].innerHTML, "2");
+},  "HTMLOptionsCollection [name] method return the item with name");
+
+test(function() {
+  assert_true(b_opts.item(0) instanceof HTMLOptionElement);
+  assert_equals(b_opts.item(0).innerHTML, "1");
+},  "HTMLOptionsCollection.item(index) method return the item with index");
+
+test(function() {
+  assert_true(b_opts.item("b2") instanceof HTMLOptionElement);
+  assert_equals(b_opts.item("b2").innerHTML, "1");
+},  "HTMLOptionsCollection.item(name) method return the item with index 0");
+
+test(function() {
+  var b_opts_length = b_opts.length;
+  b_opts.add(new Option("2", "2"));
+  assert_equals(b_opts[b_opts_length].value, "2");
+}, "HTMLOptionsCollection.add method insert HTMLOptionElement Option element");
+
+test(function() {
+  var b_opts_length = b_opts.length;
+  b_opts.remove(0);
+  assert_equals(b_opts.length, b_opts_length - 1);
+}, "HTMLOptionsCollection.remove method remove Option element by index");
+
+test(function() {
   var add = document.createElement("p");
   assert_throws(new TypeError(), function() {b_opts.add(add);});
 }, "Add non-option to collection");
