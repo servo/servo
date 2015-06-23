@@ -1,5 +1,5 @@
 function URLTestParser(input) {
-  var relativeSchemes = ["ftp", "file", "gopher", "http", "https", "ws", "wss"],
+  var specialSchemes = ["ftp", "file", "gopher", "http", "https", "ws", "wss"],
       tokenMap = { "\\": "\\", "#": "#", n: "\n", r: "\r", s: " ", t: "\t", f: "\f" }
       resultMap = { s: "scheme", u: "username", pass: "password", h: "host", port: "port", p: "path", q: "query", f: "fragment" },
       results = []
@@ -9,7 +9,7 @@ function URLTestParser(input) {
     this.scheme = ""
     this.username = ""
     this.password = null
-    this.host = ""
+    this.host = null
     this.port = ""
     this.path = ""
     this.query = ""
@@ -17,16 +17,17 @@ function URLTestParser(input) {
     Object.defineProperties(this, {
       "href": { get: function() {
         return !this.scheme ? this.input : this.protocol + (
-          relativeSchemes.indexOf(this.scheme) != -1 ? "//" + (
+          this.host != null ? "//" + (
             ("" != this.username || null != this.password) ? this.username + (
               null != this.password ? ":" + this.password : ""
             ) + "@" : ""
-          ) + this.host : ""
-        ) + (this.port ? ":" + this.port : "") + this.path + this.query + this.fragment
+          ) + this.host + (this.port ? ":" + this.port : "") : ""
+        ) + this.path + this.query + this.fragment
       } },
       "protocol": { get: function() { return this.scheme + ":" } },
       "search": { get: function() { return "?" == this.query ? "" : this.query } },
-      "hash": { get: function() { return "#" == this.fragment ? "" : this.fragment } }
+      "hash": { get: function() { return "#" == this.fragment ? "" : this.fragment } },
+      "hostname": { get: function() { return null == this.host ? "" : this.host } }
     })
   }
   function normalize(input) {

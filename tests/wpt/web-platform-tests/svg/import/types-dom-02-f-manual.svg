@@ -1,0 +1,156 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="CL" author="CM" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: types-dom-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/types.html#BasicDOMInterfaces">
+      <p>
+        This tests that the animVal properties that are objects
+        are always distinct from their corresponding baseVal properties.
+        This is tested for interfaces SVGAnimatedNumberList, SVGAnimatedLength,
+        SVGAnimatedLengthList, SVGAnimatedAngle, SVGAnimatedRect,
+        SVGAnimatedTransformList and SVGAnimatedPreserveAspectRatio.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Once loaded, the test shows 7 rectangles
+        representing seven sub-tests reflecting
+        the result of checking that an animVal object is
+        not the same object as its corresponding baseVal object.
+        Each rectangle will be either black to indicate that
+        the sub-test wasn't run, red to indicate that the
+        sub-test failed, and green to indicate that the
+        sub-test passed.
+      </p>
+      <p>
+        The test is passed if all 7 rectangles are green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: types-dom-02-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='210' y='55' text-anchor='end'>animVal != baseVal:</text>
+
+    <g font-size='14' transform='translate(500)rotate(90)'>
+      <rect id='r1b' x='40' y='60' width='20' height='20'/>
+      <text x='70' y='75'>SVGAnimatedNumberList</text>
+      <rect id='r2b' x='40' y='90' width='20' height='20'/>
+      <text x='70' y='105'>SVGAnimatedLength</text>
+      <rect id='r3b' x='40' y='120' width='20' height='20'/>
+      <text x='70' y='135'>SVGAnimatedLengthList</text>
+      <rect id='r4b' x='40' y='150' width='20' height='20'/>
+      <text x='70' y='165'>SVGAnimatedAngle</text>
+      <rect id='r5b' x='40' y='180' width='20' height='20'/>
+      <text x='70' y='195'>SVGAnimatedRect</text>
+      <rect id='r6b' x='40' y='210' width='20' height='20'/>
+      <text x='70' y='225'>SVGAnimatedTransformList</text>
+      <rect id='r7b' x='40' y='240' width='20' height='20'/>
+      <text x='70' y='255'>SVGAnimatedPreserveAspectRatio</text>
+    </g>
+
+    <g display='none'>
+      <text id='text' rotate='0 20 40'>abc</text>
+      <circle id='circle' r='50'/>
+      <marker id='marker' orient='1.5708rad'/>
+      <svg id='svg' viewBox='10 20 30 40'/>
+    </g>
+
+    <script><![CDATA[
+      function $(id) { return document.getElementById(id); }
+
+      var text = $('text'),
+          circle = $('circle'),
+          marker = $('marker'),
+          svg = $('svg');
+
+      function expect_value(id, fn, value) {
+        try {
+          if (fn() === value) {
+            $(id).setAttribute('fill', 'green');
+            return;
+          }
+        } catch (e) {
+        }
+        $(id).setAttribute('fill', 'red');
+      }
+
+      // SVGAnimatedNumberList: rotate on text
+      expect_value
+        ('r1b',
+         function() { return text.rotate.animVal != text.rotate.baseVal; },
+         true);
+
+      // SVGAnimatedLength: r on circle
+      expect_value
+        ('r2b',
+         function() { return circle.r.animVal != text.rotate.baseVal; },
+         true);
+
+      // SVGAnimatedLengthList: x on text
+      expect_value
+        ('r3b',
+         function() { return text.x.animVal != text.x.baseVal; },
+         true);
+
+      // SVGAnimatedAngle: orient on marker
+      expect_value
+        ('r4b',
+         function() { return marker.orientAngle.animVal != marker.orientAngle.baseVal; },
+         true);
+
+      // SVGAnimatedRect: viewBox on svg
+      expect_value
+        ('r5b',
+         function() { return svg.viewBox.animVal != svg.viewBox.baseVal; },
+         true);
+
+      // SVGAnimatedTransformList: transform on circle
+      expect_value
+        ('r6b',
+         function() { return circle.transform.animVal != circle.transform.baseVal; },
+         true);
+
+      // SVGAnimatedPreserveAspectRatio: preserveAspectRatio on svg
+      expect_value
+        ('r7b',
+         function() { return svg.preserveAspectRatio.animVal != svg.preserveAspectRatio.baseVal; },
+         true);
+    ]]></script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

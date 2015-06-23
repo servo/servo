@@ -1,0 +1,344 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" author="CM" status="accepted"
+    version="$Revision: 1.10 $" testname="$RCSfile: text-altglyph-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlternateGlyphs">
+      <p>
+        Test glyph selection using altGlyphDef and altGlyphItem elements.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+      <p>
+        Support for SVG Fonts is required for this test, and the last two text
+        strings are used to give a quick visual indication this is indeed
+        supported.
+      </p>
+      <p>
+        The test shows 24 different text strings with different combinations
+        of altGlyphItem element count and validity inside the altGlyphDef
+        elements, and number of characters in the altGlyph elements.  The
+        glyphs are from a sans serif font, except those selected by
+        altGlyph, which are from a boldface serif font. The text
+        in the "Actual" columns should appear as shown in the corresponding
+        "Expected" column text.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if each pair of (actual,expected) text strings 
+      render identically.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-altglyph-02-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <font horiz-adv-x="1038">
+      <font-face font-family="EmbeddedSans" units-per-em="2048" panose-1="2 11 6 3 3 8 4 2 2 4" ascent="1901" descent="-483" alphabetic="0"/>
+      <missing-glyph horiz-adv-x="1229" d="M102 -362V1444H1126V-362H102ZM217 -248H1012V1329H217V-248Z"/>
+      <glyph unicode="A" glyph-name="A" horiz-adv-x="1401" d="M700 1294L426 551H975L700 1294ZM586 1493H815L1384 0H1174L1038 383H365L229 0H16L586 1493Z"/>
+      <glyph unicode="E" glyph-name="E" horiz-adv-x="1294" d="M201 1493H1145V1323H403V881H1114V711H403V170H1163V0H201V1493Z"/>
+      <glyph id="vs-a" unicode="a" glyph-name="a" horiz-adv-x="1255" d="M702 563Q479 563 393 512T307 338Q307 240 371 183T547 125Q700 125 792 233T885 522V563H702ZM1069 639V0H885V170Q822 68 728 20T498 -29Q326 -29 225 67T123 326Q123 515 249 611T627 707H885V725Q885 852 802 921T567 991Q471 991 380 968T205 899V1069Q306 1108 401 1127T586 1147Q829 1147 949 1021T1069 639Z"/>
+      <glyph id="vs-b" unicode="b" glyph-name="b" horiz-adv-x="1300" d="M997 559Q997 762 914 877T684 993Q538 993 455 878T371 559Q371 356 454 241T684 125Q830 125 913 240T997 559ZM371 950Q429 1050 517 1098T729 1147Q933 1147 1060 985T1188 559Q1188 295 1061 133T729 -29Q606 -29 518 19T371 168V0H186V1556H371V950Z"/>
+      <glyph id="vs-c" unicode="c" glyph-name="c" horiz-adv-x="1126" d="M999 1077V905Q921 948 843 969T684 991Q505 991 406 878T307 559Q307 354 406 241T684 127Q764 127 842 148T999 213V43Q922 7 840 -11T664 -29Q411 -29 262 130T113 559Q113 833 263 990T676 1147Q761 1147 842 1130T999 1077Z"/>
+      <glyph id="vs-d" unicode="d" glyph-name="d" horiz-adv-x="1300" d="M930 950V1556H1114V0H930V168Q872 68 784 20T571 -29Q368 -29 241 133T113 559Q113 823 240 985T571 1147Q695 1147 783 1099T930 950ZM303 559Q303 356 386 241T616 125Q762 125 846 240T930 559Q930 762 846 877T616 993Q470 993 387 878T303 559Z"/>
+      <glyph id="vs-e" unicode="e" glyph-name="e" horiz-adv-x="1260" d="M1151 606V516H305Q317 326 419 227T705 127Q811 127 910 153T1108 231V57Q1009 15 905 -7T694 -29Q426 -29 270 127T113 549Q113 824 261 985T662 1147Q888 1147 1019 1002T1151 606ZM967 660Q965 811 883 901T664 991Q510 991 418 904T311 659L967 660Z"/>
+      <glyph unicode="l" glyph-name="l" horiz-adv-x="569" d="M193 1556H377V0H193V1556Z"/>
+      <glyph unicode="p" glyph-name="p" horiz-adv-x="1300" d="M371 168V-426H186V1120H371V950Q429 1050 517 1098T729 1147Q933 1147 1060 985T1188 559Q1188 295 1061 133T729 -29Q606 -29 518 19T371 168ZM997 559Q997 762 914 877T684 993Q538 993 455 878T371 559Q371 356 454 241T684 125Q830 125 913 240T997 559Z"/>
+      <glyph unicode="t" glyph-name="t" horiz-adv-x="803" d="M375 1438V1120H754V977H375V369Q375 232 412 193T565 154H754V0H565Q352 0 271 79T190 369V977H55V1120H190V1438H375Z"/>
+      <glyph unicode="u" glyph-name="u" horiz-adv-x="1298" d="M174 442V1120H358V449Q358 290 420 211T606 131Q755 131 841 226T928 485V1120H1112V0H928V172Q861 70 773 21T567 -29Q374 -29 274 91T174 442Z"/>
+      <glyph unicode="x" glyph-name="x" horiz-adv-x="1212" d="M1124 1120L719 575L1145 0H928L602 440L276 0H59L494 586L96 1120H313L610 721L907 1120H1124Z"/>
+    </font>
+
+    <font horiz-adv-x="1159">
+      <font-face font-family="EmbeddedSerifBold" units-per-em="2048" panose-1="2 6 8 3 5 6 5 2 2 4" ascent="1923" descent="-483" alphabetic="0"/>
+      <missing-glyph horiz-adv-x="1229" d="M102 -362V1444H1126V-362H102ZM217 -248H1012V1329H217V-248Z"/>
+      <glyph id="vsb-a" unicode="a" glyph-name="a" horiz-adv-x="1327" d="M1128 653V121H1280V0H774V135Q704 51 618 11T422 -29Q259 -29 172 58T84 309Q84 488 209 577T588 666H774V729Q774 858 713 919T524 981Q418 981 361 938T279 795H166V1024Q261 1058 363 1075T578 1092Q863 1092 995 986T1128 653ZM774 334V547H641Q542 547 489 493T436 338Q436 237 474 187T592 137Q674 137 724 191T774 334Z"/>
+      <glyph id="vsb-b" unicode="b" glyph-name="b" horiz-adv-x="1432" d="M199 121V1436H47V1556H553V928Q598 1011 674 1051T862 1092Q1089 1092 1219 943T1350 532Q1350 271 1220 121T862 -29Q750 -29 674 11T553 135V0H47V121H199ZM553 479Q553 293 600 210T754 127Q863 127 907 215T952 532Q952 761 908 848T754 936Q648 936 601 853T553 584V479Z"/>
+      <glyph id="vsb-c" unicode="c" glyph-name="c" horiz-adv-x="1247" d="M1155 332Q1117 150 1000 61T680 -29Q396 -29 240 118T84 532Q84 796 238 944T666 1092Q777 1092 890 1071T1120 1008V713H1008Q992 848 929 913T752 979Q604 979 542 879T479 532Q479 291 540 188T739 84Q846 84 910 148T989 332H1155Z"/>
+      <glyph id="vsb-d" unicode="d" glyph-name="d" horiz-adv-x="1432" d="M879 479V584Q879 770 831 853T678 936Q568 936 524 849T479 532Q479 303 524 215T678 127Q783 127 831 210T879 479ZM1233 121H1384V0H879V135Q834 52 758 12T569 -29Q343 -29 214 121T84 532Q84 794 213 943T569 1092Q681 1092 757 1052T879 928V1436H727V1556H1233V121Z"/>
+      <glyph id="vsb-e" unicode="e" glyph-name="e" horiz-adv-x="1303" d="M821 600Q821 810 782 894T649 979Q558 979 519 896T479 618V600H821ZM1210 481H479V473Q479 267 541 176T741 84Q856 84 927 145T1018 322H1184Q1141 141 1013 56T655 -29Q379 -29 232 116T84 532Q84 796 235 944T655 1092Q919 1092 1060 937T1210 481Z"/>
+    </font>
+
+    <!-- One valid 1-glyph altGlyphItem -->
+    <altGlyphDef id="agd-a-1">
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-a"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One valid 1-glyph and one invalid 1-glyph altGlyphItem -->
+    <altGlyphDef id="agd-a-2">
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-a"/>
+      </altGlyphItem>
+      <altGlyphItem>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One invalid 1-glyph and one valid 1-glyph altGlyphItem -->
+    <altGlyphDef id="agd-a-3">
+      <altGlyphItem>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-a"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One invalid 1-glyph altGlyphItem -->
+    <altGlyphDef id="agd-a-4">
+      <altGlyphItem>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One valid 2-glyph altGlyphItem -->
+    <altGlyphDef id="agd-bc-1">
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#vsb-c"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One valid 2-glyph and one invalid 1-glyph altGlyphItem -->
+    <altGlyphDef id="agd-bc-2">
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#vsb-c"/>
+      </altGlyphItem>
+      <altGlyphItem>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One invalid 1-glyph and one valid 2-glyph altGlyphItem -->
+    <altGlyphDef id="agd-bc-3">
+      <altGlyphItem>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#vsb-c"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One invalid 2-glyph and one valid 2-glyph altGlyphItem -->
+    <altGlyphDef id="agd-bc-4">
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#vsb-c"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One valid 2-glyph and one invalid 2-glyph altGlyphItem -->
+    <altGlyphDef id="agd-bc-5">
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#vsb-c"/>
+      </altGlyphItem>
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <!-- One invalid 2-glyph altGlyphItem -->
+    <altGlyphDef id="agd-bc-6">
+      <altGlyphItem>
+        <glyphRef xlink:href="#vsb-b"/>
+        <glyphRef xlink:href="#bad-link"/>
+      </altGlyphItem>
+    </altGlyphDef>
+
+    <g font-family="EmbeddedSans" transform="translate(0,20)">
+      <g font-size="13" fill="blue">
+        <text x="25" y="20">Actual</text>
+        <text x="115" y="20">Expected</text>
+        <text x="250" y="20">Actual</text>
+        <text x="340" y="20">Expected</text>
+      </g>
+      <path stroke="blue" stroke-width="1" d="M 25,22 L 225,22 M 250,22 L 440,22"/>
+
+      <g font-size="14">
+        <!-- === "Actual" column 1 ======================================== -->
+
+        <!-- altGlyphDefs have one glyph, altGlyph has one character -->
+        <text x="25" y="40">
+          <altGlyph xlink:href="#agd-a-1">a</altGlyph>bcde
+        </text>
+        <text x="25" y="58">
+          <altGlyph xlink:href="#agd-a-2">a</altGlyph>bcde
+        </text>
+        <text x="25" y="76">
+          <altGlyph xlink:href="#agd-a-3">a</altGlyph>bcde
+        </text>
+        <text x="25" y="94">
+          <altGlyph xlink:href="#agd-a-4">a</altGlyph>bcde
+        </text>
+
+        <!-- altGlyphDefs have two glyphs, altGlyph has two characters -->
+        <text x="25" y="112">
+          a<altGlyph xlink:href="#agd-bc-1">bc</altGlyph>de
+        </text>
+        <text x="25" y="130">
+          a<altGlyph xlink:href="#agd-bc-2">bc</altGlyph>de
+        </text>
+        <text x="25" y="148">
+          a<altGlyph xlink:href="#agd-bc-3">bc</altGlyph>de
+        </text>
+        <text x="25" y="166">
+          a<altGlyph xlink:href="#agd-bc-4">bc</altGlyph>de
+        </text>
+        <text x="25" y="184">
+          a<altGlyph xlink:href="#agd-bc-5">bc</altGlyph>de
+        </text>
+        <text x="25" y="202">
+          a<altGlyph xlink:href="#agd-bc-6">bc</altGlyph>de
+        </text>
+
+        <!-- === "Actual" column 2 ======================================== -->
+
+        <!-- altGlyphDefs have two glyphs, altGlyph has one character -->
+        <text x="250" y="40">
+          a<altGlyph xlink:href="#agd-bc-1">b</altGlyph>de
+        </text>
+        <text x="250" y="58">
+          a<altGlyph xlink:href="#agd-bc-2">b</altGlyph>de
+        </text>
+        <text x="250" y="76">
+          a<altGlyph xlink:href="#agd-bc-3">b</altGlyph>de
+        </text>
+        <text x="250" y="94">
+          a<altGlyph xlink:href="#agd-bc-4">b</altGlyph>de
+        </text>
+        <text x="250" y="112">
+          a<altGlyph xlink:href="#agd-bc-5">b</altGlyph>de
+        </text>
+        <text x="250" y="130">
+          a<altGlyph xlink:href="#agd-bc-6">b</altGlyph>de
+        </text>
+
+        <!-- altGlyphDefs have one glyph, altGlyph has two characters -->
+        <text x="250" y="148">
+          <altGlyph xlink:href="#agd-a-1">ab</altGlyph>cde
+        </text>
+        <text x="250" y="166">
+          <altGlyph xlink:href="#agd-a-2">ab</altGlyph>cde
+        </text>
+        <text x="250" y="184">
+          <altGlyph xlink:href="#agd-a-3">ab</altGlyph>cde
+        </text>
+        <text x="250" y="202">
+          <altGlyph xlink:href="#agd-a-4">ab</altGlyph>cde
+        </text>
+
+        <!-- Test for SVG font support -->
+        <g font-size="16">
+          <text x="250" y="238">a</text>
+          <text x="250" y="256" font-family="EmbeddedSerifBold">b</text>
+        </g>
+
+        <!-- === "Expected" column 1 ====================================== -->
+
+        <text x="115" y="40">
+          <tspan font-family="EmbeddedSerifBold">a</tspan>bcde
+        </text>
+        <text x="115" y="58">
+          <tspan font-family="EmbeddedSerifBold">a</tspan>bcde
+        </text>
+        <text x="115" y="76">
+          <tspan font-family="EmbeddedSerifBold">a</tspan>bcde
+        </text>
+        <text x="115" y="94">abcde</text>
+
+        <text x="115" y="112">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="115" y="130">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="115" y="148">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="115" y="166">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="115" y="184">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="115" y="202">abcde</text>
+
+        <!-- === "Expected" column 2 ====================================== -->
+
+        <text x="340" y="40">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="340" y="58">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="340" y="76">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="340" y="94">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="340" y="112">
+          a<tspan font-family="EmbeddedSerifBold">bc</tspan>de
+        </text>
+        <text x="340" y="130">abde</text>
+
+        <text x="340" y="148">
+          <tspan font-family="EmbeddedSerifBold">a</tspan>cde
+        </text>
+        <text x="340" y="166">
+          <tspan font-family="EmbeddedSerifBold">a</tspan>cde
+        </text>
+        <text x="340" y="182">
+          <tspan font-family="EmbeddedSerifBold">a</tspan>cde
+        </text>
+        <text x="340" y="202">abcde</text>
+
+        <g transform="translate(340, 238) scale(1, -1) scale(0.0078125)">
+          <path d="M702 563Q479 563 393 512T307 338Q307 240 371 183T547 125Q700 125 792 233T885 522V563H702ZM1069 639V0H885V170Q822 68 728 20T498 -29Q326 -29 225 67T123 326Q123 515 249 611T627 707H885V725Q885 852 802 921T567 991Q471 991 380 968T205 899V1069Q306 1108 401 1127T586 1147Q829 1147 949 1021T1069 639Z"/>
+        </g>
+        <g transform="translate(340, 256) scale(1, -1) scale(0.0078125)">
+          <path d="M199 121V1436H47V1556H553V928Q598 1011 674 1051T862 1092Q1089 1092 1219 943T1350 532Q1350 271 1220 121T862 -29Q750 -29 674 11T553 135V0H47V121H199ZM553 479Q553 293 600 210T754 127Q863 127 907 215T952 532Q952 761 908 848T754 936Q648 936 601 853T553 584V479Z"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.10 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved 
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g> -->
+</svg>

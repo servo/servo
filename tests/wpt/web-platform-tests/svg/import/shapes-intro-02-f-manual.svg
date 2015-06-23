@@ -1,0 +1,89 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="Microsoft" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: shapes-intro-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/shapes.html#Introduction">
+      <p>
+        Test that basic shape elements are equivalent to a 'path' element that constructs the same shape.
+      </p>
+      <p>
+        For each basic shape, a 'path' reference element that is red is created.
+        A basic shape is then placed on top of the 'path' element. 
+        For each basic shape there's also a reverse test that uses the shape as a reference for the 'path' element.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: shapes-intro-02-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <path d="M35 25 L115 25 A 10 20 0 0 1 125 45 L 125 105 A 10 20 0 0 1 115 125 L 35 125 A 10 20 0 0 1 25 105 L 25 45 A 10 20 0 0 1 35 25" fill="red" />
+    <rect x="25" y="25" rx="10" ry="20" width="100" height="100" fill="black" />
+    <rect x="130" y="25" rx="10" ry="20" width="100" height="100" fill="red" />
+    <path d="M140 25 L220 25 A 10 20 0 0 1 230 45 L 230 105 A 10 20 0 0 1 220 125 L 140 125 A 10 20 0 0 1 130 105 L 130 45 A 10 20 0 0 1 140 25" fill="black" />
+
+    <path d="M300 125 A50 50 0 1 0 299.9999 125" fill="red" />
+    <circle cx="300" cy="75" r="50" fill="black" />
+    <circle cx="401" cy="75" r="50" fill="red" />
+    <path d="M401 125 A50 50 0 1 0 400.9999 125" fill="black" />
+
+    <path d="M60 305 A50 80 0 1 0 59.9999 305 Z" fill="red" />
+    <ellipse cx="60" cy="225" rx="50" ry="80" fill="black" />
+    <ellipse cx="161" cy="225" rx="50" ry="80" fill="red" />
+    <path d="M161 305 A50 80 0 1 0 160.9999 305 Z" fill="black" />
+
+    <path d="M220 150 L270 200 L220 250 Z" fill="red" />
+    <polygon points="220,150 270,200 220,250" fill="black" />
+    <polygon points="270,150 320,200 270,250" fill="red" />
+    <path d="M270 150 L320 200 L270 250 Z" fill="black" />
+
+    <path d="M350 250 L350 350 L400 350 L400 250 L450 250 L450 350" fill="none" stroke="red" stroke-width="10" />
+    <polyline fill="none" stroke="black" stroke-width="10" points="350,250 350,350 400,350 400,250 450,250 450,350" />
+    <polyline fill="none" stroke="red" stroke-width="10" points="350,135 350,235 400,235 400,135 450,135 450,235" />
+    <path d="M350 135 L350 235 L400 235 L400 135 L450 135 L450 235" fill="none" stroke="black" stroke-width="10" />
+
+    <path d="M225 275 L325 275" stroke-width="10" stroke="red" />
+    <line x1="225" y1="275" x2="325" y2="275" stroke-width="10" stroke="black" />
+    <line x1="225" y1="325" x2="325" y2="325" stroke-width="10" stroke="red" />
+    <path d="M225 325 L325 325" stroke-width="10" stroke="black" />
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved 
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g> -->
+</svg>

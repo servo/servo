@@ -52,6 +52,9 @@ class DirectoryHandler(object):
         self.url_base = url_base
 
     def __call__(self, request, response):
+        if not request.url_parts.path.endswith("/"):
+            raise HTTPException(404)
+
         path = filesystem_path(self.base_path, request, self.url_base)
 
         assert os.path.isdir(path)

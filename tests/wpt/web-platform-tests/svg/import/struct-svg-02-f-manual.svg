@@ -1,0 +1,143 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="ED" status="reviewed"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-svg-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#SVGElement">
+      <p>
+        Testing various interactions on the width attribute on an svg element.
+        The width attribute defaults to "100%" if it's not specified.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if the testframe is filled with green, and there's no red.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-svg-02-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script type="text/ecmascript" xlink:href="../resources/testharness.js"/>
+    
+    <!-- The testroot is here only to get a predictable 480x360 viewport -->
+    <svg id="testroot" width="480" height="360">
+	    <svg id="testSVG1" />
+	    <svg id="testSVG2" />
+	    <svg id="subSVG" width="300" height="175"/>
+		</svg>
+
+    <g id="testoutput"/>
+    
+    <!-- Cover the whole testframe with a simple visual result -->
+    <rect id="status" width="100%" height="100%" fill="none"/>
+    
+    <script type="text/javascript"><![CDATA[
+      var passes = 0;
+      var ypos = 50;
+
+      function verify(str, result)
+      {
+        var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        var r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        var t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        var tc = document.createTextNode(str); 
+        t.appendChild(tc);
+        t.setAttribute("class", "result");
+        t.setAttribute("font-family", "monospace");
+        t.setAttribute("font-size", "9px");
+        t.setAttribute("fill", "black");
+        t.setAttribute("x", "10");
+        t.setAttribute("y", "7");
+        r.setAttribute("y", "1");
+        r.setAttribute("width", "5");
+        r.setAttribute("height", "5");
+        g.setAttribute("class", result ? "passed" : "failed");
+        g.setAttribute("fill", result ? "lime" : "red");
+        g.appendChild(r);
+        g.appendChild(t);
+        g.setAttribute("transform", "translate(10 " + ypos + ")");
+        ypos += 10;
+        document.getElementById("testoutput").appendChild(g);
+        
+        if (result)
+          passes++;
+      }
+
+      try
+      {
+          var testSVG = document.getElementById("testSVG1");
+          var subSVG = document.getElementById("subSVG");
+          var status = document.getElementById("status");
+          
+          var base = testSVG.width.baseVal;
+          
+          verify("value: " + base.value, base.value == 480);
+          test(function() {assert_equals(base.value, 480)}, "Assert that the width baseVal is 100% computed to user units.");
+
+          verify("valueInSpecifiedUnits: " + base.valueInSpecifiedUnits, base.valueInSpecifiedUnits == 100);
+          test(function() {assert_equals(base.value, 100)}, "Assert that the default width baseVal is 100.");
+          
+          // set the value in user units and then read it back
+          base.value = 240;
+          verify("value: " + base.value, base.value == 240);
+          test(function() {assert_equals(base.value, 240)}, "Assert that the width baseVal is 240 after setting it.");
+          verify("valueInSpecifiedUnits: " + base.valueInSpecifiedUnits, base.valueInSpecifiedUnits == 50);
+          test(function() {assert_equals(base.valueInSpecifiedUnits, 50)}, "Assert that the value in specified units is now 50.");
+          
+          // move the svg to be child of another viewport and read values again
+          subSVG.appendChild(testSVG);
+          verify("value: " + base.value, base.value == 150);
+          test(function() {assert_equals(base.value, 150)}, "Assert that the value changes to 150 after being moved to a new viewport.");
+          verify("valueInSpecifiedUnits: " + base.valueInSpecifiedUnits, base.valueInSpecifiedUnits == 50);
+          test(function() {assert_equals(base.valueInSpecifiedUnits, 50)}, "Assert that the value in specified units is still 50 after being moved to a new viewport.");
+          
+          // move an svg that hasn't been modified to another viewport and read values
+          testSVG = document.getElementById("testSVG2");
+          subSVG.appendChild(testSVG);
+          base = testSVG.width.baseVal;
+          verify("value: " + base.value, base.value == 300);
+          test(function() {assert_equals(base.value, 300)}, "Assert that the width baseVal is 300 user units after being moved to a new viewport.");
+      }
+      catch(ex)
+      {
+      }
+      
+      status.setAttribute("fill", passes == 7 ? "lime" : "red");
+      test(function() {assert_equals(passes,7)}, "Assert that all subtests passed.");
+  ]]></script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

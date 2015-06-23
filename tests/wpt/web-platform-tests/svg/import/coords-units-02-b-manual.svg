@@ -1,0 +1,139 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: coords-units-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#Units">
+      <p>
+        Verify the conversion processing of CSS units and percentage values for both
+        coordinates and length values. Note that the test uses the CSS px unit to be usable
+        in all pixel resolutions. Hence, the conversion from other CSS units to CSS px is
+        left out of the test.
+      </p>
+      <p>
+        There are six atomic tests in this test. For each, the approach is to draw two similar
+        elements (circles or rects) with coordinates specified in user space for one and in
+        CSS units or percentage for the other. Each test is such that these two values (or
+        value pairs) should match.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">      
+      <p>
+        In the first two tests, that validate coordinate processing, the circles
+        should have the same center. In the following two tests, the rectangles should have
+        the same height and width. And finally, in the last test, the 3 skewed circles should have the
+        same radius.
+      </p>
+      <p>
+        The rendered image should match the reference image except for the text which may
+        show minor differences, per CSS2 rules for font selection and matching.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-units-02-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="13pt">
+      <!-- ==================================================================== -->
+      <!-- First test, converting CSS coordinates to user space.                -->
+      <!-- If implemented properly, the pink marker should appear on top of     -->
+      <!-- the black marker.                                                    -->
+      <!-- ==================================================================== -->
+      <!-- Draw Text Comment -->
+      <text x="60" y="35">CSS pixel coordinate to user space conversion</text>
+      <g transform="translate(5, 0) scale(4)">
+        <!-- Draw marker using user space units -->
+        <circle cx="7.5" cy="7.5" r="2.5" fill="black"/>
+        <!-- Draw CSS marker using px units -->
+        <circle cx="7.5px" cy="7.5px" r="1.5px" fill="fuchsia"/>
+      </g>
+      <!-- ==================================================================== -->
+      <!-- Same test, using percentage values for the coordinates               -->
+      <!-- ==================================================================== -->
+      <!-- Draw Text Comment -->
+      <text x="60" y="85">Percentage coordinates to user space conversion</text>
+      <g transform="translate(5, 50) scale(4)">
+        <!-- Draw marker using user space units -->
+        <circle cx="7.5" cy="7.5" r="2.5" fill="black"/>
+        <!-- Draw marker using percentages: 7.5 = 1.563% of 480 (cx)      -->
+        <!-- Draw marker using percentages: 7.5 = 2.083% of 360 (cy)      -->
+        <circle cx="1.563%" cy="2.083%" r=".3535%" fill="fuchsia"/>
+      </g>
+      <!-- ==================================================================== -->
+      <!-- Second test, converting CSS width and height to user space.          -->
+      <!-- If implemented properly, the link marker should appear bellow the    -->
+      <!-- black one and have the same size                                     -->
+      <!-- ==================================================================== -->
+      <!-- Draw Text Comment -->
+      <text x="60" y="140">CSS width/height to user space conversion</text>
+      <g transform="translate(30, 115) scale(4)">
+        <!-- Draw marker using user space units -->
+        <rect x="-5" y="0" width="10" height="5" fill="black"/>
+        <!-- Draw CSS marker using px units -->
+        <rect x="-5" y="5" width="10px" height="5px" fill="fuchsia"/>
+      </g>
+      <!-- ==================================================================== -->
+      <!-- Same test, using percentage values for the length                    -->
+      <!-- ==================================================================== -->
+      <!-- Draw Text Comment -->
+      <text x="60" y="200">Percentage width/height to user space conversion</text>
+      <g transform="translate(30, 175) scale(4)">
+        <!-- Draw marker using user space units -->
+        <rect x="-5" y="0" width="10" height="5" fill="black"/>
+        <!-- Draw CSS marker using percentages: 5*2  = 10 = 2.083% of 480  -->
+        <!--                                  2.5*2  =  5 = 1.389% of 360  -->
+        <rect x="-5" y="5" width="2.083%" height="1.389%" fill="fuchsia"/>
+      </g>
+      <!-- ==================================================================== -->
+      <!-- Third test, converting CSS arbitrary length to user space .          -->
+      <!-- If implemented properly, the three circles which are side by side    -->
+      <!-- should have the same radius                                          -->
+      <!-- ==================================================================== -->
+      <!-- Draw Text Comment -->
+      <text x="140" y="265">CSS and percentage length conversion</text>
+      <g transform="translate(30, 260)  skewX(45) scale(4)">
+        <!-- Draw marker using user space units -->
+        <circle cx="0" cy="0" r="3.536" fill="black"/>
+        <!-- Draw CSS marker using px units.                                    -->
+        <circle cx="10" cy="0" r="3.536px" fill="fuchsia"/>
+        <!-- Draw marker using percentages. This should yield a value of 3.536  -->
+        <!-- in user space. 3.536 = .8334% of 424.268px                              -->
+        <circle cx="20" cy="0" r=".8334%" fill="green"/>
+        <!-- Draw control lines at the top and bottom of the circles            -->
+        <line x1="-3.536" y1="-3.536" x2="25" y2="-3.536" fill="none" stroke="#cccccc" stroke-width=".5"/>
+        <line x1="-3.536" y1="3.536" x2="25" y2="3.536" fill="none" stroke="#cccccc" stroke-width=".5"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -2247,6 +2247,10 @@ dictionary DragEventInit : MouseEventInit {
   DataTransfer? dataTransfer;
 };
 
+// For purposes of this test, just treat WindowProxy as the same thing as
+// Window.
+typedef Window WindowProxy;
+
 [PrimaryGlobal]
 /*sealed*/ interface Window : EventTarget {
   // the current browsing context
@@ -2274,7 +2278,7 @@ dictionary DragEventInit : MouseEventInit {
   [Replaceable] readonly attribute unsigned long length;
   [Unforgeable] readonly attribute WindowProxy top;
            attribute any opener;
-  readonly attribute WindowProxy parent;
+  [Replaceable] readonly attribute WindowProxy parent;
   readonly attribute Element? frameElement;
   WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank", [TreatNullAs=EmptyString] optional DOMString features = "", optional boolean replace = false);
   getter WindowProxy (unsigned long index);

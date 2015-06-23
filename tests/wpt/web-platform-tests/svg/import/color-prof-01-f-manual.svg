@@ -1,0 +1,76 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="Tim Thompson" status="issue"
+    version="$Revision: 1.9 $" testname="$RCSfile: color-prof-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/color.html#ColorProfileDescriptions">
+        <p>
+          The purpose of this test is to determine if an application can apply ICC
+        color profiles to raster images. The same image is displayed twice; a color profile
+        is applied to one by the SVG, so that the colors change.
+        </p>
+        <!-- the issue is that SVG 1.1 does not require ICC color profile support, it is optional.
+        So the pass criteria are incorrect. In fact, this is untestable as the feature is purely
+        optional and does not correspond to a named conformance class. 
+        Fixed in the SVG Color module.
+        -->
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        
+      </p>
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        If the two images (each of 9 colored squares) look identical, the test fails.
+	If the colours in the lower right image are more saturated, brighter versions of 
+	those in the top left image, as shown by the reference image, the test is passed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: color-prof-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <color-profile id="changeColor" name="changeColor" xlink:href="../images/changeColor.ICM"/>
+    </defs>
+    <g>
+      <image id="image1PNG" x="30" y="0" width="190" height="190" xlink:href="../images/colorprof.png"/>
+    </g>
+    <g>
+      <image color-profile="changeColor" id="image2" x="260" y="90" width="190" height="190" xlink:href="../images/colorprof.png"/>
+    </g>
+    <text font-family="Arial" font-size="12" x="250" y="20">
+      Basic test of ICC profile with an image.
+    </text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

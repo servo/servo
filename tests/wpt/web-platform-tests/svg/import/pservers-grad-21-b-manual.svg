@@ -1,0 +1,146 @@
+<svg id="svg-root" width="100%" height="100%" 
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" author="ED" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: pservers-grad-21-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        Test the inheritance of radial gradient attributes. The test has six ellipses with blue stroke, each filled
+        with two gradients. 
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p>
+      <ul>
+        <li>the gradient fills don't extend outside the blue ellipses</li>
+        <li>the gradient fills in the left column exactly match the corresponding reference gradient fills in the right column</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-21-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <radialGradient id="grad1" cx="100%" r="20%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad2" xlink:href="#grad1" cx="0%"/>
+      <radialGradient id="grad3" cx="100%" r="20%" fx="0%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad4" xlink:href="#grad3" cx="0%"/>
+      <radialGradient id="grad5" cx="100%" r="20%" fx="25%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad6" xlink:href="#grad5" cx="0%"/>
+      
+      <radialGradient id="grad1-ref" cx="100%" r="20%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad2-ref" cx="0%" r="20%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad3-ref" cx="100%" r="20%" fx="0%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad4-ref" cx="0%" r="20%" fx="0%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad5-ref" cx="100%" r="20%" fx="25%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad6-ref" cx="0%" r="20%" fx="25%">
+        <stop offset="0" stop-color="black" />
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+    <g transform="translate(100 60)">
+      <!-- first line of tests -->
+      <rect fill="url(#grad1)" x="-60" width="120" height="90"/>
+      <rect fill="url(#grad2)" x="60" width="120" height="90"/>
+      <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
+
+      <!-- reference for first line -->
+      <g transform="translate(100 0)">
+        <rect fill="url(#grad1-ref)" x="-60" width="120" height="90"/>
+        <rect fill="url(#grad2-ref)" x="60" width="120" height="90"/>
+        <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
+      </g>
+
+      <!-- second line of tests -->
+      <g transform="translate(0 50)">
+        <rect fill="url(#grad3)" x="-60" width="120" height="90"/>
+        <rect fill="url(#grad4)" x="60" width="120" height="90"/>
+        <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
+      </g>
+      
+      <!-- reference for second line -->
+      <g transform="translate(100 50)">
+        <rect fill="url(#grad3-ref)" x="-60" width="120" height="90"/>
+        <rect fill="url(#grad4-ref)" x="60" width="120" height="90"/>
+        <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
+      </g>
+
+      <!-- third line of tests -->
+      <g transform="translate(0 100)">
+        <rect fill="url(#grad5)" x="-60" width="120" height="90"/>
+        <rect fill="url(#grad6)" x="60" width="120" height="90"/>
+        <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
+      </g>
+      
+      <!-- reference for third line -->
+      <g transform="translate(100 100)">
+        <rect fill="url(#grad5-ref)" x="-60" width="120" height="90"/>
+        <rect fill="url(#grad6-ref)" x="60" width="120" height="90"/>
+        <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
+      </g>
+      
+      <rect x="120" y="20" width="80" height="200" fill="none" stroke="green"/>
+      <text y="200" x="160" text-anchor="middle" font-size="12">Reference</text> 
+    </g>
+    
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+  <text id="revision" x="10" y="340" stroke="none" 
+    fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

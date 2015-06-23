@@ -1,0 +1,157 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="BB" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: styling-css-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/styling.html#StylingWithCSS">
+        <p>
+          This purpose of the file is to test some of the CSS2 selector syntax.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        A UA supporting CSS selectors should render an image identical to the referenced image.
+      </p>
+
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      The test is passed if a grid of 6x3 squares is shown, the colors in each column 
+      are the same and are those of the reference image (blue, green, orange, gold, purple and silver)
+      </p>
+      <p>
+        For a full analysis of this test, please see
+        <a href="http://www.w3.org/Graphics/SVG/Test/styling-css-04-f/blow-by-blow.html" target="css">
+          this explanation.
+        </a>
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: styling-css-04-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g fill="white">
+      <text x="240" y="35" font-size="20" text-anchor="middle">CSS selector test</text>
+      <defs>
+        <style type="text/css">
+          * {stroke:red; stroke-width:1;} /* 0 */
+          text {stroke:none; fill:black;} /* 1 */
+          rect {stroke:black; stroke-dasharray:none;} /* 1 */
+          #test-frame {fill:none} /* 100 */
+          g#alpha {fill:blue} /* 101 */
+          a#alpha {fill:red} /* 101 */
+          #alpha * rect {fill:green} /* 101 */
+          #alpha-2 > rect {fill:orange} /* 101 */
+          #beta rect {fill:gold} /* 101 */
+          g#gamma * g * * rect {fill:silver} /* 103 */
+          g#gamma * * rect {fill:purple} /* 102 */
+          [stroke-width="1.0001"] {fill:blue} /* 10 */
+          g#delta rect[stroke-width="1.0002"] {fill:green} /* 112 */
+          g#delta > rect[stroke-width="1.0003"] {fill:orange} /* 102 */
+          #delta + g > * {fill:gold} /* 101 */
+          g#delta + g > rect + rect {fill:purple} /* 104 */
+          #delta + g#epsilon * rect:first-child {fill:silver} /* 202 */
+          #zeta [cursor] {fill:blue} /* 110 */
+          g#zeta [cursor="help"] {fill:green} /* 111 */
+          g#zeta [rx~="3E"] {fill:orange} /* 111 */
+          g#epsilon + g [stroke-dasharray|="3.1415926"] {fill:gold} /* 112 */
+          g#epsilon + g > rect.hello {fill:purple} /* 113 */
+          g#eta rect:first-child {fill:silver} /* 102 */
+        </style>
+      </defs>
+      <g id="alpha">
+        <rect x="30" y="70" width="67.5" height="67.5" id="A1"/>
+        <g id="alpha-1">
+          <rect x="100" y="70" width="67.5" height="67.5" id="B1" />
+        </g>
+        <g id="alpha-2">
+          <rect x="170" y="70" width="67.5" height="67.5" id="C1"/>
+        </g>
+      </g>
+      <g id="beta">
+        <g>
+          <g>
+            <g>
+              <g>
+                <g>
+                  <rect x="240" y="70" width="67.5" height="67.5" id="D1"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g id="gamma">
+        <g>
+          <g>
+            <rect x="310" y="70" width="67.5" height="67.5" id="E1"/>
+            <g>
+              <g>
+                <rect x="380" y="70" width="67.5" height="67.5" id="F1"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g id="delta">
+        <rect x="30" y="140" width="67.5" height="67.5" stroke-width="1.0001" id="A2"/>
+        <rect x="100" y="140" width="67.5" height="67.5" stroke-width="1.0002" id="B2"/>
+        <rect x="170" y="140" width="67.5" height="67.5" stroke-width="1.0003" id="C2"/>
+      </g>
+      <g id="epsilon">
+        <rect x="240" y="140" width="67.5" height="67.5" id="D2"/>
+        <rect x="310" y="140" width="67.5" height="67.5" id="E2"/>
+        <g>
+          <rect x="380" y="140" width="67.5" height="67.5" id="F2"/>
+        </g>
+      </g>
+      <g id="zeta">
+        <rect x="30" y="210" width="67.5" height="67.5" cursor="default" id="A3"/>
+        <rect x="100" y="210" width="67.5" height="67.5" cursor="help" id="B3"/>
+        <rect x="170" y="210" width="67.5" height="67.5" stroke-dasharray="5, 3.14" id="C3" style="fill:orange"/>
+        <rect x="240" y="210" width="67.5" height="67.5" rx="3E-6" stroke-dasharray="3.1415926,8" id="D3" style="fill:gold"/>
+        <rect x="310" y="210" width="67.5" height="67.5" class="hello" id="E3"/>
+      </g>
+      <g id="eta">
+        <rect x="380" y="210" width="67.5" height="67.5" id="F3"/>
+      </g>
+      <g id="labels" font-size="16" font-family="Arial, Helvetica, sans-serif">
+        <text x="64" y="60" text-anchor="middle">A</text>
+        <text x="133" y="60" text-anchor="middle">B</text>
+        <text x="200" y="60" text-anchor="middle">C</text>
+        <text x="270" y="60" text-anchor="middle">D</text>
+        <text x="340" y="60" text-anchor="middle">E</text>
+        <text x="410" y="60" text-anchor="middle">F</text>
+        <text x="20" y="113" text-anchor="middle">1</text>
+        <text x="20" y="183" text-anchor="middle">2</text>
+        <text x="20" y="253" text-anchor="middle">3</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

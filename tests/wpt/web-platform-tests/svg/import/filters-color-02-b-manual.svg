@@ -1,0 +1,112 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="AG" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: filters-color-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feColorMatrixElement">
+      <p>
+        Tests the default behaviour of feComponentTransfer
+      </p>
+      <p>
+        The test displays two rects with the same gradient fill. The gradient
+        fill has the stops red, green, blue and black all of which are evenly
+        spaced.
+      </p>
+      <p>
+        The first rect with the 'Reference' label beneath it has an
+        feComponentTransfer filter applied to it. This filter specifies a
+        'linear' transform for the Red component such that Red is transformed to
+        Black. The Green component is specified as an 'identity' transform. The
+        remaining components (Green, Alpha) are unspecified and by default
+        must be treated as 'identity' transforms.
+      </p>
+      <p>
+        The second rect with the 'Default' label beneath it has an
+        feComponentTransfer filter applied to it. This filter specifies a
+        multiple transforms from the Red component. The last transform
+        specified for the Red component is a 'linear' transform that shifts Red
+        to Black. This is the transform that should be used by a conforming
+        implementation. There are no other components specified for the filter
+        of the second rect. A conforming implementation should treat
+        unspecified components in an feComponentTransfer as 'identity'.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        For this test to pass both rects must have a gradient fill that has the
+        stop colors Black, Green, Blue and Black, equally spaced.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-color-02-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <linearGradient id="MyGradient" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ff0000"/>
+        <stop offset=".33" stop-color="#00ff00"/>
+        <stop offset=".67" stop-color="#0000ff"/>
+        <stop offset="1" stop-color="#000000"/>
+      </linearGradient>
+
+      <filter id="Reference" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feComponentTransfer>
+          <feFuncR type="linear" slope="0" intercept="0"/>
+          <feFuncG type="identity"/>
+        </feComponentTransfer>
+      </filter>
+
+      <filter id="Default" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <!-- Red becomes black, green/blue/alpha use the identity function,
+             since erratum specifies omitted functions are the identity
+             function, and duplicated ones take the last one. -->
+        <feComponentTransfer>
+          <feFuncR type="identity"/>
+          <feFuncR type="linear" slope="0" intercept="1"/>
+          <feFuncR type="linear" slope="0" intercept="0"/>
+        </feComponentTransfer>
+      </filter>
+    </defs>
+
+    <g fill="url(#MyGradient)">
+      <rect x="20" y="40" width="440" height="40" filter="url(#Reference)"/>
+      <rect x="20" y="140" width="440" height="40" filter="url(#Default)"/>
+    </g>
+
+    <g font-family="Verdana" font-size="20" font-weight="bold">
+      <text x="40" y="100">Reference</text>
+      <text x="40" y="200">Default</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

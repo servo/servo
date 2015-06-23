@@ -1,0 +1,83 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="CL" author="Microsoft" status="accepted" version="$Revision: 1.4 $" testname="$RCSfile: linking-a-10-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/linking.html#AElement">
+      <p>
+        Test that the 'a' element supports various types of graphics and container elements as content.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+			<p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there are fourteen blue shapes on the page, in the sizes and positions
+        shown in the reference image.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: linking-a-10-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <a>
+        <rect x="360" width="100" height="100" fill="blue" />
+        <ellipse cx="120" cy="290" rx="25" ry="50" fill="blue" />
+        <line x1="380" y1="250" x2="320" y2="340" stroke-width="5" stroke="blue" />
+        <polygon fill="blue" points="0,0 0,100 100,100 100,0" />
+        <path d="M 280 250 L 250 350 L 310 330 z" fill="blue" />
+        <text x="10" y="320" font-size="100" fill="blue">X</text>
+        <image xlink:href="../images/blue_10x10.png" x="360" y="120" width="100" height="100" />
+        <g>
+            <rect x="240" y="120" width="100" height="100" fill="blue" />
+        </g>
+        <svg>
+            <rect y="120" width="100" height="100" fill="blue" />
+        </svg>
+        <defs>
+            <rect width="100" height="100" fill="blue" id="testRect" />
+            <linearGradient id="testGradient">
+                <stop offset="1" stop-color="blue" />
+            </linearGradient>
+            <symbol id="testSymbol">
+                <circle cx="40" cy="40" r="40" fill="blue" />
+            </symbol>
+            <marker id="testMarker">
+                <rect width="100" height="100" fill="blue" />
+            </marker>
+            <pattern id="testPattern" width="100" height="100" patternUnits="userSpaceOnUse" viewBox="0 0 100 100">
+                <rect width="100" height="100" fill="blue" />
+            </pattern>
+        </defs>
+        <use xlink:href="#testRect" x="120" />
+        <rect fill="url(#testGradient)" x="120" y="120" width="100" height="100" />
+        <use x="390" y="250" xlink:href="#testSymbol" />
+        <line x1="150" y1="260" x2="165" y2="260" stroke-width="25" marker-end="url(#testMarker)" />
+        <rect fill="url(#testPattern)" x="240" width="100" height="100" />
+    </a>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

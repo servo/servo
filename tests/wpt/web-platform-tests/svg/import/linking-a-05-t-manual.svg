@@ -1,0 +1,102 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="MI" author="CN" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: linking-a-05-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/linking.html#Links">
+      <p>
+        Verify if the 'a' element properly accept the transform
+        attibute. There are three subtests, in each of which one
+        of three sets of colored arrows comprise the content of
+        an 'a' element. The link destination is expressed by
+        "xlink:href=" as in the test 'linking-a-04-t.svg'.
+        The arrows transformed is in the brighter color, and the
+        arrows before transformation is shown in the darker color.
+        The transformation parameters used for each 'a' element is
+        shown on the left side of each arrow.
+      </p>
+      <p>
+        The top-most arrow (yellow) is rotated for 20 degree.
+        The middle arrow (green) is skewed horizontally for
+        -30 degree, and the last arrow (cyan) is translated
+        for (-10, -20).
+      </p>
+
+      <p>
+        The test uses the 'rect' and 'polygon' elements, as well as basic fill (solid simple colors and RGB values),
+        stroke (black and colored wide and 1-pixel lines), font-family (Arial) and font-size properties.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The user should interact with each of the arrows activating each of the links,
+        using the UA's back mechanism to restart each link test.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Each arrow, i.e. link, should behave as described
+        in 'linking-a-04-t.svg'. The arrows in this test
+        have the same 'xlink:href' attribute as the 'linking-a-04-t'
+        test.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: linking-a-05-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="90" y="16" font-size="12">Verify transform attributes in the 'a' element.</text>
+    <!-- First linking test:  link to another SVG file in same location. -->
+    <path fill="rgb(128,128,0)" stroke="rgb(0,0,128)" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+    <a xlink:href="../images/linkingToc-t.svg" transform="rotate(20,225,65)">
+      <path fill="yellow" stroke="blue" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+    </a>
+    <text x="10" y="45" font-size="10">transform="rotate(20,225,65)</text>
+    <!-- Second linking test:  link to another object in this file. -->
+    <g transform="translate(0,90)">
+      <path fill="rgb(0,128,0)" stroke="rgb(0,0,128)" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+      <a xlink:href="#internal-circle" transform="skewX(-30)">
+        <path fill="lime" stroke="blue" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+      </a>
+      <text x="10" y="45" font-size="10">transform="skewX(-30)</text>
+    </g>
+    <!-- Third linking test:  links to external, remote, non-SVG content (for  -->
+    <!-- plugin viewers in browser environments.)                              -->
+    <g transform="translate(0,180)">
+      <path fill="rgb(0,128,128)" stroke="rgb(0,0,128)" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+      <a xlink:href="http://www.w3.org" transform="translate(-10,-20)">
+        <path fill="aqua" stroke="blue" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+      </a>
+      <text x="10" y="45" font-size="10">transform="translate(-10,-20)</text>
+    </g>
+    <!-- Link target of second test -->
+    <circle id="internal-circle" cx="390" cy="153" r="20" stroke="lime" fill="yellow" stroke-width="4"/>
+    <text x="350" y="189" font-size="10">id="internal-circle"</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

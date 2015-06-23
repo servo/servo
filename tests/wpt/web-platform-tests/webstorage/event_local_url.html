@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
  <head>
-  <title>Web Storage</title>
+  <title>WebStorage Test: localStorage event - url</title>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script>
@@ -17,9 +17,10 @@
     <h1>event_local_url</h1>
     <div id="log"></div>
     <script>
+        var t = async_test("url property test of local event");
+
         test(function() {
             localStorage.clear();
-            var t = async_test("url property test of local event");
             function onStorageEvent(event) {
                 t.step(function() {
                     var url = window.location.href;
@@ -41,7 +42,7 @@
             el.setAttribute('id', 'ifrm');
             el.setAttribute('src', 'iframe/local_set_item_iframe.html');
             document.body.appendChild(el);
-        });
+        }, "Local event is fired due to an invocation of the setItem() method.");
     </script>
  </body>
 </html>

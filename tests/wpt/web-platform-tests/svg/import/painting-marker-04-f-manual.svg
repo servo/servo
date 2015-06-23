@@ -1,0 +1,84 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="BB" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: painting-marker-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#Markers">
+        <p>
+          The SVG specification defines three properties to reference markers: marker-start, marker-mid,
+          marker-end. It also provides a shorthand property,marker.  Using the marker property from a style sheet
+          is equivalent to using all three (start, mid, end). However, shorthand properties cannot be used as presentation attributes.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test passes if the shapes in the top row have no markers,
+        while the shapes in the bottom rom have small blue markers
+        (26 in total).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-marker-04-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <marker id="marker1" markerUnits="strokeWidth" refX="50" refY="50" markerWidth="5" markerHeight="5" viewBox="0 0 100 100">
+        <rect width="100" height="100" fill="royalblue" stroke="none"/>
+      </marker>
+      <marker id="marker2" markerUnits="strokeWidth" refX="100" refY="100" markerWidth="15" markerHeight="15" viewBox="0 0 200 200">
+        <rect width="200" height="200" fill="red" stroke="none"/>
+      </marker>
+    </defs>
+
+    <text font-size="20" x="240" y="28" text-anchor="middle">'marker' attribute test</text>
+
+    <text font-size="20" x="240" y="70" text-anchor="middle" fill="forestgreen">'marker' attribute</text>
+    <g marker="url(#marker2)" fill="gold" stroke="black" fill-rule="evenodd" transform="translate(50,20)" id="markme">
+      <path d="M10,60 Q90,60 90,140 Q10,140 10,60 Z M10,140 Q10,60 90,60 Q90,140 10,140 Z M50,70 L80,100 50,130 20,100 Z"/>
+      <polygon points="100,60 120,140 140,60 160,140 180,60 180,100 100,100"/>
+      <polyline points="190,60 210,140 230,60 250,140 270,60 270,100 190,100"/>
+      <line x1="280" x2="370" y1="60" y2="140"/>
+      <line x1="370" x2="280" y1="60" y2="140"/>
+    </g>
+
+    <text font-size="20" x="240" y="200" text-anchor="middle" fill="forestgreen">'marker-start', 'marker-mid' &amp; 'marker-end' attributes</text>
+    <g marker-mid="url(#marker1)" marker-end="url(#marker1)" marker-start="url(#marker1)" fill="gold" stroke="black" fill-rule="evenodd" transform="translate(50,150)">
+      <path d="M10,60 Q90,60 90,140 Q10,140 10,60 Z M10,140 Q10,60 90,60 Q90,140 10,140 Z M50,70 L80,100 50,130 20,100 Z"/>
+      <polygon points="100,60 120,140 140,60 160,140 180,60 180,100 100,100"/>
+      <polyline points="190,60 210,140 230,60 250,140 270,60 270,100 190,100"/>
+      <line x1="280" x2="370" y1="60" y2="140"/>
+      <line x1="370" x2="280" y1="60" y2="140"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

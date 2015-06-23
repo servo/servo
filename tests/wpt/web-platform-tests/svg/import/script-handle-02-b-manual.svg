@@ -1,0 +1,124 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="issue"
+    version="$Revision: 1.9 $" testname="$RCSfile: script-handle-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/script.html#EventHandling">
+      <p>
+        <strong>Resolved to unapproved this test because elements being
+        focusable and activatable is underdefined in the spec. ACTION-2977</strong>
+      </p>
+      <p>
+        Tests basic mouse event handlers.
+      </p>
+      <p>
+        The test shows a target that can be used to generate the various
+        kinds of events supported in SVG. Below the
+        target, the list of events is shown with red markers next to each.
+      </p>      
+      <p>
+        If the test passes, all the markers should have turned to green
+        after the events have been triggered on the target. If any event
+        has not triggered, its marker will remain red.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+      <p>Load the test. Focus the gray circle, activate it, then move the focus away from the circle.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if, after following the operator script, the three rectangles are green.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: script-handle-02-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <!-- Displayed Title -->
+    <text x="100" y="40" fill="black" font-size="24">
+      Mouse event handlers test.
+    </text>
+
+    <!-- The test defines a target and defines all the handlers for the target -->
+    <!-- There are legends for each handler that are modified after the handler-->
+    <!-- has been invoked                                                      -->
+
+    <g id="targetGroup" transform="translate(60, 140)">
+      <text x="-40" y="-50" font-size="32">Target</text>
+      <text x="60" y="7" font-size="24">Use the target to trigger events</text>
+      <!-- The target has all the event handlers defined -->
+      <!-- Use this <g> instead -->
+      <g id="target" onfocusin="onEvent(evt, 'onfocusin')" onfocusout="onEvent(evt, 'onfocusout')" onactivate="onEvent(evt, 'onactivate')">
+
+        <circle cx="0" cy="0" r="30" fill="#cccccc" stroke="black"/>
+        <line x1="-30" y1="0" x2="30" y2="0"/>
+        <line x1="0" y1="-30" x2="0" y2="30"/>
+      </g>
+    </g>
+    <!-- targetGroup -->
+
+    <g id="labels">
+      <g id="mouseEvents" transform="translate(65, 190)">
+        <g id="mouseEventsLabels">
+          <text x="10" y="20" font-size="32">onfocusin</text>
+          <text x="10" y="50" font-size="32">onfocusout</text>
+          <text x="10" y="80" font-size="32">onactivate</text>
+        </g>
+        <g id="mouseEventsTestIndicators">
+          <!-- onfocusin -->
+          <rect x="-15" y="2" width="20" height="20" fill="green"/>
+          <rect id="onfocusin" x="-15" y="2" width="20" height="20" fill="red"/>
+
+          <!-- onfocusout -->
+          <rect x="-15" y="32" width="20" height="20" fill="green"/>
+          <rect id="onfocusout" x="-15" y="32" width="20" height="20" fill="red"/>
+
+          <!-- onactivate -->
+          <rect x="-15" y="62" width="20" height="20" fill="green"/>
+          <rect id="onactivate" x="-15" y="62" width="20" height="20" fill="red"/>
+
+        </g>
+      </g>
+      <!-- Mouse Events -->
+    </g>
+
+    <script type="text/ecmascript"><![CDATA[
+
+      function onEvent(evt, indicatorId){
+      // Get Document
+      var target = evt.target;
+      var doc = target.ownerDocument;
+
+      // Mark test as passed
+      var testPassed = doc.getElementById(indicatorId);
+      testPassed.setAttribute('visibility', 'hidden');
+      }
+    ]]></script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

@@ -1,0 +1,78 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="CN" status="issue"
+    version="$Revision: 1.6 $" testname="$RCSfile: fonts-glyph-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#GlyphElement">
+    	<p>ISSUE: http://www.w3.org/2011/02/27-svg-irc#T22-20-51 - unapprove test for now</p>
+      <p>
+        This files tests the lang attribute support of the glyph
+        element. The test should produce an upward-triangle for
+        the first (en) test element and a square for the second (fr)
+        and third (fr-ca)  text element. In the third case, a glyph for
+        fr is also suitable for a more specific language text fr-ca.
+        In the fourth case, no suitable language specific or general
+        glyph is provided by the test so a fallback font for the letter
+        'a' should be used. A triangle or square must not be
+        displayed in the fourth case.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if, from top to bottom, you see an upward pointing triangle, then two squares, and finally the letter "a".
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: fonts-glyph-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="upward-triangle" lang="en" d="M0 0L500 0L250 900Z"/>
+        <glyph unicode="a" glyph-name="square" lang="fr" d="M0 250L500 250L500 750L0 750Z"/>
+      </font>
+    </defs>
+    <g font-family="SVGFont" font-size="50">
+      <!-- Should produce an upward pointing triangle -->
+      <text x="50" y="50" xml:lang="en">a</text>
+      <!-- Should produce a square -->
+      <text x="50" y="120" xml:lang="fr">a</text>
+      <!-- Should also produce a square -->
+      <text x="50" y="190" xml:lang="fr-ca">a</text>
+      <!-- Should fall back to another font -->
+      <text x="50" y="260" xml:lang="de">a</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

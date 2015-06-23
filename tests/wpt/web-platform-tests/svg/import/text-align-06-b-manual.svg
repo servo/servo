@@ -1,0 +1,99 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: text-align-06-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlignmentProperties">
+      <p>
+        Tests various ways that the 'baseline-shift' property (vertical) can be
+        altered.
+      </p>
+      <p>
+        The first sub test sets the 'baseline-shift' to an absolute unit. The
+        second sub test sets the 'baseline-shift' to a percentage. The third sub
+        test sets the 'baseline-shift' to "sub". The fourth sub test sets the
+        'baseline-shift' to "super".
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if four lines of vertical text are rendered.
+      </p>
+      <ul>
+        <li>
+          The first vertical line should contain the text "te7xt" with the "7"
+          part being slightly offset to the right of the rest of the letters
+          in the text.
+        </li>
+        <li>
+          The second vertical line should contain the text "te-70%xt" with the
+          "-70%" part of the text being offset to the left of the rest of the
+          letters in the text.
+        </li>
+        <li>
+          The third vertical line should contain the text "tesubxt" with the
+          "sub" part of the text being slightly offset to left of the rest of
+          the letters in the text.
+        </li>
+        <li>
+          The fourth verical line should contain the text "tesuperxt" with the
+          "super" part of the text being offset to the right of the rest of the
+          letters in the text.
+        </li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-align-06-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="36" x="0" y="40">Test 'baseline-shift' (vertic.)</text>
+
+    <g writing-mode="tb" glyph-orientation-vertical="0">
+      <g id="baseline-shift" font-family="Arial" font-size="24" transform="translate(90,60)">
+        <text x="0">
+          te<tspan baseline-shift="7" fill="fuchsia">7</tspan>xt
+        </text>
+        <text x="80">
+          te<tspan baseline-shift="-70%" fill="fuchsia">-70%</tspan>xt
+        </text>
+        <text x="180">
+          te<tspan baseline-shift="sub" fill="fuchsia">sub</tspan><tspan baseline-shift="baseline" fill="blue">x</tspan>t
+        </text>
+        <text x="260">
+          te<tspan baseline-shift="super" fill="green">super</tspan><tspan baseline-shift="baseline" fill="blue">x</tspan>t
+        </text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

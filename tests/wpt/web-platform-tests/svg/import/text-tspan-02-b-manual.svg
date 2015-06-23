@@ -1,0 +1,177 @@
+<svg id="svg-root" width="100%" height="100%" 
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="AG" status="accepted"
+    version="$Revision: 1.11 $" testname="$RCSfile: text-tspan-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TSpanElementRotateAttribute">
+      <p>
+        Tests the rotate attribute in the tspan element.
+      </p>
+      <ul>
+        <li>
+          Tests the case where more characters than rotate values are
+          supplied. In this case the last rotate value should propogate to
+          subsequent characters in the element and child tspan elements that
+          do not contain a rotate value.
+        </li>
+        <li>
+          Tests the case where more values than characters are supplied. In
+          this case each character should be rotated by the designated value
+          remaining unused values propogate to any child tspan elements that
+          do not contain a rotate value.
+        </li>
+        <li>
+          Tests the case where an ansestor of a tspan element specifies a
+          rotate value but the tspan itself doesn't. In this case the tspan
+          should use the current rotate value specified by the ansestor
+          element.
+        </li>
+        <li>
+          Tests the case where a tspan or text element specifies a rotate
+          value and contains a text string that is broken due to nested child
+          tspan. In this case characters after the child tspan element must
+          be rotated by the current rotate value.
+        </li>
+      </ul>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        For this test to pass the text "Not all characters in the text have a
+        specified rotation" must be displayed in green without any red showing.
+        If any red shows the test is a fail.
+      </p>
+      <p>
+        Rotation values:
+      </p>
+      <ul>
+        <li>
+          The characters in the text "Not" must be rotated by 5,15 and 25
+          degrees respectively.
+        </li>
+        <li>
+          The first 3 characters in the text "all characters" must be -10,-20
+          and -30 degrees respectively. Subsequent characters in the text must
+          be each rotated by -40 degrees.
+        </li>
+        <li>
+          All the characters in the text "text have a" must be rotated by -40
+          degrees.
+        </li>
+        <li>
+          The characters in the text "in the" must be rotated by 70,60,50,40,30
+          and 20 degrees respectively. Note: the space in the text consumes a
+          rotate value.
+        </li>
+        <li>
+          All the characters in the text "specified" must be rotated by -10
+          degrees.
+        </li>
+        <li>
+          All the characters in the text "rotation" must be rotated by 55
+          degrees.
+        </li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-tspan-02-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text font-size="35" fill="red" x="20" y="120" rotate="5,15,25,35,-10,-20,-30,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,70,60,50,40,30,20,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,55,-10,-10,-10,-10,-10,-10,-10,-10,-10,55,55,55,55,55,55,55,55,55">
+      Not all characters in the
+      <tspan x="20" y="180">text have a specified rotation</tspan>
+    </text>
+
+
+    <text font-size="35" fill="green" x="20" y="120" rotate="5,15,25,35,45,55" stroke="green" stroke-width="0.5">
+      Not
+
+      <tspan id="child1" rotate="-10,-20,-30,-40">
+        all characters
+
+        <tspan id="child2" rotate="70,60,50,40,30,20,10">
+          in
+
+          <tspan id="child3">
+            the
+          </tspan>
+        </tspan>
+
+        <tspan x="20" y="180" id="child4">
+          text
+        </tspan>
+
+        have a
+      </tspan>
+
+      <tspan id="child5" rotate="-10">
+        specified
+      </tspan>
+
+      rotation
+    </text>
+
+    <text id="rotation_values" font-size="8" xml:space="preserve">
+      <tspan x="30" y="135">
+5      15   25
+      </tspan>
+      <tspan x="80" y="130">
+-10  -20 -30
+      </tspan>
+      <tspan x="125" y="130">
+ -40  -40  -40  -40  -40   -40 -40 -40  -40  -40
+      </tspan>
+      <tspan x="295" y="145">
+70   60
+      </tspan>
+      <tspan x="340" y="140">
+40   30    20
+      </tspan>
+      <tspan x="15" y="190">
+-40 -40  -40  -40    -40  -40   -40   -40       -40
+      </tspan>
+      <tspan x="190" y="200">
+   -10   -10    -10   -10 -10   -10 -10    -10
+      </tspan>
+      <tspan x="275" y="190">
+-10
+      </tspan>
+      <tspan x="340" y="210">
+  55    55  55  55   55 55  55   55
+      </tspan>
+    </text>
+    
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+  <text id="revision" x="10" y="340" stroke="none" 
+    fill="black">$Revision: 1.11 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

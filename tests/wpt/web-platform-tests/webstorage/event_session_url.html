@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
  <head>
-  <title>Web Storage</title>
+  <title>WebStorage Test: sessionStorage event - url</title>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script>
@@ -17,9 +17,10 @@
     <h1>event_session_url</h1>
     <div id="log"></div>
     <script>
+        var t = async_test("url property test of session event");
+
         test(function() {
             sessionStorage.clear();
-            var t = async_test("url property test of session event");
             function onStorageEvent(event) {
                 t.step(function() {
                     var url = window.location.href;
@@ -41,7 +42,7 @@
             el.setAttribute('id', 'ifrm');
             el.setAttribute('src', 'iframe/session_set_item_iframe.html');
             document.body.appendChild(el);
-        });
+        }, "Session event is fired due to an invocation of the setItem() method.");
     </script>
  </body>
 </html>

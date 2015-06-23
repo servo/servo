@@ -1,0 +1,98 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Chris Lilley" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-29-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+        <p>
+        Test compositing of animated fill opacity.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        First click once on "fade in" and
+        then, once the animation has completed, click once on "fade out". 
+        </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The first time you
+        select the link 'fade in', you should see a green square appearing,
+        gradually and smoothly fading from zero to 100% opacity over the
+        course of three seconds. This square is in front of and thus
+        obscures the lower left circle, but is behind the upper right
+        circle which is thus composited on top of the animated green
+        square. Then, when you click on "fade out", the green square will
+        gradually disappear, smoothly fading from 100% to zero opacity
+        over the course of three seconds.
+        </p>
+        <p>
+        The rendered picture should match the reference image, (except
+        for possible variations in the labelling text (per CSS2 rules))
+        after activating the link on the fade-in button the first time
+        and waiting three seconds for the animation to complete. The picture
+        should remain looking the same way indefinitely, until another
+        link is activated.
+      </p>
+      	<!--
+        With a second click on "fade in", however, the behavior might
+        be different. In the case of having a first click on "fade in",
+        waiting three seconds, and then immediately perform a first click
+        on "fade out", waiting three seconds, and then immediately perform
+        a second click on "fade in", you should see the following. After
+        the first click on "fade in", the red square goes from zero to 100%
+        opacity. After the first click on "fade out", the red square goes
+        from 100% to zero opacity. After the second click on "fade in",
+        however, the red square goes from zero to 100% opacity, and then
+        goes back from 100% to zero opacity. This is because of the
+        hyperlinking rules as they relate to resolved start times in the
+        SMIL Animation specification.
+        -->
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-29-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <circle stroke="#666" stroke-width="30" fill="none" cx="100" cy="200" r="60"/>
+    <rect id="pink" x="20" y="20" width="180" height="180" fill="#080" fill-opacity="0">
+      <animate id="fadein" attributeName="fill-opacity" attributeType="auto" from="0" to="1" begin="indefinite" dur="3s" fill="freeze"/>
+      <animate id="fadeout" attributeName="fill-opacity" attributeType="auto" from="1" to="0" begin="indefinite" dur="3s" fill="freeze"/>
+    </rect>
+    <circle stroke="#666" stroke-width="20" fill="none" cx="200" cy="110" r="80"/>
+    <g id="buttons">
+      <a xlink:href="#fadein">
+        <rect x="320" y="0" width="160" height="180" fill="green"/>
+        <text fill="white" font-size="30" font-weight="bold" x="330" y="90">Fade in</text>
+      </a>
+      <a xlink:href="#fadeout">
+        <rect x="320" y="180" width="160" height="180" fill="maroon"/>
+        <text fill="white" font-size="30" font-weight="bold" x="330" y="280">Fade out</text>
+      </a>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,195 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2011 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="Tavmjong Bah" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: filters-image-05-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feImageElement">
+      <p>
+        This test verifies the implementation of the preserveAspectRatio attribute on &lt;feImage&gt;
+        referencing raster content.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test copies coords-viewattr-02-b, substituting feImage for image.
+        It exercises the various preserveAspectRatio values. An external bitmap
+	is referenced.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly except for variations in the labeling text.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-image-05-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+	<defs>
+	  <filter id="default" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png"/>
+	  </filter>
+	  <!-- Meet -->
+	  <filter id="xMinYMinMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMinYMin meet"/>
+	  </filter>
+	  <filter id="xMidYMinMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMidYMin meet"/>
+	  </filter>
+	  <filter id="xMaxYMinMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMaxYMin meet"/>
+	  </filter>
+	  <filter id="xMinYMidMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMinYMid meet"/>
+	  </filter>
+	  <filter id="xMidYMidMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMidYMid meet"/>
+	  </filter>
+	  <filter id="xMaxYMidMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMaxYMid meet"/>
+	  </filter>
+	  <filter id="xMinYMaxMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMinYMax meet"/>
+	  </filter>
+	  <filter id="xMidYMaxMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMidYMax meet"/>
+	  </filter>
+	  <filter id="xMaxYMaxMeet" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMaxYMax meet"/>
+	  </filter>
+	  <!-- Slice -->
+	  <filter id="xMinYMinSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMinYMin slice"/>
+	  </filter>
+	  <filter id="xMidYMinSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMidYMin slice"/>
+	  </filter>
+	  <filter id="xMaxYMinSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMaxYMin slice"/>
+	  </filter>
+	  <filter id="xMinYMidSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMinYMid slice"/>
+	  </filter>
+	  <filter id="xMidYMidSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMidYMid slice"/>
+	  </filter>
+	  <filter id="xMaxYMidSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMaxYMid slice"/>
+	  </filter>
+	  <filter id="xMinYMaxSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMinYMax slice"/>
+	  </filter>
+	  <filter id="xMidYMaxSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMidYMax slice"/>
+	  </filter>
+	  <filter id="xMaxYMaxSlice" x="0" y="0" width="1" height="1">
+	    <feImage xlink:href="../images/smiley.png" preserveAspectRatio="xMaxYMax slice"/>
+	  </filter>
+	</defs>
+    <g font-size="9" transform="translate(0, 30)">
+      <desc>Example PreserveAspectRatio - demonstrate available options</desc>
+      <text text-anchor="middle" x="240" font-size="16">Test preserveAspectRatio on an feImage element.</text>
+      <text x="40" y="30" text-anchor="middle">Raster to fit</text>
+      <g transform="translate(20,40)">
+	<rect fill="red" width="40" height="40" filter="url(#default)"/>
+      </g>
+      <text x="35.5" y="110" text-anchor="middle">Viewport 1</text>
+      <g transform="translate(10,120)"><rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/></g>
+      <text x="35.5" y="180" text-anchor="middle">Viewport 2</text>
+      <g transform="translate(20,190)"><rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/></g>
+      <g id="meet-group-1" transform="translate(120, 50)">
+        <text x="0" y="-20">---------- meet --------------------</text>
+        <g>
+          <text y="-5">xMin*</text>
+	  <rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/>
+	  <rect fill="red" width="50" height="30" filter="url(#xMinYMinMeet)"/>
+        </g>
+        <g transform="translate(70,0)">
+          <text y="-5">xMid*</text>
+	  <rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/>
+	  <rect fill="red" width="50" height="30" filter="url(#xMidYMidMeet)"/>
+        </g>
+        <g transform="translate(0,50)">
+          <text y="-5">xMax*</text>
+	  <rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/>
+	  <rect fill="red" width="50" height="30" filter="url(#xMaxYMaxMeet)"/>
+        </g>
+      </g>
+      <g id="meet-group-2" transform="translate(300, 50)">
+        <text x="0" y="-20">---------- meet ------------------------</text>
+        <g>
+          <text y="-5">*YMin</text><rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/>
+	  <rect fill="red" width="30" height="60" filter="url(#xMinYMinMeet)"/>
+        </g>
+        <g transform="translate(50, 0)">
+          <text y="-5">*YMid</text><rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/>
+	  <rect fill="red" width="30" height="60" filter="url(#xMidYMidMeet)"/>
+        </g>
+        <g transform="translate(100, 0)">
+          <text y="-5">*YMax</text><rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/>
+	  <rect fill="red" width="30" height="60" filter="url(#xMaxYMaxMeet)"/>
+        </g>
+      </g>
+      <g id="slice-group-1" transform="translate(120, 185)">
+        <text x="0" y="-20">---------- slice -------------------------</text>
+        <g>
+          <text y="-5">xMin*</text><rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/>
+	  <rect fill="red" width="30" height="60" filter="url(#xMinYMinSlice)"/>
+        </g>
+        <g transform="translate(50,0)">
+          <text y="-5">xMid*</text><rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/>
+	  <rect fill="red" width="30" height="60" filter="url(#xMidYMidSlice)"/>
+        </g>
+        <g transform="translate(100,0)">
+          <text y="-5">xMax*</text><rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/>
+	  <rect fill="red" width="30" height="60" filter="url(#xMaxYMaxSlice)"/>
+        </g>
+      </g>
+      <g id="slide-group-2" transform="translate(300, 155) translate(0, 30)">
+        <text x="0" y="-20">---------- slice ---------------------</text>
+        <g>
+          <text y="-5">*YMin</text>
+	  <rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/>
+	  <rect fill="red" width="50" height="30" filter="url(#xMinYMinSlice)"/>
+        </g>
+        <g transform="translate(70,0)">
+          <text y="-5">*YMid</text>
+	  <rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/>
+	  <rect fill="red" width="50" height="30" filter="url(#xMidYMidSlice)"/>
+        </g>
+        <g transform="translate(0,50)">
+          <text y="-5">*YMax</text>
+	  <rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/>
+	  <rect fill="red" width="50" height="30" filter="url(#xMaxYMaxSlice)"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

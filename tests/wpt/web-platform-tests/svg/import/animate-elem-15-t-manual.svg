@@ -1,0 +1,79 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-15-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test 'calcMode'=paced.
+      </p>
+      <p>
+        One animation has been defined to animate the width of a rectangle. Ruler lines and text are provided
+        to help show what the correct behavior is. The headline text shows the values for the 'calcMode' and 'keyTimes' attributes. The
+        black text and ruler lines help show the size and movement of the rectangle over time.
+      </p>
+      <p>
+        This test shows calcMode="paced" for an animation that has constant velocity, thus showing how 'values'
+        and 'keyTimes' are ignored.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	The blue rectangle should animate its width at a constant speed so that the right edge of the rectangle lines up with the ruler line at the indicated times.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-15-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="40" x="3" y="45">calcMode="paced"</text>
+    <text font-size="40" x="3" y="100">keyTimes="0;.25;.5;1"</text>
+    <g xml:space="preserve" font-size="13.5" stroke-width="3">
+      <g transform="translate(150,140)">
+        <text font-size="36" x="-140" y="140">Time (s):</text>
+        <text font-size="36" x="290" y="140">0</text>
+        <line x1="300" y1="0" x2="300" y2="100" fill="none" stroke="#880000"/>
+        <text font-size="36" x="230" y="140">1.5</text>
+        <line x1="255" y1="0" x2="255" y2="100" fill="none" stroke="#880000"/>
+        <text font-size="36" x="170" y="140">4</text>
+        <line x1="180" y1="0" x2="180" y2="100" fill="none" stroke="#880000"/>
+        <text font-size="36" x="20" y="140">9</text>
+        <line x1="30" y1="0" x2="30" y2="100" fill="none" stroke="#880000"/>
+        <rect x="0" y="0" width="300" height="80" fill="#44AAFF" stroke="#880088" stroke-width="4">
+          <animate attributeName="width" calcMode="paced" values="300;255;180;30" keyTimes="0;.25;.5;1" begin="0s" dur="9s" fill="freeze"/>
+        </rect>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

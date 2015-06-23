@@ -33,9 +33,6 @@
   ]
 
   elements.forEach(function(element) {
-    var t = async_test(element.id + " setRangeText fires a select event"),
-        q = false;
-
     test(function() {
       element.value = "foobar";
       element.selectionStart = 0;
@@ -108,13 +105,16 @@
       });
     }, element.id + " setRangeText without argument throws a type error");
 
-    element.onselect = t.step_func_done(function(e) {
+    async_test(function() {
+      var q = false;
+      element.onselect = this.step_func_done(function(e) {
         assert_true(q, "event should be queued");
         assert_true(e.isTrusted, "event is trusted");
         assert_false(e.bubbles, "event bubbles");
         assert_false(e.cancelable, "event is not cancelable");
-    });
-    element.setRangeText("foobar2", 0, 6);
-    q=true;
+      });
+      element.setRangeText("foobar2", 0, 6);
+      q = true;
+    }, element.id + " setRangeText fires a select event");
   })
 </script>

@@ -710,6 +710,14 @@
         "url": "/html/semantics/forms/the-input-element/file-manual.html"
       },
       {
+        "path": "html/semantics/forms/the-option-element/option-disabled-manual.html",
+        "url": "/html/semantics/forms/the-option-element/option-disabled-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/the-textarea-element/textarea-placeholder-manual.html",
+        "url": "/html/semantics/forms/the-textarea-element/textarea-placeholder-manual.html"
+      },
+      {
         "path": "html/semantics/forms/the-textarea-element/textarea-select-event-manual.html",
         "url": "/html/semantics/forms/the-textarea-element/textarea-select-event-manual.html"
       },
@@ -736,6 +744,18 @@
       {
         "path": "notifications/Notification-requestPermission-granted-manual.html",
         "url": "/notifications/Notification-requestPermission-granted-manual.html"
+      },
+      {
+        "path": "notifications/event-onclick-manual.html",
+        "url": "/notifications/event-onclick-manual.html"
+      },
+      {
+        "path": "notifications/event-onerror-default-manual.html",
+        "url": "/notifications/event-onerror-default-manual.html"
+      },
+      {
+        "path": "notifications/event-onerror-denied-manual.html",
+        "url": "/notifications/event-onerror-denied-manual.html"
       },
       {
         "path": "notifications/notification-body-basic-manual.html",
@@ -1034,6 +1054,2094 @@
         "url": "/quirks-mode/active-and-hover-manual.html"
       },
       {
+        "path": "svg/import/animate-dom-01-f-manual.svg",
+        "url": "/svg/import/animate-dom-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-dom-02-f-manual.svg",
+        "url": "/svg/import/animate-dom-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-02-t-manual.svg",
+        "url": "/svg/import/animate-elem-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-03-t-manual.svg",
+        "url": "/svg/import/animate-elem-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-04-t-manual.svg",
+        "url": "/svg/import/animate-elem-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-05-t-manual.svg",
+        "url": "/svg/import/animate-elem-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-06-t-manual.svg",
+        "url": "/svg/import/animate-elem-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-07-t-manual.svg",
+        "url": "/svg/import/animate-elem-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-08-t-manual.svg",
+        "url": "/svg/import/animate-elem-08-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-09-t-manual.svg",
+        "url": "/svg/import/animate-elem-09-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-10-t-manual.svg",
+        "url": "/svg/import/animate-elem-10-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-11-t-manual.svg",
+        "url": "/svg/import/animate-elem-11-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-12-t-manual.svg",
+        "url": "/svg/import/animate-elem-12-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-13-t-manual.svg",
+        "url": "/svg/import/animate-elem-13-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-14-t-manual.svg",
+        "url": "/svg/import/animate-elem-14-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-15-t-manual.svg",
+        "url": "/svg/import/animate-elem-15-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-17-t-manual.svg",
+        "url": "/svg/import/animate-elem-17-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-19-t-manual.svg",
+        "url": "/svg/import/animate-elem-19-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-20-t-manual.svg",
+        "url": "/svg/import/animate-elem-20-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-21-t-manual.svg",
+        "url": "/svg/import/animate-elem-21-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-22-b-manual.svg",
+        "url": "/svg/import/animate-elem-22-b-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-23-t-manual.svg",
+        "url": "/svg/import/animate-elem-23-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-24-t-manual.svg",
+        "url": "/svg/import/animate-elem-24-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-25-t-manual.svg",
+        "url": "/svg/import/animate-elem-25-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-26-t-manual.svg",
+        "url": "/svg/import/animate-elem-26-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-27-t-manual.svg",
+        "url": "/svg/import/animate-elem-27-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-28-t-manual.svg",
+        "url": "/svg/import/animate-elem-28-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-29-b-manual.svg",
+        "url": "/svg/import/animate-elem-29-b-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-30-t-manual.svg",
+        "url": "/svg/import/animate-elem-30-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-31-t-manual.svg",
+        "url": "/svg/import/animate-elem-31-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-32-t-manual.svg",
+        "url": "/svg/import/animate-elem-32-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-33-t-manual.svg",
+        "url": "/svg/import/animate-elem-33-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-34-t-manual.svg",
+        "url": "/svg/import/animate-elem-34-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-35-t-manual.svg",
+        "url": "/svg/import/animate-elem-35-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-36-t-manual.svg",
+        "url": "/svg/import/animate-elem-36-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-37-t-manual.svg",
+        "url": "/svg/import/animate-elem-37-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-38-t-manual.svg",
+        "url": "/svg/import/animate-elem-38-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-39-t-manual.svg",
+        "url": "/svg/import/animate-elem-39-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-40-t-manual.svg",
+        "url": "/svg/import/animate-elem-40-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-41-t-manual.svg",
+        "url": "/svg/import/animate-elem-41-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-44-t-manual.svg",
+        "url": "/svg/import/animate-elem-44-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-46-t-manual.svg",
+        "url": "/svg/import/animate-elem-46-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-52-t-manual.svg",
+        "url": "/svg/import/animate-elem-52-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-53-t-manual.svg",
+        "url": "/svg/import/animate-elem-53-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-60-t-manual.svg",
+        "url": "/svg/import/animate-elem-60-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-61-t-manual.svg",
+        "url": "/svg/import/animate-elem-61-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-62-t-manual.svg",
+        "url": "/svg/import/animate-elem-62-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-63-t-manual.svg",
+        "url": "/svg/import/animate-elem-63-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-64-t-manual.svg",
+        "url": "/svg/import/animate-elem-64-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-65-t-manual.svg",
+        "url": "/svg/import/animate-elem-65-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-66-t-manual.svg",
+        "url": "/svg/import/animate-elem-66-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-67-t-manual.svg",
+        "url": "/svg/import/animate-elem-67-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-68-t-manual.svg",
+        "url": "/svg/import/animate-elem-68-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-69-t-manual.svg",
+        "url": "/svg/import/animate-elem-69-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-70-t-manual.svg",
+        "url": "/svg/import/animate-elem-70-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-77-t-manual.svg",
+        "url": "/svg/import/animate-elem-77-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-78-t-manual.svg",
+        "url": "/svg/import/animate-elem-78-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-80-t-manual.svg",
+        "url": "/svg/import/animate-elem-80-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-81-t-manual.svg",
+        "url": "/svg/import/animate-elem-81-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-82-t-manual.svg",
+        "url": "/svg/import/animate-elem-82-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-83-t-manual.svg",
+        "url": "/svg/import/animate-elem-83-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-84-t-manual.svg",
+        "url": "/svg/import/animate-elem-84-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-85-t-manual.svg",
+        "url": "/svg/import/animate-elem-85-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-86-t-manual.svg",
+        "url": "/svg/import/animate-elem-86-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-87-t-manual.svg",
+        "url": "/svg/import/animate-elem-87-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-88-t-manual.svg",
+        "url": "/svg/import/animate-elem-88-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-89-t-manual.svg",
+        "url": "/svg/import/animate-elem-89-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-90-b-manual.svg",
+        "url": "/svg/import/animate-elem-90-b-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-91-t-manual.svg",
+        "url": "/svg/import/animate-elem-91-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-elem-92-t-manual.svg",
+        "url": "/svg/import/animate-elem-92-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-interact-events-01-t-manual.svg",
+        "url": "/svg/import/animate-interact-events-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-interact-pevents-01-t-manual.svg",
+        "url": "/svg/import/animate-interact-pevents-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-interact-pevents-02-t-manual.svg",
+        "url": "/svg/import/animate-interact-pevents-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-interact-pevents-03-t-manual.svg",
+        "url": "/svg/import/animate-interact-pevents-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-interact-pevents-04-t-manual.svg",
+        "url": "/svg/import/animate-interact-pevents-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-pservers-grad-01-b-manual.svg",
+        "url": "/svg/import/animate-pservers-grad-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-script-elem-01-b-manual.svg",
+        "url": "/svg/import/animate-script-elem-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/animate-struct-dom-01-b-manual.svg",
+        "url": "/svg/import/animate-struct-dom-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/color-prof-01-f-manual.svg",
+        "url": "/svg/import/color-prof-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/color-prop-01-b-manual.svg",
+        "url": "/svg/import/color-prop-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/color-prop-02-f-manual.svg",
+        "url": "/svg/import/color-prop-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/color-prop-03-t-manual.svg",
+        "url": "/svg/import/color-prop-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/color-prop-04-t-manual.svg",
+        "url": "/svg/import/color-prop-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/color-prop-05-t-manual.svg",
+        "url": "/svg/import/color-prop-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/conform-viewers-02-f-manual.svg",
+        "url": "/svg/import/conform-viewers-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/conform-viewers-03-f-manual.svg",
+        "url": "/svg/import/conform-viewers-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-coord-01-t-manual.svg",
+        "url": "/svg/import/coords-coord-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-coord-02-t-manual.svg",
+        "url": "/svg/import/coords-coord-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-dom-01-f-manual.svg",
+        "url": "/svg/import/coords-dom-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-dom-02-f-manual.svg",
+        "url": "/svg/import/coords-dom-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-dom-03-f-manual.svg",
+        "url": "/svg/import/coords-dom-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-dom-04-f-manual.svg",
+        "url": "/svg/import/coords-dom-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-01-b-manual.svg",
+        "url": "/svg/import/coords-trans-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-02-t-manual.svg",
+        "url": "/svg/import/coords-trans-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-03-t-manual.svg",
+        "url": "/svg/import/coords-trans-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-04-t-manual.svg",
+        "url": "/svg/import/coords-trans-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-05-t-manual.svg",
+        "url": "/svg/import/coords-trans-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-06-t-manual.svg",
+        "url": "/svg/import/coords-trans-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-07-t-manual.svg",
+        "url": "/svg/import/coords-trans-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-08-t-manual.svg",
+        "url": "/svg/import/coords-trans-08-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-09-t-manual.svg",
+        "url": "/svg/import/coords-trans-09-t-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-10-f-manual.svg",
+        "url": "/svg/import/coords-trans-10-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-11-f-manual.svg",
+        "url": "/svg/import/coords-trans-11-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-12-f-manual.svg",
+        "url": "/svg/import/coords-trans-12-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-13-f-manual.svg",
+        "url": "/svg/import/coords-trans-13-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-trans-14-f-manual.svg",
+        "url": "/svg/import/coords-trans-14-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-transformattr-01-f-manual.svg",
+        "url": "/svg/import/coords-transformattr-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-transformattr-02-f-manual.svg",
+        "url": "/svg/import/coords-transformattr-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-transformattr-03-f-manual.svg",
+        "url": "/svg/import/coords-transformattr-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-transformattr-04-f-manual.svg",
+        "url": "/svg/import/coords-transformattr-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-transformattr-05-f-manual.svg",
+        "url": "/svg/import/coords-transformattr-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-units-01-b-manual.svg",
+        "url": "/svg/import/coords-units-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-units-02-b-manual.svg",
+        "url": "/svg/import/coords-units-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-units-03-b-manual.svg",
+        "url": "/svg/import/coords-units-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-viewattr-01-b-manual.svg",
+        "url": "/svg/import/coords-viewattr-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-viewattr-02-b-manual.svg",
+        "url": "/svg/import/coords-viewattr-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-viewattr-03-b-manual.svg",
+        "url": "/svg/import/coords-viewattr-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/coords-viewattr-04-f-manual.svg",
+        "url": "/svg/import/coords-viewattr-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/extend-namespace-01-f-manual.svg",
+        "url": "/svg/import/extend-namespace-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-background-01-f-manual.svg",
+        "url": "/svg/import/filters-background-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-blend-01-b-manual.svg",
+        "url": "/svg/import/filters-blend-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-color-01-b-manual.svg",
+        "url": "/svg/import/filters-color-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-color-02-b-manual.svg",
+        "url": "/svg/import/filters-color-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-composite-02-b-manual.svg",
+        "url": "/svg/import/filters-composite-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-composite-03-f-manual.svg",
+        "url": "/svg/import/filters-composite-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-composite-04-f-manual.svg",
+        "url": "/svg/import/filters-composite-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-composite-05-f-manual.svg",
+        "url": "/svg/import/filters-composite-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-comptran-01-b-manual.svg",
+        "url": "/svg/import/filters-comptran-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-conv-01-f-manual.svg",
+        "url": "/svg/import/filters-conv-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-conv-02-f-manual.svg",
+        "url": "/svg/import/filters-conv-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-conv-03-f-manual.svg",
+        "url": "/svg/import/filters-conv-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-conv-04-f-manual.svg",
+        "url": "/svg/import/filters-conv-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-conv-05-f-manual.svg",
+        "url": "/svg/import/filters-conv-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-diffuse-01-f-manual.svg",
+        "url": "/svg/import/filters-diffuse-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-displace-01-f-manual.svg",
+        "url": "/svg/import/filters-displace-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-displace-02-f-manual.svg",
+        "url": "/svg/import/filters-displace-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-example-01-b-manual.svg",
+        "url": "/svg/import/filters-example-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-felem-01-b-manual.svg",
+        "url": "/svg/import/filters-felem-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-felem-02-f-manual.svg",
+        "url": "/svg/import/filters-felem-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-gauss-01-b-manual.svg",
+        "url": "/svg/import/filters-gauss-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-gauss-02-f-manual.svg",
+        "url": "/svg/import/filters-gauss-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-gauss-03-f-manual.svg",
+        "url": "/svg/import/filters-gauss-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-image-01-b-manual.svg",
+        "url": "/svg/import/filters-image-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-image-02-b-manual.svg",
+        "url": "/svg/import/filters-image-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-image-03-f-manual.svg",
+        "url": "/svg/import/filters-image-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-image-04-f-manual.svg",
+        "url": "/svg/import/filters-image-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-image-05-f-manual.svg",
+        "url": "/svg/import/filters-image-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-light-01-f-manual.svg",
+        "url": "/svg/import/filters-light-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-light-02-f-manual.svg",
+        "url": "/svg/import/filters-light-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-light-03-f-manual.svg",
+        "url": "/svg/import/filters-light-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-light-04-f-manual.svg",
+        "url": "/svg/import/filters-light-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-light-05-f-manual.svg",
+        "url": "/svg/import/filters-light-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-morph-01-f-manual.svg",
+        "url": "/svg/import/filters-morph-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-offset-01-b-manual.svg",
+        "url": "/svg/import/filters-offset-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-offset-02-b-manual.svg",
+        "url": "/svg/import/filters-offset-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-overview-01-b-manual.svg",
+        "url": "/svg/import/filters-overview-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-overview-02-b-manual.svg",
+        "url": "/svg/import/filters-overview-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-overview-03-b-manual.svg",
+        "url": "/svg/import/filters-overview-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-specular-01-f-manual.svg",
+        "url": "/svg/import/filters-specular-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-tile-01-b-manual.svg",
+        "url": "/svg/import/filters-tile-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-turb-01-f-manual.svg",
+        "url": "/svg/import/filters-turb-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/filters-turb-02-f-manual.svg",
+        "url": "/svg/import/filters-turb-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-desc-01-t-manual.svg",
+        "url": "/svg/import/fonts-desc-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-desc-02-t-manual.svg",
+        "url": "/svg/import/fonts-desc-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-desc-03-t-manual.svg",
+        "url": "/svg/import/fonts-desc-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-desc-04-t-manual.svg",
+        "url": "/svg/import/fonts-desc-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-desc-05-t-manual.svg",
+        "url": "/svg/import/fonts-desc-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-elem-01-t-manual.svg",
+        "url": "/svg/import/fonts-elem-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-elem-02-t-manual.svg",
+        "url": "/svg/import/fonts-elem-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-elem-03-b-manual.svg",
+        "url": "/svg/import/fonts-elem-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-elem-04-b-manual.svg",
+        "url": "/svg/import/fonts-elem-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-elem-05-t-manual.svg",
+        "url": "/svg/import/fonts-elem-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-elem-06-t-manual.svg",
+        "url": "/svg/import/fonts-elem-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-elem-07-b-manual.svg",
+        "url": "/svg/import/fonts-elem-07-b-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-glyph-02-t-manual.svg",
+        "url": "/svg/import/fonts-glyph-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-glyph-03-t-manual.svg",
+        "url": "/svg/import/fonts-glyph-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-glyph-04-t-manual.svg",
+        "url": "/svg/import/fonts-glyph-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-kern-01-t-manual.svg",
+        "url": "/svg/import/fonts-kern-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/fonts-overview-201-t-manual.svg",
+        "url": "/svg/import/fonts-overview-201-t-manual.svg"
+      },
+      {
+        "path": "svg/import/imp-path-01-f-manual.svg",
+        "url": "/svg/import/imp-path-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-cursor-01-f-manual.svg",
+        "url": "/svg/import/interact-cursor-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-dom-01-b-manual.svg",
+        "url": "/svg/import/interact-dom-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-events-01-b-manual.svg",
+        "url": "/svg/import/interact-events-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-events-02-b-manual.svg",
+        "url": "/svg/import/interact-events-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-events-202-f-manual.svg",
+        "url": "/svg/import/interact-events-202-f-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-events-203-t-manual.svg",
+        "url": "/svg/import/interact-events-203-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-order-01-b-manual.svg",
+        "url": "/svg/import/interact-order-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-order-02-b-manual.svg",
+        "url": "/svg/import/interact-order-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-order-03-b-manual.svg",
+        "url": "/svg/import/interact-order-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-01-b-manual.svg",
+        "url": "/svg/import/interact-pevents-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-03-b-manual.svg",
+        "url": "/svg/import/interact-pevents-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-04-t-manual.svg",
+        "url": "/svg/import/interact-pevents-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-05-b-manual.svg",
+        "url": "/svg/import/interact-pevents-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-07-t-manual.svg",
+        "url": "/svg/import/interact-pevents-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-08-f-manual.svg",
+        "url": "/svg/import/interact-pevents-08-f-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-09-f-manual.svg",
+        "url": "/svg/import/interact-pevents-09-f-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pevents-10-f-manual.svg",
+        "url": "/svg/import/interact-pevents-10-f-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pointer-01-t-manual.svg",
+        "url": "/svg/import/interact-pointer-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pointer-02-t-manual.svg",
+        "url": "/svg/import/interact-pointer-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pointer-03-t-manual.svg",
+        "url": "/svg/import/interact-pointer-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-pointer-04-f-manual.svg",
+        "url": "/svg/import/interact-pointer-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-zoom-01-t-manual.svg",
+        "url": "/svg/import/interact-zoom-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-zoom-02-t-manual.svg",
+        "url": "/svg/import/interact-zoom-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/interact-zoom-03-t-manual.svg",
+        "url": "/svg/import/interact-zoom-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-01-b-manual.svg",
+        "url": "/svg/import/linking-a-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-03-b-manual.svg",
+        "url": "/svg/import/linking-a-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-04-t-manual.svg",
+        "url": "/svg/import/linking-a-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-05-t-manual.svg",
+        "url": "/svg/import/linking-a-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-07-t-manual.svg",
+        "url": "/svg/import/linking-a-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-08-t-manual.svg",
+        "url": "/svg/import/linking-a-08-t-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-09-b-manual.svg",
+        "url": "/svg/import/linking-a-09-b-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-a-10-f-manual.svg",
+        "url": "/svg/import/linking-a-10-f-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-frag-01-f-manual.svg",
+        "url": "/svg/import/linking-frag-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-uri-01-b-manual.svg",
+        "url": "/svg/import/linking-uri-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-uri-02-b-manual.svg",
+        "url": "/svg/import/linking-uri-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/linking-uri-03-t-manual.svg",
+        "url": "/svg/import/linking-uri-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-filter-01-f-manual.svg",
+        "url": "/svg/import/masking-filter-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-intro-01-f-manual.svg",
+        "url": "/svg/import/masking-intro-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-mask-01-b-manual.svg",
+        "url": "/svg/import/masking-mask-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-mask-02-f-manual.svg",
+        "url": "/svg/import/masking-mask-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-opacity-01-b-manual.svg",
+        "url": "/svg/import/masking-opacity-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-01-b-manual.svg",
+        "url": "/svg/import/masking-path-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-02-b-manual.svg",
+        "url": "/svg/import/masking-path-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-03-b-manual.svg",
+        "url": "/svg/import/masking-path-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-04-b-manual.svg",
+        "url": "/svg/import/masking-path-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-05-f-manual.svg",
+        "url": "/svg/import/masking-path-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-06-b-manual.svg",
+        "url": "/svg/import/masking-path-06-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-07-b-manual.svg",
+        "url": "/svg/import/masking-path-07-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-08-b-manual.svg",
+        "url": "/svg/import/masking-path-08-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-09-b-manual.svg",
+        "url": "/svg/import/masking-path-09-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-10-b-manual.svg",
+        "url": "/svg/import/masking-path-10-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-11-b-manual.svg",
+        "url": "/svg/import/masking-path-11-b-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-12-f-manual.svg",
+        "url": "/svg/import/masking-path-12-f-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-13-f-manual.svg",
+        "url": "/svg/import/masking-path-13-f-manual.svg"
+      },
+      {
+        "path": "svg/import/masking-path-14-f-manual.svg",
+        "url": "/svg/import/masking-path-14-f-manual.svg"
+      },
+      {
+        "path": "svg/import/metadata-example-01-t-manual.svg",
+        "url": "/svg/import/metadata-example-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-control-01-f-manual.svg",
+        "url": "/svg/import/painting-control-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-control-02-f-manual.svg",
+        "url": "/svg/import/painting-control-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-control-03-f-manual.svg",
+        "url": "/svg/import/painting-control-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-control-04-f-manual.svg",
+        "url": "/svg/import/painting-control-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-control-05-f-manual.svg",
+        "url": "/svg/import/painting-control-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-control-06-f-manual.svg",
+        "url": "/svg/import/painting-control-06-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-fill-01-t-manual.svg",
+        "url": "/svg/import/painting-fill-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-fill-02-t-manual.svg",
+        "url": "/svg/import/painting-fill-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-fill-03-t-manual.svg",
+        "url": "/svg/import/painting-fill-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-fill-04-t-manual.svg",
+        "url": "/svg/import/painting-fill-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-fill-05-b-manual.svg",
+        "url": "/svg/import/painting-fill-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-01-f-manual.svg",
+        "url": "/svg/import/painting-marker-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-02-f-manual.svg",
+        "url": "/svg/import/painting-marker-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-03-f-manual.svg",
+        "url": "/svg/import/painting-marker-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-04-f-manual.svg",
+        "url": "/svg/import/painting-marker-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-05-f-manual.svg",
+        "url": "/svg/import/painting-marker-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-06-f-manual.svg",
+        "url": "/svg/import/painting-marker-06-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-07-f-manual.svg",
+        "url": "/svg/import/painting-marker-07-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-marker-properties-01-f-manual.svg",
+        "url": "/svg/import/painting-marker-properties-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-render-01-b-manual.svg",
+        "url": "/svg/import/painting-render-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-render-02-b-manual.svg",
+        "url": "/svg/import/painting-render-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-01-t-manual.svg",
+        "url": "/svg/import/painting-stroke-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-02-t-manual.svg",
+        "url": "/svg/import/painting-stroke-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-03-t-manual.svg",
+        "url": "/svg/import/painting-stroke-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-04-t-manual.svg",
+        "url": "/svg/import/painting-stroke-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-05-t-manual.svg",
+        "url": "/svg/import/painting-stroke-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-06-t-manual.svg",
+        "url": "/svg/import/painting-stroke-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-07-t-manual.svg",
+        "url": "/svg/import/painting-stroke-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-08-t-manual.svg",
+        "url": "/svg/import/painting-stroke-08-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-09-t-manual.svg",
+        "url": "/svg/import/painting-stroke-09-t-manual.svg"
+      },
+      {
+        "path": "svg/import/painting-stroke-10-t-manual.svg",
+        "url": "/svg/import/painting-stroke-10-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-01-t-manual.svg",
+        "url": "/svg/import/paths-data-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-02-t-manual.svg",
+        "url": "/svg/import/paths-data-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-03-f-manual.svg",
+        "url": "/svg/import/paths-data-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-04-t-manual.svg",
+        "url": "/svg/import/paths-data-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-05-t-manual.svg",
+        "url": "/svg/import/paths-data-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-06-t-manual.svg",
+        "url": "/svg/import/paths-data-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-07-t-manual.svg",
+        "url": "/svg/import/paths-data-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-08-t-manual.svg",
+        "url": "/svg/import/paths-data-08-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-09-t-manual.svg",
+        "url": "/svg/import/paths-data-09-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-10-t-manual.svg",
+        "url": "/svg/import/paths-data-10-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-12-t-manual.svg",
+        "url": "/svg/import/paths-data-12-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-13-t-manual.svg",
+        "url": "/svg/import/paths-data-13-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-14-t-manual.svg",
+        "url": "/svg/import/paths-data-14-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-15-t-manual.svg",
+        "url": "/svg/import/paths-data-15-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-16-t-manual.svg",
+        "url": "/svg/import/paths-data-16-t-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-17-f-manual.svg",
+        "url": "/svg/import/paths-data-17-f-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-18-f-manual.svg",
+        "url": "/svg/import/paths-data-18-f-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-19-f-manual.svg",
+        "url": "/svg/import/paths-data-19-f-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-data-20-f-manual.svg",
+        "url": "/svg/import/paths-data-20-f-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-dom-01-f-manual.svg",
+        "url": "/svg/import/paths-dom-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/paths-dom-02-f-manual.svg",
+        "url": "/svg/import/paths-dom-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-01-b-manual.svg",
+        "url": "/svg/import/pservers-grad-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-02-b-manual.svg",
+        "url": "/svg/import/pservers-grad-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-03-b-manual.svg",
+        "url": "/svg/import/pservers-grad-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-04-b-manual.svg",
+        "url": "/svg/import/pservers-grad-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-05-b-manual.svg",
+        "url": "/svg/import/pservers-grad-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-06-b-manual.svg",
+        "url": "/svg/import/pservers-grad-06-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-07-b-manual.svg",
+        "url": "/svg/import/pservers-grad-07-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-08-b-manual.svg",
+        "url": "/svg/import/pservers-grad-08-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-09-b-manual.svg",
+        "url": "/svg/import/pservers-grad-09-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-10-b-manual.svg",
+        "url": "/svg/import/pservers-grad-10-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-11-b-manual.svg",
+        "url": "/svg/import/pservers-grad-11-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-12-b-manual.svg",
+        "url": "/svg/import/pservers-grad-12-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-13-b-manual.svg",
+        "url": "/svg/import/pservers-grad-13-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-14-b-manual.svg",
+        "url": "/svg/import/pservers-grad-14-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-15-b-manual.svg",
+        "url": "/svg/import/pservers-grad-15-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-16-b-manual.svg",
+        "url": "/svg/import/pservers-grad-16-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-17-b-manual.svg",
+        "url": "/svg/import/pservers-grad-17-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-18-b-manual.svg",
+        "url": "/svg/import/pservers-grad-18-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-20-b-manual.svg",
+        "url": "/svg/import/pservers-grad-20-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-21-b-manual.svg",
+        "url": "/svg/import/pservers-grad-21-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-22-b-manual.svg",
+        "url": "/svg/import/pservers-grad-22-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-23-f-manual.svg",
+        "url": "/svg/import/pservers-grad-23-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-24-f-manual.svg",
+        "url": "/svg/import/pservers-grad-24-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-grad-stops-01-f-manual.svg",
+        "url": "/svg/import/pservers-grad-stops-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-01-b-manual.svg",
+        "url": "/svg/import/pservers-pattern-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-02-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-03-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-04-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-05-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-06-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-06-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-07-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-07-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-08-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-08-f-manual.svg"
+      },
+      {
+        "path": "svg/import/pservers-pattern-09-f-manual.svg",
+        "url": "/svg/import/pservers-pattern-09-f-manual.svg"
+      },
+      {
+        "path": "svg/import/render-elems-01-t-manual.svg",
+        "url": "/svg/import/render-elems-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/render-elems-02-t-manual.svg",
+        "url": "/svg/import/render-elems-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/render-elems-03-t-manual.svg",
+        "url": "/svg/import/render-elems-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/render-elems-06-t-manual.svg",
+        "url": "/svg/import/render-elems-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/render-elems-07-t-manual.svg",
+        "url": "/svg/import/render-elems-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/render-elems-08-t-manual.svg",
+        "url": "/svg/import/render-elems-08-t-manual.svg"
+      },
+      {
+        "path": "svg/import/render-groups-01-b-manual.svg",
+        "url": "/svg/import/render-groups-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/render-groups-03-t-manual.svg",
+        "url": "/svg/import/render-groups-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/script-handle-01-b-manual.svg",
+        "url": "/svg/import/script-handle-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/script-handle-02-b-manual.svg",
+        "url": "/svg/import/script-handle-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/script-handle-03-b-manual.svg",
+        "url": "/svg/import/script-handle-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/script-handle-04-b-manual.svg",
+        "url": "/svg/import/script-handle-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/script-specify-01-f-manual.svg",
+        "url": "/svg/import/script-specify-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/script-specify-02-f-manual.svg",
+        "url": "/svg/import/script-specify-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-circle-01-t-manual.svg",
+        "url": "/svg/import/shapes-circle-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-circle-02-t-manual.svg",
+        "url": "/svg/import/shapes-circle-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-ellipse-01-t-manual.svg",
+        "url": "/svg/import/shapes-ellipse-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-ellipse-02-t-manual.svg",
+        "url": "/svg/import/shapes-ellipse-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-ellipse-03-f-manual.svg",
+        "url": "/svg/import/shapes-ellipse-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-grammar-01-f-manual.svg",
+        "url": "/svg/import/shapes-grammar-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-intro-01-t-manual.svg",
+        "url": "/svg/import/shapes-intro-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-intro-02-f-manual.svg",
+        "url": "/svg/import/shapes-intro-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-line-01-t-manual.svg",
+        "url": "/svg/import/shapes-line-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-line-02-f-manual.svg",
+        "url": "/svg/import/shapes-line-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-polygon-01-t-manual.svg",
+        "url": "/svg/import/shapes-polygon-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-polygon-02-t-manual.svg",
+        "url": "/svg/import/shapes-polygon-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-polygon-03-t-manual.svg",
+        "url": "/svg/import/shapes-polygon-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-polyline-01-t-manual.svg",
+        "url": "/svg/import/shapes-polyline-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-polyline-02-t-manual.svg",
+        "url": "/svg/import/shapes-polyline-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-rect-01-t-manual.svg",
+        "url": "/svg/import/shapes-rect-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-rect-02-t-manual.svg",
+        "url": "/svg/import/shapes-rect-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-rect-03-t-manual.svg",
+        "url": "/svg/import/shapes-rect-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-rect-04-f-manual.svg",
+        "url": "/svg/import/shapes-rect-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-rect-05-f-manual.svg",
+        "url": "/svg/import/shapes-rect-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-rect-06-f-manual.svg",
+        "url": "/svg/import/shapes-rect-06-f-manual.svg"
+      },
+      {
+        "path": "svg/import/shapes-rect-07-f-manual.svg",
+        "url": "/svg/import/shapes-rect-07-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-cond-01-t-manual.svg",
+        "url": "/svg/import/struct-cond-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-cond-02-t-manual.svg",
+        "url": "/svg/import/struct-cond-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-cond-03-t-manual.svg",
+        "url": "/svg/import/struct-cond-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-cond-overview-02-f-manual.svg",
+        "url": "/svg/import/struct-cond-overview-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-cond-overview-03-f-manual.svg",
+        "url": "/svg/import/struct-cond-overview-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-cond-overview-04-f-manual.svg",
+        "url": "/svg/import/struct-cond-overview-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-cond-overview-05-f-manual.svg",
+        "url": "/svg/import/struct-cond-overview-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-defs-01-t-manual.svg",
+        "url": "/svg/import/struct-defs-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-01-b-manual.svg",
+        "url": "/svg/import/struct-dom-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-02-b-manual.svg",
+        "url": "/svg/import/struct-dom-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-03-b-manual.svg",
+        "url": "/svg/import/struct-dom-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-04-b-manual.svg",
+        "url": "/svg/import/struct-dom-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-05-b-manual.svg",
+        "url": "/svg/import/struct-dom-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-06-b-manual.svg",
+        "url": "/svg/import/struct-dom-06-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-07-f-manual.svg",
+        "url": "/svg/import/struct-dom-07-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-08-f-manual.svg",
+        "url": "/svg/import/struct-dom-08-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-11-f-manual.svg",
+        "url": "/svg/import/struct-dom-11-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-12-b-manual.svg",
+        "url": "/svg/import/struct-dom-12-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-13-f-manual.svg",
+        "url": "/svg/import/struct-dom-13-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-14-f-manual.svg",
+        "url": "/svg/import/struct-dom-14-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-15-f-manual.svg",
+        "url": "/svg/import/struct-dom-15-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-16-f-manual.svg",
+        "url": "/svg/import/struct-dom-16-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-17-f-manual.svg",
+        "url": "/svg/import/struct-dom-17-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-18-f-manual.svg",
+        "url": "/svg/import/struct-dom-18-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-19-f-manual.svg",
+        "url": "/svg/import/struct-dom-19-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-dom-20-f-manual.svg",
+        "url": "/svg/import/struct-dom-20-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-frag-01-t-manual.svg",
+        "url": "/svg/import/struct-frag-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-frag-02-t-manual.svg",
+        "url": "/svg/import/struct-frag-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-frag-03-t-manual.svg",
+        "url": "/svg/import/struct-frag-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-frag-04-t-manual.svg",
+        "url": "/svg/import/struct-frag-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-frag-05-t-manual.svg",
+        "url": "/svg/import/struct-frag-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-frag-06-t-manual.svg",
+        "url": "/svg/import/struct-frag-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-group-01-t-manual.svg",
+        "url": "/svg/import/struct-group-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-group-02-b-manual.svg",
+        "url": "/svg/import/struct-group-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-group-03-t-manual.svg",
+        "url": "/svg/import/struct-group-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-01-t-manual.svg",
+        "url": "/svg/import/struct-image-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-02-b-manual.svg",
+        "url": "/svg/import/struct-image-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-03-t-manual.svg",
+        "url": "/svg/import/struct-image-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-04-t-manual.svg",
+        "url": "/svg/import/struct-image-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-05-b-manual.svg",
+        "url": "/svg/import/struct-image-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-06-t-manual.svg",
+        "url": "/svg/import/struct-image-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-07-t-manual.svg",
+        "url": "/svg/import/struct-image-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-08-t-manual.svg",
+        "url": "/svg/import/struct-image-08-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-09-t-manual.svg",
+        "url": "/svg/import/struct-image-09-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-10-t-manual.svg",
+        "url": "/svg/import/struct-image-10-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-11-b-manual.svg",
+        "url": "/svg/import/struct-image-11-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-12-b-manual.svg",
+        "url": "/svg/import/struct-image-12-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-13-f-manual.svg",
+        "url": "/svg/import/struct-image-13-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-14-f-manual.svg",
+        "url": "/svg/import/struct-image-14-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-15-f-manual.svg",
+        "url": "/svg/import/struct-image-15-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-16-f-manual.svg",
+        "url": "/svg/import/struct-image-16-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-17-b-manual.svg",
+        "url": "/svg/import/struct-image-17-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-18-f-manual.svg",
+        "url": "/svg/import/struct-image-18-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-image-19-f-manual.svg",
+        "url": "/svg/import/struct-image-19-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-svg-01-f-manual.svg",
+        "url": "/svg/import/struct-svg-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-svg-02-f-manual.svg",
+        "url": "/svg/import/struct-svg-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-svg-03-f-manual.svg",
+        "url": "/svg/import/struct-svg-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-symbol-01-b-manual.svg",
+        "url": "/svg/import/struct-symbol-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-01-t-manual.svg",
+        "url": "/svg/import/struct-use-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-03-t-manual.svg",
+        "url": "/svg/import/struct-use-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-04-b-manual.svg",
+        "url": "/svg/import/struct-use-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-05-b-manual.svg",
+        "url": "/svg/import/struct-use-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-06-b-manual.svg",
+        "url": "/svg/import/struct-use-06-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-07-b-manual.svg",
+        "url": "/svg/import/struct-use-07-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-08-b-manual.svg",
+        "url": "/svg/import/struct-use-08-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-09-b-manual.svg",
+        "url": "/svg/import/struct-use-09-b-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-10-f-manual.svg",
+        "url": "/svg/import/struct-use-10-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-11-f-manual.svg",
+        "url": "/svg/import/struct-use-11-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-12-f-manual.svg",
+        "url": "/svg/import/struct-use-12-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-13-f-manual.svg",
+        "url": "/svg/import/struct-use-13-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-14-f-manual.svg",
+        "url": "/svg/import/struct-use-14-f-manual.svg"
+      },
+      {
+        "path": "svg/import/struct-use-15-f-manual.svg",
+        "url": "/svg/import/struct-use-15-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-class-01-f-manual.svg",
+        "url": "/svg/import/styling-class-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-01-b-manual.svg",
+        "url": "/svg/import/styling-css-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-02-b-manual.svg",
+        "url": "/svg/import/styling-css-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-03-b-manual.svg",
+        "url": "/svg/import/styling-css-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-04-f-manual.svg",
+        "url": "/svg/import/styling-css-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-05-b-manual.svg",
+        "url": "/svg/import/styling-css-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-06-b-manual.svg",
+        "url": "/svg/import/styling-css-06-b-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-07-f-manual.svg",
+        "url": "/svg/import/styling-css-07-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-08-f-manual.svg",
+        "url": "/svg/import/styling-css-08-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-09-f-manual.svg",
+        "url": "/svg/import/styling-css-09-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-css-10-f-manual.svg",
+        "url": "/svg/import/styling-css-10-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-elem-01-b-manual.svg",
+        "url": "/svg/import/styling-elem-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-inherit-01-b-manual.svg",
+        "url": "/svg/import/styling-inherit-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-pres-01-t-manual.svg",
+        "url": "/svg/import/styling-pres-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-pres-02-f-manual.svg",
+        "url": "/svg/import/styling-pres-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-pres-03-f-manual.svg",
+        "url": "/svg/import/styling-pres-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-pres-04-f-manual.svg",
+        "url": "/svg/import/styling-pres-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/styling-pres-05-f-manual.svg",
+        "url": "/svg/import/styling-pres-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/svgdom-over-01-f-manual.svg",
+        "url": "/svg/import/svgdom-over-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-01-b-manual.svg",
+        "url": "/svg/import/text-align-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-02-b-manual.svg",
+        "url": "/svg/import/text-align-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-03-b-manual.svg",
+        "url": "/svg/import/text-align-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-04-b-manual.svg",
+        "url": "/svg/import/text-align-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-05-b-manual.svg",
+        "url": "/svg/import/text-align-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-06-b-manual.svg",
+        "url": "/svg/import/text-align-06-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-07-t-manual.svg",
+        "url": "/svg/import/text-align-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-align-08-b-manual.svg",
+        "url": "/svg/import/text-align-08-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-altglyph-01-b-manual.svg",
+        "url": "/svg/import/text-altglyph-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-altglyph-02-b-manual.svg",
+        "url": "/svg/import/text-altglyph-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-altglyph-03-b-manual.svg",
+        "url": "/svg/import/text-altglyph-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-bidi-01-t-manual.svg",
+        "url": "/svg/import/text-bidi-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-deco-01-b-manual.svg",
+        "url": "/svg/import/text-deco-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-dom-01-f-manual.svg",
+        "url": "/svg/import/text-dom-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-dom-02-f-manual.svg",
+        "url": "/svg/import/text-dom-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-dom-03-f-manual.svg",
+        "url": "/svg/import/text-dom-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-dom-04-f-manual.svg",
+        "url": "/svg/import/text-dom-04-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-dom-05-f-manual.svg",
+        "url": "/svg/import/text-dom-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-01-t-manual.svg",
+        "url": "/svg/import/text-fonts-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-02-t-manual.svg",
+        "url": "/svg/import/text-fonts-02-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-03-t-manual.svg",
+        "url": "/svg/import/text-fonts-03-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-04-t-manual.svg",
+        "url": "/svg/import/text-fonts-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-05-f-manual.svg",
+        "url": "/svg/import/text-fonts-05-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-202-t-manual.svg",
+        "url": "/svg/import/text-fonts-202-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-203-t-manual.svg",
+        "url": "/svg/import/text-fonts-203-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-fonts-204-t-manual.svg",
+        "url": "/svg/import/text-fonts-204-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-01-t-manual.svg",
+        "url": "/svg/import/text-intro-01-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-02-b-manual.svg",
+        "url": "/svg/import/text-intro-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-03-b-manual.svg",
+        "url": "/svg/import/text-intro-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-04-t-manual.svg",
+        "url": "/svg/import/text-intro-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-05-t-manual.svg",
+        "url": "/svg/import/text-intro-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-06-t-manual.svg",
+        "url": "/svg/import/text-intro-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-07-t-manual.svg",
+        "url": "/svg/import/text-intro-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-09-b-manual.svg",
+        "url": "/svg/import/text-intro-09-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-10-f-manual.svg",
+        "url": "/svg/import/text-intro-10-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-11-t-manual.svg",
+        "url": "/svg/import/text-intro-11-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-intro-12-t-manual.svg",
+        "url": "/svg/import/text-intro-12-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-path-01-b-manual.svg",
+        "url": "/svg/import/text-path-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-path-02-b-manual.svg",
+        "url": "/svg/import/text-path-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-spacing-01-b-manual.svg",
+        "url": "/svg/import/text-spacing-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-01-b-manual.svg",
+        "url": "/svg/import/text-text-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-03-b-manual.svg",
+        "url": "/svg/import/text-text-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-04-t-manual.svg",
+        "url": "/svg/import/text-text-04-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-05-t-manual.svg",
+        "url": "/svg/import/text-text-05-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-06-t-manual.svg",
+        "url": "/svg/import/text-text-06-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-07-t-manual.svg",
+        "url": "/svg/import/text-text-07-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-08-b-manual.svg",
+        "url": "/svg/import/text-text-08-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-09-t-manual.svg",
+        "url": "/svg/import/text-text-09-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-10-t-manual.svg",
+        "url": "/svg/import/text-text-10-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-11-t-manual.svg",
+        "url": "/svg/import/text-text-11-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-text-12-t-manual.svg",
+        "url": "/svg/import/text-text-12-t-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tref-01-b-manual.svg",
+        "url": "/svg/import/text-tref-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tref-02-b-manual.svg",
+        "url": "/svg/import/text-tref-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tref-03-b-manual.svg",
+        "url": "/svg/import/text-tref-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tselect-01-b-manual.svg",
+        "url": "/svg/import/text-tselect-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tselect-02-f-manual.svg",
+        "url": "/svg/import/text-tselect-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tselect-03-f-manual.svg",
+        "url": "/svg/import/text-tselect-03-f-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tspan-01-b-manual.svg",
+        "url": "/svg/import/text-tspan-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/text-tspan-02-b-manual.svg",
+        "url": "/svg/import/text-tspan-02-b-manual.svg"
+      },
+      {
+        "path": "svg/import/types-basic-01-f-manual.svg",
+        "url": "/svg/import/types-basic-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-basic-02-f-manual.svg",
+        "url": "/svg/import/types-basic-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-01-b-manual.svg",
+        "url": "/svg/import/types-dom-01-b-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-02-f-manual.svg",
+        "url": "/svg/import/types-dom-02-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-03-b-manual.svg",
+        "url": "/svg/import/types-dom-03-b-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-04-b-manual.svg",
+        "url": "/svg/import/types-dom-04-b-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-05-b-manual.svg",
+        "url": "/svg/import/types-dom-05-b-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-06-f-manual.svg",
+        "url": "/svg/import/types-dom-06-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-07-f-manual.svg",
+        "url": "/svg/import/types-dom-07-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-08-f-manual.svg",
+        "url": "/svg/import/types-dom-08-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-svgfittoviewbox-01-f-manual.svg",
+        "url": "/svg/import/types-dom-svgfittoviewbox-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-svglengthlist-01-f-manual.svg",
+        "url": "/svg/import/types-dom-svglengthlist-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-svgnumberlist-01-f-manual.svg",
+        "url": "/svg/import/types-dom-svgnumberlist-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-svgstringlist-01-f-manual.svg",
+        "url": "/svg/import/types-dom-svgstringlist-01-f-manual.svg"
+      },
+      {
+        "path": "svg/import/types-dom-svgtransformable-01-f-manual.svg",
+        "url": "/svg/import/types-dom-svgtransformable-01-f-manual.svg"
+      },
+      {
         "path": "touch-events/multi-touch-interactions-manual.html",
         "url": "/touch-events/multi-touch-interactions-manual.html"
       },
@@ -1084,6 +3192,14 @@
       {
         "path": "vibration/simple-scalar-manual.html",
         "url": "/vibration/simple-scalar-manual.html"
+      },
+      {
+        "path": "webstorage/storage_local-manual.html",
+        "url": "/webstorage/storage_local-manual.html"
+      },
+      {
+        "path": "webstorage/storage_session-manual.html",
+        "url": "/webstorage/storage_session-manual.html"
       }
     ],
     "reftest": [
@@ -9686,6 +11802,10 @@
         "url": "/XMLHttpRequest/overridemimetype-unsent-state-force-shiftjis.htm"
       },
       {
+        "path": "XMLHttpRequest/preserve-ua-header-on-redirect.htm",
+        "url": "/XMLHttpRequest/preserve-ua-header-on-redirect.htm"
+      },
+      {
         "path": "XMLHttpRequest/response-data-arraybuffer.htm",
         "url": "/XMLHttpRequest/response-data-arraybuffer.htm"
       },
@@ -10108,6 +12228,22 @@
       {
         "path": "content-security-policy/img-src/img-src-4_1.html",
         "url": "/content-security-policy/img-src/img-src-4_1.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_1.html",
+        "url": "/content-security-policy/media-src/media-src-7_1.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_2.html",
+        "url": "/content-security-policy/media-src/media-src-7_2.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_3.html",
+        "url": "/content-security-policy/media-src/media-src-7_3.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_3_2.html",
+        "url": "/content-security-policy/media-src/media-src-7_3_2.html"
       },
       {
         "path": "content-security-policy/script-src/script-src-1_1.html",
@@ -11246,6 +13382,10 @@
         "url": "/domparsing/DOMParser-parseFromString-html.html"
       },
       {
+        "path": "domparsing/DOMParser-parseFromString-xml.html",
+        "url": "/domparsing/DOMParser-parseFromString-xml.html"
+      },
+      {
         "path": "domparsing/insert-adjacent.html",
         "url": "/domparsing/insert-adjacent.html"
       },
@@ -11264,10 +13404,6 @@
       {
         "path": "encoding/api-basics.html",
         "url": "/encoding/api-basics.html"
-      },
-      {
-        "path": "encoding/api-invalid-label.html",
-        "url": "/encoding/api-invalid-label.html"
       },
       {
         "path": "encoding/api-replacement-encodings.html",
@@ -14834,6 +16970,22 @@
         "url": "/html/semantics/tabular-data/the-table-element/table-rows.html"
       },
       {
+        "path": "html/semantics/tabular-data/the-tbody-element/deleteRow.html",
+        "url": "/html/semantics/tabular-data/the-tbody-element/deleteRow.html"
+      },
+      {
+        "path": "html/semantics/tabular-data/the-tbody-element/insertRow.html",
+        "url": "/html/semantics/tabular-data/the-tbody-element/insertRow.html"
+      },
+      {
+        "path": "html/semantics/tabular-data/the-tr-element/deleteCell.html",
+        "url": "/html/semantics/tabular-data/the-tr-element/deleteCell.html"
+      },
+      {
+        "path": "html/semantics/tabular-data/the-tr-element/insertCell.html",
+        "url": "/html/semantics/tabular-data/the-tr-element/insertCell.html"
+      },
+      {
         "path": "html/semantics/tabular-data/the-tr-element/rowIndex.html",
         "url": "/html/semantics/tabular-data/the-tr-element/rowIndex.html"
       },
@@ -15614,6 +17766,10 @@
         "url": "/notifications/Notification-permission.html"
       },
       {
+        "path": "notifications/event-onclose.html",
+        "url": "/notifications/event-onclose.html"
+      },
+      {
         "path": "notifications/event-onshow.html",
         "url": "/notifications/event-onshow.html"
       },
@@ -15632,6 +17788,10 @@
       {
         "path": "notifications/notification-constructor-invalid.html",
         "url": "/notifications/notification-constructor-invalid.html"
+      },
+      {
+        "path": "notifications/notification-lang.html",
+        "url": "/notifications/notification-lang.html"
       },
       {
         "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_004.htm",
@@ -16418,10 +18578,6 @@
         "url": "/quirks-mode/blocks-ignore-line-height.html"
       },
       {
-        "path": "quirks-mode/hashless-hex-color.html",
-        "url": "/quirks-mode/hashless-hex-color.html"
-      },
-      {
         "path": "quirks-mode/line-height-calculation.html",
         "url": "/quirks-mode/line-height-calculation.html"
       },
@@ -16498,18 +18654,6 @@
         "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html"
       },
@@ -16556,18 +18700,6 @@
       {
         "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer-when-downgrade/http-csp/cross-origin/http-https/script-tag/upgrade-protocol.keep-origin-redirect.http.html",
@@ -16618,18 +18750,6 @@
         "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html"
       },
@@ -16676,18 +18796,6 @@
       {
         "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer-when-downgrade/http-csp/same-origin/http-https/script-tag/upgrade-protocol.keep-origin-redirect.http.html",
@@ -16738,18 +18846,6 @@
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html"
       },
@@ -16796,18 +18892,6 @@
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/script-tag/upgrade-protocol.keep-origin-redirect.http.html",
@@ -16858,18 +18942,6 @@
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html"
       },
@@ -16916,18 +18988,6 @@
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/script-tag/upgrade-protocol.keep-origin-redirect.http.html",
@@ -16978,18 +19038,6 @@
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html"
       },
@@ -17036,18 +19084,6 @@
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/script-tag/upgrade-protocol.keep-origin-redirect.http.html",
@@ -17098,18 +19134,6 @@
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/img-tag/insecure-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/img-tag/insecure-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/img-tag/insecure-protocol.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/script-tag/insecure-protocol.keep-origin-redirect.http.html"
       },
@@ -17156,18 +19180,6 @@
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/img-tag/upgrade-protocol.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/img-tag/upgrade-protocol.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/img-tag/upgrade-protocol.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/script-tag/upgrade-protocol.keep-origin-redirect.http.html",
@@ -17218,18 +19230,6 @@
         "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -17276,18 +19276,6 @@
       {
         "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer/http-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -17338,18 +19326,6 @@
         "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -17396,18 +19372,6 @@
       {
         "path": "referrer-policy/no-referrer/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer/http-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -17458,18 +19422,6 @@
         "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -17516,18 +19468,6 @@
       {
         "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -17578,18 +19518,6 @@
         "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -17636,18 +19564,6 @@
       {
         "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -17698,18 +19614,6 @@
         "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -17756,18 +19660,6 @@
       {
         "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -17818,18 +19710,6 @@
         "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -17876,18 +19756,6 @@
       {
         "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -17938,18 +19806,6 @@
         "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-only/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-only/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -17996,18 +19852,6 @@
       {
         "path": "referrer-policy/origin-only/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-only/http-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -18058,18 +19902,6 @@
         "url": "/referrer-policy/origin-only/http-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-only/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-only/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -18116,18 +19948,6 @@
       {
         "path": "referrer-policy/origin-only/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-only/http-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -18178,18 +19998,6 @@
         "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -18236,18 +20044,6 @@
       {
         "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-only/meta-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -18298,18 +20094,6 @@
         "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-only/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-only/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -18356,18 +20140,6 @@
       {
         "path": "referrer-policy/origin-only/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-only/meta-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -18418,18 +20190,6 @@
         "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -18476,18 +20236,6 @@
       {
         "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-only/meta-referrer/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -18538,18 +20286,6 @@
         "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -18596,18 +20332,6 @@
       {
         "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-only/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-only/meta-referrer/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -18658,18 +20382,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/img-tag/cross-origin.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/img-tag/cross-origin.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/img-tag/cross-origin.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/img-tag/cross-origin.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/img-tag/cross-origin.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/img-tag/cross-origin.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/script-tag/cross-origin.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-http/script-tag/cross-origin.keep-origin-redirect.http.html"
       },
@@ -18718,18 +20430,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/img-tag/cross-origin.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/img-tag/cross-origin.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/img-tag/cross-origin.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/img-tag/cross-origin.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/img-tag/cross-origin.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/img-tag/cross-origin.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/script-tag/cross-origin.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/http-csp/cross-origin/http-https/script-tag/cross-origin.keep-origin-redirect.http.html"
       },
@@ -18776,18 +20476,6 @@
       {
         "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/img-tag/same-origin-insecure.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/img-tag/same-origin-insecure.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/img-tag/same-origin-insecure.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/img-tag/same-origin-insecure.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/img-tag/same-origin-insecure.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/img-tag/same-origin-insecure.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-http/script-tag/same-origin-insecure.keep-origin-redirect.http.html",
@@ -18870,34 +20558,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-downgrade.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-downgrade.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-downgrade.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-downgrade.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-downgrade.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-downgrade.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-insecure.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-insecure.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-upgrade.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-upgrade.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-upgrade.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-upgrade.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-upgrade.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/img-tag/same-origin-upgrade.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/script-tag/same-origin-downgrade.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/http-csp/same-origin/http-https/script-tag/same-origin-downgrade.keep-origin-redirect.http.html"
       },
@@ -18978,18 +20638,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/img-tag/cross-origin.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/img-tag/cross-origin.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/img-tag/cross-origin.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/img-tag/cross-origin.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/img-tag/cross-origin.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/img-tag/cross-origin.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/script-tag/cross-origin.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/script-tag/cross-origin.keep-origin-redirect.http.html"
       },
@@ -19038,18 +20686,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/img-tag/cross-origin.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/img-tag/cross-origin.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/img-tag/cross-origin.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/img-tag/cross-origin.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/img-tag/cross-origin.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/img-tag/cross-origin.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/script-tag/cross-origin.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/script-tag/cross-origin.keep-origin-redirect.http.html"
       },
@@ -19096,18 +20732,6 @@
       {
         "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/img-tag/same-origin-insecure.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/img-tag/same-origin-insecure.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/img-tag/same-origin-insecure.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/img-tag/same-origin-insecure.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/img-tag/same-origin-insecure.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/img-tag/same-origin-insecure.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/script-tag/same-origin-insecure.keep-origin-redirect.http.html",
@@ -19190,34 +20814,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-downgrade.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-downgrade.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-downgrade.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-downgrade.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-downgrade.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-downgrade.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-insecure.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-insecure.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-upgrade.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-upgrade.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-upgrade.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-upgrade.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-upgrade.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/img-tag/same-origin-upgrade.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/script-tag/same-origin-downgrade.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/script-tag/same-origin-downgrade.keep-origin-redirect.http.html"
       },
@@ -19298,18 +20894,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/img-tag/cross-origin.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/img-tag/cross-origin.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/img-tag/cross-origin.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/img-tag/cross-origin.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/img-tag/cross-origin.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/img-tag/cross-origin.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/script-tag/cross-origin.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/script-tag/cross-origin.keep-origin-redirect.http.html"
       },
@@ -19358,18 +20942,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/img-tag/cross-origin.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/img-tag/cross-origin.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/img-tag/cross-origin.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/img-tag/cross-origin.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/img-tag/cross-origin.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/img-tag/cross-origin.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/script-tag/cross-origin.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/script-tag/cross-origin.keep-origin-redirect.http.html"
       },
@@ -19416,18 +20988,6 @@
       {
         "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/img-tag/same-origin-insecure.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/img-tag/same-origin-insecure.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/img-tag/same-origin-insecure.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/img-tag/same-origin-insecure.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/img-tag/same-origin-insecure.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/img-tag/same-origin-insecure.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/script-tag/same-origin-insecure.keep-origin-redirect.http.html",
@@ -19510,34 +21070,6 @@
         "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-downgrade.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-downgrade.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-downgrade.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-downgrade.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-downgrade.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-downgrade.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-insecure.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-insecure.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-upgrade.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-upgrade.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-upgrade.no-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-upgrade.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-upgrade.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/img-tag/same-origin-upgrade.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/script-tag/same-origin-downgrade.keep-origin-redirect.http.html",
         "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/script-tag/same-origin-downgrade.keep-origin-redirect.http.html"
       },
@@ -19618,18 +21150,6 @@
         "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -19676,18 +21196,6 @@
       {
         "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unsafe-url/http-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -19738,18 +21246,6 @@
         "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -19796,18 +21292,6 @@
       {
         "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unsafe-url/http-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -19858,18 +21342,6 @@
         "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -19916,18 +21388,6 @@
       {
         "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -19978,18 +21438,6 @@
         "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20036,18 +21484,6 @@
       {
         "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20098,18 +21534,6 @@
         "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20156,18 +21580,6 @@
       {
         "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20218,18 +21630,6 @@
         "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20276,18 +21676,6 @@
       {
         "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20338,18 +21726,6 @@
         "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20396,18 +21772,6 @@
       {
         "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unset-referrer-policy/http-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20458,18 +21822,6 @@
         "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20516,18 +21868,6 @@
       {
         "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unset-referrer-policy/http-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20578,18 +21918,6 @@
         "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20636,18 +21964,6 @@
       {
         "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20698,18 +22014,6 @@
         "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20756,18 +22060,6 @@
       {
         "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20818,18 +22110,6 @@
         "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20876,18 +22156,6 @@
       {
         "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -20938,18 +22206,6 @@
         "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
       },
       {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/img-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
         "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/script-tag/generic.keep-origin-redirect.http.html"
       },
@@ -20996,18 +22252,6 @@
       {
         "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
         "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/img-tag/generic.keep-origin-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/img-tag/generic.no-redirect.http.html"
-      },
-      {
-        "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html",
-        "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/img-tag/generic.swap-origin-redirect.http.html"
       },
       {
         "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/script-tag/generic.keep-origin-redirect.http.html",
@@ -22146,12 +23390,20 @@
         "url": "/webmessaging/without-ports/029.html"
       },
       {
+        "path": "webrtc/datachannel-emptystring.html",
+        "url": "/webrtc/datachannel-emptystring.html"
+      },
+      {
         "path": "webrtc/no-media-call.html",
         "url": "/webrtc/no-media-call.html"
       },
       {
         "path": "webrtc/promises-call.html",
         "url": "/webrtc/promises-call.html"
+      },
+      {
+        "path": "webrtc/rtcpeerconnection/rtcpeerconnection-idl.html",
+        "url": "/webrtc/rtcpeerconnection/rtcpeerconnection-idl.html"
       },
       {
         "path": "webrtc/simplecall.html",
@@ -22910,20 +24162,12 @@
         "url": "/websockets/unload-a-document/003.html"
       },
       {
-        "path": "webstorage/builtins.html",
-        "url": "/webstorage/builtins.html"
-      },
-      {
-        "path": "webstorage/clear.html",
-        "url": "/webstorage/clear.html"
-      },
-      {
         "path": "webstorage/event_constructor.html",
         "url": "/webstorage/event_constructor.html"
       },
       {
-        "path": "webstorage/event_constructor_js.html",
-        "url": "/webstorage/event_constructor_js.html"
+        "path": "webstorage/event_constructor_eventinit.html",
+        "url": "/webstorage/event_constructor_eventinit.html"
       },
       {
         "path": "webstorage/event_local_key.html",
@@ -22936,6 +24180,10 @@
       {
         "path": "webstorage/event_local_oldvalue.html",
         "url": "/webstorage/event_local_oldvalue.html"
+      },
+      {
+        "path": "webstorage/event_local_removeitem.html",
+        "url": "/webstorage/event_local_removeitem.html"
       },
       {
         "path": "webstorage/event_local_storagearea.html",
@@ -22962,6 +24210,10 @@
         "url": "/webstorage/event_session_oldvalue.html"
       },
       {
+        "path": "webstorage/event_session_removeitem.html",
+        "url": "/webstorage/event_session_removeitem.html"
+      },
+      {
         "path": "webstorage/event_session_storagearea.html",
         "url": "/webstorage/event_session_storagearea.html"
       },
@@ -22974,40 +24226,56 @@
         "url": "/webstorage/event_session_url.html"
       },
       {
-        "path": "webstorage/getitem.html",
-        "url": "/webstorage/getitem.html"
-      },
-      {
         "path": "webstorage/idlharness.html",
         "url": "/webstorage/idlharness.html"
-      },
-      {
-        "path": "webstorage/in.html",
-        "url": "/webstorage/in.html"
-      },
-      {
-        "path": "webstorage/indexing.html",
-        "url": "/webstorage/indexing.html"
-      },
-      {
-        "path": "webstorage/key.html",
-        "url": "/webstorage/key.html"
-      },
-      {
-        "path": "webstorage/length.html",
-        "url": "/webstorage/length.html"
       },
       {
         "path": "webstorage/missing_arguments.html",
         "url": "/webstorage/missing_arguments.html"
       },
       {
-        "path": "webstorage/removeitem.html",
-        "url": "/webstorage/removeitem.html"
+        "path": "webstorage/storage_builtins.html",
+        "url": "/webstorage/storage_builtins.html"
       },
       {
-        "path": "webstorage/setitem.html",
-        "url": "/webstorage/setitem.html"
+        "path": "webstorage/storage_clear.html",
+        "url": "/webstorage/storage_clear.html"
+      },
+      {
+        "path": "webstorage/storage_getitem.html",
+        "url": "/webstorage/storage_getitem.html"
+      },
+      {
+        "path": "webstorage/storage_in.html",
+        "url": "/webstorage/storage_in.html"
+      },
+      {
+        "path": "webstorage/storage_indexing.html",
+        "url": "/webstorage/storage_indexing.html"
+      },
+      {
+        "path": "webstorage/storage_key.html",
+        "url": "/webstorage/storage_key.html"
+      },
+      {
+        "path": "webstorage/storage_key_empty_string.html",
+        "url": "/webstorage/storage_key_empty_string.html"
+      },
+      {
+        "path": "webstorage/storage_length.html",
+        "url": "/webstorage/storage_length.html"
+      },
+      {
+        "path": "webstorage/storage_removeitem.html",
+        "url": "/webstorage/storage_removeitem.html"
+      },
+      {
+        "path": "webstorage/storage_set_value_enumerate.html",
+        "url": "/webstorage/storage_set_value_enumerate.html"
+      },
+      {
+        "path": "webstorage/storage_setitem.html",
+        "url": "/webstorage/storage_setitem.html"
       },
       {
         "path": "webvtt/interfaces.html",
@@ -23178,6 +24446,10 @@
         "url": "/workers/WorkerNavigator_userAgent.htm"
       },
       {
+        "path": "workers/Worker_ErrorEvent_bubbles_cancelable.htm",
+        "url": "/workers/Worker_ErrorEvent_bubbles_cancelable.htm"
+      },
+      {
         "path": "workers/Worker_ErrorEvent_filename.htm",
         "url": "/workers/Worker_ErrorEvent_filename.htm"
       },
@@ -23212,6 +24484,26 @@
       {
         "path": "workers/Worker_terminate_event_queue.htm",
         "url": "/workers/Worker_terminate_event_queue.htm"
+      },
+      {
+        "path": "workers/baseurl/alpha/importScripts.html",
+        "url": "/workers/baseurl/alpha/importScripts.html"
+      },
+      {
+        "path": "workers/baseurl/alpha/sharedworker.html",
+        "url": "/workers/baseurl/alpha/sharedworker.html"
+      },
+      {
+        "path": "workers/baseurl/alpha/worker.html",
+        "url": "/workers/baseurl/alpha/worker.html"
+      },
+      {
+        "path": "workers/baseurl/alpha/xhr.html",
+        "url": "/workers/baseurl/alpha/xhr.html"
+      },
+      {
+        "path": "workers/constructors/SharedWorker/URLMismatchError.htm",
+        "url": "/workers/constructors/SharedWorker/URLMismatchError.htm"
       },
       {
         "path": "workers/constructors/SharedWorker/connect-event.html",
@@ -23288,6 +24580,10 @@
       {
         "path": "workers/constructors/Worker/AbstractWorker.onerror.html",
         "url": "/workers/constructors/Worker/AbstractWorker.onerror.html"
+      },
+      {
+        "path": "workers/constructors/Worker/Blob-url.html",
+        "url": "/workers/constructors/Worker/Blob-url.html"
       },
       {
         "path": "workers/constructors/Worker/DedicatedWorkerGlobalScope-members.html",
@@ -23821,34 +25117,14 @@
         "url": "/ambient-light/AmbientLight_tests.html"
       },
       {
-        "path": "content-security-policy/media-src/media-src-7_1.html",
-        "timeout": "long",
-        "url": "/content-security-policy/media-src/media-src-7_1.html"
-      },
-      {
         "path": "content-security-policy/media-src/media-src-7_1_2.html",
         "timeout": "long",
         "url": "/content-security-policy/media-src/media-src-7_1_2.html"
       },
       {
-        "path": "content-security-policy/media-src/media-src-7_2.html",
-        "timeout": "long",
-        "url": "/content-security-policy/media-src/media-src-7_2.html"
-      },
-      {
         "path": "content-security-policy/media-src/media-src-7_2_2.html",
         "timeout": "long",
         "url": "/content-security-policy/media-src/media-src-7_2_2.html"
-      },
-      {
-        "path": "content-security-policy/media-src/media-src-7_3.html",
-        "timeout": "long",
-        "url": "/content-security-policy/media-src/media-src-7_3.html"
-      },
-      {
-        "path": "content-security-policy/media-src/media-src-7_3_2.html",
-        "timeout": "long",
-        "url": "/content-security-policy/media-src/media-src-7_3_2.html"
       },
       {
         "path": "content-security-policy/object-src/object-src-2_1.html",
@@ -23974,6 +25250,11 @@
         "path": "dom/traversal/NodeIterator.html",
         "timeout": "long",
         "url": "/dom/traversal/NodeIterator.html"
+      },
+      {
+        "path": "encoding/api-invalid-label.html",
+        "timeout": "long",
+        "url": "/encoding/api-invalid-label.html"
       },
       {
         "path": "encoding/single-byte-decoder.html",
@@ -24871,6 +26152,11 @@
         "url": "/media-source/mediasource-redundant-seek.html"
       },
       {
+        "path": "quirks-mode/hashless-hex-color.html",
+        "timeout": "long",
+        "url": "/quirks-mode/hashless-hex-color.html"
+      },
+      {
         "path": "service-workers/cache-storage/common.https.html",
         "timeout": "long",
         "url": "/service-workers/cache-storage/common.https.html"
@@ -25117,16 +26403,7 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "testharness": {
-        "XMLHttpRequest/preserve-ua-header-on-redirect.htm": [
-          {
-            "path": "XMLHttpRequest/preserve-ua-header-on-redirect.htm",
-            "url": "/XMLHttpRequest/preserve-ua-header-on-redirect.htm"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -30591,7 +31868,7 @@
       }
     ]
   },
-  "rev": "075802c1d3387d07e31cd5887459d539b1297c8d",
+  "rev": "4d96cccabc2feacd48e1dab9afc22b8af2225572",
   "url_base": "/",
   "version": 2
 }

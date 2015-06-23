@@ -1,0 +1,94 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="Microsoft" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: coords-transformattr-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#TransformAttribute">
+      <p>
+        Tests that separating transform definitions by whitespace and/or a comma is supported. The test draws a red 'rect' element with a valid, non-delimited transform list. It overlays it with an identical black rectangle with
+        equivalent transform list delimted by commas and numerical Unicode references of space (U+0020), tab (U+0009), carriage
+        return (U+000D), line feed (U+000A), and combination of all five, 
+so that no red is visible.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-transformattr-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <g transform="translate(50 50)rotate(45)skewX(15)scale(0.8)">
+        <rect x="0" y="0" width="100" height="100" fill="red" />
+    </g>
+    <g transform="translate(50 50),rotate(45),skewX(15),scale(0.8)">
+        <rect x="0" y="0" width="100" height="100" stroke="black"/>
+    </g>
+    <g transform="translate(50 50)rotate(45)skewX(15)scale(0.8)">
+        <rect x="125" y="125" width="100" height="100" fill="red" />
+    </g>
+    <g transform="translate(50 50)&#x0020;rotate(45)&#x0020;&#x0020;skewX(15)&#x0020;&#x0020;&#x0020;&#x0020;&#x0020;scale(0.8)">
+        <rect x="125" y="125" width="100" height="100" stroke="black"/>
+    </g>
+    <g transform="translate(50 50)rotate(45)skewX(15)scale(0.8)">
+        <rect x="150" y="-75" width="100" height="100" fill="red" />
+    </g>
+    <g transform="translate(50 50)&#x0009;rotate(45)&#x0009;&#x0009;skewX(15)&#x0009;&#x0009;&#x0009;&#x0009;&#x0009;scale(0.8)">
+        <rect x="150" y="-75" width="100" height="100" stroke="black"/>
+    </g>
+    <g transform="translate(50 50)rotate(45)skewX(15)scale(0.8)">
+        <rect x="300" y="-150" width="100" height="100" fill="red" />
+    </g>
+    <g transform="translate(50 50)&#x000D;rotate(45)&#x000D;&#x000D;skewX(15)&#x000D;&#x000D;&#x000D;&#x000D;&#x000D;scale(0.8)">
+        <rect x="300" y="-150" width="100" height="100" stroke="black"/>
+    </g>
+    <g transform="translate(50 50)rotate(45)skewX(15)scale(0.8)">
+        <rect x="400" y="-325" width="100" height="100" fill="red" />
+    </g>
+    <g transform="translate(50 50)&#x000A;rotate(45)&#x000A;&#x000A;skewX(15)&#x000A;&#x000A;&#x000A;&#x000A;&#x000A;scale(0.8)">
+        <rect x="400" y="-325" width="100" height="100" stroke="black"/>
+    </g>
+    <g transform="translate(50 50)rotate(45)skewX(15)scale(0.8)">
+        <rect x="500" y="-200" width="100" height="100" fill="red" />
+    </g>
+    <g transform="translate(50 50),rotate(45)&#x0020;&#x0009;skewX(15)&#x000D;&#x000A;scale(0.8)">
+        <rect x="500" y="-200" width="100" height="100" stroke="black"/>
+    </g>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

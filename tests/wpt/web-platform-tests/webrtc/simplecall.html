@@ -38,7 +38,7 @@ instance --use-fake-device-for-media-stream for Chrome.
   var gSecondConnection = null;
 
   function getUserMediaOkCallback(localStream) {
-    gFirstConnection = new RTCPeerConnection(null, null);
+    gFirstConnection = new RTCPeerConnection(null);
     gFirstConnection.onicecandidate = onIceCandidateToFirst;
     gFirstConnection.addStream(localStream);
     gFirstConnection.createOffer(onOfferCreated, failed('createOffer'));
@@ -56,7 +56,7 @@ instance --use-fake-device-for-media-stream for Chrome.
   });
 
   function receiveCall(offerSdp) {
-    gSecondConnection = new RTCPeerConnection(null, null);
+    gSecondConnection = new RTCPeerConnection(null);
     gSecondConnection.onicecandidate = onIceCandidateToSecond;
     gSecondConnection.onaddstream = onRemoteStream;
 
@@ -84,23 +84,18 @@ instance --use-fake-device-for-media-stream for Chrome.
     test.done();
   };
 
-  // Note: the ice candidate handlers are special. We can not wrap them in test
-  // steps since that seems to cause some kind of starvation that prevents the
-  // call of being set up. Unfortunately we cannot report errors in here.
-  var onIceCandidateToFirst = function(event) {
+  var onIceCandidateToFirst = test.step_func(function(event) {
     // If event.candidate is null = no more candidates.
     if (event.candidate) {
-      var candidate = new RTCIceCandidate(event.candidate);
-      gSecondConnection.addIceCandidate(candidate);
+      gSecondConnection.addIceCandidate(event.candidate);
     }
-  };
+  });
 
-  var onIceCandidateToSecond = function(event) {
+  var onIceCandidateToSecond = test.step_func(function(event) {
     if (event.candidate) {
-      var candidate = new RTCIceCandidate(event.candidate);
-      gFirstConnection.addIceCandidate(candidate);
+      gFirstConnection.addIceCandidate(event.candidate);
     }
-  };
+  });
 
   var onRemoteStream = test.step_func(function(event) {
     var videoTag = document.getElementById('remote-view');

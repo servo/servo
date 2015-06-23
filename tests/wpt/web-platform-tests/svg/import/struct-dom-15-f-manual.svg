@@ -1,0 +1,139 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" onload="runTest()">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="ED" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: struct-dom-15-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#InterfaceSVGElementInstance">
+      <p>
+        Test SVGElementInstance and EventTarget.dispatchEvent. 
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if there are three green circles visible, and no red.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-15-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <defs>
+      <circle id="defscircle1" cx="240" cy="180" r="25" onclick="verifyDefs1(evt)" fill="red"/>
+      <circle id="defscircle2" cx="240" cy="180" r="25" onclick="verifyDefs2(evt)" fill="red"/>
+
+      <script><![CDATA[
+        function verifyDefs1(e)
+        {
+          var dc = document.getElementById("defscircle1");
+          if (e.target === e.currentTarget &&   // Assertion: the target and currentTarget are the same
+              e.target === dc)                  // Assertion: the target is the 'circle' element since we dispatched the event directly to it, not to an SVGElementInstance
+          {
+            dc.setAttribute("fill", "lime");
+          }
+        }
+        
+        // checks that event.target and event.currentTarget point to an SVGElementInstance (the instanceRoot)
+        function verifyDefs2(e)
+        {
+          var instance = document.getElementById("use2").instanceRoot;
+          if (e.target === e.currentTarget &&   // Assertion: the target and currentTarget are the same
+              e.target === instance)            // Assertion: the target is SVGElementInstance corresponding to the 'circle' element with id="defscircle2", since we dispatched the event to that instance
+          {
+            instance.correspondingElement.setAttribute("fill", "lime");
+          }
+        }
+                
+        function verify(e)
+        {
+          var c = document.getElementById("circle");
+          if (e.target === e.currentTarget &&   // Assertion: the target and currentTarget are the same
+              e.target === c)                   // Assertion: the target is the 'circle' element since we dispatched the event directly to it
+          {
+            c.setAttribute("fill", "lime");
+          }
+        }
+        
+        function dispatchMouseClick(target)
+        {
+           var mouseevent = document.createEvent("MouseEvents");
+           mouseevent.initMouseEvent("click", 
+                                      true,                 // canbubble
+                                      true,                 // cancellable
+                                      document.defaultView, // the AbstractView
+                                      1,                    // mouseclick count
+                                      0,                    // screen x coordinate
+                                      0,                    // screen y coordinate 
+                                      0,                    // client x coordinate
+                                      0,                    // client y coordinate
+                                      false,                // ctrlKey
+                                      false,                // altKey
+                                      false,                // shiftKey
+                                      false,                // metaKey
+                                      0,                    // mousebutton
+                                      null);                // related target
+           target.dispatchEvent(mouseevent);
+        }
+        
+        function runTest()
+        {
+          // test simple circle inside <defs>
+          try { 
+            var defsCircle = document.getElementById("defscircle1");
+            dispatchMouseClick(defsCircle);
+          } catch(e) {}
+          
+          // test SVGElementInstance
+          try {
+            var elementInstance2 = document.getElementById("use2").instanceRoot;
+            dispatchMouseClick(elementInstance2);
+          } catch(e) {}
+          
+          // test simple circle outside of <defs>
+          try {
+            var circle = document.getElementById("circle");
+            dispatchMouseClick(circle);
+          } catch(e) {}
+        }
+      ]]></script>
+    </defs>
+
+    <circle id="circle" cx="240" cy="180" r="25" onclick="verify(evt)" fill="red"/>
+    
+    <use id="use1" xlink:href="#defscircle1" transform="translate(80,0)"/>
+    <use id="use2" xlink:href="#defscircle2" transform="translate(-80,0)"/>
+    <use id="use3" xlink:href="#defsg1"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

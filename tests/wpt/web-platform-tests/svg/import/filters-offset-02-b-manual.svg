@@ -1,0 +1,83 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.4 $" testname="$RCSfile: filters-offset-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html">
+        <p>
+					Tests primitiveUnits="objectBoundingBox" and relative values.
+There should be three green rectangles with thick black stroke.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.
+				
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+				The test has passed if there is nothing red visible and there are three
+				green rectangles with black stroke. If any green is visible outside the
+				black stroked rectangles the test has failed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-offset-02-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+        <defs>
+            <filter id="feoffset1" primitiveUnits="objectBoundingBox" x="0%" y="0%" width="200%" height="200%">
+								<feFlood width="100%" height="100%" flood-color="lime"/>
+                <feOffset dx="0.1" dy="0.2"/>
+            </filter>
+						<filter id="feoffset2" primitiveUnits="objectBoundingBox" x="0%" y="0%" width="200%" height="200%">
+								<feOffset dx="1" dy="1"/>
+            </filter>
+						<filter id="feoffset3" primitiveUnits="objectBoundingBox" x="-100%" y="0%" width="200%" height="100%">
+								<feOffset dx="-1"/>
+            </filter>
+        </defs>
+				
+				<g transform="translate(-10 60)">
+					<rect x="60" y="70" width="100" height="100" fill="red"/>
+					<rect x="50" y="50" width="100" height="100" fill="red" filter="url(#feoffset1)"/>
+					<rect x="60" y="70" width="100" height="100" fill="none" stroke="black" stroke-width="2"/>
+
+					<rect x="200" y="70" width="100" height="100" fill="red"/>
+					<rect x="100" y="-30" width="100" height="100" fill="lime" filter="url(#feoffset2)"/>
+					<rect x="200" y="70" width="100" height="100" fill="none" stroke="black" stroke-width="2"/>
+
+					<rect x="340" y="70" width="100" height="100" fill="red"/>
+					<rect x="440" y="70" width="100" height="100" fill="lime" filter="url(#feoffset3)"/>
+					<rect x="340" y="70" width="100" height="100" fill="none" stroke="black" stroke-width="2"/>
+			</g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

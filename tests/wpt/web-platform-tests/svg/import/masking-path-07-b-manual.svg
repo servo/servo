@@ -1,0 +1,147 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="CM" author="ED" status="accepted"
+    version="$Revision: 1.11 $" testname="$RCSfile: masking-path-07-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/masking.html#ClippingPaths">
+        <p>
+          This tests that 'clipPath' elements can be used together and how the clipping paths are intersected.
+        </p>
+      <p>
+        There is a gray-white pattern as a background for the two subtest rectangles. This is to show that the holes that are cut out using clip-paths are transparent.
+        The first subtest verifies that when you use the 'clip-path' property on a child element inside a 'clipPath' element the child element is clipped correctly.
+        The second subtest verifies that when a 'clipPath' element has a 'clip-path' property the result is the intersection of the two clip paths.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if the following conditions are met:
+			</p>
+			<ul>
+				<li>There is no red visible.</li>
+				<li>No shapes extend outside of the rects that have a thick black border.</li>
+				<li>For the left subtest:
+					<ul>
+						<li>There must be a large blue rect with a transparent smaller rect in it, and the intersection of two circles.</li>
+						<li>The borders of the clipregions are shown with black stroke.</li>
+						<li>The blue shapes must be visible only inside of these stroked regions.</li>
+				 	</ul>
+				</li>
+				<li>For the right subtest:
+					<ul>
+						<li>The test on the right must show part of the large blue rect shape with a transparent rect in it, and part of a circle.</li>
+						<li>The blue shapes must only be visible inside of the circle that has black stroke.</li>
+					</ul>
+				</li>
+			</ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: masking-path-07-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <defs>
+      <clipPath id="clipCircle1">
+        <circle id="c1" cx="100" cy="100" r="50"/>
+      </clipPath>
+
+      <clipPath id="clipCircle2">
+        <circle id="c2" cx="150" cy="150" r="50"/>
+      </clipPath>
+
+      <clipPath id="clipPath1">
+        <path id="p1" d="M10 10l100 0 0 100 -100 0ZM50 50l40 0 0 40 -40 0Z" clip-rule="evenodd"/>
+      </clipPath>
+
+      <!-- "If a valid 'clip-path' reference is placed on one of the children of a 'clipPath' element, 
+		      then the given child element is clipped by the referenced clipping path before OR'ing the 
+			  silhouette of the child element with the silhouettes of the other child elements." -->
+      <clipPath id="clipRects1">
+        <rect x="50" y="30" width="25" height="100"/>
+        <rect x="25" y="50" width="10" height="10" clip-path="url(#clipTwoCircles)"/>
+      </clipPath>
+
+      <!-- Test use in a clipPath -->
+      <clipPath id="clipTwoCircles">
+        <use xlink:href="#c1"/>
+        <use xlink:href="#c2"/>
+      </clipPath>
+
+      <clipPath id="clipInClip1">
+        <use xlink:href="#c2" clip-path="url(#clipCircle1)"/>
+        <use xlink:href="#p1"/>
+      </clipPath>
+
+      <clipPath id="clipOnClip1" clip-path="url(#clipCircle1)">
+        <use xlink:href="#c2"/>
+        <use xlink:href="#p1"/>
+      </clipPath>
+
+      <pattern patternUnits="userSpaceOnUse" id="pattern" x="0" y="0" width="20" height="20">
+        <rect x="0" y="0" width="10" height="10" fill="gray"/>
+        <rect x="10" y="10" width="10" height="10" fill="gray"/>
+      </pattern>
+    </defs>
+
+    <rect x="20" y="70" width="210" height="210" fill="url(#pattern)" stroke="black" stroke-width="4"/>
+		<rect x="250" y="70" width="210" height="210" fill="url(#pattern)" stroke="black" stroke-width="4"/>
+
+    <text x="240" y="2em" text-anchor="middle">Test clip unions and intersections</text>
+
+    <g transform="translate(20, 70)">
+      <g id="subtest1">
+        <use xlink:href="#p1" fill="red" fill-rule="evenodd"/>
+        <use xlink:href="#c2" fill="red" clip-path="url(#clipCircle1)"/>
+        <use xlink:href="#c1" fill="red" clip-path="url(#clipCircle2)"/>
+
+        <rect width="200" height="200" fill="blue" clip-path="url(#clipInClip1)"/>
+
+        <use xlink:href="#c2" fill="none" clip-path="url(#clipCircle1)" stroke="black"/>
+        <use xlink:href="#c1" fill="none" clip-path="url(#clipCircle2)" stroke="black"/>
+        <use xlink:href="#p1" fill="none" stroke="black"/>
+      </g>
+
+      <g id="subtest2" transform="translate(230,0)">
+        <g clip-path="url(#clipCircle1)">
+          <use xlink:href="#c2" fill="red"/>
+          <use xlink:href="#p1" fill="red" fill-rule="evenodd"/>
+        </g>
+
+        <rect width="300" height="300" fill="blue" clip-path="url(#clipOnClip1)"/>
+
+        <use xlink:href="#c1" fill="none" stroke="black"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.11 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

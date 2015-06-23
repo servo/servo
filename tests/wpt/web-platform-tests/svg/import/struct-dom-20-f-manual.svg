@@ -1,0 +1,139 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" onload="runTest()">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.2 $" testname="$RCSfile: struct-dom-20-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#InterfaceSVGElementInstance">
+      <p>
+        Test SVGElementInstance and EventTarget.dispatchEvent. 
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if there are two green circles visible, and no red.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-20-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <defs>
+      <g id="defsg1" onclick="verifyDefs3(evt)">
+        <circle id="defscircle3" cx="80" cy="180" r="25" fill="red"/>
+        <use id="defsuse1" xlink:href="#defscircle4" transform="translate(-600, 0)" onclick="verifyDefs4(evt)"/>
+      </g>
+      <circle id="defscircle4" cx="1000" cy="180" r="25" fill="red"/>
+      
+      <script><![CDATA[        
+        function verifyDefs3(e)
+        {
+          var instance = document.getElementById("use3").instanceRoot;
+          var dc3instance = instance.firstChild.nextSibling;
+          if (e.target != e.currentTarget &&         // Assertion: the target and currentTarget are different since the event bubbled
+              e.target === dc3instance &&            // Assertion: the event was dispatched to the correct EventTarget
+              e.currentTarget === instance)          // Assertion: the event bubbled up to the SVGElementInstance corresponding to the element with id="defsg1"
+          {
+            dc3instance.correspondingElement.setAttribute("fill", "lime");
+          }
+        }
+        
+        function verifyDefs4(e)
+        {
+          var useElement = document.getElementById("use3");
+          var nestedUseInstance = useElement.instanceRoot.childNodes.item(3);
+          var instanceNestedCircle = nestedUseInstance.childNodes.item(0);
+          if (e.target != e.currentTarget &&                               // Assertion: the target and currentTarget are different since the event bubbled
+              e.target === instanceNestedCircle &&                         // Assertion: the event was dispatched to the correct EventTarget
+              e.currentTarget === nestedUseInstance &&                     // Assertion: the event bubbled up to the SVGElementInstance corresponding to the element with id="defsuse1"
+              instanceNestedCircle.parentNode === nestedUseInstance &&     // Assertion: the parentNode is the SVGElementInstance of the 'use' that referenced the circle
+              instanceNestedCircle.correspondingUseElement === useElement) // Assertion: When 'use' elements are nested then the correspondingUseElement is the outermost 'use'
+          {
+            document.getElementById("defscircle4").setAttribute("fill", "lime");
+          }
+        }
+        
+        function verify(e)
+        {
+          var c = document.getElementById("circle");
+          if (e.target === e.currentTarget &&   // Assertion: the target and currentTarget are the same
+              e.target === c)                   // Assertion: the target is the 'circle' element since we dispatched the event directly to it
+          {
+            c.setAttribute("fill", "lime");
+          }
+        }
+        
+        function dispatchMouseClick(target)
+        {
+           var mouseevent = document.createEvent("MouseEvents");
+           mouseevent.initMouseEvent("click", 
+                                      true,                 // canbubble
+                                      true,                 // cancellable
+                                      document.defaultView, // the AbstractView
+                                      1,                    // mouseclick count
+                                      0,                    // screen x coordinate
+                                      0,                    // screen y coordinate 
+                                      0,                    // client x coordinate
+                                      0,                    // client y coordinate
+                                      false,                // ctrlKey
+                                      false,                // altKey
+                                      false,                // shiftKey
+                                      false,                // metaKey
+                                      0,                    // mousebutton
+                                      null);                // related target
+           target.dispatchEvent(mouseevent);
+        }
+        
+        function runTest()
+        {
+          // test bubbling click
+          try {
+            var instanceCircle = document.getElementById("use3").instanceRoot.firstChild.nextSibling;
+            dispatchMouseClick(instanceCircle);
+          } catch(e) {}
+          
+          // test nested use with bubbling click
+          try {
+            var nestedUseInstance = document.getElementById("use3").instanceRoot.childNodes.item(3);
+            var instanceNestedCircle = nestedUseInstance.childNodes.item(0);
+            dispatchMouseClick(instanceNestedCircle);
+          } catch(e) {}
+        }
+      ]]></script>
+    </defs>
+    
+    <use id="use3" xlink:href="#defsg1"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.2 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

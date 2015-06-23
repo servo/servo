@@ -1,0 +1,83 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: struct-cond-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#ConditionalProcessing">
+        <p>
+          Tests the &lt;switch&gt; element with requiredFeatures.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        On the bottom half of the test, there is a first switch. 
+        Because SVG Tiny does not support DOM, an SVG Tiny implementation
+        which does not support other SVG Profiles should show a green
+        rectangle. If the application supports the DOM, meaning that
+        it does more than just SVG Tiny, it should show a turquoise rectangle.
+      </p>
+      <p>
+        On the bottom half of the test, there is another switch.
+        The first child has a requiredFeatures set to
+        http://www.w3.org/TR/SVG11/feature#BasicText which all
+        SVG Tiny implementations should support. If the application
+        does, another green rectangle is displayed. Otherwise,
+        a red rectangle shows.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-cond-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <switch>
+      <g requiredFeatures="http://www.w3.org/TR/SVG11/feature#SVGDOM">
+        <rect x="30" y="20" width="420" height="130" fill="rgb(32, 178, 170)"/>
+        <text x="240" y="100" font-size="20" text-anchor="middle">This viewer does more than SVG Tiny</text>
+      </g>
+      <g>
+        <rect x="30" y="20" width="420" height="130" fill="#0F0"/>
+      </g>
+    </switch>
+
+    <switch transform="translate(0, 140)">
+      <g requiredFeatures="http://www.w3.org/TR/SVG11/feature#BasicText">
+        <rect x="30" y="20" width="420" height="130" fill="#0F0"/>
+      </g>
+      <g>
+        <rect x="30" y="20" width="420" height="130" fill="#F00"/>
+        <text x="240" y="100" font-size="20" text-anchor="middle">This is not an SVG Tiny Viewer</text>
+      </g>
+    </switch>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

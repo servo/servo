@@ -1,0 +1,120 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Dean Jackson" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: fonts-elem-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#FontElement">
+      <p>
+        This is a basic test for embedded SVG fonts. The font "Comic Sans"
+        (available from Microsoft) has been converted into an SVG font and embedded
+        in the SVG file. The test contains two text areas, each with the character
+        string "AyÖ@ç" drawn at the same font size.
+      </p>
+      <p>
+        The upper area contains the glyphs from the embedded font placed in
+        the SVG file as path elements. Each glyph is placed at the location it
+        would be if rendered using normal text rendering (ie. the horizontal
+        advance between characters has been preserved).
+      </p>
+      <p>
+        The lower area contains the text string rendered using the embedded
+        SVG font. It should appear exactly the same as the upper text area,
+        ie. font size, character baseline and horizontal advance should be
+        the same.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test passes if the string "AyÖ@ç" is visible and fontsize, 
+        character baseline and horizontal advances are the same on both lines,
+	as shown in the reference image.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: fonts-elem-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ===================================================================== -->
+    <!-- Define the font for embedding - using Microsoft's "Comic Sans MS"     -->
+    <!-- This is an SVG Font version of Comic. The Comic font license          -->
+    <!-- allows editable and installable font embedding.                       -->
+    <!-- Only need to embed the characters that are used in the test           -->
+    <!-- ===================================================================== -->
+    <defs>
+      <font horiz-adv-x="959">
+        <font-face font-family="TestComic" units-per-em="2048" panose-1="3 15 7 2 3 3 2 2 2 4" ascent="2257" descent="-597" alphabetic="0"/>
+        <missing-glyph horiz-adv-x="1024" d="M128 0V1638H896V0H128zM256 128H768V1510H256V128z"/>
+        <glyph unicode="@" horiz-adv-x="1907" d="M1306 412Q1200 412 1123 443T999 535Q945 482 894 455T793 428Q682 428 584 518T485 717Q485 902 630 1055T961 1208Q1003 1208 1031 1177T1059 1102Q1059 1042 959 1013Q826 975 771 926Q690 855 690 717Q690 688 717 661Q748 631 794 633Q881 637 955 795Q1022 933 1074 933Q1116 933 1142 902T1168 826Q1168 806 1162 766T1155 706Q1155 641 1211 624Q1233 617 1306 617Q1443 617 1498 684Q1548 744 1548 883Q1548 1128 1351 1283Q1171 1425 921 1425Q630 1425 465 1205Q316 1009 316 712Q316 438 491 250Q673 54 959 54Q1040 54 1142 85L1317 150Q1361 166 1374 166Q1415 166 1445 134T1475 58Q1475 -37 1262 -96Q1101 -140 961 -140Q820 -140 673 -86T420 60Q110 328 110 712Q110 1096 322 1354Q547 1630 921 1630Q1259 1630 1500 1427Q1753 1212 1753 883Q1753 658 1643 537Q1528 412 1306 412z"/>
+        <glyph unicode="A" horiz-adv-x="1498" d="M1250 -30Q1158 -30 1090 206Q1064 296 1025 521Q923 507 758 471L492 416Q442 285 321 33Q289 -23 234 -23Q194 -23 163 6T131 78Q131 126 282 443Q265 469 265 503Q265 584 363 607Q477 821 651 1099Q888 1478 946 1478Q1025 1478 1054 1368L1117 1032L1266 337L1323 179Q1352 98 1352 71Q1352 28 1321 -1T1250 -30zM897 1113L611 652Q732 683 978 727L897 1113z"/>
+        <glyph unicode="y" horiz-adv-x="1066" d="M1011 892L665 144Q537 -129 469 -313L403 -507Q377 -579 313 -579Q271 -579 241 -552T210 -483Q210 -383 426 96L68 785L23 858Q-4 904 -4 935Q-4 976 27 1007T98 1038Q144 1038 169 1003Q339 767 534 331L682 676Q762 855 836 984Q868 1040 920 1040Q961 1040 992 1011T1024 942Q1024 920 1011 892z"/>
+        <glyph unicode="Ö" horiz-adv-x="1635" d="M802 -61Q520 -61 324 108Q116 288 116 572Q116 918 321 1201Q550 1515 892 1515Q1221 1515 1381 1367Q1548 1213 1548 881Q1548 535 1360 257Q1144 -61 802 -61zM892 1310Q647 1310 477 1066Q320 842 320 572Q320 379 463 258Q600 144 802 144Q1045 144 1203 389Q1344 608 1344 881Q1344 1120 1237 1217Q1135 1310 892 1310zM682 1848Q813 1848 813 1743Q813 1713 769 1685Q729 1660 694 1660Q571 1660 571 1763Q571 1792 608 1820T682 1848zM1221 1856Q1255 1856 1290 1825T1325 1763Q1325 1671 1182 1671Q1141 1671 1109 1692Q1073 1716 1073 1755Q1073 1824 1118 1844Q1143 1856 1221 1856z"/>
+        <glyph unicode="ç" horiz-adv-x="1052" d="M770 -196Q770 -320 710 -382T528 -445Q443 -445 367 -413Q271 -371 271 -298Q271 -244 339 -244Q375 -244 420 -268T517 -293Q566 -292 590 -269T614 -201Q614 -153 577 -115T463 -48Q304 -12 208 104Q105 227 105 404Q105 607 240 823Q390 1063 578 1063Q676 1063 797 1017Q950 958 950 873Q950 835 925 806T863 776Q834 776 813 793T771 828Q712 875 578 875Q476 875 376 693Q285 526 285 404Q285 272 375 196Q459 125 591 125Q651 125 719 157L835 219Q865 235 878 235Q915 235 942 206T969 138Q969 35 713 -40Q742 -78 756 -117T770 -196z"/>
+      </font>
+    </defs>
+    <text fill="black" stroke="none" font-size="35" x="56" y="35">Basic SVG font element</text>
+    <!-- ====================================================================== -->
+    <!-- First place the glyphs by hand                                         -->
+    <!-- ====================================================================== -->
+    <g fill="black" stroke="none">
+      <text x="30" y="130" font-size="18">Placed Glyphs</text>
+      <!-- translate to text position and flip y axis (glyphs are drawn           -->
+      <!-- upside down                                                            -->
+      <g transform="translate(165,140) scale(1, -1)">
+        <line x1="0" y1="0" x2="210" y2="0" stroke-width="1" stroke="#888888"/>
+        <!-- fontsize / units-per-em == 60 / 2048 == 0.029296875  -->
+        <g transform="scale(0.029296875)">
+          <!-- uppercase A -->
+          <line x1="0" y1="-3500" x2="0" y2="2000" stroke-width="50" stroke="#888888"/>
+          <path d="M1250 -30Q1158 -30 1090 206Q1064 296 1025 521Q923 507 758 471L492 416Q442 285 321 33Q289 -23 234 -23Q194 -23 163 6T131 78Q131 126 282 443Q265 469 265 503Q265 584 363 607Q477 821 651 1099Q888 1478 946 1478Q1025 1478 1054 1368L1117 1032L1266 337L1323 179Q1352 98 1352 71Q1352 28 1321 -1T1250 -30zM897 1113L611 652Q732 683 978 727L897 1113z"/>
+          <!-- lowercase y -->
+          <line x1="1498" y1="-3500" x2="1498" y2="2000" stroke-width="50" stroke="#888888"/>
+          <path transform="translate(1498,0)" d="M1011 892L665 144Q537 -129 469 -313L403 -507Q377 -579 313 -579Q271 -579 241 -552T210 -483Q210 -383 426 96L68 785L23 858Q-4 904 -4 935Q-4 976 27 1007T98 1038Q144 1038 169 1003Q339 767 534 331L682 676Q762 855 836 984Q868 1040 920 1040Q961 1040 992 1011T1024 942Q1024 920 1011 892z"/>
+          <!-- unicode 00D6 -->
+          <line x1="2564" y1="-3500" x2="2564" y2="2000" stroke-width="50" stroke="#888888"/>
+          <path transform="translate(2564,0)" d="M802 -61Q520 -61 324 108Q116 288 116 572Q116 918 321 1201Q550 1515 892 1515Q1221 1515 1381 1367Q1548 1213 1548 881Q1548 535 1360 257Q1144 -61 802 -61zM892 1310Q647 1310 477 1066Q320 842 320 572Q320 379 463 258Q600 144 802 144Q1045 144 1203 389Q1344 608 1344 881Q1344 1120 1237 1217Q1135 1310 892 1310zM682 1848Q813 1848 813 1743Q813 1713 769 1685Q729 1660 694 1660Q571 1660 571 1763Q571 1792 608 1820T682 1848zM1221 1856Q1255 1856 1290 1825T1325 1763Q1325 1671 1182 1671Q1141 1671 1109 1692Q1073 1716 1073 1755Q1073 1824 1118 1844Q1143 1856 1221 1856z"/>
+          <!-- @ sign -->
+          <line x1="4199" y1="-3500" x2="4199" y2="2000" stroke-width="50" stroke="#888888"/>
+          <path transform="translate(4199,0)" d="M1306 412Q1200 412 1123 443T999 535Q945 482 894 455T793 428Q682 428 584 518T485 717Q485 902 630 1055T961 1208Q1003 1208 1031 1177T1059 1102Q1059 1042 959 1013Q826 975 771 926Q690 855 690 717Q690 688 717 661Q748 631 794 633Q881 637 955 795Q1022 933 1074 933Q1116 933 1142 902T1168 826Q1168 806 1162 766T1155 706Q1155 641 1211 624Q1233 617 1306 617Q1443 617 1498 684Q1548 744 1548 883Q1548 1128 1351 1283Q1171 1425 921 1425Q630 1425 465 1205Q316 1009 316 712Q316 438 491 250Q673 54 959 54Q1040 54 1142 85L1317 150Q1361 166 1374 166Q1415 166 1445 134T1475 58Q1475 -37 1262 -96Q1101 -140 961 -140Q820 -140 673 -86T420 60Q110 328 110 712Q110 1096 322 1354Q547 1630 921 1630Q1259 1630 1500 1427Q1753 1212 1753 883Q1753 658 1643 537Q1528 412 1306 412z"/>
+          <!-- unicode 00E7 -->
+          <line x1="6106" y1="-3500" x2="6106" y2="2000" stroke-width="50" stroke="#888888"/>
+          <path transform="translate(6106,0)" d="M770 -196Q770 -320 710 -382T528 -445Q443 -445 367 -413Q271 -371 271 -298Q271 -244 339 -244Q375 -244 420 -268T517 -293Q566 -292 590 -269T614 -201Q614 -153 577 -115T463 -48Q304 -12 208 104Q105 227 105 404Q105 607 240 823Q390 1063 578 1063Q676 1063 797 1017Q950 958 950 873Q950 835 925 806T863 776Q834 776 813 793T771 828Q712 875 578 875Q476 875 376 693Q285 526 285 404Q285 272 375 196Q459 125 591 125Q651 125 719 157L835 219Q865 235 878 235Q915 235 942 206T969 138Q969 35 713 -40Q742 -78 756 -117T770 -196z"/>
+          <line x1="7158" y1="-3500" x2="7158" y2="2000" stroke-width="50" stroke="#888888"/>
+        </g>
+      </g>
+    </g>
+    <text x="65" y="210" font-size="18">SVG Font</text>
+    <g transform="translate(165, 220)" font-family="TestComic" font-size="60" fill="black" stroke="none">
+      <line x1="0" y1="0" x2="210" y2="0" stroke-width="1" stroke="#888888"/>
+      <text>AyÖ@ç</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
  <head>
-  <title>Web Storage</title>
+  <title>WebStorage Test: localStorage event - oldValue</title>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script>
@@ -17,9 +17,10 @@
     <h1>event_local_oldValue</h1>
     <div id="log"></div>
     <script>
+        var t = async_test("oldValue property test of local event");
+
         test(function() {
             localStorage.clear();
-            var t = async_test("oldValue property test of local event");
             var expected = [null, 'user1', null]
             function onStorageEvent(event) {
                 t.step(function() {
@@ -36,7 +37,7 @@
             el.setAttribute('id', 'ifrm');
             el.setAttribute('src', 'iframe/local_change_item_iframe.html');
             document.body.appendChild(el);
-        });
+        }, "Local event is fired due to an invocation of the setItem(), clear() methods.");
     </script>
  </body>
 </html>

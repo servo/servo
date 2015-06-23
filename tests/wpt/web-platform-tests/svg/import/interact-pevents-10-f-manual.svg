@@ -1,0 +1,82 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="Microsoft" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: interact-pevents-10-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#PointerEvents">
+      <p>
+        An element with 'display' set to 'none' or an element whose parent has 'display' set to 'none' is not a target of pointer events.
+      </p>
+      <p>
+        Stack a 'circle' element with 'display' equal to 'none' on another 'circle' element. 
+        Specify an 'onclick' event handler on the 'circle' with 'display' set to 'none' that will change the 'visibility' of 'FAIL' text to 'visible'. 
+        Verify that the event handler does not fire which clicking on the top 'circle' element. 
+        Repeat with another set of 'circle' elements with the parent of one of the 'circle' elements having its 'display' set to 'none'.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Click on both black circles.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there is no red visible on the page after clicking the black circles.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-pevents-10-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <circle cx="100" cy="200" r="50" />
+    <circle onclick="failTest()" display="none" cx="100" cy="200" r="50" />
+    <circle cx="250" cy="200" r="50" pointer-events="none" />
+    <g display="none">
+        <circle onclick="failTest()" cx="250" cy="200" r="50" />
+    </g>
+    <text id="failText" visibility="hidden" x="100" y="100" font-size="80" fill="red">FAIL</text>
+    <script type="text/javascript"><![CDATA[
+      try
+      {
+          function failTest()
+          {
+              var testElement = document.getElementById("failText");
+              testElement.setAttribute("visibility", "visible");
+          }
+      }
+      catch(ex)
+      {
+        //alert('ERROR: ' + ex.message);
+      }]]>
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+  -->
+</svg>

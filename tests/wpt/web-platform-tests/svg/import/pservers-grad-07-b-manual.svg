@@ -1,0 +1,88 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: pservers-grad-07-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        Test that the viewer has basic capability to handle linear gradients
+        on fills and stroke of objects and text.
+      </p>
+      <p>
+        This test uses the following elements : &lt;linearGradient&gt;, &lt;stop&gt;
+        and the following properties : stop-color, fill:url(#  ), stroke(url# )
+      </p>
+      <p>
+        Both elements in this test use the same simple gradient. It is a linear gradient from
+        blue (left) to lime (right). From top-down the appearance of objects is as follows.
+      </p>
+      <p>
+        The top rectangle should be filled with the gradient.
+      </p>
+      <p>
+        The next rectangle has no fill, but has a thick stroke on which the gradient is
+        applied.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendering matches the reference image, apart
+      from any differences in font choice due to CSS2 rules.  Specifically:</p>
+      <ul>
+        <li>The top rectangle is filled with a gradient from blue on the left to lime on the right.</li>
+        <li>The bottom rectangle is unfilled and stroked with a thick stroke using a gradient from blue on the left to lime on the right.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-07-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="scale(1, 1.5)">
+      <!-- ====================================================================== -->
+      <!-- Very simple blue to red linear gradient from left to right  ========== -->
+      <!-- ====================================================================== -->
+      <linearGradient id="Gradient" gradientUnits="userSpaceOnUse" x1="10" y1="10" x2="440" y2="10">
+        <stop stop-color="blue" offset="0"/>
+        <stop stop-color="lime" offset="1"/>
+      </linearGradient>
+      <!-- ====================================================================== -->
+      <!-- Linear gradient on the fill of a rectangle                    ======== -->
+      <!-- ====================================================================== -->
+      <rect x="10" y="10" width="430" height="60" fill="url(#Gradient)"/>
+      <text font-size="24" x="10" y="90">Linear gradient filled rectangle</text>
+      <!-- ====================================================================== -->
+      <!-- Linear gradient on the stroke of a rectangle                  ======== -->
+      <!-- ====================================================================== -->
+      <rect x="25" y="110" width="400" height="30" fill="none" stroke="url(#Gradient)" stroke-width="20"/>
+      <text font-size="24" x="10" y="170">Linear gradient on stroke of rectangle</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

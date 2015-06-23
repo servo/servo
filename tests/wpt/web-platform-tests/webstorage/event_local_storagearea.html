@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
  <head>
-  <title>Web Storage</title>
+  <title>WebStorage Test: localStorage event - storageArea</title>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script>
@@ -17,9 +17,10 @@
     <h1>event_local_storageArea</h1>
     <div id="log"></div>
     <script>
+        var t = async_test("storageArea property test of local event");
+
         test(function() {
             localStorage.clear();
-            var t = async_test("storageArea property test of local event");
             function onStorageEvent(event) {
                 t.step(function() {
                     assert_equals(event.storageArea.length, 1);
@@ -37,7 +38,7 @@
             el.setAttribute('id', 'ifrm');
             el.setAttribute('src', 'iframe/local_set_item_iframe.html');
             document.body.appendChild(el);
-        });
+        }, "Local event is fired due to an invocation of the setItem() method.");
     </script>
  </body>
 </html>

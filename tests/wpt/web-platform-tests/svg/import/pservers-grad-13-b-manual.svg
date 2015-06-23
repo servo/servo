@@ -1,0 +1,171 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="BB" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: pservers-grad-13-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+        <p>
+          The purpose of this file is to test several values for focal points of radial gradients.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendered image matches the reference image, except
+      for any differences in font choice due to CSS2.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-13-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="240" y="30" font-size="20" text-anchor="middle">Radial gradient focal point</text>
+    <defs>
+      <g id="alpha">
+        <rect x="00" y="0" width="100" height="60" fill="yellow"/>
+        <rect x="00" y="0" width="10" height="60" fill="gold"/>
+        <rect x="15" y="0" width="10" height="60" fill="orange"/>
+        <rect x="30" y="0" width="10" height="60" fill="sienna"/>
+        <rect x="45" y="0" width="10" height="60" fill="gold"/>
+        <rect x="60" y="0" width="10" height="60" fill="sienna"/>
+        <rect x="75" y="0" width="10" height="60" fill="orange"/>
+        <rect x="90" y="0" width="10" height="60" fill="gold"/>
+        <rect x="00" y="0" width="100" height="60"/>
+        <!-- inherits a radial gradient -->
+      </g>
+    </defs>
+    <defs>
+      <radialGradient id="grad1a" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="00.00%" fy="00%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad2a" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="16.66%" fy="00%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad4a" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="50.00%" fy="00%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad6a" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="83.33%" fy="00%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+
+      <radialGradient id="grad1b" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="00.00%" fy="25%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad2b" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="16.66%" fy="25%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad4b" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="50.00%" fy="25%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad6b" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="83.33%" fy="25%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+
+      <radialGradient id="grad1c" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="00.00%" fy="50%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad2c" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="16.66%" fy="50%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad4c" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="50.00%" fy="50%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad6c" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="83.33%" fy="50%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+
+      <radialGradient id="grad1d" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="00.00%" fy="75%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad2d" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="16.66%" fy="75%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad4d" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="50.00%" fy="75%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="grad6d" gradientUnits="objectBoundingBox" cx="10%" cy="10%" r="75%" fx="83.33%" fy="75%">
+        <stop offset="0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="darkblue"/>
+        <stop offset="1" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+    <g id="group1" stroke="black" stroke-width="0.5">
+      <use xlink:href="#alpha" x="017.5" y="045" fill="url(#grad1a)"/>
+      <use xlink:href="#alpha" x="130" y="045" fill="url(#grad2a)"/>
+      <use xlink:href="#alpha" x="242.5" y="045" fill="url(#grad4a)"/>
+      <use xlink:href="#alpha" x="355" y="045" fill="url(#grad6a)"/>
+
+      <use xlink:href="#alpha" x="017.5" y="110" fill="url(#grad1b)"/>
+      <use xlink:href="#alpha" x="130" y="110" fill="url(#grad2b)"/>
+      <use xlink:href="#alpha" x="242.5" y="110" fill="url(#grad4b)"/>
+      <use xlink:href="#alpha" x="355" y="110" fill="url(#grad6b)"/>
+
+      <use xlink:href="#alpha" x="017.5" y="175" fill="url(#grad1c)"/>
+      <use xlink:href="#alpha" x="130" y="175" fill="url(#grad2c)"/>
+      <use xlink:href="#alpha" x="242.5" y="175" fill="url(#grad4c)"/>
+      <use xlink:href="#alpha" x="355" y="175" fill="url(#grad6c)"/>
+
+      <use xlink:href="#alpha" x="017.5" y="240" fill="url(#grad1d)"/>
+      <use xlink:href="#alpha" x="130" y="240" fill="url(#grad2d)"/>
+      <use xlink:href="#alpha" x="242.5" y="240" fill="url(#grad4d)"/>
+      <use xlink:href="#alpha" x="355" y="240" fill="url(#grad6d)"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

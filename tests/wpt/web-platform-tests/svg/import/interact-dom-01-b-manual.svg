@@ -1,0 +1,133 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360" onload="initTest(evt)"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: interact-dom-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#DOMInterfaces">
+        <p>
+          Verify basic support for DOM event listener registration. The root svg element
+          has an onload handler where a click event listener is registered on group element 'Start Button'.
+        </p>
+      <p>
+        If UI events listener registration is supported (and UI events),
+        when the user clicks on the button a text node is inserted reading "Event Listeners supported".
+      </p>
+      <p>
+        At the end of the test, the start test button is changed to green,
+        and the click event listener is removed from the the start button.
+      </p>
+      <p>
+        Subsequent clicks on the start button should cause no effect if
+        the event listener has been removed successfully.
+        If additional lines of text appear in the document that say "Event Listeners supported",
+        then the implementation has not successfully removed the event listener.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+	<p>This test requires user interaction. Run the test, then click on the grey rectangle.
+	  If it turns green, click it again.
+	</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        After clicking once on the button, the rectangle should have a green fill 
+	and the text "Event listeners supported" should appear, once.
+        
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-dom-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <script type="text/ecmascript">
+      <![CDATA[
+
+      var svg_ns = "http://www.w3.org/2000/svg"
+      var doc;
+      var content;
+      var startButton;
+      var buttonRect;
+      var yLocation = 280;
+      //
+      // onload handler for top level svg element. Sets a UI event listener for
+      // the test start button.
+      //
+      function initTest(evt){
+      // Get Document
+      var target = evt.target;
+      doc = target.ownerDocument;
+      content = doc.getElementById("test-body-content");
+
+      // Get start rect and add a UI listener
+      startButton = doc.getElementById("startButton");
+      buttonRect = doc.getElementById("buttonRect");
+      startButton.addEventListener("click", uiEventDetected, false);
+      }
+
+      //
+      // click handler for 'startButton' rect element.
+      //
+      function uiEventDetected(evt) {
+      //
+      // Add an element to show that UI event was detected
+      //
+      var newText = doc.createElementNS(svg_ns, 'text');
+      newText.setAttribute('x', '5');
+      newText.setAttribute('y', yLocation);
+      newText.setAttribute('font-size', '40');
+      var message = "Event Listeners supported";
+      var textContent = doc.createTextNode(message);
+      newText.appendChild(textContent);
+      content.appendChild(newText);
+
+      startButton.removeEventListener("click", uiEventDetected, false);
+
+      // Make start button green
+      buttonRect.setAttribute("fill", "#88ff88");
+      buttonRect.setAttribute("stroke", "black");
+
+      // If test does not successfully remove the event listener, then
+      // a second click will cause a subsequent text string to appear 50 units
+      // below the first new text string.
+      yLocation = yLocation + 50;
+      }
+
+    ]]>
+    </script>
+
+    <!-- ===================================================================== -->
+    <!-- Start button                                                          -->
+    <!-- ===================================================================== -->
+    <g id="startButton">
+      <rect id="buttonRect" x="65" y="20" width="350" height="200" fill="#dddddd" stroke="black"/>
+      <text font-size="54" x="120" y="130">Start Test</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

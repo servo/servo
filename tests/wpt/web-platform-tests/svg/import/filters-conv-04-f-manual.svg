@@ -1,0 +1,163 @@
+<svg id="svg-root" width="100%" height="100%" 
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="ED" owner="AG" status="created"
+    version="$Revision: 1.4 $" testname="$RCSfile: filters-conv-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feConvolveMatrixElementBiasAttribute">
+      <p>
+        Tests the 'bias' attribute on 'feConvolveMatrix'.
+      </p>
+      <p>
+        The test uses a raster image and a vector graphic to test the effect
+        that the 'bias' attribute on 'feConvolveMatrix' has.
+      </p>
+      <p>
+        The first row of images in the test are four identical raster images.
+        The first image is the original unfiltered image. The second has the
+        filter kernel applied with no bias value specified. The third and fourth
+        images both have a bias value specified for the filter.
+      </p>
+      <p>
+        The second row of images in the test are four rectangle objects with a
+        gradient fill. The gradient fill transitions from opaque green to
+        transparent green. The first image is the original unfiltered graphic. The
+        second graphic has a filter kernel applied with no bias value specified.
+        The third and forth images both have a bias value specified for the
+        filter.
+      </p>
+      <p>
+        Behind each filter result there's a checkerboard pattern placed, to help
+        verify that there's transparency in the lower row, but not in the upper.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p>
+      <ul>
+        <li>
+          The raster images in the top row appears more faded and coarse for each instance
+          further to the right.
+          <ul>
+            <li>The first image (left most) must be smooth and clear</li>
+            <li>
+              The second image (second from the left) must contain the same colours as
+              the first image but have course outlining around the objects.
+            </li>
+            <li>
+              The third image (second from the right) must contain colour that is very faded
+              but have course outlining around the faded objects.
+            </li>
+            <li>
+              The last image (right most) must be completed faded such that all the colour
+              in the first image appears to have gone to white. Some course outlining should
+              appear in the image.
+            </li>
+          </ul>
+        </li>
+        <li>
+          The top row has no checkerboard pattern visible where the filtered results are.
+        </li>
+        <li>
+          The rectangle with a green gradient going from left to right appears
+          more faded for each instance further to the right.
+          <ul>
+            <li>
+              The first image (left most) must be a rect filled with a linear gradient that 
+              transitions from solid green to transparent green.
+            </li>
+            <li>The second image (second from the left) must be identical to the first image.</li>
+            <li>
+              The third image (second from the right) must contain a linear gradient that transitions
+              from a solid faded green to transparent faded green.
+            </li>
+            <li>
+              The last image (right most) must contain a linear gradient that transitions from
+              solid white to transparent white.
+            </li>
+          </ul>
+        </li>
+        <li>
+          The bottom row must show 95% of the checkerboard pattern where the filtered results are
+          since the gradients are transparent.
+        </li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-conv-04-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <filter id="convolve-without-bias" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false"/>
+      </filter>
+      <filter id="convolve-with-bias05" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" bias="0.5"/>
+      </filter>
+      <filter id="convolve-with-bias1" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" bias="1"/>
+      </filter>
+
+      <linearGradient id="test_linear_gradient" gradientUnits="objectBoundingBox" x1="0" x2="1" y1="0" y2="0">
+        <stop stop-color="#00FF00" stop-opacity="1" offset="0"/>
+        <stop stop-color="#00FF00" stop-opacity="0" offset="1"/>
+      </linearGradient>
+    </defs>
+
+    <g transform="translate(0, 20)">
+      <image x="12" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="127" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="242" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="357" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+
+      <image x="10" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" />
+      <image x="125" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" filter="url(#convolve-without-bias)"/>
+      <image x="240" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" filter="url(#convolve-with-bias05)"/>
+      <image x="355" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" filter="url(#convolve-with-bias1)"/>
+    </g>
+
+    <g transform="translate(0, 110)">
+      <image x="11" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="126" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="241" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="356" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+            
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="10" y="50" width="100" height="100"/>
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="125" y="50" width="100" height="100" filter="url(#convolve-without-bias)"/>
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="240" y="50" width="100" height="100" filter="url(#convolve-with-bias05)"/>
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="355" y="50" width="100" height="100" filter="url(#convolve-with-bias1)"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

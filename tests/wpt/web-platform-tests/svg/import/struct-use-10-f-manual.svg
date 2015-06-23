@@ -1,0 +1,130 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="DOH" author="ED" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: struct-use-10-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#UseElement">
+      <p>
+        Properties are inherited according to the 'use' element rules, CSS selectors only apply to the original elements
+        and not the (conceptually) cloned DOM tree.
+      </p>      
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+    	<p>
+    		Run the test. No interaction required.
+    	</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if the three rectangles have green fill and a thick darkgreen stroke. If any red shows the test has failed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-use-10-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <style type="text/css">
+
+      /* low specificity */
+      defs &gt; rect  {
+      fill:red;
+      }
+
+      /* applies because of higher specificity */
+      .testclass1 {
+      fill:green;
+      }
+
+      /* does not apply because selectors don't apply to the (conceptually) cloned subtree */
+      #testid1 .testclass1 {
+      fill: red;
+      }
+
+      /* does not apply because of case sensitivity of class value */
+      g .testClass1 {
+      fill:red;
+      }
+
+      /* does not apply because of lower specificity */
+      #g1 .testclass2
+      {
+      fill: red
+      }
+
+      /* does not apply to the used rect, because there is no inheritance from the original tree into the used subtree */
+      g#g1 {
+      visibility: hidden
+      }
+
+      /* applies because of higher specificity */
+      #testid2 {
+      stroke:darkgreen;
+      }
+
+      /* no effect for the used rect, can be referenced anyway into the used subtree */
+      g#g2 {
+      display: none;
+      }
+
+      /* applies directly to the original (referenced) rect element */
+      .testclass3 &gt; rect {
+      fill: green;
+      stroke:darkgreen;
+      }
+
+      /* does not apply to the used rect, because there is no direct access with selectors into the used subtree */
+      #testid3 rect {
+      stroke:red;
+      }
+      #testid3 rect#testrect3 {
+      fill:red;
+      }
+    </style>
+
+    <defs>
+      <rect id="testrect1" class="testclass1" width="100" height="100"/>
+      <g id="g1" style="fill:red">
+        <rect id="testrect2" class="testclass2" width="100" height="100" style="fill:green"/>
+      </g>
+      <g id="g2" class="class testclass3 g">
+        <rect id="testrect3" width="100" height="100" stroke="red"/>
+      </g>
+    </defs>
+
+    <text x="50%" y="3em" style="text-anchor:middle; fill:black">CSS selectors and use element</text>
+
+    <circle class="indicator" cx="240" cy="150" r="25" fill="red"/>
+    <circle class="indicator" cx="390" cy="150" r="25" fill="red"/>
+
+    <use id="testid1" xlink:href="#testrect1" x="40" y="100" style="stroke:darkgreen" stroke-width="10"/>
+    <use id="testid2" xlink:href="#testrect2" x="190" y="100" stroke="red" stroke-width="10"/>
+    <use id="testid3" xlink:href="#testrect3" x="340" y="100" style="stroke:red" stroke-width="10"/>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

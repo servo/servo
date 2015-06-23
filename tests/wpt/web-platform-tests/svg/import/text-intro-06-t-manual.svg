@@ -1,0 +1,96 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" author="CL" status="accepted"
+    version="$Revision: 1.10 $" testname="$RCSfile: text-intro-06-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#Introduction">
+        <p>
+          This test ensures that mandatory ligatures in Arabic are displayed.
+          This test uses WOFF fonts for rendering, with platform fonts for fallback.
+        </p>
+        <p>
+          There are two subtests. The first
+          requires an isolate lam-alef ligature and the second requires
+          a right-joining lam-alef ligature.
+        </p>
+        <p>
+          The first subtest has the word for  'tools', آلات
+          0622:   آ  ARABIC LETTER ALEF WITH MADDA ABOVE
+          0644:   ل  ARABIC LETTER LAM
+          0627:   ا  ARABIC LETTER ALEF
+          062A:   ت  ARABIC LETTER TEH
+        </p>
+        <p>
+          The second subtest has the word for 'three', ثلاثة
+          062B:   ث  ARABIC LETTER THEH
+          0644:   ل  ARABIC LETTER LAM
+          0627:   ا  ARABIC LETTER ALEF
+          062B:   ث  ARABIC LETTER THEH
+          0629:   ة  ARABIC LETTER TEH MARBUTA
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if subtests are displayed as following:
+      </p>
+      <ul>
+        <li>The first subtest has the word for 'tools', آلات</li>
+        <li>The second subtest has the word for 'three', ثلاثة</li>
+      </ul>
+      <p>In the first subtest, there must be an isolate lam-alef ligature 
+      and in the second subtest there must be  a right-joining lam-alef 
+      ligature, (so that them, lam and alef are all connected), as in the reference image.
+      </p>
+      <p>The precise glyph shapes will depend on which font was used for rendering,
+      and do not affect the pass criteria. Only the presence of the 
+      mandatory ligatures is tested here.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-intro-06-t.svg,v $</title>
+  <style type="text/css">
+    @font-face {
+      font-family: Scheherezade;
+      src: url(woffs/ScheherazadeRegOT.woff) format("woff")
+      }
+  </style>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-family="Kayrawan, Scheherezade, Andalus, Diwani Letter, serif" font-size="60" direction="rtl">
+      <path d="M10,120 L470,120" stroke="#BBB" />
+      <path d="M10,240 L470,240" stroke="#BBB" />
+      <text text-anchor="middle" x="240" y="120" font-size="140" xml:lang="ar" fill="#700">آلات</text>
+      <text text-anchor="middle" x="240" y="240" font-size="140" xml:lang="ar" fill="#700">ثلاثة</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.10 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
