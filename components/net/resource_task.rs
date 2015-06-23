@@ -214,7 +214,7 @@ impl HSTSEntry {
     pub fn is_expired(&self) -> bool {
         match (self.max_age, self.timestamp) {
             (Some(max_age), Some(timestamp)) => {
-                (time::get_time().sec as u64) - timestamp > max_age
+                (time::get_time().sec as u64) - timestamp >= max_age
             },
 
             _ => false
