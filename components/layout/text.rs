@@ -240,19 +240,19 @@ impl TextRunScanner {
                 let run = runs[mapping.text_run_index].clone();
 
                 let requires_line_break_afterward_if_wrapping_on_newlines =
-                    run.text.char_at_reverse(mapping.range.end().get() as usize) == '\n';
+                    run.text.char_at_reverse(mapping.byte_range.end()) == '\n';
                 if requires_line_break_afterward_if_wrapping_on_newlines {
-                    mapping.range.extend_by(CharIndex(-1))
+                    mapping.char_range.extend_by(CharIndex(-1));
                 }
 
                 let text_size = old_fragment.border_box.size;
                 let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
                     run,
-                    mapping.range,
+                    mapping.char_range,
                     text_size,
                     requires_line_break_afterward_if_wrapping_on_newlines);
 
-                let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.range);
+                let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.char_range);
                 let writing_mode = old_fragment.style.writing_mode;
                 let bounding_box_size = bounding_box_for_run_metrics(&new_metrics, writing_mode);
                 new_text_fragment_info.content_size = bounding_box_size;
@@ -381,7 +381,9 @@ impl RunInfo {
 #[derive(Copy, Clone, Debug)]
 struct RunMapping {
     /// The range of characters within the text fragment.
-    range: Range<CharIndex>,
+    char_range: Range<CharIndex>,
+    /// The range of byte indices within the text fragment.
+    byte_range: Range<usize>,
     /// The index of the unscanned text fragment that this mapping corresponds to.
     old_fragment_index: usize,
     /// The index of the text run we're going to create.
@@ -395,7 +397,9 @@ impl RunMapping {
     fn new(run_info_list: &[RunInfo], current_run_info: &RunInfo, fragment_index: usize)
            -> RunMapping {
         RunMapping {
-            range: Range::new(CharIndex(current_run_info.character_length as isize), CharIndex(0)),
+            char_range: Range::new(CharIndex(current_run_info.character_length as isize),
+                                   CharIndex(0)),
+            byte_range: Range::new(0, 0),
             old_fragment_index: fragment_index,
             text_run_index: run_info_list.len(),
         }
@@ -432,7 +436,9 @@ impl RunMapping {
             return
         }
 
-        self.range.extend_by(CharIndex(character_count as isize));
+        let new_byte_length = run_info.text.len();
+        self.byte_range = Range::new(old_byte_length, new_byte_length - old_byte_length);
+        self.char_range.extend_by(CharIndex(character_count as isize));
         mappings.push(self)
     }
 }
