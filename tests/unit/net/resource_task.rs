@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net::resource_task::{
-    new_resource_task, parse_hostsfile, replace_hosts, HSTSList, HSTSEntry
+    new_resource_task, parse_hostsfile, replace_hosts, HSTSList, HSTSEntry, secure_load_data
 };
 use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::ProgressMsg;
@@ -98,11 +98,11 @@ fn test_push_entry_to_hsts_list_should_update_existing_domain_entrys_include_sub
         entries: vec!(HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap())
     };
 
-    assert!(list.always_secure("servo.mozilla.org"));
+    assert!(list.is_host_secure("servo.mozilla.org"));
 
     list.push(HSTSEntry::new("mozilla.org".to_string(), false, None).unwrap());
 
-    assert!(!list.always_secure("servo.mozilla.org"))
+    assert!(!list.is_host_secure("servo.mozilla.org"))
 }
 
 #[test]
@@ -122,11 +122,11 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
         entries: Vec::new()
     };
 
-    assert!(!list.always_secure("mozilla.org"));
+    assert!(!list.is_host_secure("mozilla.org"));
 
     list.push(HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap());
 
-    assert!(list.always_secure("mozilla.org"));
+    assert!(list.is_host_secure("mozilla.org"));
 }
 
 #[test]
@@ -163,61 +163,61 @@ fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
 }
 
 #[test]
-fn test_hsts_list_with_no_entries_does_not_always_secure() {
+fn test_hsts_list_with_no_entries_does_not_is_host_secure() {
     let hsts_list = HSTSList {
         entries: Vec::new()
     };
 
-    assert!(hsts_list.always_secure("mozilla.org") == false);
+    assert!(hsts_list.is_host_secure("mozilla.org") == false);
 }
 
 #[test]
-fn test_hsts_list_with_exact_domain_entry_is_always_secure() {
+fn test_hsts_list_with_exact_domain_entry_is_is_host_secure() {
     let hsts_list = HSTSList {
         entries: vec![HSTSEntry::new("mozilla.org".to_string(), false, None).unwrap()]
     };
 
-    assert!(hsts_list.always_secure("mozilla.org") == true);
+    assert!(hsts_list.is_host_secure("mozilla.org") == true);
 }
 
 #[test]
-fn test_hsts_list_with_subdomain_when_include_subdomains_is_true_is_always_secure() {
+fn test_hsts_list_with_subdomain_when_include_subdomains_is_true_is_is_host_secure() {
     let hsts_list = HSTSList {
         entries: vec![HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap()]
     };
 
-    assert!(hsts_list.always_secure("servo.mozilla.org") == true);
+    assert!(hsts_list.is_host_secure("servo.mozilla.org") == true);
 }
 
 #[test]
-fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_always_secure() {
+fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_is_host_secure() {
     let hsts_list = HSTSList {
         entries: vec![HSTSEntry::new("mozilla.org".to_string(), false, None).unwrap()]
     };
 
-    assert!(hsts_list.always_secure("servo.mozilla.org") == false);
+    assert!(hsts_list.is_host_secure("servo.mozilla.org") == false);
 }
 
 #[test]
-fn test_hsts_list_with_subdomain_when_host_is_not_a_subdomain_is_not_always_secure() {
+fn test_hsts_list_with_subdomain_when_host_is_not_a_subdomain_is_not_is_host_secure() {
     let hsts_list = HSTSList {
         entries: vec![HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap()]
     };
 
-    assert!(hsts_list.always_secure("servo-mozilla.org") == false);
+    assert!(hsts_list.is_host_secure("servo-mozilla.org") == false);
 }
 
 #[test]
-fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_always_secure() {
+fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_is_host_secure() {
     let hsts_list = HSTSList {
         entries: vec![HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap()]
     };
 
-    assert!(hsts_list.always_secure("mozilla.org") == true);
+    assert!(hsts_list.is_host_secure("mozilla.org") == true);
 }
 
 #[test]
-fn test_hsts_list_with_expired_entry_is_not_always_secure() {
+fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
     let hsts_list = HSTSList {
         entries: vec![HSTSEntry {
             host: "mozilla.org".to_string(),
@@ -227,51 +227,31 @@ fn test_hsts_list_with_expired_entry_is_not_always_secure() {
         }]
     };
 
-    assert!(!hsts_list.always_secure("mozilla.org"));
+    assert!(!hsts_list.is_host_secure("mozilla.org"));
 }
 
 #[test]
-fn test_make_hsts_secure_does_not_change_explicit_port() {
+fn test_secure_load_data_does_not_change_explicit_port() {
     let load_data = LoadData::new(Url::parse("http://mozilla.org:8080/").unwrap(), None);
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(), false, None).unwrap()]
-    };
-    let secure_load_data = hsts_list.make_hsts_secure(load_data);
+    let secure = secure_load_data(&load_data);
 
-    assert!(secure_load_data.url.port().unwrap() == 8080u16);
+    assert!(secure.url.port().unwrap() == 8080u16);
 }
 
 #[test]
-fn test_make_hsts_secure_doesnt_affect_non_http_schemas() {
+fn test_secure_load_data_does_not_affect_non_http_schemas() {
     let load_data = LoadData::new(Url::parse("file://mozilla.org").unwrap(), None);
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(), false, None).unwrap()]
-    };
-    let secure_load_data = hsts_list.make_hsts_secure(load_data);
+    let secure = secure_load_data(&load_data);
 
-    assert!(&secure_load_data.url.scheme == "file");
+    assert!(&secure.url.scheme == "file");
 }
 
 #[test]
-fn test_make_hsts_secure_sets_secure_schema_on_subdomains_when_include_subdomains_is_true() {
-    let load_data = LoadData::new(Url::parse("http://servo.mozilla.org").unwrap(), None);
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap()]
-    };
-    let secure_load_data = hsts_list.make_hsts_secure(load_data);
-
-    assert!(&secure_load_data.url.scheme == "https");
-}
-
-#[test]
-fn test_make_hsts_secure_forces_an_http_host_in_list_to_https() {
+fn test_secure_load_data_forces_an_http_host_in_list_to_https() {
     let load_data = LoadData::new(Url::parse("http://mozilla.org").unwrap(), None);
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(), false, None).unwrap()]
-    };
-    let secure_load_data = hsts_list.make_hsts_secure(load_data);
+    let secure = secure_load_data(&load_data);
 
-    assert!(&secure_load_data.url.scheme == "https");
+    assert!(&secure.url.scheme == "https");
 }
 
 #[test]

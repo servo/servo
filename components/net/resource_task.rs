@@ -243,7 +243,7 @@ impl HSTSList {
         }
     }
 
-    pub fn always_secure(&self, host: &str) -> bool {
+    pub fn is_host_secure(&self, host: &str) -> bool {
         // TODO - Should this be faster than O(n)? The HSTS list is only a few
         // hundred or maybe thousand entries...
         //
@@ -291,25 +291,23 @@ impl HSTSList {
             });
         }
     }
+}
 
-    pub fn make_hsts_secure(&self, load_data: LoadData) -> LoadData {
-        if let Some(h) = load_data.url.domain() {
-            if self.always_secure(h) {
-                match &*load_data.url.scheme {
-                    "http" => {
-                        let mut secure_load_data = load_data.clone();
-                        let mut secure_url = load_data.url.clone();
-                        secure_url.scheme = "https".to_string();
-                        secure_load_data.url = secure_url;
+pub fn secure_load_data(load_data: &LoadData) -> LoadData {
+    if let Some(h) = load_data.url.domain() {
+        match &*load_data.url.scheme {
+            "http" => {
+                let mut secure_load_data = load_data.clone();
+                let mut secure_url = load_data.url.clone();
+                secure_url.scheme = "https".to_string();
+                secure_load_data.url = secure_url;
 
-                        return secure_load_data
-                    },
-                    _ => ()
-                };
-            }
+                secure_load_data
+            },
+            _ => load_data.clone()
         }
-
-        load_data
+    } else {
+        load_data.clone()
     }
 }
 
@@ -416,10 +414,16 @@ impl ResourceManager {
             load_data.preserved_headers.set(UserAgent(ua.clone()));
         });
 
-        match self.hsts_list {
-            Some(ref l) => load_data = l.make_hsts_secure(load_data),
-            _ => ()
-        }
+        load_data = match (self.hsts_list.as_ref(), load_data.url.domain()) {
+            (Some(ref l), Some(ref h)) => {
+                if l.is_host_secure(h) {
+                    secure_load_data(&load_data)
+                } else {
+                    load_data.clone()
+                }
+            },
+            _ => load_data.clone()
+        };
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
                         -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
