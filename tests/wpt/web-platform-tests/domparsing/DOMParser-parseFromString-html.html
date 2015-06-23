@@ -27,7 +27,22 @@ test(function() {
 }, 'Parsing of id attribute');
 
 test(function() {
-    assert_equals(document.documentURI, doc.documentURI,
+    assert_equals(doc.contentType, "text/html")
+}, 'contentType');
+
+test(function() {
+    assert_equals(doc.characterSet, "UTF-8")
+}, 'characterSet');
+
+test(function() {
+    assert_equals(doc.inputEncoding, "UTF-8")
+}, 'inputEncoding');
+
+test(function() {
+    var url = document.URL;
+    assert_equals(doc.documentURI, url,
+                  'The document must have a URL value equal to the URL of the active document.');
+    assert_equals(doc.URL, url,
                   'The document must have a URL value equal to the URL of the active document.');
 }, 'URL value');
 
@@ -36,4 +51,10 @@ test(function() {
                   'The document must have a location value of null.');
 }, 'Location value');
 
+test(function() {
+    var soup = "<!DOCTYPE foo></><foo></multiple></>";
+    var htmldoc = new DOMParser().parseFromString(soup, "text/html");
+    assert_equals(htmldoc.documentElement.localName, "html");
+    assert_equals(htmldoc.documentElement.namespaceURI, "http://www.w3.org/1999/xhtml");
+}, "DOMParser parses HTML tag soup with no problems");
 </script>

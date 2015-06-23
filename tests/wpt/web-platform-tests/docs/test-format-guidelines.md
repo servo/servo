@@ -305,18 +305,28 @@ met in order to be included in an official specification testsuite.
 
 * [Metadata](css-metadata.html)
 
-## Test Lint
+## Lint tool
 
-A lint tool is available to catch common mistakes in tests. It may be
-run from the web-platform-tests home directory using:
+We have a lint tool for catching common mistakes in test files. You can run
+it manually by starting the `lint` executable from the root of your local
+web-platform-tests working directory like this:
 
-    python tools/script/lint.py
+```
+./lint
+```
 
-The lint is run automatically on every pull request and any violations
-of the rules will be regarded as an error. In order to silence
-unwanted linter errors, add the error to the whitelist in
-`tools/scripts/lint.whitelist`.
+The lint tool is also run automatically for every submitted pull request,
+and reviewers will not merge branches with tests that have lint errors, so
+you must fix any errors the lint tool reports. For details on doing that,
+see the [lint-tool documentation][lint-tool].
 
+But in the unusual case of error reports for things essential to a certain
+test or that for other exceptional reasons shouldn't prevent a merge of a
+test, update and commit the `lint.whitelist` file in the web-platform-tests
+root directory to suppress the error reports. For details on doing that,
+see the [lint-tool documentation][lint-tool].
+
+[lint-tool]: ./lint-tool.html
 [reftests]: ./reftests.html
 [test-templates]: ./test-templates.html
 [requirement-flags]: ./test-templates.html#requirement-flags

@@ -1,0 +1,100 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="DJ" author="CL" status="issue"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-85-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+        <p>
+          The first subtest tests animateColor with 'to' and 'from' values including 
+          currentColor. The second subtest checks that the value of currentColor is the
+           current animated value of the color property, by animating the color property 
+           at the same time as animating fill with a 'from' or 'to' value of currentColor.
+        </p>
+        <!-- moved from accepted to issue pending verification of correct behaviour for lower rect on second subtest -->
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+<p>Run the test. No interaction required.
+</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The first subtest is passed if all
+         four  rectangles at the top  smoothly animate from black to green over 5 seconds.
+        During this time the bottom two rectangles must be blue.</p>
+        <p>The second subtest, which starts after the first one completes,  is passed if 
+        the bottom two rectangles  smoothly animate from green (at five seconds), through 
+        dark cyan (at 7.5 seconds), to cyan (at 10 seconds and above). Colored circles 
+        indicate the appropriate colors at these times.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-85-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+  <g id="subtest_1">
+    <rect fill="#f00" x="30" y="50" height="100" width="90">
+    <!-- basic test from two numeric hex values -->
+      <animateColor attributeName="fill" from="#000000" to="#008000" begin="0s" dur="5s" fill="freeze"/>
+    </rect>
+    <rect fill="#f00" x="140" y="50" height="100" width="90">
+    <!-- same, check color keywords accepted in animations -->
+      <animateColor attributeName="fill" from="#000000" to="green" begin="0s" dur="5s" fill="freeze"/>
+    </rect>
+    <rect color="green" fill="#f00" x="250" y="50" height="100" width="90">
+    <!-- same, static value of currentColor in 'to' -->
+      <animateColor attributeName="fill" from="#000000" to="currentColor" begin="0s" dur="5s" fill="freeze"/>
+    </rect>
+    <rect color="black" fill="#f00" x="360" y="50" height="100" width="90">
+    <!-- same, static value of currentColor in 'from' -->
+      <animateColor attributeName="fill" to="#008000" from="currentColor" begin="0s" dur="5s" fill="freeze"/>
+    </rect>
+    </g>
+    <g id="subtest_2">
+    <rect color="black" fill="blue" x="100" y="180" height="60" width="280">
+      <animateColor attributeName="color" to="cyan" from="blue" begin="5s" dur="5s" fill="freeze"/>
+      <animateColor attributeName="fill" from="#008000" to="currentColor" begin="5s" dur="5s" fill="freeze"/>
+    </rect>
+    <rect color="black" fill="blue" x="100" y="245" height="60" width="280">
+      <animateColor attributeName="fill" from="#008000" to="currentColor" begin="5s" dur="5s" fill="freeze"/>
+      <animateColor attributeName="color" to="cyan" from="blue" begin="5s" dur="5s" fill="freeze"/>
+    </rect>
+    <!--
+            color     fill      
+      4s    #000000   #0000ff   
+      5s    #0000ff   #008000
+      7.5s  #0080ff   #008080
+      10s   #00ffff   #00ffff
+      -->
+    <circle r="30" cx="100" cy="240" fill="#0000ff"/>
+    <circle r="30" cx="193" cy="240" fill="#008000"/>
+    <circle r="30" cx="287" cy="240" fill="#008080"/>
+    <circle r="30" cx="380" cy="240" fill="#00ffff"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

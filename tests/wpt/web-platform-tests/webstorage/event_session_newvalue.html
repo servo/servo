@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
  <head>
-  <title>Web Storage</title>
+  <title>WebStorage Test: sessionStorage event - newValue</title>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script>
@@ -17,9 +17,10 @@
     <h1>event_session_newValue</h1>
     <div id="log"></div>
     <script>
+        var t = async_test("newvalue property test of session event");
+
         test(function() {
             sessionStorage.clear();
-            var t = async_test("newvalue property test of session event");
             var expected = ['user1', 'user2', null]
             function onStorageEvent(event) {
                 t.step(function() {
@@ -36,7 +37,7 @@
             el.setAttribute('id', 'ifrm');
             el.setAttribute('src', 'iframe/session_change_item_iframe.html');
             document.body.appendChild(el);
-        });
+        }, "Session event is fired due to an invocation of the setItem(), clear() methods.");
     </script>
  </body>
 </html>

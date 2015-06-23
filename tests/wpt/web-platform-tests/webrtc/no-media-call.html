@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-This test uses no media, and thus does not require fake media devices.
+This test uses the legacy callback API with no media, and thus does not require fake media devices.
 -->
 
 <html>
@@ -20,8 +20,7 @@ This test uses no media, and thus does not require fake media devices.
   <script src="/common/vendor-prefix.js"
           data-prefixed-objects=
               '[{"ancestors":["window"], "name":"RTCPeerConnection"},
-                {"ancestors":["window"], "name":"RTCSessionDescription"},
-                {"ancestors":["window"], "name":"RTCIceCandidate"}]'
+                {"ancestors":["window"], "name":"RTCSessionDescription"}]'
     >
   </script>
   <script type="text/javascript">
@@ -31,7 +30,6 @@ This test uses no media, and thus does not require fake media devices.
   var gSecondConnection = null;
 
   var onOfferCreated = test.step_func(function(offer) {
-    // TODO: Switch to promise-based interface.
     gFirstConnection.setLocalDescription(offer, ignoreSuccess,
                                          failed('setLocalDescription first'));
 
@@ -45,7 +43,6 @@ This test uses no media, and thus does not require fake media devices.
     var parsedOffer = new RTCSessionDescription({ type: 'offer',
                                                   sdp: offerSdp });
     // These functions use the legacy interface extensions to RTCPeerConnection.
-    // TODO: Switch to promise-based interfaces.
     gSecondConnection.setRemoteDescription(parsedOffer,
       function() {
         gSecondConnection.createAnswer(onAnswerCreated,
@@ -72,15 +69,13 @@ This test uses no media, and thus does not require fake media devices.
   var onIceCandidateToFirst = test.step_func(function(event) {
     // If event.candidate is null = no more candidates.
     if (event.candidate) {
-      var candidate = new RTCIceCandidate(event.candidate);
-      gSecondConnection.addIceCandidate(candidate);
+      gSecondConnection.addIceCandidate(event.candidate);
     }
   });
 
   var onIceCandidateToSecond = test.step_func(function(event) {
     if (event.candidate) {
-      var candidate = new RTCIceCandidate(event.candidate);
-      gFirstConnection.addIceCandidate(candidate);
+      gFirstConnection.addIceCandidate(event.candidate);
     }
   });
 
@@ -90,6 +85,8 @@ This test uses no media, and thus does not require fake media devices.
 
   var onIceConnectionStateChange = test.step_func(function(event) {
     assert_equals(event.type, 'iceconnectionstatechange');
+    assert_not_equals(gFirstConnection.iceConnectionState, "failed", "iceConnectionState of first connection");
+    assert_not_equals(gSecondConnection.iceConnectionState, "failed", "iceConnectionState of second connection");
     var stateinfo = document.getElementById('stateinfo');
     stateinfo.innerHTML = 'First: ' + gFirstConnection.iceConnectionState
                         + '<br>Second: ' + gSecondConnection.iceConnectionState;
@@ -139,7 +136,6 @@ This test uses no media, and thus does not require fake media devices.
 
     // The offerToReceiveVideo is necessary and sufficient to make
     // an actual connection.
-    // TODO: Use a promise-based API. This is legacy.
     gFirstConnection.createOffer(onOfferCreated, failed('createOffer'),
         {offerToReceiveVideo: true});
   });

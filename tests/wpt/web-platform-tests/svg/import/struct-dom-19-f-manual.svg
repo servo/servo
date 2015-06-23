@@ -1,0 +1,92 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="CM" author="Microsoft" status="reviewed" version="$Revision: 1.3 $" testname="$RCSfile: struct-dom-19-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/struct.html#InterfaceSVGElementInstanceList">
+      <p>
+        Test that the 'SVGElementInstanceList' element's 'length' attribute correctly reflects the implied element hierarchy on recursive 'use' instances.
+      </p>
+      <p>
+        The test has a 'use' element referencing a 'g' element with another 'use' element referencing the 'use' element. The 'instanceRoot' of the
+        most indirect 'use' element is used to access the corresponding 'SVGElementInstance'. The test passes if the 'childNodes' attribute's 'length'
+        attribute for the most indirect 'SVGElementInstance' has a value of '1' and the 'childNodes' attribute's 'length' attribute for the most direct
+        'SVGElementInstance' has a value of '0'.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-19-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <rect id="testElem" />
+    <use xlink:href="#testElem" id="testUse1" />
+    <use xlink:href="#testUse1" id="testUse2" />
+    <g transform="translate(100,100)" font-size="80">
+      <text id="failText" fill="red">FAIL</text>
+      <text id="passText" fill="green" display="none">PASS</text>
+    </g>
+    <script type="text/javascript"><![CDATA[
+        try
+        {
+            var passedCount = 0;
+            var testInstanceRoot1 = document.getElementById("testUse1").instanceRoot;
+            var testInstanceRoot2 = document.getElementById("testUse2").instanceRoot;
+
+            if (0 == testInstanceRoot1.childNodes.length)
+            {
+                passedCount++;
+            }
+
+            if (1 == testInstanceRoot2.childNodes.length)
+            {
+                passedCount++;
+            }
+
+            if (2 == passedCount)
+            {
+                document.getElementById("failText").setAttribute("display", "none");
+                document.getElementById("passText").setAttribute("display", "inline");
+            }
+        }
+        catch(ex)
+        {
+
+          //alert('ERROR: ' + ex.message);
+
+        }]]>
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

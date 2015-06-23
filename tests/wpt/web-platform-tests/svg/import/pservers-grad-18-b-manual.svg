@@ -1,0 +1,114 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CC" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: pservers-grad-18-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+        <p>
+          This test shows rectangles filled with gradient.
+          Several gradients are defined, with two stops:
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+      <p>
+        For the top-left rectangle's gradient:
+        The first stop defines a fully-opaque green color.
+        The second stop explicitly inherits (i.e. using the 'inherit' keyword) its stop-color.        
+      </p>
+      <p>
+        For the top-right rectangle's gradient:
+        The first stop defines a fully-opaque green color.
+        The second stop defines a green stop-color but explicitly inherits (i.e. using the 'inherit' keyword) the stop-opacity.        
+      </p>
+      <p>
+        For the bottom-left rectangle's gradient:
+        The first stop defines a fully-opaque green color.
+        The second stop does not specify the stop-color and the stop-opacity.
+        Since both properties are not inherited, the initial value should be used.        
+      </p>
+      <p>
+        For the bottom-right rectangle's gradient:
+        The first stop defines a fully-opaque green color.
+        The second stop specifies the stop-color using the 'currentColor' keyword.        
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The result should be:
+      </p>
+      <p>
+        The top-left rectangle is filled with a gradient from green to pink since
+        the stop-color is inherited from the location of the gradient definition.
+      </p>
+      <p>
+        The top-right rectangle filled in green with a gradient opacity.
+      </p>
+      <p>
+        The lower-left rectangle filled with a gradient going from fully-opaque green to fully-opaque black.
+      </p>
+      <p>
+        The lower-right rectangle filled with a gradient going from fully-opaque green to fully-opaque yellow.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-18-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="g0" stop-color="#f48" stop-opacity="0.5" color="yellow">
+      <linearGradient id="MyGradient1" stop-color="inherit">
+        <stop offset="0" stop-color="green" stop-opacity="1"/>
+        <stop offset="1" stop-color="inherit" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient id="MyGradient2" stop-opacity="inherit">
+        <stop offset="0" stop-color="green" stop-opacity="1"/>
+        <stop offset="1" stop-color="green" stop-opacity="inherit"/>
+      </linearGradient>
+      <linearGradient id="MyGradient3">
+        <stop offset="0" stop-color="green" stop-opacity="1"/>
+        <stop offset="1"/>
+      </linearGradient>
+      <linearGradient id="MyGradient4">
+        <stop offset="0" stop-color="green" stop-opacity="1"/>
+        <stop offset="1" stop-color="currentColor" stop-opacity="1"/>
+      </linearGradient>
+    </g>
+    <g id="g1" stop-color="blue">
+      <rect id="r1" fill="url(#MyGradient1)" width="100" height="100" x="50" y="50"/>
+    </g>
+    <g id="g2" stop-opacity="1">
+      <rect id="r2" fill="url(#MyGradient2)" width="100" height="100" x="200" y="50"/>
+    </g>
+    <g id="g3" stop-opacity="1" stop-color="blue">
+      <rect id="r3" fill="url(#MyGradient3)" width="100" height="100" x="50" y="200"/>
+    </g>
+    <g id="g4" color="blue">
+      <rect id="r4" fill="url(#MyGradient4)" width="100" height="100" x="200" y="200"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,99 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test inheritance of animated properties.
+      </p>
+      <p>
+        Three colored text strings appear. All three are inside of the same
+        'g' element. The 'g' element has its 'font-size' animated from 30 to
+        40, and its 'fill' from #00f (blue) to #070 (green).
+      </p>
+      <p>
+        The first colored 'text' element has the font-size set, so the
+        animation of the parent 'g' only affects the fill color. The second
+        has the fill set and font-size set, so no inherited values are
+        used. The font-size and fill color stay constant. The third colored
+        'text' element has neither of these properties specified and thus
+        inherits both animated values - the fill color changes and the text
+        grows in size.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p> 
+      <ul>
+        <li>the topmost line shows the text "Sample 123" that animates its fill-color smoothly from blue to green over the course of six seconds</li>
+        <li>the middle line shows the text "Sample 123" in a larger font-size than the first line, in blue fill-color that doesn't animate</li>
+        <li>the bottommost line shows the text "Sample 123" in the same font-size as the topmost line, then smoothly animating the font-size 
+          to be larger than the middle line over the course of six seconds. At the same time the fill-color is smoothly animated from blue to green</li>
+        <li>after six seconds the rendered result matches the reference image</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font id="MyDecFont" horiz-adv-x="466">
+      <font-face font-family="MyDecFont"/>
+      <missing-glyph horiz-adv-x="233" d="M 50 0 L50 700 200 700 200 0 z"/>
+      <glyph unicode=" " glyph-name="space" horiz-adv-x="233"/>
+      <glyph unicode="1" glyph-name="one" horiz-adv-x="558" d="M458 716L100 534V428L357 552V97H241V380L140 328V0H458V716Z"/>
+      <glyph unicode="2" glyph-name="two" horiz-adv-x="585" d="M69 509Q82 523 102 541T147 575T203 603T268 614Q311 614 342 599T392 560T421 505T430 443Q430 420 423 398T405 352L343 201H444L492 309Q508 345 519 379T531 448Q531 504 511 552T454 635T369 691T262 711Q231 711 204 704T152 684T106 655T69 623V509ZM535 97H187L309 422Q316 441 315 457T306 483T287 500T265 506Q261 506 254 505T239 499T224 485T211 461L50 0H535V97Z"/>
+      <glyph unicode="3" glyph-name="three" horiz-adv-x="542" d="M58 553Q109 588 148 601T220 614Q255 614 282 604T328 575T356 535T366 488Q366 475 364 460T355 429T336 397T302 368Q311 363 325 353T352 326T376 286T386 232Q386 203 376 177T345 130T295 98T227 86Q179 86 134 104T50 153V45Q59 38 74 29T111 10T163 -5T231 -11Q296 -11 345 8T426 58T475 131T492 218Q492 251 486 276T469 320T446 354T421 378Q438 396 454 425T470 503Q470 546 454 584T406 650T332 695T233 711Q179 711 137 696T58 655V553ZM156 255Q156
+        229 173 212T217 194Q243 194 260 211T278 255Q278 281 261 298T217 316Q191 316 174 299T156 255ZM161 467Q161 444 177 428T216 412Q225 412 234 415T252 425T265 442T271 467Q271 491 256 506T216 522Q202 522 192 517T174 503T164 486T161 467Z"/>
+      <glyph unicode="S" glyph-name="S" horiz-adv-x="629" d="M523 658Q479 681 426 696T317 711Q251 711 200 690T113 634T59 551T40 452Q40 404 59 356T114 270T198 210T304 194Q310 195 319 197T336 204T351 219T357 246Q357 261 351 270T337 285T320 291T305 294Q251 300 220 319T172 363T151 411T146 454Q146 478 154 506T183 558T237 598T322 614Q375 614 426 598T523 548V658ZM96 42Q140 19 193 4T302 -11Q368 -11 419 10T506 66T560 149T579 248Q579 296 560 344T505 431T421 490T315 506Q309 505 300 503T282 496T268 480T262
+        454Q262 439 268 430T282 415T299 409T314 406Q368 399 399 380T447 336T468 288T473 246Q473 222 465 194T436 142T382 102T297 86Q244 86 193 102T96 152V42Z"/>
+      <glyph unicode="a" glyph-name="a" horiz-adv-x="578" d="M450 0H548V198Q548 288 522 344T458 433T375 477T292 489Q240 489 194 470T114 418T60 339T40 240Q40 180 63 134T122 55T202 6T291 -11Q311 -11 325 -9T352 -1V96Q341 89 331 86T305 83Q265 83 234 96T182 132T149 183T138 242Q138 275 150 303T183 351T232 383T294 395Q306 395 332 391T384 368T430 311T450 203V0ZM236 239Q236 215 253 198T294 181Q318 181 335 198T352 239Q352 263 335 280T294 297Q270 297 253 280T236 239Z"/>
+      <glyph unicode="m" glyph-name="m" horiz-adv-x="774" d="M40 0H138V231Q138 280 150 312T181 362T223 388T269 395Q294 395 314 388T349 370T374 346T392 318Q407 353 440 374T515 395Q531 395 553 390T596 368T631 319T646 231V0H744V231Q744 248 743 273T735 327T715 385T678 437T619 474T532 489Q504 489 482 484T443 470T412 451T390 431Q358 464 321 476T252 489Q222 489 185 481T116 445T62 367T40 231V0ZM242 0H542V246Q542 275 526 286T493 297Q473 297 459 283T444 246V94H340V246Q340 269 326 283T291 297Q275
+        297 259 286T242 246V0Z"/>
+      <glyph unicode="p" glyph-name="p" horiz-adv-x="552" d="M40 -184H138V192H267Q284 192 300 204T316 239Q316 259 303 272T267 286H40V-184ZM40 384H261Q297 384 325 372T373 340T403 294T414 238Q414 209 403 183T373 137T326 106T264 94H236V0H264Q318 0 363 18T442 69T493 144T512 238Q512 288 494 332T442 408T363 459T263 478H40V384Z"/>
+      <glyph unicode="l" glyph-name="l" horiz-adv-x="380" d="M340 662H40V0H340V94H138V568H242V192H340V662Z"/>
+      <glyph unicode="e" glyph-name="e" horiz-adv-x="530" d="M500 192V227Q500 296 480 346T428 427T354 474T271 489Q221 489 178 470T101 418T49 340T30 243Q30 204 43 161T87 83T171 24T303 0H482V94H298Q250 94 217 108T165 144T137 192T128 244Q128 276 139 303T171 351T218 383T275 395Q301 395 322 386T360 362T386 327T402 286H277Q253 286 240 272T226 239Q226 223 237 208T277 192H500Z"/>
+    </font>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-family="MyDecFont" fill="#00f" stroke="none">
+      <g id="AnimationTarget">
+        <text x="20" y="80" font-size="40">Sample 123</text>
+        <text x="20" y="155" font-size="60" fill="#00f">Sample 123</text>
+        <text x="20" y="250">Sample 123</text>
+        <animate attributeName="font-size" attributeType="CSS" begin="0s" dur="6s" fill="freeze" from="40" to="80"/>
+        <animate attributeName="fill" attributeType="CSS" begin="0s" dur="6s" fill="freeze" from="#00f" to="#070"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

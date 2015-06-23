@@ -7,6 +7,8 @@
 
 ## Whitespace rules that we can't enforce yet ##
 
+CR AT EOL: svg/import/*
+
 INDENT TABS: .gitmodules
 INDENT TABS: app-uri/*
 INDENT TABS: conformance-checkers/*
@@ -18,6 +20,7 @@ INDENT TABS: media-source/*
 INDENT TABS: old-tests/*
 INDENT TABS: pointerlock/*
 INDENT TABS: shadow-dom/*
+INDENT TABS: svg/import/*
 INDENT TABS: tools/*
 INDENT TABS: touch-events/*
 INDENT TABS: web-animations/*
@@ -39,6 +42,7 @@ TRAILING WHITESPACE: old-tests/*
 TRAILING WHITESPACE: pointerevents/*
 TRAILING WHITESPACE: progress-events/*
 TRAILING WHITESPACE: shadow-dom/*
+TRAILING WHITESPACE: svg/import/*
 TRAILING WHITESPACE: tools/*
 TRAILING WHITESPACE: webaudio/*
 TRAILING WHITESPACE: webdriver/*

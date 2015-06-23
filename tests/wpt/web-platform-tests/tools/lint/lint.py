@@ -111,6 +111,10 @@ class W3CTestOrgRegexp(Regexp):
     pattern = "w3c\-test\.org"
     error = "W3C-TEST.ORG"
 
+class Webidl2Regexp(Regexp):
+    pattern = "webidl2\.js"
+    error = "WEBIDL2.JS"
+
 class PrintRegexp(Regexp):
     pattern = "print(?:\s|\s*\()"
     error = "PRINT STATEMENT"
@@ -121,6 +125,7 @@ regexps = [item() for item in
             TabsRegexp,
             CRRegexp,
             W3CTestOrgRegexp,
+            Webidl2Regexp,
             PrintRegexp]]
 
 def check_regexp_line(path, f):

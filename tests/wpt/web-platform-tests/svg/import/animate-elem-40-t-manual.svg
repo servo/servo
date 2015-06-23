@@ -1,0 +1,239 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-40-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This test validates that the x and y attributes can be animated on
+        &lt;use&gt;, &lt;image&gt;, &lt;rect&gt; and &lt;text&gt; elements.
+        The test also validates that the width and height attributes can
+        be animated on &lt;image&gt; and &lt;rect&gt;
+      </p>
+      <p>
+        For x and y animation, each test shows the reference positions at
+        specific points in the animation. These markers are highlighted
+        at the time the target element's x/y position should match that of
+        the marker. For the &lt;text&gt; element, there are two tests. The
+        first one tests animating a single value on the text's x and y attributes.
+        The second one tests animating x, y values where there are values for each
+        of the text's characters. For that test (bottom left), there is a set of
+        reference markers for each of the characters ('1' and '2').
+      </p>
+      <p>
+        For width and height animation (the two tests on the bottom right), the
+        outline showing the expected width and height at given points in the animation
+        is highlighted at the time the marker's width and height should match that
+        of the target element.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>Over the course of four seconds, the positions and sizes of elements
+      within the document are animated.  The test passes if the following
+      conditions are met:</p>
+      <ul>
+        <li>In the first four subtests, the shape, image or text moves clockwise once along
+        the perimeter of a square whose corners are indicated by the small grey squares.</li>
+        <li>In the fifth subtest ("x/y on &lt;text>(2)"), the number "1" moves clockwise
+        along the perimeter of a square as in the first four subtests, while the number "2"
+        does the same except in an anti-clockise direction.</li>
+        <li>In the sixth subtest, the width and height of the image are animated continously,
+        from the initial square size, to the wide and short rectangle, to the narrow and
+        tall rectangle, and back to the square.  At each point when it reaches one of these
+        key sizes, the yellow outline indicating the size is shown thicker momentarily.
+        This animation takes only three seconds.</li>
+        <li>In the seventh subtest, the gray rectangle's width and height are animated in
+        the same way as the image in the sixth subtest.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-40-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="25" font-size="16">&lt;animate&gt; of x/y/width/height</text>
+
+    <g font-size="14">
+      <g transform="translate(60,90)">
+        <defs>
+          <rect id="posMarker" x="-3" y="-3" width="6" height="6"/>
+
+          <g id="markerGroup" fill="rgb(230,230,230)" stroke="rgb(255,180,0)">
+            <use id="topLeft" xlink:href="#posMarker" x="-15" y="-15"/>
+            <use id="topRight" xlink:href="#posMarker" x="15" y="-15"/>
+            <use id="bottomRight" xlink:href="#posMarker" x="15" y="15"/>
+            <use id="bottomLeft" xlink:href="#posMarker" x="-15" y="15"/>
+            <set xlink:href="#topLeft" attributeName="fill" to="rgb(255,180,0)" begin="0s;4s" dur="0.2s"/>
+            <set xlink:href="#topRight" attributeName="fill" to="rgb(255,180,0)" begin="1s" dur="0.2s"/>
+            <set xlink:href="#bottomRight" attributeName="fill" to="rgb(255,180,0)" begin="2s" dur="0.2s"/>
+            <set xlink:href="#bottomLeft" attributeName="fill" to="rgb(255,180,0)" begin="3s" dur="0.2s"/>
+          </g>
+
+          <path id="pathID" d="M 0 0 Q 20 0 20 -20 Q 0 -20 0 0 Q 0 -20 -20 -20 Q -20 0 0 0 Q -20 0 -20 20 Q 0 20 0 0 Q 0 20 20 20 Q20 0 0 0 Z" fill="rgb(230,230,230)" stroke="rgb(255,180,0)"/>
+        </defs>
+
+        <use xlink:href="#pathID" x="-15" y="-15">
+          <animate attributeName="x" values="-15;15;15;-15;-15" begin="0s" dur="4s"/>
+          <animate attributeName="y" values="-15;-15;15;15;-15" begin="0s" dur="4s"/>
+        </use>
+
+        <use xlink:href="#markerGroup"/>
+
+        <text text-anchor="middle" y="60">x/y on &lt;use&gt;</text>
+      </g>
+
+      <g transform="translate(180,90)">
+        <image xlink:href="data:image/jpg;base64,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" x="-15" y="-15" width="50" height="50" preserveAspectRatio="none">
+          <animate attributeName="x" values="-15;15;15;-15;-15" begin="0s" dur="4s"/>
+          <animate attributeName="y" values="-15;-15;15;15;-15" begin="0s" dur="4s"/>
+        </image>
+
+        <use xlink:href="#markerGroup"/>
+
+        <text text-anchor="middle" y="60">x/y on &lt;image&gt;</text>
+      </g>
+
+      <g transform="translate(300,90)">
+        <rect x="-15" y="-15" width="50" height="20" fill="black" stroke="rgb(255,180,0)">
+          <animate attributeName="x" values="-15;15;15;-15;-15" begin="0s" dur="4s"/>
+          <animate attributeName="y" values="-15;-15;15;15;-15" begin="0s" dur="4s"/>
+        </rect>
+
+        <use xlink:href="#markerGroup"/>
+
+        <text text-anchor="middle" y="60">x/y on &lt;rect&gt;</text>
+      </g>
+
+
+      <g transform="translate(300,90)">
+        <rect x="-15" y="-15" width="50" height="20" fill="black" stroke="rgb(255,180,0)">
+          <animate attributeName="x" values="-15;15;15;-15;-15" begin="0s" dur="4s"/>
+          <animate attributeName="y" values="-15;-15;15;15;-15" begin="0s" dur="4s"/>
+        </rect>
+
+        <use xlink:href="#markerGroup"/>
+
+        <text text-anchor="middle" y="60">x/y on &lt;rect&gt;</text>
+      </g>
+
+      <g transform="translate(420,90)">
+        <defs>
+          <font id="MyDecFont" horiz-adv-x="466">
+            <font-face font-family="MyDecFont"/>
+            <missing-glyph horiz-adv-x="233" d="M 50 0 L50 700 200 700 200 0 z"/>
+            <glyph unicode="1" glyph-name="one" horiz-adv-x="558" d="M458 716L100 534V428L357 552V97H241V380L140 328V0H458V716Z"/>
+            <glyph unicode="2" glyph-name="two" horiz-adv-x="585" d="M69 509Q82 523 102 541T147 575T203 603T268 614Q311 614 342 599T392 560T421 505T430 443Q430 420 423 398T405 352L343 201H444L492 309Q508 345 519 379T531 448Q531 504 511 552T454 635T369 691T262 711Q231 711 204 704T152 684T106 655T69 623V509ZM535 97H187L309 422Q316 441 315 457T306 483T287 500T265 506Q261 506 254 505T239 499T224 485T211 461L50 0H535V97Z"/>
+            <glyph unicode="3" glyph-name="three" horiz-adv-x="542" d="M58 553Q109 588 148 601T220 614Q255 614 282 604T328 575T356 535T366 488Q366 475 364 460T355 429T336 397T302 368Q311 363 325 353T352 326T376 286T386 232Q386 203 376 177T345 130T295 98T227 86Q179 86 134 104T50 153V45Q59 38 74 29T111 10T163 -5T231 -11Q296 -11 345 8T426 58T475 131T492 218Q492 251 486 276T469 320T446 354T421 378Q438 396 454 425T470 503Q470 546 454 584T406 650T332 695T233 711Q179 711 137 696T58 655V553ZM156 255Q156         229 173 212T217 194Q243 194 260 211T278 255Q278 281 261 298T217 316Q191 316 174 299T156 255ZM161 467Q161 444 177 428T216 412Q225 412 234 415T252 425T265 442T271 467Q271 491 256 506T216 522Q202 522 192 517T174 503T164 486T161 467Z"/>
+          </font>
+        </defs>
+
+        <text id="textID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" font-family="MyDecFont" font-size="40" x="-15" y="-15">123</text>
+        <animate xlink:href="#textID" attributeName="x" values="-15;15;15;-15;-15" begin="0s" dur="4s"/>
+        <animate xlink:href="#textID" attributeName="y" values="-15;-15;15;15;-15" begin="0s" dur="4s"/>
+
+
+        <use xlink:href="#markerGroup"/>
+
+        <text text-anchor="middle" y="60">x/y on &lt;text&gt;</text>
+      </g>
+
+
+      <g transform="translate(60,210)">
+        <defs>
+          <g id="markerGroup2" fill="rgb(230,230,230)" stroke="rgb(255,180,0)">
+            <use id="topLeft2" xlink:href="#posMarker" x="-15" y="-15"/>
+            <use id="topRight2" xlink:href="#posMarker" x="15" y="-15"/>
+            <use id="bottomRight2" xlink:href="#posMarker" x="15" y="15"/>
+            <use id="bottomLeft2" xlink:href="#posMarker" x="-15" y="15"/>
+            <set xlink:href="#topLeft2" attributeName="fill" to="rgb(255,180,0)" begin="0s;4s" dur="0.2s"/>
+            <set xlink:href="#topRight2" attributeName="fill" to="rgb(255,180,0)" begin="3s" dur="0.2s"/>
+            <set xlink:href="#bottomRight2" attributeName="fill" to="rgb(255,180,0)" begin="2s" dur="0.2s"/>
+            <set xlink:href="#bottomLeft2" attributeName="fill" to="rgb(255,180,0)" begin="1s" dur="0.2s"/>
+          </g>
+        </defs>
+
+        <text id="text2ID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" font-family="MyDecFont" font-size="40" x="-35 5" y="-15 -15">12</text>
+        <animate xlink:href="#text2ID" attributeName="x" values="-35 5;-5 5;-5 35;-35 35;-35 5" begin="0s" dur="4s"/>
+        <animate xlink:href="#text2ID" attributeName="y" values="-15 -15;-15 15;15 15;15 -15;-15 -15" begin="0s" dur="4s"/>
+
+        <use xlink:href="#markerGroup" x="-20"/>
+        <use xlink:href="#markerGroup2" x="20"/>
+
+        <text text-anchor="middle" y="60">x/y on &lt;text&gt;(2)</text>
+      </g>
+
+      <g transform="translate(180,210)">
+        <image xlink:href="data:image/jpg;base64,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" x="-40" y="-40" width="50" height="50" preserveAspectRatio="none">
+          <animate attributeName="width" values="50;80;20;50" begin="0s" dur="3s"/>
+          <animate attributeName="height" values="50;20;80;50" begin="0s" dur="3s"/>
+        </image>
+
+        <rect x="-40" y="-40" width="50" height="50" stroke="rgb(255,180,0)" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s;3s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-40" y="-40" width="80" height="20" stroke="rgb(255,180,0)" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-40" y="-40" width="20" height="80" stroke="rgb(255,180,0)" fill="none">
+          <set attributeName="stroke-width" to="4" begin="2s" dur="0.2s"/>
+        </rect>
+
+        <text text-anchor="middle" y="60">width/height</text>
+        <text text-anchor="middle" y="75">on &lt;image&gt;</text>
+      </g>
+
+
+      <g transform="translate(300,210)">
+        <rect x="-40" y="-40" width="50" height="50" fill="gray">
+          <animate attributeName="width" values="50;80;20;50" begin="0s" dur="3s"/>
+          <animate attributeName="height" values="50;20;80;50" begin="0s" dur="3s"/>
+        </rect>
+
+        <rect x="-40" y="-40" width="50" height="50" stroke="rgb(255,180,0)" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s;3s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-40" y="-40" width="80" height="20" stroke="rgb(255,180,0)" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-40" y="-40" width="20" height="80" stroke="rgb(255,180,0)" fill="none">
+          <set attributeName="stroke-width" to="4" begin="2s" dur="0.2s"/>
+        </rect>
+
+        <text text-anchor="middle" y="60">width/height</text>
+        <text text-anchor="middle" y="75">on &lt;rect&gt;</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

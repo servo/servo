@@ -1,0 +1,152 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-70-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This tests the animation's SMIL fill attribute.
+      </p>
+      <p>
+        On the first row, the &lt;set&gt; animation has its dur
+        attribute set to '1s' and its begin attribute set to '0s;
+        firstSet.end + 1s'. The fill attribute is unspecified, so
+        the effect is as if it was set to 'remove', because 'remove' is
+        the default value for fill.
+
+        Consequently, the first interval is (0s &lt;= t &lt; 1s), the second is
+        (2s &lt;= t &lt; 3s), the third, (4s &lt;= t &lt; 5s) etc.. The red rectangle starts on the
+        right position, moves to the left position for one second, moves
+        to the right for 1 second, and so on.
+      </p>
+      <p>
+        On the second row, the &lt;set&gt; animation
+        with the identifier 'firstSet' has its dur attribute
+        set to 1s and its begin attribute set to '0s; firstSet.end'. The fill attribute
+        is set to 'remove'. The behavior should be exactly the same as for the previous
+        row, and the rectangle moves from the right position to the left position
+        every second.
+      </p>
+      <p>
+        On the third row, the &lt;set&gt; animation has its dur attribute set to
+        1s and its begin attribute set to '0s; firstSet.end'. The fill attribute
+        is set to 'freeze'. The first interval should be (0s &lt;= t &lt; 1s), the second (2s &lt;= t &lt; 3s),
+        the third, (4s &lt;= t &lt; 5s), etc. Between interval, the fill behavior should be applied,
+        so the red rectangle should stay on the right position and never go to the
+        left position.
+      </p>
+      <p>
+        On the fourth row, the &lt;set&gt; animation has its dur  attribute set to
+        1s and its begin attribute set to '0s'. The fill attribute
+        is set to 'freeze'. The first interval should be (0s &lt;= t &lt; 1s) and there is no
+        following interval. Because of the fill behavior, the &lt;set&gt; should
+        apply the last (and only) animation value after 1s. Consequently, the
+        red rectangle should stay on the right position and never go to the
+        left position.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test and observe it for at least 5 seconds. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if for the duration of the test the following conditions are met:</p>
+      <ul>
+        <li>The red squares in the top two rows alternate between the left and the right column
+        at a rate of one movement per second.  They must also be in the same column
+        at any given time.</li>
+        <li>The red squares in the bottom two rows stay in the right column.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-70-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">fill</text>
+    <g transform="translate(130, 60)">
+      <g transform="translate(120,45)" text-anchor="end" font-size="14">
+        <text>fill unspecified (remove)</text>
+        <text y="25">fill=remove</text>
+        <text y="100">fill=freeze (with restart)</text>
+        <text y="125">fill=freeze (no restart)</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(180, 125)" text-anchor="middle" font-size="14">
+        <text y="-15">never</text>
+        <text>here</text>
+        <text y="-15" x="80">always</text>
+        <text x="80">here</text>
+      </g>
+
+      <g transform="translate(180,40)" stroke="black">
+        <defs>
+          <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
+        </defs>
+
+        <g id="setOne">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="firstSet" attributeName="x" to="74" begin="0s; firstSet.end + 1s" dur="1s"/>
+          </rect>
+
+        </g>
+
+        <g id="setTwo" transform="translate(0, 25)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="secondSet" attributeName="x" to="74" begin="0s; secondSet.end + 1s" dur="1s" fill="remove"/>
+          </rect>
+
+        </g>
+
+        <g id="setThree" transform="translate(0, 100)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="thirdSet" attributeName="x" to="74" begin="0s; thirdSet.end + 1s" dur="1s" fill="freeze"/>
+          </rect>
+        </g>
+
+
+        <g id="setFour" transform="translate(0, 125)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="fourthSet" attributeName="x" to="74" begin="0s" dur="1s" fill="freeze"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,76 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Chris lilley" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-20-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test hyperlinking rules as they relate to resolved start times.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	Click "fade in", wait 3 seconds. Click "fade out", wait 3 seconds. Click "fade in" again, wait 6 seconds.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+    	<p>The test is passed if:</p>
+      <ul>
+      	<li>The first time "fade in" is clicked, a blue rectangle should smoothly fade from white to blue over the course of three seconds.</li>
+      	<li>When "fade out" is clicked, the blue rectangle should smoothly fade from blue to white over the course of three seconds.</li>
+      	<li>When "fade in" is clicked the second time, the blue rectangle should smoothly fade from white to blue over the course of three seconds, and then directly fade out from blue to white over the course of three seconds.</li>
+      	<li>The rendered picture matches the reference image, (except
+        for possible variations in the labeling text (per CSS2 rules))
+        after activating the link on the fade-in button the first time
+        and waiting three seconds for the animation to complete. The picture
+        should remain looking the same way indefinitely, until another
+        link is activated.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-20-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <rect id="pink" x="20" y="20" width="200" height="200" fill="#fff">
+      <animate id="fadein" attributeName="fill" attributeType="auto" from="#fff" to="blue" begin="indefinite" dur="3s" fill="freeze"/>
+      <animate id="fadeout" attributeName="fill" attributeType="auto" from="blue" to="#fff" begin="indefinite" dur="3s" fill="freeze"/>
+    </rect>
+    <!-- ok so this is testing dynamic compositing as well -->
+    <g id="buttons">
+      <a xlink:href="#fadein">
+        <rect x="320" y="0" width="160" height="180" fill="green"/>
+        <text fill="white" font-size="30" font-weight="bold" x="330" y="90">Fade in</text>
+      </a>
+      <a xlink:href="#fadeout">
+        <rect x="320" y="180" width="160" height="180" fill="maroon"/>
+        <text fill="white" font-size="30" font-weight="bold" x="330" y="280">Fade out</text>
+      </a>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

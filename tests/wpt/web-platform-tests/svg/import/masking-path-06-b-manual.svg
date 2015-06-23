@@ -1,0 +1,66 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="BB" status="issue"
+    version="$Revision: 1.8 $" testname="$RCSfile: masking-path-06-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/masking.html#ClippingPaths">
+      <p>
+        The intent of this file to test the 'clip' property.  In this test, the clipped objects are
+        raster and SVG images.
+        
+        <!-- ED: The bottom right subtest is the source of the issue, since CSS2.1 changed how 'clip' should be interpreted compared to CSS2.0. -->
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The UA should render two images inside the red rectangles.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: masking-path-06-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g shape-rendering="geometricPrecision">
+      <text font-size="20" x="240" y="30" text-anchor="middle">'clip' property on images</text>
+
+      <image x="35" y="45" width="200" height="120" overflow="hidden" clip="rect(10,10,10,10)" xlink:href="../images/plant.jpg" preserveAspectRatio="none"/>
+      <rect x="35" y="45" width="200" height="120" fill="none" stroke="blue"/>
+      <rect x="45" y="55" width="180" height="100" fill="none" stroke="red"/>
+      <text font-size="25" x="245" y="110">&lt;-- raster image</text>
+
+      <image x="245" y="180" width="200" height="120" overflow="hidden" clip="rect(10,10,10,10)" xlink:href="../images/SVGImageTest.svg" preserveAspectRatio="none"/>
+      <rect x="245" y="180" width="200" height="120" fill="none" stroke="blue"/>
+      <rect x="255" y="190" width="180" height="100" fill="none" stroke="red"/>
+      <text font-size="25" x="70" y="250">SVG image --&gt;</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

@@ -1,0 +1,108 @@
+<svg version="1.1" baseProfile="basic" preserveAspectRatio="xMidYMid meet" zoomAndPan="magnify" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: filters-blend-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feBlendElement">
+      <p>
+        Verify correct operation of the five compositing modes
+        of the feBlend filter primitive. Seven rectangles are
+        blended into a gradient, with text strings identifying
+        which of the  the five feBlend modes were used.
+      </p>
+      <p>
+        All rectangles but the fourth one have a blue fill, although the
+        blend mode will adjust this color. The fourth has a yellow fill.
+      </p>
+      <p>
+        The third and fourth rectangles are grouped and the filter is applied to the group.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image
+        exactly, except for possible variations in the
+        labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-blend-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="9" transform="scale(3)">
+      <image x="40" y="5" width="100" height="98" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAABCAMAAAAfBfuPAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAEsUExURfb/AK3/AAD/9/9sAIn/AN7/ABT/AAB//zD/AP9GAAD/s1H/AAD/H/8AxwD/bn8A/1wA/wD/XJv/AP8Ai//MAGP/ABMA/wD/LP8A6P8KAP8AF/8A9QD/xAAA/wD1/9MA/wD/gABY/wD/Cf8ATJEA//+6AACT/wCn/+v/AAD/TAD/kf8AYKMA//8kAAAk/wAV/y0A/3b/AP80AAD/O/cA//8A/wD///8An/8A2QD/Ev8AAMQA/+0A/7MA////AP8ACuAA//8AJ24A/0sA//8AOAA0/wAK/wBF//8WAAgA/x8A///2AL//AP8AdTwA/wn/AP/bAP+AAP+UAM//AP+nAP8AtADp/wD/o0D/AP/qAADb/wC5/wDL/wD/AAD/7QD/0gD/4CH/AABr//9ZAG2IeB4AAABvSURBVHjaYrCyl3J0Udb2FTYP5bWQkDY1sXGQt7bVUeF3EnD2M/AS85R109dzdVdMYldTj46JCpMzY4pLiJfhCtdS4BPUNBbnsVSK9WdL5IjgFjVkEWL0CWbVYLDzjgwQUQ0JCmRO5jTS9ZAECDAA3aQTV3E5iioAAAAASUVORK5CYII="/>
+      <defs>
+        <filter id="BlendNormal" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feFlood in="BackgroundAlpha" flood-color="#0f0" flood-opacity="0.5" result="img1"/>
+          <feBlend in2="img1" in="SourceGraphic" mode="normal"/>
+        </filter>
+        <filter id="BlendMultiply" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feFlood in="SourceGraphic" flood-color="#0f0" flood-opacity="0.5" result="img2"/>
+          <feBlend in="SourceGraphic" in2="img2" mode="multiply"/>
+        </filter>
+        <filter id="BlendScreen" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feFlood in="SourceGraphic" flood-color="#0f0" flood-opacity="0.5" result="img2"/>
+          <feBlend in="SourceGraphic" in2="img2" mode="screen"/>
+        </filter>
+        <filter id="BlendDarken" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feFlood in="SourceGraphic" flood-color="#0f0" flood-opacity="0.5" result="img2"/>
+          <feBlend in="SourceGraphic" in2="img2" mode="darken"/>
+        </filter>
+        <filter id="BlendLighten" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feFlood in="SourceGraphic" flood-color="#0f0" flood-opacity="0.5" result="img2"/>
+          <feBlend in="SourceGraphic" in2="img2" mode="lighten"/>
+        </filter>
+      </defs>
+      <rect x="30" y="10" width="120" height="10" fill="blue" opacity="0.5" filter="url(#BlendNormal)"/>
+      <rect x="30" y="23" width="120" height="10" fill="blue" opacity="0.5" filter="url(#BlendMultiply)"/>
+      <g filter="url(#BlendMultiply)">
+        <rect x="30" y="36" width="120" height="10" fill="blue" opacity="0.5"/>
+        <rect x="30" y="49" width="120" height="10" fill="#ff0" opacity="0.5"/>
+      </g>
+      <rect x="30" y="62" width="120" height="10" fill="blue" opacity="0.5" filter="url(#BlendScreen)"/>
+      <rect x="30" y="75" width="120" height="10" fill="blue" opacity="0.5" filter="url(#BlendDarken)"/>
+      <rect x="30" y="88" width="120" height="10" fill="blue" opacity="0.5" filter="url(#BlendLighten)"/>
+      <g fill="#333" font-size="7">
+        <text x="5" y="17">Normal</text>
+        <text x="5" y="30">Multiply</text>
+        <text x="5" y="43">Multiply</text>
+        <text x="5" y="56">Multiply</text>
+        <text x="5" y="69">Screen</text>
+        <text x="5" y="82">Darken</text>
+        <text x="5" y="95">Lighten</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+  <text id="revision" x="10" y="340" stroke="none" 
+    fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

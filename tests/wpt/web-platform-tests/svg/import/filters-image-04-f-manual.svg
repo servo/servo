@@ -1,0 +1,119 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2011 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="TB" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: filters-image-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feImageElement">
+      <p>
+        This tests the feImage element with a number of different filter primitive subregion values.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>the first row show four smiley faces of the same size, each framed by a blue rectangle</li>
+        <li>the first image on the left on the second row shows half a smiley face (horizontally offset)</li>
+        <li>the second image on the left on the second row shows half a smiley face (vertically offset)</li>
+        <li>the third image on the left on the second row shows the upper-lefthand quarter of the smiley face enlarged to fit the blue rectangle</li>
+        <li>the rightmost image on the second row shows the upper-lefthand quarter of the smiley face (horizontally and vertically offset)</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-image-04-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <filter id="default" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage xlink:href="../images/smiley.png"/>
+      </filter>
+      <filter id="all_specified_relative" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage x="0%" y="0%" width="100%" height="100%"
+           xlink:href="../images/smiley.png"/>
+      </filter>
+      <filter id="all_specified_absolute" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage x="0" y="0" height="1" width="1"
+           xlink:href="../images/smiley.png"/>
+      </filter>
+      <filter id="y_specified" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage y="0%"
+           xlink:href="../images/smiley.png"/>
+      </filter>
+      <filter id="width_specified" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage width="200%"
+           xlink:href="../images/smiley.png"/>
+      </filter>
+      <filter id="height_specified" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage height="200%"
+           xlink:href="../images/smiley.png"/>
+      </filter>
+      <filter id="width_height_specified" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage width="200%" height="200%"
+           xlink:href="../images/smiley.png"/>
+      </filter>
+      <filter id="x_y_specified" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox">
+        <feImage x="0.5" y="0.5"
+           xlink:href="../images/smiley.png"/>
+      </filter>
+    </defs>
+    
+    <text text-anchor="middle" x="240" y="40" font-size="16">primitiveUnits = "objectBoundingBox"</text>
+    <g transform="translate(60 100)">
+      <rect fill="red" width="50" height="50" filter="url(#default)"/>
+      <rect fill="red" x="100" width="50" height="50" filter="url(#all_specified_relative)"/>
+      <rect fill="red" x="200" width="50" height="50" filter="url(#all_specified_absolute)"/>
+      <rect fill="red" x="300" width="50" height="50" filter="url(#y_specified)"/>
+      
+      <rect fill="red" y="100" width="50" height="50" filter="url(#width_specified)"/>
+      <rect fill="red" x="100" y="100" width="50" height="50" filter="url(#height_specified)"/>
+      <rect fill="red" x="200" y="100" width="50" height="50" filter="url(#width_height_specified)"/>
+      <rect fill="red" x="300" y="100" width="50" height="50" filter="url(#x_y_specified)"/>
+
+      <g id="reference_frames" stroke="blue" stroke-width="1" fill="none">
+        <rect width="50" height="50" />
+        <rect x="100" width="50" height="50"/>
+        <rect x="200" width="50" height="50"/>
+        <rect x="300" width="50" height="50"/>
+        <rect y="100" width="50" height="50"/>
+        <rect x="100" y="100" width="50" height="50"/>
+        <rect x="200" y="100" width="50" height="50"/>
+        <rect x="300" y="100" width="50" height="50"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

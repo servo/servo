@@ -1,0 +1,88 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="[reviewer]" author="Microsoft" status="created" version="$Revision: 1.5 $" testname="$RCSfile: types-dom-svgfittoviewbox-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/types.html#InterfaceSVGFitToViewBox">
+      <p>
+        Retrieving the 'viewBox' and 'preserveAspectRatio' attributes of the 'SVGFitToViewBox' interface is supported.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: types-dom-svgfittoviewbox-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-size="18">
+    <svg id="testSvg" viewBox="0 0 300 200" preserveAspectRatio="xMinYMin slice" />
+    <text id="failText" x="100" y="100" font-size="80" fill="red">FAIL</text>
+    <text id="passText" x="350" y="300" font-size="50" display="none">PASS</text>
+    <script type="text/javascript">    
+      <![CDATA[
+ 
+        try
+        {
+            var testElement = document.getElementById("testSvg");
+            var viewBox = testElement.viewBox.baseVal;
+            var preserveAspectRatioAlign = testElement.preserveAspectRatio.baseVal.align;
+            var passingTests = 0;
+
+            if ((0 == viewBox.x) && (0 == viewBox.y) && (300 == viewBox.width) && (200 == viewBox.height))
+            {
+                passingTests++;
+            }
+
+            if (SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMINYMIN == preserveAspectRatioAlign && SVGPreserveAspectRatio.SVG_MEETORSLICE_SLICE == testElement.preserveAspectRatio.baseVal.meetOrSlice)
+            {
+                passingTests++;
+            }
+
+            if (2 == passingTests)
+            {
+                document.getElementById("failText").setAttribute("display", "none");
+                document.getElementById("passText").setAttribute("display", "inline");
+            }
+        }
+        catch(ex)
+        {
+          alert("ERROR: " + ex.message);
+      
+        }
+        ]]>
+
+    </script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

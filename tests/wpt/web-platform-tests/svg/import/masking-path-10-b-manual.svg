@@ -1,0 +1,138 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="SVGWG" author="ED" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: masking-path-10-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/masking.html#Masking">
+        <p>
+          This tests a few 'mask' cases to see that masks are applied and constructed properly.
+        </p>
+      <p>
+          There are nine subtests in this test. There should be a big stroked rectangle with nine smaller rectangles inside. If all of the smaller rectangles are green the test has passed.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p>
+			<ul>
+				<li>There is no red visible.</li>
+				<li>Each of the nine small rectangles are green.</li>
+			</ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: masking-path-10-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+	
+		<defs>
+			<mask id="emptymask"/>
+			<mask id="hiddenmask">
+				<rect width="100" height="100" visibility="hidden"/>
+			</mask>
+			<mask id="displaymask">
+				<rect width="100" height="100" display="none"/>
+			</mask>
+			<mask id="opacitymask">
+				<rect width="100" height="100" opacity="0"/>
+			</mask>
+			<mask id="strokefillmask">
+				<rect width="100" height="100" stroke="none" fill="none"/>
+			</mask>
+			<mask id="strokewidthmask">
+				<rect x="40" y="40" width="20" height="20" stroke="white" stroke-width="20"/>
+			</mask>
+			<mask id="strokeopacitymask">
+				<rect x="40" y="40" width="20" height="20" stroke="white" stroke-opacity="0" stroke-width="20"/>
+			</mask>
+			<mask id="fillopacitymask">
+				<rect width="100" height="100" fill-opacity="0"/>
+			</mask>
+		</defs>
+		
+		<text x="240" y="50" text-anchor="middle">Establishing a new masking path</text>
+		
+		<g transform="scale(0.5) translate(320 200)">
+			<rect width="100" height="100" fill="lime"/>
+			<rect width="100" height="100" fill="red" mask="url(#emptymask)"/>
+
+			<g transform="translate(110 0)">
+				<rect width="100" height="100" fill="lime"/>
+				<rect width="100" height="100" fill="red" mask="url(#hiddenmask)"/>
+			</g>
+			
+			<g transform="translate(220 0)">
+				<rect width="100" height="100" fill="lime"/>
+				<rect width="100" height="100" fill="red" mask="url(#displaymask)"/>
+			</g>
+
+			<!-- This has an intentionally broken mask url -->
+			<g transform="translate(0 110)">
+				<rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
+				<rect width="100" height="100" fill="lime" mask="url(#unknown)"/>
+			</g>
+			
+			<g transform="translate(110 110)">
+				<rect x="0.5" y="0.5" width="99" height="99" fill="lime"/>
+				<rect width="100" height="100" fill="red" mask="url(#opacitymask)"/>
+			</g>
+			
+			<g transform="translate(220 110)">
+				<rect x="0.5" y="0.5" width="99" height="99" fill="lime"/>
+				<rect width="100" height="100" fill="red" mask="url(#strokefillmask)"/>
+			</g>
+			
+			<g transform="translate(0 220)">
+				<rect width="100" height="100" fill="lime"/>
+				<rect width="100" height="100" fill="red" mask="url(#strokewidthmask)"/>
+				<rect x="29" y="29" width="42" height="42" fill="lime"/>
+			</g>
+			
+			<g transform="translate(110 220)">
+				<rect width="100" height="100" fill="lime"/>
+				<rect width="100" height="100" fill="red" mask="url(#strokeopacitymask)"/>
+			</g>
+			
+			<g transform="translate(220 220)">
+				<rect x="0.5" y="0.5" width="99" height="99" fill="lime"/>
+				<rect width="100" height="100" fill="red" mask="url(#fillopacitymask)"/>
+			</g>
+			
+			<rect width="320" height="320" fill="none" stroke="black"/>
+		</g>
+		
+		
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

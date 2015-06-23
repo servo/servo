@@ -1,0 +1,158 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Chris Lilley" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: interact-cursor-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#Cursors">
+        <p>
+	Purpose of test is to determine if the cursor property and cursor element are
+        supported. 
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test requires user interaction. Firstly, the default cursor behaviour should be examined.
+        Move the cursor to the top left corner, in the white area. This is the default
+        cursor. Now move the cursor over the text at the top of the example. The cursor
+        changes to the text cursor. Lastly, move the cursor to the  blue link
+        text - the cursor changes to the pointer cursor.
+      </p>
+      <p>
+        Now, move the cursor in turn to each of the gray rectangles (but not on top
+        of the white text label text). From top to bottom in the first row,  the cursor
+        should change to:
+      </p>
+      <p>
+        A crosshair or other 'accurate positioning'  cursor
+        The 'default' cursor, as noted above
+        The 'pointer' cursor, as noted above
+        A cursor indicating movement, such as panning
+      </p>
+      <p>Now from top to bottom in the second row, the cursor should change to: </p>
+      <p>
+        The 'text' cursor, as noted above
+        A 'wait' cursor
+        A 'help' cursor
+        A special cursor which looks like a small magnifying glass. This is a downloaded image cursor.
+
+      </p>
+      <p>
+        Moving to the bottom-leftmost of the eight red triangles, and moving around them clockwise, the
+        cursor should change to:
+      </p>
+      <p>
+        SouthEast-resize, South-resize, SouthWest resize, West-resize,
+        NorthWest-resize, North-resize, NorthEast-resize, East-resize.
+      </p>
+      <p>
+        Lastly, move the cursor to the target in the bottom-right of the test. The cursor must not
+        change to the 'pointer'  cursor, but instead to the custom magnifying glass cursor as noted
+        above.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if, at each position, the cursor changes as described in the operator script.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-cursor-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <cursor id="magglass" xlink:href="../images/magnify.png" x="10" y="11"/>
+    </defs>
+    <text x="240" y="25" text-anchor="middle" font-size="26">
+      Text Cursor
+      <a xlink:href="http://www.w3.org/TR/SVG/interact#Cursors" fill="blue" xlink:show="new">Pointer Cursor</a>
+    </text>
+    <!-- use this text to check the native 'text' and 'pointer' cursor -->
+    <rect x="120" y="40" width="240" height="236" stroke="#666" stroke-width="3" fill="none"/>
+    <!-- ====================================================================== -->
+    <!-- Predefined keyword values for cursors            ===================== -->
+    <!-- ====================================================================== -->
+    <g class="button">
+      <g cursor="crosshair">
+        <rect stroke="none" fill="#666" x="148" y="70" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="154" y="90">crosshair</text>
+      </g>
+      <g cursor="default">
+        <rect stroke="none" fill="#666" x="148" y="118" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="154" y="138">default</text>
+      </g>
+      <g cursor="pointer">
+        <rect stroke="none" fill="#666" x="148" y="166" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="154" y="186">pointer</text>
+      </g>
+      <g cursor="move">
+        <rect stroke="none" fill="#666" x="148" y="214" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="154" y="235">move</text>
+      </g>
+      <g cursor="text">
+        <rect stroke="none" fill="#666" x="252" y="70" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="258" y="90">text</text>
+      </g>
+      <g cursor="wait">
+        <rect stroke="none" fill="#666" x="252" y="118" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="258" y="138">wait</text>
+      </g>
+      <g cursor="help">
+        <rect stroke="none" fill="#666" x="252" y="166" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="258" y="186">help</text>
+      </g>
+      <g cursor="url(#magglass),crosshair">
+        <rect stroke="none" fill="#666" x="252" y="214" width="80" height="32"/>
+        <text stroke="none" fill="#FFF" font-family="Geneva, Arial, Helvetica, sans-serif" font-weight="bold" font-size="16" x="258" y="235">&lt;url&gt;</text>
+      </g>
+    </g>
+    <g stroke="black" stroke-width="1" fill="#900">
+      <polygon points="116,36 116,68 148,36" cursor="nw-resize"/>
+      <polygon points="364,36 364,68 332,36" cursor="ne-resize"/>
+      <polygon points="364,280 332,280 364,248" cursor="se-resize"/>
+      <polygon points="116,280 148,280 116,248" cursor="sw-resize"/>
+      <polygon points="340,134 340,182 364,158" cursor="e-resize"/>
+      <polygon points="116,158 140,134 140,182" cursor="w-resize"/>
+      <polygon points="240,36 264,63.3 214,63.3" cursor="n-resize"/>
+      <polygon points="240,280 264,252.7 214,252.7" cursor="s-resize"/>
+    </g>
+    <!-- link to check consistency of 'pointer' cursor -->
+    <!-- target for hotspot test -->
+    <g id="target" stroke-width="1" stroke="black" cursor="url(#magglass),crosshair">
+      <!-- make a target to test the hotspot -->
+      <circle cx="390" cy="315" r="16" stroke="none" fill="#FFC"/>
+      <polyline points="390,295 390,335"/>
+      <polyline points="370,315 410,315"/>
+      <circle cx="390" cy="315" r="6" stroke="none" fill="#FFF"/>
+      <!-- make the hotspot, taking care the cursor stays the same -->
+      <a fill="blue" xlink:href="http://www.w3.org/Icons/w3c_home">
+        <circle cx="390" cy="315" r="2" stroke="none" fill="#000"/>
+      </a>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

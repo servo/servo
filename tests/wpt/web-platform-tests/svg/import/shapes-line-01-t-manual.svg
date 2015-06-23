@@ -1,0 +1,80 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: shapes-line-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/shapes.html#LineElement">
+        <p>
+Tests the line element.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+The test is passed if five diagonal lines are displayed on the top row. On the bottom row, a square wave pattern is displayed. The position, size, fill and stroke of the lines matches the reference image.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: shapes-line-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="diagonal-line-set">
+      <line x1="37.5" y1="137" x2="112.5" y2="50" fill="none" stroke="black" stroke-width="1"/>
+      <line x1="112.5" y1="137" x2="187.5" y2="50" fill="none" stroke="yellow" stroke-width="5"/>
+      <line x1="187.5" y1="137" x2="262.5" y2="50" fill="none" stroke="green" stroke-width="7.5"/>
+      <line x1="262.5" y1="137" x2="337.5" y2="50" fill="none" stroke="blue" stroke-width="10"/>
+      <line x1="337.5" y1="137" x2="412.5" y2="50" fill="none" stroke="fuchsia" stroke-width="12.5"/>
+    </g>
+    <g id="middle-figure" stroke="black" stroke-width="1">
+      <line x1="170" y1="200" x2="220" y2="200"/>
+      <line x1="220" y1="200" x2="220" y2="250"/>
+      <line x1="220" y1="250" x2="270" y2="250"/>
+      <line x1="270" y1="250" x2="270" y2="200"/>
+      <line x1="270" y1="200" x2="320" y2="200"/>
+    </g>
+    <g id="lower-left-figure" stroke="blue" stroke-width="10">
+      <line x1="25" y1="200" x2="75" y2="200"/>
+      <line x1="75" y1="200" x2="75" y2="250"/>
+      <line x1="75" y1="250" x2="125" y2="250"/>
+      <line x1="125" y1="250" x2="125" y2="200"/>
+      <line x1="125" y1="200" x2="175" y2="200"/>
+    </g>
+    <g id="lower-right-figure" stroke-width="10">
+      <line x1="370" y1="250" x2="420" y2="250" stroke="black"/>
+      <line x1="420" y1="200" x2="470" y2="200" stroke="fuchsia"/>
+      <line x1="320" y1="200" x2="370" y2="200" stroke="blue"/>
+      <line x1="370" y1="200" x2="370" y2="250" stroke="green"/>
+      <line x1="420" y1="250" x2="420" y2="200" stroke="orange"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

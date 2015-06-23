@@ -10,14 +10,20 @@
 <body>
   <div id="log"></div>
   <script>
-    t = async_test("the notification.onshow event can be invoked", {timeout: 50000});
-    var notification = new Notification("New Email Received", {
-      body: "Room 101"
+var t = async_test("the notification.onshow event can be invoked", {timeout: 50000});
+
+Notification.requestPermission(t.step_func(function(permission) {
+    assert_equals(permission, "granted", "notification permission");
+
+    var notification = new Notification("This is a notification.", {
+        body: "Can you see this?."
     });
     notification.onshow = t.step_func(function(e) {
-      assert_equals(Object.prototype.toString.call(e), "[object Event]", "the type of event");
-      t.done();
+        assert_equals(Object.prototype.toString.call(e), "[object Event]", "the type of event");
+        assert_equals(e.type, "show", "The event is the expected type.")
+        t.done();
     });
+}));
   </script>
 </body>
 

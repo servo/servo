@@ -1,0 +1,95 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: script-handle-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/script.html#EventHandling">
+      <p>
+        Tests basic mouse event handler and DOM manipulation through
+        ECMAScript binding.
+      </p>
+      <p>
+        The test uses ECMAScript and initially displays a target with
+        a message asking the user to click on the target. Once the user
+        has done so, and if both event handling and DOM manipulation are
+        supported, then the target and initial text are hidden and a text
+        message indicating that the test was successful is displayed.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+      <p>Load the test. Click on the blue square.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if, after clicking on the blue square, it and
+      the instruction text "Click on the blue square" is removed
+      and replaced with green text stating "Scripting Test Passed!".</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: script-handle-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Displayed Title -->
+    <text x="140" y="20" fill="black">
+      Event and DOM Access Test
+    </text>
+
+    <!-- When the user clicks on the "target" group, the onMouseClick should -->
+    <!-- be invoked. That handler will hide the target and show a message    -->
+    <!-- indicating that the test passed.                                    -->
+    <g id="targetGroup">
+      <g id="target" onclick="onMouseClick( evt )">
+        <text x="70" y="150">Click on the blue square</text>
+        <rect x="60" y="160" width="20" height="20" fill="blue" stroke="none"/>
+      </g>
+      <g id="testPassed" visibility="hidden">
+        <text x="70" y="170" fill="green" font-size="30" font-weight="bold">Scripting Test Passed!</text>
+      </g>
+    </g>
+
+    <script type="text/ecmascript"><![CDATA[
+
+      function onMouseClick(evt) {
+
+      // Get Document
+      var target = evt.target;
+      var doc = target.ownerDocument;
+
+      // Make test result visible
+      var testPassed = doc.getElementById('testPassed');
+      testPassed.setAttribute('visibility', 'visible');
+
+      // Make target invisible
+      var target = doc.getElementById('target');
+      target.setAttribute('visibility', 'hidden');
+      }
+
+    ]]></script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

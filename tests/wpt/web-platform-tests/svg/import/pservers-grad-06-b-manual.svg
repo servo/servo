@@ -1,0 +1,109 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: pservers-grad-06-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        Test that the viewer can handle the gradientTransform and the patternTransform
+        attribute on gradients and patterns respectively.
+      </p>
+      <p>
+        From top-down the appearance of objects is as follows.
+      </p>
+      <p>
+        The top rectangle has a linear gradient whose coordinate system has been scaled down by
+        a half. So the gradient travelling from left to right (from blue to green to lime) should
+        only occuply the left half the rectangle.
+      </p>
+      <p>
+        The next rectangle has radial gradient that has been translated to the center and skewed
+        in the positive X direction by 45 degrees. Therefore the gradient should appear
+        ellipltical and rotated around the center.
+      </p>
+      <p>
+        The last row contains a rectangle with pattern on the fill. The transformation on the
+        pattern moves the coordinate system to the top left of the rectangle and then scales it
+        by a factor of 2 and then skew's it in the X direction by 45 degrees. The pattern
+        consists of a 2 by 2 array of colored rectangles.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendering matches the reference image, apart
+      from any differences in font choice due to CSS2 rules.  Specifically:</p>
+      <ul>
+        <li>The top rectangle is filled with a linear gradient from blue on the left,
+        to lime in the middle.  The right half of the rectangle is filled with plain lime.</li>
+        <li>The middle rectangle is filled with an elliptical radial gradient with
+        black on the inside and orange on the outside.  The center point of the gradient
+        is near the center-bottom of the rectangle.  The gradient is skewed, so that it appears
+        as a rotated elliptical gradient.</li>
+        <li>The bottom rectangle is filled with a repeating pattern of tiled
+        red, green, yellow and blue parallelograms.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-06-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- Linear Gradient with gradientTransforms                                -->
+    <!-- ====================================================================== -->
+    <linearGradient id="Grad1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="430" y2="0" gradientTransform="translate(25 35) scale(0.5)">
+      <stop stop-color="blue" offset="0"/>
+      <stop stop-color="green" offset="0.5"/>
+      <stop stop-color="lime" offset="1"/>
+    </linearGradient>
+    <rect x="20" y="20" width="440" height="50" fill="url(#Grad1)"/>
+    <text font-size="30" x="20" y="100">scale(0.5) on gradient</text>
+    <!-- ====================================================================== -->
+    <!-- Radial Gradiant with a gradientTransform                               -->
+    <!-- ====================================================================== -->
+    <radialGradient id="Grad2" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="60" gradientTransform="translate(240,155) skewX(45)">
+      <stop stop-color="black" offset="0"/>
+      <stop stop-color="rgb(255,165,0)" offset="1"/>
+    </radialGradient>
+    <rect x="20" y="110" width="440" height="50" fill="url(#Grad2)"/>
+    <text font-size="30" x="20" y="190">skewX(45) on gradient</text>
+    <!-- ====================================================================== -->
+    <!-- Pattern filled rectangles with a patternTransform.                     -->
+    <!-- ====================================================================== -->
+    <pattern patternUnits="userSpaceOnUse" id="Pat3" x="0" y="0" width="20" height="20" patternTransform="translate(25 215) scale(2) skewX(45)">
+      <rect x="0" y="0" width="10" height="10" fill="maroon"/>
+      <rect x="10" y="0" width="10" height="10" fill="green"/>
+      <rect x="0" y="10" width="10" height="10" fill="blue"/>
+      <rect x="10" y="10" width="10" height="10" fill="yellow"/>
+    </pattern>
+    <rect x="20" y="210" width="440" height="50" fill="url(#Pat3)"/>
+    <text font-size="30" x="20" y="290">scale(2), skewX(45) on pattern</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

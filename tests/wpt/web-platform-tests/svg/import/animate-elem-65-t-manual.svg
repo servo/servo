@@ -1,0 +1,223 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-65-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This tests performs basic tests on the min attribute. The test is based
+        on the SMIL specification at:
+        http://www.w3.org/TR/smil20/smil-timing.html#Timing-MinMax.
+      </p>
+      <p>
+        Each row in the test shows different rectangles subject to &lt;set&gt;
+        animations with different configurations with regards to the min
+        attribute. For each row but the last one, the animation should be active
+        during the first 5 seconds of the animations where the red rectangle
+        should show in the right column. At five seconds into the animation,
+        all the rectangles should move to their left position.
+      </p>
+      <p>
+        On the first row, the first &lt;set&gt; animation (left rectangle) has an end value of 5s,
+        and no min attribute. The active duration resulting from the end attribute is 5s.
+        The first row shows a second rectangle with a &lt;set&gt; animation with
+        the same configuration except that the min attribute value is set to
+        'media'. Because the &lt;set&gt; element does not define a media, the
+        behavior should be as if the attribute was not specified. The active duration (5s)
+        of the second &lt;set&gt; animation is therefore not constrained.
+      </p>
+      <p>
+        On the second row, the &lt;set&gt; animation has an end value of 5s,
+        and a -6s min attribute. The active duration resulting from the end attribute is 5s.
+        The negative min value is invalid and, as per the specification, the behavior should be
+        as if the attribute was not specified. The active duration (5s) is therefore not constrained.
+      </p>
+      <p>
+        On the third row, the &lt;set&gt; animation has an end value of 5s,
+        and a 3s min attribute. The active duration resulting from the end attribute is 5s.
+        The min value is less than the active duration, so the min attribute does not actually
+        constrain the active duration.
+      </p>
+      <p>
+        On the fourth row, the &lt;set&gt; animation has a dur value of indefinite, an end value of 2s,
+        and a 5s min attribute. The active duration resulting from the end attribute would be 2s.
+        Because this is less than the min value (2s &lt; 5s) the (min constrained) active duration
+        has to be corrected to 5s, despite a simple duration (indefinite) that is greater than the min value.
+      </p>
+      <p>
+        On the fifth row, the &lt;set&gt; animation has a dur value of 1s, an end value of 2s,
+        a repeatCount of 7 and a 5s min attribute. The active duration resulting from dur, end and repeatCount
+        would be 2s. Because this is less than the min value (2s &lt; 5s)
+        the (min constrained) active duration has to be corrected to 5s.
+      </p>
+      <p>
+        On the sixth row, the &lt;set&gt; animation has a dur value of 1s, an end
+        value of 2s, a repeatCount of 5 and a 8s min attribute value.
+        The active duration resulting from dur, end and repeatCount
+        would be 2s, because this is less than the min value (2s &lt; 8s)
+        the active duration has to be corrected to 8s. As the
+        fill attribute is set to 'remove' on the &lt;set&gt; animation, this
+        remove is applied at 5s, the end of the repeatCount.
+        Note, that if the end of active duration would have been used as a
+        syncbase-value for another animation, the corrected end event at
+        (begin + min) = 8s has to be used.
+      </p>
+      <p>
+        On the seventh row, the &lt;set&gt; animation has a dur value of 1s, an end
+        value of 2s, a repeatCount of 5 and a 8s min attribute value.
+        The active duration resulting from dur, end and repeatCount
+        would be 2s, because this is less than the min value (2s &lt; 8s)
+        the active duration has to be corrected to 8s. As the fill attribute
+        is set to 'freeze' on the &lt;set&gt; animation, the animation is frozen at
+        5s, the end of the repeatCount, the &lt;set&gt; applies indefinitely.
+        Note, that if the end of active duration would have been used as a
+        syncbase-value for another animation, the corrected end event at
+        (begin + min) = 8s has to be used.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test and observe it for at least six seconds. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the following conditions are met:</p>
+      <ul>
+        <li>For the first five seconds after the document loads,
+        all of the red squares in the top six rows are in the right column, and
+        after five seconds, they all move to the left column.</li>
+        <li>The red square in the last row is always in the right column.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-65-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">min</text>
+
+    <g transform="translate(100, 50)">
+
+      <g transform="translate(120,45)" text-anchor="end" font-size="14">
+        <text>no min / media</text>
+        <text y="25">invalid min</text>
+        <text y="50">min &lt; active dur</text>
+        <text y="75">min &gt; active dur</text>
+        <text y="100">min &lt; repeat dur</text>
+        <text y="125">min &gt; repeat dur, remove</text>
+        <text y="180">min &gt; repeat dur, freeze</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(150, 25)" text-anchor="middle" font-size="14">
+        <text>&gt; 5s</text>
+        <text x="80">0s-5s</text>
+
+        <g transform="translate(0, 180)">
+          <text>never</text>
+          <text x="80">&gt; 0s</text>
+        </g>
+      </g>
+
+      <g transform="translate(150,40)" stroke="black">
+        <defs>
+          <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
+        </defs>
+
+        <g id="setOne">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="firstSet" attributeName="x" to="74" end="5s"/>
+          </rect>
+
+          <g transform="translate(20, 0)">
+            <use xlink:href="#shadow" x="0"/>
+            <use xlink:href="#shadow" x="80"/>
+
+            <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+              <set attributeName="x" to="74" end="5s" min="media"/>
+            </rect>
+          </g>
+        </g>
+
+        <g id="setTwo" transform="translate(0, 25)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" min="-6s" end="5s"/>
+          </rect>
+        </g>
+
+        <g id="setThree" transform="translate(0, 50)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" min="3s" end="5s"/>
+          </rect>
+        </g>
+
+        <g id="setFour" transform="translate(0, 75)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" min="5s" dur="indefinite" end="2s"/>
+          </rect>
+        </g>
+
+        <g id="setFive" transform="translate(0, 100)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" min="5s" end="2s" dur="1s" repeatCount="7"/>
+          </rect>
+        </g>
+
+        <g id="setSix" transform="translate(0, 125)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" min="8s" end="2s" dur="1s" repeatCount="5" fill="remove"/>
+          </rect>
+        </g>
+
+        <g id="setSeven" transform="translate(0, 180)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" min="8s" end="2s" dur="1s" repeatCount="5" fill="freeze"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

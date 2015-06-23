@@ -1,0 +1,78 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="DAS" author="CM" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: interact-pointer-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty">
+      <p>
+        This tests that zero opacity pixels in a mask do not affect
+        hit testing for the purpose of pointer event targetting.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        After loading the test, a rectangle will be displayed.
+        Move the pointer over the rectangle, and it will change color
+        to indicate whether the test was passed.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        If the rectangle turns green once the pointing device is moved over it,
+        the test was passed.  If instead it turns red (or remains black),
+        then the test failed.  If the rectangle was initially red when
+        the document was loaded, then that also indicates that the test failed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-pointer-01-t.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='40' font-size='18'>Test pointer events with zero opacity mask pixels</text>
+
+    <mask id='m' maskUnits='userSpaceOnUse' x='10' y='80' width='50' height='50'/>
+    <rect id='r' x='10' y='80' width='50' height='50' onmouseover='report(false)'/>
+    <rect x='10' y='80' width='50' height='50' mask='url(#m)' fill='red' onmouseover='report(true)'/>
+
+    <g id='g'>
+      <text id='t' x='10' y='150' font-size='13'>Move the pointing device over the rectangle.</text>
+      <text id='t2' x='10' y='166' font-size='13'>If it is red, you've already failed.</text>
+    </g>
+
+    <script>
+      function report(pass) {
+        document.getElementById('r').setAttribute('fill', pass ? 'green' : 'red');
+        document.getElementById('t').firstChild.nodeValue = pass ? "If the rectangle is green, you've passed!  Otherwise, you've failed." : "You've failed.";
+        document.getElementById('g').removeChild(document.getElementById('t2'));
+      }
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

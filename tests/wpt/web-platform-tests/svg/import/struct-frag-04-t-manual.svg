@@ -1,0 +1,64 @@
+<svg version="1.1" baseProfile="tiny" preserveAspectRatio="xMidYMid meet" id="svg-root"
+  width="100%" height="100%" x="1000" y="1000" 
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-frag-04-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#NewDocument">
+        <p>
+          This test validates the operation of the svg element when there is no
+          viewbox. 
+        </p>
+        <p>
+          The document has x/y attributes set to (1000, 1000). Because 
+          x/y are ignored on the root svg element, the x/y origin should have no 
+          effect on the drawing.
+        </p>
+        <p>
+          The document contains squares and circles between the
+          (100,100) and (200, 200) coordinates. 
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+        <p>Run the test. No interaction required. If the test is run outside of the harness, the operator may resize the viewport.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+        <p>The rendered picture should match the reference image. Changing the viewport
+          size should have no effect on the placement or scale of the document's content.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-frag-04-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <rect x="100" y="100" width="50" height="50" fill="rgb(220, 20, 60)"/>
+    <rect x="150" y="150" width="50" height="50" fill="rgb(220, 20, 60)"/>
+
+    <circle cx="125" cy="175" r="25" fill="rgb(255, 215, 0)"/>
+    <circle cx="175" cy="125" r="25" fill="rgb(255, 215, 0)"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,88 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="CN" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: fonts-glyph-02-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#GlyphElement">
+      <p>
+        The first subtest tests the arabic-form attribute on the glyph element, 
+	the second subtest is the same, but with glyphs for the letter khah.
+        It should match the reference image.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+	Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The first subtest must produce a
+        'downward triangle', a 'space', a 'square', a 'diamond'
+        and then an 'upward triangle' in this order. Remembering
+        that arabic text is right to left.
+      </p>
+			<p>The second subtest must produce the isolated, initial, medial, final and 
+	 			glyphs of the letter khah. Again in the writing direction, from right to left.
+	 		</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: fonts-glyph-02-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <font horiz-adv-x="300">
+        <font-face font-family="SVGFont" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space" horiz-adv-x="300"/>
+        <glyph unicode="ښ" glyph-name="downward-triangle" horiz-adv-x="500" arabic-form="isolated" d="M0 900L500 900L250 0Z"/>
+        <glyph unicode="ښ" glyph-name="square" horiz-adv-x="500" arabic-form="initial" d="M0 250L500 250L500 750L0 750Z"/>
+        <glyph unicode="ښ" glyph-name="diamond" horiz-adv-x="500" arabic-form="medial" d="M0 500L250 250L500 500L250 750Z"/>
+        <glyph unicode="ښ" glyph-name="upward-triangle" horiz-adv-x="500" arabic-form="terminal" d="M0 0L500 0L250 900Z"/>
+      </font>
+      <font horiz-adv-x="573">
+        <font-face font-family="SVGAr" units-per-em="1000" panose-1="5 1 1 1 1 1 1 1 1 1" ascent="1025" descent="-399" alphabetic="0"/>
+        <missing-glyph horiz-adv-x="500" d="M31 0V800H469V0H31ZM438 31V769H62V31H438Z"/>
+        <glyph unicode=" " glyph-name="space" horiz-adv-x="370"/>
+        <glyph unicode="خ" glyph-name="khah-isolated" arabic-form="isolated" horiz-adv-x="562" d="M309 360Q309 353 297 335T271 317Q260 317 227 337T194 370Q194 380 205 397T232 415Q246 415 277 395T309 360ZM518 -265Q516 -269 509 -275Q507 -277 502 -281Q447 -319 424 -330Q356 -363 281 -363Q228 -363 186 -347T110 -294Q69 -249 54 -199Q44 -167 44 -127Q44 -96 50 -65T76 12Q88 39 110 70Q152 127 152 137Q152 151 148 156T121 161Q95 161 85 156Q72 146 62 140Q44 128 35 130Q35 138 35 146Q37 151 43 162Q77 208 98 219T159 231Q170 231 234 221Q255 218 298 210H340Q347 210 382 218T425 230T435 235Q446 239 449 234Q454 226 444 189T426 152Q418 152 393 154T360 156Q327 156 297 149T228 120Q180 93 142 36Q96 -33 96 -110Q96 -209 168 -257Q223 -294 300 -294Q343 -294 371 -291Q429 -285 489 -267Q506 -260 511 -260Q514 -262 518 -265Z"/>
+        <glyph unicode="خ" glyph-name="khah-initial" arabic-form="initial" horiz-adv-x="728" d="M297 372Q297 365 285 347T259 329Q248 329 215 349T182 382Q182 392 193 409T220 427Q234 427 265 407T297 372ZM600 0H0V68H373Q396 68 396 86Q396 89 394 95Q377 137 347 159Q308 188 243 188Q210 188 183 171Q165 160 157 158T145 156Q138 156 138 164L140 174Q145 196 191 220Q228 240 269 240Q313 240 355 221T447 160Q488 120 530 81Q543 73 563 71T609 68Q619 68 620 68T625 68Q645 68 645 46Q645 30 633 15T600 0Z"/>
+        <glyph unicode="خ" glyph-name="khah-medial" arabic-form="medial" horiz-adv-x="625" d="M296 376Q296 369 284 351T258 333Q247 333 214 353T181 386Q181 396 192 413T219 431Q233 431 264 411T296 376ZM625 0H0V68H373Q396 68 396 86Q396 89 394 95Q377 137 347 159Q308 188 243 188Q210 188 183 171Q165 160 157 158T145 156Q138 156 138 164L140 174Q145 196 191 220Q228 240 269 240Q313 240 355 221T447 160Q488 120 530 81Q543 73 563 71T609 68Q619 68 620 68T625 68V0Z"/>
+        <glyph unicode="خ" glyph-name="khah-terminal" arabic-form="terminal" horiz-adv-x="514" d="M296 352Q296 345 284 327T258 309Q247 309 214 329T181 362Q181 372 192 389T219 407Q233 407 264 387T296 352ZM514 0H375Q313 0 298 64T261 128Q209 128 153 62Q91 -12 91 -101Q91 -199 162 -243Q220 -279 319 -279Q367 -279 390 -276T463 -259Q466 -258 475 -255T488 -252Q490 -252 491 -254T489 -263Q484 -272 466 -286T433 -307Q408 -320 401 -323Q349 -344 277 -344Q169 -344 104 -274Q44 -210 44 -118Q44 -88 51 -53T73 14Q80 31 97 56Q132 108 132 118Q132 127 126 134T110 141Q92 141 85 137Q72 127 59 117Q49 112 44 112Q38 112 38 119Q38 122 40 128Q49 156 80 182Q116 212 157 212Q170 212 188 208Q232 198 258 198H320Q345 198 357 201Q374 207 383 209T398 214T412 216Q420 216 421 212Q424 202 414 170T396 137Q394 137 382 140T362 143Q346 143 337 135T327 104Q327 91 341 80T379 68H514V0Z"/>
+      </font>
+    </defs>
+    <g font-family="SVGFont" font-size="80" text-anchor="middle">
+      <!-- This should produce 'downward triangle' 'space' 'square' 'diamond' 'upward-triangle' -->
+      <text x="240" y="100" direction="rtl">ښ ښښښ</text>
+    </g>
+    <g font-family="SVGAr" font-size="80" text-anchor="middle">
+      <!-- this should produce isolated khah, followed by initial,medial and terminal khah -->
+      <text x="240" y="200" direction="rtl">خ  خخخ</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

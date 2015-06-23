@@ -1,0 +1,78 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="CM" author="Microsoft" status="reviewed" version="$Revision: 1.3 $" testname="$RCSfile: struct-use-15-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/struct.html#UseElement">
+      <p>
+        Test that recursive 'use' elements are synchronized at run time with the originally referenced element.
+      </p>
+      <p>
+        Inside of a 'defs' element, a 'g' element containing two 'rect' elements is referenced via 'use'. Outside of the 'defs', a 'use' element references
+        the other 'use' element. One 'rect' is orange and the other has no fill specified. DOM synchronization is verified visually by removing the orange 'rect'.
+        Presentation attribute synchronization is verified visually by setting the other rect's 'fill' attribute to 'blue'. All elements are inside of a 'defs'
+        element except for the recursive 'use' element to ensure that it is the only element rendered. Verify that blue is visible and orange is not visible.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if there is a green square visible on the page, and no red.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-use-15-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+        <g id="testG">
+            <rect width="96" height="96" id="testRect1" />
+            <rect x="96" width="96" height="96" fill="red" id="testRect2" />
+        </g>
+        <use xlink:href="#testG" id="testUse1" />
+    </defs>
+    <use xlink:href="#testUse1" />
+    <script type="text/javascript"><![CDATA[
+        try
+        {
+            var testG = document.getElementById("testG");
+            var testRect1 = document.getElementById("testRect1");
+            var testRect2 = document.getElementById("testRect2");
+
+            testRect1.setAttribute("fill", "green");
+            testG.removeChild(testRect2);
+        }
+        catch(ex)
+        {
+            alert("ERROR: " + ex.message);   
+        }]]>
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

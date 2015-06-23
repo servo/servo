@@ -1,1 +1,0 @@
-refresh_header=true;

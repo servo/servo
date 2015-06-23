@@ -1,0 +1,151 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="Microsoft" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: struct-use-11-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#UseElement">
+      <p>
+        CSS selectors that apply to an element referenced via 'use' also apply to the 'use' instance.
+      </p>
+      <p>
+        A 'style' block contains all CSS rules. Various CSS selectors are applied to 'circle' elements. A unique 'class' selector is
+        used for all cases to ensure that the selectors don't interfere with each other. For each 'circle', there is a corresponding
+        'use' instance. For structure-related rules, a 'g' tag is used.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if twelve blue circles and no black circles are visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-use-11-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <style type="text/css"><![CDATA[
+        #testId.test1
+        {
+            fill: blue;
+        }
+        *.test2
+        {
+            fill: blue;
+        }
+        circle.test3
+        {
+            fill: blue;
+        }
+        .descendant circle.test4
+        {
+            fill: blue;
+        }
+        .child > circle.test5
+        {
+            fill: blue;
+        }
+        .test6:first-child
+        {
+            fill: blue;
+        }
+        .sibling + circle.test7
+        {
+            fill: blue;
+        }
+        circle[cx].test8
+        {
+            fill: blue;
+        }
+        circle[cx="50"].test9
+        {
+            fill: blue;
+        }
+        circle[foo~="warning1"].test10
+        {
+            fill: blue;
+        }
+        circle[lang|="en"].test11
+        {
+            fill: blue;
+        }
+	.test12 {
+            fill: blue
+         }
+        .twochildren:first-child
+        {
+            fill: black;
+        }]]>
+    </style>
+    <defs>
+        <circle cx="50" cy="50" r="48" id="testId" class="test1" />
+        <circle cx="50" cy="50" r="48" id="testClass" class="test2" />
+        <circle cx="50" cy="50" r="48" id="testType" class="test3" />
+        <g class="descendant">
+            <circle cx="50" cy="50" r="48" id="testDescendant" class="test4" />
+        </g>
+        <g class="child">
+            <circle cx="50" cy="50" r="48" id="testChild" class="test5" />    
+        </g>
+        <g>
+            <circle cx="50" cy="50" r="48" id="testFirstChild" class="test6" /> 
+        </g>
+        <g class="sibling"></g>
+        <circle cx="50" cy="50" r="48" id="testSibling" class="test7" />
+        <circle cx="50" cy="50" r="48" id="testAttribute" class="test8" />
+        <circle cx="50" cy="50" r="48" id="testAttributeWithValue" class="test9" />
+        <circle cx="50" cy="50" r="48" id="testAttributeWithSpaceSeparatedValueList" class="test10" foo="warning1 warning2" />
+        <circle cx="50" cy="50" r="48" id="testAttributeWithHyphenSeparatedValueList" class="test11" lang="en-us" />
+        <g class="twochildren">
+	    <circle cx="50" cy="50" r="48" id="notFirstChild" display="none" />
+            <circle cx="50" cy="50" r="48" id="testFirstChild2" class="test12" /> 
+        </g>
+    </defs>
+    <use xlink:href="#testId" x="0" y="0" />
+    <use xlink:href="#testClass" x="96" y="0" />
+    <use xlink:href="#testType" x="192" y="0" />
+    <use xlink:href="#testDescendant" x="288" y="0" />
+    <use xlink:href="#testChild" x="0" y="100" />
+    <use xlink:href="#testFirstChild" x="96" y="100" />
+    <use xlink:href="#testSibling" x="192" y="100" />
+    <use xlink:href="#testAttribute" x="288" y="100" />
+    <use xlink:href="#testAttributeWithValue" x="0" y="200" />
+    <use xlink:href="#testAttributeWithSpaceSeparatedValueList" x="96" y="200" />
+    <use xlink:href="#testAttributeWithHyphenSeparatedValueList" x="192" y="200" />
+    <use xlink:href="#testFirstChild2" x="288" y="200" />
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+  -->
+</svg>

@@ -18,13 +18,14 @@ sourceImg.src = '../2x2.png'
 sourceImg.width = sourceWidth;
 sourceImg.height = sourceHeight;
 
-var destCtx = destCanvas.getContext('2d');
-destCtx.fillStyle = "#FF0000";
-destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
-destCtx.imageSmoothingEnabled = smoothingEnabled;
-// The source canvas will copied to the 50,50 position of the destination canvas
-// over an area of 64x32 pixels
-// The copied image will be distorted along the x axis
-destCtx.drawImage(sourceImg, 50, 50, 64, 32);
-
+sourceImg.onload = function() {
+  var destCtx = destCanvas.getContext('2d');
+  destCtx.fillStyle = "#FF0000";
+  destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+  destCtx.imageSmoothingEnabled = smoothingEnabled;
+  // The source canvas will copied to the 50,50 position of the destination canvas
+  // over an area of 64x32 pixels
+  // The copied image will be distorted along the x axis
+  destCtx.drawImage(sourceImg, 50, 50, 64, 32);
+}
 </script>

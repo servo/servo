@@ -1,0 +1,189 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.1 $" testname="$RCSfile: types-dom-08-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/types.html#InterfaceSVGLocatable">
+      <p>
+        This test draws a few basic shapes and checks for correct values from getBBox().
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        To pass, each returned bounding box must be correct (indicated by printing the values in green), and when this happens the text in the rect with blue stroke changes from 'failed' to 'passed'.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: types-dom-08-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <rect id="myRect" x="0" y="0" width="60" height="40"/>
+    </defs>
+
+    <g id="body">
+      <g id="wrap" transform="translate(300,100)">
+        <g id="group1" transform="translate(10, 20)" fill="#ff0">
+          <rect id="rect1" transform="scale(2)" x="10" y="10" width="50" height="50"/>
+          <rect id="rect2" x="10" y="10" width="100" height="100"/>
+          <g id="group2" transform="translate(10, 20)">
+            <rect id="rect3" x="0" y="10" width="150" height="50"/>
+            <circle id="circle1" cx="20" cy="20" r="100" />
+          </g>
+        </g>
+        <rect id="rect4" x="10" y="10" width="400" height="0"/>
+        <use id="myUse" xlink:href="#myRect" x="-30" y="-20" fill="#ff0"/>
+        <g id="emptyG"/>
+        <line id="thickLine" stroke-width="10" x2="100" y2="0" stroke="#ff0"/>
+      </g>
+
+      <circle id="circle2" cx="20" cy="20" r="100" />
+
+      <text  x="240" y="40" text-anchor="middle" >SVGLocatable.getBBox() - basic test</text>
+
+      <rect x="330" y="315" width="130" height="40" stroke="blue" fill="none"/>
+      <g fill="black">
+        <text id="TestStatus" x="333" y="350" font-size="40">failed</text>
+      </g>
+    </g>
+    
+        <script><![CDATA[
+      var svg_ns = "http://www.w3.org/2000/svg";
+      var xlink_ns = "http://www.w3.org/1999/xlink";
+  
+      var count=0;
+      var topsvg = document.documentElement;
+      var startY = 80;
+      var rowHeight = 12;
+      var fontSize = "10";
+      var isPassed = true;
+  
+      function drawString( text, color )
+      {
+        node_to_insert=document.createElementNS(svg_ns,"text");
+        node_to_insert.setAttributeNS(null,"font-size",fontSize);
+        var xVal = 5;
+        node_to_insert.setAttributeNS(null,"x", xVal.toString());
+        var yVal = startY + count++ * rowHeight;
+        node_to_insert.setAttributeNS(null, "y",  yVal.toString());
+        node_to_insert.setAttributeNS(null, "fill",  color  );
+        node_to_insert.appendChild(document.createTextNode(text));
+        document.getElementById( "test-body-content" ).appendChild(node_to_insert);          
+       
+      }
+  
+      function verifyBBox( bbox, x, y, width, height, epsilon )
+      {
+        if
+        (
+          ( Math.abs(bbox.x - x ) < epsilon ) &&
+          ( Math.abs(bbox.y - y ) < epsilon ) &&
+          ( Math.abs(bbox.width - width ) < epsilon ) &&
+          ( Math.abs(bbox.height - height ) < epsilon ) 
+        )
+        {
+          return "green";
+        }
+        else
+        {
+          isPassed = false;
+          drawString( "Results do not match expected values ( " + x + ", " + y + ", " + width + ", " + height + " )", "red" );
+          return "red";
+        }
+      }
+  
+      function displayGetBBox( )
+      {
+        drawString( "getBBox()", "black" );             
+        var bbox = document.getElementById( "group1" ).getBBox( );
+        drawString( "[group1] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, -70, -60, 230, 200, 1 / 65535 ) );            
+  
+        bbox = document.getElementById( "rect1" ).getBBox( );
+        drawString( "[rect1] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, 10, 10, 50, 50, 1 / 65535 ));
+  
+        bbox = document.getElementById( "rect2" ).getBBox( );
+        drawString( "[rect2] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, 10, 10, 100, 100, 1 / 65535 ));
+  
+        bbox = document.getElementById( "group2" ).getBBox( );
+        drawString( "[group2] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, -80, -80, 230, 200, 1 / 65535 ));
+  
+        bbox = document.getElementById( "rect3" ).getBBox( );
+        drawString( "[rect3] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height ,  verifyBBox( bbox, 0, 10, 150, 50, 1 / 65535 ));
+  
+        bbox = document.getElementById( "circle1" ).getBBox( );
+        drawString( "[circle1] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, -80, -80, 200, 200, 1 / 65535 ));
+        
+        bbox = document.getElementById( "rect4" ).getBBox( );
+        drawString( "[rect4] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, 10, 10, 400, 0, 1 / 65535 ));
+
+        bbox = document.getElementById( "myUse" ).getBBox( );
+        drawString( "[myUse] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, -30, -20, 60, 40, 1 / 65535 ));
+
+        bbox = document.getElementById( "thickLine" ).getBBox( );
+        drawString( "[thickLine] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, 0, 0, 100, 0, 1 / 65535 ));
+
+      }
+  
+      displayGetBBox();
+  
+      // remove from tree, get bbox
+      drawString( "node removed from tree, should still have bounding box", "black" );
+      circle = document.getElementById( "circle2" );
+      document.getElementById( "body" ).removeChild(circle);
+      bbox = circle.getBBox( );
+      drawString( "[circle2]: " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, -80, -80, 200, 200, 1 / 65535 ));
+
+      var emptyG = document.getElementById( "emptyG" );
+      bbox = emptyG.getBBox( );
+      if ( bbox == null )
+      {
+        drawString( "[emptyG]: null" , "green");
+      }
+      else
+      {
+        isPassed = false;
+        drawString( "Results do not match expected values (null)" , "red");
+      }
+
+
+      if( isPassed )
+      {
+        var status = document.getElementById("TestStatus");
+        status.firstChild.nodeValue = "passed" ;
+        status.setAttribute( "fill", "green");
+      }
+ ]]></script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.1 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>
