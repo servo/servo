@@ -8,6 +8,7 @@ extern crate net;
 extern crate net_traits;
 extern crate url;
 extern crate util;
+extern crate time;
 
 #[cfg(test)] mod cookie;
 #[cfg(test)] mod data_loader;

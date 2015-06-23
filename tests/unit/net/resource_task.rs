@@ -12,12 +12,49 @@ use std::boxed;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
+use time;
 
 
 #[test]
 fn test_exit() {
     let resource_task = new_resource_task(None, None);
     resource_task.send(ControlMsg::Exit).unwrap();
+}
+
+#[test]
+fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
+    let entry = HSTSEntry {
+        host: "mozilla.org".to_string(),
+        include_subdomains: false,
+        max_age: Some(20),
+        timestamp: None
+    };
+
+    assert!(!entry.is_expired());
+}
+
+#[test]
+fn test_hsts_entry_is_not_expired_when_it_has_no_max_age() {
+    let entry = HSTSEntry {
+        host: "mozilla.org".to_string(),
+        include_subdomains: false,
+        max_age: None,
+        timestamp: Some(time::get_time().sec as u64)
+    };
+
+    assert!(!entry.is_expired());
+}
+
+#[test]
+fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
+    let entry = HSTSEntry {
+        host: "mozilla.org".to_string(),
+        include_subdomains: false,
+        max_age: Some(10),
+        timestamp: Some(time::get_time().sec as u64 - 20u64)
+    };
+
+    assert!(entry.is_expired());
 }
 
 #[test]
@@ -177,6 +214,20 @@ fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_always_secure() {
     };
 
     assert!(hsts_list.always_secure("mozilla.org") == true);
+}
+
+#[test]
+fn test_hsts_list_with_expired_entry_is_not_always_secure() {
+    let hsts_list = HSTSList {
+        entries: vec![HSTSEntry {
+            host: "mozilla.org".to_string(),
+            include_subdomains: false,
+            max_age: Some(20),
+            timestamp: Some(time::get_time().sec as u64 - 100u64)
+        }]
+    };
+
+    assert!(!hsts_list.always_secure("mozilla.org"));
 }
 
 #[test]

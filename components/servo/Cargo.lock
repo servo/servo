@@ -830,6 +830,7 @@ dependencies = [
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "net 0.0.1",
  "net_traits 0.0.1",
+ "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]

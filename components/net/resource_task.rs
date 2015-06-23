@@ -194,7 +194,7 @@ pub struct HSTSEntry {
     pub host: String,
     pub include_subdomains: bool,
     pub max_age: Option<u64>,
-    timestamp: Option<u64>
+    pub timestamp: Option<u64>
 }
 
 impl HSTSEntry {
@@ -211,12 +211,22 @@ impl HSTSEntry {
         }
     }
 
+    pub fn is_expired(&self) -> bool {
+        match (self.max_age, self.timestamp) {
+            (Some(max_age), Some(timestamp)) => {
+                (time::get_time().sec as u64) - timestamp > max_age
+            },
+
+            _ => false
+        }
+    }
+
     fn matches_domain(&self, host: &str) -> bool {
-        self.host == host
+        !self.is_expired() && self.host == host
     }
 
     fn matches_subdomain(&self, host: &str) -> bool {
-        host.ends_with(&format!(".{}", self.host))
+        !self.is_expired() && host.ends_with(&format!(".{}", self.host))
     }
 }
 
@@ -254,7 +264,7 @@ impl HSTSList {
         })
     }
 
-    pub fn has_subdomain(&self, host: String) -> bool {
+    fn has_subdomain(&self, host: String) -> bool {
         self.entries.iter().any(|e| {
             e.matches_subdomain(&host)
         })
