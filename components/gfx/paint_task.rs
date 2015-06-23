@@ -21,7 +21,7 @@ use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
 use canvas_traits::CanvasMsg;
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
@@ -69,6 +69,7 @@ pub struct PaintRequest {
     pub scale: f32,
     pub layer_id: LayerId,
     pub epoch: Epoch,
+    pub layer_kind: LayerKind,
 }
 
 pub enum Msg {
@@ -272,10 +273,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     }
 
                     let mut replies = Vec::new();
-                    for PaintRequest { buffer_requests, scale, layer_id, epoch }
+                    for PaintRequest { buffer_requests, scale, layer_id, epoch, layer_kind }
                           in requests.into_iter() {
                         if self.current_epoch == Some(epoch) {
-                            self.paint(&mut replies, buffer_requests, scale, layer_id);
+                            self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
                         } else {
                             debug!("painter epoch mismatch: {:?} != {:?}", self.current_epoch, epoch);
                         }
@@ -405,7 +406,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
               replies: &mut Vec<(LayerId, Box<LayerBufferSet>)>,
               mut tiles: Vec<BufferRequest>,
               scale: f32,
-              layer_id: LayerId) {
+              layer_id: LayerId,
+              layer_kind: LayerKind) {
         time::profile(time::ProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
             // Bail out if there is no appropriate stacking context.
             let stacking_context = if let Some(ref stacking_context) = self.root_stacking_context {
@@ -429,7 +431,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                           tile,
                                                           layer_buffer,
                                                           stacking_context.clone(),
-                                                          scale);
+                                                          scale,
+                                                          layer_kind);
             }
             let new_buffers = (0..tile_count).map(|i| {
                 let thread_id = i % self.worker_threads.len();
@@ -450,32 +453,72 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         };
 
         let mut properties = Vec::new();
-        build(&mut properties, &**root_stacking_context, &ZERO_POINT);
+        build(&mut properties,
+              &**root_stacking_context,
+              &ZERO_POINT,
+              &Matrix4::identity(),
+              &Matrix4::identity(),
+              None);
         self.compositor.initialize_layers_for_pipeline(self.id, properties, self.current_epoch.unwrap());
 
         fn build(properties: &mut Vec<LayerProperties>,
                  stacking_context: &StackingContext,
-                 page_position: &Point2D<Au>) {
-            let page_position = stacking_context.bounds.origin + *page_position;
-            if let Some(ref paint_layer) = stacking_context.layer {
-                // Layers start at the top left of their overflow rect, as far as the info we give to
-                // the compositor is concerned.
-                let overflow_relative_page_position = page_position + stacking_context.overflow.origin;
-                let layer_position =
-                    Rect::new(Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
-                                           overflow_relative_page_position.y.to_nearest_px() as f32),
-                              Size2D::new(stacking_context.overflow.size.width.to_nearest_px() as f32,
-                                          stacking_context.overflow.size.height.to_nearest_px() as f32));
-                properties.push(LayerProperties {
-                    id: paint_layer.id,
-                    rect: layer_position,
-                    background_color: paint_layer.background_color,
-                    scroll_policy: paint_layer.scroll_policy,
-                })
-            }
+                 page_position: &Point2D<Au>,
+                 transform: &Matrix4,
+                 perspective: &Matrix4,
+                 parent_id: Option<LayerId>) {
+
+            let transform = transform.mul(&stacking_context.transform);
+            let perspective = perspective.mul(&stacking_context.perspective);
+
+            let (next_parent_id, page_position, transform, perspective) = match stacking_context.layer {
+                Some(ref paint_layer) => {
+                    // Layers start at the top left of their overflow rect, as far as the info we give to
+                    // the compositor is concerned.
+                    let overflow_relative_page_position = *page_position +
+                                                          stacking_context.bounds.origin +
+                                                          stacking_context.overflow.origin;
+                    let layer_position =
+                        Rect::new(Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
+                                               overflow_relative_page_position.y.to_nearest_px() as f32),
+                                  Size2D::new(stacking_context.overflow.size.width.to_nearest_px() as f32,
+                                              stacking_context.overflow.size.height.to_nearest_px() as f32));
+
+                    let establishes_3d_context = stacking_context.establishes_3d_context;
+
+                    properties.push(LayerProperties {
+                        id: paint_layer.id,
+                        parent_id: parent_id,
+                        rect: layer_position,
+                        background_color: paint_layer.background_color,
+                        scroll_policy: paint_layer.scroll_policy,
+                        transform: transform,
+                        perspective: perspective,
+                        establishes_3d_context: establishes_3d_context,
+                    });
+
+                    // When there is a new layer, the transforms and origin
+                    // are handled by the compositor.
+                    (Some(paint_layer.id),
+                     Point2D::zero(),
+                     Matrix4::identity(),
+                     Matrix4::identity())
+                }
+                None => {
+                    (parent_id,
+                     stacking_context.bounds.origin + *page_position,
+                     transform,
+                     perspective)
+                }
+            };
 
             for kid in stacking_context.display_list.children.iter() {
-                build(properties, &**kid, &page_position)
+                build(properties,
+                      &**kid,
+                      &page_position,
+                      &transform,
+                      &perspective,
+                      next_parent_id);
             }
         }
     }
@@ -522,8 +565,14 @@ impl WorkerThreadProxy {
                   tile: BufferRequest,
                   layer_buffer: Option<Box<LayerBuffer>>,
                   stacking_context: Arc<StackingContext>,
-                  scale: f32) {
-        let msg = MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale);
+                  scale: f32,
+                  layer_kind: LayerKind) {
+        let msg = MsgToWorkerThread::PaintTile(thread_id,
+                                               tile,
+                                               layer_buffer,
+                                               stacking_context,
+                                               scale,
+                                               layer_kind);
         self.sender.send(msg).unwrap()
     }
 
@@ -568,8 +617,12 @@ impl WorkerThread {
         loop {
             match self.receiver.recv().unwrap() {
                 MsgToWorkerThread::Exit => break,
-                MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale) => {
-                    let draw_target = self.optimize_and_paint_tile(thread_id, &tile, stacking_context, scale);
+                MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale, layer_kind) => {
+                    let draw_target = self.optimize_and_paint_tile(thread_id,
+                                                                   &tile,
+                                                                   stacking_context,
+                                                                   scale,
+                                                                   layer_kind);
                     let buffer = self.create_layer_buffer_for_painted_tile(&tile,
                                                                            layer_buffer,
                                                                            draw_target,
@@ -584,7 +637,8 @@ impl WorkerThread {
                                thread_id: usize,
                                tile: &BufferRequest,
                                stacking_context: Arc<StackingContext>,
-                               scale: f32)
+                               scale: f32,
+                               layer_kind: LayerKind)
                                -> DrawTarget {
         let size = Size2D::new(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
         let draw_target = if !opts::get().gpu_painting {
@@ -612,6 +666,7 @@ impl WorkerThread {
                 screen_rect: tile.screen_rect,
                 clip_rect: None,
                 transient_clip: None,
+                layer_kind: layer_kind,
             };
 
             // Apply a translation to start at the boundaries of the stacking context, since the
@@ -708,7 +763,7 @@ impl WorkerThread {
 
 enum MsgToWorkerThread {
     Exit,
-    PaintTile(usize, BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32),
+    PaintTile(usize, BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32, LayerKind),
 }
 
 enum MsgFromWorkerThread {

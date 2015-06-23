@@ -34,7 +34,6 @@ use computed_values;
 
 use self::property_bit_field::PropertyBitField;
 
-
 <%!
 
 import re
@@ -3498,7 +3497,150 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${single_keyword("backface-visibility", "visible hidden")}
+
+    ${single_keyword("transform-style", "auto flat preserve-3d")}
+
     <%self:longhand name="transform-origin">
+        use values::computed::{ToComputedValue, Context};
+        use values::specified::{Length, LengthOrPercentage};
+
+        use cssparser::ToCss;
+        use std::fmt;
+        use util::geometry::Au;
+
+        pub mod computed_value {
+            use values::computed::{Length, LengthOrPercentage};
+
+            #[derive(Clone, Copy, Debug, PartialEq)]
+            pub struct T {
+                pub horizontal: LengthOrPercentage,
+                pub vertical: LengthOrPercentage,
+                pub depth: Length,
+            }
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub struct SpecifiedValue {
+            horizontal: LengthOrPercentage,
+            vertical: LengthOrPercentage,
+            depth: Length,
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                try!(self.horizontal.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.vertical.to_css(dest));
+                try!(dest.write_str(" "));
+                self.depth.to_css(dest)
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T {
+                horizontal: computed::LengthOrPercentage::Percentage(0.5),
+                vertical: computed::LengthOrPercentage::Percentage(0.5),
+                depth: Au(0),
+            }
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            let (mut horizontal, mut vertical, mut depth) = (None, None, None);
+            loop {
+                if let Err(_) = input.try(|input| {
+                    let token = try!(input.expect_ident());
+                    match_ignore_ascii_case! {
+                        token,
+                        "left" => {
+                            if horizontal.is_none() {
+                                horizontal = Some(LengthOrPercentage::Percentage(0.0))
+                            } else {
+                                return Err(())
+                            }
+                        },
+                        "center" => {
+                            if horizontal.is_none() {
+                                horizontal = Some(LengthOrPercentage::Percentage(0.5))
+                            } else if vertical.is_none() {
+                                vertical = Some(LengthOrPercentage::Percentage(0.5))
+                            } else {
+                                return Err(())
+                            }
+                        },
+                        "right" => {
+                            if horizontal.is_none() {
+                                horizontal = Some(LengthOrPercentage::Percentage(1.0))
+                            } else {
+                                return Err(())
+                            }
+                        },
+                        "top" => {
+                            if vertical.is_none() {
+                                vertical = Some(LengthOrPercentage::Percentage(0.0))
+                            } else {
+                                return Err(())
+                            }
+                        },
+                        "bottom" => {
+                            if vertical.is_none() {
+                                vertical = Some(LengthOrPercentage::Percentage(1.0))
+                            } else {
+                                return Err(())
+                            }
+                        }
+                        _ => return Err(())
+                    }
+                    Ok(())
+                }) {
+                    match LengthOrPercentage::parse(input) {
+                        Ok(value) => {
+                            if horizontal.is_none() {
+                                horizontal = Some(value);
+                            } else if vertical.is_none() {
+                                vertical = Some(value);
+                            } else if let LengthOrPercentage::Length(length) = value {
+                                depth = Some(length);
+                            } else {
+                                return Err(());
+                            }
+                        }
+                        _ => break,
+                    }
+                }
+            }
+
+            if horizontal.is_some() || vertical.is_some() {
+                Ok(SpecifiedValue {
+                    horizontal: horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                    vertical: vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                    depth: depth.unwrap_or(Length::Absolute(Au(0))),
+                })
+            } else {
+                Err(())
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                computed_value::T {
+                    horizontal: self.horizontal.to_computed_value(context),
+                    vertical: self.vertical.to_computed_value(context),
+                    depth: self.depth.to_computed_value(context),
+                }
+            }
+        }
+    </%self:longhand>
+
+    ${predefined_type("perspective",
+                      "LengthOrNone",
+                      "computed::LengthOrNone::None")}
+
+    <%self:longhand name="perspective-origin">
         use values::computed::{ToComputedValue, Context};
         use values::specified::LengthOrPercentage;
 
@@ -5321,6 +5463,34 @@ impl ComputedValues {
     #[inline]
     pub fn get_font_arc(&self) -> Arc<style_structs::Font> {
         self.font.clone()
+    }
+
+    // http://dev.w3.org/csswg/css-transforms/#grouping-property-values
+    pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
+        use computed_values::mix_blend_mode;
+        use computed_values::transform_style;
+
+        let effects = self.get_effects();
+
+        // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
+        if effects.opacity < 1.0 ||
+           !effects.filter.is_empty() ||
+           effects.clip.is_some() {
+           effects.mix_blend_mode != mix_blend_mode::T::normal ||
+            return transform_style::T::flat;
+        }
+
+        if effects.transform_style == transform_style::T::auto {
+            if effects.transform.is_some() {
+                return transform_style::T::flat;
+            }
+            if effects.perspective != computed::LengthOrNone::None {
+                return transform_style::T::flat;
+            }
+        }
+
+        // Return the computed value if not overridden by the above exceptions
+        effects.transform_style
     }
 
     % for style_struct in STYLE_STRUCTS:

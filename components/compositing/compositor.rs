@@ -11,6 +11,7 @@ use scrolling::ScrollingTimerProxy;
 use windowing;
 use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
+use euclid::Matrix4;
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::rect::{Rect, TypedRect};
 use euclid::scale_factor::ScaleFactor;
@@ -26,7 +27,7 @@ use layers::rendergl::RenderContext;
 use layers::rendergl;
 use layers::scene::Scene;
 use layout_traits::{LayoutControlChan, LayoutControlMsg};
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -357,6 +358,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         self.create_or_update_descendant_layer(pipeline_id, *layer_properties);
                     }
                 }
+                self.send_buffer_requests_for_all_layers();
             }
 
             (Msg::GetGraphicsMetadata(chan), ShutdownState::NotShuttingDown) => {
@@ -560,9 +562,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                -> Rc<Layer<CompositorData>> {
         let layer_properties = LayerProperties {
             id: LayerId::null(),
+            parent_id: None,
             rect: Rect::zero(),
             background_color: color::transparent(),
             scroll_policy: ScrollPolicy::Scrollable,
+            transform: Matrix4::identity(),
+            perspective: Matrix4::identity(),
+            establishes_3d_context: true,
         };
 
         let root_layer = CompositorData::new_layer(pipeline.id,
@@ -624,6 +630,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn create_or_update_base_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+        debug_assert!(layer_properties.parent_id.is_none());
+
         let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
             Some(root_layer) => root_layer,
             None => {
@@ -653,29 +661,29 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.scroll_layer_to_fragment_point_if_necessary(pipeline_id,
                                                          layer_properties.id);
-        self.send_buffer_requests_for_all_layers();
     }
 
     fn create_or_update_descendant_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+        debug_assert!(layer_properties.parent_id.is_some());
+
         if !self.update_layer_if_exists(pipeline_id, layer_properties) {
             self.create_descendant_layer(pipeline_id, layer_properties);
         }
         self.scroll_layer_to_fragment_point_if_necessary(pipeline_id,
                                                          layer_properties.id);
-        self.send_buffer_requests_for_all_layers();
     }
 
     fn create_descendant_layer(&self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
-        let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
-            Some(root_layer) => root_layer,
-            None => return, // This pipeline is in the process of shutting down.
-        };
+        let parent_id = layer_properties.parent_id.unwrap();
 
-        let new_layer = CompositorData::new_layer(pipeline_id,
-                                                  layer_properties,
-                                                  WantsScrollEventsFlag::DoesntWantScrollEvents,
-                                                  root_layer.tile_size);
-        root_layer.add_child(new_layer);
+        if let Some(parent_layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
+                                                                               parent_id) {
+            let new_layer = CompositorData::new_layer(pipeline_id,
+                                                      layer_properties,
+                                                      WantsScrollEventsFlag::DoesntWantScrollEvents,
+                                                      parent_layer.tile_size);
+            parent_layer.add_child(new_layer);
+        }
     }
 
     fn send_window_size(&self) {
@@ -1143,11 +1151,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 request.page_rect = request.page_rect / scale.get();
             }
 
+            let layer_kind = if layer.transform_state.borrow().is_3d {
+                LayerKind::Layer3D
+            } else {
+                LayerKind::Layer2D
+            };
+
             vec.push(PaintRequest {
                 buffer_requests: layer_requests,
                 scale: scale.get(),
                 layer_id: layer.extra_data.borrow().id,
                 epoch: layer.extra_data.borrow().requested_epoch,
+                layer_kind: layer_kind,
             });
         }
 
@@ -1188,6 +1203,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// Returns true if any buffer requests were sent or false otherwise.
     fn send_buffer_requests_for_all_layers(&mut self) -> bool {
+        if let Some(ref root_layer) = self.scene.root {
+            root_layer.update_transform_state(&Matrix4::identity(),
+                                              &Matrix4::identity(),
+                                              &Point2D::zero());
+        }
+
         let mut layers_and_requests = Vec::new();
         let mut unused_buffers = Vec::new();
         self.scene.get_buffer_requests(&mut layers_and_requests, &mut unused_buffers);
@@ -1417,7 +1438,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn initialize_compositing(&mut self) {
         let context = CompositorTask::create_graphics_context(&self.window.native_metadata());
         let show_debug_borders = opts::get().show_debug_borders;
-        self.context = Some(rendergl::RenderContext::new(context, show_debug_borders))
+        self.context = Some(rendergl::RenderContext::new(context,
+                                                         show_debug_borders,
+                                                         opts::get().output_file.is_some()))
     }
 
     fn find_topmost_layer_at_point_for_layer(&self,
