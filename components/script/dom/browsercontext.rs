@@ -29,6 +29,7 @@ use std::default::Default;
 
 #[jstraceable]
 #[privatize]
+#[allow(raw_pointer_derive)]
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: usize,

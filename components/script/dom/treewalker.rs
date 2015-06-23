@@ -298,14 +298,16 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
     {
         // "To **traverse children** of type *type*, run these steps:"
         // "1. Let node be the value of the currentNode attribute."
-        // "2. Set node to node's first child if type is first, and node's last child if type is last."
         let cur = self.current_node.get().root();
+
+        // "2. Set node to node's first child if type is first, and node's last child if type is last."
+        // "3. If node is null, return null."
         let mut node = match next_child(cur.r()) {
             Some(node) => node,
             None => return Ok(None),
         };
 
-        // 3. Main: While node is not null, run these substeps:
+        // 4. Main: Repeat these substeps:
         'main: loop {
             // "1. Filter node and let result be the return value."
             let result = try!(self.accept_node(node.r()));
@@ -331,7 +333,7 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
                 },
                 _ => {}
             }
-            // "4. While node is not null, run these substeps:"
+            // "4. Repeat these subsubsteps:"
             loop {
                 // "1. Let sibling be node's next sibling if type is next,
                 //     and node's previous sibling if type is previous."
@@ -359,8 +361,6 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
                 }
             }
         }
-        // "4. Return null."
-        Ok(None)
     }
 
     // https://dom.spec.whatwg.org/#concept-traverse-siblings
