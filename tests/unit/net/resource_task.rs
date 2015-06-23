@@ -82,6 +82,17 @@ fn test_hsts_entry_cant_be_created_with_ipv4_address_as_host() {
 }
 
 #[test]
+fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
+    let mut list = HSTSList {
+        entries: vec!(HSTSEntry::new("mozilla.org".to_string(), false, Some(500000u64)).unwrap())
+    };
+
+    list.push(HSTSEntry::new("mozilla.org".to_string(), false, Some(0)).unwrap());
+
+    assert!(list.is_host_secure("mozilla.org") == false)
+}
+
+#[test]
 fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_already_matched() {
     let mut list = HSTSList {
         entries: vec!(HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap())
