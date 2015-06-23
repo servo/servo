@@ -29,7 +29,7 @@ impl MIMEClassifier {
             }
             Some((ref media_type, ref media_subtype)) => {
                 match (&**media_type, &**media_subtype) {
-                    ("uknown", "unknown") | ("application", "uknown") | ("*", "*") => {
+                    ("unknown", "unknown") | ("application", "unknown") | ("*", "*") => {
                         return self.sniff_unknown_type(!no_sniff,data);
                     }
                     _ => {
@@ -48,24 +48,22 @@ impl MIMEClassifier {
                             return self.feeds_classifier
                                        .classify(data)
                                        .or(supplied_type.clone());
+                        }
+
+                        if &**media_type == "image" {
+                            if let Some(tp) = self.image_classifier.classify(data) {
+                                return Some(tp);
+                            }
                          }
 
-                         if &**media_type == "image" {
-                           let tp = self.image_classifier.classify(data);
-                           if tp.is_some() {
-                               return tp;
-                           }
-                         }
-
-                         match (&**media_type, &**media_subtype) {
-                             ("audio", _) | ("video", _) | ("application", "ogg") => {
-                                 let tp = self.audio_video_classifer.classify(data);
-                                 if tp.is_some() {
-                                     return tp;
-                                 }
-                             }
-                             _ => {}
-                         }
+                        match (&**media_type, &**media_subtype) {
+                            ("audio", _) | ("video", _) | ("application", "ogg") => {
+                                if let Some(tp) = self.audio_video_classifer.classify(data) {
+                                    return Some(tp);
+                                }
+                            }
+                            _ => {}
+                        }
                     }
                 }
             }
@@ -88,23 +86,14 @@ impl MIMEClassifier {
     fn sniff_unknown_type(&self, sniff_scriptable: bool, data: &Vec<u8>) ->
       Option<(String,String)> {
         if sniff_scriptable {
-            let tp = self.scriptable_classifier.classify(data);
-            if tp.is_some() {return tp;}
-        }
-
-        let tp = self.plaintext_classifier.classify(data);
-        if tp.is_some() {return tp;}
-
-        let tp = self.image_classifier.classify(data);
-        if tp.is_some() {return tp;}
-
-        let tp = self.audio_video_classifer.classify(data);
-        if tp.is_some() {return tp;}
-
-        let tp = self.archive_classifer.classify(data);
-        if tp.is_some() {return tp;}
-
-        self.binary_or_plaintext.classify(data)
+            self.scriptable_classifier.classify(data)
+        } else {
+            None
+        }.or_else(|| self.plaintext_classifier.classify(data))
+         .or_else(|| self.image_classifier.classify(data))
+         .or_else(|| self.audio_video_classifer.classify(data))
+         .or_else(|| self.archive_classifer.classify(data))
+         .or_else(|| self.binary_or_plaintext.classify(data))
     }
 
     fn sniff_text_or_data(&self, data: &Vec<u8>) -> Option<(String, String)> {
