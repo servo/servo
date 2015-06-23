@@ -200,7 +200,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    proto_proto: HandleObject,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
-                                   named_constructors: &[Option<(NonNullJSNative, &'static str, u32)>],
+                                   named_constructors: &[(NonNullJSNative, &'static str, u32)],
                                    dom_class: *const DOMClass,
                                    members: &'static NativeProperties,
                                    rval: MutableHandleObject) {
@@ -214,21 +214,6 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
             JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
                                PrivateValue(dom_class as *const libc::c_void));
         }
-
-        if let Some((native, name, nargs)) = constructor {
-            let s = CString::new(name).unwrap();
-            create_interface_object(cx, receiver,
-                                    native, nargs, rval.handle(),
-                                    members, s.as_ptr());
-            for ctor in named_constructors.iter() {
-                if let Some((cnative, cname, cnargs)) = *ctor {
-                    let cs = CString::new(cname).unwrap();
-                    let constructor = RootedObject::new(cx, create_constructor(cx, cnative, cnargs, cs.as_ptr()));
-                    assert!(!constructor.ptr.is_null());
-                    define_constructor(cx, receiver, rval.handle(), cs.as_ptr(), constructor.handle());
-                }
-            }
-        }
     }
 
     if let Some((native, name, nargs)) = constructor {
@@ -237,6 +222,22 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                 native, nargs, rval.handle(),
                                 members, s.as_ptr())
     }
+
+    for ctor in named_constructors.iter() {
+        let (cnative, cname, cnargs) = *ctor;
+
+        let cs = CString::new(cname).unwrap();
+        let constructor = RootedObject::new(cx, create_constructor(cx, cnative, cnargs, cs.as_ptr()));
+        assert!(!constructor.ptr.is_null());
+        unsafe {
+            assert!(JS_DefineProperty1(cx, constructor.handle(), "prototype".as_ptr() as *const i8,
+                                       rval.handle(),
+                                       JSPROP_PERMANENT | JSPROP_READONLY,
+                                       None, None) != 0);
+        }
+        define_constructor(cx, receiver, cs.as_ptr(), constructor.handle());
+    }
+
 }
 
 fn create_constructor(cx: *mut JSContext,
@@ -257,7 +258,6 @@ fn create_constructor(cx: *mut JSContext,
 
 fn define_constructor(cx: *mut JSContext,
                       receiver: HandleObject,
-                      proto: HandleObject,
                       name: *const libc::c_char,
                       constructor: HandleObject) {
     unsafe {
@@ -270,9 +270,6 @@ fn define_constructor(cx: *mut JSContext,
                                       0, None, None) != 0);
         }
 
-        if !proto.get().is_null() {
-            assert!(JS_LinkConstructorAndPrototype(cx, constructor, proto) != 0);
-        }
     }
 }
 
@@ -299,7 +296,13 @@ fn create_interface_object(cx: *mut JSContext,
         define_constants(cx, constructor.handle(), constants);
     }
 
-    define_constructor(cx, receiver, proto, name, constructor.handle());
+    unsafe {
+        if !proto.get().is_null() {
+            assert!(JS_LinkConstructorAndPrototype(cx, constructor.handle(), proto) != 0);
+        }
+    }
+
+    define_constructor(cx, receiver, name, constructor.handle());
 }
 
 /// Defines constants on `obj`.

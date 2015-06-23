@@ -2291,12 +2291,12 @@ do_create_interface_objects(cx, receiver, parent_proto.handle(),
                             &sNativeProperties, rval);""" % (protoClass, constructor, domClass)
 
         createArray = """\
-let named_constructors: [Option<(NonNullJSNative, &'static str, u32)>; %d] = [
+let named_constructors: [(NonNullJSNative, &'static str, u32); %d] = [
 """ % len(self.descriptor.interface.namedConstructors)
         for ctor in self.descriptor.interface.namedConstructors:
             constructHook = CONSTRUCT_HOOK_NAME + "_" + ctor.identifier.name;
             constructArgs = methodLength(ctor)
-            constructor = 'Some((%s as NonNullJSNative, "%s", %d))' % (
+            constructor = '(%s as NonNullJSNative, "%s", %d)' % (
                 constructHook, ctor.identifier.name, constructArgs)
             createArray += constructor
             createArray += ","
