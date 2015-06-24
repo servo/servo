@@ -4561,9 +4561,6 @@ class CGClassNameConstructHook(CGAbstractExternMethod):
                                             self._ctor.identifier.name,
                                         'u8', args)
 
-    def define(self):
-        return CGAbstractExternMethod.define(self)
-
     def definition_body(self):
         preamble = CGGeneric("""\
 let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
