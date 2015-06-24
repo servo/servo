@@ -166,8 +166,13 @@ impl<'ln> LayoutNode<'ln> {
 
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
+    }
+
+    /// Converts self into an `OpaqueNode`.
+    pub fn opaque(&self) -> OpaqueNode {
+        OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
     }
 
     /// Resets layout data and styles for the node.
@@ -197,8 +202,7 @@ impl<'ln> LayoutNode<'ln> {
         match shared.reflow_root {
             None => panic!("layout_parent_node(): This layout has no access to the DOM!"),
             Some(reflow_root) => {
-                let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
-                if opaque_node == reflow_root {
+                if self.opaque() == reflow_root {
                     None
                 } else {
                     self.parent_node()
@@ -208,8 +212,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     pub fn debug_id(self) -> usize {
-        let opaque: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
-        opaque.to_untrusted_node_address().0 as usize
+        self.opaque().to_untrusted_node_address().0 as usize
     }
 }
 
@@ -640,8 +643,13 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         self.node.get_jsmanaged()
+    }
+
+    /// Converts self into an `OpaqueNode`.
+    pub fn opaque(&self) -> OpaqueNode {
+        OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
     }
 
     /// Returns the type ID of this node.
