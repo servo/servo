@@ -29,6 +29,8 @@ use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
 const CHUNK_SIZE: usize = 64;
 
+pub struct WorkQueueData(usize, usize);
+
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
     unsafe {
@@ -447,7 +449,7 @@ fn build_display_list(unsafe_flow: UnsafeFlow,
 }
 
 fn run_queue_with_custom_work_data_type<To,F>(
-        queue: &mut WorkQueue<SharedLayoutContextWrapper,UnsafeLayoutNode>,
+        queue: &mut WorkQueue<SharedLayoutContextWrapper, WorkQueueData>,
         callback: F)
         where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedLayoutContextWrapper,To>) {
     unsafe {
@@ -459,7 +461,7 @@ fn run_queue_with_custom_work_data_type<To,F>(
 
 pub fn traverse_dom_preorder(root: LayoutNode,
                              shared_layout_context: &SharedLayoutContext,
-                             queue: &mut WorkQueue<SharedLayoutContextWrapper, UnsafeLayoutNode>) {
+                             queue: &mut WorkQueue<SharedLayoutContextWrapper, WorkQueueData>) {
     queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
 
     run_queue_with_custom_work_data_type(queue, |queue| {
@@ -477,7 +479,7 @@ pub fn traverse_flow_tree_preorder(
         profiler_metadata: ProfilerMetadata,
         time_profiler_chan: time::ProfilerChan,
         shared_layout_context: &SharedLayoutContext,
-        queue: &mut WorkQueue<SharedLayoutContextWrapper,UnsafeLayoutNode>) {
+        queue: &mut WorkQueue<SharedLayoutContextWrapper, WorkQueueData>) {
     if opts::get().bubble_inline_sizes_separately {
         let layout_context = LayoutContext::new(shared_layout_context);
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
@@ -504,7 +506,7 @@ pub fn build_display_list_for_subtree(
         profiler_metadata: ProfilerMetadata,
         time_profiler_chan: time::ProfilerChan,
         shared_layout_context: &SharedLayoutContext,
-        queue: &mut WorkQueue<SharedLayoutContextWrapper,UnsafeLayoutNode>) {
+        queue: &mut WorkQueue<SharedLayoutContextWrapper, WorkQueueData>) {
     queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
 
     run_queue_with_custom_work_data_type(queue, |queue| {
