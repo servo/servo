@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net::resource_task::{
-    new_resource_task, parse_hostsfile, replace_hosts, HSTSList, HSTSEntry, secure_load_data
+    new_resource_task, parse_hostsfile, replace_hosts, HSTSList, HSTSEntry, secure_load_data,
+    ResourceManager
 };
 use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::ProgressMsg;
@@ -18,6 +19,26 @@ use time;
 fn test_exit() {
     let resource_task = new_resource_task(None, None);
     resource_task.send(ControlMsg::Exit).unwrap();
+}
+
+#[test]
+fn test_add_hsts_entry_to_resource_manager_adds_an_hsts_entry() {
+    let list = HSTSList {
+        entries: Vec::new()
+    };
+
+    let (tx, _) = channel();
+    let mut manager = ResourceManager::new(None, tx, Some(list), None);
+
+    let entry = HSTSEntry::new(
+        "mozilla.org".to_string(), false, None
+    );
+
+    assert!(!manager.is_host_sts("mozilla.org"));
+
+    manager.add_hsts_entry(entry.unwrap());
+
+    assert!(manager.is_host_sts("mozilla.org"))
 }
 
 #[test]
