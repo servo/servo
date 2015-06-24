@@ -4,6 +4,7 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
+use dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
 use dom::domexception::{DOMException, DOMErrorName};
@@ -146,6 +147,15 @@ pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
 pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
     let error = format!("argument could not be converted to any of: {}", names);
+    throw_type_error(cx, &error);
+}
+
+/// Throw an exception to signal that a `JSObject` can not be converted to a
+/// given DOM type.
+pub fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
+    debug_assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+    let error = format!("\"this\" object does not implement interface {}.",
+                        proto_id_to_name(proto_id));
     throw_type_error(cx, &error);
 }
 
