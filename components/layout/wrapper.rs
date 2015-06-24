@@ -1012,15 +1012,15 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
 
                 match self.parent_node {
                     Some(ref parent_node) => {
-                        if parent_node.pseudo == PseudoElementType::Normal {
-                            self.current_node = self.current_node.clone().and_then(|node| {
+                        self.current_node = if parent_node.pseudo == PseudoElementType::Normal {
+                            self.current_node.clone().and_then(|node| {
                                 unsafe {
                                     node.next_sibling()
                                 }
-                            });
+                            })
                         } else {
-                            self.current_node = None;
-                        }
+                            None
+                        };
                     }
                     None => {}
                 }
