@@ -575,13 +575,6 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     }
 }
 
-fn get_content(content_list: &content::T) -> Vec<ContentItem> {
-    match *content_list {
-        content::T::Content(ref value) if !value.is_empty() => (*value).clone(),
-        _ => vec![],
-    }
-}
-
 #[derive(Copy, PartialEq, Clone)]
 pub enum PseudoElementType {
     Normal,
@@ -927,15 +920,17 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn text_content(&self) -> Vec<ContentItem> {
         if self.pseudo != PseudoElementType::Normal {
             let layout_data_ref = self.borrow_layout_data();
-            let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+            let data = &layout_data_ref.as_ref().unwrap().data;
 
-            if self.pseudo.is_before() {
-                let before_style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
-                return get_content(&before_style.get_box().content)
+            let style = if self.pseudo.is_before() {
+                &data.before_style
             } else {
-                let after_style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
-                return get_content(&after_style.get_box().content)
-            }
+                &data.after_style
+            };
+            return match style.as_ref().unwrap().get_box().content {
+                content::T::Content(ref value) if !value.is_empty() => (*value).clone(),
+                _ => vec![],
+            };
         }
 
         let this = unsafe { self.get_jsmanaged() };
