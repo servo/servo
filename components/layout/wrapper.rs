@@ -787,17 +787,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
 
         let mut opt_kid = self.first_child();
-        loop {
-            match opt_kid {
-                None => break,
-                Some(mut kid) => {
-                    if !kid.traverse_postorder_mut(traversal) {
-                        return false
-                    }
-                    unsafe {
-                        opt_kid = kid.next_sibling()
-                    }
-                }
+        while let Some(mut kid) = opt_kid {
+            if !kid.traverse_postorder_mut(traversal) {
+                return false
+            }
+            unsafe {
+                opt_kid = kid.next_sibling()
             }
         }
 
