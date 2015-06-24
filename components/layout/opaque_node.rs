@@ -10,15 +10,8 @@ use script::dom::bindings::js::LayoutJS;
 use script::dom::node::Node;
 use script::layout_interface::{TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
-use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 pub trait OpaqueNodeMethods {
-    /// Converts a DOM node (layout view) to an `OpaqueNode`.
-    fn from_layout_node(node: &LayoutNode) -> Self;
-
-    /// Converts a thread-safe DOM node (layout view) to an `OpaqueNode`.
-    fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> Self;
-
     /// Converts a DOM node (script view) to an `OpaqueNode`.
     fn from_script_node(node: TrustedNodeAddress) -> Self;
 
@@ -31,18 +24,6 @@ pub trait OpaqueNodeMethods {
 }
 
 impl OpaqueNodeMethods for OpaqueNode {
-    fn from_layout_node(node: &LayoutNode) -> OpaqueNode {
-        unsafe {
-            OpaqueNodeMethods::from_jsmanaged(node.get_jsmanaged())
-        }
-    }
-
-    fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
-        unsafe {
-            OpaqueNodeMethods::from_jsmanaged(node.get_jsmanaged())
-        }
-    }
-
     fn from_script_node(node: TrustedNodeAddress) -> OpaqueNode {
         unsafe {
             OpaqueNodeMethods::from_jsmanaged(&LayoutJS::from_trusted_node_address(node))

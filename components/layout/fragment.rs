@@ -404,8 +404,7 @@ impl ReplacedImageFragmentInfo {
                dom_width: Option<Au>,
                dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
-        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_thread_safe_layout_node(node);
-        let untrusted_node: UntrustedNodeAddress = opaque_node.to_untrusted_node_address();
+        let untrusted_node = node.opaque().to_untrusted_node_address();
 
         ReplacedImageFragmentInfo {
             for_node: untrusted_node,
@@ -736,7 +735,7 @@ impl Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
         Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            node: node.opaque(),
             style: style,
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
@@ -766,7 +765,7 @@ impl Fragment {
         let node_style = cascade_anonymous(&**node.style());
         let writing_mode = node_style.writing_mode;
         Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            node: node.opaque(),
             style: Arc::new(node_style),
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),

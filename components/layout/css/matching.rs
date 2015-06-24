@@ -11,7 +11,6 @@ use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
-use opaque_node::OpaqueNodeMethods;
 use smallvec::SmallVec16;
 use wrapper::{LayoutElement, LayoutNode};
 
@@ -480,9 +479,8 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 // This is a newly-created node; we've nothing to transition from!
             }
             Some(ref style) => {
-                let node = OpaqueNodeMethods::from_layout_node(self);
                 animation::start_transitions_if_applicable(new_animations_sender,
-                                                           node,
+                                                           self.opaque(),
                                                            &**style,
                                                            &mut this_style);
             }
