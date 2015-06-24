@@ -385,7 +385,7 @@ impl LayoutTask {
             canvas_layers_sender: self.canvas_layers_sender.clone(),
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
-            reflow_root: reflow_root.map(|node| OpaqueNodeMethods::from_layout_node(node)),
+            reflow_root: reflow_root.map(|node| node.opaque()),
             dirty: Rect::zero(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
