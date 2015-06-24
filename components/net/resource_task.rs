@@ -184,7 +184,16 @@ pub fn new_resource_task(user_agent: Option<String>,
     let (setup_chan, setup_port) = channel();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
-        ResourceManager::new(setup_port, user_agent, setup_chan_clone, hsts_preload, devtools_chan).start();
+        let resource_manager = ResourceManager::new(
+            user_agent, setup_chan_clone, hsts_preload, devtools_chan
+        );
+
+        let mut channel_manager = ResourceChannelManager {
+            from_client: setup_port,
+            resource_manager: resource_manager
+        };
+
+        channel_manager.start();
     });
     setup_chan
 }
@@ -294,20 +303,16 @@ impl HSTSList {
 }
 
 pub fn secure_load_data(load_data: &LoadData) -> LoadData {
-    if let Some(h) = load_data.url.domain() {
-        match &*load_data.url.scheme {
-            "http" => {
-                let mut secure_load_data = load_data.clone();
-                let mut secure_url = load_data.url.clone();
-                secure_url.scheme = "https".to_string();
-                secure_load_data.url = secure_url;
+    match &*load_data.url.scheme {
+        "http" => {
+            let mut secure_load_data = load_data.clone();
+            let mut secure_url = load_data.url.clone();
+            secure_url.scheme = "https".to_string();
+            secure_load_data.url = secure_url;
 
-                secure_load_data
-            },
-            _ => load_data.clone()
-        }
-    } else {
-        load_data.clone()
+            secure_load_data
+        },
+        _ => load_data.clone()
     }
 }
 
@@ -343,10 +348,36 @@ pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, S
     return load_data;
 }
 
-struct ResourceManager {
+struct ResourceChannelManager {
     from_client: Receiver<ControlMsg>,
+    resource_manager: ResourceManager
+}
+
+impl ResourceChannelManager {
+    fn start(&mut self) {
+        loop {
+            match self.from_client.recv().unwrap() {
+              ControlMsg::Load(load_data, consumer) => {
+                  self.resource_manager.load(load_data, consumer)
+              }
+              ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
+                  self.resource_manager.set_cookies_for_url(request, cookie_list, source)
+              }
+              ControlMsg::GetCookiesForUrl(url, consumer, source) => {
+                  consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
+              }
+              ControlMsg::Exit => {
+                  break
+              }
+            }
+        }
+    }
+}
+
+pub struct ResourceManager {
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
+    // TODO: Can this be de-coupled?
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -354,13 +385,11 @@ struct ResourceManager {
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>,
-           user_agent: Option<String>,
+    pub fn new(user_agent: Option<String>,
            resource_task: Sender<ControlMsg>,
            hsts_list: Option<HSTSList>,
            devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
-            from_client: from_client,
             user_agent: user_agent,
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
@@ -384,22 +413,17 @@ impl ResourceManager {
         }
     }
 
-    fn start(&mut self) {
-        loop {
-            match self.from_client.recv().unwrap() {
-              ControlMsg::Load(load_data, consumer) => {
-                  self.load(load_data, consumer)
-              }
-              ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
-                  self.set_cookies_for_url(request, cookie_list, source)
-              }
-              ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                  consumer.send(self.cookie_storage.cookies_for_url(&url, source)).unwrap();
-              }
-              ControlMsg::Exit => {
-                  break
-              }
-            }
+    pub fn is_host_sts(&self, host: &str) -> bool {
+        match self.hsts_list.as_ref() {
+            Some(list) => list.is_host_secure(host),
+            None => false
+        }
+    }
+
+    pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
+        match self.hsts_list.as_mut() {
+            Some(list) => list.push(entry),
+            None => ()
         }
     }
 
