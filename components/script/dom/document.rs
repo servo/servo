@@ -931,6 +931,10 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         for (_, callback) in animation_frame_list {
             callback(*performance.Now());
         }
+
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::RequestAnimationFrame);
     }
 
     fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad {
