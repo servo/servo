@@ -275,7 +275,7 @@ impl CanvasRenderingContext2D {
     }
 
     fn fetch_image_data(&self,
-                        image_element: &&HTMLImageElement)
+                        image_element: &HTMLImageElement)
                         -> Option<(Vec<u8>, Size2D<f64>)> {
         let url = match image_element.get_url() {
             Some(url) => url,
@@ -288,16 +288,34 @@ impl CanvasRenderingContext2D {
         };
 
         let image_size = Size2D::new(img.width as f64, img.height as f64);
-        let mut image_data = match img.pixels {
+        let image_data = match img.pixels {
             PixelsByColorType::RGBA8(ref pixels) => pixels.to_vec(),
             PixelsByColorType::K8(_) => panic!("K8 color type not supported"),
             PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
             PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
         };
-        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
-        // have to swap the color values
-        byte_swap(&mut image_data);
+
         return Some((image_data, image_size));
+    }
+
+    fn fetch_canvas_data(&self,
+                         canvas_element: &HTMLCanvasElement,
+                         source_rect: Rect<f64>)
+                         -> Option<(Vec<u8>, Size2D<f64>)> {
+        let context = match canvas_element.get_or_init_2d_context() {
+            Some(context) => context,
+            None => return None,
+        };
+
+        let canvas_size = canvas_element.get_size();
+        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+
+        let renderer = context.r().get_renderer();
+        let (sender, receiver) = channel::<Vec<u8>>();
+        // Reads pixels from source canvas
+        renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect, image_size, sender))).unwrap();
+
+        return Some((receiver.recv().unwrap(), image_size));
     }
 
     fn request_image_from_cache(&self, url: Url) -> ImageResponse {
@@ -580,7 +598,12 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
                 let (image_data, image_size) = match self.fetch_image_data(&image_element) {
-                    Some((data, size)) => (data, size),
+                    Some((mut data, size)) => {
+                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
+                        // have to swap the color values
+                        byte_swap(&mut data);
+                        (data, size)
+                    },
                     None => return Err(InvalidState),
                 };
                 let dw: f64 = image_size.width as f64;
@@ -636,7 +659,12 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
                 let (image_data, image_size) = match self.fetch_image_data(&image_element) {
-                    Some((data, size)) => (data, size),
+                    Some((mut data, size)) => {
+                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
+                        // have to swap the color values
+                        byte_swap(&mut data);
+                        (data, size)
+                    },
                     None => return Err(InvalidState),
                 };
                 let sw: f64 = image_size.width as f64;
@@ -677,7 +705,12 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
                 let (image_data, image_size) = match self.fetch_image_data(&image_element) {
-                    Some((data, size)) => (data, size),
+                    Some((mut data, size)) => {
+                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
+                        // have to swap the color values
+                        byte_swap(&mut data);
+                        (data, size)
+                    },
                     None => return Err(InvalidState),
                 };
                 return self.draw_image_data(image_data,
@@ -1015,38 +1048,51 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
     fn CreatePattern(self, image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
                     repetition: DOMString) -> Fallible<Root<CanvasPattern>> {
-        match image {
+        let (image_data, image_size) = match image {
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
                 let image_element = image.r();
-
-                let url = match image_element.get_url() {
-                    Some(url) => url,
+                // https://html.spec.whatwg.org/multipage/#img-error
+                // If the image argument is an HTMLImageElement object that is in the broken state,
+                // then throw an InvalidStateError exception
+                match self.fetch_image_data(&image_element) {
+                    Some((data, size)) => (data, size),
                     None => return Err(InvalidState),
-                };
-
-                let img = match self.request_image_from_cache(url) {
-                    ImageResponse::Loaded(img) => img,
-                    ImageResponse::PlaceholderLoaded(_) | ImageResponse::None => return Err(InvalidState),
-                };
-
-                let image_size = Size2D::new(img.width as f64, img.height as f64);
-                let image_data = match img.pixels {
-                    PixelsByColorType::RGBA8(ref pixels) => pixels.to_vec(),
-                    PixelsByColorType::K8(_) => panic!("K8 color type not supported"),
-                    PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
-                    PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
-                };
-
-                if let Some(rep) = RepetitionStyle::from_str(&repetition) {
-                    return Ok(CanvasPattern::new(self.global.root().r(),
-                                                 image_data,
-                                                 Size2D::new(image_size.width as i32, image_size.height as i32),
-                                                 rep));
                 }
-                return Err(Syntax);
             },
-            _ => return Err(Type("Not implemented".to_owned())),
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
+                let canvas_element = canvas.r();
+
+                let canvas_size = canvas_element.get_size();
+                let source_rect = Rect::new(Point2D::zero(),
+                                            Size2D::new(canvas_size.width as f64, canvas_size.height as f64));
+
+                match self.fetch_canvas_data(&canvas_element, source_rect) {
+                    Some((data, size)) => (data, size),
+                    None => return Err(InvalidState),
+                }
+            },
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(context) => {
+                let canvas = context.r().Canvas();
+                let canvas_element = canvas.r();
+
+                let canvas_size = canvas_element.get_size();
+                let source_rect = Rect::new(Point2D::zero(),
+                                            Size2D::new(canvas_size.width as f64, canvas_size.height as f64));
+
+                match self.fetch_canvas_data(&canvas_element, source_rect) {
+                    Some((data, size)) => (data, size),
+                    None => return Err(InvalidState),
+                }
+            },
+        };
+
+        if let Some(rep) = RepetitionStyle::from_str(&repetition) {
+            return Ok(CanvasPattern::new(self.global.root().r(),
+                                         image_data,
+                                         Size2D::new(image_size.width as i32, image_size.height as i32),
+                                         rep));
         }
+        return Err(Syntax);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
