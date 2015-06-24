@@ -126,6 +126,8 @@ pub enum ControlMsg {
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, Sender<Option<String>>, CookieSource),
+    /// Store a domain's STS information
+    SetHSTSEntryForHost(String, bool, Option<u64>),
     Exit
 }
 

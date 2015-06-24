@@ -366,6 +366,13 @@ impl ResourceChannelManager {
               ControlMsg::GetCookiesForUrl(url, consumer, source) => {
                   consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
+              ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
+                  match HSTSEntry::new(host, include_subdomains, max_age) {
+                      Some(entry) => self.resource_manager.add_hsts_entry(entry),
+                      /// Invalid entries (e.g. IP's don't matter)
+                      None => ()
+                  }
+              }
               ControlMsg::Exit => {
                   break
               }
