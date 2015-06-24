@@ -9,11 +9,11 @@
 use animation;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
-use data::{LayoutDataAccess, LayoutDataWrapper};
+use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
 use opaque_node::OpaqueNodeMethods;
 use smallvec::SmallVec16;
-use wrapper::{LayoutElement, LayoutNode, TLayoutNode};
+use wrapper::{LayoutElement, LayoutNode};
 
 use script::dom::characterdata::CharacterDataTypeId;
 use script::dom::node::NodeTypeId;
@@ -677,7 +677,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             &mut None => panic!("no layout data"),
             &mut Some(ref mut layout_data) => {
                 match self.type_id() {
-                    Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => {
+                    NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
                         // Text nodes get a copy of the parent style. This ensures
                         // that during fragment construction any non-inherited
                         // CSS properties (such as vertical-align) are correctly

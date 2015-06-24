@@ -10,7 +10,7 @@ use script::dom::bindings::js::LayoutJS;
 use script::dom::node::Node;
 use script::layout_interface::{TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
-use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 pub trait OpaqueNodeMethods {
     /// Converts a DOM node (layout view) to an `OpaqueNode`.

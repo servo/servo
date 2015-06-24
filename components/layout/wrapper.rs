@@ -21,8 +21,6 @@
 //!
 //! Rules of the road for this file:
 //!
-//! * You must not use `.get()`; instead, use `.unsafe_get()`.
-//!
 //! * Do not call any methods on DOM nodes without checking to see whether they use borrow flags.
 //!
 //!   o Instead of `get_attr()`, use `.get_attr_val_for_layout()`.
@@ -36,7 +34,7 @@ use canvas_traits::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::RestyleDamage;
-use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
+use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
@@ -50,11 +48,10 @@ use script::dom::characterdata::{CharacterDataTypeId, LayoutCharacterDataHelpers
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
-use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
-use script::dom::htmliframeelement::HTMLIFrameElement;
+use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
-use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
 use script::dom::node::{Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
@@ -78,99 +75,6 @@ use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
 
-/// Allows some convenience methods on generic layout nodes.
-pub trait TLayoutNode {
-    /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> Self;
-
-    /// Returns the type ID of this node. Fails if this node is borrowed mutably. Returns `None`
-    /// if this is a pseudo-element; otherwise, returns `Some`.
-    fn type_id(&self) -> Option<NodeTypeId>;
-
-    /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
-    /// call and as such is marked `unsafe`.
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
-
-    /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
-    /// and as such is marked `unsafe`.
-    unsafe fn get<'a>(&'a self) -> &'a Node {
-        &*self.get_jsmanaged().unsafe_get()
-    }
-
-    fn node_is_element(&self) -> bool {
-        match self.type_id() {
-            Some(NodeTypeId::Element(..)) => true,
-            _ => false
-        }
-    }
-
-    fn node_is_document(&self) -> bool {
-        match self.type_id() {
-            Some(NodeTypeId::Document(..)) => true,
-            _ => false
-        }
-    }
-
-    /// If this is an image element, returns its URL. If this is not an image element, fails.
-    ///
-    /// FIXME(pcwalton): Don't copy URLs.
-    fn image_url(&self) -> Option<Url> {
-        unsafe {
-            match HTMLImageElementCast::to_layout_js(self.get_jsmanaged()) {
-                Some(elem) => elem.image_url().as_ref().map(|url| (*url).clone()),
-                None => panic!("not an image!")
-            }
-        }
-    }
-
-    fn renderer(&self) -> Option<Sender<CanvasMsg>> {
-        unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
-                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.and_then(|elem| elem.get_renderer())
-        }
-    }
-
-    fn canvas_width(&self) -> u32 {
-        unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
-                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.unwrap().get_canvas_width()
-        }
-    }
-
-    fn canvas_height(&self) -> u32 {
-        unsafe {
-            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> =
-                HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.unwrap().get_canvas_height()
-        }
-    }
-
-    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
-    /// not an iframe element, fails.
-    fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
-        unsafe {
-            let iframe_element: LayoutJS<HTMLIFrameElement> =
-                match HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged()) {
-                    Some(elem) => elem,
-                    None => panic!("not an iframe element!")
-                };
-            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
-             (*iframe_element.unsafe_get()).subpage_id().unwrap())
-        }
-    }
-
-    /// If this is a text node or generated content, copies out its content. If this is not a text
-    /// node, fails.
-    ///
-    /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
-    fn text_content(&self) -> Vec<ContentItem>;
-
-    /// Returns the first child of this node.
-    fn first_child(&self) -> Option<Self>;
-}
-
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 #[derive(Copy, Clone)]
@@ -189,56 +93,22 @@ impl<'a> PartialEq for LayoutNode<'a> {
     }
 }
 
-impl<'ln> TLayoutNode for LayoutNode<'ln> {
-    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
+impl<'ln> LayoutNode<'ln> {
+    /// Creates a new layout node with the same lifetime as this layout node.
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
             node: *node,
             chain: self.chain,
         }
     }
 
-    fn type_id(&self) -> Option<NodeTypeId> {
+    /// Returns the type ID of this node.
+    pub fn type_id(&self) -> NodeTypeId {
         unsafe {
-            Some(self.node.type_id_for_layout())
+            self.node.type_id_for_layout()
         }
     }
 
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
-        &self.node
-    }
-
-    fn first_child(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn text_content(&self) -> Vec<ContentItem> {
-        unsafe {
-            let text: Option<LayoutJS<Text>> = TextCast::to_layout_js(self.get_jsmanaged());
-            if let Some(text) = text {
-                return vec![
-                    ContentItem::String(
-                        CharacterDataCast::from_layout_js(&text).data_for_layout().to_owned())
-                ];
-            }
-            let input: Option<LayoutJS<HTMLInputElement>> =
-                HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
-            if let Some(input) = input {
-                return vec![ContentItem::String(input.get_value_for_layout())];
-            }
-            let area: Option<LayoutJS<HTMLTextAreaElement>> =
-                HTMLTextAreaElementCast::to_layout_js(self.get_jsmanaged());
-            if let Some(area) = area {
-                return vec![ContentItem::String(area.get_value_for_layout())];
-            }
-
-            panic!("not text!")
-        }
-    }
-}
-
-impl<'ln> LayoutNode<'ln> {
     pub fn dump(self) {
         self.dump_indent(0);
     }
@@ -282,14 +152,8 @@ impl<'ln> LayoutNode<'ln> {
 
     /// Returns an iterator over this node's children.
     pub fn children(self) -> LayoutNodeChildrenIterator<'ln> {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn first_child<T: TLayoutNode>(this: T) -> Option<T> {
-            this.first_child()
-        }
-
         LayoutNodeChildrenIterator {
-            current: first_child(self),
+            current: self.first_child(),
         }
     }
 
@@ -300,6 +164,8 @@ impl<'ln> LayoutNode<'ln> {
 
     }
 
+    /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
+    /// call and as such is marked `unsafe`.
     pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
     }
@@ -322,7 +188,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     pub fn has_children(self) -> bool {
-        TLayoutNode::first_child(&self).is_some()
+        self.first_child().is_some()
     }
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
@@ -396,11 +262,17 @@ impl<'ln> TNode for LayoutNode<'ln> {
     }
 
     fn is_element(&self) -> bool {
-        self.node_is_element()
+        match self.type_id() {
+            NodeTypeId::Element(..) => true,
+            _ => false
+        }
     }
 
     fn is_document(&self) -> bool {
-        self.node_is_document()
+        match self.type_id() {
+            NodeTypeId::Document(..) => true,
+            _ => false
+        }
     }
 
     fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
@@ -459,6 +331,28 @@ impl<'ln> LayoutNode<'ln> {
 
     pub unsafe fn set_dirty_descendants(&self, value: bool) {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
+    }
+
+    /// Borrows the layout data without checks.
+    #[inline(always)]
+    pub unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
+        mem::transmute(self.get_jsmanaged().layout_data_unchecked())
+    }
+
+    /// Borrows the layout data immutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
+        unsafe {
+            mem::transmute(self.get_jsmanaged().layout_data())
+        }
+    }
+
+    /// Borrows the layout data mutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
+        unsafe {
+            mem::transmute(self.get_jsmanaged().layout_data_mut())
+        }
     }
 }
 
@@ -718,76 +612,15 @@ pub struct ThreadSafeLayoutNode<'ln> {
     pseudo: PseudoElementType,
 }
 
-impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
+impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: self.node.new_with_this_lifetime(node),
             pseudo: PseudoElementType::Normal,
         }
     }
 
-    /// Returns `None` if this is a pseudo-element.
-    fn type_id(&self) -> Option<NodeTypeId> {
-        if self.pseudo != PseudoElementType::Normal {
-            return None
-        }
-
-        self.node.type_id()
-    }
-
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
-        self.node.get_jsmanaged()
-    }
-
-    unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
-        &*self.get_jsmanaged().unsafe_get()
-    }
-
-    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo != PseudoElementType::Normal {
-            return None
-        }
-
-        if self.has_before_pseudo() {
-            // FIXME(pcwalton): This logic looks weird. Is it right?
-            match self.pseudo {
-                PseudoElementType::Normal => {
-                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(self.get_before_display()));
-                    return Some(pseudo_before_node)
-                }
-                PseudoElementType::Before(display::T::inline) => {}
-                PseudoElementType::Before(_) => {
-                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(display::T::inline));
-                    return Some(pseudo_before_node)
-                }
-                _ => {}
-            }
-        }
-
-        unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn text_content(&self) -> Vec<ContentItem> {
-        if self.pseudo != PseudoElementType::Normal {
-            let layout_data_ref = self.borrow_layout_data();
-            let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
-
-            if self.pseudo.is_before() {
-                let before_style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
-                return get_content(&before_style.get_box().content)
-            } else {
-                let after_style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
-                return get_content(&after_style.get_box().content)
-            }
-        }
-        self.node.text_content()
-    }
-}
-
-impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
     pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
@@ -805,12 +638,42 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
+    /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
+    /// call and as such is marked `unsafe`.
+    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
+        self.node.get_jsmanaged()
+    }
+
+    /// Returns the type ID of this node.
+    /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
+    pub fn type_id(&self) -> Option<NodeTypeId> {
+        if self.pseudo != PseudoElementType::Normal {
+            return None
+        }
+
+        Some(self.node.type_id())
+    }
+
     pub fn debug_id(self) -> usize {
         self.node.debug_id()
     }
 
     pub fn flow_debug_id(self) -> usize {
         self.node.flow_debug_id()
+    }
+
+    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        if self.pseudo != PseudoElementType::Normal {
+            return None
+        }
+
+        if self.has_before_pseudo() {
+            return Some(self.with_pseudo(PseudoElementType::Before(self.get_before_display())));
+        }
+
+        unsafe {
+            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
     }
 
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
@@ -889,11 +752,11 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         layout_data_wrapper_ref.data.after_style.is_some()
     }
 
-    /// Borrows the layout data without checking. Fails on a conflicting borrow.
+    /// Borrows the layout data without checking.
     #[inline(always)]
     fn borrow_layout_data_unchecked<'a>(&'a self) -> *const Option<LayoutDataWrapper> {
         unsafe {
-            mem::transmute(self.get().layout_data_unchecked())
+            self.node.borrow_layout_data_unchecked()
         }
     }
 
@@ -902,9 +765,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
     pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get().layout_data())
-        }
+        self.node.borrow_layout_data()
     }
 
     /// Borrows the layout data mutably. Fails on a conflicting borrow.
@@ -912,9 +773,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get().layout_data_mut())
-        }
+        self.node.mutate_layout_data()
     }
 
     /// Traverses the tree in postorder.
@@ -1052,6 +911,89 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             _ => false
         }
     }
+
+    /// If this is a text node, generated content, or a form element, copies out
+    /// its content. Otherwise, panics.
+    ///
+    /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
+    pub fn text_content(&self) -> Vec<ContentItem> {
+        if self.pseudo != PseudoElementType::Normal {
+            let layout_data_ref = self.borrow_layout_data();
+            let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+
+            if self.pseudo.is_before() {
+                let before_style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
+                return get_content(&before_style.get_box().content)
+            } else {
+                let after_style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
+                return get_content(&after_style.get_box().content)
+            }
+        }
+
+        let this = unsafe { self.get_jsmanaged() };
+        let text = TextCast::to_layout_js(this);
+        if let Some(text) = text {
+            let data = unsafe {
+                CharacterDataCast::from_layout_js(&text).data_for_layout().to_owned()
+            };
+            return vec![ContentItem::String(data)];
+        }
+        let input = HTMLInputElementCast::to_layout_js(this);
+        if let Some(input) = input {
+            let data = unsafe { input.get_value_for_layout() };
+            return vec![ContentItem::String(data)];
+        }
+        let area = HTMLTextAreaElementCast::to_layout_js(this);
+        if let Some(area) = area {
+            let data = unsafe { area.get_value_for_layout() };
+            return vec![ContentItem::String(data)];
+        }
+
+        panic!("not text!")
+    }
+
+    /// If this is an image element, returns its URL. If this is not an image element, fails.
+    ///
+    /// FIXME(pcwalton): Don't copy URLs.
+    pub fn image_url(&self) -> Option<Url> {
+        unsafe {
+            HTMLImageElementCast::to_layout_js(self.get_jsmanaged())
+                .expect("not an image!")
+                .image_url()
+        }
+    }
+
+    pub fn renderer(&self) -> Option<Sender<CanvasMsg>> {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.and_then(|elem| elem.get_renderer())
+        }
+    }
+
+    pub fn canvas_width(&self) -> u32 {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_width()
+        }
+    }
+
+    pub fn canvas_height(&self) -> u32 {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_height()
+        }
+    }
+
+    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
+    /// not an iframe element, fails.
+    pub fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
+        unsafe {
+            let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged())
+                .expect("not an iframe element!");
+            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
+             (*iframe_element.unsafe_get()).subpage_id().unwrap())
+        }
+    }
 }
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
@@ -1137,7 +1079,7 @@ pub trait PostorderNodeMutTraversal {
 }
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from LayoutNode/ThreadSafeLayoutNode.
+/// Must be transmutable to and from LayoutNode.
 pub type UnsafeLayoutNode = (usize, usize);
 
 pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {

@@ -2,19 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(unsafe_code)]
-
 use construct::{ConstructionItem, ConstructionResult};
 use incremental::RestyleDamage;
 use msg::constellation_msg::ConstellationChan;
 use parallel::DomParallelInfo;
 use script::dom::node::SharedLayoutData;
 use script::layout_interface::LayoutChan;
-use std::cell::{Ref, RefMut};
-use std::mem;
 use std::sync::Arc;
 use style::properties::ComputedValues;
-use wrapper::{LayoutNode, TLayoutNode};
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
@@ -95,41 +90,10 @@ impl LayoutDataWrapper {
     }
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, unsafe_code)]
 fn static_assertion(x: Option<LayoutDataWrapper>) {
     unsafe {
         let _: Option<::script::dom::node::LayoutData> =
             ::std::intrinsics::transmute(x);
-    }
-}
-
-/// A trait that allows access to the layout data of a DOM node.
-pub trait LayoutDataAccess {
-    /// Borrows the layout data without checks.
-    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper>;
-    /// Borrows the layout data immutably. Fails on a conflicting borrow.
-    fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>>;
-    /// Borrows the layout data mutably. Fails on a conflicting borrow.
-    fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>>;
-}
-
-impl<'ln> LayoutDataAccess for LayoutNode<'ln> {
-    #[inline(always)]
-    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
-        mem::transmute(self.get().layout_data_unchecked())
-    }
-
-    #[inline(always)]
-    fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get().layout_data())
-        }
-    }
-
-    #[inline(always)]
-    fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get().layout_data_mut())
-        }
     }
 }

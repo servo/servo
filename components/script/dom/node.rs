@@ -53,6 +53,7 @@ use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
 use util::namespace;
 use util::str::DOMString;
+use util::task_state;
 use selectors::parser::{Selector, AttrSelector, NamespaceConstraint};
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::matching::matches;
@@ -222,7 +223,7 @@ pub struct LayoutData {
 unsafe impl Send for LayoutData {}
 
 pub struct LayoutDataRef {
-    pub data_cell: RefCell<Option<LayoutData>>,
+    data_cell: RefCell<Option<LayoutData>>,
 }
 
 no_jsmanaged_fields!(LayoutDataRef);
@@ -236,7 +237,8 @@ impl LayoutDataRef {
 
     /// Sends layout data, if any, back to the layout task to be destroyed.
     pub fn dispose(&self) {
-        if let Some(mut layout_data) = mem::replace(&mut *self.borrow_mut(), None) {
+        debug_assert!(task_state::get().is_script());
+        if let Some(mut layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
             let layout_chan = layout_data.chan.take();
             match layout_chan {
                 None => {}
@@ -248,18 +250,20 @@ impl LayoutDataRef {
         }
     }
 
-    /// Borrows the layout data immutably, *asserting that there are no mutators*. Bad things will
+    /// Borrows the layout data immutably, *assuming that there are no mutators*. Bad things will
     /// happen if you try to mutate the layout data while this is held. This is the only thread-
     /// safe layout data accessor.
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn borrow_unchecked(&self) -> *const Option<LayoutData> {
+        debug_assert!(task_state::get().is_layout());
         self.data_cell.as_unsafe_cell().get() as *const _
     }
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]
     pub fn borrow<'a>(&'a self) -> Ref<'a,Option<LayoutData>> {
+        debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow()
     }
 
@@ -270,6 +274,7 @@ impl LayoutDataRef {
     /// on it. This has already resulted in one bug!
     #[inline]
     pub fn borrow_mut<'a>(&'a self) -> RefMut<'a,Option<LayoutData>> {
+        debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow_mut()
     }
 }
@@ -1086,6 +1091,13 @@ pub trait LayoutNodeHelpers {
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
     #[allow(unsafe_code)]
     unsafe fn set_flag(&self, flag: NodeFlags, value: bool);
+
+    #[allow(unsafe_code)]
+    unsafe fn layout_data(&self) -> Ref<Option<LayoutData>>;
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>>;
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData>;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1156,6 +1168,24 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         }
 
         (*this).flags.set(flags);
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data(&self) -> Ref<Option<LayoutData>> {
+        (*self.unsafe_get()).layout_data.borrow()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>> {
+        (*self.unsafe_get()).layout_data.borrow_mut()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
+        (*self.unsafe_get()).layout_data.borrow_unchecked()
     }
 }
 
@@ -1454,22 +1484,6 @@ impl Node {
 
             unique_id: DOMRefCell::new(String::new()),
         }
-    }
-
-    #[inline]
-    pub fn layout_data(&self) -> Ref<Option<LayoutData>> {
-        self.layout_data.borrow()
-    }
-
-    #[inline]
-    pub fn layout_data_mut(&self) -> RefMut<Option<LayoutData>> {
-        self.layout_data.borrow_mut()
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    pub unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
-        self.layout_data.borrow_unchecked()
     }
 
     // https://dom.spec.whatwg.org/#concept-node-adopt

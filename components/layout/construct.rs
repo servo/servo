@@ -16,7 +16,7 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
+use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
 use flow::{Descendants, AbsDescendants};
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -41,7 +41,7 @@ use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
-use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{PostorderNodeMutTraversal, PseudoElementType, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use script::dom::characterdata::CharacterDataTypeId;

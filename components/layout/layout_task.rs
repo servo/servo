@@ -11,7 +11,7 @@ use animation;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, SharedLayoutContextWrapper, heap_size_of_local_context};
 use css::node_style::StyledNode;
-use data::{LayoutDataAccess, LayoutDataWrapper};
+use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
@@ -21,7 +21,7 @@ use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, UnsafeFlow};
 use sequential;
-use wrapper::{LayoutNode, TLayoutNode};
+use wrapper::LayoutNode;
 
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
