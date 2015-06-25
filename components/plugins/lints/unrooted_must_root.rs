@@ -8,7 +8,6 @@ use rustc::ast_map;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
-use rustc::util::ppaux::Repr;
 use utils::unsafe_context;
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
@@ -163,7 +162,7 @@ impl LintPass for UnrootedPass {
             ty::TyEnum(did, _) => {
                 if ty::has_attr(cx.tcx, did, "must_root") {
                     cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
-                                 &format!("Expression of type {} must be rooted", t.repr(cx.tcx)));
+                                 &format!("Expression of type {:?} must be rooted", t));
                 }
             }
             _ => {}
