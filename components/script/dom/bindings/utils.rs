@@ -57,7 +57,7 @@ use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue};
 use js::jsval::{PrivateValue, UInt32Value, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use js::glue::{WrapperNew, GetCrossCompartmentWrapper};
-use js::{JS_ARGV, JS_CALLEE, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE};
+use js::{JS_CALLEE, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE};
 use js::{JSPROP_PERMANENT, JSPROP_READONLY};
 use js;
 use string_cache::{Atom, Namespace};
