@@ -7,8 +7,10 @@ use dom::attr::{AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, HTMLElementCast,
                                            HTMLImageElementDerived};
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -150,6 +152,21 @@ impl HTMLImageElement {
                document: &Document) -> Root<HTMLImageElement> {
         let element = HTMLImageElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLImageElementBinding::Wrap)
+    }
+
+    pub fn Image(global: GlobalRef,
+                 width: Option<u32>,
+                 height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
+        let document = global.as_window().Document();
+        let image = HTMLImageElement::new("img".to_owned(), None, document.r());
+        if let Some(w) = width {
+            image.SetWidth(w);
+        }
+        if let Some(h) = height {
+            image.SetHeight(h);
+        }
+
+        Ok(image)
     }
 }
 
