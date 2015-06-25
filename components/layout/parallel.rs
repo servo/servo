@@ -12,7 +12,6 @@ use context::{LayoutContext, SharedLayoutContextWrapper, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
-use data::LayoutDataWrapper;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
 use traversal::{RecalcStyleForNode, ConstructFlows};
@@ -193,8 +192,6 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
 
                 unsafe_node = layout_node_to_unsafe_layout_node(&parent);
 
-                let parent_layout_data: &LayoutDataWrapper =
-                    mem::transmute(parent_layout_data);
                 if parent_layout_data
                     .data
                     .parallel
