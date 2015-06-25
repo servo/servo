@@ -308,7 +308,7 @@ pub fn secure_load_data(load_data: &LoadData) -> LoadData {
             let mut secure_load_data = load_data.clone();
             let mut secure_url = load_data.url.clone();
             secure_url.scheme = "https".to_string();
-            secure_load_data.url = secure_url;
+            secure_load_data.url = Url::parse(&secure_url.serialize()).unwrap();
 
             secure_load_data
         },
