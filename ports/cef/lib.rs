@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(alloc)]
+#![feature(borrow_state)]
+#![feature(box_raw)]
 #![feature(box_syntax)]
-#![feature(plugin)]
-#![feature(link_args)]
-#![feature(thread_local)]
-#![feature(core)]
 #![feature(convert)]
-#![feature(std_misc)]
-#![feature(collections)]
+#![feature(core_intrinsics)]
+#![feature(filling_drop)]
+#![feature(iter_arith)]
+#![feature(link_args)]
 #![feature(negate_unsigned)]
+#![feature(plugin)]
+#![feature(str_utf16)]
+#![feature(thread_local)]
 #![feature(unicode)]
-#![feature(unsafe_no_drop_flag, filling_drop)]
+#![feature(unsafe_no_drop_flag)]
+
 #![allow(non_camel_case_types)]
 
 #![plugin(plugins)]

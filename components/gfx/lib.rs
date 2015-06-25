@@ -3,13 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(alloc)]
+#![feature(arc_weak)]
+#![feature(box_raw)]
 #![feature(box_syntax)]
-#![feature(collections)]
-#![feature(core)]
-#![feature(plugin, custom_attribute)]
+#![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(std_misc)]
+#![feature(float_consts)]
+#![feature(hashmap_hasher)]
+#![feature(heap_api)]
+#![feature(iter_cmp)]
+#![feature(plugin)]
 #![feature(str_char)]
+#![feature(vec_push_all)]
 
 #![plugin(plugins)]
 
