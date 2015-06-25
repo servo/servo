@@ -21,7 +21,6 @@ use util::str::DOMString;
 
 use libc;
 use libc::c_uint;
-use std::boxed;
 use std::ffi::CString;
 use std::ptr;
 use std::cmp::PartialEq;
@@ -387,7 +386,7 @@ pub fn initialize_global(global: *mut JSObject) {
         ([0 as *mut JSObject; PrototypeList::ID::Count as usize]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        let box_ = boxed::into_raw(proto_array);
+        let box_ = Box::into_raw(proto_array);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(box_ as *const libc::c_void));

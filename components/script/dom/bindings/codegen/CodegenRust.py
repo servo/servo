@@ -2059,7 +2059,7 @@ class CGAbstractMethod(CGThing):
         assert(False) # Override me!
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "let mut raw = boxed::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
+    create = "let mut raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
         assert not descriptor.isGlobal()
         create += """
@@ -5061,7 +5061,6 @@ class CGBindingRoot(CGThing):
             'libc',
             'util::str::DOMString',
             'std::borrow::ToOwned',
-            'std::boxed',
             'std::cmp',
             'std::iter::repeat',
             'std::mem',
