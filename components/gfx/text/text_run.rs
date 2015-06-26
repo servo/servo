@@ -5,13 +5,15 @@
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
+use text::glyph::{CharIndex, GlyphStore};
+
 use util::geometry::Au;
 use util::range::Range;
 use util::vec::{Comparator, FullBinarySearchMethods};
+
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
-use text::glyph::{CharIndex, GlyphStore};
 
 /// A single "paragraph" of text in one font size and style.
 #[derive(Clone)]
@@ -23,6 +25,7 @@ pub struct TextRun {
     pub font_metrics: FontMetrics,
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
+    pub bidi_level: u8,
 }
 
 /// A single series of glyphs within a text run.
@@ -186,7 +189,7 @@ impl<'a> Iterator for LineIterator<'a> {
 }
 
 impl<'a> TextRun {
-    pub fn new(font: &mut Font, text: String, options: &ShapingOptions) -> TextRun {
+    pub fn new(font: &mut Font, text: String, options: &ShapingOptions, bidi_level: u8) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, &text, options);
         let run = TextRun {
             text: Arc::new(text),
@@ -194,6 +197,7 @@ impl<'a> TextRun {
             font_template: font.handle.template(),
             actual_pt_size: font.actual_pt_size,
             glyphs: Arc::new(glyphs),
+            bidi_level: bidi_level,
         };
         return run;
     }
