@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(alloc)]
 #![feature(append)]
 #![feature(arc_unique)]
 #![feature(box_syntax)]
@@ -40,7 +39,6 @@ extern crate profile_traits;
 extern crate util;
 
 extern crate rustc_serialize;
-extern crate alloc;
 extern crate azure;
 extern crate canvas_traits;
 extern crate clock_ticks;
