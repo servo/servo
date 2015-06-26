@@ -54,7 +54,7 @@ use util::geometry::Au;
 use util::namespace;
 use util::str::DOMString;
 use util::task_state;
-use selectors::parser::{Selector, AttrSelector, NamespaceConstraint};
+use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::matching::matches;
 use style::properties::ComputedValues;
@@ -423,7 +423,11 @@ impl<'a> Iterator for QuerySelectorIterator {
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
         self.iterator.find(|node| {
-            node.r().is_element() && matches(selectors, &node.r(), &mut None)
+            if let Some(element) = ElementCast::to_ref(node.r()) {
+                matches(selectors, &element, &mut None)
+            } else {
+                false
+            }
         })
     }
 }
@@ -896,7 +900,7 @@ impl<'a> NodeHelpers for &'a Node {
                 let root = self.ancestors().last();
                 let root = root.r().unwrap_or(self.clone());
                 Ok(root.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
-                    matches(selectors, &NodeCast::from_ref(element.r()), &mut None)
+                    matches(selectors, &element.r(), &mut None)
                 }))
             }
         }
@@ -2506,9 +2510,7 @@ impl<'a> VirtualMethods for &'a Node {
     }
 }
 
-impl<'a> style::node::TNode for &'a Node {
-    type Element = &'a Element;
-
+impl<'a> ::selectors::Node<&'a Element> for &'a Node {
     fn parent_node(&self) -> Option<&'a Node> {
         (*self).parent_node.get()
                .map(|node| node.root().get_unsound_ref_forever())
@@ -2544,55 +2546,8 @@ impl<'a> style::node::TNode for &'a Node {
         is_document(*self)
     }
 
-    fn is_element(&self) -> bool {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn is_element<'a, T: ElementDerived>(this: &T) -> bool {
-            this.is_element()
-        }
-
-        is_element(*self)
-    }
-
-    fn as_element(&self) -> &'a Element {
-        ElementCast::to_ref(*self).unwrap()
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
-        where F: Fn(&str) -> bool
-    {
-        let local_name = {
-            if self.is_html_element_in_html_document() {
-                &attr.lower_name
-            } else {
-                &attr.name
-            }
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.as_element().get_attribute(ns, local_name)
-                    .map_or(false, |attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.r();
-                        let value = attr.value();
-                        test(&value)
-                    })
-            },
-            NamespaceConstraint::Any => {
-                let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
-                self.as_element().get_attributes(local_name, &mut attributes);
-                attributes.iter().any(|attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.root();
-                        let value = attr.r().value();
-                        test(&value)
-                    })
-            }
-        }
-    }
-
-    fn is_html_element_in_html_document(&self) -> bool {
-        self.as_element().html_element_in_html_document()
+    fn as_element(&self) -> Option<&'a Element> {
+        ElementCast::to_ref(*self)
     }
 }
 
