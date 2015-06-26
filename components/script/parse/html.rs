@@ -44,6 +44,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText, NextParserState};
 use string_cache::QualName;
+use tendril::StrTendril;
 
 trait SinkHelpers {
     fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node>;
@@ -55,7 +56,7 @@ impl SinkHelpers for servohtmlparser::Sink {
             AppendNode(n) => n.root(),
             AppendText(t) => {
                 let doc = self.document.root();
-                let text = Text::new(t, doc.r());
+                let text = Text::new(t.into(), doc.r());
                 NodeCast::from_root(text)
             }
         }
@@ -91,16 +92,16 @@ impl<'a> TreeSink for servohtmlparser::Sink {
                                    ElementCreator::ParserCreated);
 
         for attr in attrs.into_iter() {
-            elem.r().set_attribute_from_parser(attr.name, attr.value, None);
+            elem.r().set_attribute_from_parser(attr.name, attr.value.into(), None);
         }
 
         let node = NodeCast::from_ref(elem.r());
         JS::from_ref(node)
     }
 
-    fn create_comment(&mut self, text: String) -> JS<Node> {
+    fn create_comment(&mut self, text: StrTendril) -> JS<Node> {
         let doc = self.document.root();
-        let comment = Comment::new(text, doc.r());
+        let comment = Comment::new(text.into(), doc.r());
         let node = NodeCast::from_root(comment);
         JS::from_rooted(&node)
     }
@@ -137,10 +138,12 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         assert!(parent.r().AppendChild(child.r()).is_ok());
     }
 
-    fn append_doctype_to_document(&mut self, name: String, public_id: String, system_id: String) {
+    fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
+                                  system_id: StrTendril) {
         let doc = self.document.root();
         let doc_node = NodeCast::from_ref(doc.r());
-        let doctype = DocumentType::new(name, Some(public_id), Some(system_id), doc.r());
+        let doctype = DocumentType::new(
+            name.into(), Some(public_id.into()), Some(system_id.into()), doc.r());
         let node: Root<Node> = NodeCast::from_root(doctype);
 
         assert!(doc_node.AppendChild(node.r()).is_ok());
@@ -151,7 +154,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         let elem = ElementCast::to_ref(node.r())
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs.into_iter() {
-            elem.set_attribute_from_parser(attr.name, attr.value, None);
+            elem.set_attribute_from_parser(attr.name, attr.value.into(), None);
         }
     }
 
@@ -275,7 +278,7 @@ pub fn parse_html(document: &Document,
         ParseContext::Fragment(fc) =>
             ServoHTMLParser::new_for_fragment(Some(url.clone()), document, fc),
     };
-    parser.r().parse_chunk(input);
+    parser.r().parse_chunk(input.into());
 }
 
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
