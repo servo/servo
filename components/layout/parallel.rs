@@ -12,7 +12,6 @@ use context::{LayoutContext, SharedLayoutContextWrapper, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
-use data::LayoutDataWrapper;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
 use traversal::{RecalcStyleForNode, ConstructFlows};
@@ -187,24 +186,21 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
                 Some(parent) => parent,
             };
 
-            unsafe {
-                let parent_layout_data =
-                    (*parent.borrow_layout_data_unchecked()).as_ref().expect("no layout data");
+            let parent_layout_data = unsafe {
+                &*parent.borrow_layout_data_unchecked()
+            };
+            let parent_layout_data = parent_layout_data.as_ref().expect("no layout data");
+            unsafe_node = layout_node_to_unsafe_layout_node(&parent);
 
-                unsafe_node = layout_node_to_unsafe_layout_node(&parent);
-
-                let parent_layout_data: &LayoutDataWrapper =
-                    mem::transmute(parent_layout_data);
-                if parent_layout_data
-                    .data
-                    .parallel
-                    .children_count
-                    .fetch_sub(1, Ordering::Relaxed) == 1 {
-                    // We were the last child of our parent. Construct flows for our parent.
-                } else {
-                    // Get out of here and find another node to work on.
-                    break
-                }
+            if parent_layout_data
+                .data
+                .parallel
+                .children_count
+                .fetch_sub(1, Ordering::Relaxed) == 1 {
+                // We were the last child of our parent. Construct flows for our parent.
+            } else {
+                // Get out of here and find another node to work on.
+                break
             }
         }
     }
