@@ -109,20 +109,18 @@ pub struct FontContextHandle {
 
 impl FontContextHandle {
     pub fn new() -> FontContextHandle {
-        let user = box User {
+        let user = Box::into_raw(box User {
             size: 0,
-        };
-        let user: *mut User = ::std::boxed::into_raw(user);
-        let mem = box struct_FT_MemoryRec_ {
+        });
+        let mem = Box::into_raw(box struct_FT_MemoryRec_ {
             user: user as *mut c_void,
             alloc: ft_alloc,
             free: ft_free,
             realloc: ft_realloc,
-        };
+        });
         unsafe {
             let mut ctx: FT_Library = ptr::null_mut();
 
-            let mem = ::std::boxed::into_raw(mem);
             let result = FT_New_Library(mem, &mut ctx);
             if !result.succeeded() { panic!("Unable to initialize FreeType library"); }
 
