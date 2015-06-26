@@ -107,7 +107,9 @@ bitflags! {
         #[doc="Set if we are to ignore ligatures."]
         const IGNORE_LIGATURES_SHAPING_FLAG = 0x02,
         #[doc="Set if we are to disable kerning."]
-        const DISABLE_KERNING_SHAPING_FLAG = 0x04
+        const DISABLE_KERNING_SHAPING_FLAG = 0x04,
+        #[doc="Text direction is right-to-left."]
+        const RTL_FLAG = 0x08,
     }
 }
 
