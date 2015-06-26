@@ -19,7 +19,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
-use parallel::{self, UnsafeFlow};
+use parallel::{self, WorkQueueData};
 use sequential;
 use wrapper::LayoutNode;
 
@@ -109,7 +109,7 @@ pub struct LayoutTaskData {
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<SharedLayoutContextWrapper, UnsafeFlow>>,
+    pub parallel_traversal: Option<WorkQueue<SharedLayoutContextWrapper, WorkQueueData>>,
 
     /// The dirty rect. Used during display list construction.
     pub dirty: Rect<Au>,
