@@ -21,7 +21,6 @@
 #![feature(slice_chars)]
 #![feature(slice_position_elem)]
 #![feature(str_utf16)]
-#![feature(vec_from_raw_buf)]
 #![feature(vec_push_all)]
 
 #![deny(unsafe_code)]

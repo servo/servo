@@ -448,11 +448,11 @@ impl FromJSValConvertible for ByteString {
             };
             assert!(!chars.is_null());
 
-            let char_vec = unsafe {
-                Vec::from_raw_buf(chars as *mut u8, length as usize)
+            let char_slice = unsafe {
+                slice::from_raw_parts(chars as *mut u8, length as usize)
             };
 
-            return Ok(ByteString::new(char_vec));
+            return Ok(ByteString::new(char_slice.to_vec()));
         }
 
         unsafe {
