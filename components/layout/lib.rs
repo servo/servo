@@ -14,6 +14,7 @@
 #![feature(plugin)]
 #![feature(raw)]
 #![feature(slice_chars)]
+#![feature(step_by)]
 #![feature(str_char)]
 #![feature(unsafe_no_drop_flag)]
 
@@ -59,6 +60,7 @@ extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
 extern crate style;
+extern crate unicode_bidi;
 extern crate url;
 
 // Listed first because of macro definitions

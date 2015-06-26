@@ -5,13 +5,15 @@
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
+use text::glyph::{CharIndex, GlyphStore};
+
 use util::geometry::Au;
 use util::range::Range;
 use util::vec::{Comparator, FullBinarySearchMethods};
+
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
-use text::glyph::{CharIndex, GlyphStore};
 
 /// A single "paragraph" of text in one font size and style.
 #[derive(Clone, Deserialize, Serialize)]
@@ -23,6 +25,7 @@ pub struct TextRun {
     pub font_metrics: FontMetrics,
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
+    pub bidi_level: u8,
 }
 
 /// A single series of glyphs within a text run.
@@ -35,8 +38,10 @@ pub struct GlyphRun {
 }
 
 pub struct NaturalWordSliceIterator<'a> {
-    glyph_iter: Iter<'a, GlyphRun>,
+    glyphs: &'a [GlyphRun],
+    index: usize,
     range: Range<CharIndex>,
+    reverse: bool,
 }
 
 struct CharIndexComparator;
@@ -80,11 +85,20 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
-        let slice_glyphs = self.glyph_iter.next();
-        if slice_glyphs.is_none() {
-            return None;
+        let slice_glyphs;
+        if self.reverse {
+            if self.index == 0 {
+                return None;
+            }
+            self.index -= 1;
+            slice_glyphs = &self.glyphs[self.index];
+        } else {
+            if self.index >= self.glyphs.len() {
+                return None;
+            }
+            slice_glyphs = &self.glyphs[self.index];
+            self.index += 1;
         }
-        let slice_glyphs = slice_glyphs.unwrap();
 
         let mut char_range = self.range.intersect(&slice_glyphs.range);
         let slice_range_begin = slice_glyphs.range.begin();
@@ -140,7 +154,7 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 }
 
 impl<'a> TextRun {
-    pub fn new(font: &mut Font, text: String, options: &ShapingOptions) -> TextRun {
+    pub fn new(font: &mut Font, text: String, options: &ShapingOptions, bidi_level: u8) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, &text, options);
         let run = TextRun {
             text: Arc::new(text),
@@ -148,6 +162,7 @@ impl<'a> TextRun {
             font_template: font.handle.template(),
             actual_pt_size: font.actual_pt_size,
             glyphs: Arc::new(glyphs),
+            bidi_level: bidi_level,
         };
         return run;
     }
@@ -279,8 +294,36 @@ impl<'a> TextRun {
             Some(index) => index,
         };
         NaturalWordSliceIterator {
-            glyph_iter: self.glyphs[index..].iter(),
+            glyphs: &self.glyphs[..],
+            index: index,
             range: *range,
+            reverse: false,
+        }
+    }
+
+    /// Returns an iterator that over natural word slices in visual order (left to right or
+    /// right to left, depending on the bidirectional embedding level).
+    pub fn natural_word_slices_in_visual_order(&'a self, range: &Range<CharIndex>)
+                                        -> NaturalWordSliceIterator<'a> {
+        // Iterate in reverse order if bidi level is RTL.
+        let reverse = self.bidi_level % 2 == 1;
+
+        let index = if reverse {
+            match self.index_of_first_glyph_run_containing(range.end() - CharIndex(1)) {
+                Some(i) => i + 1, // In reverse mode, index points one past the next element.
+                None => 0
+            }
+        } else {
+            match self.index_of_first_glyph_run_containing(range.begin()) {
+                Some(i) => i,
+                None => self.glyphs.len()
+            }
+        };
+        NaturalWordSliceIterator {
+            glyphs: &self.glyphs[..],
+            index: index,
+            range: *range,
+            reverse: reverse,
         }
     }
 
