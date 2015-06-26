@@ -62,6 +62,10 @@ pub enum Error {
     DataClone,
     /// NoModificationAllowedError DOMException
     NoModificationAllowed,
+    /// QuotaExceededError DOMException
+    QuotaExceeded,
+    /// TypeMismatchError DOMException
+    TypeMismatch,
 
     /// TypeError JavaScript Error
     Type(DOMString),
@@ -101,6 +105,8 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
         Error::DataClone => DOMErrorName::DataCloneError,
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
+        Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
+        Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::Type(message) => {
             assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
             throw_type_error(cx, &message);

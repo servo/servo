@@ -53,6 +53,7 @@ extern crate rustc_serialize;
 extern crate time;
 extern crate canvas;
 extern crate canvas_traits;
+extern crate rand;
 extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
