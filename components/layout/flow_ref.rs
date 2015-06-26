@@ -13,11 +13,11 @@
 use flow::Flow;
 use flow;
 
-use alloc::heap;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::raw;
+use std::rt::heap;
 use std::sync::atomic::{self, Ordering};
 
 #[unsafe_no_drop_flag]
