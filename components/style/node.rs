@@ -10,7 +10,6 @@ use properties::PropertyDeclaration;
 use smallvec::VecLike;
 
 use selectors::matching::DeclarationBlock;
-pub use selectors::tree::{TNode, TElement};
 use string_cache::{Atom, Namespace};
 
 pub trait TElementAttributes {
