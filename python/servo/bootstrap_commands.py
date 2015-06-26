@@ -47,7 +47,8 @@ def download(desc, src, writer):
 
         while True:
             chunk = resp.read(chunk_size)
-            if not chunk: break
+            if not chunk:
+                break
             recved += len(chunk)
             if not dumb:
                 if fsize is not None:
@@ -72,14 +73,17 @@ def download(desc, src, writer):
 
         sys.exit(1)
 
+
 def download_file(desc, src, dst):
     with open(dst, 'wb') as fd:
         download(desc, src, fd)
+
 
 def download_bytes(desc, src):
     content_writer = StringIO.StringIO()
     download(desc, src, content_writer)
     return content_writer.getvalue()
+
 
 def extract(src, dst, movedir=None):
     tarfile.open(src).extractall(dst)
@@ -218,7 +222,8 @@ class MachCommands(CommandBase):
             print("Use |bootstrap-hsts-preload --force| to download again.")
             return
 
-        chromium_hsts_url = "https://chromium.googlesource.com/chromium/src/net/+/master/http/transport_security_state_static.json?format=TEXT"
+        chromium_hsts_url = "https://chromium.googlesource.com/chromium/src" + \
+            "/net/+/master/http/transport_security_state_static.json?format=TEXT"
 
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
