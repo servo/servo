@@ -28,10 +28,11 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::mem;
 use std::sync::Arc;
-use std::u16;
+use std::isize;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::properties::ComputedValues;
+use unicode_bidi;
 use util::geometry::{Au, MAX_AU, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
@@ -66,7 +67,7 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[derive(RustcEncodable, Debug, Copy, Clone)]
+#[derive(RustcEncodable, Debug, Clone)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -94,6 +95,11 @@ pub struct Line {
     /// |----------|-------------|-------------|----------|
     /// | 'I like' | 'truffles,' | '<img> yes' | 'I do.'  |
     pub range: Range<FragmentIndex>,
+
+    /// The bidirectional embedding level runs for this line, in visual order.
+    ///
+    /// Can be set to `None` if the line is 100% left-to-right.
+    pub visual_runs: Option<Vec<(Range<FragmentIndex>, u8)>>,
 
     /// The bounds are the exact position and extents of the line with respect
     /// to the parent box.
@@ -204,6 +210,7 @@ impl LineBreaker {
             work_list: VecDeque::new(),
             pending_line: Line {
                 range: Range::empty(),
+                visual_runs: None,
                 bounds: LogicalRect::zero(float_context.writing_mode),
                 green_zone: LogicalSize::zero(float_context.writing_mode),
                 inline_metrics: InlineMetrics::new(minimum_block_size_above_baseline,
@@ -230,6 +237,7 @@ impl LineBreaker {
     /// Reinitializes the pending line to blank data.
     fn reset_line(&mut self) {
         self.pending_line.range.reset(FragmentIndex(0), FragmentIndex(0));
+        self.pending_line.visual_runs = None;
         self.pending_line.bounds = LogicalRect::new(self.floats.writing_mode,
                                                     Au(0),
                                                     self.cur_b,
@@ -260,10 +268,40 @@ impl LineBreaker {
         // Do the reflow.
         self.reflow_fragments(old_fragment_iter, flow, layout_context);
 
+        // Perform unicode bidirectional layout.
+
+        let para_level = flow.base.writing_mode.to_bidi_level();
+
+        // The text within a fragment is at a single bidi embedding level (because we split
+        // fragments on level run boundaries during flow construction), so we can build a level
+        // array with just one entry per fragment.
+        let levels: Vec<u8> = self.new_fragments.iter().map(|fragment| match fragment.specific {
+            SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
+            _ => para_level
+        }).collect();
+
+        let max_level = levels.iter().cloned().max().unwrap_or(para_level);
+
+        let mut lines = mem::replace(&mut self.lines, Vec::new());
+
+        // If max_level == 0, everything is LTR.  Don't bother with reordering.
+        if max_level > 0 {
+            // Compute and store the visual ordering of the fragments within the line.
+            for line in &mut lines {
+                let range = line.range.begin().to_usize()..line.range.end().to_usize();
+                let runs = unicode_bidi::visual_runs(range, para_level, max_level, &levels);
+                line.visual_runs = Some(runs.iter().map(|run| {
+                    let start = FragmentIndex(run.start as isize);
+                    let len = FragmentIndex(run.len() as isize);
+                    (Range::new(start, len), levels[run.start])
+                }).collect());
+            }
+        }
+
         // Place the fragments back into the flow.
         old_fragments.fragments = mem::replace(&mut self.new_fragments, vec![]);
         flow.fragments = old_fragments;
-        flow.lines = mem::replace(&mut self.lines, Vec::new());
+        flow.lines = lines;
     }
 
     /// Reflows the given fragments, which have been plucked out of the inline flow.
@@ -272,6 +310,7 @@ impl LineBreaker {
                               flow: &'a InlineFlow,
                               layout_context: &LayoutContext)
                               where I: Iterator<Item=Fragment> {
+
         loop {
             // Acquire the next fragment to lay out from the work list or fragment list, as
             // appropriate.
@@ -350,7 +389,7 @@ impl LineBreaker {
     fn flush_current_line(&mut self) {
         debug!("LineBreaker: flushing line {}: {:?}", self.lines.len(), self.pending_line);
         self.strip_trailing_whitespace_from_pending_line_if_necessary();
-        self.lines.push(self.pending_line);
+        self.lines.push(self.pending_line.clone());
         self.cur_b = self.pending_line.bounds.start.b + self.pending_line.bounds.size.block;
         self.reset_line();
     }
@@ -612,7 +651,7 @@ impl LineBreaker {
                              line_flush_mode: LineFlushMode) {
         let indentation = self.indentation_for_pending_fragment();
         if self.pending_line_is_empty() {
-            assert!(self.new_fragments.len() <= (u16::MAX as usize));
+            assert!(self.new_fragments.len() <= (isize::MAX as usize));
             self.pending_line.range.reset(FragmentIndex(self.new_fragments.len() as isize),
                                           FragmentIndex(0));
         }
@@ -919,18 +958,39 @@ impl InlineFlow {
             text_align::T::left | text_align::T::right => unreachable!()
         }
 
-        for fragment_index in line.range.each_index() {
-            let fragment = fragments.get_mut(fragment_index.to_usize());
-            inline_start_position_for_fragment = inline_start_position_for_fragment +
-                fragment.margin.inline_start;
-            fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
-                                                   inline_start_position_for_fragment,
-                                                   fragment.border_box.start.b,
-                                                   fragment.border_box.size.inline,
-                                                   fragment.border_box.size.block);
-            fragment.update_late_computed_inline_position_if_necessary();
-            inline_start_position_for_fragment = inline_start_position_for_fragment +
-                fragment.border_box.size.inline + fragment.margin.inline_end;
+        // Lay out the fragments in visual order.
+        let run_count = match line.visual_runs {
+            Some(ref runs) => runs.len(),
+            None => 1
+        };
+        for run_idx in 0..run_count {
+            let (range, level) = match line.visual_runs {
+                Some(ref runs) if is_ltr => runs[run_idx],
+                Some(ref runs) => runs[run_count - run_idx - 1], // reverse order for RTL runs
+                None => (line.range, 0)
+            };
+            // If the bidi embedding direction is opposite the layout direction, lay out this
+            // run in reverse order.
+            let reverse = unicode_bidi::is_ltr(level) != is_ltr;
+            let (begin, end, step) = if reverse {
+                (range.end().get() - 1, range.begin().get() - 1, -1)
+            } else {
+                (range.begin().get(), range.end().get(), 1)
+            };
+
+            for fragment_index in (begin..end).step_by(step) {
+                let fragment = fragments.get_mut(fragment_index as usize);
+                inline_start_position_for_fragment = inline_start_position_for_fragment +
+                    fragment.margin.inline_start;
+                fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
+                                                       inline_start_position_for_fragment,
+                                                       fragment.border_box.start.b,
+                                                       fragment.border_box.size.inline,
+                                                       fragment.border_box.size.block);
+                fragment.update_late_computed_inline_position_if_necessary();
+                inline_start_position_for_fragment = inline_start_position_for_fragment +
+                    fragment.border_box.size.inline + fragment.margin.inline_end;
+            }
         }
     }
 
@@ -1300,6 +1360,7 @@ impl Flow for InlineFlow {
                                            self.minimum_block_size_above_baseline,
                                            self.minimum_depth_below_baseline);
         scanner.scan_for_lines(self, layout_context);
+
 
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
