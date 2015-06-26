@@ -192,6 +192,7 @@ pub enum Key {
 
 bitflags! {
     flags KeyModifiers: u8 {
+        const NONE = 0x00,
         const SHIFT = 0x01,
         const CONTROL = 0x02,
         const ALT = 0x04,
