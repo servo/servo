@@ -312,7 +312,7 @@ impl<'a> PrivateServoHTMLParserHelpers for &'a ServoHTMLParser {
             let mut pending_input = self.pending_input.borrow_mut();
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
-                self.tokenizer.borrow_mut().feed(chunk);
+                self.tokenizer.borrow_mut().feed(chunk.into());
             } else {
                 self.tokenizer.borrow_mut().run();
             }
