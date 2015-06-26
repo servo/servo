@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use libc::{c_int};
-use std::boxed;
 use std::slice;
 use string::cef_string_utf16_set;
 use types::{cef_string_list_t,cef_string_t};
@@ -14,7 +13,7 @@ use rustc_unicode::str::Utf16Encoder;
 
 #[no_mangle]
 pub extern "C" fn cef_string_list_alloc() -> *mut cef_string_list_t {
-    boxed::into_raw(box vec!())
+    Box::into_raw(box vec!())
 }
 
 #[no_mangle]
@@ -66,6 +65,6 @@ pub extern "C" fn cef_string_list_copy(lt: *mut cef_string_list_t) -> *mut cef_s
     unsafe {
         if lt.is_null() { return 0 as *mut cef_string_list_t; }
         let copy = (*lt).clone();
-        boxed::into_raw(box copy)
+        Box::into_raw(box copy)
     }
 }
