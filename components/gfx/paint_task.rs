@@ -394,8 +394,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             native_surface: native_surface,
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
-            resolution: scale,
             stride: (width * 4) as usize,
+            resolution: scale,
             painted_with_cpu: true,
             content_age: tile.content_age,
         })
@@ -753,8 +753,8 @@ impl WorkerThread {
             native_surface: native_surface,
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
+            stride: tile.screen_rect.size.width * 4,
             resolution: scale,
-            stride: (tile.screen_rect.size.width * 4),
             painted_with_cpu: false,
             content_age: tile.content_age,
         }

@@ -1068,28 +1068,11 @@ impl DisplayItem {
             }
 
             DisplayItem::ImageClass(ref image_item) => {
-                // FIXME(pcwalton): This is a really inefficient way to draw a tiled image; use a
-                // brush instead.
                 debug!("Drawing image at {:?}.", image_item.base.bounds);
-
-                let mut y_offset = Au(0);
-                while y_offset < image_item.base.bounds.size.height {
-                    let mut x_offset = Au(0);
-                    while x_offset < image_item.base.bounds.size.width {
-                        let mut bounds = image_item.base.bounds;
-                        bounds.origin.x = bounds.origin.x + x_offset;
-                        bounds.origin.y = bounds.origin.y + y_offset;
-                        bounds.size = image_item.stretch_size;
-
-                        paint_context.draw_image(&bounds,
-                                                 image_item.image.clone(),
-                                                 image_item.image_rendering.clone());
-
-                        x_offset = x_offset + image_item.stretch_size.width;
-                    }
-
-                    y_offset = y_offset + image_item.stretch_size.height;
-                }
+                paint_context.draw_image(&image_item.base.bounds,
+                                         &image_item.stretch_size,
+                                         image_item.image.clone(),
+                                         image_item.image_rendering.clone());
             }
 
             DisplayItem::BorderClass(ref border) => {
