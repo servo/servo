@@ -5,7 +5,6 @@
 #![feature(alloc)]
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
-#![feature(exit_status)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(heap_api)]

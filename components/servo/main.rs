@@ -47,47 +47,47 @@ fn main() {
     env_logger::init().unwrap();
 
     // Parse the command line options and store them globally
-    if opts::from_cmdline_args(&*get_args()) {
-        setup_logging();
+    opts::from_cmdline_args(&*get_args());
 
-        // Possibly interpret the `HOST_FILE` environment variable
-        resource_task::global_init();
+    setup_logging();
 
-        let window = if opts::get().headless {
-            None
-        } else {
-            Some(app::create_window(std::ptr::null_mut()))
+    // Possibly interpret the `HOST_FILE` environment variable
+    resource_task::global_init();
+
+    let window = if opts::get().headless {
+        None
+    } else {
+        Some(app::create_window(std::ptr::null_mut()))
+    };
+
+    // Our wrapper around `Browser` that also implements some
+    // callbacks required by the glutin window implementation.
+    let mut browser = BrowserWrapper {
+        browser: Browser::new(window.clone()),
+    };
+
+    maybe_register_glutin_resize_handler(&window, &mut browser);
+
+    browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
+
+    // Feed events from the window to the browser until the browser
+    // says to stop.
+    loop {
+        let should_continue = match window {
+            None => browser.browser.handle_events(Vec::new()),
+            Some(ref window) => browser.browser.handle_events(window.wait_events()),
         };
+        if !should_continue {
+            break
+        }
+    };
 
-        // Our wrapper around `Browser` that also implements some
-        // callbacks required by the glutin window implementation.
-        let mut browser = BrowserWrapper {
-            browser: Browser::new(window.clone()),
-        };
+    maybe_unregister_glutin_resize_handler(&window);
 
-        maybe_register_glutin_resize_handler(&window, &mut browser);
-
-        browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
-
-        // Feed events from the window to the browser until the browser
-        // says to stop.
-        loop {
-            let should_continue = match window {
-                None => browser.browser.handle_events(Vec::new()),
-                Some(ref window) => browser.browser.handle_events(window.wait_events()),
-            };
-            if !should_continue {
-                break
-            }
-        };
-
-        maybe_unregister_glutin_resize_handler(&window);
-
-        let BrowserWrapper {
-            browser
-        } = browser;
-        browser.shutdown();
-    }
+    let BrowserWrapper {
+        browser
+    } = browser;
+    browser.shutdown();
 }
 
 fn maybe_register_glutin_resize_handler(window: &Option<Rc<app::window::Window>>,
