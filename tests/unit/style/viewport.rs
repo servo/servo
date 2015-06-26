@@ -172,6 +172,7 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
+    ::util::opts::set_experimental_enabled(true);
     let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
 
     let stylesheets = vec![
