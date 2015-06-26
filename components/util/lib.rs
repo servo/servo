@@ -16,7 +16,6 @@
 #![feature(slice_extras)]
 #![feature(step_by)]
 #![feature(step_trait)]
-#![feature(thunk)]
 #![feature(zero_one)]
 
 #![plugin(string_cache_plugin)]
