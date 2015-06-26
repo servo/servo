@@ -104,7 +104,7 @@ def notify(title, text):
             func(title, text)
         except Exception as e:
             extra = getattr(e, "message", "")
-            print("[Warning] Could not generate notification!%s" % extra, file=sys.stderr)
+            print("[Warning] Could not generate notification! %s" % extra, file=sys.stderr)
 
 
 @CommandProvider
