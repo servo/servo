@@ -3,9 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CryptoBinding;
+use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+
+use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType, Type};
+
+use std::ptr;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
@@ -24,5 +31,40 @@ impl Crypto {
 
     pub fn new(global: GlobalRef) -> Root<Crypto> {
         reflect_dom_object(box Crypto::new_inherited(global), global, CryptoBinding::Wrap)
+    }
+}
+
+impl<'a> CryptoMethods for &'a Crypto {
+    // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
+    #[allow(unsafe_code)]
+    fn GetRandomValues(self, cx: *mut JSContext, input: *mut JSObject)
+                       -> Fallible<*mut JSObject> {
+        let mut length = 0;
+        let mut data = ptr::null_mut();
+        if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
+            return Err(Error::NotSupported);
+        }
+        if !is_integer_buffer(input) {
+            return Err(Error::TypeMismatch);
+        }
+        if length > 65536 {
+            return Err(Error::QuotaExceeded);
+        }
+
+        return Ok(input);
+    }
+}
+
+#[allow(unsafe_code)]
+fn is_integer_buffer(input: *mut JSObject) -> bool {
+    match unsafe { JS_GetArrayBufferViewType(input) } {
+        Type::Uint8 |
+        Type::Uint8Clamped |
+        Type::Int8 |
+        Type::Uint16 |
+        Type::Int16 |
+        Type::Uint32 |
+        Type::Int32 => true,
+        _ => false
     }
 }
