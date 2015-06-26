@@ -38,8 +38,10 @@ pub struct GlyphRun {
 }
 
 pub struct NaturalWordSliceIterator<'a> {
-    glyph_iter: Iter<'a, GlyphRun>,
+    glyphs: &'a [GlyphRun],
+    index: usize,
     range: Range<CharIndex>,
+    reverse: bool,
 }
 
 struct CharIndexComparator;
@@ -83,11 +85,20 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
-        let slice_glyphs = self.glyph_iter.next();
-        if slice_glyphs.is_none() {
-            return None;
+        let slice_glyphs;
+        if self.reverse {
+            if self.index == 0 {
+                return None;
+            }
+            self.index -= 1;
+            slice_glyphs = &self.glyphs[self.index];
+        } else {
+            if self.index >= self.glyphs.len() {
+                return None;
+            }
+            slice_glyphs = &self.glyphs[self.index];
+            self.index += 1;
         }
-        let slice_glyphs = slice_glyphs.unwrap();
 
         let mut char_range = self.range.intersect(&slice_glyphs.range);
         let slice_range_begin = slice_glyphs.range.begin();
@@ -349,8 +360,36 @@ impl<'a> TextRun {
             Some(index) => index,
         };
         NaturalWordSliceIterator {
-            glyph_iter: self.glyphs[index..].iter(),
+            glyphs: &self.glyphs[..],
+            index: index,
             range: *range,
+            reverse: false,
+        }
+    }
+
+    /// Returns an iterator that over natural word slices in visual order (left to right or
+    /// right to left, depending on the bidirectional embedding level).
+    pub fn natural_word_slices_in_visual_order(&'a self, range: &Range<CharIndex>)
+                                        -> NaturalWordSliceIterator<'a> {
+        // Iterate in reverse order if bidi level is RTL.
+        let reverse = self.bidi_level % 2 == 1;
+
+        let index = if reverse {
+            match self.index_of_first_glyph_run_containing(range.end() - CharIndex(1)) {
+                Some(i) => i + 1, // In reverse mode, index points one past the next element.
+                None => 0
+            }
+        } else {
+            match self.index_of_first_glyph_run_containing(range.begin()) {
+                Some(i) => i,
+                None => self.glyphs.len()
+            }
+        };
+        NaturalWordSliceIterator {
+            glyphs: &self.glyphs[..],
+            index: index,
+            range: *range,
+            reverse: reverse,
         }
     }
 
