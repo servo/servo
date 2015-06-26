@@ -43,7 +43,7 @@ use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCas
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
-use script::dom::bindings::js::LayoutJS;
+use script::dom::bindings::js::{JS, LayoutJS};
 use script::dom::characterdata::{CharacterDataTypeId, LayoutCharacterDataHelpers};
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
@@ -68,10 +68,11 @@ use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
+use selectors::Node as SelectorsNode;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::UnsignedIntegerAttribute;
-use style::node::{TElement, TElementAttributes, TNode};
+use style::node::TElementAttributes;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
 
@@ -216,9 +217,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> TNode for LayoutNode<'ln> {
-    type Element = LayoutElement<'ln>;
-
+impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -249,25 +248,15 @@ impl<'ln> TNode for LayoutNode<'ln> {
         }
     }
 
-    /// If this is an element, accesses the element data. Fails if this is not an element node.
+    /// If this is an element, accesses the element data.
     #[inline]
-    fn as_element(&self) -> LayoutElement<'ln> {
+    fn as_element(&self) -> Option<LayoutElement<'ln>> {
         unsafe {
-            let elem: LayoutJS<Element> = match ElementCast::to_layout_js(&self.node) {
-                Some(elem) => elem,
-                None => panic!("not an element")
-            };
-
-            LayoutElement {
-                element: &*elem.unsafe_get(),
-            }
-        }
-    }
-
-    fn is_element(&self) -> bool {
-        match self.type_id() {
-            NodeTypeId::Element(..) => true,
-            _ => false
+            ElementCast::to_layout_js(&self.node).map(|element| {
+                LayoutElement {
+                    element: &*element.unsafe_get(),
+                }
+            })
         }
     }
 
@@ -275,34 +264,6 @@ impl<'ln> TNode for LayoutNode<'ln> {
         match self.type_id() {
             NodeTypeId::Document(..) => true,
             _ => false
-        }
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
-        assert!(self.is_element());
-        let name = if self.is_html_element_in_html_document() {
-            &attr.lower_name
-        } else {
-            &attr.name
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                let element = self.as_element();
-                element.get_attr(ns, name).map_or(false, |attr| test(attr))
-            },
-            NamespaceConstraint::Any => {
-                let element = self.as_element();
-                element.get_attrs(name).iter().any(|attr| test(*attr))
-            }
-        }
-    }
-
-    fn is_html_element_in_html_document(&self) -> bool {
-        unsafe {
-            match ElementCast::to_layout_js(&self.node) {
-                Some(elem) => elem.html_element_in_html_document_for_layout(),
-                None => false
-            }
         }
     }
 }
@@ -424,7 +385,19 @@ impl<'le> LayoutElement<'le> {
     }
 }
 
-impl<'le> TElement for LayoutElement<'le> {
+impl<'le> ::selectors::Element for LayoutElement<'le> {
+    type Node = LayoutNode<'le>;
+
+    #[inline]
+    fn as_node(&self) -> LayoutNode<'le> {
+        LayoutNode {
+            node: NodeCast::from_layout_js(unsafe {
+                &JS::from_ref(self.element).to_layout()
+            }),
+            chain: PhantomData,
+        }
+    }
+
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a Atom {
         self.element.local_name()
@@ -543,6 +516,28 @@ impl<'le> TElement for LayoutElement<'le> {
                 None | Some(&AttrValue::UInt(_, 0)) => false,
                 _ => true,
             }
+        }
+    }
+
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
+        let name = if self.is_html_element_in_html_document() {
+            &attr.lower_name
+        } else {
+            &attr.name
+        };
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(ns, name).map_or(false, |attr| test(attr))
+            },
+            NamespaceConstraint::Any => {
+                self.get_attrs(name).iter().any(|attr| test(*attr))
+            }
+        }
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        unsafe {
+            JS::from_ref(self.element).to_layout().html_element_in_html_document_for_layout()
         }
     }
 }

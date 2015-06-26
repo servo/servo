@@ -17,6 +17,7 @@ use wrapper::{LayoutElement, LayoutNode};
 use script::dom::characterdata::CharacterDataTypeId;
 use script::dom::node::NodeTypeId;
 use script::layout_interface::Animation;
+use selectors::{Node, Element};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -28,7 +29,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
-use style::node::{TElement, TElementAttributes, TNode};
+use style::node::TElementAttributes;
 use style::properties::{ComputedValues, cascade};
 use style::selector_matching::{Stylist, DeclarationBlock};
 use util::arc_ptr_eq;
@@ -226,9 +227,10 @@ impl StyleSharingCandidate {
             None => return None,
             Some(parent_node) => parent_node,
         };
-        if !parent_node.is_element() {
-            return None
-        }
+        let element = match parent_node.as_element() {
+            Some(element) => element,
+            None => return None
+        };
 
         let style = unsafe {
             match *node.borrow_layout_data_unchecked() {
@@ -253,7 +255,6 @@ impl StyleSharingCandidate {
             }
         };
 
-        let element = node.as_element();
         if element.style_attribute().is_some() {
             return None
         }
@@ -504,10 +505,10 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                               parent_node: Option<LayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>> {
-        assert!(self.is_element());
+        let element = self.as_element().unwrap();
 
         let parent_node = match parent_node {
-            Some(ref parent_node) if parent_node.is_element() => parent_node,
+            Some(ref parent_node) if parent_node.as_element().is_some() => parent_node,
             Some(_) | None => return None,
         };
 
@@ -523,7 +524,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 }
 
                 // Check tag names, classes, etc.
-                if !candidate.can_share_style_with(&self.as_element()) {
+                if !candidate.can_share_style_with(&element) {
                     return None
                 }
 
@@ -542,20 +543,21 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                   parent_bf: &Option<Box<BloomFilter>>,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool) {
-        let style_attribute = self.as_element().style_attribute().as_ref();
+        let element = self.as_element().unwrap();
+        let style_attribute = element.style_attribute().as_ref();
 
         applicable_declarations.normal_shareable =
-            stylist.push_applicable_declarations(self,
+            stylist.push_applicable_declarations(&element,
                                                  parent_bf,
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
-        stylist.push_applicable_declarations(self,
+        stylist.push_applicable_declarations(&element,
                                              parent_bf,
                                              None,
                                              Some(PseudoElement::Before),
                                              &mut applicable_declarations.before);
-        stylist.push_applicable_declarations(self,
+        stylist.push_applicable_declarations(&element,
                                              parent_bf,
                                              None,
                                              Some(PseudoElement::After),
@@ -574,13 +576,13 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare(false)
         }
-        if !self.is_element() {
-            return StyleSharingResult::CannotShare(false)
-        }
         let ok = {
-            let element = self.as_element();
-            element.style_attribute().is_none() &&
-                element.get_attr(&ns!(""), &atom!("id")).is_none()
+            if let Some(element) = self.as_element() {
+                element.style_attribute().is_none() &&
+                    element.get_attr(&ns!(""), &atom!("id")).is_none()
+            } else {
+                false
+            }
         };
         if !ok {
             return StyleSharingResult::CannotShare(false)
@@ -621,28 +623,26 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
     fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
         // Only elements are interesting.
-        if !self.is_element() { return; }
-        let element = self.as_element();
+        if let Some(element) = self.as_element() {
+            bf.insert(element.get_local_name());
+            bf.insert(element.get_namespace());
+            element.get_id().map(|id| bf.insert(&id));
 
-        bf.insert(element.get_local_name());
-        bf.insert(element.get_namespace());
-        element.get_id().map(|id| bf.insert(&id));
-
-        // TODO: case-sensitivity depends on the document type and quirks mode
-        element.each_class(|class| bf.insert(class));
+            // TODO: case-sensitivity depends on the document type and quirks mode
+            element.each_class(|class| bf.insert(class));
+        }
     }
 
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
         // Only elements are interesting.
-        if !self.is_element() { return; }
-        let element = self.as_element();
+        if let Some(element) = self.as_element() {
+            bf.remove(element.get_local_name());
+            bf.remove(element.get_namespace());
+            element.get_id().map(|id| bf.remove(&id));
 
-        bf.remove(element.get_local_name());
-        bf.remove(element.get_namespace());
-        element.get_id().map(|id| bf.remove(&id));
-
-        // TODO: case-sensitivity depends on the document type and quirks mode
-        element.each_class(|class| bf.remove(class));
+            // TODO: case-sensitivity depends on the document type and quirks mode
+            element.each_class(|class| bf.remove(class));
+        }
     }
 
     unsafe fn cascade_node(&self,

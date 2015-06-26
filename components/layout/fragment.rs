@@ -41,7 +41,6 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
 use style::computed_values::{text_align, text_decoration, white_space, word_break};
 use style::computed_values::transform_style;
-use style::node::TNode;
 use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};

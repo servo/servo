@@ -79,6 +79,7 @@ use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 use selectors::matching::{matches, DeclarationBlock};
 use selectors::parser::parse_author_origin_selector_list_from_str;
+use selectors::parser::{AttrSelector, NamespaceConstraint};
 use string_cache::{Atom, Namespace, QualName};
 use url::UrlParser;
 
@@ -1454,8 +1455,7 @@ impl<'a> ElementMethods for &'a Element {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                let root = NodeCast::from_ref(self);
-                Ok(matches(selectors, &root, &mut None))
+                Ok(matches(selectors, &self, &mut None))
             }
         }
     }
@@ -1468,7 +1468,7 @@ impl<'a> ElementMethods for &'a Element {
                 let root = NodeCast::from_ref(self);
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = ElementCast::to_ref(element.r()) {
-                        if matches(selectors, &NodeCast::from_ref(element), &mut None) {
+                        if matches(selectors, &element, &mut None) {
                             return Ok(Some(Root::from_ref(element)));
                         }
                     }
@@ -1621,7 +1621,13 @@ impl<'a> VirtualMethods for &'a Element {
     }
 }
 
-impl<'a> style::node::TElement for &'a Element {
+impl<'a> ::selectors::Element for &'a Element {
+    type Node = &'a Node;
+
+    fn as_node(&self) -> &'a Node {
+        NodeCast::from_ref(*self)
+    }
+
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
         let node = NodeCast::from_ref(*self);
@@ -1739,6 +1745,43 @@ impl<'a> style::node::TElement for &'a Element {
                 }
             }
         }
+    }
+
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool
+    {
+        let local_name = {
+            if self.is_html_element_in_html_document() {
+                &attr.lower_name
+            } else {
+                &attr.name
+            }
+        };
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attribute(ns, local_name)
+                    .map_or(false, |attr| {
+                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                        let attr = attr.r();
+                        let value = attr.value();
+                        test(&value)
+                    })
+            },
+            NamespaceConstraint::Any => {
+                let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
+                self.get_attributes(local_name, &mut attributes);
+                attributes.iter().any(|attr| {
+                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                        let attr = attr.root();
+                        let value = attr.r().value();
+                        test(&value)
+                    })
+            }
+        }
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        self.html_element_in_html_document()
     }
 }
 
