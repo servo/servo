@@ -19,6 +19,7 @@ use std::io::{self, Write};
 use std::fs::PathExt;
 use std::mem;
 use std::path::Path;
+use std::process;
 use std::ptr;
 use url::{self, Url};
 
@@ -159,7 +160,7 @@ fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
     println!("{}", getopts::usage(&message, opts));
 }
 
-pub fn print_debug_usage(app: &str)  {
+pub fn print_debug_usage(app: &str) -> ! {
     fn print_option(name: &str, description: &str) {
         println!("\t{:<35} {}", name, description);
     }
@@ -185,13 +186,15 @@ pub fn print_debug_usage(app: &str)  {
                  "Disable the style sharing cache.");
 
     println!("");
+
+    process::exit(0)
 }
 
-fn args_fail(msg: &str) {
+fn args_fail(msg: &str) -> ! {
     let mut stderr = io::stderr();
     stderr.write_all(msg.as_bytes()).unwrap();
     stderr.write_all(b"\n").unwrap();
-    env::set_exit_status(1);
+    process::exit(1)
 }
 
 // Always use CPU painting on android.
@@ -244,7 +247,7 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) -> bool {
+pub fn from_cmdline_args(args: &[String]) {
     let app_name = args[0].to_string();
     let args = args.tail();
 
@@ -279,15 +282,12 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let opt_match = match getopts::getopts(args, &opts) {
         Ok(m) => m,
-        Err(f) => {
-            args_fail(&f.to_string());
-            return false;
-        }
+        Err(f) => args_fail(&f.to_string()),
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(&app_name, &opts);
-        return false;
+        process::exit(0);
     };
 
     let debug_string = match opt_match.opt_str("Z") {
@@ -299,14 +299,12 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         debug_options.insert(split.clone());
     }
     if debug_options.contains(&"help") {
-        print_debug_usage(&app_name);
-        return false;
+        print_debug_usage(&app_name)
     }
 
     let url = if opt_match.free.is_empty() {
         print_usage(&app_name, &opts);
-        args_fail("servo asks that you provide a URL");
-        return false;
+        args_fail("servo asks that you provide a URL")
     } else {
         let ref url = opt_match.free[0];
         let cwd = env::current_dir().unwrap();
@@ -316,8 +314,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
                 if Path::new(url).exists() {
                     Url::from_file_path(&*cwd.join(url)).unwrap()
                 } else {
-                    args_fail(&format!("File not found: {}", url));
-                    return false;
+                    args_fail(&format!("File not found: {}", url))
                 }
             }
             Err(_) => panic!("URL parsing failed"),
@@ -423,7 +420,6 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     set(opts);
-    true
 }
 
 static mut EXPERIMENTAL_ENABLED: bool = false;
