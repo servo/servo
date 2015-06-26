@@ -197,6 +197,7 @@ pub mod closeevent;
 pub mod comment;
 pub mod console;
 mod create;
+pub mod crypto;
 pub mod customevent;
 pub mod dedicatedworkerglobalscope;
 pub mod document;
