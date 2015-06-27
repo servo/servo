@@ -13,6 +13,9 @@ use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType, Type};
 
 use std::ptr;
+use std::slice;
+
+use rand::{Rng, OsRng};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
@@ -50,6 +53,13 @@ impl<'a> CryptoMethods for &'a Crypto {
         if length > 65536 {
             return Err(Error::QuotaExceeded);
         }
+
+        let mut buffer = unsafe {
+            slice::from_raw_parts_mut(data, length as usize)
+        };
+
+        let mut r = OsRng::new().unwrap();
+        r.fill_bytes(&mut buffer);
 
         return Ok(input);
     }
