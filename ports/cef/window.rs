@@ -51,7 +51,7 @@ pub struct Window {
 
 #[cfg(target_os="macos")]
 fn load_gl() {
-    const RTLD_DEFAULT: *mut c_void = (-2) as *mut c_void;
+    const RTLD_DEFAULT: *mut c_void = (-2isize) as usize as *mut c_void;
 
     extern {
         fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;

@@ -10,7 +10,6 @@
 #![feature(filling_drop)]
 #![feature(iter_arith)]
 #![feature(link_args)]
-#![feature(negate_unsigned)]
 #![feature(plugin)]
 #![feature(str_utf16)]
 #![feature(unicode)]
