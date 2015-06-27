@@ -15,9 +15,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
-use dom::bindings::js::{Root};
-use dom::bindings::js::RootedReference;
+use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
@@ -43,7 +41,6 @@ use string_cache::Atom;
 use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::default::Default;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";

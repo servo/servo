@@ -60,7 +60,6 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 
 use devtools_traits::AttrInfo;
 use smallvec::VecLike;
-use style;
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;

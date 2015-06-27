@@ -58,7 +58,6 @@ use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::matching::matches;
 use style::properties::ComputedValues;
-use style;
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use core::nonzero::NonZero;
