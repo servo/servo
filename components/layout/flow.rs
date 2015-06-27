@@ -1393,7 +1393,7 @@ impl ContainingBlockLink {
                 panic!("Link to containing block not established; perhaps you forgot to call \
                         `set_absolute_descendants`?")
             }
-            Some(ref mut link) => link.generated_containing_block_size(for_flow),
+            Some(ref link) => link.upgrade().unwrap().generated_containing_block_size(for_flow),
         }
     }
 }
