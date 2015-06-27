@@ -91,7 +91,7 @@ dependencies = [
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "util 0.0.1",
 ]
 
@@ -104,7 +104,7 @@ dependencies = [
  "euclid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
- "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
 ]
 
 [[package]]
@@ -634,7 +634,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#d7defb1fbc84e90322d7b1c6f3fde6cf9ffb736d"
+source = "git+https://github.com/servo/rust-layers#a3f07d9a7e34fe368aa8010a83ce8979491fc057"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -856,15 +856,15 @@ dependencies = [
 
 [[package]]
 name = "offscreen_gl_context"
-version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#e79da8f61ad468087beb546bca4d7267b77edd9f"
+version = "0.1.0"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#9b2a5fc48de8b06d02e0d18329dd6dd797b01d05"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
+ "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1052,7 +1052,7 @@ dependencies = [
  "msg 0.0.1",
  "net_traits 0.0.1",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile_traits 0.0.1",

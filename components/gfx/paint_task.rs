@@ -386,8 +386,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         // in case it dies in transit to the compositor task.
         let mut native_surface: NativeSurface =
             layers::platform::surface::NativeSurface::new(native_graphics_context!(self),
-                                                          Size2D::new(width as i32, height as i32),
-                                                          width as i32 * 4);
+                                                          Size2D::new(width as i32, height as i32));
         native_surface.mark_wont_leak();
 
         Some(box LayerBuffer {
@@ -395,7 +394,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
             resolution: scale,
-            stride: (width * 4) as usize,
             painted_with_cpu: true,
             content_age: tile.content_age,
         })
@@ -754,7 +752,6 @@ impl WorkerThread {
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
             resolution: scale,
-            stride: (tile.screen_rect.size.width * 4),
             painted_with_cpu: false,
             content_age: tile.content_age,
         }
