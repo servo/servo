@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
@@ -428,7 +428,7 @@ impl RangeInner {
 #[must_root]
 #[privatize]
 pub struct BoundaryPoint {
-    node: MutHeap<JS<Node>>,
+    node: JS<Node>,
     offset: u32,
 }
 
@@ -437,13 +437,13 @@ impl BoundaryPoint {
         debug_assert!(!node.is_doctype());
         debug_assert!(offset <= node.len());
         BoundaryPoint {
-            node: MutHeap::new(JS::from_ref(node)),
+            node: JS::from_ref(node),
             offset: offset,
         }
     }
 
     pub fn node(&self) -> Root<Node> {
-        self.node.get().root()
+        self.node.root()
     }
 
     pub fn offset(&self) -> u32 {
@@ -453,7 +453,7 @@ impl BoundaryPoint {
     fn set(&mut self, node: &Node, offset: u32) {
         debug_assert!(!node.is_doctype());
         debug_assert!(offset <= node.len());
-        self.node.set(JS::from_ref(node));
+        self.node = JS::from_ref(node);
         self.offset = offset;
     }
 }
