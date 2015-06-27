@@ -16,8 +16,7 @@ use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
-use layers::platform::surface::NativeSurface;
+use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
 use canvas_traits::CanvasMsg;
@@ -127,7 +126,7 @@ pub struct PaintTask<C> {
     pub reporter_name: String,
 
     /// The native graphics context.
-    native_graphics_context: Option<NativePaintingGraphicsContext>,
+    native_display: Option<NativeDisplay>,
 
     /// The root stacking context sent to us by the layout thread.
     root_stacking_context: Option<Arc<StackingContext>>,
@@ -154,9 +153,9 @@ pub struct PaintTask<C> {
 
 // If we implement this as a function, we get borrowck errors from borrowing
 // the whole PaintTask struct.
-macro_rules! native_graphics_context(
+macro_rules! native_display(
     ($task:expr) => (
-        $task.native_graphics_context.as_ref().expect("Need a graphics context to do painting")
+        $task.native_display.as_ref().expect("Need a graphics context to do painting")
     )
 );
 
@@ -178,9 +177,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
                 let mut compositor = compositor;
-                let native_graphics_context = compositor.graphics_metadata().map(
-                    |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let worker_threads = WorkerThreadProxy::spawn(compositor.graphics_metadata(),
+                let native_display = compositor.native_display().map(
+                    |display| display);
+                let worker_threads = WorkerThreadProxy::spawn(native_display.clone(),
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
 
@@ -200,7 +199,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     time_profiler_chan: time_profiler_chan,
                     mem_profiler_chan: mem_profiler_chan,
                     reporter_name: reporter_name,
-                    native_graphics_context: native_graphics_context,
+                    native_display: native_display,
                     root_stacking_context: None,
                     paint_permission: false,
                     current_epoch: None,
@@ -213,7 +212,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 paint_task.start();
 
                 // Destroy all the buffers.
-                match paint_task.native_graphics_context.as_ref() {
+                match paint_task.native_display.as_ref() {
                     Some(ctx) => paint_task.buffer_map.clear(ctx),
                     None => (),
                 }
@@ -298,7 +297,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.used_buffer_count -= unused_buffers.len();
 
                     for buffer in unused_buffers.into_iter().rev() {
-                        self.buffer_map.insert(native_graphics_context!(self), buffer);
+                        self.buffer_map.insert(native_display!(self), buffer);
                     }
 
                     if waiting_for_compositor_buffers_to_exit && self.used_buffer_count == 0 {
@@ -385,7 +384,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         // Create an empty native surface. We mark it as not leaking
         // in case it dies in transit to the compositor task.
         let mut native_surface: NativeSurface =
-            layers::platform::surface::NativeSurface::new(native_graphics_context!(self),
+            layers::platform::surface::NativeSurface::new(native_display!(self),
                                                           Size2D::new(width as i32, height as i32));
         native_surface.mark_wont_leak();
 
@@ -528,7 +527,7 @@ struct WorkerThreadProxy {
 }
 
 impl WorkerThreadProxy {
-    fn spawn(native_graphics_metadata: Option<NativeGraphicsMetadata>,
+    fn spawn(native_display: Option<NativeDisplay>,
              font_cache_task: FontCacheTask,
              time_profiler_chan: time::ProfilerChan)
              -> Vec<WorkerThreadProxy> {
@@ -540,13 +539,12 @@ impl WorkerThreadProxy {
         (0..thread_count).map(|_| {
             let (from_worker_sender, from_worker_receiver) = channel();
             let (to_worker_sender, to_worker_receiver) = channel();
-            let native_graphics_metadata = native_graphics_metadata.clone();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
             spawn_named("PaintWorker".to_owned(), move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
-                                                          native_graphics_metadata,
+                                                          native_display,
                                                           font_cache_task,
                                                           time_profiler_chan);
                 worker_thread.main();
@@ -588,7 +586,7 @@ impl WorkerThreadProxy {
 struct WorkerThread {
     sender: Sender<MsgFromWorkerThread>,
     receiver: Receiver<MsgToWorkerThread>,
-    native_graphics_context: Option<NativePaintingGraphicsContext>,
+    native_display: Option<NativeDisplay>,
     font_context: Box<FontContext>,
     time_profiler_sender: time::ProfilerChan,
 }
@@ -596,15 +594,15 @@ struct WorkerThread {
 impl WorkerThread {
     fn new(sender: Sender<MsgFromWorkerThread>,
            receiver: Receiver<MsgToWorkerThread>,
-           native_graphics_metadata: Option<NativeGraphicsMetadata>,
+           native_display: Option<NativeDisplay>,
            font_cache_task: FontCacheTask,
            time_profiler_sender: time::ProfilerChan)
            -> WorkerThread {
         WorkerThread {
             sender: sender,
             receiver: receiver,
-            native_graphics_context: native_graphics_metadata.map(|metadata| {
-                NativePaintingGraphicsContext::from_metadata(&metadata)
+            native_display: native_display.map(|display| {
+                display
             }),
             font_context: box FontContext::new(font_cache_task.clone()),
             time_profiler_sender: time_profiler_sender,
@@ -645,7 +643,7 @@ impl WorkerThread {
             // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
             // paintbuffers) instead of recreating them.
             let native_graphics_context =
-                native_graphics_context!(self) as *const _ as SkiaGrGLNativeContextRef;
+                native_display!(self) as *const _ as SkiaGrGLNativeContextRef;
             let draw_target = DrawTarget::new_with_fbo(BackendType::Skia,
                                                        native_graphics_context,
                                                        size,
@@ -731,7 +729,7 @@ impl WorkerThread {
         if !opts::get().gpu_painting {
             let mut buffer = layer_buffer.unwrap();
             draw_target.snapshot().get_data_surface().with_data(|data| {
-                buffer.native_surface.upload(native_graphics_context!(self), data);
+                buffer.native_surface.upload(native_display!(self), data);
                 debug!("painting worker thread uploading to native surface {}",
                        buffer.native_surface.get_id());
             });

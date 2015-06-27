@@ -21,7 +21,7 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeGraphicsMetadata;
+use layers::platform::surface::NativeDisplay;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use net::net_error_list::NetError;
@@ -265,26 +265,17 @@ impl WindowMethods for Window {
         }
     }
 
-    #[cfg(target_os="macos")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use cgl::{CGLGetCurrentContext, CGLGetPixelFormat};
-
-        // FIXME(pcwalton)
+    #[cfg(target_os="linux")]
+    fn native_display(&self) -> NativeDisplay {
+        use x11::xlib;
         unsafe {
-            NativeGraphicsMetadata {
-                pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),
-            }
+            NativeDisplay::new(DISPLAY as *mut xlib::Display)
         }
     }
 
-    #[cfg(target_os="linux")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use x11::xlib;
-        unsafe {
-            NativeGraphicsMetadata {
-                display: DISPLAY as *mut xlib::Display,
-            }
-        }
+    #[cfg(not(target_os="linux"))]
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new()
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)

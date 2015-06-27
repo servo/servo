@@ -568,7 +568,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#a3f07d9a7e34fe368aa8010a83ce8979491fc057"
+source = "git+https://github.com/servo/rust-layers#01bfc9fbb0748af62d89720f67a84e9542fad1d1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -774,7 +774,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#9b2a5fc48de8b06d02e0d18329dd6dd797b01d05"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#46c5cc8694b08c09de55821e0e8a00ebe5ed97da"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
