@@ -310,7 +310,7 @@ impl<'a> EventTargetMethods for &'a EventTarget {
                     phase: phase,
                     listener: EventListenerType::Additive(listener)
                 };
-                if entry.position_elem(&new_entry).is_none() {
+                if !entry.contains(&new_entry) {
                     entry.push(new_entry);
                 }
             },
@@ -332,8 +332,7 @@ impl<'a> EventTargetMethods for &'a EventTarget {
                         phase: phase,
                         listener: EventListenerType::Additive(listener.clone())
                     };
-                    let position = entry.position_elem(&old_entry);
-                    for &position in position.iter() {
+                    if let Some(position) = entry.iter().position(|e| *e == old_entry) {
                         entry.remove(position);
                     }
                 }
