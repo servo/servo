@@ -10,7 +10,7 @@
 
 #![allow(unsafe_code)]
 
-use flow::Flow;
+use flow::{Flow, BaseFlow};
 use flow;
 
 use std::mem;
@@ -133,11 +133,19 @@ impl Clone for FlowRef {
     }
 }
 
+fn base<'a>(r: &WeakFlowRef) -> &'a BaseFlow {
+    let data = r.object.data;
+    debug_assert!(!data.is_null());
+    unsafe {
+        mem::transmute::<*mut (), &'a BaseFlow>(data)
+    }
+}
+
 impl WeakFlowRef {
     /// Upgrades a WeakFlowRef to a FlowRef.
     pub fn upgrade(&self) -> Option<FlowRef> {
         unsafe {
-            let object = flow::base(&**self);
+            let object = base(self);
             // We use a CAS loop to increment the strong count instead of a
             // fetch_add because once the count hits 0 is must never be above
             // 0.
@@ -153,27 +161,10 @@ impl WeakFlowRef {
     }
 }
 
-impl<'a> Deref for WeakFlowRef {
-    type Target = Flow + 'a;
-    fn deref(&self) -> &(Flow + 'a) {
-        unsafe {
-            mem::transmute_copy::<raw::TraitObject, &(Flow + 'a)>(&self.object)
-        }
-    }
-}
-
-impl DerefMut for WeakFlowRef {
-    fn deref_mut<'a>(&mut self) -> &mut (Flow + 'a) {
-        unsafe {
-            mem::transmute_copy::<raw::TraitObject, &mut (Flow + 'a)>(&self.object)
-        }
-    }
-}
-
 impl Clone for WeakFlowRef {
     fn clone(&self) -> WeakFlowRef {
         unsafe {
-            flow::base(&**self).weak_ref_count().fetch_add(1, Ordering::Relaxed);
+            base(self).weak_ref_count().fetch_add(1, Ordering::Relaxed);
         }
         WeakFlowRef { object: self. object }
     }
@@ -187,7 +178,7 @@ impl Drop for WeakFlowRef {
                 return
             }
 
-            if flow::base(&**self).weak_ref_count().fetch_sub(1, Ordering::Release) == 1 {
+            if base(self).weak_ref_count().fetch_sub(1, Ordering::Release) == 1 {
                 atomic::fence(Ordering::Acquire);
 
                 // This dance deallocates the Box<Flow> without running its
