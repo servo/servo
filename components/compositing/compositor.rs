@@ -851,6 +851,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_zoom_window_event(magnification);
             }
 
+            WindowEvent::ResetZoom => {
+                self.on_zoom_reset_window_event();
+            }
+
             WindowEvent::PinchZoom(magnification) => {
                 self.on_pinch_zoom_window_event(magnification);
             }
@@ -1064,6 +1068,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // We need to set the size of the root layer again, since the window size
         // has changed in unscaled layer pixels.
         self.scene.set_root_layer_size(self.window_size.as_f32());
+    }
+
+    fn on_zoom_reset_window_event(&mut self) {
+        self.page_zoom = ScaleFactor::new(1.0);
+        self.update_zoom_transform();
+        self.send_window_size();
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {

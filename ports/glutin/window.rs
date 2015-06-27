@@ -30,7 +30,7 @@ use euclid::point::Point2D;
 #[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 #[cfg(feature = "window")]
-use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
+use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 #[cfg(feature = "window")]
 use std::cell::{Cell, RefCell};
 #[cfg(feature = "window")]
@@ -51,8 +51,18 @@ bitflags! {
         const RIGHT_SHIFT = 8,
         const LEFT_ALT = 16,
         const RIGHT_ALT = 32,
+        const LEFT_SUPER = 64,
+        const RIGHT_SUPER = 128,
     }
 }
+
+#[cfg(target_os="macos")]
+const OS_META : constellation_msg::KeyModifiers = SUPER;
+#[cfg(not(target_os="macos"))]
+const OS_META : constellation_msg::KeyModifiers = CONTROL;
+
+// This should vary by zoom level and maybe actual text size (focused or under cursor)
+const LINE_HEIGHT : f32 = 38.0;
 
 /// The type of a window.
 #[cfg(feature = "window")]
@@ -152,6 +162,8 @@ impl Window {
                         (_, VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
                         (_, VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
                         (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
+                        (_, VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
+                        (_, VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
                         (ElementState::Pressed, VirtualKeyCode::Escape) => return true,
                         (_, key_code) => {
                             match Window::glutin_key_to_script_key(key_code) {
@@ -199,10 +211,7 @@ impl Window {
                 } else {
                     match delta {
                         MouseScrollDelta::LineDelta(dx, dy) => {
-                            // this should use the actual line height
-                            // of the frame under the mouse
-                            let line_height = 57.0;
-                            self.scroll_window(dx, dy * line_height);
+                            self.scroll_window(dx, dy * LINE_HEIGHT);
                         }
                         MouseScrollDelta::PixelDelta(dx, dy) => self.scroll_window(dx, dy)
                     }
@@ -452,7 +461,27 @@ impl Window {
         if modifiers.intersects(LEFT_ALT | RIGHT_ALT) {
             result.insert(ALT);
         }
+        if modifiers.intersects(LEFT_SUPER | RIGHT_SUPER) {
+            result.insert(SUPER);
+        }
         result
+    }
+
+    #[cfg(target_os="macos")]
+    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
+        match (mods, key) {
+            (SUPER, Key::LeftBracket) => { // Cmd-[
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+            }
+            (SUPER, Key::RightBracket) => { // Cmd-]
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+            }
+            _ => {}
+        }
+    }
+
+    #[cfg(not(target_os="macos"))]
+    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
     }
 }
 
@@ -608,26 +637,50 @@ impl WindowMethods for Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
-        match key {
-            Key::Equal if mods.contains(CONTROL) => { // Ctrl-+
+        match (mods, key) {
+            (OS_META, Key::Equal) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
             }
-            Key::Minus if mods.contains(CONTROL) => { // Ctrl--
+            (OS_META, Key::Minus) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0/1.1));
             }
-            Key::Backspace if mods.contains(SHIFT) => { // Shift-Backspace
+            (OS_META, Key::Num0) |
+            (OS_META, Key::Kp0) => {
+                self.event_queue.borrow_mut().push(WindowEvent::ResetZoom);
+            }
+
+            (SHIFT, Key::Backspace) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            Key::Backspace => { // Backspace
+            (NONE, Key::Backspace) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
-            Key::PageDown => {
-                self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height);
+
+            (OS_META, Key::Right) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            Key::PageUp => {
-                self.scroll_window(0.0, self.framebuffer_size().as_f32().to_untyped().height);
+            (OS_META, Key::Left) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
-            _ => {}
+
+            (NONE, Key::PageDown) |
+            (NONE, Key::Space) => {
+                self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height + 2.0 * LINE_HEIGHT);
+            }
+            (NONE, Key::PageUp) |
+            (SHIFT, Key::Space) => {
+                self.scroll_window(0.0, self.framebuffer_size().as_f32().to_untyped().height - 2.0 * LINE_HEIGHT);
+            }
+            (NONE, Key::Up) => {
+                self.scroll_window(0.0, 3.0 * LINE_HEIGHT);
+            }
+            (NONE, Key::Down) => {
+                self.scroll_window(0.0, -3.0 * LINE_HEIGHT);
+            }
+
+            _ => {
+                self.platform_handle_key(key, mods);
+            }
         }
     }
 
