@@ -1645,6 +1645,9 @@ class CGImports(CGWrapper):
             if constructor:
                 members += [constructor]
 
+            if d.proxy:
+                members += [o for o in d.operations.values() if o]
+
             for m in members:
                 if m.isMethod():
                     types += relatedTypesForSignatures(m)
