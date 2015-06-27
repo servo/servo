@@ -13,7 +13,6 @@
 #![feature(negate_unsigned)]
 #![feature(plugin)]
 #![feature(str_utf16)]
-#![feature(thread_local)]
 #![feature(unicode)]
 #![feature(unsafe_no_drop_flag)]
 
