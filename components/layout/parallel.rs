@@ -21,7 +21,6 @@ use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use std::mem;
-use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -449,15 +448,11 @@ fn run_queue_with_custom_work_data_type<To,F>(
         callback: F,
         shared_layout_context: &SharedLayoutContext)
         where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedLayoutContextWrapper,To>) {
-    queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
-
     let queue: &mut WorkQueue<SharedLayoutContextWrapper,To> = unsafe {
         mem::transmute(queue)
     };
     callback(queue);
-    queue.run();
-
-    queue.data = SharedLayoutContextWrapper(ptr::null());
+    queue.run(SharedLayoutContextWrapper(shared_layout_context as *const _));
 }
 
 pub fn traverse_dom_preorder(root: LayoutNode,
