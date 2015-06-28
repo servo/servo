@@ -60,7 +60,6 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 
 use devtools_traits::AttrInfo;
 use smallvec::VecLike;
-use style;
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
@@ -79,6 +78,7 @@ use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 use selectors::matching::{matches, DeclarationBlock};
 use selectors::parser::parse_author_origin_selector_list_from_str;
+use selectors::parser::{AttrSelector, NamespaceConstraint};
 use string_cache::{Atom, Namespace, QualName};
 use url::UrlParser;
 
@@ -541,7 +541,7 @@ pub enum StylePriority {
 pub trait ElementHelpers<'a> {
     fn html_element_in_html_document(self) -> bool;
     fn local_name(self) -> &'a Atom;
-    fn parsed_name(self, name: DOMString) -> DOMString;
+    fn parsed_name(self, name: DOMString) -> Atom;
     fn namespace(self) -> &'a Namespace;
     fn prefix(self) -> &'a Option<DOMString>;
     fn attrs(&self) -> Ref<Vec<JS<Attr>>>;
@@ -568,11 +568,11 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         &self.local_name
     }
 
-    fn parsed_name(self, name: DOMString) -> DOMString {
+    fn parsed_name(self, name: DOMString) -> Atom {
         if self.html_element_in_html_document() {
-            name.to_ascii_lowercase()
+            Atom::from_slice(&name.to_ascii_lowercase())
         } else {
-            name
+            Atom::from_slice(&name)
         }
     }
 
@@ -856,7 +856,7 @@ impl<'a> AttributeHandlers for &'a Element {
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>> {
-        let name = &Atom::from_slice(&self.parsed_name(name));
+        let name = &self.parsed_name(name);
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
         attrs.iter().map(|attr| attr.root())
@@ -1221,7 +1221,6 @@ impl<'a> ElementMethods for &'a Element {
         let name = self.parsed_name(name);
 
         // Step 3-5.
-        let name = Atom::from_slice(&name);
         let value = self.parse_attribute(&ns!(""), &name, value);
         self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
             *attr.name() == name
@@ -1248,7 +1247,7 @@ impl<'a> ElementMethods for &'a Element {
 
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
     fn RemoveAttribute(self, name: DOMString) {
-        let name = Atom::from_slice(&self.parsed_name(name));
+        let name = self.parsed_name(name);
         self.remove_attribute_by_name(&name);
     }
 
@@ -1455,8 +1454,7 @@ impl<'a> ElementMethods for &'a Element {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                let root = NodeCast::from_ref(self);
-                Ok(matches(selectors, &root, &mut None))
+                Ok(matches(selectors, &self, &mut None))
             }
         }
     }
@@ -1469,7 +1467,7 @@ impl<'a> ElementMethods for &'a Element {
                 let root = NodeCast::from_ref(self);
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = ElementCast::to_ref(element.r()) {
-                        if matches(selectors, &NodeCast::from_ref(element), &mut None) {
+                        if matches(selectors, &element, &mut None) {
                             return Ok(Some(Root::from_ref(element)));
                         }
                     }
@@ -1622,7 +1620,13 @@ impl<'a> VirtualMethods for &'a Element {
     }
 }
 
-impl<'a> style::node::TElement for &'a Element {
+impl<'a> ::selectors::Element for &'a Element {
+    type Node = &'a Node;
+
+    fn as_node(&self) -> &'a Node {
+        NodeCast::from_ref(*self)
+    }
+
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
         let node = NodeCast::from_ref(*self);
@@ -1740,6 +1744,43 @@ impl<'a> style::node::TElement for &'a Element {
                 }
             }
         }
+    }
+
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool
+    {
+        let local_name = {
+            if self.is_html_element_in_html_document() {
+                &attr.lower_name
+            } else {
+                &attr.name
+            }
+        };
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attribute(ns, local_name)
+                    .map_or(false, |attr| {
+                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                        let attr = attr.r();
+                        let value = attr.value();
+                        test(&value)
+                    })
+            },
+            NamespaceConstraint::Any => {
+                let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
+                self.get_attributes(local_name, &mut attributes);
+                attributes.iter().any(|attr| {
+                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                        let attr = attr.root();
+                        let value = attr.r().value();
+                        test(&value)
+                    })
+            }
+        }
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        self.html_element_in_html_document()
     }
 }
 

@@ -15,9 +15,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
-use dom::bindings::js::{Root};
-use dom::bindings::js::RootedReference;
+use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
@@ -43,7 +41,6 @@ use string_cache::Atom;
 use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::default::Default;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -89,7 +86,7 @@ struct InputActivationState {
     indeterminate: bool,
     checked: bool,
     checked_changed: bool,
-    checked_radio: MutNullableHeap<JS<HTMLInputElement>>,
+    checked_radio: Option<JS<HTMLInputElement>>,
     // In case mutability changed
     was_mutable: bool,
     // In case the type changed
@@ -102,7 +99,7 @@ impl InputActivationState {
             indeterminate: false,
             checked: false,
             checked_changed: false,
-            checked_radio: Default::default(),
+            checked_radio: None,
             was_mutable: false,
             old_type: InputType::InputText
         }
@@ -715,7 +712,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
                                     r.r().Checked()
                                 })
                     };
-                    cache.checked_radio.set(checked_member.r().map(JS::from_ref));
+                    cache.checked_radio = checked_member.r().map(JS::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 }
@@ -751,7 +748,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
             InputType::InputRadio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
-                    let old_checked: Option<Root<HTMLInputElement>> = cache.checked_radio.get().map(|t| t.root());
+                    let old_checked: Option<Root<HTMLInputElement>> = cache.checked_radio.map(|t| t.root());
                     let name = self.get_radio_group_name();
                     match old_checked {
                         Some(ref o) => {

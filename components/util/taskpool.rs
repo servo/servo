@@ -16,12 +16,12 @@
 //
 
 use task::spawn_named;
+use std::boxed::FnBox;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver};
-use std::thunk::Thunk;
 
 pub struct TaskPool {
-    tx: Sender<Thunk<'static, ()>>,
+    tx: Sender<Box<FnBox() + Send + 'static>>,
 }
 
 impl TaskPool {
@@ -40,7 +40,7 @@ impl TaskPool {
 
         return TaskPool { tx: tx };
 
-        fn worker(rx: &Mutex<Receiver<Thunk<()>>>) {
+        fn worker(rx: &Mutex<Receiver<Box<FnBox() + Send + 'static>>>) {
             loop {
                 let job = rx.lock().unwrap().recv();
                 match job {

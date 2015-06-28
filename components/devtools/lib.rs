@@ -10,7 +10,11 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(box_syntax, core)]
+#![feature(box_syntax)]
+#![feature(core)]
+#![feature(get_type_id)]
+#![feature(raw)]
+#![feature(reflect_marker)]
 
 #![allow(non_snake_case)]
 

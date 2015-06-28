@@ -16,7 +16,7 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
+use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
 use flow::{Descendants, AbsDescendants};
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -31,7 +31,6 @@ use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{InlineFlow, InlineFragmentNodeInfo};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::MulticolFlow;
-use opaque_node::OpaqueNodeMethods;
 use parallel;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -41,7 +40,7 @@ use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
-use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{PostorderNodeMutTraversal, PseudoElementType, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use script::dom::characterdata::CharacterDataTypeId;
@@ -209,7 +208,7 @@ impl InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
             fragments: IntermediateInlineFragments::new(),
             enclosing_node: Some(InlineFragmentNodeInfo {
-                address: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+                address: node.opaque(),
                 style: node.style().clone(),
             }),
         }
@@ -690,9 +689,8 @@ impl<'a> FlowConstructor<'a> {
                 }
             };
 
-            let opaque_node = OpaqueNodeMethods::from_thread_safe_layout_node(node);
             fragments.fragments
-                     .push_back(Fragment::from_opaque_node_and_style(opaque_node,
+                     .push_back(Fragment::from_opaque_node_and_style(node.opaque(),
                                                                      style.clone(),
                                                                      node.restyle_damage(),
                                                                      specific))
@@ -852,9 +850,8 @@ impl<'a> FlowConstructor<'a> {
         //
         // FIXME(#2001, pcwalton): Don't do this if there's padding or borders.
         if node.is_ignorable_whitespace() {
-            let opaque_node = OpaqueNodeMethods::from_thread_safe_layout_node(node);
             return ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
-                opaque_node,
+                node.opaque(),
                 node.style().clone(),
                 node.restyle_damage()))
         }

@@ -23,7 +23,7 @@ use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use std::borrow::ToOwned;
-use std::boxed::{self, FnBox};
+use std::boxed::FnBox;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -52,8 +52,8 @@ pub fn global_init() {
         Err(_) => return,
     };
 
+    let host_table = Box::into_raw(parse_hostsfile(&lines));
     unsafe {
-        let host_table = boxed::into_raw(parse_hostsfile(&lines));
         HOST_TABLE = Some(host_table);
     }
 }

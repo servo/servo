@@ -6,8 +6,11 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{native_from_handleobject, is_dom_class, jsstring_to_str};
-use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
+use dom::bindings::conversions::{is_dom_class, jsstring_to_str};
+use dom::bindings::conversions::native_from_handleobject;
+use dom::bindings::conversions::private_from_proto_chain;
+use dom::bindings::error::{Error, ErrorResult, Fallible, throw_invalid_this};
+use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
@@ -18,14 +21,16 @@ use util::str::DOMString;
 
 use libc;
 use libc::c_uint;
-use std::boxed;
 use std::ffi::CString;
 use std::ptr;
 use std::cmp::PartialEq;
 use std::default::Default;
 use std::cell::UnsafeCell;
-use js::glue::UnwrapObject;
-use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
+use js::glue::{CallJitMethodOp, CallJitGetterOp, CallJitSetterOp, IsWrapper};
+use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT};
+use js::glue::{RUST_JSID_TO_INT, UnwrapObject};
+use js::jsapi::{CallArgs, GetGlobalForObjectCrossCompartment, JSJitInfo};
+use js::jsapi::JS_IsExceptionPending;
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction, JSTraceOp};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
@@ -47,13 +52,12 @@ use js::jsapi::{ObjectOpResult, RootedObject, RootedValue, Heap, MutableHandleOb
 use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::{DOMCallbacks, JSWrapObjectCallbacks};
-use js::jsval::JSVal;
-use js::jsval::{PrivateValue, NullValue};
-use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue};
+use js::jsval::{PrivateValue, UInt32Value, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use js::glue::{WrapperNew, GetCrossCompartmentWrapper};
-use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
-use js::JSFUN_CONSTRUCTOR;
+use js::{JS_CALLEE, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE};
+use js::{JSPROP_PERMANENT, JSPROP_READONLY};
 use js;
 use string_cache::{Atom, Namespace};
 
@@ -200,6 +204,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    proto_proto: HandleObject,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
+                                   named_constructors: &[(NonNullJSNative, &'static str, u32)],
                                    dom_class: *const DOMClass,
                                    members: &'static NativeProperties,
                                    rval: MutableHandleObject) {
@@ -221,6 +226,55 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                 native, nargs, rval.handle(),
                                 members, s.as_ptr())
     }
+
+    for ctor in named_constructors.iter() {
+        let (cnative, cname, cnargs) = *ctor;
+
+        let cs = CString::new(cname).unwrap();
+        let constructor = RootedObject::new(cx, create_constructor(cx, cnative, cnargs, cs.as_ptr()));
+        assert!(!constructor.ptr.is_null());
+        unsafe {
+            assert!(JS_DefineProperty1(cx, constructor.handle(), "prototype".as_ptr() as *const i8,
+                                       rval.handle(),
+                                       JSPROP_PERMANENT | JSPROP_READONLY,
+                                       None, None) != 0);
+        }
+        define_constructor(cx, receiver, cs.as_ptr(), constructor.handle());
+    }
+
+}
+
+fn create_constructor(cx: *mut JSContext,
+                      constructor_native: NonNullJSNative,
+                      ctor_nargs: u32,
+                      name: *const libc::c_char) -> *mut JSObject {
+    unsafe {
+        let fun = JS_NewFunction(cx, Some(constructor_native), ctor_nargs,
+                                 JSFUN_CONSTRUCTOR, name);
+        assert!(!fun.is_null());
+
+        let constructor = JS_GetFunctionObject(fun);
+        assert!(!constructor.is_null());
+
+        constructor
+    }
+}
+
+fn define_constructor(cx: *mut JSContext,
+                      receiver: HandleObject,
+                      name: *const libc::c_char,
+                      constructor: HandleObject) {
+    unsafe {
+        let mut already_defined = 0;
+        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut already_defined) != 0);
+
+        if already_defined == 0 {
+            assert!(JS_DefineProperty1(cx, receiver, name,
+                                      constructor,
+                                      0, None, None) != 0);
+        }
+
+    }
 }
 
 /// Creates the *interface object*.
@@ -231,39 +285,28 @@ fn create_interface_object(cx: *mut JSContext,
                            ctor_nargs: u32, proto: HandleObject,
                            members: &'static NativeProperties,
                            name: *const libc::c_char) {
+    let constructor = RootedObject::new(cx, create_constructor(cx, constructor_native, ctor_nargs, name));
+    assert!(!constructor.ptr.is_null());
+
+    if let Some(static_methods) = members.static_methods {
+        define_methods(cx, constructor.handle(), static_methods);
+    }
+
+    if let Some(static_properties) = members.static_attrs {
+        define_properties(cx, constructor.handle(), static_properties);
+    }
+
+    if let Some(constants) = members.consts {
+        define_constants(cx, constructor.handle(), constants);
+    }
+
     unsafe {
-        let fun = JS_NewFunction(cx, Some(constructor_native), ctor_nargs,
-                                 JSFUN_CONSTRUCTOR, name);
-        assert!(!fun.is_null());
-
-        let constructor = RootedObject::new(cx, JS_GetFunctionObject(fun));
-        assert!(!constructor.ptr.is_null());
-
-        if let Some(static_methods) = members.static_methods {
-            define_methods(cx, constructor.handle(), static_methods);
-        }
-
-        if let Some(static_properties) = members.static_attrs {
-            define_properties(cx, constructor.handle(), static_properties);
-        }
-
-        if let Some(constants) = members.consts {
-            define_constants(cx, constructor.handle(), constants);
-        }
-
         if !proto.get().is_null() {
             assert!(JS_LinkConstructorAndPrototype(cx, constructor.handle(), proto) != 0);
         }
-
-        let mut already_defined = 0;
-        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut already_defined) != 0);
-
-        if already_defined == 0 {
-            assert!(JS_DefineProperty1(cx, receiver, name,
-                                       constructor.handle(),
-                                       0, None, None) != 0);
-        }
     }
+
+    define_constructor(cx, receiver, name, constructor.handle());
 }
 
 /// Defines constants on `obj`.
@@ -343,7 +386,7 @@ pub fn initialize_global(global: *mut JSObject) {
         ([0 as *mut JSObject; PrototypeList::ID::Count as usize]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        let box_ = boxed::into_raw(proto_array);
+        let box_ = Box::into_raw(proto_array);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(box_ as *const libc::c_void));
@@ -668,6 +711,91 @@ pub unsafe extern fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> 
 pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: HandleObject,
                                     id: HandleId, bp: *mut ObjectOpResult) -> u8 {
     JS_DeletePropertyById1(cx, object, id, bp)
+}
+
+unsafe fn generic_call(cx: *mut JSContext, argc: libc::c_uint, vp: *mut JSVal,
+                       is_lenient: bool,
+                       call: unsafe extern fn(*const JSJitInfo, *mut JSContext,
+                                              HandleObject, *mut libc::c_void, u32,
+                                              *mut JSVal)
+                                              -> u8)
+                       -> u8 {
+    let args = CallArgs::from_vp(vp, argc);
+    let thisobj = args.thisv();
+    if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
+        return 0;
+    }
+    let obj = if thisobj.get().is_object() {
+        thisobj.get().to_object()
+    } else {
+        GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null())
+    };
+    let obj = RootedObject::new(cx, obj);
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let proto_id = (*info).protoID;
+    let depth = (*info).depth;
+    let this = match private_from_proto_chain(obj.ptr, proto_id, depth) {
+        Ok(val) => val,
+        Err(()) => {
+            if is_lenient {
+                debug_assert!(JS_IsExceptionPending(cx) == 0);
+                *vp = UndefinedValue();
+                return 1;
+            } else {
+                throw_invalid_this(cx, proto_id);
+                return 0;
+            }
+        }
+    };
+    call(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp)
+}
+
+/// Generic method of IDL interface.
+pub unsafe extern fn generic_method(cx: *mut JSContext,
+                                    argc: libc::c_uint, vp: *mut JSVal)
+                                    -> u8 {
+    generic_call(cx, argc, vp, false, CallJitMethodOp)
+}
+
+/// Generic getter of IDL interface.
+pub unsafe extern fn generic_getter(cx: *mut JSContext,
+                                    argc: libc::c_uint, vp: *mut JSVal)
+                                    -> u8 {
+    generic_call(cx, argc, vp, false, CallJitGetterOp)
+}
+
+/// Generic lenient getter of IDL interface.
+pub unsafe extern fn generic_lenient_getter(cx: *mut JSContext,
+                                            argc: libc::c_uint,
+                                            vp: *mut JSVal)
+                                            -> u8 {
+    generic_call(cx, argc, vp, true, CallJitGetterOp)
+}
+
+unsafe extern fn call_setter(info: *const JSJitInfo, cx: *mut JSContext,
+                             handle: HandleObject, this: *mut libc::c_void,
+                             argc: u32, vp: *mut JSVal)
+                             -> u8 {
+    if CallJitSetterOp(info, cx, handle, this, argc, vp) == 0 {
+        return 0;
+    }
+    *vp = UndefinedValue();
+    1
+}
+
+/// Generic setter of IDL interface.
+pub unsafe extern fn generic_setter(cx: *mut JSContext,
+                                    argc: libc::c_uint, vp: *mut JSVal)
+                                    -> u8 {
+    generic_call(cx, argc, vp, false, call_setter)
+}
+
+/// Generic lenient setter of IDL interface.
+pub unsafe extern fn generic_lenient_setter(cx: *mut JSContext,
+                                            argc: libc::c_uint,
+                                            vp: *mut JSVal)
+                                            -> u8 {
+    generic_call(cx, argc, vp, true, call_setter)
 }
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.

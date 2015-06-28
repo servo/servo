@@ -1441,7 +1441,7 @@ class MethodDefiner(PropertyDefiner):
                 if m.get("methodInfo", True):
                     identifier = m.get("nativeName", m["name"])
                     jitinfo = "&%s_methodinfo" % identifier
-                    accessor = "Some(genericMethod)"
+                    accessor = "Some(generic_method)"
                 else:
                     jitinfo = "0 as *const JSJitInfo"
                     accessor = 'Some(%s)' % m.get("nativeName", m["name"])
@@ -1481,9 +1481,9 @@ class AttrDefiner(PropertyDefiner):
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLenientThis():
-                    accessor = "genericLenientGetter"
+                    accessor = "generic_lenient_getter"
                 else:
-                    accessor = "genericGetter"
+                    accessor = "generic_getter"
                 jitinfo = "&%s_getterinfo" % attr.identifier.name
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
@@ -1499,9 +1499,9 @@ class AttrDefiner(PropertyDefiner):
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLenientThis():
-                    accessor = "genericLenientSetter"
+                    accessor = "generic_lenient_setter"
                 else:
-                    accessor = "genericSetter"
+                    accessor = "generic_setter"
                 jitinfo = "&%s_setterinfo" % attr.identifier.name
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
@@ -1644,6 +1644,9 @@ class CGImports(CGWrapper):
             constructor = d.interface.ctor()
             if constructor:
                 members += [constructor]
+
+            if d.proxy:
+                members += [o for o in d.operations.values() if o]
 
             for m in members:
                 if m.isMethod():
@@ -2059,7 +2062,7 @@ class CGAbstractMethod(CGThing):
         assert(False) # Override me!
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "let mut raw = boxed::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
+    create = "let mut raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
         assert not descriptor.isGlobal()
         create += """
@@ -2286,11 +2289,25 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         call = """\
 do_create_interface_objects(cx, receiver, parent_proto.handle(),
                             %s, %s,
+                            &named_constructors,
                             %s,
                             &sNativeProperties, rval);""" % (protoClass, constructor, domClass)
 
+        createArray = """\
+let named_constructors: [(NonNullJSNative, &'static str, u32); %d] = [
+""" % len(self.descriptor.interface.namedConstructors)
+        for ctor in self.descriptor.interface.namedConstructors:
+            constructHook = CONSTRUCT_HOOK_NAME + "_" + ctor.identifier.name;
+            constructArgs = methodLength(ctor)
+            constructor = '(%s as NonNullJSNative, "%s", %d)' % (
+                constructHook, ctor.identifier.name, constructArgs)
+            createArray += constructor
+            createArray += ","
+        createArray += "];"
+
         return CGList([
             CGGeneric(getParentProto),
+            CGGeneric(createArray),
             CGGeneric(call % self.properties.variableNames())
         ], "\n")
 
@@ -2696,52 +2713,6 @@ class CGSetterCall(CGPerSignatureCall):
         # We just get our stuff from our last arg no matter what
         return ""
 
-class CGAbstractBindingMethod(CGAbstractExternMethod):
-    """
-    Common class to generate the JSNatives for all our methods, getters, and
-    setters.  This will generate the function declaration and unwrap the
-    |this| object.  Subclasses are expected to override the generate_code
-    function to do the rest of the work.  This function should return a
-    CGThing which is already properly indented.
-    """
-    def __init__(self, descriptor, name, args, unwrapFailureCode=None):
-        CGAbstractExternMethod.__init__(self, descriptor, name, "u8", args)
-
-        if unwrapFailureCode is None:
-            self.unwrapFailureCode = (
-                'throw_type_error(cx, "\\"this\\" object does not '
-                'implement interface %s.");\n'
-                'return 0;' % descriptor.interface.identifier.name)
-        else:
-            self.unwrapFailureCode = unwrapFailureCode
-
-    def definition_body(self):
-        # Our descriptor might claim that we're not castable, simply because
-        # we're someone's consequential interface.  But for this-unwrapping, we
-        # know that we're the real deal.  So fake a descriptor here for
-        # consumption by FailureFatalCastableObjectUnwrapper.
-        unwrapThis = str(CastableObjectUnwrapper(
-                        FakeCastableDescriptor(self.descriptor),
-                        "obj.handle()", self.unwrapFailureCode, "object"))
-        unwrapThis = CGGeneric(
-            "let args = CallArgs::from_vp(vp, argc);\n"
-            "let thisobj = args.thisv();\n"
-            "if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {\n"
-            "    return JSFalse;\n"
-            "}\n"
-            "let obj = if thisobj.get().is_object() {\n"
-            "    RootedObject::new(cx, thisobj.get().to_object())\n"
-            "} else {\n"
-            "    RootedObject::new(cx, GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null()))\n"
-            "};\n"
-            "\n"
-            "let this: Root<%s> = %s;\n" % (self.descriptor.concreteType, unwrapThis))
-        return CGList([ unwrapThis, self.generate_code() ], "\n")
-
-    def generate_code(self):
-        assert(False) # Override me
-
-
 class CGAbstractStaticBindingMethod(CGAbstractMethod):
     """
     Common class to generate the JSNatives for all our static methods, getters
@@ -2766,21 +2737,6 @@ let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
 
     def generate_code(self):
         assert False  # Override me
-
-
-class CGGenericMethod(CGAbstractBindingMethod):
-    """
-    A class for generating the C++ code for an IDL method..
-    """
-    def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('libc::c_uint', 'argc'),
-                Argument('*mut JSVal', 'vp')]
-        CGAbstractBindingMethod.__init__(self, descriptor, 'genericMethod', args)
-
-    def generate_code(self):
-        return CGGeneric(
-            "let _info: *const JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitMethodOp(_info, cx, obj.handle(), this.r() as *const _ as *const libc::c_void as *mut libc::c_void, argc, vp);")
 
 class CGSpecializedMethod(CGAbstractExternMethod):
     """
@@ -2824,30 +2780,6 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
         setupArgs = CGGeneric("let mut args = CallArgs::from_vp(vp, argc);\n")
         call = CGMethodCall(["global.r()"], nativeName, True, self.descriptor, self.method)
         return CGList([setupArgs, call])
-
-class CGGenericGetter(CGAbstractBindingMethod):
-    """
-    A class for generating the C++ code for an IDL attribute getter.
-    """
-    def __init__(self, descriptor, lenientThis=False):
-        args = [Argument('*mut JSContext', 'cx'), Argument('libc::c_uint', 'argc'),
-                Argument('*mut JSVal', 'vp')]
-        if lenientThis:
-            name = "genericLenientGetter"
-            unwrapFailureCode = (
-                "assert!(JS_IsExceptionPending(cx) == 0);\n"
-                "*vp = UndefinedValue();\n"
-                "return 1;")
-        else:
-            name = "genericGetter"
-            unwrapFailureCode = None
-        CGAbstractBindingMethod.__init__(self, descriptor, name, args,
-                                         unwrapFailureCode)
-
-    def generate_code(self):
-        return CGGeneric(
-            "let info: *const JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitGetterOp(info, cx, obj.handle(), this.r() as *const _ as *const libc::c_void as *mut libc::c_void, argc, vp);")
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -2899,34 +2831,6 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
         call = CGGetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([setupArgs, call])
-
-
-class CGGenericSetter(CGAbstractBindingMethod):
-    """
-    A class for generating the Rust code for an IDL attribute setter.
-    """
-    def __init__(self, descriptor, lenientThis=False):
-        args = [Argument('*mut JSContext', 'cx'), Argument('libc::c_uint', 'argc'),
-                Argument('*mut JSVal', 'vp')]
-        if lenientThis:
-            name = "genericLenientSetter"
-            unwrapFailureCode = (
-                "assert!(JS_IsExceptionPending(cx) == 0);\n"
-                "return 1;")
-        else:
-            name = "genericSetter"
-            unwrapFailureCode = None
-        CGAbstractBindingMethod.__init__(self, descriptor, name, args,
-                                         unwrapFailureCode)
-
-    def generate_code(self):
-        return CGGeneric(
-                "let info: *const JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-                "if CallJitSetterOp(info, cx, obj.handle(), this.r() as *const _ as *const libc::c_void as *mut libc::c_void, argc, vp) == 0 {\n"
-                "    return 0;\n"
-                "}\n"
-                "*vp = UndefinedValue();\n"
-                "return 1;")
 
 class CGSpecializedSetter(CGAbstractExternMethod):
     """
@@ -3743,7 +3647,8 @@ class ClassConstructor(ClassItem):
                 "let mut ret = Rc::new(%s {\n"
                 "%s\n"
                 "});\n"
-                "match rc::get_mut(&mut ret) {\n"
+                "// Note: callback cannot be moved after calling init.\n"
+                "match Rc::get_mut(&mut ret) {\n"
                 "    Some(ref mut callback) => callback.parent.init(%s),\n"
                 "    None => unreachable!(),\n"
                 "};\n"
@@ -4535,6 +4440,30 @@ let args = CallArgs::from_vp(vp, argc);
                                      self.descriptor, self._ctor)
         return CGList([preamble, callGenerator])
 
+class CGClassNameConstructHook(CGAbstractExternMethod):
+    """
+    JS-visible named constructor for our objects
+    """
+    def __init__(self, descriptor, ctor):
+        args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
+        self._ctor = ctor
+        CGAbstractExternMethod.__init__(self, descriptor,
+                                        CONSTRUCT_HOOK_NAME + "_" +
+                                            self._ctor.identifier.name,
+                                        'u8', args)
+
+    def definition_body(self):
+        preamble = CGGeneric("""\
+let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let args = CallArgs::from_vp(vp, argc);
+""")
+        name = self._ctor.identifier.name
+        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+        callGenerator = CGMethodCall(["global.r()"], nativeName, True,
+                                     self.descriptor, self._ctor)
+        return CGList([preamble, callGenerator])
+
+
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
     A hook for finalize, used to release our native object.
@@ -4641,8 +4570,6 @@ class CGDescriptor(CGThing):
             # cgThings.append(CGGetConstructorObjectMethod(descriptor))
             pass
 
-        (hasMethod, hasGetter, hasLenientGetter,
-         hasSetter, hasLenientSetter) = False, False, False, False, False
         for m in descriptor.interface.members:
             if (m.isMethod() and
                 (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
@@ -4652,7 +4579,6 @@ class CGDescriptor(CGThing):
                 elif not descriptor.interface.isCallback():
                     cgThings.append(CGSpecializedMethod(descriptor, m))
                     cgThings.append(CGMemberJITInfo(descriptor, m))
-                    hasMethod = True
             elif m.isAttr():
                 if m.stringifier:
                     raise TypeError("Stringifier attributes not supported yet. "
@@ -4664,10 +4590,6 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGStaticGetter(descriptor, m))
                 elif not descriptor.interface.isCallback():
                     cgThings.append(CGSpecializedGetter(descriptor, m))
-                    if m.hasLenientThis():
-                        hasLenientGetter = True
-                    else:
-                        hasGetter = True
 
                 if not m.readonly:
                     if m.isStatic():
@@ -4675,27 +4597,12 @@ class CGDescriptor(CGThing):
                         cgThings.append(CGStaticSetter(descriptor, m))
                     elif not descriptor.interface.isCallback():
                         cgThings.append(CGSpecializedSetter(descriptor, m))
-                        if m.hasLenientThis():
-                            hasLenientSetter = True
-                        else:
-                            hasSetter = True
                 elif m.getExtendedAttribute("PutForwards"):
                     cgThings.append(CGSpecializedForwardingSetter(descriptor, m))
-                    hasSetter = True
 
                 if (not m.isStatic() and
                     not descriptor.interface.isCallback()):
                     cgThings.append(CGMemberJITInfo(descriptor, m))
-        if hasMethod:
-            cgThings.append(CGGenericMethod(descriptor))
-        if hasGetter:
-            cgThings.append(CGGenericGetter(descriptor))
-        if hasLenientGetter:
-            cgThings.append(CGGenericGetter(descriptor, lenientThis=True))
-        if hasSetter:
-            cgThings.append(CGGenericSetter(descriptor))
-        if hasLenientSetter:
-            cgThings.append(CGGenericSetter(descriptor, lenientThis=True))
 
         if descriptor.concrete:
             cgThings.append(CGClassFinalizeHook(descriptor))
@@ -4703,6 +4610,8 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGClassConstructHook(descriptor))
+            for ctor in descriptor.interface.namedConstructors:
+                cgThings.append(CGClassNameConstructHook(descriptor, ctor))
             cgThings.append(CGInterfaceObjectJSClass(descriptor))
 
         if not descriptor.interface.isCallback():
@@ -5128,6 +5037,9 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::utils::NonNullJSNative',
+            'dom::bindings::utils::{generic_getter, generic_lenient_getter}',
+            'dom::bindings::utils::{generic_lenient_setter, generic_method}',
+            'dom::bindings::utils::generic_setter',
             'dom::bindings::trace::{JSTraceable, RootedTraceable}',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
@@ -5153,7 +5065,6 @@ class CGBindingRoot(CGThing):
             'libc',
             'util::str::DOMString',
             'std::borrow::ToOwned',
-            'std::boxed',
             'std::cmp',
             'std::iter::repeat',
             'std::mem',
@@ -5756,6 +5667,15 @@ class GlobalGenRoots():
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
             CGGeneric("pub const MAX_PROTO_CHAIN_LENGTH: usize = %d;\n\n" % config.maxProtoChainLength),
             CGNonNamespacedEnum('ID', protos, [0], deriving="PartialEq, Copy, Clone", repr="u16"),
+            CGWrapper(CGIndenter(CGList([CGGeneric('"' + name + '"') for name in protos],
+                                        ",\n"),
+                                 indentLevel=4),
+                      pre="static INTERFACES: [&'static str; %d] = [\n" % len(protos),
+                      post="\n];\n\n"),
+            CGGeneric("pub fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
+                      "    debug_assert!(proto_id < ID::Count as u16);\n"
+                      "    INTERFACES[proto_id as usize]\n"
+                      "}\n\n"),
             CGNonNamespacedEnum('Proxies', proxies, [0], deriving="PartialEq, Copy, Clone"),
         ])
 

@@ -92,6 +92,7 @@ pub enum ReflowReason {
     DOMContentLoaded,
     DocumentLoaded,
     ImageLoaded,
+    RequestAnimationFrame,
 }
 
 #[dom_struct]
@@ -1068,6 +1069,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowReason::DOMContentLoaded => "\tDOMContentLoaded",
         ReflowReason::DocumentLoaded => "\tDocumentLoaded",
         ReflowReason::ImageLoaded => "\tImageLoaded",
+        ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
     });
 
     println!("{}", debug_msg);

@@ -25,6 +25,7 @@ use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value};
 use std::mem;
 use std::ptr;
+use std::slice;
 use std::sync::mpsc::{channel, Sender};
 use util::str::DOMString;
 use offscreen_gl_context::GLContextAttributes;
@@ -219,8 +220,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             Some(data) => data,
             None => return,
         };
-        let data_vec;
-        unsafe {
+        let data_vec = unsafe {
             let mut length = 0;
             let mut ptr = ptr::null_mut();
             let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
@@ -229,8 +229,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             }
             let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
             let data_vec_length = length / mem::size_of::<f32>() as u32;
-            data_vec = Vec::from_raw_buf(data_f32, data_vec_length as usize);
-        }
+            slice::from_raw_parts(data_f32, data_vec_length as usize).to_vec()
+        };
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage))).unwrap()
     }
 
@@ -437,11 +437,10 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             None => return,
         };
 
-        let data_vec: Vec<f32>;
-        unsafe {
+        let data_vec = unsafe {
             let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
-            data_vec = Vec::from_raw_buf(data_f32, 4);
-        }
+            slice::from_raw_parts(data_f32, 4).to_vec()
+        };
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec))).unwrap()
     }
 

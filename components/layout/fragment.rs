@@ -19,7 +19,7 @@ use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
 use opaque_node::OpaqueNodeMethods;
-use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -40,7 +40,7 @@ use string_cache::Atom;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
 use style::computed_values::{text_align, text_decoration, white_space, word_break};
-use style::node::TNode;
+use style::computed_values::transform_style;
 use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -403,8 +403,7 @@ impl ReplacedImageFragmentInfo {
                dom_width: Option<Au>,
                dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
-        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_thread_safe_layout_node(node);
-        let untrusted_node: UntrustedNodeAddress = opaque_node.to_untrusted_node_address();
+        let untrusted_node = node.opaque().to_untrusted_node_address();
 
         ReplacedImageFragmentInfo {
             for_node: untrusted_node,
@@ -735,7 +734,7 @@ impl Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
         Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            node: node.opaque(),
             style: style,
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
@@ -765,7 +764,7 @@ impl Fragment {
         let node_style = cascade_anonymous(&**node.style());
         let writing_mode = node_style.writing_mode;
         Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            node: node.opaque(),
             style: Arc::new(node_style),
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
@@ -1989,6 +1988,12 @@ impl Fragment {
         }
         if self.style().get_effects().transform.is_some() {
             return true
+        }
+        match self.style().get_used_transform_style() {
+            transform_style::T::flat | transform_style::T::preserve_3d => {
+                return true
+            }
+            transform_style::T::auto => {}
         }
 
         // Canvas always layerizes, as an special case

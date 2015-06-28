@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(collections)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
+#![feature(vec_push_all)]
 
 extern crate euclid;
 extern crate hyper;

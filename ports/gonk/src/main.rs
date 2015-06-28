@@ -62,47 +62,47 @@ fn main() {
     env_logger::init().unwrap();
 
     // Parse the command line options and store them globally
-    if opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice()) {
-        resource_task::global_init();
+    opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice());
 
-        let window = if opts::get().headless {
-            None
-        } else {
-            Some(window::Window::new())
-        };
+    resource_task::global_init();
 
-        // Our wrapper around `Browser` that also implements some
-        // callbacks required by the glutin window implementation.
-        let mut browser = BrowserWrapper {
-            browser: Browser::new(window.clone()),
-        };
+    let window = if opts::get().headless {
+        None
+    } else {
+        Some(window::Window::new())
+    };
 
-        match window {
-            None => (),
-            Some(ref window) => input::run_input_loop(&window.event_send)
-        }
+    // Our wrapper around `Browser` that also implements some
+    // callbacks required by the glutin window implementation.
+    let mut browser = BrowserWrapper {
+        browser: Browser::new(window.clone()),
+    };
 
-        browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
-
-        // Feed events from the window to the browser until the browser
-        // says to stop.
-        loop {
-            let should_continue = match window {
-                None => browser.browser.handle_events(vec![WindowEvent::Idle]),
-                Some(ref window) => {
-                    let events = window.wait_events();
-                    browser.browser.handle_events(events)
-                }
-            };
-            if !should_continue {
-                break
-            }
-        }
-
-        let BrowserWrapper {
-            browser
-        } = browser;
-        browser.shutdown();
+    match window {
+        None => (),
+        Some(ref window) => input::run_input_loop(&window.event_send)
     }
+
+    browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
+
+    // Feed events from the window to the browser until the browser
+    // says to stop.
+    loop {
+        let should_continue = match window {
+            None => browser.browser.handle_events(vec![WindowEvent::Idle]),
+            Some(ref window) => {
+                let events = window.wait_events();
+                browser.browser.handle_events(events)
+            }
+        };
+        if !should_continue {
+            break
+        }
+    }
+
+    let BrowserWrapper {
+        browser
+    } = browser;
+    browser.shutdown();
 }
 

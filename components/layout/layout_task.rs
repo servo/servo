@@ -11,7 +11,7 @@ use animation;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, SharedLayoutContextWrapper, heap_size_of_local_context};
 use css::node_style::StyledNode;
-use data::{LayoutDataAccess, LayoutDataWrapper};
+use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
@@ -19,9 +19,9 @@ use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
-use parallel::{self, UnsafeFlow};
+use parallel::{self, WorkQueueData};
 use sequential;
-use wrapper::{LayoutNode, TLayoutNode};
+use wrapper::LayoutNode;
 
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
@@ -35,7 +35,7 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use gfx_traits::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
-use gfx::display_list::{StackingContext};
+use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
@@ -109,7 +109,7 @@ pub struct LayoutTaskData {
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<SharedLayoutContextWrapper, UnsafeFlow>>,
+    pub parallel_traversal: Option<WorkQueue<SharedLayoutContextWrapper, WorkQueueData>>,
 
     /// The dirty rect. Used during display list construction.
     pub dirty: Rect<Au>,
@@ -385,7 +385,7 @@ impl LayoutTask {
             canvas_layers_sender: self.canvas_layers_sender.clone(),
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
-            reflow_root: reflow_root.map(|node| OpaqueNodeMethods::from_layout_node(node)),
+            reflow_root: reflow_root.map(|node| node.opaque()),
             dirty: Rect::zero(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
@@ -872,10 +872,12 @@ impl LayoutTask {
                                                                      &origin,
                                                                      &origin,
                                                                      0,
-                                                                     &Matrix4::identity(),
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
-                                                                     Some(paint_layer)));
+                                                                     Some(paint_layer),
+                                                                     Matrix4::identity(),
+                                                                     Matrix4::identity(),
+                                                                     true));
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");

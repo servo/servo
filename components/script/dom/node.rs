@@ -53,11 +53,11 @@ use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
 use util::namespace;
 use util::str::DOMString;
-use selectors::parser::{Selector, AttrSelector, NamespaceConstraint};
+use util::task_state;
+use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::matching::matches;
 use style::properties::ComputedValues;
-use style;
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use core::nonzero::NonZero;
@@ -222,7 +222,7 @@ pub struct LayoutData {
 unsafe impl Send for LayoutData {}
 
 pub struct LayoutDataRef {
-    pub data_cell: RefCell<Option<LayoutData>>,
+    data_cell: RefCell<Option<LayoutData>>,
 }
 
 no_jsmanaged_fields!(LayoutDataRef);
@@ -236,7 +236,8 @@ impl LayoutDataRef {
 
     /// Sends layout data, if any, back to the layout task to be destroyed.
     pub fn dispose(&self) {
-        if let Some(mut layout_data) = mem::replace(&mut *self.borrow_mut(), None) {
+        debug_assert!(task_state::get().is_script());
+        if let Some(mut layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
             let layout_chan = layout_data.chan.take();
             match layout_chan {
                 None => {}
@@ -248,18 +249,20 @@ impl LayoutDataRef {
         }
     }
 
-    /// Borrows the layout data immutably, *asserting that there are no mutators*. Bad things will
+    /// Borrows the layout data immutably, *assuming that there are no mutators*. Bad things will
     /// happen if you try to mutate the layout data while this is held. This is the only thread-
     /// safe layout data accessor.
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn borrow_unchecked(&self) -> *const Option<LayoutData> {
+        debug_assert!(task_state::get().is_layout());
         self.data_cell.as_unsafe_cell().get() as *const _
     }
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]
     pub fn borrow<'a>(&'a self) -> Ref<'a,Option<LayoutData>> {
+        debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow()
     }
 
@@ -270,6 +273,7 @@ impl LayoutDataRef {
     /// on it. This has already resulted in one bug!
     #[inline]
     pub fn borrow_mut<'a>(&'a self) -> RefMut<'a,Option<LayoutData>> {
+        debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow_mut()
     }
 }
@@ -418,7 +422,11 @@ impl<'a> Iterator for QuerySelectorIterator {
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
         self.iterator.find(|node| {
-            node.r().is_element() && matches(selectors, &node.r(), &mut None)
+            if let Some(element) = ElementCast::to_ref(node.r()) {
+                matches(selectors, &element, &mut None)
+            } else {
+                false
+            }
         })
     }
 }
@@ -891,7 +899,7 @@ impl<'a> NodeHelpers for &'a Node {
                 let root = self.ancestors().last();
                 let root = root.r().unwrap_or(self.clone());
                 Ok(root.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
-                    matches(selectors, &NodeCast::from_ref(element.r()), &mut None)
+                    matches(selectors, &element.r(), &mut None)
                 }))
             }
         }
@@ -1086,6 +1094,13 @@ pub trait LayoutNodeHelpers {
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
     #[allow(unsafe_code)]
     unsafe fn set_flag(&self, flag: NodeFlags, value: bool);
+
+    #[allow(unsafe_code)]
+    unsafe fn layout_data(&self) -> Ref<Option<LayoutData>>;
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>>;
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData>;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1156,6 +1171,24 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         }
 
         (*this).flags.set(flags);
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data(&self) -> Ref<Option<LayoutData>> {
+        (*self.unsafe_get()).layout_data.borrow()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>> {
+        (*self.unsafe_get()).layout_data.borrow_mut()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
+        (*self.unsafe_get()).layout_data.borrow_unchecked()
     }
 }
 
@@ -1454,22 +1487,6 @@ impl Node {
 
             unique_id: DOMRefCell::new(String::new()),
         }
-    }
-
-    #[inline]
-    pub fn layout_data(&self) -> Ref<Option<LayoutData>> {
-        self.layout_data.borrow()
-    }
-
-    #[inline]
-    pub fn layout_data_mut(&self) -> RefMut<Option<LayoutData>> {
-        self.layout_data.borrow_mut()
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    pub unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
-        self.layout_data.borrow_unchecked()
     }
 
     // https://dom.spec.whatwg.org/#concept-node-adopt
@@ -2492,9 +2509,7 @@ impl<'a> VirtualMethods for &'a Node {
     }
 }
 
-impl<'a> style::node::TNode for &'a Node {
-    type Element = &'a Element;
-
+impl<'a> ::selectors::Node<&'a Element> for &'a Node {
     fn parent_node(&self) -> Option<&'a Node> {
         (*self).parent_node.get()
                .map(|node| node.root().get_unsound_ref_forever())
@@ -2530,55 +2545,8 @@ impl<'a> style::node::TNode for &'a Node {
         is_document(*self)
     }
 
-    fn is_element(&self) -> bool {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn is_element<'a, T: ElementDerived>(this: &T) -> bool {
-            this.is_element()
-        }
-
-        is_element(*self)
-    }
-
-    fn as_element(&self) -> &'a Element {
-        ElementCast::to_ref(*self).unwrap()
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
-        where F: Fn(&str) -> bool
-    {
-        let local_name = {
-            if self.is_html_element_in_html_document() {
-                &attr.lower_name
-            } else {
-                &attr.name
-            }
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.as_element().get_attribute(ns, local_name)
-                    .map_or(false, |attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.r();
-                        let value = attr.value();
-                        test(&value)
-                    })
-            },
-            NamespaceConstraint::Any => {
-                let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
-                self.as_element().get_attributes(local_name, &mut attributes);
-                attributes.iter().any(|attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.root();
-                        let value = attr.r().value();
-                        test(&value)
-                    })
-            }
-        }
-    }
-
-    fn is_html_element_in_html_document(&self) -> bool {
-        self.as_element().html_element_in_html_document()
+    fn as_element(&self) -> Option<&'a Element> {
+        ElementCast::to_ref(*self)
     }
 }
 

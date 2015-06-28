@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<title>DOM Image constructor Test</title>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/embedded-content.html#the-img-element" />
+<meta name="assert" content="Tests the Image constructor for the img-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+
+<div id="log"></div>
+<script>
+  test(function() {
+    var img = new Image();
+    assert_true(img != undefined);
+  }, "Image constructor works");
+
+  test(function() {
+    assert_true(Image.prototype === HTMLImageElement.prototype);
+  }, "Image and HTMLImageElement share a prototype");
+
+  test(function() {
+    assert_true((new Image()).localName === "img");
+  }, "Image localName is img");
+
+  test(function() {
+    assert_true((new Image()).namespaceURI === "http://www.w3.org/1999/xhtml");
+  }, "Image namespace URI is correct");
+
+</script>

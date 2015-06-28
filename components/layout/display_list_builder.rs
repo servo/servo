@@ -21,7 +21,7 @@ use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
 use table_cell::CollapsedBordersForCell;
 
-use euclid::{Point2D, Rect, Size2D, SideOffsets2D};
+use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
 use euclid::Matrix4;
 use gfx_traits::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
@@ -46,11 +46,12 @@ use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin,
                              background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position,
-                             visibility, transform};
+                             visibility, transform, transform_style};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
 use style::values::RGBA;
-use style::values::computed::{Image, LinearGradient, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{Image, LinearGradient};
+use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use url::Url;
 use util::cursor::Cursor;
@@ -1146,17 +1147,18 @@ impl FragmentDisplayListBuilding for Fragment {
         if let Some(ref operations) = self.style().get_effects().transform {
             let transform_origin = self.style().get_effects().transform_origin;
             let transform_origin =
-                Point2D::new(model::specified(transform_origin.horizontal,
+                Point3D::new(model::specified(transform_origin.horizontal,
                                               border_box.size.width).to_f32_px(),
                              model::specified(transform_origin.vertical,
-                                              border_box.size.height).to_f32_px());
+                                              border_box.size.height).to_f32_px(),
+                             transform_origin.depth.to_f32_px());
 
             let pre_transform = Matrix4::create_translation(transform_origin.x,
                                                             transform_origin.y,
-                                                            0.0);
+                                                            transform_origin.z);
             let post_transform = Matrix4::create_translation(-transform_origin.x,
                                                              -transform_origin.y,
-                                                             0.0);
+                                                             -transform_origin.z);
 
             for operation in operations {
                 let matrix = match operation {
@@ -1190,6 +1192,31 @@ impl FragmentDisplayListBuilding for Fragment {
             transform = pre_transform.mul(&transform).mul(&post_transform);
         }
 
+        let perspective = match self.style().get_effects().perspective {
+            LengthOrNone::Length(d) => {
+                let perspective_origin = self.style().get_effects().perspective_origin;
+                let perspective_origin =
+                    Point2D::new(model::specified(perspective_origin.horizontal,
+                                                  border_box.size.width).to_f32_px(),
+                                 model::specified(perspective_origin.vertical,
+                                                  border_box.size.height).to_f32_px());
+
+                let pre_transform = Matrix4::create_translation(perspective_origin.x,
+                                                                perspective_origin.y,
+                                                                0.0);
+                let post_transform = Matrix4::create_translation(-perspective_origin.x,
+                                                                 -perspective_origin.y,
+                                                                 0.0);
+
+                let perspective_matrix = Matrix4::create_perspective(d.to_f32_px());
+
+                pre_transform.mul(&perspective_matrix).mul(&post_transform)
+            }
+            LengthOrNone::None => {
+                Matrix4::identity()
+            }
+        };
+
         // FIXME(pcwalton): Is this vertical-writing-direction-safe?
         let margin = self.margin.to_physical(base_flow.writing_mode);
         let overflow = base_flow.overflow.translate(&-Point2D::new(margin.left, Au(0)));
@@ -1221,16 +1248,19 @@ impl FragmentDisplayListBuilding for Fragment {
                 .send((layer_id, fragment_info.renderer.clone())).unwrap();
         }
 
+        let transform_style = self.style().get_used_transform_style();
         let layer = layer.map(|l| Arc::new(l));
 
         Arc::new(StackingContext::new(display_list,
                                       &border_box,
                                       &overflow,
                                       self.style().get_box().z_index.number_or_zero(),
-                                      &transform,
                                       filters,
                                       self.style().get_effects().mix_blend_mode,
-                                      layer))
+                                      layer,
+                                      transform,
+                                      perspective,
+                                      transform_style == transform_style::T::flat))
     }
 
     #[inline(never)]
@@ -1489,11 +1519,28 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(&self.base,
-                                                      display_list,
-                                                      layout_context,
-                                                      StackingContextLayer::IfCanvas(self.layer_id(0))))
+            if self.will_get_layer() {
+                // If we got here, then we need a new layer.
+                let scroll_policy = if self.is_fixed() {
+                    ScrollPolicy::FixedPosition
+                } else {
+                    ScrollPolicy::Scrollable
+                };
+
+                let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
+                let layer = StackingContextLayer::Existing(paint_layer);
+                let stacking_context = self.fragment.create_stacking_context(&self.base,
+                                                                             display_list,
+                                                                             layout_context,
+                                                                             layer);
+                DisplayListBuildingResult::StackingContext(stacking_context)
+            } else {
+                DisplayListBuildingResult::StackingContext(
+                    self.fragment.create_stacking_context(&self.base,
+                                                          display_list,
+                                                          layout_context,
+                                                          StackingContextLayer::IfCanvas(self.layer_id(0))))
+            }
         } else {
             match self.fragment.style.get_box().position {
                 position::T::static_ => {}
