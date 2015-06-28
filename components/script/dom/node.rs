@@ -1626,11 +1626,14 @@ impl Node {
         }
 
         // Step 7-8.
+        let reference_child_root;
         let reference_child = match child {
-            Some(child) if child == node => node.GetNextSibling(),
-            _ => None
+            Some(child) if child == node => {
+                reference_child_root = node.GetNextSibling();
+                reference_child_root.r()
+            },
+            _ => child
         };
-        let reference_child = reference_child.r().or(child);
 
         // Step 9.
         let document = document_from_node(parent);
