@@ -169,15 +169,16 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
+            let serialized_url = url.serialize();
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, id, devtools_chan, runtime.clone(), resource_task,
+                url, id, devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver);
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
 
                 match runtime.evaluate_script(
-                    global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
+                    global.r().reflector().get_jsobject(), source, serialized_url, 1) {
                     Ok(_) => (),
                     Err(_) => {
                         // TODO: An error needs to be dispatched to the parent.
