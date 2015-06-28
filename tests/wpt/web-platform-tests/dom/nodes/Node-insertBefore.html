@@ -298,9 +298,9 @@ test(function() {
   a.appendChild(b);
   a.appendChild(c);
   assert_array_equals(a.childNodes, [b, c]);
-  assert_equals(a.replaceChild(b, b), b);
+  assert_equals(a.insertBefore(b, b), b);
   assert_array_equals(a.childNodes, [b, c]);
-  assert_equals(a.replaceChild(c, c), c);
+  assert_equals(a.insertBefore(c, c), c);
   assert_array_equals(a.childNodes, [b, c]);
 }, "Inserting a node before itself should not move the node");
 </script>
