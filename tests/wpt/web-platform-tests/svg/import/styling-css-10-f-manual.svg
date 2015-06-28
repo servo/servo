@@ -1,0 +1,76 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="CL" status="reviewed"
+    version="$Revision: 1.3 $" testname="$RCSfile: styling-css-10-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG/styling.html#CaseSensitivity">
+      <p>
+        Checks that stylesheets (style attributes, style elements, 
+external style sheets) are case-insensitive, unlike presentational attributes. </p>
+
+<p>Subtest a checks that the invalid attribute
+FiLl is ignored. Subtest b checks that the style attribute is 
+applied, the values being case-insensitive. Subtests c and d check 
+the same for style elements and imported external style sheets.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        If any red shows, the test fails. If four orange circles are shown,
+        the test passes and the user agent supports CSS style sheets. If 
+        the top two circles are orange while the bottom two are blue, and the user agent does
+        not claim to support CSS style sheets, the test also passes.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: styling-css-10-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <g fill="orange">
+     <circle id="a" FiLl="red" cx="140" cy="100" r="50"/>
+    </g>
+    <circle id="b" fill="red" style="FiLl: oRaNgE" cx="340" cy="100" r="50"/>
+    <circle id="c" fill="blue" cx="140" cy="220" r="50"/>
+    <circle id="d" fill="blue" cx="340" cy="220" r="50"/>
+
+    <style type="text/css">
+        @import url("../images/case-insensitivity.css");
+        #c {fill: red }
+        #c {FiLl: oRaNgE }
+    </style>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

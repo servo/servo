@@ -1,0 +1,128 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="[reviewer]" author="Microsoft" status="created" version="$Revision: 1.5 $" testname="$RCSfile: struct-dom-16-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/struct.html#InterfaceSVGSVGElement">
+      <p>
+        The 'SVGSVGElement' interface allows for creation of references to various primitive SVG interface types with explicitly defined default values.
+      </p>
+      <p>
+        A reference to an 'SVGSVGElement' is obtained through an 'svg' element in the page's markup. Each of the 'CreateSVG*' methods is called from this 
+        reference and initial values are verified. A counter is used to determine whether all conditions are satisfied. The word 'fail' in red via an SVG 
+        'text' element is used to indicate failure and the word 'pass' in black is used to indicate passing.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-16-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-size="18">
+    <svg id="testSVG" />
+    <text id="failText" x="350" y="350" font-size="50" fill="red">FAIL</text>
+    <text id="passText" x="350" y="300" font-size="50" display="none">PASS</text>
+    <script type="text/javascript">    
+      <![CDATA[
+        try
+        {
+            var passCount = 0;
+            var testSVG = document.getElementById("testSVG");
+
+            var testSVGNumber = testSVG.createSVGNumber();
+            if (0 == testSVGNumber.value)
+            {
+                passCount++;
+            }
+
+            var testSVGLength = testSVG.createSVGLength();
+            if (0 == testSVGLength.value)
+            {
+                passCount++;
+            }
+
+            var testSVGAngle = testSVG.createSVGAngle();
+            if (0 == testSVGAngle.value)
+            {
+                passCount++;
+            }
+
+            var testSVGPoint = testSVG.createSVGPoint();
+            if (0 == testSVGPoint.x && 0 == testSVGPoint.y)
+            {
+                passCount++;
+            }
+
+            var testSVGMatrix = testSVG.createSVGMatrix();
+            if (1 == testSVGMatrix.a && 0 == testSVGMatrix.b && 0 == testSVGMatrix.c  && 1 == testSVGMatrix.d && 0 == testSVGMatrix.e && 0 == testSVGMatrix.f) 
+            {
+                passCount++;
+            }
+
+            var testSVGRect = testSVG.createSVGRect();
+            if (0 == testSVGRect.x && 0 == testSVGRect.y && 0 == testSVGRect.width && 0 == testSVGRect.height)
+            {
+                passCount++;
+            }
+
+            var testSVGTransform = testSVG.createSVGTransform();
+            if (1 == testSVGTransform.type && 0 == testSVGTransform.angle && 1 == testSVGTransform.matrix.a && 0 == testSVGTransform.matrix.b && 0 == testSVGTransform.matrix.c && 1 == testSVGTransform.matrix.d && 0 == testSVGTransform.matrix.e && 0 == testSVGTransform.matrix.f)
+            {
+                passCount++;
+            }
+
+            var testSVGTransformFromMatrix = testSVG.createSVGTransformFromMatrix(testSVGMatrix);
+            if (1 == testSVGTransformFromMatrix.type && 0 == testSVGTransformFromMatrix.angle && 1 == testSVGTransformFromMatrix.matrix.a && 0 == testSVGTransformFromMatrix.matrix.b && 0 == testSVGTransformFromMatrix.matrix.c && 1 == testSVGTransformFromMatrix.matrix.d && 0 == testSVGTransformFromMatrix.matrix.e && 0 == testSVGTransformFromMatrix.matrix.f)
+            {
+                passCount++;
+            }
+
+            if (8 == passCount)
+            {
+                document.getElementById("failText").setAttribute("display", "none");
+                document.getElementById("passText").setAttribute("display", "inline");
+            }
+        }
+        catch(ex)
+        {
+          alert("ERROR: " + ex.message);
+      
+        }
+        ]]>
+
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

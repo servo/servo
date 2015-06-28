@@ -1,0 +1,75 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="CL" author="CM" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: styling-elem-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/styling.html#StyleElement">
+      <p>
+        This tests that the 'type' attribute on a 'style' element is
+        honored.
+      </p>
+      <p>
+	      Once the test is loaded, two rectangles are presented,
+	      the upper indicating the result of a sub-test that checks
+	      whether the 'type' attribute on a 'style' element correctly
+	      defaults to "text/css", and the lower indicating the result
+	      of a sub-test that checks whether a bogus value for 'type'
+	      does not cause the 'style' element contents to be interpreted
+	      as CSS.  Each rectangle is green if the sub-test is passed
+	      or red if it failed.
+    	</p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if both rectangles are green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: styling-elem-01-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='30'>Test that &lt;style type=""> is honored</text>
+
+    <rect id='r1' x='10' y='50' width='50' height='50' fill='red'/>
+    <rect id='r2' x='10' y='110' width='50' height='50' fill='green'/>
+    <text x='70' y='78'>No type="" attribute</text>
+    <text x='70' y='138'>Rubbish type="" attribute</text>
+
+    <style>#r1 { fill: green }</style>
+    <style type='text/some-unknown-styling-language'>#r2 { fill: red }</style>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

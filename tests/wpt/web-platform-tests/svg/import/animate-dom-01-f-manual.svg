@@ -1,0 +1,190 @@
+<svg id="svg-root" width="100%" height="100%" 
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="DAS" author="CM" status="accepted"
+    version="$Revision: 1.11 $" testname="$RCSfile: animate-dom-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#InterfaceSVGAnimationElement">
+        <p>
+          This tests the return value required for the
+          SVGAnimationElement.getStartTime() method, as described in
+          section 19.5 DOM Interfaces.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        After the loading the document, some animations that have no
+        visible effect will run.  The text "Test running..." will
+        appear in the bottom right corner until the test has
+        completed.  (This takes 2.5s.)
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if all seven rectangles are green once the animations
+        have stopped running (i.e., 2.5s after the document has loaded.)
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-dom-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    
+    <text x='30' y='30'>Testing SVGAnimationElement.getStartTime()</text>
+
+    <text x='340' y='340' display='none'>Test running...
+      <set attributeName='display' to='inline' begin='0s' dur='2.5s'/>
+    </text>
+
+    <g id='g' display='none'/>
+
+    <animate id='a1' attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='1s' dur='1s'/>
+    <animate id='a2' attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='1s' dur='1s' fill='freeze'/>
+    <animate id='a3' attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='indefinite' dur='1s'/>
+    <animate id='a4' attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='indefinite; 100s; g.click; 1s; indefinite' dur='1s'/>
+    <animate id='a5' attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='100s; 1s' dur='1s'/>
+    <animate id='a6dep' attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='5s' dur='1s'/>
+    <animate id='a6' attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='a6dep.begin+2s' dur='1s'/>
+
+    <animate attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='0.5s' dur='1s' onbegin='before()'/>
+    <animate attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='1.5s' dur='1s' onbegin='during()'/>
+    <animate attributeName='display' values='inline; inline'
+             calcMode='discrete' begin='2.5s' dur='1s' onbegin='after()'/>
+
+    <g transform='translate(30,-10)'>
+      <rect id='r1' y='50' width='25' height='25'/>
+      <rect id='r2' y='80' width='25' height='25'/>
+      <rect id='r3' y='110' width='25' height='25'/>
+      <rect id='r4' y='140' width='25' height='25'/>
+      <rect id='r5' y='170' width='25' height='25'/>
+      <rect id='r6' y='200' width='25' height='25'/>
+      <rect id='r7' y='230' width='25' height='25'/>
+      <rect id='r8' y='260' width='25' height='25'/>
+    </g>
+
+    <g font-size='14' transform='translate(70,-15)'>
+      <text y='72'>Called before a lone interval starts</text>
+      <text y='102'>Called on an animation with no intervals</text>
+      <text y='132'>Called during an interval</text>
+      <text y='162'>Called after a lone interval ends, fill="remove"</text>
+      <text y='192'>Called after a lone interval ends, fill="freeze"</text>
+      <text y='222'>Called with multiple begin values</text>
+      <text y='252'>Called with multiple begin values including "indefinite"</text>
+      <text y='282'>Called with syncbase begin value</text>
+    </g>
+    <script><![CDATA[
+      var i, ids = 'a1 a2 a3 a4 a5 a6 r1 r2 r3 r4 r5 r6 r7 r8'.split(' ');
+      for (i in ids) {
+        this[ids[i]] = document.getElementById(ids[i]);
+      }
+
+      function before() {
+        try {
+          if (a1.getStartTime() == 1) {
+            r1.setAttributeNS(null, 'fill', 'lime');
+          }
+        } catch (e) {
+          r1.setAttributeNS(null, 'fill', 'red');
+        }
+
+        r2.setAttributeNS(null, 'fill', 'red');
+        try {
+          a3.getStartTime();
+        } catch (e) {
+          if (e.code == DOMException.INVALID_STATE_ERR) {
+            r2.setAttributeNS(null, 'fill', 'lime');
+          }
+        }
+
+        try {
+          if (a4.getStartTime() == 1) {
+            r6.setAttributeNS(null, 'fill', 'lime');
+          }
+        } catch (e) {
+          r6.setAttributeNS(null, 'fill', 'red');
+        }
+
+        try {
+          if (a5.getStartTime() == 1) {
+            r7.setAttributeNS(null, 'fill', 'lime');
+          }
+        } catch (e) {
+          r7.setAttributeNS(null, 'fill', 'red');
+        }
+
+        try {
+          if (a6.getStartTime() == 7) {
+            r8.setAttributeNS(null, 'fill', 'lime');
+          }
+        } catch (e) {
+          r8.setAttributeNS(null, 'fill', 'red');
+        }
+      }
+
+      function during() {
+        try {
+          if (a1.getStartTime() == 1) {
+            r3.setAttributeNS(null, 'fill', 'lime');
+          }
+        } catch (e) {
+          r3.setAttributeNS(null, 'fill', 'red');
+        }
+      }
+
+      function after() {
+        r4.setAttributeNS(null, 'fill', 'red');
+        try {
+          a1.getStartTime();
+        } catch (e) {
+          if (e.code == DOMException.INVALID_STATE_ERR) {
+            r4.setAttributeNS(null, 'fill', 'lime');
+          }
+        }
+
+        r5.setAttributeNS(null, 'fill', 'red');
+        try {
+          a2.getStartTime();
+        } catch (e) {
+          if (e.code == DOMException.INVALID_STATE_ERR) {
+            r5.setAttributeNS(null, 'fill', 'lime');
+          }
+        }
+      }
+    ]]></script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+  <text id="revision" x="10" y="340" stroke="none" 
+    fill="black">$Revision: 1.11 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

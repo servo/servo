@@ -1,0 +1,81 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" author=" CL" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: shapes-polyline-02-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/shapes.html#PolylineElement">
+        <p>
+Checks that polylines and the equivalent paths are indeed equivalent.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+The test is passed if each shape seems to have a double stroke, dark green and light green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: shapes-polyline-02-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <g stroke="#070" stroke-width="8">    
+    <!-- Open sawtooth line. -->
+    <polyline id="polyline-01" fill="none"   points="10,50,35,150,60,50,85,150,110,50,135,150"/>
+    <!-- Closed pentagon shaped polyline (5 segments). -->
+    <polyline id="polyline-02" fill="none"  points="220,50,267,84,249,140,190,140,172,84,220,50"/>
+    <!-- The sawtooth again, polylines can be filled. -->
+    <polyline id="polyline-03" fill="#396"  points="310,50,335,150,360,50,385,150,410,50,435,150"/>
+    <!-- An unclosed "septagon" shaped polyline (7th segment omitted). -->
+    <polyline id="polyline-04" fill="none"  points="59,185,98,203,108,245,82,279,39,280,11,247,19,205"/>
+    <!-- Same shape, filled, shows difference with 'polygon'. -->
+    <polyline id="polyline-05" fill="#396"  points="189,185,228,203,238,245,212,279,169,280,141,247,149,205"/>
+    <polyline id="polyline-06" fill="#396" 
+    points="270,225 300,245 320,225 340,245 280,280                   
+    390,280 420,240 280,185"/>
+    </g>
+    
+    <!-- now the equivalent paths-->
+    <g stroke="#3C6" stroke-width="3" fill="none">
+      <path d="M10,50 L35,150,60,50,85,150,110,50,135,150"/>
+      <path d="M220,50 L267,84,249,140,190,140,172,84,220,50"/>
+      <path d="M310,50 L335,150,360,50,385,150,410,50,435,150"/>
+      <path d="M59,185 L98,203,108,245,82,279,39,280,11,247,19,205"/>
+      <path d="M189,185 L228,203,238,245,212,279,169,280,141,247,149,205"/>
+      <path d="M270,225 L300,245 320,225 340,245 280,280                   
+        390,280 420,240 280,185"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+<!--
+<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+-->
+</svg>

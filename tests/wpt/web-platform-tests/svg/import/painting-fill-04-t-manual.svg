@@ -1,0 +1,74 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Tim Thompson" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: painting-fill-04-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#FillProperties">
+        <p>
+          This tests inheritance of three properties: "fill", "stroke" and "stroke-width". There is a "g" element (id="G1") which
+          sets fill="blue", stroke="purple", and stroke-width="5". The first two rectangles on top should inherit all those
+          properties. The middle left rectangle has fill="yellow" and stroke-width="2", it should inherit the stroke="purple"
+          from the parent container. The middle rectangle on the right has stroke="yellow", it should inherit fill and
+          stroke-width from the parent "g". The bottom two rectangles are in another "g" element (id="G2") which is a child
+          of "G1". "G2" sets fill="yellow". It should inherit the stroke and stroke width from the parent "G1". The two
+          bottom rectangles set no fill or stroke properties, they should inherit through the parents, stroke="purple"
+          and stroke-width="5".
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image, except for possible
+        variations in the labeling text (per CSS2 rules).
+      </p>
+      <p>
+        The test uses the "rect" element, as well as basic fill (solid primary colors),
+        stroke (black 1-pixel lines), font-family (Arial) and font-size properties.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-fill-04-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="G1" fill="blue" stroke="purple" stroke-width="5" transform="translate(120,30)">
+      <rect x="0" y="0" width="90" height="70"/>
+      <rect x="100" y="0" width="90" height="70"/>
+      <rect x="0" y="80" width="90" height="70" fill="yellow" stroke-width="2"/>
+      <rect x="100" y="80" width="90" height="70" stroke="yellow"/>
+      <g id="G2" fill="yellow">
+        <rect x="0" y="160" width="90" height="70"/>
+        <rect x="100" y="160" width="90" height="70"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

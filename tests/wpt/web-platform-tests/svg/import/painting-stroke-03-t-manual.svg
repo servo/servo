@@ -1,0 +1,64 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Kevin McCluskey" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: painting-stroke-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#StrokeProperties">
+      <p>
+        This test checks the basic capability of handling the stroke properties ("stroke", "stroke-width"
+        "stroke-linejoin", "stroke-linecap", "stroke-miterlimit")
+        with straight-line path commands.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The two paths should be rendered as two blue line segments.
+        The upper segment should have round end caps. The lower segment
+        should be chopped off where the two line segments meet.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-stroke-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- Test stroke-linecap:round and stroke-miterlimit:1                -->
+    <!-- ====================================================================== -->
+    <text font-size="36" x="10" y="40">Basic paint: stroke properties.</text>
+    <path fill="none" stroke="blue" stroke-width="30" stroke-linecap="round" d="M 160 70 l 200 20 l -200 20 "/>
+    <path fill="none" stroke="blue" stroke-width="30" stroke-linejoin="miter" stroke-miterlimit="1" d="M 160 190 l 200 20 l -200 20"/>
+    <text font-size="40" x="60" y="160">stroke-linecap="round"</text>
+    <text font-size="40" x="130" y="280">stroke-miterlimit="1"</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

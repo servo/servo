@@ -1,0 +1,77 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="ED" status="reviewed"
+    version="$Revision: 1.7 $" testname="$RCSfile: struct-use-07-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#UseElement">
+      <p>
+        This tests interactivity and event handlers on use elements. It also tests
+        that the <code>SVGElementInstance.correspondingElement</code> property and the 
+        <code>CSSStyleDeclaration.setProperty()</code> method defined in 
+        DOM Level 2 Style. By testing different ways of setting the fill on a rectangle
+        it verifies that the result is consistent, and that CSS properly overrides
+        the specified values.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        You should at first see a pyramid of four pink rects.
+        Click each of the pink rects once.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        If the useragent doesn't support CSS, this test does not apply.
+      </p>
+      <p>
+        The test has passed if when clicking each of the rects the clicked rect turns blue - 
+        note that only the clicked rect must turn blue, if any other rect turns blue too then the test has failed.
+      </p>
+      <p>
+        The reference image shows the final state, what the result should be after all rects have been clicked.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-use-07-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" id="svg-sub-root" viewBox="0 0 450 450" width="450" height="450">
+        <g id="drawRects">
+          <rect x="225" y="0" width="220" height="220" style="fill:magenta" onclick="evt.currentTarget.correspondingElement.style.fill='blue';"/>
+          <rect x="0" y="225" width="220" height="220" style="fill:#f0f" onclick="evt.currentTarget.correspondingElement.style.setProperty('fill','blue',null);"/>
+          <rect x="225" y="225" width="220" height="220" fill="#f0f" onclick="evt.currentTarget.correspondingElement.style.setProperty('fill','blue',null);"/>
+        </g>
+      </svg>
+    </defs>
+
+    <use id="use-elm" x="60" y="50" width="240" height="240" xlink:href="#svg-sub-root"/>
+    <rect x="300" y="170" width="118" height="118" fill="magenta" onclick="evt.target.setAttribute('fill','blue')"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

@@ -1,0 +1,96 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="CL" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: color-prop-04-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/color.html#ColorProperty">
+      <p>
+        This tests the 'system' colors.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+	<p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test has no specific pass criteria, except that no error must be indicated.
+      </p>
+      <p>
+        The colors on your screen might not match the reference
+        image at all, but they should at minimum be legible and should
+        preferably resemble the colors used on menus and other user interface
+        elements on your computer, pda or phone.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: color-prop-04-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="Scene_1" transform="translate(240, 180)">
+      <rect x="-230" y="-170" width="460" height="300" fill="Background"/>
+      <rect x="-220" y="-160" width="440" height="280" fill="AppWorkspace"/>
+      <rect x="-152" y="-108" width="317" height="221" fill="Window"/>
+      <rect x="-152" y="-108" width="317" height="221" fill="none" stroke-width="3" stroke="WindowFrame"/>
+      <g id="contents" font-size="12" fill="WindowText">
+        <text x="-148" y="0">Lorem ipsum dolor sit amet, consectetuer adipiscing elit.  </text>
+        <text x="-148" y="20">Vestibulum pulvinar. Duis laoreet, nunc vitae facilisis </text>
+        <text x="-148" y="40">tristique, pede sem iaculis mi, non consectetuer lorem </text>
+        <text x="-148" y="60">libero et est. Donec imperdiet purus sed odio. Duis </text>
+        <text x="-148" y="80">venenatis tortor eu lectus. Suspendisse sed metus at </text>
+        <text x="-148" y="100">metus viverra ultricies. Mauris porttitor, justo a vulputate</text>
+      </g>
+      <g id="dropdown" transform="translate(2,0)">
+        <rect x="-150" y="-107" width="118" height="190" fill="ThreeDFace" id="drop-bg"/>
+        <rect x="-143" y="0" width="102" height="34" fill="Menu"/>
+        <text x="-138" y="24" font-size="20" font-weight="bold" fill="MenuText">Load</text>
+        <rect x="-143" y="40" width="102" height="34" fill="Menu"/>
+        <text x="-138" y="64" font-size="20" font-weight="bold" fill="MenuText">Save</text>
+        <path d="M-149 83 h114 v-94" stroke-width="4" stroke="ThreeDDarkShadow" fill="none"/>
+        <path d="M-149 83 v-94 h114" stroke-width="4" stroke="ThreeDLightShadow" fill="none"/>
+      </g>
+      <g id="menubar">
+        <rect x="-148" y="-62" width="310" height="46" fill="ThreeDLightShadow"/>
+        <path d="M152 -52 l 10 -10 v 46 h -311 l10-10 z" fill="ThreeDDarkShadow"/>
+        <rect x="-144" y="-58" width="302" height="37" fill="ThreeDFace"/>
+        <text x="-141" y="-32" font-size="20" font-weight="bold" fill="HighlightText">File</text>
+        <text x="-90" y="-32" font-size="20" font-weight="bold" fill="MenuText">Edit</text>
+      </g>
+      <g id="windowdecoration">
+        <rect x="-149" y="-106" width="311" height="42" fill="ActiveCaption" stroke-width="4" stroke="ActiveBorder" id="windowbar"/>
+        <text x="5" y="-78" text-anchor="middle" font-size="24" font-weight="bold" fill="CaptionText">Lorem</text>
+        <g id="button">
+          <rect x="120" y="-99" rx="8" width="26" height="26" fill="ButtonFace"/>
+          <rect x="120" y="-99" rx="8" width="24" height="24" fill="ButtonHighlight"/>
+          <rect x="122" y="-97" rx="8" width="24" height="24" fill="ButtonShadow"/>
+          <rect x="122" y="-97" rx="8" width="22" height="22" fill="ButtonFace"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,181 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="CL" author="CM" status="reviewed"
+    version="$Revision: 1.6 $" testname="$RCSfile: text-dom-05-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#InterfaceSVGTextContentElement">
+      <p>
+        This tests that methods on the SVGTextContentElement interface
+        that take an index to a character or a number of characters
+        actually interpret these as indexes to or numbers of UTF-16 code
+        units. To test this, a character from outside the Basic Multilingual Plane 
+        (U+10000; LINEAR B SYLLABLE B008) is used in a text string. 
+        This character is stored in UTF-16 as a surrogate pair.
+      </p>
+      <p>
+        The test consists of 5 sub-tests, which test the methods
+        methods on the SVGTextContentElement interface.  The result
+        of each sub-test is shown as a small rectangle: black
+        indicates that the sub-test did not run, red indicates that
+        the sub-test failed and green indicates that the sub-test
+        succeeded.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+      <p>
+        The test relies on support for WebFonts - either SVG Fonts, or WOFF, or OpenType.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if all 5 rectangles are green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-dom-05-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x='10' y='30' font-size='13'>Test that SVGTextContentElement methods work on UTF-16 code units</text>
+  <text x='10' y='60' font-size='11'>Methods that rely on layout</text>
+    <font-face font-family='SPlaneOne'>
+        <font-face-src>
+          <font-face-uri xlink:href="../resources/Plane1/PlaneOne.svg#SPlaneOne"/>
+        </font-face-src>
+    </font-face>
+    <style type="text/css">
+      @font-face {
+        font-family: PlaneOne;
+        src: url(woffs/PlaneOne.woff) format("woff");
+        }
+    </style>
+
+    <text id='t' x='50' y='50' visibility='hidden' font-family='PlaneOne, SPlaneOne' font-size='10' rotate='10 20 30'>a&#x10000;b</text>
+
+    <rect id='r3' x='10' y='120' width='30' height='30'/>
+    <text x='50' y='140'>getStartPositionOfChar</text>
+
+    <rect id='r4' x='10' y='160' width='30' height='30'/>
+    <text x='50' y='180'>getEndPositionOfChar</text>
+
+    <rect id='r5' x='10' y='200' width='30' height='30'/>
+    <text x='50' y='220'>getExtentOfChar</text>
+
+    <rect id='r6' x='10' y='240' width='30' height='30'/>
+    <text x='50' y='260'>getRotationOfChar</text>
+
+    <rect id='r7' x='10' y='280' width='30' height='30'/>
+    <text x='50' y='300'>getCharNumAtPosition</text>
+
+    <script><![CDATA[
+      function $(x) { return document.getElementById(x) }
+      function eq(a, b) {
+        if (a.length != b.length) return false;
+        for (var i = 0; i < a.length; i++) if (a[i] != b[i]) return false;
+        return true;
+      }
+      function p(x, y) {
+        var p = document.documentElement.createSVGPoint();
+        p.x = x;
+        p.y = y;
+        return p;
+      }
+
+      var t = $('t');
+      var x, b;
+
+      b = false;
+      try {
+        x = [
+          t.getStartPositionOfChar(0).x,
+          t.getStartPositionOfChar(1).x,
+          t.getStartPositionOfChar(2).x,
+          t.getStartPositionOfChar(3).x
+        ];
+        b = eq(x, [50, 51, 51, 53]);
+      } catch (e) {
+      }
+      $('r3').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        x = [
+          t.getEndPositionOfChar(0).x,
+          t.getEndPositionOfChar(1).x,
+          t.getEndPositionOfChar(2).x,
+          t.getEndPositionOfChar(3).x
+        ];
+        b = x[0] < x[1] && x[1] == x[2] && x[2] < x[3];
+      } catch (e) {
+      }
+      $('r4').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        x = [
+          t.getExtentOfChar(0).width,
+          t.getExtentOfChar(1).width,
+          t.getExtentOfChar(2).width,
+          t.getExtentOfChar(3).width
+        ];
+        b = eq(x, [1, 2, 2, 4]);
+      } catch (e) {
+      }
+      $('r5').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        x = [
+          t.getRotationOfChar(0),
+          t.getRotationOfChar(1),
+          t.getRotationOfChar(2),
+          t.getRotationOfChar(3)
+        ];
+        b = eq(x, [10, 20, 20, 30]);
+      } catch (e) {
+      }
+      $('r6').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        x = [
+          t.getCharNumAtPosition(p(50.5, 49)),
+          t.getCharNumAtPosition(p(51.5, 49)),  // within first half of the glyph represented by the two surrogates
+          t.getCharNumAtPosition(p(52.5, 49)),  // within second half of the glyph represented by the two surrogates
+          t.getCharNumAtPosition(p(53.5, 49))
+        ];
+        b = eq(x, [0, 1, 2, 3]);
+      } catch (e) {
+      }
+      $('r7').setAttribute('fill', b ? 'green' : 'red');
+    ]]></script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

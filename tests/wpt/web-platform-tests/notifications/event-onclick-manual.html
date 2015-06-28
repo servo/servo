@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Web Notifications Test: notification - onclick (basic)</title>
+<link rel="author" title="Apple Inc." href="http://www.apple.com/">
+<link rel="help" title="5 API" href="http://www.w3.org/TR/notifications/">
+<meta name="flags" content="">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="log"></div>
+  <script>
+var t = async_test("the notification.onclick event can be invoked", {timeout: 50000});
+
+Notification.requestPermission(t.step_func(function(permission) {
+    assert_equals(permission, "granted", "notification permission");
+
+    var notification = new Notification("Please click on the notification.", {
+        body: "Click me to test clicking on notifications."
+    });
+    notification.onclick = t.step_func(function(e) {
+        assert_equals(Object.prototype.toString.call(e), "[object Event]", "the type of event");
+        assert_equals(e.type, "click", "The event is the expected type.")
+        t.done();
+    });
+}));
+  </script>
+</body>
+

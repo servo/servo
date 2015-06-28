@@ -13,6 +13,6 @@ test(function() {
 
 test(function() {
   assert_false("initCloseEvent" in CloseEvent.prototype);
-  assert_false("initCloseEvent" in new CloseEvent());
+  assert_false("initCloseEvent" in new CloseEvent('close'));
 }, "initCloseEvent");
 </script>

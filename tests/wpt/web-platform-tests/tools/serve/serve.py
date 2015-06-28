@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import argparse
 import json
 import os
@@ -242,12 +242,10 @@ class WebSocketDaemon(object):
             # setup the wss server.
             if pywebsocket._import_ssl():
                 tls_module = pywebsocket._TLS_BY_STANDARD_MODULE
-                logger.debug("WebSocketDaemon: Using standard SSL module.")
             elif pywebsocket._import_pyopenssl():
                 tls_module = pywebsocket._TLS_BY_PYOPENSSL
-                logger.debug("WebSocketDaemon: Using PyOpenSSL module.")
             else:
-                logger.critical("WebSocketDaemon: No SSL module is available.")
+                print "No SSL module available"
                 sys.exit(1)
 
             cmd_args += ["--tls",
@@ -391,16 +389,17 @@ def value_set(config, key):
     return key in config and config[key] is not None
 
 
-def set_computed_defaults(config):
-    if not value_set(config, "ws_doc_root"):
-        if value_set(config, "doc_root"):
-            root = config["doc_root"]
-        else:
-            root = repo_root
-        config["ws_doc_root"] = os.path.join(repo_root, "websockets", "handlers")
+def get_value_or_default(config, key, default=None):
+    return config[key] if value_set(config, key) else default
 
+
+def set_computed_defaults(config):
     if not value_set(config, "doc_root"):
         config["doc_root"] = repo_root
+
+    if not value_set(config, "ws_doc_root"):
+        root = get_value_or_default(config, "doc_root", default=repo_root)
+        config["ws_doc_root"] = os.path.join(root, "websockets", "handlers")
 
 
 def merge_json(base_obj, override_obj):
@@ -450,6 +449,17 @@ def load_config(default_path, override_path=None, **kwargs):
         else:
             raise ValueError("Config path %s does not exist" % other_path)
 
+    overriding_path_args = [("doc_root", "Document root"),
+                            ("ws_doc_root", "WebSockets document root")]
+    for key, title in overriding_path_args:
+        value = kwargs.get(key)
+        if value is None:
+            continue
+        value = os.path.abspath(os.path.expanduser(value))
+        if not os.path.exists(value):
+            raise ValueError("%s path %s does not exist" % (title, value))
+        rv[key] = value
+
     set_computed_defaults(rv)
     return rv
 
@@ -460,6 +470,10 @@ def get_parser():
                         help="Artificial latency to add before sending http responses, in ms")
     parser.add_argument("--config", action="store", dest="config_path",
                         help="Path to external config file")
+    parser.add_argument("--doc_root", action="store", dest="doc_root",
+                        help="Path to document root. Overrides config.")
+    parser.add_argument("--ws_doc_root", action="store", dest="ws_doc_root",
+                        help="Path to WebSockets document root. Overrides config.")
     return parser
 
 

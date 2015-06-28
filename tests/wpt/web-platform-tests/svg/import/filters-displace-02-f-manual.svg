@@ -1,0 +1,90 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CL" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: filters-displace-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feDisplacementMapElement">
+      <p>
+        This tests feDisplacementMap without feImage. The input geometry is also used as the displacement map.
+      </p>
+      <p>
+        The bottom subtest tests that not specifying the 'xChannelSelector' attribute has the same effect as if 'A' was specified.
+      </p>
+      <p>
+        In both cases the filter input image consists of a gradient that is rendered using the default 'color-interpolation' which is 'sRGB'. 
+        The default colorspace for filter primitives is 'linearRGB'. The filtering operation happens in 'linearRGB' space and the
+        result is then transformed back to 'sRGB' space for display.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p>
+      <ul>
+        <li>the top rectangle is overlapped by a gradient that has its blackest part centered around the vertical green line that splits the top rectangle</li>
+        <li>the bottom right corner of the area covered by the top gradient is aligned with the corner just below the top rectangle</li>
+        <li>the bottom rectangle is overlapped by a gradient that is displaced upwards with the maximum displacement the middle indicated by the vertical green line that splits the bottom rectangle</li>
+        <li>no part of the bottom gradient extends outside the bottom rectangle</li>
+        <li>both gradients use the same gradientcolors</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-displace-02-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <linearGradient id="fade" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#600" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#000" stop-opacity="1"/>
+      <stop offset="1.0" stop-color="#300" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="bend" filterUnits="objectBoundingBox" x="0" width="1.0" y="-1.3" height="2.28">
+      <feDisplacementMap in="SourceGraphic" in2="SourceAlpha" yChannelSelector="A" scale="30"/>
+    </filter>
+
+    <filter id="slide" filterUnits="objectBoundingBox" x="-0.3" width="1.3" y="0" height="1.3">
+      <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" xChannelSelector="R" yChannelSelector="G" scale="80"/>
+    </filter>
+
+    <polyline points="280, 40, 280,120" stroke-width="2" stroke="green"/>
+    <polyline points="400, 144, 420,144, 420, 124" stroke-width="2" stroke="green" fill="none"/>
+    <rect width="360" height="80" x="60" y="40" fill="none" stroke="#933" stroke-width="2"/>
+    <rect width="360" height="80" x="60" y="40" fill="url(#fade)" filter="url(#slide)"/>
+
+    <polyline points="240, 180, 240,260" stroke-width="2" stroke="green"/>
+    <rect width="360" height="80" x="60" y="180" fill="none" stroke="#933" stroke-width="2"/>
+    <rect width="360" height="80" x="60" y="180" fill="url(#fade)" filter="url(#bend)"/>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,252 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="ED" author="AG" status="reviewed"
+    version="$Revision: 1.3 $" testname="$RCSfile: filters-light-05-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feDistantLightElevationAttribute">
+        <p>
+          This test verifies that the <a>'elevation'</a> attribute is interpreted as a
+          complementary value to the z-axis in degrees.
+        </p>
+        <p>
+          The test shows four different elevation angles that can be used for feDistantLight source.
+          The four different feDistantLight light sources are used in three different filter cases; feDiffuseLight, feSpecularLight
+          and feMerge which merges both feDiffuseLight and feSpecularLight to form a single filter. Using four different elevation values
+          in three different filter cases gives twelve different filters. All twelve filter cases are applied to a vector graphic and
+          then to a raster graphic. The vector graphic results are shown to the left and the raster graphic results are shown to the right.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if
+      </p>
+      <ul>
+        <li>The top row has from left to right for a single graphic set:
+          <ul>
+            <li>A green square with a black circle inside of it</li>
+            <li>A black square</li>
+            <li>A black square with a green semicircle inside the lefthand side of the rect</li>
+            <li>A black square with a green semicircle inside the righthand side of the rect</li>
+          </ul>
+        </li>
+        <li>The middle row has from left to right for a single graphic set:
+          <ul>
+            <li>A green square with a white circle inside of it</li>
+            <li>A green semicircle pointing to the right on top of a white background</li>
+            <li>A green square with a white crest inside pointing to the right</li>
+            <li>A green square with a white crest inside pointing to the left</li>
+          </ul>
+        </li>
+        <li>The bottom row has from left to right for a single graphic set:
+          <ul>
+            <li>A green square with a black circle inside of it</li>
+            <li>A black square with a green semicircle inside pointing to the right</li>
+            <li>A green square with a circle inside that has a shadow on the righthand side and a reflection on the lefthand side</li>
+            <li>A green square with a circle inside that has a shadow on the lefthand side and a reflection on the righthand side</li>
+          </ul>
+        </li>
+      </ul>
+      <p>
+        If the test shows any red, the test has failed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-light-05-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs color="#00FF00">
+      <filter id="distantLightUp">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="90"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="distantLightDown">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="270"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="distantLightLeft">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="180"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="distantLightRight">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="0"/>
+        </feDiffuseLighting>
+      </filter>
+
+      <filter id="specularLightUp">
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="90"/>
+        </feSpecularLighting>
+      </filter>
+      <filter id="specularLightDown">
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="270"/>
+        </feSpecularLighting>
+      </filter>
+      <filter id="specularLightLeft">
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="180"/>
+        </feSpecularLighting>
+      </filter>
+      <filter id="specularLightRight">
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor">
+          <feDistantLight azimuth="0" elevation="0"/>
+        </feSpecularLighting>
+      </filter>
+
+      <filter id="combinedUp">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor" result="res_a">
+          <feDistantLight azimuth="0" elevation="90"/>
+        </feDiffuseLighting>
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor" result="res_b">
+          <feDistantLight azimuth="0" elevation="90"/>
+        </feSpecularLighting>
+        <feMerge>
+          <feMergeNode in="res_a"/>
+          <feMergeNode in="res_b"/>
+        </feMerge>
+      </filter>
+      <filter id="combinedDown">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor" result="res_a">
+          <feDistantLight azimuth="0" elevation="270"/>
+        </feDiffuseLighting>
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor" result="res_b">
+          <feDistantLight azimuth="0" elevation="270"/>
+        </feSpecularLighting>
+        <feMerge>
+          <feMergeNode in="res_a"/>
+          <feMergeNode in="res_b"/>
+        </feMerge>
+      </filter>
+      <filter id="combinedLeft">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor" result="res_a">
+          <feDistantLight azimuth="0" elevation="180"/>
+        </feDiffuseLighting>
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor" result="res_b">
+          <feDistantLight azimuth="0" elevation="180"/>
+        </feSpecularLighting>
+        <feMerge>
+          <feMergeNode in="res_a"/>
+          <feMergeNode in="res_b"/>
+        </feMerge>
+      </filter>
+      <filter id="combinedRight">
+        <feDiffuseLighting in="SourceGraphic" surfaceScale="10" diffuseConstant="1" lighting-color="currentColor" result="res_a">
+          <feDistantLight azimuth="0" elevation="0"/>
+        </feDiffuseLighting>
+        <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="currentColor" result="res_b">
+          <feDistantLight azimuth="0" elevation="0"/>
+        </feSpecularLighting>
+        <feMerge>
+          <feMergeNode in="res_a"/>
+          <feMergeNode in="res_b"/>
+        </feMerge>
+      </filter>
+    </defs>
+
+    <text x="70" y="40" stroke="none" fill="black">feDiffuseLight using feDistantLight source</text>
+    <g transform="scale(1.5) translate(5 45)">
+      <circle id="c1" r="10" fill="red" filter="url(#distantLightUp)" transform="translate(20 0)"/>
+      <circle id="c2" r="10" fill="red" filter="url(#distantLightDown)" transform="translate(50 0)"/>
+      <circle id="c3" r="10" fill="red" filter="url(#distantLightLeft)" transform="translate(80 0)"/>
+      <circle id="c4" r="10" fill="red" filter="url(#distantLightRight)" transform="translate(110 0)"/>
+    </g>
+    <text x="20" y="100" font-size="10" stroke="none" fill="black">90 deg</text>
+    <text x="65" y="100" font-size="10" stroke="none" fill="black">270 deg</text>
+    <text x="110" y="100" font-size="10" stroke="none" fill="black">180 deg</text>
+    <text x="160" y="100" font-size="10" stroke="none" fill="black">0 deg</text>
+
+    <text x="70" y="135" stroke="none" fill="black">feSpecularLight using feDistantLight source</text>
+    <g transform="scale(1.5) translate(5 110)">
+      <circle id="c1" r="10" fill="red" filter="url(#specularLightUp)" transform="translate(20 0)"/>
+      <circle id="c2" r="10" fill="red" filter="url(#specularLightDown)" transform="translate(50 0)"/>
+      <circle id="c3" r="10" fill="red" filter="url(#specularLightLeft)" transform="translate(80 0)"/>
+      <circle id="c4" r="10" fill="red" filter="url(#specularLightRight)" transform="translate(110 0)"/>
+    </g>
+    <text x="20" y="195" font-size="10" stroke="none" fill="black">90 deg</text>
+    <text x="65" y="195" font-size="10" stroke="none" fill="black">270 deg</text>
+    <text x="110" y="195" font-size="10" stroke="none" fill="black">180 deg</text>
+    <text x="160" y="195" font-size="10" stroke="none" fill="black">0 deg</text>
+
+    <text x="30" y="230" stroke="none" fill="black">feDiffuseLight and feSpecularLight using feDistantLight</text>
+    <g transform="scale(1.5) translate(5 170)">
+      <circle id="c1" r="10" fill="red" filter="url(#combinedUp)" transform="translate(20 0)"/>
+      <circle id="c2" r="10" fill="red" filter="url(#combinedDown)" transform="translate(50 0)"/>
+      <circle id="c3" r="10" fill="red" filter="url(#combinedLeft)" transform="translate(80 0)"/>
+      <circle id="c4" r="10" fill="red" filter="url(#combinedRight)" transform="translate(110 0)"/>
+    </g>
+    <text x="20" y="290" font-size="10" stroke="none" fill="black">90 deg</text>
+    <text x="65" y="290" font-size="10" stroke="none" fill="black">270 deg</text>
+    <text x="110" y="290" font-size="10" stroke="none" fill="black">180 deg</text>
+    <text x="160" y="290" font-size="10" stroke="none" fill="black">0 deg</text>
+
+    <g transform="translate(0, 55)">
+      <image xlink:href="../images/bumpMap3.png" x="240" y="0" width="40" height="30" filter="url(#distantLightUp)"/>
+      <image xlink:href="../images/bumpMap3.png" x="300" y="0" width="40" height="30" filter="url(#distantLightDown)"/>
+      <image xlink:href="../images/bumpMap3.png" x="360" y="0" width="40" height="30" filter="url(#distantLightLeft)"/>
+      <image xlink:href="../images/bumpMap3.png" x="420" y="0" width="40" height="30" filter="url(#distantLightRight)"/>
+    </g>
+    <text x="245" y="100" font-size="10" stroke="none" fill="black">90 deg</text>
+    <text x="305" y="100" font-size="10" stroke="none" fill="black">270 deg</text>
+    <text x="365" y="100" font-size="10" stroke="none" fill="black">180 deg</text>
+    <text x="430" y="100" font-size="10" stroke="none" fill="black">0 deg</text>
+
+    <g transform="translate(0, 150)">
+      <image xlink:href="../images/bumpMap3.png" x="240" y="0" width="40" height="30" filter="url(#specularLightUp)"/>
+      <image xlink:href="../images/bumpMap3.png" x="300" y="0" width="40" height="30" filter="url(#specularLightDown)"/>
+      <image xlink:href="../images/bumpMap3.png" x="360" y="0" width="40" height="30" filter="url(#specularLightLeft)"/>
+      <image xlink:href="../images/bumpMap3.png" x="420" y="0" width="40" height="30" filter="url(#specularLightRight)"/>
+    </g>
+    <text x="245" y="195" font-size="10" stroke="none" fill="black">90 deg</text>
+    <text x="305" y="195" font-size="10" stroke="none" fill="black">270 deg</text>
+    <text x="365" y="195" font-size="10" stroke="none" fill="black">180 deg</text>
+    <text x="430" y="195" font-size="10" stroke="none" fill="black">0 deg</text>
+
+    <g transform="translate(0, 240)">
+      <image xlink:href="../images/bumpMap3.png" x="240" y="0" width="40" height="30" filter="url(#combinedUp)"/>
+      <image xlink:href="../images/bumpMap3.png" x="300" y="0" width="40" height="30" filter="url(#combinedDown)"/>
+      <image xlink:href="../images/bumpMap3.png" x="360" y="0" width="40" height="30" filter="url(#combinedLeft)"/>
+      <image xlink:href="../images/bumpMap3.png" x="420" y="0" width="40" height="30" filter="url(#combinedRight)"/>
+    </g>
+    <text x="245" y="290" font-size="10" stroke="none" fill="black">90 deg</text>
+    <text x="305" y="290" font-size="10" stroke="none" fill="black">270 deg</text>
+    <text x="365" y="290" font-size="10" stroke="none" fill="black">180 deg</text>
+    <text x="430" y="290" font-size="10" stroke="none" fill="black">0 deg</text>
+    
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

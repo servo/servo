@@ -35,7 +35,7 @@ function runURLTests(raw) {
 
       var url = bURL(expected.input, expected.base)
       assert_equals(url.protocol, expected.protocol, "scheme")
-      assert_equals(url.hostname, expected.host, "host")
+      assert_equals(url.hostname, expected.hostname, "host")
       assert_equals(url.port, expected.port, "port")
       assert_equals(url.pathname, expected.path, "path")
       assert_equals(url.search, expected.search, "search")

@@ -1,0 +1,239 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: coords-trans-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#EstablishingANewUserSpace">
+      <p>
+        This test verifies the implementation of transforms. It tests elementary transforms
+        and transform nesting.
+        Note that for layout purposes, this test uses nesting of translation with the elementary  transforms.
+      </p>
+      <p>
+        The test uses the rect element, the fill color (solid primary colors) and transforms.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly except for variations in the labeling text.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-trans-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="translate(0, 30)" font-size="13">
+      <!-- ====================================================================== -->
+      <!-- First, draw a test grid ============================================== -->
+      <!-- ====================================================================== -->
+      <g id="test-grid" stroke="#cccccc" stroke-width="1">
+        <line x1="10" y1="10.5" x2="470" y2="10.5"/>
+        <line x1="10" y1="20.5" x2="470" y2="20.5"/>
+        <line x1="10" y1="30.5" x2="470" y2="30.5"/>
+        <line x1="10" y1="40.5" x2="470" y2="40.5"/>
+        <line x1="10" y1="50.5" x2="470" y2="50.5"/>
+        <line x1="10" y1="60.5" x2="470" y2="60.5"/>
+        <line x1="10" y1="70.5" x2="470" y2="70.5"/>
+        <line x1="10" y1="80.5" x2="470" y2="80.5"/>
+        <line x1="10" y1="90.5" x2="470" y2="90.5"/>
+        <line x1="10" y1="100.5" x2="470" y2="100.5"/>
+        <line x1="10" y1="110.5" x2="470" y2="110.5"/>
+        <line x1="10" y1="120.5" x2="470" y2="120.5"/>
+        <line x1="10" y1="130.5" x2="470" y2="130.5"/>
+        <line x1="10" y1="140.5" x2="470" y2="140.5"/>
+        <line x1="10" y1="150.5" x2="470" y2="150.5"/>
+        <line x1="10" y1="160.5" x2="470" y2="160.5"/>
+        <line x1="10" y1="170.5" x2="470" y2="170.5"/>
+        <line x1="10" y1="180.5" x2="470" y2="180.5"/>
+        <line x1="10" y1="190.5" x2="470" y2="190.5"/>
+        <line x1="10" y1="200.5" x2="470" y2="200.5"/>
+        <line x1="10" y1="210.5" x2="470" y2="210.5"/>
+        <line x1="10" y1="220.5" x2="470" y2="220.5"/>
+        <line x1="10" y1="230.5" x2="470" y2="230.5"/>
+        <line x1="10" y1="240.5" x2="470" y2="240.5"/>
+        <line x1="10" y1="250.5" x2="470" y2="250.5"/>
+        <line x1="10" y1="260.5" x2="470" y2="260.5"/>
+        <line y1="10" x1="10.5" y2="260.5" x2="10.5"/>
+        <line y1="10" x1="20.5" y2="260.5" x2="20.5"/>
+        <line y1="10" x1="30.5" y2="260.5" x2="30.5"/>
+        <line y1="10" x1="40.5" y2="260.5" x2="40.5"/>
+        <line y1="10" x1="50.5" y2="260.5" x2="50.5"/>
+        <line y1="10" x1="60.5" y2="260.5" x2="60.5"/>
+        <line y1="10" x1="70.5" y2="260.5" x2="70.5"/>
+        <line y1="10" x1="80.5" y2="260.5" x2="80.5"/>
+        <line y1="10" x1="90.5" y2="260.5" x2="90.5"/>
+        <line y1="10" x1="100.5" y2="260.5" x2="100.5"/>
+        <line y1="10" x1="110.5" y2="260.5" x2="110.5"/>
+        <line y1="10" x1="120.5" y2="260.5" x2="120.5"/>
+        <line y1="10" x1="130.5" y2="260.5" x2="130.5"/>
+        <line y1="10" x1="140.5" y2="260.5" x2="140.5"/>
+        <line y1="10" x1="150.5" y2="260.5" x2="150.5"/>
+        <line y1="10" x1="160.5" y2="260.5" x2="160.5"/>
+        <line y1="10" x1="170.5" y2="260.5" x2="170.5"/>
+        <line y1="10" x1="180.5" y2="260.5" x2="180.5"/>
+        <line y1="10" x1="190.5" y2="260.5" x2="190.5"/>
+        <line y1="10" x1="200.5" y2="260.5" x2="200.5"/>
+        <line y1="10" x1="210.5" y2="260.5" x2="210.5"/>
+        <line y1="10" x1="220.5" y2="260.5" x2="220.5"/>
+        <line y1="10" x1="230.5" y2="260.5" x2="230.5"/>
+        <line y1="10" x1="240.5" y2="260.5" x2="240.5"/>
+        <line y1="10" x1="250.5" y2="260.5" x2="250.5"/>
+        <line y1="10" x1="260.5" y2="260.5" x2="260.5"/>
+        <line y1="10" x1="270.5" y2="260.5" x2="270.5"/>
+        <line y1="10" x1="280.5" y2="260.5" x2="280.5"/>
+        <line y1="10" x1="290.5" y2="260.5" x2="290.5"/>
+        <line y1="10" x1="300.5" y2="260.5" x2="300.5"/>
+        <line y1="10" x1="310.5" y2="260.5" x2="310.5"/>
+        <line y1="10" x1="320.5" y2="260.5" x2="320.5"/>
+        <line y1="10" x1="330.5" y2="260.5" x2="330.5"/>
+        <line y1="10" x1="340.5" y2="260.5" x2="340.5"/>
+        <line y1="10" x1="350.5" y2="260.5" x2="350.5"/>
+        <line y1="10" x1="360.5" y2="260.5" x2="360.5"/>
+        <line y1="10" x1="370.5" y2="260.5" x2="370.5"/>
+        <line y1="10" x1="380.5" y2="260.5" x2="380.5"/>
+        <line y1="10" x1="390.5" y2="260.5" x2="390.5"/>
+        <line y1="10" x1="400.5" y2="260.5" x2="400.5"/>
+        <line y1="10" x1="410.5" y2="260.5" x2="410.5"/>
+        <line y1="10" x1="420.5" y2="260.5" x2="420.5"/>
+        <line y1="10" x1="430.5" y2="260.5" x2="430.5"/>
+        <line y1="10" x1="440.5" y2="260.5" x2="440.5"/>
+        <line y1="10" x1="450.5" y2="260.5" x2="450.5"/>
+        <line y1="10" x1="460.5" y2="260.5" x2="460.5"/>
+        <line y1="10" x1="470.5" y2="260.5" x2="470.5"/>
+      </g>
+      <!-- ====================================================================== -->
+      <!-- Now, test elementary transforms. For each transform, 3 markers are     -->
+      <!-- placed where the user space is expected after transformations for the  -->
+      <!-- origin (black) and the points in (20, 0) (blue) and (0, 20) (red).     -->
+      <!-- Then, a blue line going from (0, 0) to (20, 0) is drawn and a red line -->
+      <!-- going from (0, 0) to (0, 20), after applying the elementary            -->
+      <!-- transformation. If the test succeeds, the red line should join the     -->
+      <!-- black marker to the red marker and the blue line the black marker to   -->
+      <!-- the blue marker.                                                       -->
+      <!-- ====================================================================== -->
+      <g id="elementary-transforms-test" transform="translate(0, 10)">
+        <g id="elementary-transforms">
+          <!-- Translate -->
+          <g transform="translate(50, 50)">
+            <rect x="0" y="0" width="20" height="2" fill="blue"/>
+            <rect x="0" y="0" width="2" height="20" fill="red"/>
+          </g>
+          <!-- Rotate -90 deg about (150, 70) -->
+          <g transform="translate(150, 70) rotate(-90)">
+            <rect x="0" y="0" width="20" height="2" fill="blue"/>
+            <rect x="0" y="0" width="2" height="20" fill="red"/>
+          </g>
+          <!-- Skew X -->
+          <g transform="translate(250, 50) skewX(45)">
+            <rect x="0" y="0" width="20" height="2" fill="blue"/>
+            <rect x="0" y="0" width="2" height="20" fill="red"/>
+          </g>
+          <!-- Skew Y -->
+          <g transform="translate(350, 50) skewY(45)">
+            <rect x="0" y="0" width="20" height="2" fill="blue"/>
+            <rect x="0" y="0" width="2" height="20" fill="red"/>
+          </g>
+          <!-- Scale 2 -->
+          <g transform="translate(210, 120) scale(2)">
+            <rect x="0" y="0" width="20" height="1" fill="blue"/>
+            <rect x="0" y="0" width="1" height="20" fill="red"/>
+          </g>
+        </g>
+        <!-- elementary-transforms -->
+        <!-- Draw all the markers -->
+        <g id="elementary-transforms-test-markers">
+          <!-- Translate -->
+          <text x="40" y="40">translate (50, 50)</text>
+          <rect x="48" y="48" width="5" height="5" fill="black"/>
+          <rect x="68" y="48" width="5" height="5" fill="blue"/>
+          <rect x="48" y="68" width="5" height="5" fill="red"/>
+          <!-- Rotate -90 deg about (150, 70) -->
+          <text x="140" y="40">rotate(-90)</text>
+          <rect x="148" y="68" width="5" height="5" fill="black"/>
+          <rect x="148" y="48" width="5" height="5" fill="blue"/>
+          <rect x="168" y="68" width="5" height="5" fill="red"/>
+          <!-- Skew X -->
+          <text x="240" y="40">skew x (45)</text>
+          <rect x="248" y="48" width="5" height="5" fill="black"/>
+          <rect x="268" y="48" width="5" height="5" fill="blue"/>
+          <rect x="268" y="68" width="5" height="5" fill="red"/>
+          <!-- Skew Y -->
+          <text x="340" y="40">skew y (45)</text>
+          <rect x="348" y="48" width="5" height="5" fill="black"/>
+          <rect x="368" y="68" width="5" height="5" fill="blue"/>
+          <rect x="348" y="68" width="5" height="5" fill="red"/>
+          <!-- Scale 2 -->
+          <text x="200" y="110">scale (2)</text>
+          <rect x="208" y="118" width="5" height="5" fill="black"/>
+          <rect x="248" y="118" width="5" height="5" fill="blue"/>
+          <rect x="208" y="158" width="5" height="5" fill="red"/>
+        </g>
+        <!-- elementary-transforms-test-markers -->
+      </g>
+      <g id="nested-transforms-test">
+        <g id="nested-transforms">
+          <!-- scale/translate in transform attribute -->
+          <g transform="scale(3, 2) translate(16.666667, 105)">
+            <rect x="0" y="0" width="20" height="1" fill="blue"/>
+            <rect x="0" y="0" width="0.67" height="20" fill="red"/>
+          </g>
+          <!-- scale/translate in successive elements -->
+          <g transform="translate(200, 0)">
+            <g transform="scale(3, 2)">
+              <g transform="translate(16.666667, 105)">
+                <rect x="0" y="0" width="20" height="1" fill="blue"/>
+                <rect x="0" y="0" width="0.67" height="20" fill="red"/>
+              </g>
+            </g>
+          </g>
+        </g>
+        <!-- nested-transforms -->
+        <g id="nested-transforms-test-markers">
+          <!-- scale and translate -->
+          <text x="40" y="200">scale(25, 95) and translate(2, 2)</text>
+          <rect x="48" y="208" width="5" height="5" fill="black"/>
+          <rect x="108" y="208" width="5" height="5" fill="blue"/>
+          <rect x="48" y="248" width="5" height="5" fill="red"/>
+          <!-- scale then translate -->
+          <text x="240" y="200">scale(25, 95) then translate(2, 2)</text>
+          <rect x="248" y="208" width="5" height="5" fill="black"/>
+          <rect x="308" y="208" width="5" height="5" fill="blue"/>
+          <rect x="248" y="248" width="5" height="5" fill="red"/>
+        </g>
+        <!-- nested-transforms-test-markers -->
+      </g>
+      <!-- nested-transforms test -->
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

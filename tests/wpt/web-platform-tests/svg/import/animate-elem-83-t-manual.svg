@@ -1,0 +1,229 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: animate-elem-83-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This test validates the operation of the animate element
+        on the &lt;path&gt; element's d attribute.
+      </p>
+      <p>
+        The following descriptions references to the tests by number. The first test
+        is the one showing on the top left. The last, sixth test is the one showing
+        at the bottom right. Test numbers are alocated from left to right and from
+        top to bottom.
+
+        For each test, there are reference outline markers which show the expected
+        animated shape at different times in the animation. At the time of the expected
+        shape, the outline of the expected shape is drawn with a thick stroke for 0.2s
+        so the test user can visually check that the shapes are matching at the
+        expected times.
+      </p>
+      <p>
+        The first test validates a simple from-to animation on a path's d attribute
+        made of M, C and Z commands where both the from and to attributes are specified.
+        The attributes are compatible with the path element's d attribute.
+      </p>
+      <p>
+        The second test validates a simple to-animation on a path's d attribute
+        made of M, C and Z commands where the to attribute is specified.
+        The attribute is compatible with the path element's d attribute.
+      </p>
+      <p>
+        The third test validates a simple values-animation on a path's d attribute
+        made of M, C and Z commands where the values attribute is specified and
+        specifies three seperate values.
+        The attribute is compatible with the path element's d attribute.
+      </p>
+      <p>
+        The fourth, fifth and sixth tests validate that interpolation between compatible
+        path values (i.e., path values which normalize to the compatible values) is
+        supported.
+      </p>
+      <p>
+        The fourth tests interpolation between a path value containing H, V and L commands
+        (in the from value) and a path value containing compatible h, v and l commands
+        (in the to value).
+      </p>
+      <p>
+        The fifth tests interpolation between a path value containing C and S commands
+        (in the from value) and a path value containing compatible c and s commands
+        (in the to value).
+      </p>
+      <p>
+        The sixth tests interpolation between a path value containing Q, T and A commands
+        (in the from value) and a path value containing compatible q, t and a commands
+        (in the to value).
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test consists of six sub-tests.  In each sub-test, the light gray filled
+      path must continously morph its shape, starting one second after the document
+      load and continuing for three seconds.  In all sub-tests except for #3, there are
+      two orange reference shape outlines between which the gray path must morph.
+      In sub-test #3, there are three reference shapes.  The test passes if each of the
+      gray shapes morphs appropriately according to the following descriptions:</p>
+      <ol>
+        <li>The gray shape must morph from the diamond to the flower-like shape.</li>
+	<li>The gray shape must morph just like sub-test #1, from the diamond to the flower-like shape.</li>
+	<li>The gray shape must morph from the diamond, to the flower-like shape, and then to the large, rounded diamond shape.</li>
+	<li>The gray shape must morph from the lower-right pointing kite shape to the upper-left pointing kite shape.</li>
+	<li>The gray shape must morph from the tall shape to the wide shape.</li>
+	<li>The gray shape must morph from the wide "D" shape to the narrow "D" shape.</li>
+      </ol>
+      <p>In addition, during the animations whenever the gray shape has the same shape as
+      a reference shape, the stroke of the reference shape must be shown thicker momentarily.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-83-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="25" font-size="16">&lt;animate&gt; on &lt;path&gt;'s d attribute</text>
+
+    <defs>
+      <g id="ref" stroke="rgb(192,192,192)" fill="none">
+        <circle stroke-width="2" r="40"/>
+        <line x1="-45" x2="45"/>
+        <line y1="-45" y2="45"/>
+      </g>
+    </defs>
+
+    <g transform="translate(0,0)" font-size="12">
+      <g id="test_1" transform="translate(120,90)">
+        <path d="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z" stroke="none" stroke-width="4" fill="rgb(230,230,230)">
+          <animate attributeName="d" from="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z" to="M 0 0 C -50 -15 -15 -50 0 0 C 15 -50 50 -15 0 0 C 50 15 15 50 0 0 C -15 50 -50 15 0 0 Z" dur="3s" fill="freeze" begin="1s"/>
+        </path>
+
+        <path d="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </path>
+
+        <path d="M 0 0 C -50 -15 -15 -50 0 0 C 15 -50 50 -15 0 0 C 50 15 15 50 0 0 C -15 50 -50 15 0 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="4s" dur="0.2s"/>
+        </path>
+
+        <text y="60" text-anchor="middle">#1: from-to animation</text>
+      </g>
+
+      <g id="test_2" transform="translate(240,90)">
+        <path d="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z" stroke="none" stroke-width="4" fill="rgb(230,230,230)">
+          <animate attributeName="d" to="M 0 0 C -50 -15 -15 -50 0 0 C 15 -50 50 -15 0 0 C 50 15 15 50 0 0 C -15 50 -50 15 0 0 Z" dur="3s" fill="freeze" begin="1s"/>
+        </path>
+
+        <path d="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </path>
+
+        <path d="M 0 0 C -50 -15 -15 -50 0 0 C 15 -50 50 -15 0 0 C 50 15 15 50 0 0 C -15 50 -50 15 0 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="4s" dur="0.2s"/>
+        </path>
+
+        <text y="60" text-anchor="middle">#2: to animation</text>
+      </g>
+
+      <g id="test_3" transform="translate(360,90)">
+        <path d="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z" stroke="none" stroke-width="4" fill="rgb(230,230,230)">
+          <animate attributeName="d" values="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z;                                  M 0 0 C -50 -15 -15 -50 0 0 C 15 -50 50 -15 0 0 C 50 15 15 50 0 0 C -15 50 -50 15 0 0 Z;                                  M -45 0 C -15 0 0 -15 0 -45 C 0 -15 15 0 45 0 C 15 0 0 15 0 45 C 0 15 -15 0 -45 0 Z" dur="3s" fill="freeze" begin="1s"/>
+        </path>
+
+        <path d="M -15 0 C -15 0 0 -15 0 -15 C 0 -15 15 0 15 0 C 15 0 0 15 0 15 C 0 15 -15 0 -15 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </path>
+
+        <path d="M 0 0 C -50 -15 -15 -50 0 0 C 15 -50 50 -15 0 0 C 50 15 15 50 0 0 C -15 50 -50 15 0 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="2.5s" dur="0.2s"/>
+        </path>
+
+        <path d="M -45 0 C -15 0 0 -15 0 -45 C 0 -15 15 0 45 0 C 15 0 0 15 0 45 C 0 15 -15 0 -45 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="4s" dur="0.2s"/>
+        </path>
+
+        <text y="60" text-anchor="middle">#3: values animation</text>
+      </g>
+
+      <g id="test_4" transform="translate(120,200)">
+        <path d="M -30 -30 L 30 0 V 30 H 0 Z" stroke="none" stroke-width="4" fill="rgb(230,230,230)">
+          <animate attributeName="d" from="M -30 -30 L 30 0 V 30 H 0 Z" to="M 30 30 l -60 -30 v -30 h 30 Z" dur="3s" fill="freeze" begin="1s"/>
+        </path>
+
+        <path d="M -30 -30 L 30 0 V 30 H 0 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </path>
+
+        <path d="M 30 30 l -60 -30 v -30 h 30 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="4s" dur="0.2s"/>
+        </path>
+
+        <text y="60" text-anchor="middle">#4: from-to animation</text>
+        <text y="75" text-anchor="middle">compatible H/h, V/v,</text>
+        <text y="90" text-anchor="middle">L/l segments</text>
+      </g>
+
+      <g id="test_5" transform="translate(240,200)">
+        <path d="M -20 -20 C 20 -20 20 -20 20 20 S 20 40 -20 20 Z" stroke="none" stroke-width="4" fill="rgb(230,230,230)">
+          <animate attributeName="d" from="M -20 -20 C 20 -20 20 -20 20 20 S 20 40 -20 20 Z" to="M -20 -20 c 0 40 0 40 40 40 s 40 0 0 -40 z" dur="3s" fill="freeze" begin="1s"/>
+        </path>
+
+        <path d="M -20 -20 C 20 -20 20 -20 20 20 S 20 40 -20 20 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </path>
+
+        <path d="M -20 -20 c 0 40 0 40 40 40 s 40 0 0 -40 z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="4s" dur="0.2s"/>
+        </path>
+
+        <text y="60" text-anchor="middle">#5: from-to animation</text>
+        <text y="75" text-anchor="middle">compatible C/c</text>
+        <text y="90" text-anchor="middle">s/S segments</text>
+      </g>
+
+      <g id="test_6" transform="translate(360,200)">
+        <path d="M -30 -30 Q 30 -30 30 0 T -30 30 Z" stroke="none" stroke-width="4" fill="rgb(230,230,230)">
+          <animate attributeName="d" from="M -30 -30 Q 30 -30 30 0 T -30 30 Z" to="M -30 -30 q 30 0 30 30 t -30 30 z" dur="3s" fill="freeze" begin="1s"/>
+        </path>
+
+        <path d="M -30 -30 Q 30 -30 30 0 T -30 30 Z" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1s" dur="0.2s"/>
+        </path>
+
+        <path d="M -30 -30 q 30 0 30 30 t -30 30 " stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="4s" dur="0.2s"/>
+        </path>
+
+        <text y="60" text-anchor="middle">#6: from-to animation</text>
+        <text y="75" text-anchor="middle">compatible Q/q, T/t</text>
+        <text y="90" text-anchor="middle">segments</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

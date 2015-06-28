@@ -1,0 +1,198 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="CM" status="created"
+    version="$Revision: 1.1 $" testname="$RCSfile: animate-elem-91-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#ValueAttributes">
+      <p>
+        This tests that to-animations on attributes whose values cannot be
+        interpolated are treated as discrete animations.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test passes if there initially eight red squares in the
+        left column when the document is loaded and the all move
+        at the same time to the right column two seconds after the
+        document is loaded.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-91-t.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x="10" y="40">Testing &lt;animate to=""&gt; with non-interpolable attributes</text>
+
+    <g font-size="16">
+
+      <text x="207.5" y="75" text-anchor="middle">0s-2s</text>
+      <text x="307.5" y="75" text-anchor="middle">> 2s</text>
+
+      <!-- Reference: using <set> -->
+      <g transform="translate(0,85)">
+        <text x="30" y="12">(reference)</text>
+        <rect x="200" width="12" height="12" stroke="black" fill="rgb(204,0,102)">
+          <set attributeName="fill" to="#ccc" begin="2s" dur="2s" fill="freeze"/>
+        </rect>
+        <rect x="300" width="12" height="12" stroke="black" fill="#ccc">
+          <set attributeName="fill" to="rgb(204,0,102)" begin="2s" dur="2s" fill="freeze"/>
+        </rect>
+      </g>
+
+      <!-- Sub-test 1: class on <rect> -->
+      <g transform="translate(0,110)">
+        <style type="text/css">.on { fill: rgb(204,0,102) } .off { fill: #ccc }</style>
+        <text x="30" y="12">class</text>
+        <rect x="200" width="12" height="12" stroke="black" class="on">
+          <animate attributeName="class" to="off" begin="2s" dur="2s" fill="freeze"/>
+        </rect>
+        <rect x="300" width="12" height="12" stroke="black" class="off">
+          <animate attributeName="class" to="on" begin="2s" dur="2s" fill="freeze"/>
+        </rect>
+      </g>
+
+      <!-- Sub-test 2: clipPathUnits on <clipPath> -->
+      <g transform="translate(0,135)">
+        <text x="30" y="12">clipPathUnits</text>
+        <clipPath id="c1" clipPathUnits="objectBoundingBox">
+          <rect width="1" height="1"/>
+          <animate attributeName="clipPathUnits" to="userSpaceOnUse" begin="2s" dur="2s" fill="freeze"/>
+        </clipPath>
+        <rect x="200" width="12" height="12" stroke="black" fill="#ccc"/>
+        <rect x="200" width="12" height="12" stroke="black" fill="rgb(204,0,102)" clip-path="url(#c1)"/>
+        <rect x="300" width="12" height="12" stroke="black" fill="rgb(204,0,102)"/>
+        <rect x="300" width="12" height="12" stroke="black" fill="#ccc" clip-path="url(#c1)"/>
+      </g>
+
+      <!-- Sub-test 3: in on <feComposite> -->
+      <g transform="translate(0,160)">
+        <text x="30" y="12">in</text>
+        <filter id="f1" x="0" y="0" width="1" height="1">
+          <feFlood flood-color="#ccc" result="off"/>
+          <feFlood flood-color="rgb(204,0,102)" result="on"/>
+          <feComposite in="on" in2="SourceGraphic">
+            <animate attributeName="in" to="off" begin="2s" dur="2s" fill="freeze"/>
+          </feComposite>
+        </filter>
+        <filter id="f2" x="0" y="0" width="1" height="1">
+          <feFlood flood-color="#ccc" result="off"/>
+          <feFlood flood-color="rgb(204,0,102)" result="on"/>
+          <feComposite in="off" in2="SourceGraphic">
+            <animate attributeName="in" to="on" begin="2s" dur="2s" fill="freeze"/>
+          </feComposite>
+        </filter>
+        <rect x="200" width="12" height="12" fill="none" filter="url(#f1)"/>
+        <rect x="200" width="12" height="12" stroke="black" fill="none"/>
+        <rect x="300" width="12" height="12" fill="none" filter="url(#f2)"/>
+        <rect x="300" width="12" height="12" stroke="black" fill="none"/>
+      </g>
+
+      <!-- Sub-test 4: preserveAspectRatio on <svg> -->
+      <g transform="translate(0,185)">
+        <text x="30" y="12">preserveAspectRatio</text>
+        <rect x="200" width="12" height="12" fill="#ccc"/>
+        <rect x="300" width="12" height="12" fill="rgb(204,0,102)"/>
+        <clipPath id="c2" clipPathUnits="userSpaceOnUse">
+          <rect x="200" y="0" width="112" height="12"/>
+        </clipPath>
+        <g clip-path="url(#c2)">
+          <svg width="200" height="100" viewBox="0 0 400 400" preserveAspectRatio="none" overflow="visible">
+            <rect x="400" width="24" height="48" fill="rgb(204,0,102)"/>
+            <rect x="600" width="24" height="48" fill="#ccc"/>
+            <animate attributeName="preserveAspectRatio" to="xMinYMin" begin="2s" dur="2s" fill="freeze"/>
+          </svg>
+        </g>
+        <rect x="200" width="12" height="12" stroke="black" fill="none"/>
+        <rect x="300" width="12" height="12" stroke="black" fill="none"/>
+      </g>
+
+      <!-- Sub-test 5: spreadMethod on <linearGradient> -->
+      <g transform="translate(0,210)">
+        <text x="30" y="12">spreadMethod</text>
+        <linearGradient id="g1" gradientUnits="objectBoundingBox" x1="1" y1="0" x2="2" y2="0" spreadMethod="reflect">
+          <stop offset="0" stop-color="rgb(204,0,102)" stop-opacity="0"/>
+          <stop offset="0" stop-color="rgb(204,0,102)"/>
+          <stop offset="1" stop-color="rgb(204,0,102)"/>
+          <stop offset="1" stop-color="rgb(204,0,102)" stop-opacity="0"/>
+          <animate attributeName="spreadMethod" to="pad" begin="2s" dur="2s" fill="freeze"/>
+        </linearGradient>
+        <linearGradient id="g2" gradientUnits="objectBoundingBox" x1="1" y1="0" x2="2" y2="0" spreadMethod="reflect">
+          <stop offset="0" stop-color="#ccc" stop-opacity="0"/>
+          <stop offset="0" stop-color="#ccc"/>
+          <stop offset="1" stop-color="#ccc"/>
+          <stop offset="1" stop-color="#ccc" stop-opacity="0"/>
+          <animate attributeName="spreadMethod" to="pad" begin="2s" dur="2s" fill="freeze"/>
+        </linearGradient>
+        <rect x="200" width="12" height="12" fill="#ccc"/>
+        <rect x="300" width="12" height="12" fill="rgb(204,0,102)"/>
+        <rect x="200" width="12" height="12" stroke="black" fill="url(#g1)"/>
+        <rect x="300" width="12" height="12" stroke="black" fill="url(#g2)"/>
+      </g>
+
+      <!-- Sub-test 6: xlink:href on <use> -->
+      <g transform="translate(0,235)">
+        <text x="30" y="12">xlink:href</text>
+        <g display="none">
+          <rect id="r1" width="12" height="12" fill="rgb(204,0,102)" stroke="black"/>
+          <rect id="r2" width="12" height="12" fill="#ccc" stroke="black"/>
+        </g>
+        <use xlink:href="#r1" x="200">
+          <animate attributeName="xlink:href" to="#r2" begin="2s" dur="2s" fill="freeze"/>
+        </use>
+        <use xlink:href="#r2" x="300">
+          <animate attributeName="xlink:href" to="#r1" begin="2s" dur="2s" fill="freeze"/>
+        </use>
+      </g>
+
+      <!-- Sub-test 7: display on <rect> -->
+      <g transform="translate(0,260)">
+        <text x="30" y="12">display</text>
+        <g>
+          <rect x="200" width="12" height="12" fill="rgb(204,0,102)" stroke="black"/>
+          <rect x="300" width="12" height="12" fill="#ccc" stroke="black"/>
+          <animate attributeName="display" to="none" begin="2s" dur="2s" fill="freeze"/>
+        </g>
+        <g display="none">
+          <rect x="200" width="12" height="12" fill="#ccc" stroke="black"/>
+          <rect x="300" width="12" height="12" fill="rgb(204,0,102)" stroke="black"/>
+          <animate attributeName="display" to="inline" begin="2s" dur="2s" fill="freeze"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.1 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

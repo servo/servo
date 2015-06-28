@@ -1,0 +1,200 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-63-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This tests validates multiple end conditions in the end attribute,
+        assuming support for the &lt;set&gt; element and setting the
+        dur attribute to 'indefinite'.
+      </p>
+      <p>
+        The test validates the various possibilities for the end attribute
+        value: multiple offset values, multiple event base values, multiple sync base
+        values, multiple repeat values, and multiple accessKey values. Finally,
+        the test validates that end values of different kinds can be mixed.
+      </p>
+      <p>
+        The test shows 6 rows where a red rectangle's  x attribute is animated
+        with &lt;set&gt; elements.
+      </p>
+      <p>
+        On the first three rows, the red rectangles should show on the left from
+        0 to 1s. From 1 to 2s, the rectangles should show on the right. Then
+        the rectangles should show on the left from 2 to 4s, then on the right
+        again from 4 to 5s and come back to the left position and stay there
+        after 5s.
+      </p>
+      <p>
+        On the fourth row, the rectangle's end condition is event based
+        and requires a user click. One of the end condition is defined
+        to be 5 seconds prior to the click and one is defined to be 5
+        seconds after the click. If the user clicks on the rectangle
+        before 5 seconds (in document time), the red rectangle we move
+        to the left position 5 seconds after the click (because the
+        'click - 5s' end time resolves to a time prior to the begin
+        time). If the user clicks after 5 seconds (in document time),
+        then the red rectangle moves to the left position immediately because
+        the 'click - 5s' time resolves to a time after the begin time.
+      </p>
+      <p>
+        On the fifth row, the rectangle's end condition is accessKey based
+        and requires a user to press the 'a' key. The behavior is exactly the
+        same as for the previous row, except that the triggering event
+        is the 'a' key press.
+      </p>
+      <p>
+        The last row's rectangle has a end condition with two offset values
+        (1s;4s) and should behave like the rectangles of the first three
+        rows for the first 5 seconds of the document's timeline. In addition,
+        the end condition has a click event base and thus, the rectangle
+        should immediately move to the left position if the user everytime the user
+        clicks clicks on the rectangle when it is on the right position.
+        Finally, the end condition also has an accessKey condition
+        for the 'b' character. Thus, the rectangle should move to the left
+        position every time the user presses the 'b' key and the rectangle is
+        on the right position.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test.  Observe the document for six seconds.
+      Then, click the red square in the "2 event base" row
+      and then press "a" on the keyboard.</p>
+      <p>Next, reload the test.  Before five seconds have elapsed,
+      click the red square in the "2 event base" row and then
+      press "a" on the keyboard.  Observe the document for another six seconds.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the following conditions are met:</p>
+      <ul>
+        <li>In the first load of the document, the red squares in the top three
+        rows and the bottom row are in the relevant column according to the
+        times written above the columns: in left column for the first second
+        of the document, in the right column between 1s and 2s, in the left
+        column again between 2s and 4s, in the right column again between 4s
+        and 5s, and finally revert to the left column at 5s.  During this
+        whole time, the red squares on the "2 event base" and "2 accessKeys"
+        rows must be in the right column.</li>
+        <li>In the first load of the document, immediately once the red
+        square is clicked, it must move to the left column.</li>
+        <li>In the first load of the document, immediately once "a" is pressed
+        on the keyboard, the red square in the "2 accessKeys" row must move
+        to the left column.</li>
+        <li>In the second load of the document, five seconds after the red
+        square is clicked, it must move to the left column.</li>
+        <li>In the second load of the document, five seconds after "a" is pressed
+        on the keyboard, the red square in the "2 accessKeys" row must move
+        to the left column.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-63-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">multiple end</text>
+    <g transform="translate(100, 100)">
+      <g transform="translate(80,25)" text-anchor="end" font-size="14">
+        <text>2 offsets</text>
+        <text y="25">2 sync bases</text>
+        <text y="50">2 repeat</text>
+        <text y="100">2 event base</text>
+        <text y="125">2 accessKeys</text>
+        <text y="150">misc</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(150, 5)" text-anchor="middle" font-size="14">
+        <text>0-1s</text>
+        <text y="-20">2s-4s</text>
+        <text y="-40">&gt; 5s</text>
+        <g transform="translate(40,0)">
+          <text>1-2s</text>
+          <text y="-20">4-5s</text>
+        </g>
+      </g>
+
+      <g transform="translate(150,20)" stroke="black">
+        <defs>
+          <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
+        </defs>
+
+        <g id="setOne">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="40"/>
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="firstSet" attributeName="x" to="34" begin="1s; 4s" end="2s; 5s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setTwo" transform="translate(0, 25)">
+          <set id="syncBase" attributeName="display" to="inline" begin="0s" dur="indefinite"/>
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="40"/>
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="34" begin="1s; 4s" end="syncBase.begin+2s;syncBase.begin + 5s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setThree" transform="translate(0, 50)">
+          <set id="repeatBase" attributeName="display" to="inline" begin="0s" dur="1s" repeatDur="indefinite"/>
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="40"/>
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="34" begin="1s; 4s" end="repeatBase.repeat(2);repeatBase.repeat(5)" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setFour" transform="translate(0, 100)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="40"/>
+
+          <rect id="setFourTarget" x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="34" begin="0s" end="setFourTarget.click -5s; setFourTarget.click + 5s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setFive" transform="translate(0, 125)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="40"/>
+          <rect id="setFiveTarget" x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="34" begin="0s" end="accessKey(a) - 5s;accessKey(a)+5s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setSix" transform="translate(0, 150)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="40"/>
+          <rect id="setSixTarget" x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="34" begin="1s;4s" end="2s;5s;setSixTarget.click;accessKey(b)" dur="indefinite"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

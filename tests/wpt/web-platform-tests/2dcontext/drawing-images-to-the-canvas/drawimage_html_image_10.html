@@ -18,16 +18,17 @@ sourceImg.src = '../2x2.png'
 sourceImg.width = sourceWidth;
 sourceImg.height = sourceHeight;
 
-var destCtx = destCanvas.getContext('2d');
-destCtx.fillStyle = "#FF0000";
-destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
-destCtx.imageSmoothingEnabled = smoothingEnabled;
+sourceImg.onload = function() {
+  var destCtx = destCanvas.getContext('2d');
+  destCtx.fillStyle = "#FF0000";
+  destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+  destCtx.imageSmoothingEnabled = smoothingEnabled;
 
-// The destination rectangle is larger than the destination canvas.
-// When the destination rectangle is outside the destination image (the scratch bitmap),
-// the pixels that land outside the scratch bitmap are discarded,
-// as if the destination was an infinite canvas
-// whose rendering was clipped to the dimensions of the scratch bitmap.
-destCtx.drawImage(sourceImg, 0, 0, 512, 512, 0, 0, 256, 256);
-
+  // The destination rectangle is larger than the destination canvas.
+  // When the destination rectangle is outside the destination image (the scratch bitmap),
+  // the pixels that land outside the scratch bitmap are discarded,
+  // as if the destination was an infinite canvas
+  // whose rendering was clipped to the dimensions of the scratch bitmap.
+  destCtx.drawImage(sourceImg, 0, 0, 512, 512, 0, 0, 256, 256);
+}
 </script>

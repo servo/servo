@@ -1,0 +1,125 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: masking-opacity-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/masking.html#ObjectAndGroupOpacityProperties">
+      <p>
+        Test to see the effect of applying an opacity property to a group.
+      </p>
+      <p>
+        A blue rectangle with a green rectangle on top are contained in a
+        group. This opacity of the group and the opacity of the rectangles are
+        changed in this test. A red rectangle is provided in the background so
+        that opacity changes are obvious visually.
+      </p>
+      <p>
+        From top to bottom, the tests are as follows.
+      </p>
+      <p>
+        In the top test, the opacities of the group and the individual rectangles are
+        all set to 1. 
+      </p>
+      <p>
+        In the second test, the group is given an opacity of 0.5. 
+      </p>
+      <p>
+        In the third test, the group maintains a group opacity of 1 whereas each individual
+        rectangle is given an opacity of 0.5 in the group. 
+      </p>
+      <p>
+        Lastly, the group and individual rectangles are all given an opacity of 0.5.
+      </p>
+
+
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        In the top test, the green rectangle should appear on top of the blue
+        rectangle.
+      </p>
+      <p>
+        In the second test, the blue
+        rectangle should not show through in the region where the green and blue overlap.
+      </p>
+      <p>
+        In the third test, the blue rectangle
+        should show through in the overlap region.
+      </p>
+      <p>
+        Lastly, the
+        result should be similar to the previous test only fainter (because the opacity) is
+        resulting in less contribution.
+      </p>
+      <p>
+        The rendered picture should match the reference image exactly, except for possible
+        variations in the labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: masking-opacity-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="24" x="50" y="27">Test for opacity property on a group.</text>
+    <rect x="10" y="30" width="100" height="260" fill="red"/>
+    <g opacity="1">
+      <rect x="60" y="50" width="80" height="40" fill="blue"/>
+      <rect x="70" y="60" width="80" height="40" fill="lime"/>
+    </g>
+    <text font-size="20" x="200" y="62">Group opacity: 1</text>
+    <text font-size="20" x="200" y="80">Blue rectangle opacity: 1</text>
+    <text font-size="20" x="200" y="98">Green rectangle opacity: 1</text>
+    <g opacity="0.5">
+      <rect x="60" y="110" width="80" height="40" fill="blue"/>
+      <rect x="70" y="120" width="80" height="40" fill="lime"/>
+    </g>
+    <text font-size="20" x="200" y="122">Group opacity: 0.5</text>
+    <text font-size="20" x="200" y="140">Blue rectangle opacity: 1</text>
+    <text font-size="20" x="200" y="158">Green rectangle opacity: 1</text>
+    <g opacity="1">
+      <rect x="60" y="170" width="80" height="40" fill="blue" opacity=".5"/>
+      <rect x="70" y="180" width="80" height="40" fill="lime" opacity=".5"/>
+    </g>
+    <text font-size="20" x="200" y="182">Group opacity: 1</text>
+    <text font-size="20" x="200" y="200">Blue rectangle opacity: 0.5</text>
+    <text font-size="20" x="200" y="218">Green rectangle opacity: 0.5</text>
+    <g opacity="0.5">
+      <rect x="60" y="230" width="80" height="40" fill="blue" opacity=".5"/>
+      <rect x="70" y="240" width="80" height="40" fill="lime" opacity=".5"/>
+    </g>
+    <text font-size="20" x="200" y="242">Group opacity: 0.5</text>
+    <text font-size="20" x="200" y="260">Blue rectangle opacity: 0.5</text>
+    <text font-size="20" x="200" y="278">Green rectangle opacity: 0.5</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

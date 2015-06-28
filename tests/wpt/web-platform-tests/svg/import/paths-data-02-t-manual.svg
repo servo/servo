@@ -1,0 +1,124 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: paths-data-02-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#PathData">
+        <p>
+          Test that the viewer has the basic capability to handle the 'path'
+          element and its data (d) attribute in combination with the quadratic
+          Bezier curveto commands, Q, q, T, t (plus Mm and Zz).
+        </p>
+        <p>
+          There are 7 subtests, each composed from the quadric Bezier path commands per
+          the label by the subtest.  On-curve control points (i.e., the curve position)
+          are marked by small colored squares.  Subtests are filled, or stroked, or
+          both, using simple style properties and colors.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+      <p>
+      Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-data-02-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="12" x="120" y="14">Quadric bezier curves drawn with commands:</text>
+    <!-- ====================================================================== -->
+    <!-- Quad Bezier with sub-path using M, Q, M, q, & z ====================== -->
+    <!-- ====================================================================== -->
+    <path id="Bez_MQMqz" fill="none" stroke="#0000FF" stroke-width="3" d="M  15   20      Q  30  120    130   30      M 180   80      q  -75 -100    -163  -60z"/>
+    <text font-size="12" x="80" y="86">M, Q, M, q, z</text>
+    <rect x="13" y="18" width="4" height="4" fill="#00C000" stroke="none"/>
+    <rect x="128" y="28" width="4" height="4" fill="#00C000" stroke="none"/>
+    <rect x="178" y="78" width="4" height="4" fill="#00C000" stroke="none"/>
+    <rect x="15" y="18" width="4" height="4" fill="#00C000" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Quad Bezier with sub-path using m, q, z, m, q, & z =================== -->
+    <!-- ====================================================================== -->
+    <path id="Bez_fill_MQzmqz" fill="#FFFF00" stroke="#0000CF" d="M372 130Q272 50 422 10zm70 0q50-150-80-90z"/>
+    <text font-size="12" x="352" y="150">m, q, z, m, q, z</text>
+    <rect x="370" y="128" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="420" y="8" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="440" y="128" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="360" y="38" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Simple Bezier using M, Q, & Z ======================================== -->
+    <!-- ====================================================================== -->
+    <path id="Bez_stroke_MQz" fill="none" stroke="#00FFFF" d="M224 103Q234 -12 304 33Z"/>
+    <text font-size="12" x="192" y="36">M, Q, Z</text>
+    <rect x="222" y="101" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="302" y="31" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Tri Bezier using M, Q, T, Q, & z ===================================== -->
+    <!-- ====================================================================== -->
+    <path id="Tri_MQTQz" fill="#00C000" stroke="#000000" d="M208 168Q258 268 308 168T258 118Q128 88 208 168z"/>
+    <text font-size="12" x="308" y="188">M, Q, T, Q, z</text>
+    <rect x="206" y="166" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="306" y="166" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="256" y="116" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="206" y="206" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Double Bezier using M, Q, Q, & z ===================================== -->
+    <!-- ====================================================================== -->
+    <path id="Inv_V_MCcZ" fill="#00CF00" stroke="none" d="   M   60 100      Q  -40 150      60 200      Q  160 150      60 100       z  "/>
+    <text font-size="12" x="80" y="200">M, Q, Q, z</text>
+    <rect x="58" y="98" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="58" y="198" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="58" y="98" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Sin Wave using M, q, t, t, t, t, & z ================================ -->
+    <!-- ====================================================================== -->
+    <path id="Sin_Mqttttz" fill="none" stroke="#40DD20" d="M240 296q25-100 47 0t47 0t47 0t47 0t47 0z"/>
+    <text font-size="12" x="380" y="236">M, q, t, t, t, t, z</text>
+    <rect x="238" y="294" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="285" y="294" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="332" y="294" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="379" y="294" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="426" y="294" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="473" y="294" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Double Spade using M, q, Q, q, Q, & z ================================ -->
+    <!-- ====================================================================== -->
+    <path id="Dbl_spd_MCcZ" fill="#0000C0" stroke="#00CF00" stroke-width="2" d="M172 193q-100 50 0 50Q72 243 172 293q100 -50 0 -50Q272 243 172 193z"/>
+    <text font-size="12" x="48" y="280">M, q, Q, q, Q, z</text>
+    <rect x="170" y="191" width="4" height="4" fill="#40DD20" stroke="none"/>
+    <rect x="170" y="241" width="4" height="4" fill="#40DD20" stroke="none"/>
+    <rect x="170" y="291" width="4" height="4" fill="#40DD20" stroke="none"/>
+    <rect x="170" y="241" width="4" height="4" fill="#40DD20" stroke="none"/>
+    <rect x="170" y="191" width="4" height="4" fill="#40DD20" stroke="none"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

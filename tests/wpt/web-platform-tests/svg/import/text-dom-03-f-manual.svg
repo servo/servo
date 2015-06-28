@@ -1,0 +1,130 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="DAS" author="CM" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: text-dom-03-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#InterfaceSVGTextContentElement">
+      <p>
+        This tests that SVGTextContentElement.getSubStringLength()
+        handles out-of-range charnum and nchars parameter values correctly.
+      </p>
+      <p>
+        The test consists of 5 sub-tests, which test the different
+        combinations of values passed to SVGTextContentElement.getSubStringLength().
+        The result of each sub-test is shown as a small rectangle: black
+        indicates that the sub-test did not run, red indicates that
+        the sub-test failed and green indicates that the sub-test
+        succeeded.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required. The test relies on support for SVG Fonts.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if all 5 rectangles are green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-dom-03-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x='10' y='30' font-size='13'>Test that getSubStringLength() handles out-of-range arguments</text>
+
+    <font horiz-adv-x='1000'>
+      <font-face font-family='TestFont'/>
+      <glyph unicode='a' horiz-adv-x='100' d='M0,0 h80 v1000 h-80 z'/>
+      <glyph unicode='&#x10000;' horiz-adv-x='200' d='M0,0 h180 v1000 h-180 z'/>
+      <glyph unicode='b' horiz-adv-x='400' d='M0,0 h380 v1000 h-380 z'/>
+    </font>
+
+    <text id='t' x='50' y='50' visibility='hidden' font-family='TestFont' font-size='10'>ababa</text>
+
+    <rect id='r1' x='10' y='40' width='30' height='30'/>
+    <text x='50' y='60'>charnum &lt; 0</text>
+
+    <rect id='r2' x='10' y='80' width='30' height='30'/>
+    <text x='50' y='100'>nchars &lt; 0</text>
+
+    <rect id='r3' x='10' y='120' width='30' height='30'/>
+    <text x='50' y='140'>charnum = 0, nchars = length</text>
+
+    <rect id='r4' x='10' y='160' width='30' height='30'/>
+    <text x='50' y='180'>charnum = 0, nchars = length + 10</text>
+
+    <rect id='r5' x='10' y='200' width='30' height='30'/>
+    <text x='50' y='220'>charnum = 1, nchars = -1</text>
+
+    <script><![CDATA[
+      function $(x) { return document.getElementById(x) }
+
+      var b, t = $('t');
+
+      b = false;
+      try {
+        t.getSubStringLength(-1, 1);
+      } catch (e) {
+        b = e.code == 1; // DOMException.INDEX_SIZE_ERR
+      }
+      $('r1').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        t.getSubStringLength(1, -1);
+      } catch (e) {
+        b = e.code == 1; // DOMException.INDEX_SIZE_ERR
+      }
+      $('r2').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        b = t.getSubStringLength(0, 5) == 11;
+      } catch (e) {
+      }
+      $('r3').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        b = t.getSubStringLength(0, 15) == 11;
+      } catch (e) {
+      }
+      $('r4').setAttribute('fill', b ? 'green' : 'red');
+
+      b = false;
+      try {
+        t.getSubStringLength(1, -1);
+      } catch (e) {
+        b = e.code == 1; // DOMException.INDEX_SIZE_ERR
+      }
+      $('r5').setAttribute('fill', b ? 'green' : 'red');
+    ]]></script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

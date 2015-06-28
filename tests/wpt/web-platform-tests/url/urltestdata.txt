@@ -37,7 +37,7 @@ http://f:\s21\s/\sb\s?\sd\s#\se\s
 /:23  s:http h:example.org p:/:23
 ::  s:http h:example.org p:/foo/::
 ::23  s:http h:example.org p:/foo/::23
-foo://  s:foo p://
+foo://  s:foo h: p:/
 http://a:b@c:29/d  s:http u:a pass:b h:c port:29 p:/d
 http::@c:29  s:http h:example.org p:/foo/:@c:29
 http://&a:foo(b]c@d:2/  s:http u:&a pass:foo(b]c h:d port:2 p:/
@@ -48,9 +48,9 @@ http:\\\\foo.com\\  s:http h:foo.com p:/
 http:\\\\a\\b:c\\d@foo.com\\  s:http h:a p:/b:c/d@foo.com/
 foo:/  s:foo p:/
 foo:/bar.com/  s:foo p:/bar.com/
-foo://///////  s:foo p://///////
-foo://///////bar.com/  s:foo p://///////bar.com/
-foo:////://///  s:foo p:////://///
+foo://///////  s:foo h: p:///////
+foo://///////bar.com/  s:foo h: p:///////bar.com/
+foo:////://///  s:foo h: p://://///
 c:/foo  s:c p:/foo
 //foo/bar  s:http h:foo p:/bar
 http://foo/path;a??e#f#g  s:http h:foo p:/path;a q:??e f:#f#g
@@ -175,7 +175,7 @@ http://%25DOMAIN:foobar@foodomain.com/  s:http u:%25DOMAIN pass:foobar h:foodoma
 http:\\\\www.google.com\\foo  s:http h:www.google.com p:/foo
 http://foo:80/  s:http h:foo p:/
 http://foo:81/  s:http h:foo port:81 p:/
-httpa://foo:80/  s:httpa p://foo:80/
+httpa://foo:80/  s:httpa h:foo port:80 p:/
 http://foo:-80/
 https://foo:443/  s:https h:foo p:/
 https://foo:80/  s:https h:foo port:80 p:/
@@ -341,10 +341,60 @@ http://[google.com]
 # Misc Unicode
 http://foo:\uD83D\uDCA9@example.com/bar  s:http h:example.com p:/bar u:foo pass:%F0%9F%92%A9
 
-# resolving a relative reference against an unknown scheme results in an error
-x test:test
+# resolving a fragment against any scheme succeeds
+\# test:test s:test p:test f:#
+\#x mailto:x@x.com s:mailto p:x@x.com f:#x
+\#x data:, s:data p:, f:#x
+\#x about:blank s:about p:blank f:#x
+\# test:test?test s:test p:test q:?test f:#
+
+# multiple @ in authority state
+https://@test@test@example:800/ http://doesnotmatter/ s:https u:%40test%40test h:example port:800 p:/
+https://@@@example  s:https u:%40%40 h:example p:/
+
+# non-az-09 characters
+http://`{}:`{}@h/`{}?`{}  s:http u:%60%7B%7D pass:%60%7B%7D h:h p:/%60%7B%7D q:?`{}
 
 # Credentials in base
 /some/path http://user@example.org/smth s:http u:user h:example.org p:/some/path
  http://user:pass@example.org:21/smth s:http u:user pass:pass h:example.org port:21 p:/smth
 /some/path http://user:pass@example.org:21/smth s:http u:user pass:pass h:example.org port:21 p:/some/path
+
+# a set of tests designed by zcorpan for relative URLs with unknown schemes
+i sc:sd
+i sc:sd/sd
+i sc:/pa/pa s:sc p:/pa/i
+i sc://ho/pa s:sc h:ho p:/i
+i sc:///pa/pa s:sc h: p:/pa/i
+../i sc:sd
+../i sc:sd/sd
+../i sc:/pa/pa s:sc p:/i
+../i sc://ho/pa s:sc h:ho p:/i
+../i sc:///pa/pa s:sc h: p:/i
+/i sc:sd
+/i sc:sd/sd
+/i sc:/pa/pa s:sc p:/i
+/i sc://ho/pa s:sc h:ho p:/i
+/i sc:///pa/pa s:sc h: p:/i
+?i sc:sd
+?i sc:sd/sd
+?i sc:/pa/pa s:sc p:/pa/pa q:?i
+?i sc://ho/pa s:sc h:ho p:/pa q:?i
+?i sc:///pa/pa s:sc h: p:/pa/pa q:?i
+\#i sc:sd s:sc p:sd f:#i
+\#i sc:sd/sd s:sc p:sd/sd f:#i
+\#i sc:/pa/pa s:sc p:/pa/pa f:#i
+\#i sc://ho/pa s:sc h:ho p:/pa f:#i
+\#i sc:///pa/pa s:sc h: p:/pa/pa f:#i
+
+# make sure that relative URL logic works on known typically non-relative schemes too
+about:/../ about:blank s:about p:/
+data:/../ about:blank s:data p:/
+javascript:/../ about:blank s:javascript p:/
+mailto:/../ about:blank s:mailto p:/
+
+# unknown schemes and non-ASCII domains
+sc://ñ.test/ about:blank s:sc h:xn--ida.test p:/
+
+# unknown schemes and backslashes
+sc:\\../ about:blank s:sc p:\\../
