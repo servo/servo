@@ -29,22 +29,22 @@ def run_tests(paths=None, **kwargs):
     return 0 if success else 1
 
 def set_defaults(paths, kwargs):
-    if kwargs["product"] is None:
+    if kwargs.get("product") is None:
         kwargs["product"] = "servo"
 
-    if kwargs["config"] is None and "config" in paths:
+    if kwargs.get("config") is None and "config" in paths:
         kwargs["config"] = paths["config"]
 
-    if kwargs["include_manifest"] is None and "include_manifest" in paths:
+    if kwargs.get("include_manifest") is None and "include_manifest" in paths:
         kwargs["include_manifest"] = paths["include_manifest"]
 
-    if kwargs["binary"] is None:
-        bin_dir = "release" if kwargs["release"] else "debug"
+    if kwargs.get("binary") is None:
+        bin_dir = "release" if kwargs.get("release") else "debug"
         bin_path = servo_path("target", bin_dir, "servo")
 
         kwargs["binary"] = bin_path
 
-    if kwargs["processes"] is None:
+    if kwargs.get("processes") is None:
         kwargs["processes"] = multiprocessing.cpu_count()
 
     wptcommandline.check_args(kwargs)
