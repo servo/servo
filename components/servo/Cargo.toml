@@ -43,6 +43,7 @@ git = "https://github.com/servo/rust-png"
 default = ["glutin_app", "window"]
 window = ["glutin_app/window"]
 headless = ["glutin_app/headless"]
+debugmozjs = ['js/debugmozjs']
 
 # Uncomment to profile on Linux:
 #
@@ -75,6 +76,9 @@ path = "../util"
 
 [dependencies.script]
 path = "../script"
+
+[dependencies.js]
+git = "https://github.com/servo/rust-mozjs"
 
 [dependencies.layout]
 path = "../layout"
