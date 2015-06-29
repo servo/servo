@@ -5,7 +5,7 @@
  *
  * References:
  *   MDN Docs - https://developer.mozilla.org/en-US/docs/Web/API/console
- *   Draft Spec - http://sideshowbarker.github.io/console-spec/
+ *   Draft Spec - https://sideshowbarker.github.io/console-spec/
  *
  * © Copyright 2014 Mozilla Foundation.
  */

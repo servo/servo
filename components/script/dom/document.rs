@@ -270,11 +270,11 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<&HTMLScriptElement>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32;
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32);
-    /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
+    /// https://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self);
     fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
     fn load_async(self, load: LoadType, listener: Box<AsyncResponseTarget + Send>);
@@ -878,7 +878,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32 {
         let window = self.window.root();
         let window = window.r();
@@ -896,7 +896,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         ident
     }
 
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().len() == 0 {
@@ -909,7 +909,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
+    /// https://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self) {
         let animation_frame_list;
         {

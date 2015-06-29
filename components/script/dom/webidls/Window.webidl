@@ -149,7 +149,7 @@ interface WindowLocalStorage {
 };
 Window implements WindowLocalStorage;
 
-// http://w3c.github.io/animation-timing/#Window-interface-extensions
+// https://w3c.github.io/animation-timing/#Window-interface-extensions
 partial interface Window {
   long requestAnimationFrame(FrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
