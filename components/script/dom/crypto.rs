@@ -12,16 +12,20 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType, Type};
 
+use std::cell::RefCell;
 use std::ptr;
 use std::slice;
 
 use rand::{Rng, OsRng};
+
+no_jsmanaged_fields!(OsRng);
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
     global: GlobalField,
+    rng: RefCell<OsRng>,
 }
 
 impl Crypto {
@@ -29,6 +33,7 @@ impl Crypto {
         Crypto {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(&global),
+            rng: RefCell::new(OsRng::new().unwrap()),
         }
     }
 
@@ -58,10 +63,9 @@ impl<'a> CryptoMethods for &'a Crypto {
             slice::from_raw_parts_mut(data, length as usize)
         };
 
-        let mut r = OsRng::new().unwrap();
-        r.fill_bytes(&mut buffer);
+        self.rng.borrow_mut().fill_bytes(&mut buffer);
 
-        return Ok(input);
+        Ok(input)
     }
 }
 
