@@ -14,6 +14,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
+use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{self, AttributeHandlers};
@@ -39,7 +40,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 use util::str::{self, LengthOrPercentageOrAuto};
-use js::jsapi::RootedValue;
+use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 
 enum SandboxAllowance {
@@ -155,6 +156,8 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         if self.Mozbrowser() {
             let window = window_from_node(self);
             let cx = window.r().get_cx();
+            let _ar = JSAutoRequest::new(cx);
+            let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
             let mut detail = RootedValue::new(cx, UndefinedValue());
             event.detail().to_jsval(cx, detail.handle_mut());
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
