@@ -10,7 +10,6 @@ use euclid::length::Length;
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::size::TypedSize2D;
 use euclid::rect::Rect;
-use gfx::paint_task::Msg as PaintMsg;
 use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
@@ -76,25 +75,25 @@ pub trait CompositorLayer {
     fn update_layer(&self, layer_properties: LayerProperties);
 
     fn add_buffers<Window>(&self,
-                           compositor: &IOCompositor<Window>,
+                           compositor: &mut IOCompositor<Window>,
                            new_buffers: Box<LayerBufferSet>,
                            epoch: Epoch)
                            where Window: WindowMethods;
 
     /// Destroys all layer tiles, sending the buffers back to the painter to be destroyed or
     /// reused.
-    fn clear<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods;
+    fn clear<Window>(&self, compositor: &mut IOCompositor<Window>) where Window: WindowMethods;
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// painter to be destroyed or reused.
-    fn clear_all_tiles<Window>(&self, compositor: &IOCompositor<Window>)
+    fn clear_all_tiles<Window>(&self, compositor: &mut IOCompositor<Window>)
                                where Window: WindowMethods;
 
     /// Removes the root layer (and any children) for a given pipeline from the
     /// compositor. Buffers that the compositor is holding are returned to the
     /// owning paint task.
     fn remove_root_layer_with_pipeline_id<Window>(&self,
-                                                  compositor: &IOCompositor<Window>,
+                                                  compositor: &mut IOCompositor<Window>,
                                                   pipeline_id: PipelineId)
                                                   where Window: WindowMethods;
 
@@ -214,7 +213,7 @@ impl CompositorLayer for Layer<CompositorData> {
     // If the epoch of the message does not match the layer's epoch, the message is ignored, the
     // layer buffer set is consumed, and None is returned.
     fn add_buffers<Window>(&self,
-                           compositor: &IOCompositor<Window>,
+                           compositor: &mut IOCompositor<Window>,
                            new_buffers: Box<LayerBufferSet>,
                            epoch: Epoch)
                            where Window: WindowMethods {
@@ -225,33 +224,21 @@ impl CompositorLayer for Layer<CompositorData> {
             self.add_buffer(buffer);
         }
 
-        let unused_buffers = self.collect_unused_buffers();
-        if !unused_buffers.is_empty() { // send back unused buffers
-            let pipeline = compositor.get_pipeline(self.pipeline_id());
-            let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(unused_buffers));
-        }
+        compositor.cache_unused_buffers(self.collect_unused_buffers())
     }
 
-    fn clear<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods {
-        let mut buffers = self.collect_buffers();
+    fn clear<Window>(&self, compositor: &mut IOCompositor<Window>) where Window: WindowMethods {
+        let buffers = self.collect_buffers();
 
         if !buffers.is_empty() {
-            // We have no way of knowing without a race whether the paint task is even up and
-            // running, but mark the buffers as not leaking. If the paint task died, then the
-            // buffers are going to be cleaned up.
-            for buffer in buffers.iter_mut() {
-                buffer.mark_wont_leak()
-            }
-
-            let pipeline = compositor.get_pipeline(self.pipeline_id());
-            let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(buffers));
+            compositor.cache_unused_buffers(buffers);
         }
     }
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// painter to be destroyed or reused.
     fn clear_all_tiles<Window>(&self,
-                               compositor: &IOCompositor<Window>)
+                               compositor: &mut IOCompositor<Window>)
                                where Window: WindowMethods {
         self.clear(compositor);
         for kid in self.children().iter() {
@@ -260,7 +247,7 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     fn remove_root_layer_with_pipeline_id<Window>(&self,
-                                                  compositor: &IOCompositor<Window>,
+                                                  compositor: &mut IOCompositor<Window>,
                                                   pipeline_id: PipelineId)
                                                   where Window: WindowMethods {
         // Find the child that is the root layer for this pipeline.

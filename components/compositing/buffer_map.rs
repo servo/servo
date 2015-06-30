@@ -8,7 +8,6 @@ use euclid::size::Size2D;
 use layers::platform::surface::NativeDisplay;
 use layers::layers::LayerBuffer;
 use std::hash::{Hash, Hasher};
-use std::mem;
 
 /// This is a struct used to store buffers when they are not in use.
 /// The paint task can quickly query for a particular size of buffer when it
@@ -67,6 +66,13 @@ impl BufferMap {
             mem: 0,
             max_mem: max_mem,
             counter: 0,
+        }
+    }
+
+    pub fn insert_buffers(&mut self, display: &NativeDisplay, buffers: Vec<Box<LayerBuffer>>) {
+        for mut buffer in buffers.into_iter() {
+            buffer.mark_wont_leak();
+            self.insert(display, buffer)
         }
     }
 
@@ -148,17 +154,6 @@ impl BufferMap {
         }
 
         ret
-    }
-
-    /// Destroys all buffers.
-    pub fn clear(&mut self, display: &NativeDisplay) {
-        let map = mem::replace(&mut self.map, HashMap::new());
-        for (_, value) in map.into_iter() {
-            for tile in value.buffers.into_iter() {
-                tile.destroy(display)
-            }
-        }
-        self.mem = 0
     }
 
     pub fn mem(&self) -> usize {
