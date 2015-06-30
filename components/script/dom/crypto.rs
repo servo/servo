@@ -24,21 +24,19 @@ no_jsmanaged_fields!(OsRng);
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
-    global: GlobalField,
     rng: RefCell<OsRng>,
 }
 
 impl Crypto {
-    fn new_inherited(global: GlobalRef) -> Crypto {
+    fn new_inherited() -> Crypto {
         Crypto {
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(&global),
             rng: RefCell::new(OsRng::new().unwrap()),
         }
     }
 
     pub fn new(global: GlobalRef) -> Root<Crypto> {
-        reflect_dom_object(box Crypto::new_inherited(global), global, CryptoBinding::Wrap)
+        reflect_dom_object(box Crypto::new_inherited(), global, CryptoBinding::Wrap)
     }
 }
 
