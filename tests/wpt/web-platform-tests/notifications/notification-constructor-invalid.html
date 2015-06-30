@@ -10,7 +10,7 @@
   <div id="log"></div>
   <script>
     test(function() {
-      assert_throws("new TypeError()", function() {
+      assert_throws(new TypeError(), function() {
         var notification = new Notification();
       });
     }, "Test checks that notification constructor arguments can't be empty");

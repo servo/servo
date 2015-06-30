@@ -1,41 +1,41 @@
 (function(window) {
     var SEGMENT_INFO_LIST = [
-	{
-	    url: 'mp4/test.mp4',
-	    type: 'video/mp4; codecs="mp4a.40.2,avc1.4d400d"',
-	    duration: 6.0756,
-	    init: { offset: 0, size: 1197 },
-	    media: [
-		{ offset: 1241, size: 17845, timecode: 0.000000 },
-		{ offset: 19130, size: 5551, timecode: 0.464800 },
-		{ offset: 24725, size: 10944, timecode: 0.763600 },
-		{ offset: 35713, size: 7131, timecode: 0.863200 },
-		{ offset: 42888, size: 2513, timecode: 1.128800 },
-		{ offset: 45457, size: 3022, timecode: 1.261600 },
-		{ offset: 48479, size: 815, timecode: 1.427600 },
-		{ offset: 49338, size: 2818, timecode: 1.460800 },
-		{ offset: 52200, size: 11581, timecode: 1.593600 },
-		{ offset: 63825, size: 3003, timecode: 1.726400 },
-		{ offset: 66872, size: 6390, timecode: 1.892400 },
-		{ offset: 73306, size: 3740, timecode: 2.124800 },
-		{ offset: 77102, size: 11779, timecode: 2.324000 },
-		{ offset: 88881, size: 851, timecode: 2.490000 },
-		{ offset: 89776, size: 4236, timecode: 2.523200 },
-		{ offset: 94056, size: 9538, timecode: 2.755600 },
-		{ offset: 103638, size: 13295, timecode: 3.154000 },
-		{ offset: 116977, size: 309, timecode: 3.386400 },
-		{ offset: 117330, size: 5806, timecode: 3.419600 },
-		{ offset: 123180, size: 4392, timecode: 3.751600 },
-		{ offset: 127616, size: 15408, timecode: 3.984000 },
-		{ offset: 143068, size: 9899, timecode: 4.216400 },
-		{ offset: 153011, size: 11562, timecode: 4.780800 },
-		{ offset: 164617, size: 7398, timecode: 4.946800 },
-		{ offset: 172059, size: 5698, timecode: 5.212400 },
-		{ offset: 177801, size: 11682, timecode: 5.511200 },
-		{ offset: 189527, size: 3023, timecode: 5.677200 },
-		{ offset: 192594, size: 5726, timecode: 5.843200 },
-	    ]
-	},
+        {
+            url: 'mp4/test.mp4',
+            type: 'video/mp4; codecs="mp4a.40.2,avc1.4d400d"',
+            duration: 6.0756,
+            init: { offset: 0, size: 1197 },
+            media: [
+                { offset: 1241, size: 17845, timecode: 0.000000 },
+                { offset: 19130, size: 5551, timecode: 0.464800 },
+                { offset: 24725, size: 10944, timecode: 0.763600 },
+                { offset: 35713, size: 7131, timecode: 0.863200 },
+                { offset: 42888, size: 2513, timecode: 1.128800 },
+                { offset: 45457, size: 3022, timecode: 1.261600 },
+                { offset: 48479, size: 815, timecode: 1.427600 },
+                { offset: 49338, size: 2818, timecode: 1.460800 },
+                { offset: 52200, size: 11581, timecode: 1.593600 },
+                { offset: 63825, size: 3003, timecode: 1.726400 },
+                { offset: 66872, size: 6390, timecode: 1.892400 },
+                { offset: 73306, size: 3740, timecode: 2.124800 },
+                { offset: 77102, size: 11779, timecode: 2.324000 },
+                { offset: 88881, size: 851, timecode: 2.490000 },
+                { offset: 89776, size: 4236, timecode: 2.523200 },
+                { offset: 94056, size: 9538, timecode: 2.755600 },
+                { offset: 103638, size: 13295, timecode: 3.154000 },
+                { offset: 116977, size: 309, timecode: 3.386400 },
+                { offset: 117330, size: 5806, timecode: 3.419600 },
+                { offset: 123180, size: 4392, timecode: 3.751600 },
+                { offset: 127616, size: 15408, timecode: 3.984000 },
+                { offset: 143068, size: 9899, timecode: 4.216400 },
+                { offset: 153011, size: 11562, timecode: 4.780800 },
+                { offset: 164617, size: 7398, timecode: 4.946800 },
+                { offset: 172059, size: 5698, timecode: 5.212400 },
+                { offset: 177801, size: 11682, timecode: 5.511200 },
+                { offset: 189527, size: 3023, timecode: 5.677200 },
+                { offset: 192594, size: 5726, timecode: 5.843200 },
+            ]
+        },
         {
             url: 'webm/test.webm',
             type: 'video/webm; codecs="vp8, vorbis"',
@@ -274,27 +274,27 @@
 
     MediaSourceUtil.append = function(test, sourceBuffer, data, callback)
     {
-	function onUpdate() {
-	    sourceBuffer.removeEventListener("update", onUpdate);
-	    callback();
-	}
+        function onUpdate() {
+            sourceBuffer.removeEventListener("update", onUpdate);
+            callback();
+        }
         sourceBuffer.addEventListener("update", onUpdate);
 
-	test.failOnEvent(sourceBuffer, "error");
+        sourceBuffer.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
-	sourceBuffer.appendBuffer(data);
+        sourceBuffer.appendBuffer(data);
     };
 
     MediaSourceUtil.appendUntilEventFires = function(test, mediaElement, eventName, sourceBuffer, mediaData, segmentInfo, startingIndex)
     {
-	var eventFired = false;
-	function onEvent() {
-	    mediaElement.removeEventListener(eventName, onEvent);
-	    eventFired = true;
-	}
-	mediaElement.addEventListener(eventName, onEvent);
+        var eventFired = false;
+        function onEvent() {
+            mediaElement.removeEventListener(eventName, onEvent);
+            eventFired = true;
+        }
+        mediaElement.addEventListener(eventName, onEvent);
 
-	var i = startingIndex;
+        var i = startingIndex;
         var onAppendDone = function() {
             if (eventFired)
                 return;
@@ -308,19 +308,6 @@
 
     function addExtraTestMethods(test)
     {
-        test.failOnEvent = function(object, eventName)
-        {
-            object.addEventListener(eventName, test.step_func(function(event)
-            {
-                assert_unreached("Unexpected event '" + eventName + "'");
-            }));
-        };
-
-        test.endOnEvent = function(object, eventName)
-        {
-            object.addEventListener(eventName, test.step_func(function(event) { test.done(); }));
-        };
-
         test.eventExpectations_ = new EventExpectationsManager(test);
         test.expectEvent = function(object, eventName, description)
         {
@@ -401,7 +388,7 @@
                 return;
             }
 
-            test.failOnEvent(mediaElement, 'error');
+            mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
             var sourceBuffer = mediaSource.addSourceBuffer(segmentInfo.type);
             MediaSourceUtil.loadBinaryData(test, segmentInfo.url, function(mediaData)

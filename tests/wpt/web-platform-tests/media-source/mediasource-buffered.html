@@ -29,8 +29,8 @@
                 mediasource_test(function(test, mediaElement, mediaSource)
                 {
                     mediaElement.pause();
-                    test.failOnEvent(mediaElement, "error");
-                    test.endOnEvent(mediaElement, "ended");
+                    mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+                    mediaElement.addEventListener("ended", test.step_func_done());
 
                     MediaSourceUtil.fetchManifestAndData(test, manifestFilenameA, function(typeA, dataA)
                     {
@@ -86,8 +86,8 @@
             mediasource_test(function(test, mediaElement, mediaSource)
             {
                 mediaElement.pause();
-                test.failOnEvent(mediaElement, "error");
-                test.endOnEvent(mediaElement, "ended");
+                mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+                mediaElement.addEventListener("ended", test.step_func_done());
 
                 MediaSourceUtil.fetchManifestAndData(test, subType + "/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json", function(type, data)
                 {
@@ -144,8 +144,8 @@
             mediasource_test(function(test, mediaElement, mediaSource)
             {
                 mediaElement.pause();
-                test.failOnEvent(mediaElement, "error");
-                test.endOnEvent(mediaElement, "ended");
+                mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+                mediaElement.addEventListener("ended", test.step_func_done());
 
                 MediaSourceUtil.fetchManifestAndData(test, subType + "/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json", function(type, data)
                 {
@@ -173,8 +173,8 @@
             mediasource_test(function(test, mediaElement, mediaSource)
             {
                 mediaElement.pause();
-                test.failOnEvent(mediaElement, "error");
-                test.endOnEvent(mediaElement, "ended");
+                mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+                mediaElement.addEventListener("ended", test.step_func_done());
 
                 var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
 

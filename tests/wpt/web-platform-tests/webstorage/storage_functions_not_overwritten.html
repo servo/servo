@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>WebStorage Test: Storage - set key with the same name as storage function</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+["localStorage", "sessionStorage"].forEach(function(name) {
+    test(function() {
+        var storage = window[name];
+        storage.clear();
+
+        runTest();
+        function doWedgeThySelf() {
+            storage.setItem("clear", "almost");
+            storage.setItem("key", "too");
+            storage.setItem("getItem", "funny");
+            storage.setItem("removeItem", "to");
+            storage.setItem("length", "be");
+            storage.setItem("setItem", "true");
+        }
+
+        function shouldBeEqualToString(express, expectValue) {
+            assert_equals(typeof express, "string");
+            assert_equals(express, expectValue);
+        }
+
+        function runTest() {
+            doWedgeThySelf();
+
+            shouldBeEqualToString(storage.getItem('clear'), "almost");
+            shouldBeEqualToString(storage.getItem('key'), "too");
+            shouldBeEqualToString(storage.getItem('getItem'), "funny");
+            shouldBeEqualToString(storage.getItem('removeItem'), "to");
+            shouldBeEqualToString(storage.getItem('length'), "be");
+            shouldBeEqualToString(storage.getItem('setItem'), "true");
+
+            // Test to see if an exception is thrown for any of the built in
+            // functions.
+            storage.setItem("test", "123");
+            storage.key(0);
+            storage.getItem("test");
+            storage.removeItem("test");
+            storage.clear();
+            assert_equals(storage.length, 0);
+        }
+
+    }, name + " should be not rendered unusable by setting a key with the same name as a storage function such that the function is hidden");
+});
+</script>
+</body>
+</html>
+

@@ -49,8 +49,8 @@
                 test.waitForExpectedEvents(function()
                 {
                     // No more seeking or seeked events should occur.
-                    test.failOnEvent(mediaElement, 'seeking');
-                    test.failOnEvent(mediaElement, 'seeked');
+                    mediaElement.addEventListener('seeking', test.unreached_func("Unexpected event 'seeking'"));
+                    mediaElement.addEventListener('seeked', test.unreached_func("Unexpected event 'seeked'"));
 
                     assert_false(mediaElement.seeking, 'Element is not seeking');
                     assert_greater_than_equal(mediaElement.currentTime, 1.0, 'Element time is at or after last seek time');

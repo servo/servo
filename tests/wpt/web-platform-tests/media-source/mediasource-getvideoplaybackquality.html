@@ -33,7 +33,7 @@
                   timeUpdateCount++;
               }));
 
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, 'updatestart', 'sourceBuffer');
               test.expectEvent(sourceBuffer, 'update', 'sourceBuffer');
