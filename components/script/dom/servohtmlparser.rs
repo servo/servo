@@ -12,7 +12,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{window_from_node, Node};
 use dom::window::Window;
@@ -28,7 +28,7 @@ use encoding::types::{Encoding, DecoderTrap};
 use std::cell::{Cell, RefCell};
 use std::default::Default;
 use url::Url;
-use js::jsapi::{JSTracer, JSObject};
+use js::jsapi::JSTracer;
 use html5ever::tokenizer;
 use html5ever::tree_builder;
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
@@ -156,10 +156,7 @@ impl AsyncResponseListener for ParserContext {
 impl PreInvoke for ParserContext {
 }
 
-// NB: JSTraceable is *not* auto-derived.
-// You must edit the impl below if you add fields!
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct ServoHTMLParser {
     reflector_: Reflector,
     tokenizer: DOMRefCell<Tokenizer>,
@@ -274,15 +271,6 @@ impl ServoHTMLParser {
     }
 }
 
-impl Reflectable for ServoHTMLParser {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-    fn init_reflector(&mut self, obj: *mut JSObject) {
-        self.reflector_.set_jsobject(obj);
-    }
-}
-
 trait PrivateServoHTMLParserHelpers {
     /// Synchronously run the tokenizer parse loop until explicitly suspended or
     /// the tokenizer runs out of input.
@@ -365,21 +353,15 @@ impl tree_builder::Tracer for Tracer {
     }
 }
 
-impl JSTraceable for ServoHTMLParser {
-    #[allow(unsafe_code)]
+impl JSTraceable for Tokenizer {
     fn trace(&self, trc: *mut JSTracer) {
-        self.reflector_.trace(trc);
-
         let tracer = Tracer {
             trc: trc,
         };
         let tracer = &tracer as &tree_builder::Tracer<Handle=JS<Node>>;
 
-        unsafe {
-            let tokenizer = self.tokenizer.borrow_for_gc_trace();
-            let tree_builder = tokenizer.sink();
-            tree_builder.trace_handles(tracer);
-            tree_builder.sink().trace(trc);
-        }
+        let tree_builder = self.sink();
+        tree_builder.trace_handles(tracer);
+        tree_builder.sink().trace(trc);
     }
 }
