@@ -4,7 +4,7 @@
 
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
-use compositor_task::{CompositorTask, Msg};
+use compositor_task::Msg;
 use constellation::SendableFrameTree;
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
@@ -23,6 +23,7 @@ use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
+use layers::platform::surface::NativeDisplay;
 use layers::rendergl::RenderContext;
 use layers::rendergl;
 use layers::scene::Scene;
@@ -63,6 +64,9 @@ enum ReadyState {
 pub struct IOCompositor<Window: WindowMethods> {
     /// The application window.
     window: Rc<Window>,
+
+    /// The display this compositor targets.
+    native_display: NativeDisplay,
 
     /// The port on which we receive messages.
     port: Box<CompositorReceiver>,
@@ -251,8 +255,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window
         };
+        let native_display = window.native_display();
         IOCompositor {
             window: window,
+            native_display: native_display,
             port: receiver,
             context: None,
             root_pipeline: None,
@@ -361,8 +367,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.send_buffer_requests_for_all_layers();
             }
 
-            (Msg::GetGraphicsMetadata(chan), ShutdownState::NotShuttingDown) => {
-                chan.send(Some(self.window.native_metadata())).unwrap();
+            (Msg::GetNativeDisplay(chan), ShutdownState::NotShuttingDown) => {
+                chan.send(Some(self.native_display.clone())).unwrap();
             }
 
             (Msg::SetLayerRect(pipeline_id, layer_id, rect),
@@ -1446,9 +1452,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn initialize_compositing(&mut self) {
-        let context = CompositorTask::create_graphics_context(&self.window.native_metadata());
         let show_debug_borders = opts::get().show_debug_borders;
-        self.context = Some(rendergl::RenderContext::new(context,
+        self.context = Some(rendergl::RenderContext::new(self.native_display.clone(),
                                                          show_debug_borders,
                                                          opts::get().output_file.is_some()))
     }

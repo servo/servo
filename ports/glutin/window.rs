@@ -11,7 +11,7 @@ use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use glutin;
 use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeGraphicsMetadata;
+use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
 use net::net_error_list::NetError;
@@ -617,29 +617,16 @@ impl WindowMethods for Window {
     }
 
     #[cfg(target_os="linux")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
+    fn native_display(&self) -> NativeDisplay {
         use x11::xlib;
-        NativeGraphicsMetadata {
-            display: unsafe { self.window.platform_display() as *mut xlib::Display }
-        }
-    }
-
-    #[cfg(target_os="macos")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use cgl::{CGLGetCurrentContext, CGLGetPixelFormat};
         unsafe {
-            NativeGraphicsMetadata {
-                pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),
-            }
+            NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
         }
     }
 
-    #[cfg(target_os="android")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use egl::egl::GetCurrentDisplay;
-        NativeGraphicsMetadata {
-            display: GetCurrentDisplay(),
-        }
+    #[cfg(not(target_os="linux"))]
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new()
     }
 
     /// Helper function to handle keyboard events.
@@ -795,10 +782,8 @@ impl WindowMethods for Window {
     }
 
     #[cfg(target_os="linux")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        NativeGraphicsMetadata {
-            display: ptr::null_mut()
-        }
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new(ptr::null_mut())
     }
 
     /// Helper function to handle keyboard events.

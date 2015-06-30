@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use euclid::size::Size2D;
-use layers::platform::surface::NativePaintingGraphicsContext;
+use layers::platform::surface::NativeDisplay;
 use layers::layers::LayerBuffer;
 use std::hash::{Hash, Hasher};
 use std::mem;
@@ -71,14 +71,14 @@ impl BufferMap {
     }
 
     /// Insert a new buffer into the map.
-    pub fn insert(&mut self, graphics_context: &NativePaintingGraphicsContext, new_buffer: Box<LayerBuffer>) {
+    pub fn insert(&mut self, display: &NativeDisplay, new_buffer: Box<LayerBuffer>) {
         let new_key = BufferKey::get(new_buffer.get_size_2d());
 
         // If all our buffers are the same size and we're already at our
         // memory limit, no need to store this new buffer; just let it drop.
         if self.mem + new_buffer.get_mem() > self.max_mem && self.map.len() == 1 &&
             self.map.contains_key(&new_key) {
-            new_buffer.destroy(graphics_context);
+            new_buffer.destroy(display);
             return;
         }
 
@@ -112,7 +112,7 @@ impl BufferMap {
                 let list = &mut self.map.get_mut(&old_key).unwrap().buffers;
                 let condemned_buffer = list.pop().take().unwrap();
                 self.mem -= condemned_buffer.get_mem();
-                condemned_buffer.destroy(graphics_context);
+                condemned_buffer.destroy(display);
                 list.is_empty()
             }
             { // then
@@ -151,11 +151,11 @@ impl BufferMap {
     }
 
     /// Destroys all buffers.
-    pub fn clear(&mut self, graphics_context: &NativePaintingGraphicsContext) {
+    pub fn clear(&mut self, display: &NativeDisplay) {
         let map = mem::replace(&mut self.map, HashMap::new());
         for (_, value) in map.into_iter() {
             for tile in value.buffers.into_iter() {
-                tile.destroy(graphics_context)
+                tile.destroy(display)
             }
         }
         self.mem = 0

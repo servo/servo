@@ -10,7 +10,7 @@ use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeGraphicsMetadata;
+use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use net::net_error_list::NetError;
 use script_traits::MouseButton;
@@ -119,8 +119,8 @@ pub trait WindowMethods {
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
 
-    /// Gets the OS native graphics information for this window.
-    fn native_metadata(&self) -> NativeGraphicsMetadata;
+    /// Gets the OS native graphics display for this window.
+    fn native_display(&self) -> NativeDisplay;
 
     /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
     /// UFCS in Rust yet.

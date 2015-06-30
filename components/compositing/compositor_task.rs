@@ -13,7 +13,7 @@ use windowing::{WindowEvent, WindowMethods};
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
+use layers::platform::surface::NativeDisplay;
 use layers::layers::LayerBufferSet;
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, FrameTreeId};
 use msg::compositor_msg::{PaintListener, ScriptListener};
@@ -91,9 +91,9 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
 
 /// Implementation of the abstract `PaintListener` interface.
 impl PaintListener for Box<CompositorProxy+'static+Send> {
-    fn graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
+    fn native_display(&mut self) -> Option<NativeDisplay> {
         let (chan, port) = channel();
-        self.send(Msg::GetGraphicsMetadata(chan));
+        self.send(Msg::GetNativeDisplay(chan));
         // If the compositor is shutting down when a paint task
         // is being created, the compositor won't respond to
         // this message, resulting in an eventual panic. Instead,
@@ -141,7 +141,7 @@ pub enum Msg {
     /// is the pixel format.
     ///
     /// The headless compositor returns `None`.
-    GetGraphicsMetadata(Sender<Option<NativeGraphicsMetadata>>),
+    GetNativeDisplay(Sender<Option<NativeDisplay>>),
 
     /// Tells the compositor to create or update the layers for a pipeline if necessary
     /// (i.e. if no layer with that ID exists).
@@ -191,7 +191,7 @@ impl Debug for Msg {
         match *self {
             Msg::Exit(..) => write!(f, "Exit"),
             Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
-            Msg::GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
+            Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
             Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
             Msg::SetLayerRect(..) => write!(f, "SetLayerRect"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
@@ -219,20 +219,6 @@ impl Debug for Msg {
 pub struct CompositorTask;
 
 impl CompositorTask {
-    /// Creates a graphics context. Platform-specific.
-    ///
-    /// FIXME(pcwalton): Probably could be less platform-specific, using the metadata abstraction.
-    #[cfg(target_os="linux")]
-    pub fn create_graphics_context(native_metadata: &NativeGraphicsMetadata)
-                                    -> NativeCompositingGraphicsContext {
-        NativeCompositingGraphicsContext::from_display(native_metadata.display)
-    }
-    #[cfg(not(target_os="linux"))]
-    pub fn create_graphics_context(_: &NativeGraphicsMetadata)
-                                    -> NativeCompositingGraphicsContext {
-        NativeCompositingGraphicsContext::new()
-    }
-
     pub fn create<Window>(window: Option<Rc<Window>>,
                           sender: Box<CompositorProxy+Send>,
                           receiver: Box<CompositorReceiver>,
