@@ -9,7 +9,7 @@
 
 use animation;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, SharedLayoutContextWrapper, heap_size_of_local_context};
+use context::{SharedLayoutContext, heap_size_of_local_context};
 use css::node_style::StyledNode;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
@@ -63,7 +63,6 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
-use std::ptr;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use style::computed_values::{filter, mix_blend_mode};
@@ -109,7 +108,7 @@ pub struct LayoutTaskData {
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<SharedLayoutContextWrapper, WorkQueueData>>,
+    pub parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
 
     /// The dirty rect. Used during display list construction.
     pub dirty: Rect<Au>,
