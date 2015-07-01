@@ -14,7 +14,7 @@ interface GlobalCrypto {
 };
 
 Window implements GlobalCrypto;
-//WorkerGlobalScope implements GlobalCrypto;
+WorkerGlobalScope implements GlobalCrypto;
 
 //[Exposed=(Window,Worker)]
 interface Crypto {
