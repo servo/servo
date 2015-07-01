@@ -259,6 +259,9 @@ pub trait DocumentHelpers<'a> {
     fn get_body_attribute(self, local_name: &Atom) -> DOMString;
     fn set_body_attribute(self, local_name: &Atom, value: DOMString);
 
+    fn fire_mouse_event(self, point: Point2D<f32>,
+                             target: &EventTarget,
+                             event_name: String);
     fn handle_mouse_event(self, js_runtime: *mut JSRuntime,
                           button: MouseButton, point: Point2D<f32>,
                           mouse_event_type: MouseEventType);
@@ -670,6 +673,29 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
     }
 
+    fn fire_mouse_event(self,
+                        point: Point2D<f32>,
+                        target: &EventTarget,
+                        event_name: String) {
+        let x = point.x.to_i32().unwrap_or(0);
+        let y = point.y.to_i32().unwrap_or(0);
+
+        let window = self.window.root();
+
+        let mouse_event = MouseEvent::new(window.r(),
+                                          event_name,
+                                          EventBubbles::Bubbles,
+                                          EventCancelable::Cancelable,
+                                          Some(window.r()),
+                                          0i32,
+                                          x, y, x, y,
+                                          false, false, false, false,
+                                          0i16,
+                                          None);
+        let event = EventCast::from_ref(mouse_event.r());
+        event.fire(target);
+    }
+
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
@@ -688,7 +714,15 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // under the mouse.
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
-                target.root().r().set_hover_state(false);
+                let target = target.root();
+                let target_ref = target.r();
+                if target_ref.get_hover_state() {
+                    target_ref.set_hover_state(false);
+
+                    let target = EventTargetCast::from_ref(target_ref);
+
+                    self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                }
             }
         }
 
@@ -700,6 +734,11 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             let target_ref = target.r();
             if !target_ref.get_hover_state() {
                 target_ref.set_hover_state(true);
+
+                let target = EventTargetCast::from_ref(target_ref);
+
+                self.fire_mouse_event(point, &target, "mouseover".to_owned());
+
             }
         }
 
@@ -708,24 +747,8 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             let top_most_node =
                 node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]);
 
-            let x = point.x.to_i32().unwrap_or(0);
-            let y = point.y.to_i32().unwrap_or(0);
-
-            let window = self.window.root();
-            let mouse_event = MouseEvent::new(window.r(),
-                                              "mousemove".to_owned(),
-                                              EventBubbles::Bubbles,
-                                              EventCancelable::Cancelable,
-                                              Some(window.r()),
-                                              0i32,
-                                              x, y, x, y,
-                                              false, false, false, false,
-                                              0i16,
-                                              None);
-
-            let event = EventCast::from_ref(mouse_event.r());
             let target = EventTargetCast::from_ref(top_most_node.r());
-            event.fire(target);
+            self.fire_mouse_event(point, target, "mousemove".to_owned());
         }
 
         // Store the current mouse over targets for next frame
