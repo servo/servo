@@ -11,7 +11,7 @@
         <script>
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "update", "Append success.");
@@ -29,7 +29,7 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "update", "Append success.");
@@ -53,7 +53,7 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "abort", "Append aborted.");
@@ -75,7 +75,7 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "update", "Append success.");
@@ -155,7 +155,7 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "abort", "Append aborted.");
@@ -183,7 +183,7 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "updateend", "Append ended.");
@@ -204,8 +204,8 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, "error");
-              test.failOnEvent(mediaSource, "sourceended");
+              mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+              mediaSource.addEventListener("sourceended", test.unreached_func("Unexpected event 'sourceended'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "updateend", "Append ended.");
@@ -229,7 +229,7 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
 
               test.expectEvent(sourceBuffer, "updatestart", "Append started.");
               test.expectEvent(sourceBuffer, "updateend", "Append ended.");
@@ -503,7 +503,7 @@
                   assert_false(sourceBuffer.updating, "updating attribute is false");
                   sourceBuffer.abort();
                   assert_equals(sourceBuffer.appendWindowStart, 0, "appendWindowStart is reset to 0");
-                  assert_equals(sourceBuffer.appendWindowEnd, Number.POSITIVE_INFINITY, 
+                  assert_equals(sourceBuffer.appendWindowEnd, Number.POSITIVE_INFINITY,
                       "appendWindowEnd is reset to +INFINITY");
                   test.done();
               });

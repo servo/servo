@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>WebStorage Test: localStorage - open a existing browsing context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+    test(function() {
+        assert_true("localStorage" in window, "localStorage exist");
+
+        var storage = window.localStorage;
+        storage.clear();
+
+        storage.setItem("FOO", "BAR");
+        assert_equals(storage.getItem("FOO"), "BAR", "storage.getItem('FOO')");
+        window.open("storage_local_window_open_second.html");
+
+    }, "A new window to make sure there is a copy of the previous window's localStorage, and that they diverge after a change");
+
+</script>
+</body>
+</html>
+

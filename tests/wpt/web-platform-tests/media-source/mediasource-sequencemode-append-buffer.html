@@ -14,7 +14,7 @@
               return mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
               {
                   assert_greater_than(segmentInfo.media.length, 3, "at least 3 media segments for supported type");
-                  test.failOnEvent(mediaElement, "error");
+                  mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
                   sourceBuffer.mode = "sequence";
                   assert_equals(sourceBuffer.mode, "sequence", "mode after setting it to \"sequence\"");
 

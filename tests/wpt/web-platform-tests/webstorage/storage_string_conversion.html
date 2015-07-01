@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>WebStorage Test: Storage only store strings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+["localStorage", "sessionStorage"].forEach(function(name) {
+    test(function() {
+        assert_true(name in window, name + " exist");
+
+        var storage = window[name];
+        storage.clear();
+
+        assert_equals(storage.length, 0);
+
+        function shouldBeEqualToString(express, expectValue) {
+            assert_equals(typeof express, "string");
+            assert_equals(express, expectValue);
+        }
+
+        storage.a = null;
+        shouldBeEqualToString(storage.a, "null");
+        storage.b = 0;
+        shouldBeEqualToString(storage.b, "0");
+        storage.c = function(){};
+        shouldBeEqualToString(storage.c, "function (){}");
+
+        storage.setItem('d', null);
+        shouldBeEqualToString(storage.d, "null");
+        storage.setItem('e', 0);
+        shouldBeEqualToString(storage.e, "0");
+        storage.setItem('f', function(){});
+        shouldBeEqualToString(storage.f, "function (){}");
+
+        storage['g'] = null;
+        shouldBeEqualToString(storage.g, "null");
+        storage['h'] = 0;
+        shouldBeEqualToString(storage.h, "0");
+        storage['i'] = function(){};
+        shouldBeEqualToString(storage.f, "function (){}");
+
+    }, name + " only stores strings");
+});
+
+</script>
+</body>
+</html>

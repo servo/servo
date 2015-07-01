@@ -11470,6 +11470,10 @@
         "url": "/IndexedDB/value_recursive.htm"
       },
       {
+        "path": "WebCryptoAPI/getRandomValues.worker.js",
+        "url": "/WebCryptoAPI/getRandomValues.worker"
+      },
+      {
         "path": "WebCryptoAPI/test_getRandomValues.html",
         "url": "/WebCryptoAPI/test_getRandomValues.html"
       },
@@ -13384,6 +13388,10 @@
       {
         "path": "domparsing/DOMParser-parseFromString-xml.html",
         "url": "/domparsing/DOMParser-parseFromString-xml.html"
+      },
+      {
+        "path": "domparsing/XMLSerializer-serializeToString.html",
+        "url": "/domparsing/XMLSerializer-serializeToString.html"
       },
       {
         "path": "domparsing/insert-adjacent.html",
@@ -16238,6 +16246,10 @@
         "url": "/html/semantics/embedded-content/the-iframe-element/move_iframe_in_dom_04.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-img-element/Image-constructor.html",
+        "url": "/html/semantics/embedded-content/the-img-element/Image-constructor.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-img-element/current-pixel-density/basic.html",
         "url": "/html/semantics/embedded-content/the-img-element/current-pixel-density/basic.html"
       },
@@ -16252,10 +16264,6 @@
       {
         "path": "html/semantics/embedded-content/the-img-element/img.complete.html",
         "url": "/html/semantics/embedded-content/the-img-element/img.complete.html"
-      },
-      {
-        "path": "html/semantics/embedded-content/the-img-element/Image-constructor.html",
-        "url": "/html/semantics/embedded-content/the-img-element/Image-constructor.html"
       },
       {
         "path": "html/semantics/embedded-content/the-img-element/relevant-mutations.html",
@@ -23018,8 +23026,8 @@
         "url": "/webaudio/the-audio-api/the-gainnode-interface/idl-test.html"
       },
       {
-        "path": "webaudio/the-audio-api/the-gainnode-interface/test.html",
-        "url": "/webaudio/the-audio-api/the-gainnode-interface/test.html"
+        "path": "webaudio/the-audio-api/the-gainnode-interface/test-gainnode.html",
+        "url": "/webaudio/the-audio-api/the-gainnode-interface/test-gainnode.html"
       },
       {
         "path": "webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/mediaElementAudioSourceToScriptProcessorTest.html",
@@ -24246,6 +24254,14 @@
         "url": "/webstorage/storage_clear.html"
       },
       {
+        "path": "webstorage/storage_enumerate.html",
+        "url": "/webstorage/storage_enumerate.html"
+      },
+      {
+        "path": "webstorage/storage_functions_not_overwritten.html",
+        "url": "/webstorage/storage_functions_not_overwritten.html"
+      },
+      {
         "path": "webstorage/storage_getitem.html",
         "url": "/webstorage/storage_getitem.html"
       },
@@ -24270,8 +24286,24 @@
         "url": "/webstorage/storage_length.html"
       },
       {
+        "path": "webstorage/storage_local_window_open.html",
+        "url": "/webstorage/storage_local_window_open.html"
+      },
+      {
+        "path": "webstorage/storage_local_window_open_second.html",
+        "url": "/webstorage/storage_local_window_open_second.html"
+      },
+      {
         "path": "webstorage/storage_removeitem.html",
         "url": "/webstorage/storage_removeitem.html"
+      },
+      {
+        "path": "webstorage/storage_session_window_open.html",
+        "url": "/webstorage/storage_session_window_open.html"
+      },
+      {
+        "path": "webstorage/storage_session_window_open_second.html",
+        "url": "/webstorage/storage_session_window_open_second.html"
       },
       {
         "path": "webstorage/storage_set_value_enumerate.html",
@@ -24280,6 +24312,10 @@
       {
         "path": "webstorage/storage_setitem.html",
         "url": "/webstorage/storage_setitem.html"
+      },
+      {
+        "path": "webstorage/storage_string_conversion.html",
+        "url": "/webstorage/storage_string_conversion.html"
       },
       {
         "path": "webvtt/interfaces.html",
@@ -26339,6 +26375,26 @@
         "path": "websockets/unload-a-document/005.html",
         "timeout": "long",
         "url": "/websockets/unload-a-document/005.html"
+      },
+      {
+        "path": "webstorage/event_basic.html",
+        "timeout": "long",
+        "url": "/webstorage/event_basic.html"
+      },
+      {
+        "path": "webstorage/event_body_attribute.html",
+        "timeout": "long",
+        "url": "/webstorage/event_body_attribute.html"
+      },
+      {
+        "path": "webstorage/event_case_sensitive.html",
+        "timeout": "long",
+        "url": "/webstorage/event_case_sensitive.html"
+      },
+      {
+        "path": "webstorage/event_setattribute.html",
+        "timeout": "long",
+        "url": "/webstorage/event_setattribute.html"
       },
       {
         "path": "webstorage/storage_local_setitem_quotaexceedederr.html",
@@ -31872,7 +31928,7 @@
       }
     ]
   },
-  "rev": "4d96cccabc2feacd48e1dab9afc22b8af2225572",
+  "rev": "87398b8448f699e3e324148795891658f2fa16dd",
   "url_base": "/",
   "version": 2
 }
