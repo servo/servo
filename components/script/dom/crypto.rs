@@ -48,7 +48,7 @@ impl<'a> CryptoMethods for &'a Crypto {
         let mut length = 0;
         let mut data = ptr::null_mut();
         if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
-            return Err(Error::NotSupported);
+            return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView".to_owned()));
         }
         if !is_integer_buffer(input) {
             return Err(Error::TypeMismatch);
