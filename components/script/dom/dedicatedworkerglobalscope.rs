@@ -150,15 +150,16 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
-        spawn_named(format!("WebWorker for {}", worker_url.serialize()), move || {
+        let serialized_worker_url = worker_url.serialize();
+        spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
-            let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
+            let (url, source) = match load_whole_resource(&resource_task, worker_url) {
                 Err(_) => {
-                    println!("error loading script {}", worker_url.serialize());
+                    println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(ScriptMsg::RunnableMsg(
                         box WorkerEventHandler::new(worker))).unwrap();
                     return;
