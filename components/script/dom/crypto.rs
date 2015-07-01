@@ -8,11 +8,11 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::cell::DOMRefCell;
 
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType, Type};
 
-use std::cell::RefCell;
 use std::ptr;
 use std::slice;
 
@@ -24,14 +24,14 @@ no_jsmanaged_fields!(OsRng);
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
-    rng: RefCell<OsRng>,
+    rng: DOMRefCell<OsRng>,
 }
 
 impl Crypto {
     fn new_inherited() -> Crypto {
         Crypto {
             reflector_: Reflector::new(),
-            rng: RefCell::new(OsRng::new().unwrap()),
+            rng: DOMRefCell::new(OsRng::new().unwrap()),
         }
     }
 
