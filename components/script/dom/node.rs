@@ -30,7 +30,7 @@ use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::utils::{namespace_from_domstring, Reflectable, reflect_dom_object};
 use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
@@ -51,7 +51,6 @@ use devtools_traits::NodeInfo;
 use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
-use util::namespace;
 use util::str::DOMString;
 use util::task_state;
 use selectors::parser::Selector;
@@ -2446,7 +2445,7 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-lookupprefix
     fn LookupPrefix(self, namespace: Option<DOMString>) -> Option<DOMString> {
-        let namespace = namespace::from_domstring(namespace);
+        let namespace = namespace_from_domstring(namespace);
 
         // Step 1.
         if namespace == ns!("") {

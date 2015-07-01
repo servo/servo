@@ -16,7 +16,6 @@ use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::window;
-use util::namespace;
 use util::str::DOMString;
 
 use libc;
@@ -830,7 +829,7 @@ pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
 pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
                             -> Fallible<(Namespace, Option<Atom>, Atom)> {
     // Step 1.
-    let namespace = namespace::from_domstring(namespace);
+    let namespace = namespace_from_domstring(namespace);
 
     // Step 2.
     try!(validate_qualified_name(qualified_name));
@@ -964,5 +963,15 @@ pub fn xml_name_type(name: &str) -> XMLName {
     match non_qname_colons {
         false => XMLName::QName,
         true => XMLName::Name
+    }
+}
+
+/// Convert a possibly-null URL to a namespace.
+///
+/// If the URL is None, returns the empty namespace.
+pub fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
+    match url {
+        None => ns!(""),
+        Some(ref s) => Namespace(Atom::from_slice(s)),
     }
 }

@@ -8,10 +8,9 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
 use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::window::Window;
-use util::namespace;
 use util::str::DOMString;
 
 use string_cache::Atom;
@@ -69,7 +68,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
-        let ns = namespace::from_domstring(namespace);
+        let ns = namespace_from_domstring(namespace);
         owner.get_attribute(&ns, &Atom::from_slice(&local_name))
     }
 
@@ -88,7 +87,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
-        let ns = namespace::from_domstring(namespace);
+        let ns = namespace_from_domstring(namespace);
         owner.remove_attribute(&ns, &Atom::from_slice(&local_name)).ok_or(Error::NotFound)
     }
 

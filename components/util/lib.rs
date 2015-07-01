@@ -18,8 +18,6 @@
 #![feature(step_trait)]
 #![feature(zero_one)]
 
-#![plugin(string_cache_plugin)]
-
 #[macro_use] extern crate log;
 
 extern crate azure;
@@ -34,7 +32,6 @@ extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate smallvec;
-extern crate string_cache;
 extern crate url;
 
 use std::sync::Arc;
@@ -48,7 +45,6 @@ pub mod linked_list;
 pub mod geometry;
 pub mod logical_geometry;
 pub mod mem;
-pub mod namespace;
 pub mod opts;
 pub mod persistent_list;
 pub mod range;
