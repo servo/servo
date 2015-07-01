@@ -8,11 +8,10 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers, TreeIterator};
 use dom::window::Window;
-use util::namespace;
 use util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::AsciiExt;
@@ -105,7 +104,7 @@ impl HTMLCollection {
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
         let namespace_filter = match maybe_ns {
             Some(ref namespace) if namespace == &"*" => None,
-            ns => Some(namespace::from_domstring(ns)),
+            ns => Some(namespace_from_domstring(ns)),
         };
 
         if tag == "*" {

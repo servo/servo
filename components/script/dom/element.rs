@@ -32,7 +32,7 @@ use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::{xml_name_type, validate_and_extract};
+use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::create::create_element;
 use dom::domrect::DOMRect;
@@ -67,7 +67,6 @@ use style::properties::longhands::{self, border_spacing, height};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use util::geometry::Au;
-use util::namespace;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use cssparser::Color;
@@ -1203,7 +1202,7 @@ impl<'a> ElementMethods for &'a Element {
     fn GetAttributeNS(self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        let namespace = &namespace::from_domstring(namespace);
+        let namespace = &namespace_from_domstring(namespace);
         self.get_attribute(namespace, &Atom::from_slice(&local_name))
                      .map(|attr| attr.r().Value())
     }
@@ -1255,7 +1254,7 @@ impl<'a> ElementMethods for &'a Element {
     fn RemoveAttributeNS(self,
                          namespace: Option<DOMString>,
                          local_name: DOMString) {
-        let namespace = namespace::from_domstring(namespace);
+        let namespace = namespace_from_domstring(namespace);
         let local_name = Atom::from_slice(&local_name);
         self.remove_attribute(&namespace, &local_name);
     }

@@ -1177,8 +1177,6 @@ dependencies = [
  "bitflags 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
- "lazy_static 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1186,11 +1184,7 @@ dependencies = [
  "plugins 0.0.1",
  "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

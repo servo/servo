@@ -1055,7 +1055,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn device_pixels_per_screen_px(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         match opts::get().device_pixels_per_px {
-            Some(device_pixels_per_px) => device_pixels_per_px,
+            Some(device_pixels_per_px) => ScaleFactor::new(device_pixels_per_px),
             None => match opts::get().output_file {
                 Some(_) => ScaleFactor::new(1.0),
                 None => self.hidpi_factor

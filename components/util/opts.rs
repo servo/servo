@@ -7,9 +7,7 @@
 
 use geometry::ScreenPx;
 
-use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
-use layers::geometry::DevicePixel;
 use getopts;
 use num_cpus;
 use std::collections::HashSet;
@@ -44,7 +42,7 @@ pub struct Opts {
 
     /// The ratio of device pixels per px at the default scale. If unspecified, will use the
     /// platform default setting.
-    pub device_pixels_per_px: Option<ScaleFactor<ScreenPx, DevicePixel, f32>>,
+    pub device_pixels_per_px: Option<f32>,
 
     /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
     /// cause it to produce output on that interval (`-p`).
@@ -328,7 +326,7 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        ScaleFactor::new(dppx_str.parse().unwrap())
+        dppx_str.parse().unwrap()
     );
 
     let mut paint_threads: usize = match opt_match.opt_str("t") {
