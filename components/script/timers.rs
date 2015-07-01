@@ -29,12 +29,10 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::default::Default;
 
-#[derive(PartialEq, Eq)]
-#[jstraceable]
-#[derive(Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Eq, Copy, Clone)]
 pub struct TimerId(i32);
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[privatize]
 struct TimerHandle {
     handle: TimerId,
@@ -42,8 +40,7 @@ struct TimerHandle {
     control_chan: Option<Sender<TimerControlMsg>>,
 }
 
-#[jstraceable]
-#[derive(Clone)]
+#[derive(JSTraceable, Clone)]
 pub enum TimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(Rc<Function>)
@@ -68,7 +65,7 @@ impl TimerHandle {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[privatize]
 pub struct TimerManager {
     active_timers: DOMRefCell<HashMap<TimerId, TimerHandle>>,
@@ -85,16 +82,14 @@ impl Drop for TimerManager {
 }
 
 // Enum allowing more descriptive values for the is_interval field
-#[jstraceable]
-#[derive(PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 pub enum IsInterval {
     Interval,
     NonInterval,
 }
 
 // Messages sent control timers from script task
-#[jstraceable]
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(JSTraceable, PartialEq, Copy, Clone, Debug)]
 pub enum TimerControlMsg {
     Cancel,
     Suspend,
@@ -105,7 +100,7 @@ pub enum TimerControlMsg {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 // TODO: Handle rooting during fire_timer when movable GC is turned on
-#[jstraceable]
+#[derive(JSTraceable)]
 #[privatize]
 struct TimerData {
     is_interval: IsInterval,

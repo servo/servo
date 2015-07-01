@@ -33,8 +33,7 @@ use std::default::Default;
 use std::cell::Cell;
 use std::rc::Rc;
 
-#[derive(Copy, Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }

@@ -67,8 +67,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLS
 
 pub type SendParam = StringOrURLSearchParams;
 
-#[derive(PartialEq, Copy, Clone)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -77,8 +76,7 @@ enum XMLHttpRequestState {
     Done = 4,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq, Clone, Copy)]
 pub struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the

@@ -33,8 +33,7 @@ use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
 
-#[derive(PartialEq, Copy, Clone)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 enum WebSocketRequestState {
     Connecting = 0,
     Open = 1,

@@ -45,8 +45,7 @@ use std::sync::mpsc::{Sender, Receiver, channel};
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
 /// will remain alive.
-#[derive(Clone)]
-#[jstraceable]
+#[derive(JSTraceable, Clone)]
 pub struct SendableWorkerScriptChan {
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
     worker: TrustedWorkerAddress,

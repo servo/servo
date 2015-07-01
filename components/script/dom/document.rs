@@ -100,8 +100,7 @@ use std::sync::mpsc::channel;
 use std::rc::Rc;
 use time;
 
-#[derive(PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
@@ -164,7 +163,7 @@ impl DocumentDerived for EventTarget {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -172,7 +171,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -180,7 +179,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -189,7 +188,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -197,7 +196,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -205,7 +204,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -213,7 +212,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -1748,7 +1747,7 @@ impl<'a> DocumentMethods for &'a Document {
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
                    -> *mut JSObject {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct NamedElementFilter {
             name: Atom,
         }

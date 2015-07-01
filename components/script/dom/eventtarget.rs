@@ -36,15 +36,13 @@ use url::Url;
 
 use std::collections::HashMap;
 
-#[derive(Copy, Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
-#[derive(Copy, Clone)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone)]
 pub enum EventTargetTypeId {
     Node(NodeTypeId),
     WebSocket,
@@ -90,8 +88,7 @@ impl EventTargetTypeId {
     }
 }
 
-#[derive(Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Clone, PartialEq)]
 pub enum EventListenerType {
     Additive(Rc<EventListener>),
     Inline(Rc<EventListener>),
@@ -106,8 +103,7 @@ impl EventListenerType {
     }
 }
 
-#[derive(Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Clone, PartialEq)]
 #[privatize]
 pub struct EventListenerEntry {
     phase: ListenerPhase,

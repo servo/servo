@@ -48,8 +48,7 @@ use url::Url;
 use util::vec::byte_swap;
 
 #[must_root]
-#[jstraceable]
-#[derive(Clone)]
+#[derive(JSTraceable, Clone)]
 pub enum CanvasFillOrStrokeStyle {
     Color(RGBA),
     Gradient(JS<CanvasGradient>),
@@ -68,8 +67,7 @@ pub struct CanvasRenderingContext2D {
 }
 
 #[must_root]
-#[jstraceable]
-#[derive(Clone)]
+#[derive(JSTraceable, Clone)]
 struct CanvasContextState {
     global_alpha: f64,
     global_composition: CompositionOrBlending,

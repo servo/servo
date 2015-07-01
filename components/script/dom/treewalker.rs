@@ -502,7 +502,7 @@ impl<'a> Iterator for &'a TreeWalker {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 pub enum Filter {
     None,
     Native(fn (node: &Node) -> u16),

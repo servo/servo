@@ -8,8 +8,7 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 
-#[derive(Copy, Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum XMLHttpRequestEventTargetTypeId {
     XMLHttpRequest,
     XMLHttpRequestUpload,

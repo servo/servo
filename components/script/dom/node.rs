@@ -135,7 +135,7 @@ impl NodeDerived for EventTarget {
 
 bitflags! {
     #[doc = "Flags for node items."]
-    #[jstraceable]
+    #[derive(JSTraceable)]
     flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
@@ -279,8 +279,7 @@ impl LayoutDataRef {
 }
 
 /// The different types of nodes.
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
 pub enum NodeTypeId {
     CharacterData(CharacterDataTypeId),
     DocumentType,

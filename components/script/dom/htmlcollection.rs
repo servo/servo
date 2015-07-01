@@ -23,7 +23,7 @@ pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 pub enum CollectionTypeId {
     Static(Vec<JS<Element>>),
@@ -58,7 +58,7 @@ impl HTMLCollection {
 
     fn all_elements(window: &Window, root: &Node,
                     namespace_filter: Option<Namespace>) -> Root<HTMLCollection> {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct AllElementFilter {
             namespace_filter: Option<Namespace>
         }
@@ -80,7 +80,7 @@ impl HTMLCollection {
             return HTMLCollection::all_elements(window, root, None);
         }
 
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct TagNameFilter {
             tag: Atom,
             ascii_lower_tag: Atom,
@@ -111,7 +111,7 @@ impl HTMLCollection {
         if tag == "*" {
             return HTMLCollection::all_elements(window, root, namespace_filter);
         }
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct TagNameNSFilter {
             tag: Atom,
             namespace_filter: Option<Namespace>
@@ -136,7 +136,7 @@ impl HTMLCollection {
 
     pub fn by_class_name(window: &Window, root: &Node, classes: DOMString)
                          -> Root<HTMLCollection> {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct ClassNameFilter {
             classes: Vec<Atom>
         }
@@ -154,7 +154,7 @@ impl HTMLCollection {
     }
 
     pub fn children(window: &Window, root: &Node) -> Root<HTMLCollection> {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {

@@ -36,7 +36,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 #[must_root]
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct Sink {
     pub base_url: Option<Url>,
     pub document: JS<Document>,

@@ -121,7 +121,7 @@ unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
 /// data that will need to be present when the document and frame tree entry are created,
 /// but is only easily available at initiation of the load and on a push basis (so some
 /// data will be updated according to future resize events, viewport changes, etc.)
-#[jstraceable]
+#[derive(JSTraceable)]
 struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
@@ -226,7 +226,7 @@ impl ScriptPort for Receiver<(TrustedWorkerAddress, ScriptMsg)> {
 }
 
 /// Encapsulates internal communication within the script task.
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct NonWorkerScriptChan(pub Sender<ScriptMsg>);
 
 impl ScriptChan for NonWorkerScriptChan {
@@ -269,7 +269,7 @@ impl Drop for StackRootTLS {
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
     page: DOMRefCell<Option<Rc<Page>>>,

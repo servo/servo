@@ -45,8 +45,7 @@ use std::cell::Cell;
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
 
-#[jstraceable]
-#[derive(PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
 enum InputType {
     InputSubmit,
@@ -80,7 +79,7 @@ impl PartialEq for HTMLInputElement {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 struct InputActivationState {
     indeterminate: bool,
