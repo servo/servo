@@ -33,7 +33,6 @@ extern crate num as num_lib;
 extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
-extern crate selectors;
 extern crate smallvec;
 extern crate string_cache;
 extern crate url;

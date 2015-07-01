@@ -18,9 +18,6 @@ doctest = false
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
@@ -30,12 +27,10 @@ bitflags = "*"
 libc = "*"
 rand = "*"
 rustc-serialize = "0.3"
-time = "0.1.12"
 smallvec = "0.1"
 num_cpus = "0.2.2"
 cssparser = "0.3.1"
 num = "0.1.24"
-lazy_static = "0.1.10"
 url = "*"
 string_cache = "0.1"
 string_cache_plugin = "0.1"
