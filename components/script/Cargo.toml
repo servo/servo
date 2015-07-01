@@ -36,9 +36,6 @@ path = "../devtools_traits"
 [dependencies.style]
 path = "../style"
 
-[dependencies.gfx]
-path = "../gfx"
-
 [dependencies.canvas]
 path = "../canvas"
 
