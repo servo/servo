@@ -986,9 +986,9 @@ impl InlineFlow {
                 let border_start = if fragment.style.writing_mode.is_bidi_ltr() == is_ltr {
                     inline_start_position_for_fragment
                 } else {
-                    line.bounds.size.inline - inline_start_position_for_fragment
-                                            - fragment.margin.inline_end
-                                            - fragment.border_box.size.inline
+                    line.green_zone.inline - inline_start_position_for_fragment
+                                           - fragment.margin.inline_end
+                                           - fragment.border_box.size.inline
                 };
                 fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
                                                        border_start,
