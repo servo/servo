@@ -24,9 +24,6 @@ git = "https://github.com/servo/rust-selectors"
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-
 [dependencies]
 log = "*"
 bitflags = "*"

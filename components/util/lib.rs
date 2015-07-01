@@ -28,7 +28,6 @@ extern crate alloc;
 #[macro_use] extern crate cssparser;
 extern crate euclid;
 extern crate getopts;
-extern crate layers;
 extern crate libc;
 extern crate num as num_lib;
 extern crate num_cpus;
