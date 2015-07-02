@@ -21,8 +21,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
-#[derive(Clone)]
-#[jstraceable]
+#[derive(JSTraceable, Clone)]
 #[must_root]
 pub enum FormDatum {
     StringData(DOMString),

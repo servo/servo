@@ -11,6 +11,7 @@
 #![feature(core)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
+#![feature(custom_derive)]
 #![feature(drain)]
 #![feature(hashmap_hasher)]
 #![feature(mpsc_select)]

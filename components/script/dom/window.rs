@@ -70,8 +70,7 @@ use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
 /// Current state of the window object
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, Debug, PartialEq)]
 enum WindowState {
     Alive,
     Zombie,     // Pipeline is closed, but the window hasn't been GCed yet.

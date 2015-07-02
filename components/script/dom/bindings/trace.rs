@@ -12,7 +12,7 @@
 //!    phase. (This happens through `JSClass.trace` for non-proxy bindings, and
 //!    through `ProxyTraps.trace` otherwise.)
 //! 2. `_trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
-//!    This is typically derived via a `#[dom_struct]` (implies `#[jstraceable]`) annotation.
+//!    This is typically derived via a `#[dom_struct]` (implies `#[derive(JSTraceable)]`) annotation.
 //!    Non-JS-managed types have an empty inline `trace()` method,
 //!    achieved via `no_jsmanaged_fields!` or similar.
 //! 3. For all fields, `Foo::trace()`
@@ -410,7 +410,7 @@ impl RootedTraceableSet {
 /// If you have GC things like *mut JSObject or JSVal, use jsapi::Rooted.
 /// If you have an arbitrary number of Reflectables to root, use RootedVec<JS<T>>
 /// If you know what you're doing, use this.
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
     ptr: &'a T
 }
@@ -434,7 +434,7 @@ impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
 /// Must be a reflectable
 #[allow(unrooted_must_root)]
 #[no_move]
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct RootedVec<T: JSTraceable + Reflectable> {
     v: Vec<T>
 }

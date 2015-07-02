@@ -22,8 +22,7 @@ use std::cmp::max;
 
 const DEFAULT_COLSPAN: u32 = 1;
 
-#[derive(Copy, Clone, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, Debug)]
 pub enum HTMLTableCellElementTypeId {
     HTMLTableDataCellElement = 0,
     HTMLTableHeaderCellElement = 1,

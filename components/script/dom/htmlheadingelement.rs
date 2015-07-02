@@ -12,7 +12,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
-#[jstraceable]
+#[derive(JSTraceable)]
 pub enum HeadingLevel {
     Heading1,
     Heading2,

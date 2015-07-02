@@ -290,7 +290,7 @@ impl<'a> RangeMethods for &'a Range {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 #[privatize]
 pub struct RangeInner {
@@ -424,7 +424,7 @@ impl RangeInner {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 #[privatize]
 pub struct BoundaryPoint {

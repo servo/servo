@@ -309,8 +309,7 @@ impl<'a> VirtualMethods for &'a HTMLElement {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, Debug)]
 pub enum HTMLElementTypeId {
     HTMLElement,
 

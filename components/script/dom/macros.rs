@@ -214,7 +214,7 @@ macro_rules! make_atomic_setter(
 );
 
 /// For use on non-jsmanaged types
-/// Use #[jstraceable] on JS managed types
+/// Use #[derive(JSTraceable)] on JS managed types
 macro_rules! no_jsmanaged_fields(
     ($($ty:ident),+) => (
         $(

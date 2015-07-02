@@ -18,8 +18,7 @@ use std::default::Default;
 
 use time;
 
-#[jstraceable]
-#[derive(Copy, Clone)]
+#[derive(JSTraceable, Copy, Clone)]
 #[repr(u16)]
 pub enum EventPhase {
     None      = EventConstants::NONE,
@@ -28,8 +27,7 @@ pub enum EventPhase {
     Bubbling  = EventConstants::BUBBLING_PHASE,
 }
 
-#[derive(PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq)]
 pub enum EventTypeId {
     CustomEvent,
     HTMLEvent,

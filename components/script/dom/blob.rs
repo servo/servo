@@ -17,7 +17,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
 
-#[jstraceable]
+#[derive(JSTraceable)]
 pub enum BlobTypeId {
     Blob,
     File,

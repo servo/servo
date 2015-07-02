@@ -116,8 +116,7 @@ impl PartialEq for Element {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
     Element,

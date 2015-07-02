@@ -3189,8 +3189,7 @@ class CGEnum(CGThing):
 
         decl = """\
 #[repr(usize)]
-#[derive(PartialEq, Copy, Clone)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 pub enum %s {
     %s
 }
@@ -5181,7 +5180,7 @@ class CGCallback(CGClass):
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods+getters+setters,
-                         decorators="#[derive(PartialEq)]#[jstraceable]")
+                         decorators="#[derive(JSTraceable, PartialEq)]")
 
     def getConstructors(self):
         return [ClassConstructor(

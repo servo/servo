@@ -14,7 +14,7 @@ use std::rc::Rc;
 use url::Url;
 
 /// Encapsulates a handle to a frame in a frame tree.
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct Page {
     /// Pipeline id associated with this page.
     id: PipelineId,
@@ -133,7 +133,7 @@ impl Page {
 }
 
 /// Information for one frame in the browsing context.
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 pub struct Frame {
     /// The document for this frame.

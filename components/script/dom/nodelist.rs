@@ -10,7 +10,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 pub enum NodeListType {
     Simple(Vec<JS<Node>>),

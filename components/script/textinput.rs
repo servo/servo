@@ -21,8 +21,7 @@ pub enum Selection {
     NotSelected
 }
 
-#[jstraceable]
-#[derive(Copy, Clone)]
+#[derive(JSTraceable, Copy, Clone)]
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
@@ -31,7 +30,7 @@ pub struct TextPoint {
 }
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
