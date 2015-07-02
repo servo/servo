@@ -139,7 +139,7 @@ impl WebSocket {
 
         // TODO Client::connect does not conform to RFC 6455
         // see https://github.com/cyderize/rust-websocket/issues/38
-        let request = match Client::connect(parsed_url) {
+        let mut request = match Client::connect(parsed_url) {
             Ok(request) => request,
             Err(_) => {
                 let global_root = ws.r().global.root();
@@ -149,6 +149,7 @@ impl WebSocket {
                 return Ok(ws);
             }
         };
+        request.headers.set_raw("origin", vec!(global.get_url().serialize().into_bytes()));
         let response = request.send().unwrap();
         response.validate().unwrap();
         ws.r().ready_state.set(WebSocketRequestState::Open);
