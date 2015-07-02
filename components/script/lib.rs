@@ -90,6 +90,6 @@ mod webdriver_handlers;
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
-        js::jsapi::JS_Init();
+        assert_eq!(js::jsapi::JS_Init(), 1);
     }
 }
