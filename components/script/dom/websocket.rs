@@ -32,6 +32,7 @@ use websocket::client::receiver::Receiver;
 use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
+use websocket::header::Origin;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 enum WebSocketRequestState {
@@ -139,7 +140,7 @@ impl WebSocket {
 
         // TODO Client::connect does not conform to RFC 6455
         // see https://github.com/cyderize/rust-websocket/issues/38
-        let request = match Client::connect(url) {
+        let mut request = match Client::connect(url) {
             Ok(request) => request,
             Err(_) => {
                 let global_root = ws.r().global.root();
@@ -149,6 +150,7 @@ impl WebSocket {
                 return Ok(ws);
             }
         };
+        request.headers.set(Origin(global.get_url().serialize()));
         let response = request.send().unwrap();
         response.validate().unwrap();
 
