@@ -149,15 +149,16 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
-        spawn_named(format!("WebWorker for {}", worker_url.serialize()), move || {
+        let serialized_worker_url = worker_url.serialize();
+        spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
-            let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
+            let (url, source) = match load_whole_resource(&resource_task, worker_url) {
                 Err(_) => {
-                    println!("error loading script {}", worker_url.serialize());
+                    println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(ScriptMsg::RunnableMsg(
                         box WorkerEventHandler::new(worker))).unwrap();
                     return;
@@ -168,15 +169,16 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
+            let serialized_url = url.serialize();
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, id, devtools_chan, runtime.clone(), resource_task,
+                url, id, devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver);
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
 
                 match runtime.evaluate_script(
-                    global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
+                    global.r().reflector().get_jsobject(), source, serialized_url, 1) {
                     Ok(_) => (),
                     Err(_) => {
                         // TODO: An error needs to be dispatched to the parent.
