@@ -318,6 +318,7 @@ impl PipelineContent {
                                   self.resource_task,
                                   self.storage_task.clone(),
                                   self.image_cache_task.clone(),
+                                  self.mem_profiler_chan.clone(),
                                   self.devtools_chan,
                                   self.window_size,
                                   self.load_data.clone());
