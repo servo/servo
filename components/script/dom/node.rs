@@ -30,7 +30,7 @@ use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::{namespace_from_domstring, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{namespace_from_domstring, Reflectable, reflect_dom_object, first_node_not_in};
 use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
@@ -796,40 +796,54 @@ impl<'a> NodeHelpers for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
     fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        match self.parent_node.get() {
-            None => {
-                // Step 1.
-                Ok(())
-            },
-            Some(ref parent_node) => {
-                // Step 2.
-                let doc = self.owner_doc();
-                let node = try!(doc.r().node_from_nodes_and_strings(nodes));
-                // Step 3.
-                Node::pre_insert(node.r(), parent_node.root().r(),
-                                 Some(self)).map(|_| ())
-            },
-        }
+        // Step 1.
+        let parent = &self.parent_node;
+
+        // Step 2.
+        let parent = match parent.get() {
+            None => return Ok(()),
+            Some(ref parent) => parent.root(),
+        };
+
+        // Step 3.
+        let viable_previous_sibling = first_node_not_in(self.preceding_siblings(), &nodes);
+
+        // Step 4.
+        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+
+        // Step 5.
+        let viable_previous_sibling = match viable_previous_sibling {
+            Some(ref viable_previous_sibling) => viable_previous_sibling.next_sibling.get(),
+            None => parent.first_child.get(),
+        }.map(|s| s.root());
+
+        // Step 6.
+        try!(Node::pre_insert(&node, &parent, viable_previous_sibling.r()));
+
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
     fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        match self.parent_node.get() {
-            None => {
-                // Step 1.
-                Ok(())
-            },
-            Some(ref parent_node) => {
-                // Step 2.
-                let doc = self.owner_doc();
-                let node = try!(doc.r().node_from_nodes_and_strings(nodes));
-                // Step 3.
-                // FIXME(https://github.com/servo/servo/issues/5720)
-                let next_sibling = self.next_sibling.get().map(Root::from_rooted);
-                Node::pre_insert(node.r(), parent_node.root().r(),
-                                 next_sibling.r()).map(|_| ())
-            },
-        }
+        // Step 1.
+        let parent = &self.parent_node;
+
+        // Step 2.
+        let parent = match parent.get() {
+            None => return Ok(()),
+            Some(ref parent) => parent.root(),
+        };
+
+        // Step 3.
+        let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
+
+        // Step 4.
+        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+
+        // Step 5.
+        try!(Node::pre_insert(&node, &parent, viable_next_sibling.r()));
+
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith

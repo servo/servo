@@ -6,6 +6,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
+use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions::{is_dom_class, jsstring_to_str};
 use dom::bindings::conversions::native_from_handleobject;
 use dom::bindings::conversions::private_from_proto_chain;
@@ -15,6 +16,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
+use dom::node::Node;
 use dom::window;
 use util::str::DOMString;
 
@@ -974,4 +976,23 @@ pub fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
         None => ns!(""),
         Some(ref s) => Namespace(Atom::from_slice(s)),
     }
+}
+
+
+/// Iterate through `nodes` until we find a `Node` that is not in `not_in`
+pub fn first_node_not_in<I>(nodes: I, not_in: &[NodeOrString]) -> Option<Root<Node>>
+        where I: Iterator<Item=Root<Node>>
+{
+    for node in nodes {
+        let mut not_in_nodes = not_in.iter().filter_map(|ref n| {
+            match *n {
+                &NodeOrString::eNode(ref x) => Some(x),
+                _ => None,
+            }
+        });
+        if not_in_nodes.all(|n| *n != node) {
+            return Some(node);
+        }
+    }
+    None
 }
