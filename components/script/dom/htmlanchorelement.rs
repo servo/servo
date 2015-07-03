@@ -69,15 +69,6 @@ impl<'a> VirtualMethods for &'a HTMLAnchorElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn handle_event(&self, event: &Event) {
-        match self.super_type() {
-            Some(s) => {
-                s.handle_event(event);
-            }
-            None => {}
-        }
-    }
-
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
