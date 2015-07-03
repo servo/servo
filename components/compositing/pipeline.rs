@@ -126,6 +126,7 @@ impl Pipeline {
                                           resource_task,
                                           storage_task.clone(),
                                           image_cache_task.clone(),
+                                          mem_profiler_chan.clone(),
                                           devtools_chan,
                                           window_size,
                                           load_data.clone());

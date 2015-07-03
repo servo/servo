@@ -19,6 +19,7 @@ use script_task::{ScriptChan, ScriptPort, ScriptMsg, ScriptTask};
 
 use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::ResourceTask;
+use profile_traits::mem;
 
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
@@ -82,7 +83,15 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get `DevtoolsControlChan` to send messages to Devtools
+    /// Get a `mem::ProfilerChan` to send messages to the memory profiler task.
+    pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
+        match *self {
+            GlobalRef::Window(window) => window.mem_profiler_chan(),
+            GlobalRef::Worker(worker) => worker.mem_profiler_chan(),
+        }
+    }
+
+    /// Get a `DevtoolsControlChan` to send messages to Devtools
     /// task when available.
     pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
         match *self {

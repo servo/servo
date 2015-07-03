@@ -56,6 +56,7 @@ extern crate time;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate rand;
+#[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
