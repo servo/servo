@@ -592,7 +592,8 @@ pub trait FormControl {
                                         .filter_map(HTMLFormElementCast::to_root)
                                         .next();
 
-        if (!self.is_reassociatable() || !has_form_id) && old_owner.is_some() {
+        // Step 1
+        if old_owner.is_some() && !(self.is_reassociatable() && has_form_id) {
             if nearest_form_ancestor == old_owner {
                 return;
             }
