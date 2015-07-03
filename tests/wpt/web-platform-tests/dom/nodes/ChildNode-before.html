@@ -86,6 +86,20 @@ function test_before(child, nodeName, innerHTML) {
     }, nodeName + '.before() with all siblings of child as arguments.');
 
     test(function() {
+        var parent = document.createElement('div')
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        var z = document.createElement('z');
+        parent.appendChild(x);
+        parent.appendChild(y);
+        parent.appendChild(z);
+        parent.appendChild(child);
+        child.before(y, z);
+        var expected = '<x></x><y></y><z></z>' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with all siblings of child as arguments; no changes in tree.');
+
+    test(function() {
         var parent = document.createElement('div');
         var x = document.createElement('x');
         var y = document.createElement('y');
