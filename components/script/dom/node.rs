@@ -312,6 +312,8 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         assert!(self.parent_node.get().is_none());
         for node in self.traverse_preorder() {
             node.r().set_flag(IS_IN_DOC, false);
+        }
+        for node in self.traverse_preorder() {
             vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
         self.layout_data.dispose(self);
