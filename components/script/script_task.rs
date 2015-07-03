@@ -70,6 +70,7 @@ use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
+use profile_traits::mem::{self, Report, Reporter, ReportsChan};
 use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
@@ -78,9 +79,10 @@ use util::task_state;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
+use js::glue::CollectServoSizes;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
-use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
+use js::jsapi::{JS_GetRuntime, JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
 use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
@@ -91,7 +93,7 @@ use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
-use std::mem;
+use std::mem as std_mem;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -196,6 +198,9 @@ pub enum ScriptMsg {
     RefcountCleanup(TrustedReference),
     /// Notify a document that all pending loads are complete.
     DocumentLoadsComplete(PipelineId),
+    /// Requests that the script task measure its memory usage. The results are sent back via the
+    /// supplied channel.
+    CollectReports(ReportsChan),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -246,6 +251,18 @@ impl NonWorkerScriptChan {
     pub fn new() -> (Receiver<ScriptMsg>, Box<NonWorkerScriptChan>) {
         let (chan, port) = channel();
         (port, box NonWorkerScriptChan(chan))
+    }
+
+    fn clone_as_reporter(&self) -> Box<Reporter+Send> {
+        let NonWorkerScriptChan(ref chan) = *self;
+        box NonWorkerScriptChan((*chan).clone())
+    }
+}
+
+impl Reporter for NonWorkerScriptChan {
+    // Just injects an appropriate event into the script task's queue.
+    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
+        self.send(ScriptMsg::CollectReports(reports_chan)).is_ok()
     }
 }
 
@@ -386,6 +403,7 @@ impl ScriptTaskFactory for ScriptTask {
                  resource_task: ResourceTask,
                  storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
+                 mem_profiler_chan: mem::ProfilerChan,
                  devtools_chan: Option<DevtoolsControlChan>,
                  window_size: Option<WindowSizeData>,
                  load_data: LoadData)
@@ -396,9 +414,11 @@ impl ScriptTaskFactory for ScriptTask {
         spawn_named_with_send_on_failure(format!("ScriptTask {:?}", id), task_state::SCRIPT, move || {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
+            let chan = NonWorkerScriptChan(script_chan);
+            let reporter = chan.clone_as_reporter();
             let script_task = ScriptTask::new(box compositor as Box<ScriptListener>,
                                               script_port,
-                                              NonWorkerScriptChan(script_chan),
+                                              chan,
                                               control_chan,
                                               control_port,
                                               constellation_chan,
@@ -417,7 +437,16 @@ impl ScriptTaskFactory for ScriptTask {
                                                load_data.url.clone());
             script_task.start_page_load(new_load, load_data);
 
+            // Register this task as a memory reporter.
+            let reporter_name = format!("script-reporter-{}", id.0);
+            let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
+            mem_profiler_chan.send(msg);
+
             script_task.start();
+
+            // Unregister this task as a memory reporter.
+            let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
+            mem_profiler_chan.send(msg);
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
@@ -783,6 +812,8 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(addr),
             ScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
+            ScriptMsg::CollectReports(reports_chan) =>
+                self.collect_reports(reports_chan),
         }
     }
 
@@ -961,6 +992,39 @@ impl ScriptTask {
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
+    }
+
+    fn collect_reports(&self, reports_chan: ReportsChan) {
+        let mut reports = vec![];
+
+        unsafe {
+            let rt = JS_GetRuntime(self.get_cx());
+            let mut stats = ::std::mem::zeroed();
+            if CollectServoSizes(rt, &mut stats) {
+                let mut urls = vec![];
+                for it_page in self.root_page().iter() {
+                    urls.push(format!("{}", it_page.document().url()));
+                }
+                let mut urls_str = String::from("url(");
+                urls_str.push_str(&urls.connect(", "));
+                urls_str.push_str(")");
+
+                let mut report = |mut path_suffix, size| {
+                    let mut path = path!["pages", urls_str, "js"];
+                    path.append(&mut path_suffix);
+                    reports.push(Report { path: path, size: size as usize, })
+                };
+
+                report(path!["gc-heap", "used"], stats.gcHeapUsed);
+                report(path!["gc-heap", "unused"], stats.gcHeapUnused);
+                report(path!["gc-heap", "admin"], stats.gcHeapAdmin);
+                report(path!["gc-heap", "decommitted"], stats.gcHeapDecommitted);
+                report(path!["malloc-heap"], stats.mallocHeap);
+                report(path!["non-heap"], stats.nonHeap);
+            }
+        }
+
+        reports_chan.send(reports);
     }
 
     /// Handles a timer that fired.
@@ -1403,9 +1467,9 @@ impl ScriptTask {
                 // We temporarily steal the list of targets over which the mouse is to pass it to
                 // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
-                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
+                std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
-                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
+                std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
             KeyEvent(key, state, modifiers) => {
