@@ -16,6 +16,7 @@ extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
+extern crate profile_traits;
 extern crate serde;
 extern crate util;
 extern crate url;
@@ -32,6 +33,7 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
+use profile_traits::mem;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
@@ -190,6 +192,7 @@ pub trait ScriptTaskFactory {
               resource_task: ResourceTask,
               storage_task: StorageTask,
               image_cache_task: ImageCacheTask,
+              mem_profiler_chan: mem::ProfilerChan,
               devtools_chan: Option<DevtoolsControlChan>,
               window_size: Option<WindowSizeData>,
               load_data: LoadData);
