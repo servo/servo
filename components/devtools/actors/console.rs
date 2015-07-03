@@ -13,6 +13,7 @@ use protocol::JsonPacketStream;
 use devtools_traits::EvaluateJSReply::{NullValue, VoidValue, NumberValue};
 use devtools_traits::EvaluateJSReply::{StringValue, BooleanValue, ActorValue};
 use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR, CONSOLE_API};
+use devtools_traits::CachedConsoleMessage;
 use msg::constellation_msg::PipelineId;
 
 use std::collections::BTreeMap;
@@ -20,6 +21,19 @@ use core::cell::RefCell;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::net::TcpStream;
 use std::sync::mpsc::{channel, Sender};
+
+trait EncodableConsoleMessage {
+    fn encode(&self) -> json::EncodeResult<String>;
+}
+
+impl EncodableConsoleMessage for CachedConsoleMessage {
+    fn encode(&self) -> json::EncodeResult<String> {
+        match *self {
+            CachedConsoleMessage::PageError(ref a) => json::encode(a),
+            CachedConsoleMessage::ConsoleAPI(ref a) => json::encode(a),
+        }
+    }
+}
 
 #[derive(RustcEncodable)]
 struct StartedListenersTraits {
@@ -98,7 +112,9 @@ impl Actor for ConsoleActor {
                 self.script_chan.send(DevtoolScriptControlMsg::GetCachedMessages(
                     self.pipeline, message_types, chan)).unwrap();
                 let messages = try!(port.recv().map_err(|_| ())).into_iter().map(|message| {
-                    json::encode(&message).unwrap().to_json().as_object().unwrap().to_owned()
+                    let json_string = message.encode().unwrap();
+                    let json = Json::from_str(&json_string).unwrap();
+                    json.as_object().unwrap().to_owned()
                 }).collect();
 
                 let msg = GetCachedMessagesReply {
