@@ -141,14 +141,13 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
 
         //TODO: Step 4. Download the link is `download` attribute is set.
 
-        let attr = element.get_attribute(&ns!(""), &atom!("href"));
-        match attr {
-            Some(ref href) => {
-                let value = href.r().Value() + ismap_suffix.as_ref().map(|s| &**s).unwrap_or("");
-                debug!("clicked on link to {}", value);
-                doc.r().load_anchor_href(value);
+        if let Some(ref href) = element.get_attribute(&ns!(""), &atom!("href")) {
+            let mut value = href.r().Value();
+            if let Some(suffix) = ismap_suffix {
+                value.push_str(&suffix);
             }
-            None => ()
+            debug!("clicked on link to {}", value);
+            doc.r().load_anchor_href(value);
         }
     }
 
