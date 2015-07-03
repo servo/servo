@@ -808,20 +808,51 @@ impl<'a> NodeHelpers for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
     fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        match self.parent_node.get() {
-            None => {
-                // Step 1.
-                Ok(())
-            },
-            Some(ref parent_node) => {
-                // Step 2.
-                let doc = self.owner_doc();
-                let node = try!(doc.r().node_from_nodes_and_strings(nodes));
-                // Step 3.
-                Node::pre_insert(node.r(), parent_node.root().r(),
-                                 Some(self)).map(|_| ())
-            },
+        // Step 1.
+        let parent = self.parent_node.get();
+
+        // Step 2.
+        let parent = match parent {
+            None => return Ok(()),
+            Some(ref parent) => parent,
+        };
+
+        // Step 3.
+        let mut viable_previous_sibling = None;
+        {
+            let mut nodes_nostrings = nodes.iter().filter_map(|ref n| {
+                match *n {
+                    &NodeOrString::eNode(ref x) => Some(x),
+                    &NodeOrString::eString(..) => None,
+                }
+            });
+            for sibling in self.preceding_siblings() {
+                if nodes_nostrings.by_ref().find(|&n| *n == sibling).is_none() {
+                    viable_previous_sibling = Some(sibling);
+                    break;
+                }
+            }
         }
+
+        // Step 4.
+        let node = {
+            let doc = self.owner_doc();
+            try!(doc.node_from_nodes_and_strings(nodes))
+        };
+
+        // Step 5.
+        let viable_previous_sibling = match viable_previous_sibling {
+            Some(ref viable_previous_sibling) => viable_previous_sibling.next_sibling.get(),
+            None => parent.root().first_child.get(),
+        };
+
+        // Step 6.
+        match viable_previous_sibling {
+            Some(viable_previous_sibling) =>
+                Node::pre_insert(&node, &parent.root(), Some(&viable_previous_sibling.root())),
+            None =>
+                Node::pre_insert(&node, &parent.root(), None),
+        }.map(|_| ())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
