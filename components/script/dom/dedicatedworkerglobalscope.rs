@@ -29,6 +29,7 @@ use msg::constellation_msg::PipelineId;
 use devtools_traits::DevtoolsControlChan;
 
 use net_traits::{load_whole_resource, ResourceTask};
+use profile_traits::mem::{self, Reporter, ReportsChan};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
@@ -61,6 +62,13 @@ impl ScriptChan for SendableWorkerScriptChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
         }
+    }
+}
+
+impl Reporter for SendableWorkerScriptChan {
+    // Just injects an appropriate event into the worker task's queue.
+    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
+        self.send(ScriptMsg::CollectReports(reports_chan)).is_ok()
     }
 }
 
@@ -143,6 +151,7 @@ impl DedicatedWorkerGlobalScope {
 impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(worker_url: Url,
                             id: PipelineId,
+                            mem_profiler_chan: mem::ProfilerChan,
                             devtools_chan: Option<DevtoolsControlChan>,
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
@@ -173,6 +182,7 @@ impl DedicatedWorkerGlobalScope {
             let global = DedicatedWorkerGlobalScope::new(
                 url, id, devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver);
+            let reporter_name = format!("worker-reporter-{}", id.0);
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
@@ -188,6 +198,12 @@ impl DedicatedWorkerGlobalScope {
                         report_pending_exception(runtime.cx(), global.r().reflector().get_jsobject().get());
                     }
                 }
+
+                // Register this task as a memory reporter. This needs to be done within the
+                // scope of `_ar` otherwise script_chan_as_reporter() will panic.
+                let reporter = global.script_chan_as_reporter();
+                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
+                mem_profiler_chan.send(msg);
             }
 
             loop {
@@ -199,12 +215,17 @@ impl DedicatedWorkerGlobalScope {
                     Err(_) => break,
                 }
             }
+
+            // Unregister this task as a memory reporter.
+            let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
+            mem_profiler_chan.send(msg);
         });
     }
 }
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
     fn script_chan(self) -> Box<ScriptChan+Send>;
+    fn script_chan_as_reporter(self) -> Box<Reporter+Send>;
     fn pipeline(self) -> PipelineId;
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
     fn process_event(self, msg: ScriptMsg);
@@ -212,13 +233,19 @@ pub trait DedicatedWorkerGlobalScopeHelpers {
 
 impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
     fn script_chan(self) -> Box<ScriptChan+Send> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let worker = self.worker.borrow();
         box SendableWorkerScriptChan {
             sender: self.own_sender.clone(),
-            worker: worker.as_ref().unwrap().clone(),
+            worker: self.worker.borrow().as_ref().unwrap().clone(),
         }
     }
+
+    fn script_chan_as_reporter(self) -> Box<Reporter+Send> {
+        box SendableWorkerScriptChan {
+            sender: self.own_sender.clone(),
+            worker: self.worker.borrow().as_ref().unwrap().clone(),
+        }
+    }
+
 
     fn pipeline(self) -> PipelineId {
         self.id
@@ -264,6 +291,13 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
+            }
+            ScriptMsg::CollectReports(reports_chan) => {
+                let scope = WorkerGlobalScopeCast::from_ref(self);
+                let cx = scope.get_cx();
+                let path_seg = format!("url({})", scope.get_url());
+                let reports = ScriptTask::get_reports(cx, path_seg);
+                reports_chan.send(reports);
             }
             _ => panic!("Unexpected message"),
         }
