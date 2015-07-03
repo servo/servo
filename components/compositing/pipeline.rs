@@ -102,6 +102,7 @@ impl Pipeline {
 
                 ScriptTaskFactory::create(None::<&mut STF>,
                                           id,
+                                          load_data.url.clone(),
                                           parent_info,
                                           compositor_proxy.clone_compositor_proxy(),
                                           &layout_pair,
@@ -112,6 +113,7 @@ impl Pipeline {
                                           resource_task,
                                           storage_task.clone(),
                                           image_cache_task.clone(),
+                                          mem_profiler_chan.clone(),
                                           devtools_chan,
                                           window_size,
                                           load_data.clone());

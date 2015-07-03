@@ -70,6 +70,7 @@ use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
+use profile_traits::mem::{self, Report, Reporter, ReportsChan};
 use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
@@ -78,9 +79,10 @@ use util::task_state;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
+use js::glue::CollectServoSizes;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
-use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
+use js::jsapi::{JS_GetRuntime, JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
 use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
@@ -91,7 +93,7 @@ use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
-use std::mem;
+use std::mem as std_mem;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -196,6 +198,9 @@ pub enum ScriptMsg {
     RefcountCleanup(TrustedReference),
     /// Notify a document that all pending loads are complete.
     DocumentLoadsComplete(PipelineId),
+    /// Requests that the script task measure its memory usage. The results are sent back via the
+    /// supplied channel.
+    CollectReports(ReportsChan),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -247,6 +252,18 @@ impl NonWorkerScriptChan {
         let (chan, port) = channel();
         (port, box NonWorkerScriptChan(chan))
     }
+
+    fn clone_as_reporter(&self) -> Box<Reporter+Send> {
+        let NonWorkerScriptChan(ref chan) = *self;
+        box NonWorkerScriptChan((*chan).clone())
+    }
+}
+
+impl Reporter for NonWorkerScriptChan {
+    // Just injects an appropriate event into the script task's queue.
+    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
+        self.send(ScriptMsg::CollectReports(reports_chan)).is_ok()
+    }
 }
 
 pub struct StackRootTLS;
@@ -266,11 +283,17 @@ impl Drop for StackRootTLS {
     }
 }
 
+impl JSTraceable for mem::ProfilerChan {
+    fn trace(&self, _trc: *mut JSTracer) {
+    }
+}
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 #[derive(JSTraceable)]
 pub struct ScriptTask {
+    /// The URL for the task.
+    url: Url,
     /// A handle to the information pertaining to page layout
     page: DOMRefCell<Option<Rc<Page>>>,
     /// A list of data pertaining to loads that have not yet received a network response
@@ -305,6 +328,12 @@ pub struct ScriptTask {
 
     /// The channel on which the image cache can send messages to ourself.
     image_cache_channel: ImageCacheChan,
+
+    /// A channel on which messages can be sent to the memory profiler.
+    mem_profiler_chan: mem::ProfilerChan,
+
+    /// The name used for the script tasks's memory reporter.
+    pub reporter_name: String,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -376,6 +405,7 @@ impl ScriptTaskFactory for ScriptTask {
 
     fn create<C>(_phantom: Option<&mut ScriptTask>,
                  id: PipelineId,
+                 url: Url,
                  parent_info: Option<(PipelineId, SubpageId)>,
                  compositor: C,
                  layout_chan: &OpaqueScriptLayoutChannel,
@@ -386,6 +416,7 @@ impl ScriptTaskFactory for ScriptTask {
                  resource_task: ResourceTask,
                  storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
+                 mem_profiler_chan: mem::ProfilerChan,
                  devtools_chan: Option<DevtoolsControlChan>,
                  window_size: Option<WindowSizeData>,
                  load_data: LoadData)
@@ -396,7 +427,9 @@ impl ScriptTaskFactory for ScriptTask {
         spawn_named_with_send_on_failure(format!("ScriptTask {:?}", id), task_state::SCRIPT, move || {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let script_task = ScriptTask::new(box compositor as Box<ScriptListener>,
+            let script_task = ScriptTask::new(id,
+                                              url,
+                                              box compositor as Box<ScriptListener>,
                                               script_port,
                                               NonWorkerScriptChan(script_chan),
                                               control_chan,
@@ -405,6 +438,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               resource_task,
                                               storage_task,
                                               image_cache_task,
+                                              mem_profiler_chan,
                                               devtools_chan);
 
             SCRIPT_TASK_ROOT.with(|root| {
@@ -464,7 +498,9 @@ impl ScriptTask {
     }
 
     /// Creates a new script task.
-    pub fn new(compositor: Box<ScriptListener+'static>,
+    pub fn new(id: PipelineId,
+               url: Url,
+               compositor: Box<ScriptListener+'static>,
                port: Receiver<ScriptMsg>,
                chan: NonWorkerScriptChan,
                control_chan: ScriptControlChan,
@@ -473,6 +509,7 @@ impl ScriptTask {
                resource_task: ResourceTask,
                storage_task: StorageTask,
                image_cache_task: ImageCacheTask,
+               mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<DevtoolsControlChan>)
                -> ScriptTask {
         let runtime = ScriptTask::new_rt_and_cx();
@@ -485,13 +522,22 @@ impl ScriptTask {
         let (devtools_sender, devtools_receiver) = channel();
         let (image_cache_channel, image_cache_port) = channel();
 
+        // Register this thread as a memory reporter, via its own channel.
+        let reporter = chan.clone_as_reporter();
+        let reporter_name = format!("script-reporter-{}", id.0);
+        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
+
         ScriptTask {
+            url: url,
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
 
             image_cache_task: image_cache_task,
             image_cache_channel: ImageCacheChan(image_cache_channel),
             image_cache_port: image_cache_port,
+
+            mem_profiler_chan: mem_profiler_chan,
+            reporter_name: reporter_name,
 
             resource_task: resource_task,
             storage_task: storage_task,
@@ -681,6 +727,9 @@ impl ScriptTask {
             match msg {
                 MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
                     if self.handle_exit_pipeline_msg(id, exit_type) {
+                        let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
+                        self.mem_profiler_chan.send(msg);
+
                         return false
                     }
                 },
@@ -783,6 +832,8 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(addr),
             ScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
+            ScriptMsg::CollectReports(reports_chan) =>
+                self.collect_reports(reports_chan),
         }
     }
 
@@ -961,6 +1012,31 @@ impl ScriptTask {
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
+    }
+
+    fn collect_reports(&self, reports_chan: ReportsChan) {
+        let mut reports = vec![];
+
+        unsafe {
+            let rt = JS_GetRuntime(self.get_cx());
+            let mut stats = ::std::mem::zeroed();
+            if CollectServoSizes(rt, &mut stats) {
+                let mut report = |mut path_suffix, size| {
+                    let mut path = path!["pages", format!("url({})", self.url), "js"];
+                    path.append(&mut path_suffix);
+                    reports.push(Report { path: path, size: size as usize, })
+                };
+
+                report(path!["gc-heap", "used"], stats.gcHeapUsed);
+                report(path!["gc-heap", "unused"], stats.gcHeapUnused);
+                report(path!["gc-heap", "admin"], stats.gcHeapAdmin);
+                report(path!["gc-heap", "decommitted"], stats.gcHeapDecommitted);
+                report(path!["malloc-heap"], stats.mallocHeap);
+                report(path!["non-heap"], stats.nonHeap);
+            }
+        }
+
+        reports_chan.send(reports);
     }
 
     /// Handles a timer that fired.
@@ -1403,9 +1479,9 @@ impl ScriptTask {
                 // We temporarily steal the list of targets over which the mouse is to pass it to
                 // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
-                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
+                std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
-                mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
+                std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
             KeyEvent(key, state, modifiers) => {
