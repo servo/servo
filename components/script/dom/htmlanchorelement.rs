@@ -129,7 +129,7 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
         if let Some(element) = ElementCast::to_ref(target) {
             if target.is_htmlimageelement() && element.has_attribute(&atom!("ismap")) {
 
-                let target_node = NodeCast::to_ref(target).unwrap();
+                let target_node = NodeCast::from_ref(element);
                 let rect = window_from_node(target_node).r().content_box_query(
                     target_node.to_trusted_node_address());
                 ismap_suffix = Some(
