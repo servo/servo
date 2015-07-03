@@ -300,8 +300,7 @@ impl LayoutTask {
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", task_state::LAYOUT,
-                                opts::get().layout_threads,
-                                SharedLayoutContextWrapper(ptr::null())))
+                                opts::get().layout_threads))
         } else {
             None
         };

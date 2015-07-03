@@ -21,7 +21,6 @@ use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use std::mem;
-use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -446,28 +445,25 @@ fn build_display_list(unsafe_flow: UnsafeFlow,
 
 fn run_queue_with_custom_work_data_type<To,F>(
         queue: &mut WorkQueue<SharedLayoutContextWrapper, WorkQueueData>,
-        callback: F)
+        callback: F,
+        shared_layout_context: &SharedLayoutContext)
         where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedLayoutContextWrapper,To>) {
-    unsafe {
-        let queue: &mut WorkQueue<SharedLayoutContextWrapper,To> = mem::transmute(queue);
-        callback(queue);
-        queue.run();
-    }
+    let queue: &mut WorkQueue<SharedLayoutContextWrapper,To> = unsafe {
+        mem::transmute(queue)
+    };
+    callback(queue);
+    queue.run(SharedLayoutContextWrapper(shared_layout_context as *const _));
 }
 
 pub fn traverse_dom_preorder(root: LayoutNode,
                              shared_layout_context: &SharedLayoutContext,
                              queue: &mut WorkQueue<SharedLayoutContextWrapper, WorkQueueData>) {
-    queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
-
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
             fun:  recalc_style,
             data: (box vec![layout_node_to_unsafe_layout_node(&root)], 0),
         });
-    });
-
-    queue.data = SharedLayoutContextWrapper(ptr::null());
+    }, shared_layout_context);
 }
 
 pub fn traverse_flow_tree_preorder(
@@ -482,8 +478,6 @@ pub fn traverse_flow_tree_preorder(
         root.traverse_postorder(&bubble_inline_sizes);
     }
 
-    queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
-
     run_queue_with_custom_work_data_type(queue, |queue| {
         profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
                 time_profiler_chan, || {
@@ -492,9 +486,7 @@ pub fn traverse_flow_tree_preorder(
                 data: (box vec![mut_owned_flow_to_unsafe_flow(root)], 0),
             })
         });
-    });
-
-    queue.data = SharedLayoutContextWrapper(ptr::null())
+    }, shared_layout_context);
 }
 
 pub fn build_display_list_for_subtree(
@@ -503,8 +495,6 @@ pub fn build_display_list_for_subtree(
         time_profiler_chan: time::ProfilerChan,
         shared_layout_context: &SharedLayoutContext,
         queue: &mut WorkQueue<SharedLayoutContextWrapper, WorkQueueData>) {
-    queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
-
     run_queue_with_custom_work_data_type(queue, |queue| {
         profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
                 time_profiler_chan, || {
@@ -513,7 +503,5 @@ pub fn build_display_list_for_subtree(
                 data: (box vec![mut_owned_flow_to_unsafe_flow(root)], 0),
             })
         });
-    });
-
-    queue.data = SharedLayoutContextWrapper(ptr::null())
+    }, shared_layout_context);
 }

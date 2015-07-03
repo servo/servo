@@ -230,8 +230,6 @@ pub struct WorkQueue<QueueData: 'static, WorkData: 'static> {
     port: Receiver<SupervisorMsg<QueueData, WorkData>>,
     /// The amount of work that has been enqueued.
     work_count: usize,
-    /// Arbitrary user data.
-    pub data: QueueData,
 }
 
 impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
@@ -239,8 +237,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// it.
     pub fn new(task_name: &'static str,
                state: task_state::TaskState,
-               thread_count: usize,
-               user_data: QueueData) -> WorkQueue<QueueData, WorkData> {
+               thread_count: usize) -> WorkQueue<QueueData, WorkData> {
         // Set up data structures.
         let (supervisor_chan, supervisor_port) = channel();
         let (mut infos, mut threads) = (vec!(), vec!());
@@ -288,7 +285,6 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
             workers: infos,
             port: supervisor_port,
             work_count: 0,
-            data: user_data,
         }
     }
 
@@ -306,13 +302,13 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     }
 
     /// Synchronously runs all the enqueued tasks and waits for them to complete.
-    pub fn run(&mut self) {
+    pub fn run(&mut self, data: QueueData) {
         // Tell the workers to start.
         let mut work_count = AtomicUsize::new(self.work_count);
         for worker in self.workers.iter_mut() {
             worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(),
                                               &mut work_count,
-                                              &self.data)).unwrap()
+                                              &data)).unwrap()
         }
 
         // Wait for the work to finish.
