@@ -6,7 +6,6 @@ use syntax::{ast, codemap, visit};
 use syntax::attr::AttrMetaMethods;
 use rustc::ast_map;
 use rustc::lint::{Context, LintPass, LintArray};
-use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
 use utils::unsafe_context;
 
@@ -38,7 +37,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
         ast::TyPath(..) => {
                 match cx.tcx.def_map.borrow()[&ty.id] {
                     def::PathResolution{ base_def: def::DefTy(def_id, _), .. } => {
-                        if ty::has_attr(cx.tcx, def_id, "must_root") {
+                        if cx.tcx.has_attr(def_id, "must_root") {
                             cx.span_lint(UNROOTED_MUST_ROOT, ty.span, warning);
                         }
                     }
@@ -156,11 +155,11 @@ impl LintPass for UnrootedPass {
             _ => return
         };
 
-        let t = expr_ty(cx.tcx, &*expr);
+        let t = cx.tcx.expr_ty(&*expr);
         match t.sty {
             ty::TyStruct(did, _) |
             ty::TyEnum(did, _) => {
-                if ty::has_attr(cx.tcx, did, "must_root") {
+                if cx.tcx.has_attr(did, "must_root") {
                     cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
                                  &format!("Expression of type {:?} must be rooted", t));
                 }

@@ -939,7 +939,6 @@ impl InlineFlow {
     fn justify_inline_fragments(fragments: &mut InlineFragments,
                                 line: &Line,
                                 slack_inline_size: Au) {
-        #![allow(unsafe_code)] // #6376
         // Fast path.
         if slack_inline_size == Au(0) {
             return
@@ -974,9 +973,9 @@ impl InlineFlow {
             // FIXME(pcwalton): This is an awful lot of uniqueness making. I don't see any easy way
             // to get rid of it without regressing the performance of the non-justified case,
             // though.
-            let run = unsafe { scanned_text_fragment_info.run.make_unique() };
+            let run = Arc::make_unique(&mut scanned_text_fragment_info.run);
             {
-                let glyph_runs = unsafe { run.glyphs.make_unique() };
+                let glyph_runs = Arc::make_unique(&mut run.glyphs);
                 for mut glyph_run in glyph_runs.iter_mut() {
                     let mut range = glyph_run.range.intersect(&fragment_range);
                     if range.is_empty() {
@@ -984,7 +983,7 @@ impl InlineFlow {
                     }
                     range.shift_by(-glyph_run.range.begin());
 
-                    let glyph_store = unsafe { glyph_run.glyph_store.make_unique() };
+                    let glyph_store = Arc::make_unique(&mut glyph_run.glyph_store);
                     glyph_store.distribute_extra_space_in_range(&range,
                                                                 space_per_expansion_opportunity);
                 }
