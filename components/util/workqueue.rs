@@ -114,20 +114,13 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
             let mut back_off_sleep = 0 as u32;
 
             // We're off!
-            //
-            // FIXME(pcwalton): Can't use labeled break or continue cross-crate due to a Rust bug.
-            loop {
-                // FIXME(pcwalton): Nasty workaround for the lack of labeled break/continue
-                // cross-crate.
-                let mut work_unit = unsafe {
-                    mem::uninitialized()
-                };
+            'outer: loop {
+                let work_unit;
                 match deque.pop() {
                     Some(work) => work_unit = work,
                     None => {
                         // Become a thief.
                         let mut i = 0;
-                        let mut should_continue = true;
                         loop {
                             // Don't just use `rand % len` because that's slow on ARM.
                             let mut victim;
@@ -153,10 +146,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                 if back_off_sleep >= BACKOFF_INCREMENT_IN_US *
                                         BACKOFFS_UNTIL_CONTROL_CHECK {
                                     match self.port.try_recv() {
-                                        Ok(WorkerMsg::Stop) => {
-                                            should_continue = false;
-                                            break
-                                        }
+                                        Ok(WorkerMsg::Stop) => break 'outer,
                                         Ok(WorkerMsg::Exit) => return,
                                         Ok(_) => panic!("unexpected message"),
                                         _ => {}
@@ -171,10 +161,6 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                             } else {
                                 i += 1
                             }
-                        }
-
-                        if !should_continue {
-                            break
                         }
                     }
                 }
