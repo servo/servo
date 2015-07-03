@@ -73,6 +73,16 @@ function test_after(child, nodeName, innerHTML) {
     }, nodeName + '.after() with context object itself as the argument.');
 
     test(function() {
+        var parent = document.createElement('div')
+        var x = document.createElement('x');
+        parent.appendChild(x);
+        parent.appendChild(child);
+        child.after(child, x);
+        var expected = innerHTML + '<x></x>';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with context object itself and node as the arguments, switching positions.');
+
+    test(function() {
         var parent = document.createElement('div');
         var x = document.createElement('x');
         var y = document.createElement('y');
@@ -84,6 +94,36 @@ function test_after(child, nodeName, innerHTML) {
         var expected = innerHTML + '<x></x><y></y><z></z>';
         assert_equals(parent.innerHTML, expected);
     }, nodeName + '.after() with all siblings of child as arguments.');
+
+    test(function() {
+        var parent = document.createElement('div')
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        var z = document.createElement('z');
+        parent.appendChild(child);
+        parent.appendChild(x);
+        parent.appendChild(y);
+        parent.appendChild(z);
+        child.after(x, y);
+        var expected = innerHTML + '<x></x><y></y><z></z>';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with some siblings of child as arguments; no changes in tree; viable sibling is first child.');
+
+    test(function() {
+        var parent = document.createElement('div')
+        var v = document.createElement('v');
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        var z = document.createElement('z');
+        parent.appendChild(child);
+        parent.appendChild(v);
+        parent.appendChild(x);
+        parent.appendChild(y);
+        parent.appendChild(z);
+        child.after(v, x);
+        var expected = innerHTML + '<v></v><x></x><y></y><z></z>';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with some siblings of child as arguments; no changes in tree.');
 
     test(function() {
         var parent = document.createElement('div');
