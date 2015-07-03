@@ -69,15 +69,6 @@ impl<'a> VirtualMethods for &'a HTMLAnchorElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn handle_event(&self, event: &Event) {
-        match self.super_type() {
-            Some(s) => {
-                s.handle_event(event);
-            }
-            None => {}
-        }
-    }
-
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
@@ -138,7 +129,7 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
         if let Some(element) = ElementCast::to_ref(target) {
             if target.is_htmlimageelement() && element.has_attribute(&atom!("ismap")) {
 
-                let target_node = NodeCast::to_ref(target).unwrap();
+                let target_node = NodeCast::from_ref(element);
                 let rect = window_from_node(target_node).r().content_box_query(
                     target_node.to_trusted_node_address());
                 ismap_suffix = Some(
@@ -150,14 +141,13 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
 
         //TODO: Step 4. Download the link is `download` attribute is set.
 
-        let attr = element.get_attribute(&ns!(""), &atom!("href"));
-        match attr {
-            Some(ref href) => {
-                let value = href.r().Value() + ismap_suffix.as_ref().map(|s| &**s).unwrap_or("");
-                debug!("clicked on link to {}", value);
-                doc.r().load_anchor_href(value);
+        if let Some(ref href) = element.get_attribute(&ns!(""), &atom!("href")) {
+            let mut value = href.r().Value();
+            if let Some(suffix) = ismap_suffix {
+                value.push_str(&suffix);
             }
-            None => ()
+            debug!("clicked on link to {}", value);
+            doc.r().load_anchor_href(value);
         }
     }
 
