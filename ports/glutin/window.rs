@@ -69,6 +69,7 @@ const CMD_OR_ALT : constellation_msg::KeyModifiers = SUPER;
 const CMD_OR_ALT : constellation_msg::KeyModifiers = ALT;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
+#[cfg(feature = "window")]
 const LINE_HEIGHT : f32 = 38.0;
 
 /// The type of a window.

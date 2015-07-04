@@ -590,7 +590,7 @@ impl<'a> PaintContext<'a> {
                                       bounds.origin.y + radii.top_right),
                          radii.top_right,
                          1.5f32 * f32::consts::FRAC_PI_2,
-                         f32::consts::PI_2,
+                         2.0f32 * f32::consts::PI,
                          false);                                                                 // 3
         path_builder.line_to(Point2D::new(bounds.max_x(), bounds.max_y() - radii.bottom_right)); // 4
         path_builder.arc(Point2D::new(bounds.max_x() - radii.bottom_right,
