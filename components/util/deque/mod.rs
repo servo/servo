@@ -52,7 +52,7 @@ pub use self::Stolen::{Empty, Abort, Data};
 use std::sync::Arc;
 use std::rt::heap::{allocate, deallocate};
 use std::marker;
-use std::mem::{forget, min_align_of, size_of, transmute};
+use std::mem::{forget, align_of, size_of, transmute};
 use std::ptr;
 
 use std::sync::Mutex;
@@ -354,7 +354,7 @@ fn buffer_alloc_size<T>(log_size: usize) -> usize {
 impl<T> Buffer<T> {
     unsafe fn new(log_size: usize) -> Buffer<T> {
         let size = buffer_alloc_size::<T>(log_size);
-        let buffer = allocate(size, min_align_of::<T>());
+        let buffer = allocate(size, align_of::<T>());
         if buffer.is_null() { ::alloc::oom() }
         Buffer {
             storage: buffer as *const T,
@@ -403,6 +403,6 @@ impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         // It is assumed that all buffers are empty on drop.
         let size = buffer_alloc_size::<T>(self.log_size);
-        unsafe { deallocate(self.storage as *mut u8, size, min_align_of::<T>()) }
+        unsafe { deallocate(self.storage as *mut u8, size, align_of::<T>()) }
     }
 }

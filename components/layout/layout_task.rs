@@ -63,7 +63,6 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
-use std::ptr;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use style::computed_values::{filter, mix_blend_mode};

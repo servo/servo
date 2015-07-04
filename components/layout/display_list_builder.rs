@@ -1163,7 +1163,7 @@ impl FragmentDisplayListBuilding for Fragment {
             for operation in operations {
                 let matrix = match operation {
                     &transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                        let theta = f32::consts::PI_2 - theta.radians();
+                        let theta = 2.0f32 * f32::consts::PI - theta.radians();
                         Matrix4::create_rotation(ax, ay, az, theta)
                     }
                     &transform::ComputedOperation::Perspective(d) => {

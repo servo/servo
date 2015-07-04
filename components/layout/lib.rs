@@ -6,7 +6,6 @@
 #![feature(arc_unique)]
 #![feature(box_syntax)]
 #![feature(filling_drop)]
-#![feature(float_consts)]
 #![feature(hashmap_hasher)]
 #![feature(heap_api)]
 #![feature(mpsc_select)]

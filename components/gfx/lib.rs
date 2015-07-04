@@ -3,13 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(arc_weak)]
-#![feature(box_raw)]
+#![cfg_attr(any(target_os="linux", target_os = "android"), feature(box_raw))]
 #![feature(box_syntax)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(float_consts)]
 #![feature(hashmap_hasher)]
-#![feature(heap_api)]
+#![cfg_attr(any(target_os="linux", target_os = "android"), feature(heap_api))]
 #![feature(iter_cmp)]
 #![feature(plugin)]
 #![feature(str_char)]
