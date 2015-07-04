@@ -180,7 +180,7 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
     #[allow(unsafe_code)]
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+            element::get_attr_for_layout(ElementCast::from_ref(&*self),
                                          &ns!(""),
                                          &atom!("width")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
@@ -191,7 +191,7 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
     #[allow(unsafe_code)]
     fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+            element::get_attr_for_layout(ElementCast::from_ref(&*self),
                                          &ns!(""),
                                          &atom!("height")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
