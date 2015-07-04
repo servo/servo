@@ -5736,7 +5736,7 @@ class GlobalGenRoots():
 impl ${selfName} for ${baseName} {
     #[inline]
     fn ${fname}(&self) -> bool {
-        let base: &${parentName} = ${parentName}Cast::from_actual(self);
+        let base: &${parentName} = ${parentName}Cast::from_ref(self);
         base.${fname}()
     }
 }
@@ -5803,11 +5803,6 @@ impl ${name}Cast {
 
     #[inline]
     pub fn from_root<T: ${fromBound}+Reflectable>(derived: Root<T>) -> Root<${name}> {
-        unsafe { mem::transmute(derived) }
-    }
-
-    #[inline]
-    pub fn from_actual<'a, T: ${fromBound}+Reflectable>(derived: &'a T) -> &'a ${name} {
         unsafe { mem::transmute(derived) }
     }
 }

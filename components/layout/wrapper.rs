@@ -411,7 +411,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node: &Node = NodeCast::from_actual(self.element);
+        let node: &Node = NodeCast::from_ref(self.element);
         match node.type_id_for_layout() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
@@ -438,7 +438,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_hover_state(&self) -> bool {
         unsafe {
-            let node: &Node = NodeCast::from_actual(self.element);
+            let node: &Node = NodeCast::from_ref(self.element);
             node.get_hover_state_for_layout()
         }
     }
@@ -446,7 +446,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_focus_state(&self) -> bool {
         unsafe {
-            let node: &Node = NodeCast::from_actual(self.element);
+            let node: &Node = NodeCast::from_ref(self.element);
             node.get_focus_state_for_layout()
         }
     }
@@ -461,7 +461,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_disabled_state(&self) -> bool {
         unsafe {
-            let node: &Node = NodeCast::from_actual(self.element);
+            let node: &Node = NodeCast::from_ref(self.element);
             node.get_disabled_state_for_layout()
         }
     }
@@ -469,7 +469,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_enabled_state(&self) -> bool {
         unsafe {
-            let node: &Node = NodeCast::from_actual(self.element);
+            let node: &Node = NodeCast::from_ref(self.element);
             node.get_enabled_state_for_layout()
         }
     }
