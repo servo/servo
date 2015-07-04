@@ -56,7 +56,6 @@ use script::dom::node::{Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
 use script::dom::text::Text;
-use script::layout_interface::LayoutChan;
 use smallvec::VecLike;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use util::str::is_whitespace;
@@ -179,12 +178,11 @@ impl<'ln> LayoutNode<'ln> {
     /// Resets layout data and styles for the node.
     ///
     /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
-    pub fn initialize_layout_data(self, chan: LayoutChan) {
+    pub fn initialize_layout_data(self) {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref {
             None => {
                 *layout_data_ref = Some(LayoutDataWrapper {
-                    chan: Some(chan),
                     shared_data: SharedLayoutData { style: None },
                     data: box PrivateLayoutData::new(),
                 });

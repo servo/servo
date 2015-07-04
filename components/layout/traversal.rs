@@ -132,7 +132,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         //
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
         // parser.
-        node.initialize_layout_data(self.layout_context.shared.layout_chan.clone());
+        node.initialize_layout_data();
 
         // Get the parent node.
         let parent_opt = node.layout_parent_node(self.layout_context.shared);
