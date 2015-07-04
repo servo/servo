@@ -2368,8 +2368,8 @@ impl<'a> NodeMethods for &'a Node {
         fn is_equal_element(node: &Node, other: &Node) -> bool {
             let element: &Element = ElementCast::to_ref(node).unwrap();
             let other_element: &Element = ElementCast::to_ref(other).unwrap();
-            // FIXME: namespace prefix
             (*element.namespace() == *other_element.namespace()) &&
+            (*element.prefix() == *other_element.prefix()) &&
             (*element.local_name() == *other_element.local_name()) &&
             (element.attrs().len() == other_element.attrs().len())
         }
