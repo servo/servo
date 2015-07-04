@@ -67,20 +67,16 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(self) -> u32 {
         self.attribute().map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
-            let value = attr.value();
-            value.tokens().map(|tokens| tokens.len()).unwrap_or(0)
+            attr.value().tokens().map(|tokens| tokens.len()).unwrap_or(0)
         }).unwrap_or(0) as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
-            let value = attr.value();
-            value.tokens().and_then(|tokens| {
+            attr.value().tokens().and_then(|tokens| {
                 tokens.get(index as usize).map(|token| (**token).to_owned())
             })
         })
@@ -96,13 +92,12 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     fn Contains(self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(&token).map(|token| {
             self.attribute().map(|attr| {
-                // FIXME(https://github.com/rust-lang/rust/issues/23338)
                 let attr = attr.r();
-                let value = attr.value();
-                value.tokens()
-                     .expect("Should have parsed this attribute")
-                     .iter()
-                     .any(|atom| *atom == token)
+                attr.value()
+                    .tokens()
+                    .expect("Should have parsed this attribute")
+                    .iter()
+                    .any(|atom| *atom == token)
             }).unwrap_or(false)
         })
     }

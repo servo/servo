@@ -983,13 +983,11 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     fn get_unique_id(self) -> String {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
         if self.unique_id.borrow().is_empty() {
             let mut unique_id = self.unique_id.borrow_mut();
             *unique_id = uuid::Uuid::new_v4().to_simple_string();
         }
-        let id = self.unique_id.borrow();
-        id.clone()
+        self.unique_id.borrow().clone()
     }
 
     fn summarize(self) -> NodeInfo {
@@ -2318,10 +2316,7 @@ impl<'a> NodeMethods for &'a Node {
         fn is_equal_characterdata(node: &Node, other: &Node) -> bool {
             let characterdata: &CharacterData = CharacterDataCast::to_ref(node).unwrap();
             let other_characterdata: &CharacterData = CharacterDataCast::to_ref(other).unwrap();
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let own_data = characterdata.data();
-            let other_data = other_characterdata.data();
-            *own_data == *other_data
+            *characterdata.data() == *other_characterdata.data()
         }
         fn is_equal_element_attrs(node: &Node, other: &Node) -> bool {
             let element: &Element = ElementCast::to_ref(node).unwrap();

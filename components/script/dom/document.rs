@@ -1185,16 +1185,12 @@ impl<'a> DocumentMethods for &'a Document {
 
     // https://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let encoding_name = self.encoding_name.borrow();
-        encoding_name.clone()
+        self.encoding_name.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-inputencoding
     fn InputEncoding(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let encoding_name = self.encoding_name.borrow();
-        encoding_name.clone()
+        self.encoding_name.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-content_type
@@ -1239,9 +1235,7 @@ impl<'a> DocumentMethods for &'a Document {
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Root<Element>> {
         let id = Atom::from_slice(&id);
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let idmap = self.idmap.borrow();
-        idmap.get(&id).map(|ref elements| (*elements)[0].root())
+        self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement

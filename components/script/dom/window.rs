@@ -336,9 +336,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     fn Document(self) -> Root<Document> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let context = self.browser_context();
-        context.as_ref().unwrap().active_document()
+        self.browser_context().as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
@@ -362,9 +360,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://html.spec.whatwg.org/#dom-frameelement
     fn GetFrameElement(self) -> Option<Root<Element>> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let context = self.browser_context();
-        context.as_ref().unwrap().frame_element()
+        self.browser_context().as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
@@ -792,9 +788,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn steal_fragment_name(self) -> Option<String> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let mut name = self.fragment_name.borrow_mut();
-        name.take()
+        self.fragment_name.borrow_mut().take()
     }
 
     fn set_window_size(self, size: WindowSizeData) {
@@ -838,9 +832,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn layout_is_idle(self) -> bool {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let port = self.layout_join_port.borrow();
-        port.is_none()
+        self.layout_join_port.borrow().is_none()
     }
 
     fn get_pending_reflow_count(self) -> u32 {
