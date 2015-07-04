@@ -69,7 +69,7 @@ use std::iter::{FilterMap, Peekable};
 use std::mem;
 use std::sync::Arc;
 use uuid;
-use string_cache::{Atom, QualName};
+use string_cache::{Atom, Namespace, QualName};
 
 //
 // The basic Node structure
@@ -1909,6 +1909,61 @@ impl Node {
         }
         content
     }
+
+    // https://dom.spec.whatwg.org/#locate-a-namespace
+    pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
+        match node.type_id {
+            NodeTypeId::Element(_) => {
+                let element: &Element = ElementCast::to_ref(node).unwrap();
+                // Step 1.
+                if *element.namespace() != ns!("") && *element.prefix() == prefix {
+                    return element.namespace().clone()
+                }
+
+                // Step 2.
+                let namespace_attr =
+                    element.attrs()
+                        .iter()
+                        .map(|attr| attr.root())
+                        .find(|attr| *attr.r().namespace() == ns!(XMLNS) &&
+                                     attr.r().prefix().is_some() == prefix.is_some() &&
+                                     (*attr.r().local_name() == atom!("xmlns") ||
+                                     (*attr.r().prefix() == Some(atom!("xmlns")) &&
+                                      *attr.r().local_name() ==
+                                          Atom::from_slice(&prefix.clone().unwrap()))));
+
+                // Steps 2.1-2.
+                if let Some(attr) = namespace_attr {
+                    return namespace_from_domstring(Some(attr.Value()));
+                }
+
+                match node.GetParentElement() {
+                    // Step 3.
+                    None => ns!(""),
+                    // Step 4.
+                    Some(parent) => Node::locate_namespace(NodeCast::from_ref(parent.r()), prefix)
+                }
+            },
+            NodeTypeId::Document => {
+                match DocumentCast::to_ref(node).unwrap().GetDocumentElement().r() {
+                    // Step 1.
+                    None => ns!(""),
+                    // Step 2.
+                    Some(document) => {
+                        Node::locate_namespace(NodeCast::from_ref(document), prefix)
+                    }
+                }
+            },
+            NodeTypeId::DocumentType => ns!(""),
+            NodeTypeId::DocumentFragment => ns!(""),
+            _ => match node.GetParentNode() {
+                     // Step 1.
+                     None => ns!(""),
+                     // Step 2.
+                     Some(parent) => Node::locate_namespace(parent.r(), prefix)
+                 }
+        }
+    }
 }
 
 impl<'a> NodeMethods for &'a Node {
@@ -2464,15 +2519,26 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
-    fn LookupNamespaceURI(self, _namespace: Option<DOMString>) -> Option<DOMString> {
-        // FIXME (#1826) implement.
-        None
-    }
+    fn LookupNamespaceURI(self, prefix: Option<DOMString>) -> Option<DOMString> {
+        // Step 1.
+        let prefix = match prefix {
+            Some(ref p) if p == "" => None,
+            pre => pre
+        };
+
+        // Step 2.
+        match Node::locate_namespace(self, prefix) {
+            ns!("") => None,
+            Namespace(ref ns) => Some((**ns).to_owned())
+        }
+     }
 
     // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
-    fn IsDefaultNamespace(self, _namespace: Option<DOMString>) -> bool {
-        // FIXME (#1826) implement.
-        false
+    fn IsDefaultNamespace(self, namespace: Option<DOMString>) -> bool {
+        // Step 1.
+        let namespace = namespace_from_domstring(namespace);
+        // Steps 2 and 3.
+        Node::locate_namespace(self, None) == namespace
     }
 }
 
