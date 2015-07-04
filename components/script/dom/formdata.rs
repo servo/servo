@@ -98,9 +98,7 @@ impl<'a> FormDataMethods for &'a FormData {
     }
 
     fn Has(self, name: DOMString) -> bool {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let data = self.data.borrow();
-        data.contains_key(&name)
+        self.data.borrow().contains_key(&name)
     }
     #[allow(unrooted_must_root)]
     fn Set(self, name: DOMString, value: &Blob, filename: Option<DOMString>) {
