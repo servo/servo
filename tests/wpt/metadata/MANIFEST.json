@@ -13154,6 +13154,10 @@
         "url": "/dom/nodes/Node-lookupPrefix.xhtml"
       },
       {
+        "path": "dom/nodes/Node-lookupNamespaceURI.html",
+        "url": "/dom/nodes/Node-lookupNamespaceURI.html"
+      },
+      {
         "path": "dom/nodes/Node-nodeName.html",
         "url": "/dom/nodes/Node-nodeName.html"
       },
