@@ -232,6 +232,27 @@ impl HTMLIFrameElement {
     }
 }
 
+pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> Fallible<()> {
+    if iframe.Mozbrowser() {
+        let node = NodeCast::from_ref(iframe);
+        if node.is_in_doc() {
+            let window = window_from_node(iframe);
+            let window = window.r();
+
+            let pipeline_info = Some((iframe.containing_page_pipeline_id().unwrap(),
+                                      iframe.subpage_id().unwrap()));
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let msg = ConstellationMsg::Navigate(pipeline_info, direction);
+            chan.send(msg).unwrap();
+        }
+
+        Ok(())
+    } else {
+        debug!("this frame is not mozbrowser (or experimental_enabled is false)");
+        Err(NotSupported)
+    }
+}
+
 impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     fn Src(self) -> DOMString {
         let element = ElementCast::from_ref(self);
@@ -308,46 +329,12 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(self) -> Fallible<()> {
-         if self.Mozbrowser() {
-            let node = NodeCast::from_ref(self);
-            if node.is_in_doc() {
-                let window = window_from_node(self);
-                let window = window.r();
-
-                let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
-                                          self.subpage_id().unwrap()));
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                let msg = ConstellationMsg::Navigate(pipeline_info, NavigationDirection::Back);
-                chan.send(msg).unwrap();
-            }
-
-            Ok(())
-        } else {
-            debug!("this frame is not mozbrowser (or experimental_enabled is false)");
-            Err(NotSupported)
-        }
+        Navigate(self, NavigationDirection::Back)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(self) -> Fallible<()> {
-         if self.Mozbrowser() {
-            let node = NodeCast::from_ref(self);
-            if node.is_in_doc() {
-                let window = window_from_node(self);
-                let window = window.r();
-
-                let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
-                                          self.subpage_id().unwrap()));
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                let msg = ConstellationMsg::Navigate(pipeline_info, NavigationDirection::Forward);
-                chan.send(msg).unwrap();
-            }
-
-            Ok(())
-        } else {
-            debug!("this frame is not mozbrowser (or experimental_enabled is false)");
-            Err(NotSupported)
-        }
+        Navigate(self, NavigationDirection::Forward)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
