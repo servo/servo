@@ -943,7 +943,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "plugins"
 version = "0.0.1"
 dependencies = [
- "tenacious 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tenacious 0.0.6 (git+https://github.com/servo/rust-tenacious)",
 ]
 
 [[package]]
@@ -1224,8 +1224,8 @@ dependencies = [
 
 [[package]]
 name = "tenacious"
-version = "0.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.0.6"
+source = "git+https://github.com/servo/rust-tenacious#8f878d812a95dc44dab9c03096fcf8a52687868a"
 
 [[package]]
 name = "tendril"

@@ -6,7 +6,6 @@ use syntax::{ast, ast_util};
 use syntax::ast::Public;
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
-use rustc::middle::ty;
 
 declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions");
@@ -28,7 +27,7 @@ impl LintPass for PrivatizePass {
                         _i: ast::Ident,
                         _gen: &ast::Generics,
                         id: ast::NodeId) {
-        if ty::has_attr(cx.tcx, ast_util::local_def(id), "privatize") {
+        if cx.tcx.has_attr(ast_util::local_def(id), "privatize") {
             for field in def.fields.iter() {
                 match field.node {
                     ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } if visibility == Public => {

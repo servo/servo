@@ -5,7 +5,6 @@
 use syntax::ast;
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
-use rustc::middle::ty::expr_ty;
 
 declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
               "Warn and report types being transmuted");
@@ -32,8 +31,8 @@ impl LintPass for TransmutePass {
                             let tcx = cx.tcx;
                             cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
                                          &format!("Transmute to {:?} from {:?} detected",
-                                                 expr_ty(tcx, ex),
-                                                 expr_ty(tcx, &**args.get(0).unwrap())
+                                                  tcx.expr_ty(ex),
+                                                  tcx.expr_ty(&**args.get(0).unwrap())
                                         ));
                         }
                     }

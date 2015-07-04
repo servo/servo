@@ -4,7 +4,7 @@
 
 use rustc::ast_map;
 use rustc::lint::Context;
-use rustc::middle::{ty, def};
+use rustc::middle::def;
 
 use syntax::ptr::P;
 use syntax::ast;
@@ -49,7 +49,7 @@ pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
         _ => return false,
     };
 
-    ty::get_attrs(cx.tcx, def_id).iter().any(|attr| {
+    cx.tcx.get_attrs(def_id).iter().any(|attr| {
         match attr.node.value.node {
             ast::MetaNameValue(ref name, ref val) if &**name == "servo_lang" => {
                 match val.node {
