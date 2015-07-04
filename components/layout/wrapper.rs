@@ -43,7 +43,7 @@ use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCas
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
-use script::dom::bindings::js::{JS, LayoutJS};
+use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::{CharacterDataTypeId, LayoutCharacterDataHelpers};
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
@@ -251,13 +251,12 @@ impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
     /// If this is an element, accesses the element data.
     #[inline]
     fn as_element(&self) -> Option<LayoutElement<'ln>> {
-        unsafe {
-            ElementCast::to_layout_js(&self.node).map(|element| {
-                LayoutElement {
-                    element: &*element.unsafe_get(),
-                }
-            })
-        }
+        ElementCast::to_layout_js(&self.node).map(|element| {
+            LayoutElement {
+                element: element,
+                chain: self.chain,
+            }
+        })
     }
 
     fn is_document(&self) -> bool {
@@ -372,14 +371,15 @@ impl<'a> Iterator for LayoutTreeIterator<'a> {
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 #[derive(Copy, Clone)]
 pub struct LayoutElement<'le> {
-    element: &'le Element,
+    element: LayoutJS<Element>,
+    chain: PhantomData<&'le ()>,
 }
 
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         use script::dom::element::ElementHelpers;
         let style: &Option<PropertyDeclarationBlock> = unsafe {
-            &*self.element.style_attribute().borrow_for_layout()
+            &*(*self.element.unsafe_get()).style_attribute().borrow_for_layout()
         };
         style
     }
@@ -391,34 +391,36 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn as_node(&self) -> LayoutNode<'le> {
         LayoutNode {
-            node: NodeCast::from_layout_js(unsafe {
-                &JS::from_ref(self.element).to_layout()
-            }),
+            node: NodeCast::from_layout_js(&self.element),
             chain: PhantomData,
         }
     }
 
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a Atom {
-        self.element.local_name()
+        unsafe {
+            (*self.element.unsafe_get()).local_name()
+        }
     }
 
     #[inline]
     fn get_namespace<'a>(&'a self) -> &'a Namespace {
         use script::dom::element::ElementHelpers;
-        self.element.namespace()
+        unsafe {
+            (*self.element.unsafe_get()).namespace()
+        }
     }
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node: &Node = NodeCast::from_ref(self.element);
-        match node.type_id_for_layout() {
+        let node = NodeCast::from_layout_js(&self.element);
+        match unsafe { (*node.unsafe_get()).type_id_for_layout() } {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
                 unsafe {
-                    self.element.get_attr_val_for_layout(&ns!(""), &atom!("href")).is_some()
+                    (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("href")).is_some()
                 }
             }
             _ => false,
@@ -437,68 +439,68 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_hover_state(&self) -> bool {
+        let node = NodeCast::from_layout_js(&self.element);
         unsafe {
-            let node: &Node = NodeCast::from_ref(self.element);
-            node.get_hover_state_for_layout()
+            (*node.unsafe_get()).get_hover_state_for_layout()
         }
     }
 
     #[inline]
     fn get_focus_state(&self) -> bool {
+        let node = NodeCast::from_layout_js(&self.element);
         unsafe {
-            let node: &Node = NodeCast::from_ref(self.element);
-            node.get_focus_state_for_layout()
+            (*node.unsafe_get()).get_focus_state_for_layout()
         }
     }
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
         unsafe {
-            self.element.get_attr_atom_for_layout(&ns!(""), &atom!("id"))
+            (*self.element.unsafe_get()).get_attr_atom_for_layout(&ns!(""), &atom!("id"))
         }
     }
 
     #[inline]
     fn get_disabled_state(&self) -> bool {
+        let node = NodeCast::from_layout_js(&self.element);
         unsafe {
-            let node: &Node = NodeCast::from_ref(self.element);
-            node.get_disabled_state_for_layout()
+            (*node.unsafe_get()).get_disabled_state_for_layout()
         }
     }
 
     #[inline]
     fn get_enabled_state(&self) -> bool {
+        let node = NodeCast::from_layout_js(&self.element);
         unsafe {
-            let node: &Node = NodeCast::from_ref(self.element);
-            node.get_enabled_state_for_layout()
+            (*node.unsafe_get()).get_enabled_state_for_layout()
         }
     }
 
     #[inline]
     fn get_checked_state(&self) -> bool {
         unsafe {
-            self.element.get_checked_state_for_layout()
+            (*self.element.unsafe_get()).get_checked_state_for_layout()
         }
     }
 
     #[inline]
     fn get_indeterminate_state(&self) -> bool {
         unsafe {
-            self.element.get_indeterminate_state_for_layout()
+            (*self.element.unsafe_get()).get_indeterminate_state_for_layout()
         }
     }
 
     #[inline]
     fn has_class(&self, name: &Atom) -> bool {
         unsafe {
-            self.element.has_class_for_layout(name)
+            (*self.element.unsafe_get()).has_class_for_layout(name)
         }
     }
 
     #[inline(always)]
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         unsafe {
-            match self.element.get_classes_for_layout() {
+            match (*self.element.unsafe_get()).get_classes_for_layout() {
                 None => {}
                 Some(ref classes) => {
                     for class in classes.iter() {
@@ -512,7 +514,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn has_servo_nonzero_border(&self) -> bool {
         unsafe {
-            match self.element.get_attr_for_layout(&ns!(""), &atom!("border")) {
+            match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(""), &atom!("border")) {
                 None | Some(&AttrValue::UInt(_, 0)) => false,
                 _ => true,
             }
@@ -537,7 +539,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     fn is_html_element_in_html_document(&self) -> bool {
         unsafe {
-            JS::from_ref(self.element).to_layout().html_element_in_html_document_for_layout()
+            self.element.html_element_in_html_document_for_layout()
         }
     }
 }
@@ -547,25 +549,27 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         unsafe {
-            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+            (*self.element.unsafe_get()).synthesize_presentational_hints_for_legacy_attributes(hints);
         }
     }
 
     fn get_unsigned_integer_attribute(&self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
-            self.element.get_unsigned_integer_attribute_for_layout(attribute)
+            (*self.element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
         }
     }
 
     #[inline]
     fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
-        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
+        unsafe {
+            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
+        }
     }
 
     #[inline]
     fn get_attrs<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
         unsafe {
-            self.element.get_attr_vals_for_layout(name)
+            (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
         }
     }
 }
