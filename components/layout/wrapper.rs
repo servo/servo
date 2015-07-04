@@ -383,11 +383,9 @@ pub struct LayoutElement<'le> {
 
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
-        use script::dom::element::ElementHelpers;
-        let style: &Option<PropertyDeclarationBlock> = unsafe {
-            &*(*self.element.unsafe_get()).style_attribute().borrow_for_layout()
-        };
-        style
+        unsafe {
+            &*self.element.style_attribute()
+        }
     }
 }
 
