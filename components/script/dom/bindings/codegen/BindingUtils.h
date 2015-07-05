@@ -1,8 +1,8 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-*/
 /* vim: set ts=2 sw=2 et tw=79: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_BindingUtils_h__
 #define mozilla_dom_BindingUtils_h__
@@ -115,7 +115,7 @@ UnwrapDOMObject(JSObject* obj, DOMObjectSlot slot)
   if (val.isUndefined()) {
     return NULL;
   }
-  
+
   return static_cast<T*>(val.toPrivate());
 }
 
@@ -162,7 +162,7 @@ UnwrapDOMObjectToISupports(JSObject* obj, nsISupports*& result)
   if (slot == eNonDOMObject || !clasp->mDOMObjectIsISupports) {
     return false;
   }
- 
+
   result = UnwrapDOMObject<nsISupports>(obj, slot);
   return true;
 }
@@ -1042,7 +1042,7 @@ private:
   // Forbid copy-construction and assignment
   Optional(const Optional& other) MOZ_DELETE;
   const Optional &operator=(const Optional &other) MOZ_DELETE;
-  
+
   Maybe<T> mImpl;
 };
 
@@ -1077,7 +1077,7 @@ private:
   // Forbid copy-construction and assignment
   Optional(const Optional& other) MOZ_DELETE;
   const Optional &operator=(const Optional &other) MOZ_DELETE;
-  
+
   bool mPassed;
   const nsAString* mStr;
 };
