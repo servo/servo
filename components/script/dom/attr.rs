@@ -49,7 +49,11 @@ impl AttrValue {
     }
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        let tokens = atoms.iter().map(|x| &**x).collect::<Vec<_>>().connect("\x20");
+        let tokens = atoms.iter().fold(String::new(), |mut s, atom| {
+            if !s.is_empty() { s.push('\x20'); }
+            s.push_str(atom);
+            s
+        });
         AttrValue::TokenList(tokens, atoms)
     }
 
