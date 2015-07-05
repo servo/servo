@@ -157,6 +157,11 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
 
     // https://dom.spec.whatwg.org/#stringification-behavior
     fn Stringifier(self) -> DOMString {
-        self.element.root().r().get_string_attribute(&self.local_name)
+        let tokenlist = self.element.root().r().get_tokenlist_attribute(&self.local_name);
+        tokenlist.iter().fold(String::new(), |mut s, atom| {
+            if !s.is_empty() { s.push('\x20'); }
+            s.push_str(atom);
+            s
+        })
     }
 }
