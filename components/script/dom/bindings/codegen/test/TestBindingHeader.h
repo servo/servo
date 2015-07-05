@@ -1,8 +1,7 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef TestBindingHeader_h
 #define TestBindingHeader_h
@@ -126,7 +125,7 @@ public:
                                               const TestInterfaceOrOnlyForUseInConstructor&,
                                               ErrorResult&);
   */
-  
+
   // Integer types
   int8_t ReadonlyByte();
   int8_t WritableByte();
@@ -215,7 +214,8 @@ public:
   void ReceiveNonWrapperCacheInterfaceSequence(nsTArray<nsRefPtr<TestNonWrapperCacheInterface> >&);
   void ReceiveNullableNonWrapperCacheInterfaceSequence(nsTArray<nsRefPtr<TestNonWrapperCacheInterface> >&);
   void ReceiveNonWrapperCacheInterfaceNullableSequence(Nullable<nsTArray<nsRefPtr<TestNonWrapperCacheInterface> > >&);
-  void ReceiveNullableNonWrapperCacheInterfaceNullableSequence(Nullable<nsTArray<nsRefPtr<TestNonWrapperCacheInterface> > >&);
+  void ReceiveNullableNonWrapperCacheInterfaceNullableSequence(
+    Nullable<nsTArray<nsRefPtr<TestNonWrapperCacheInterface> > >&);
 
   already_AddRefed<TestNonCastableInterface> ReceiveOther();
   already_AddRefed<TestNonCastableInterface> ReceiveNullableOther();

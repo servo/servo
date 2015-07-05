@@ -32,9 +32,10 @@ ignored_files = [
     "python/mozinfo/*",
     "python/mozlog/*",
     "python/toml/*",
+    "components/script/dom/bindings/codegen/parser/*",
+    "components/script/dom/bindings/codegen/ply/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
-    "components/script/dom/bindings/codegen/*",
     "components/style/properties/mod.rs",
     "target/*",
     "ports/gonk/src/native_window_glue.cpp",
@@ -72,7 +73,13 @@ def should_check_reftest(file_name):
     return file_name.endswith(reftest_filetype)
 
 
+EMACS_HEADER = "/* -*- Mode:"
+VIM_HEADER = "/* vim:"
+
+
 def check_license(contents):
+    while contents.startswith(EMACS_HEADER) or contents.startswith(VIM_HEADER):
+        _, _, contents = contents.partition("\n")
     valid_license = any(contents.startswith(license) for license in licenses)
     acknowledged_bad_license = "xfail-license" in contents[:100]
     if not (valid_license or acknowledged_bad_license):
