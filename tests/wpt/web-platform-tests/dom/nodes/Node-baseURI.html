@@ -5,25 +5,28 @@
 <div id="log"></div>
 <script>
 test(function() {
-  var element =document.createElement("div");
-  document.getElementById("log").appendChild(element);
+  var element = document.createElement("div");
+  document.body.appendChild(element);
   assert_equals(element.baseURI, document.URL);
 }, "For elements belonging to document, baseURI should be document url")
+
 test(function() {
-  var element =document.createElement("div");
+  var element = document.createElement("div");
   assert_equals(element.baseURI, document.URL);
 }, "For elements unassigned to document, baseURI should be document url")
+
 test(function() {
   var fragment = document.createDocumentFragment();
-  var element =document.createElement("div");
+  var element = document.createElement("div");
   fragment.appendChild(element);
   assert_equals(element.baseURI, document.URL)
 }, "For elements belonging to document fragments, baseURI should be document url")
+
 test(function() {
   var fragment = document.createDocumentFragment();
-  var element =document.createElement("div");
+  var element = document.createElement("div");
   fragment.appendChild(element);
-  document.getElementById("log").appendChild(fragment);
+  document.body.appendChild(fragment);
   assert_equals(element.baseURI, document.URL)
 }, "After inserting fragment into document, element baseURI should be document url")
 </script>
