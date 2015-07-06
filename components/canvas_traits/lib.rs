@@ -131,7 +131,6 @@ pub enum CanvasWebGLMsg {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum WebGLError {
-    NoError,
     InvalidEnum,
     InvalidOperation,
     InvalidValue,

@@ -34,7 +34,7 @@ use std::sync::mpsc::{channel, Sender};
 use util::str::DOMString;
 use offscreen_gl_context::GLContextAttributes;
 
-pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN : usize = 256;
+pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
 macro_rules! handle_potential_webgl_error {
     ($context:ident, $call:expr, $return_on_error:expr) => {
@@ -54,7 +54,7 @@ pub struct WebGLRenderingContext {
     global: GlobalField,
     renderer: Sender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
-    last_error: Cell<WebGLError>,
+    last_error: Cell<Option<WebGLError>>,
 }
 
 impl WebGLRenderingContext {
@@ -69,7 +69,7 @@ impl WebGLRenderingContext {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(&global),
             renderer: chan,
-            last_error: Cell::new(WebGLError::NoError),
+            last_error: Cell::new(None),
             canvas: JS::from_ref(canvas),
         })
     }
@@ -134,15 +134,18 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetError(self) -> u32 {
-        let error_code = match self.last_error.get() {
-            WebGLError::NoError => constants::NO_ERROR,
-            WebGLError::InvalidEnum => constants::INVALID_ENUM,
-            WebGLError::InvalidValue => constants::INVALID_VALUE,
-            WebGLError::InvalidOperation => constants::INVALID_OPERATION,
-            WebGLError::OutOfMemory => constants::OUT_OF_MEMORY,
-            WebGLError::ContextLost => constants::CONTEXT_LOST_WEBGL,
+        let error_code = if let Some(error) = self.last_error.get() {
+            match error {
+                WebGLError::InvalidEnum => constants::INVALID_ENUM,
+                WebGLError::InvalidValue => constants::INVALID_VALUE,
+                WebGLError::InvalidOperation => constants::INVALID_OPERATION,
+                WebGLError::OutOfMemory => constants::OUT_OF_MEMORY,
+                WebGLError::ContextLost => constants::CONTEXT_LOST_WEBGL,
+            }
+        } else {
+            constants::NO_ERROR
         };
-        self.last_error.set(WebGLError::NoError);
+        self.last_error.set(None);
         error_code
     }
 
@@ -231,9 +234,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             framebuffer.bind(target)
         } else {
             // Bind the default framebuffer
-            self.renderer.send(
-                CanvasMsg::WebGL(
-                    CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default))).unwrap()
+            let cmd = CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
+            self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
         }
     }
 
@@ -502,8 +504,8 @@ impl<'a> WebGLRenderingContextHelpers for &'a WebGLRenderingContext {
     fn handle_webgl_error(&self, err: WebGLError) {
         // If an error has been detected no further errors must be
         // recorded until `getError` has been called
-        if self.last_error.get() == WebGLError::NoError {
-            self.last_error.set(err);
+        if self.last_error.get().is_none() {
+            self.last_error.set(Some(err));
         }
     }
 }

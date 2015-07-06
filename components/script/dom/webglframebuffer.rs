@@ -34,8 +34,9 @@ impl WebGLFramebuffer {
     pub fn maybe_new(global: GlobalRef, renderer: Sender<CanvasMsg>) -> Option<Root<WebGLFramebuffer>> {
         let (sender, receiver) = channel();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateFramebuffer(sender))).unwrap();
-        receiver.recv().unwrap()
-            .map(|fb_id| WebGLFramebuffer::new(global, renderer, *fb_id))
+
+        let result = receiver.recv().unwrap();
+        result.map(|fb_id| WebGLFramebuffer::new(global, renderer, *fb_id))
     }
 
     pub fn new(global: GlobalRef, renderer: Sender<CanvasMsg>, id: u32) -> Root<WebGLFramebuffer> {
@@ -55,9 +56,8 @@ impl<'a> WebGLFramebufferHelpers for &'a WebGLFramebuffer {
     }
 
     fn bind(self, target: u32) {
-        self.renderer.send(
-            CanvasMsg::WebGL(
-                CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id)))).unwrap();
+        let cmd = CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
+        self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
     }
 
     fn delete(self) {

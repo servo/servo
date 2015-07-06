@@ -42,8 +42,9 @@ impl WebGLProgram {
     pub fn maybe_new(global: GlobalRef, renderer: Sender<CanvasMsg>) -> Option<Root<WebGLProgram>> {
         let (sender, receiver) = channel();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateProgram(sender))).unwrap();
-        receiver.recv().unwrap()
-            .map(|program_id| WebGLProgram::new(global, renderer, *program_id))
+
+        let result = receiver.recv().unwrap();
+        result.map(|program_id| WebGLProgram::new(global, renderer, *program_id))
     }
 
     pub fn new(global: GlobalRef, renderer: Sender<CanvasMsg>, id: u32) -> Root<WebGLProgram> {
@@ -87,7 +88,7 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
             _ => return Err(WebGLError::InvalidOperation),
         };
 
-        // TODO(ecoal95): Differenciate between same shader already assigned and other previous
+        // TODO(ecoal95): Differentiate between same shader already assigned and other previous
         // shader.
         if shader_slot.get().is_some() {
             return Err(WebGLError::InvalidOperation);

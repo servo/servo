@@ -34,8 +34,9 @@ impl WebGLBuffer {
     pub fn maybe_new(global: GlobalRef, renderer: Sender<CanvasMsg>) -> Option<Root<WebGLBuffer>> {
         let (sender, receiver) = channel();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateBuffer(sender))).unwrap();
-        receiver.recv().unwrap()
-            .map(|buffer_id| WebGLBuffer::new(global, renderer, *buffer_id))
+
+        let result = receiver.recv().unwrap();
+        result.map(|buffer_id| WebGLBuffer::new(global, renderer, *buffer_id))
     }
 
     pub fn new(global: GlobalRef, renderer: Sender<CanvasMsg>, id: u32) -> Root<WebGLBuffer> {

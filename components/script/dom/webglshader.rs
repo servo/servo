@@ -21,10 +21,9 @@ pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: u32,
     gl_type: u32,
-    // TODO(ecoal95): is RefCell ok?
     source: RefCell<Option<String>>,
     is_deleted: Cell<bool>,
-    // TODO(ecoal95): Valorate moving this to `WebGLObject`
+    // TODO(ecoal95): Evaluate moving this to `WebGLObject`
     renderer: Sender<CanvasMsg>,
 }
 
@@ -45,8 +44,9 @@ impl WebGLShader {
                      shader_type: u32) -> Option<Root<WebGLShader>> {
         let (sender, receiver) = channel();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateShader(shader_type, sender))).unwrap();
-        receiver.recv().unwrap()
-            .map(|shader_id| WebGLShader::new(global, renderer, *shader_id, shader_type))
+
+        let result = receiver.recv().unwrap();
+        result.map(|shader_id| WebGLShader::new(global, renderer, *shader_id, shader_type))
     }
 
     pub fn new(global: GlobalRef,
@@ -81,13 +81,11 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
     // TODO(ecoal95): Validate shaders to be conforming to the WebGL spec
     /// glCompileShader
     fn compile(self) {
-        // NB(ecoal95): We intentionally don't check for source, we don't wan't
-        // to change gl error behavior
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CompileShader(self.id))).unwrap()
     }
 
     /// Mark this shader as deleted (if it wasn't previously)
-    /// and delete it as if calling tr glDeleteShader.
+    /// and delete it as if calling glDeleteShader.
     fn delete(self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
@@ -116,7 +114,7 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
 
     /// Get the shader source
     fn source(self) -> Option<String> {
-        (*self.source.borrow()).clone()
+        self.source.borrow().clone()
     }
 
     /// glShaderSource

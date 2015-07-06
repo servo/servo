@@ -34,8 +34,9 @@ impl WebGLTexture {
     pub fn maybe_new(global: GlobalRef, renderer: Sender<CanvasMsg>) -> Option<Root<WebGLTexture>> {
         let (sender, receiver) = channel();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateTexture(sender))).unwrap();
-        receiver.recv().unwrap()
-            .map(|texture_id| WebGLTexture::new(global, renderer, *texture_id))
+
+        let result = receiver.recv().unwrap();
+        result.map(|texture_id| WebGLTexture::new(global, renderer, *texture_id))
     }
 
     pub fn new(global: GlobalRef, renderer: Sender<CanvasMsg>, id: u32) -> Root<WebGLTexture> {
