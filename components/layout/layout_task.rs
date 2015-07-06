@@ -836,17 +836,17 @@ impl LayoutTask {
             flow::mut_base(&mut **layout_root).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            match rw_data.parallel_traversal {
-                None => {
-                    sequential::build_display_list_for_subtree(layout_root,
-                                                               shared_layout_context);
-                }
-                Some(ref mut traversal) => {
+            match (&mut rw_data.parallel_traversal, opts::get().parallel_display_list_building) {
+                (&mut Some(ref mut traversal), true) => {
                     parallel::build_display_list_for_subtree(layout_root,
                                                              self.profiler_metadata(),
                                                              self.time_profiler_chan.clone(),
                                                              shared_layout_context,
                                                              traversal);
+                }
+                _ => {
+                    sequential::build_display_list_for_subtree(layout_root,
+                                                               shared_layout_context);
                 }
             }
 

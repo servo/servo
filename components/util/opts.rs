@@ -152,6 +152,9 @@ pub struct Opts {
 
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
+
+    /// Whether to run absolute position calculation and display list construction in parallel.
+    pub parallel_display_list_building: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -183,6 +186,7 @@ pub fn print_debug_usage(app: &str) -> ! {
                  "Display an error when display list geometry escapes overflow region.");
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
+    print_option("parallel-display-list-building", "Build display lists in parallel.");
 
     println!("");
 
@@ -243,6 +247,7 @@ pub fn default_opts() -> Opts {
         resources_path: None,
         sniff_mime_types: false,
         disable_share_style_cache: false,
+        parallel_display_list_building: false,
     }
 }
 
@@ -416,6 +421,7 @@ pub fn from_cmdline_args(args: &[String]) {
         resources_path: opt_match.opt_str("resources-path"),
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
+        parallel_display_list_building: debug_options.contains(&"parallel-display-list-building"),
     };
 
     set(opts);
