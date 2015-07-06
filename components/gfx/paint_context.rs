@@ -1171,7 +1171,12 @@ pub trait ToAzureRect {
 
 impl ToAzureRect for Rect<Au> {
     fn to_nearest_azure_rect(&self) -> Rect<AzFloat> {
-        Rect::new(self.origin.to_nearest_azure_point(), self.size.to_nearest_azure_size())
+        let top_left = self.origin.to_nearest_azure_point();
+        let bottom_right = self.bottom_right().to_nearest_azure_point();
+        Rect::new(top_left,
+                  Size2D::new((bottom_right.x - top_left.x) as AzFloat,
+                              (bottom_right.y - top_left.y) as AzFloat))
+
     }
     fn to_azure_rect(&self) -> Rect<AzFloat> {
         Rect::new(self.origin.to_azure_point(), Size2D::new(self.size.width.to_f32_px(),
