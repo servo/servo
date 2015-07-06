@@ -1495,9 +1495,10 @@ impl Node {
         // If node is an element, it is _affected by a base URL change_.
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-pre-insert
-    fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
-                  -> Fallible<Root<Node>> {
+    // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
+    pub fn ensure_pre_insertion_validity(node: &Node,
+                                         parent: &Node,
+                                         child: Option<&Node>) -> ErrorResult {
         // Step 1.
         match parent.type_id() {
             NodeTypeId::Document |
@@ -1538,78 +1539,83 @@ impl Node {
         }
 
         // Step 6.
-        match parent.type_id() {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children()
-                               .any(|c| c.r().is_text())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                                if let Some(child) = child {
-                                    if child.inclusively_following_siblings()
-                                        .any(|child| child.r().is_doctype()) {
-                                            return Err(HierarchyRequest);
-                                    }
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest),
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(_) => {
-                        if !parent.child_elements().is_empty() {
-                            return Err(HierarchyRequest);
-                        }
-                        if let Some(ref child) = child {
-                            if child.inclusively_following_siblings()
-                                .any(|child| child.r().is_doctype()) {
-                                    return Err(HierarchyRequest);
+        if parent.type_id() == NodeTypeId::Document {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children()
+                           .any(|c| c.r().is_text())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
                             }
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if parent.children()
-                                 .any(|c| c.r().is_doctype())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match child {
-                            Some(child) => {
-                                if parent.children()
-                                         .take_while(|c| c.r() != child)
-                                         .any(|c| c.r().is_element())
-                                {
-                                    return Err(HierarchyRequest);
+                            if let Some(child) = child {
+                                if child.inclusively_following_siblings()
+                                    .any(|child| child.r().is_doctype()) {
+                                        return Err(HierarchyRequest);
                                 }
-                            },
-                            None => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest),
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(_) => {
+                    if !parent.child_elements().is_empty() {
+                        return Err(HierarchyRequest);
+                    }
+                    if let Some(ref child) = child {
+                        if child.inclusively_following_siblings()
+                            .any(|child| child.r().is_doctype()) {
+                                return Err(HierarchyRequest);
                         }
-                    },
-                    NodeTypeId::CharacterData(_) => (),
-                    NodeTypeId::Document => unreachable!(),
-                }
-            },
-            _ => (),
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if parent.children()
+                             .any(|c| c.r().is_doctype())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match child {
+                        Some(child) => {
+                            if parent.children()
+                                     .take_while(|c| c.r() != child)
+                                     .any(|c| c.r().is_element())
+                            {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        None => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                    }
+                },
+                NodeTypeId::CharacterData(_) => (),
+                NodeTypeId::Document => unreachable!(),
+            }
         }
+        Ok(())
+    }
 
-        // Step 7-8.
+    // https://dom.spec.whatwg.org/#concept-node-pre-insert
+    pub fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
+                      -> Fallible<Root<Node>> {
+        // Step 1.
+        try!(Node::ensure_pre_insertion_validity(node, parent, child));
+
+        // Steps 2-3.
         let reference_child_root;
         let reference_child = match child {
             Some(child) if child == node => {
@@ -1619,14 +1625,14 @@ impl Node {
             _ => child
         };
 
-        // Step 9.
+        // Step 4.
         let document = document_from_node(parent);
         Node::adopt(node, document.r());
 
-        // Step 10.
+        // Step 5.
         Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
 
-        // Step 11.
+        // Step 6.
         return Ok(Root::from_ref(node))
     }
 
