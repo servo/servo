@@ -1507,9 +1507,10 @@ impl Node {
         // If node is an element, it is _affected by a base URL change_.
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-pre-insert
-    fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
-                  -> Fallible<Root<Node>> {
+    // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
+    pub fn ensure_pre_insertion_validity(node: &Node,
+                                         parent: &Node,
+                                         child: Option<&Node>) -> ErrorResult {
         // Step 1.
         match parent.type_id() {
             NodeTypeId::Document |
@@ -1619,9 +1620,18 @@ impl Node {
                 }
             },
             _ => (),
-        }
+        };
 
-        // Step 7-8.
+        Ok(())
+    }
+
+    // https://dom.spec.whatwg.org/#concept-node-pre-insert
+    pub fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
+                      -> Fallible<Root<Node>> {
+        // Step 1.
+        try!(Node::ensure_pre_insertion_validity(node, parent, child));
+
+        // Steps 2-3.
         let reference_child_root;
         let reference_child = match child {
             Some(child) if child == node => {
@@ -1631,14 +1641,14 @@ impl Node {
             _ => child
         };
 
-        // Step 9.
+        // Step 4.
         let document = document_from_node(parent);
         Node::adopt(node, document.r());
 
-        // Step 10.
+        // Step 5.
         Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
 
-        // Step 11.
+        // Step 6.
         return Ok(Root::from_ref(node))
     }
 
