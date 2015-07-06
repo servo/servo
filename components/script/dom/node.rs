@@ -191,7 +191,7 @@ impl NodeFlags {
 impl Drop for Node {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        self.layout_data.dispose();
+        self.layout_data.dispose(self);
     }
 }
 
@@ -212,7 +212,6 @@ pub struct SharedLayoutData {
 
 /// Encapsulates the abstract layout data.
 pub struct LayoutData {
-    chan: Option<LayoutChan>,
     _shared_data: SharedLayoutData,
     _data: NonZero<*const ()>,
 }
@@ -234,17 +233,12 @@ impl LayoutDataRef {
     }
 
     /// Sends layout data, if any, back to the layout task to be destroyed.
-    pub fn dispose(&self) {
+    pub fn dispose(&self, node: &Node) {
         debug_assert!(task_state::get().is_script());
-        if let Some(mut layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
-            let layout_chan = layout_data.chan.take();
-            match layout_chan {
-                None => {}
-                Some(chan) => {
-                    let LayoutChan(chan) = chan;
-                    chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
-                }
-            }
+        if let Some(layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
+            let win = window_from_node(node);
+            let LayoutChan(chan) = win.layout_chan();
+            chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
         }
     }
 
@@ -317,7 +311,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
             node.r().set_flag(IS_IN_DOC, false);
             vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
-        self.layout_data.dispose();
+        self.layout_data.dispose(self);
     }
 
     //
@@ -535,7 +529,7 @@ pub trait NodeHelpers {
 
 impl<'a> NodeHelpers for &'a Node {
     fn teardown(self) {
-        self.layout_data.dispose();
+        self.layout_data.dispose(self);
         for kid in self.children() {
             kid.r().teardown();
         }
