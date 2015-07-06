@@ -4,17 +4,20 @@
 
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
+use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::Error::{HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::characterdata::CharacterDataTypeId;
 use dom::document::{Document, DocumentHelpers};
-use dom::node::{Node, NodeHelpers};
-
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use std::rc::Rc;
@@ -287,6 +290,101 @@ impl<'a> RangeMethods for &'a Range {
     // http://dom.spec.whatwg.org/#dom-range-detach
     fn Detach(self) {
         // This method intentionally left blank.
+    }
+
+    // https://dom.spec.whatwg.org/#dom-range-insertnode
+    // https://dom.spec.whatwg.org/#concept-range-insert
+    fn InsertNode(self, node: &Node) -> ErrorResult {
+        let (start_node, start_offset) = {
+            let inner = self.inner().borrow();
+            let start = &inner.start;
+            (start.node(), start.offset())
+        };
+
+        // Step 1.
+        match start_node.type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                if node.GetParentNode().is_none() {
+                    return Err(HierarchyRequest);
+                }
+            },
+            NodeTypeId::CharacterData(_) => return Err(HierarchyRequest),
+            _ => ()
+        }
+
+        // Step 2.
+        let (reference_node, parent) =
+            if start_node.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text) {
+                // Step 3.
+                let parent = start_node.GetParentNode();
+                // Step 5.
+                (Some(Root::from_ref(start_node.r())), parent)
+            } else {
+                // Steps 4-5.
+                match start_node.ChildNodes().r().Item(start_offset) {
+                    Some(node) => {
+                        let parent = node.GetParentNode();
+                        (Some(node), parent)
+                    },
+                    None => (None, Some(Root::from_ref(start_node.r())))
+                }
+            };
+
+        // FIXME: This isn't in the spec, need to figure out what to actually do here.
+        if parent.is_none() {
+            return Err(HierarchyRequest);
+        }
+
+        // Step 6.
+        try!(Node::ensure_pre_insertion_validity(node,
+                                                 parent.r().unwrap(),
+                                                 reference_node.r()));
+
+        // Step 7.
+        let split_text;
+        let (reference_node, parent) =
+            match TextCast::to_ref(start_node.r()) {
+                Some(text) => {
+                    split_text = try!(text.SplitText(start_offset));
+                    (Some(NodeCast::from_root(split_text)),
+                     reference_node.r().unwrap().GetParentNode())
+                },
+                _ => (reference_node, parent)
+            };
+
+        // Step 8.
+        let reference_node = if Some(node) == reference_node.r() {
+            reference_node.unwrap().GetNextSibling()
+        } else {
+            reference_node
+        };
+
+        // Step 9.
+        match node.GetParentNode() {
+            Some(parent) => { try!(parent.RemoveChild(node)); },
+            _ => ()
+        }
+
+        // FIXME: This isn't in the spec, need to figure out what to actually do here.
+        if parent.is_none() {
+            return Err(HierarchyRequest);
+        }
+
+        let parent = parent.r().unwrap();
+
+        // Step 10.
+        let new_offset =
+            reference_node.r().map_or(parent.len(), |node| node.index());
+
+        // Step 11.
+        try!(Node::pre_insert(node, parent, reference_node.r()));
+
+        // Step 12.
+        if self.Collapsed() {
+            self.inner().borrow_mut().set_end(node, new_offset);
+        }
+
+        Ok(())
     }
 }
 
