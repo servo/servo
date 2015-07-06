@@ -169,7 +169,10 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                 let mut proxy = WorkerProxy {
                     worker: &mut deque,
                     ref_count: ref_count,
-                    queue_data: queue_data,
+                    // queue_data is kept alive in the stack frame of
+                    // WorkQueue::run until we send the
+                    // SupervisorMsg::ReturnDeque message below.
+                    queue_data: unsafe { &*queue_data },
                     worker_index: self.index as u8,
                 };
                 (work_unit.fun)(work_unit.data, &mut proxy);
@@ -193,7 +196,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
 pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
     ref_count: *mut AtomicUsize,
-    queue_data: *const QueueData,
+    queue_data: &'a QueueData,
     worker_index: u8,
 }
 
@@ -209,10 +212,8 @@ impl<'a, QueueData: 'static, WorkData: Send + 'static> WorkerProxy<'a, QueueData
 
     /// Retrieves the queue user data.
     #[inline]
-    pub fn user_data<'b>(&'b self) -> &'b QueueData {
-        unsafe {
-            mem::transmute(self.queue_data)
-        }
+    pub fn user_data(&self) -> &'a QueueData {
+        self.queue_data
     }
 
     /// Retrieves the index of the worker.
@@ -302,13 +303,13 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     }
 
     /// Synchronously runs all the enqueued tasks and waits for them to complete.
-    pub fn run(&mut self, data: QueueData) {
+    pub fn run(&mut self, data: &QueueData) {
         // Tell the workers to start.
         let mut work_count = AtomicUsize::new(self.work_count);
         for worker in self.workers.iter_mut() {
             worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(),
                                               &mut work_count,
-                                              &data)).unwrap()
+                                              data)).unwrap()
         }
 
         // Wait for the work to finish.

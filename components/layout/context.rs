@@ -129,9 +129,7 @@ pub struct SharedLayoutContext {
     pub goal: ReflowGoal,
 }
 
-pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);
-
-unsafe impl Send for SharedLayoutContextWrapper {}
+unsafe impl Send for SharedLayoutContext {}
 
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,
