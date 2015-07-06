@@ -11,6 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
+use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScopeHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
@@ -49,6 +50,7 @@ pub struct WorkerGlobalScope {
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
+    crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
     devtools_chan: Option<DevtoolsControlChan>,
 }
@@ -68,6 +70,7 @@ impl WorkerGlobalScope {
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
+            crypto: Default::default(),
             timers: TimerManager::new(),
             devtools_chan: devtools_chan,
         }
@@ -155,6 +158,10 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
 
     fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
+    }
+
+    fn Crypto(self) -> Root<Crypto> {
+        self.crypto.or_init(|| Crypto::new(GlobalRef::Worker(self)))
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {

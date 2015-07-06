@@ -19,6 +19,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
+use dom::crypto::Crypto;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
@@ -100,6 +101,7 @@ pub struct Window {
     script_chan: Box<ScriptChan+Send>,
     control_chan: ScriptControlChan,
     console: MutNullableHeap<JS<Console>>,
+    crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
@@ -356,6 +358,10 @@ impl<'a> WindowMethods for &'a Window {
 
     fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
+    }
+
+    fn Crypto(self) -> Root<Crypto> {
+        self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
     }
 
     // https://html.spec.whatwg.org/#dom-frameelement
@@ -973,6 +979,7 @@ impl Window {
             image_cache_chan: image_cache_chan,
             control_chan: control_chan,
             console: Default::default(),
+            crypto: Default::default(),
             compositor: DOMRefCell::new(compositor),
             page: page,
             navigator: Default::default(),
