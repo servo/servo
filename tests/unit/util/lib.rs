@@ -13,3 +13,4 @@ extern crate euclid;
 #[cfg(test)] mod task;
 #[cfg(test)] mod vec;
 #[cfg(test)] mod mem;
+#[cfg(test)] mod str;
