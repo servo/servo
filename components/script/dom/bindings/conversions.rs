@@ -32,6 +32,8 @@
 //! | sequences               | `Vec<T>`                         |
 //! | union types             | `T`                              |
 
+extern crate encoding;
+
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::error::throw_type_error;
 use dom::bindings::js::Root;
@@ -63,6 +65,9 @@ use std::slice;
 use std::ptr;
 use std::rc::Rc;
 use core::nonzero::NonZero;
+
+use encoding::{Encoding, DecoderTrap};
+use encoding::all::UTF_16LE;
 
 /// A trait to retrieve the constants necessary to check if a `JSObject`
 /// implements a given interface.
@@ -353,9 +358,10 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
         };
         assert!(!chars.is_null());
         let char_vec = unsafe {
-            slice::from_raw_parts(chars as *const u16, length as usize)
+            // length is the number of u16 elements, while we need the number of u8 bytes
+            slice::from_raw_parts(chars as *const u8, length*2 as usize)
         };
-        String::from_utf16(char_vec).unwrap()
+        UTF_16LE.decode(char_vec, DecoderTrap::Replace).unwrap()
     }
 }
 
