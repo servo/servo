@@ -689,7 +689,10 @@ pub struct InlineFragments {
 
 impl fmt::Debug for InlineFragments {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.fragments)
+        for fragment in self.fragments.iter() {
+            try!(write!(f, "\n  * {:?}", fragment))
+        }
+        Ok(())
     }
 }
 
