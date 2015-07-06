@@ -52,9 +52,6 @@ path = "../util"
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
-[dependencies.png]
-git = "https://github.com/servo/rust-png"
-
 [dependencies.clock_ticks]
 git = "https://github.com/tomaka/clock_ticks"
 

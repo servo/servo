@@ -4,11 +4,25 @@
 
 use png;
 use stb_image::image as stb_image2;
+use std::mem;
 use util::vec::byte_swap;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
-pub type Image = png::Image;
+
+pub enum PixelFormat {
+    K8,         // Luminance channel only
+    KA8,        // Luminance + alpha
+    RGB8,       // RGB, 8 bits per channel
+    RGBA8,      // RGB + alpha, 8 bits per channel
+}
+
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    pub bytes: Vec<u8>,
+}
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
 fn byte_swap_and_premultiply(data: &mut [u8]) {
@@ -32,14 +46,33 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     if png::is_png(buffer) {
         match png::load_png_from_memory(buffer) {
             Ok(mut png_image) => {
-                match png_image.pixels {
-                    png::PixelsByColorType::RGB8(ref mut data) => byte_swap(data),
-                    png::PixelsByColorType::RGBA8(ref mut data) => {
-                        byte_swap_and_premultiply(data)
+                let (bytes, format) = match png_image.pixels {
+                    png::PixelsByColorType::K8(ref mut data) => {
+                        (data, PixelFormat::K8)
                     }
-                    _ => {}
-                }
-                Some(png_image)
+                    png::PixelsByColorType::KA8(ref mut data) => {
+                        (data, PixelFormat::KA8)
+                    }
+                    png::PixelsByColorType::RGB8(ref mut data) => {
+                        byte_swap(data);
+                        (data, PixelFormat::RGB8)
+                    }
+                    png::PixelsByColorType::RGBA8(ref mut data) => {
+                        byte_swap_and_premultiply(data);
+                        (data, PixelFormat::RGBA8)
+                    }
+                };
+
+                let bytes = mem::replace(bytes, Vec::new());
+
+                let image = Image {
+                    width: png_image.width,
+                    height: png_image.height,
+                    format: format,
+                    bytes: bytes,
+                };
+
+                Some(image)
             }
             Err(_err) => None,
         }
@@ -57,10 +90,11 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 } else {
                     byte_swap(&mut image.data);
                 }
-                Some(png::Image {
+                Some(Image {
                     width: image.width as u32,
                     height: image.height as u32,
-                    pixels: png::PixelsByColorType::RGBA8(image.data)
+                    format: PixelFormat::RGBA8,
+                    bytes: image.data,
                 })
             }
             stb_image2::LoadResult::ImageF32(_image) => {

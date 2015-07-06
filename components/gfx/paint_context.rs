@@ -30,8 +30,7 @@ use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use libc::types::common::c99::uint32_t;
 use msg::compositor_msg::LayerKind;
-use net_traits::image::base::Image;
-use png::PixelsByColorType;
+use net_traits::image::base::{Image, PixelFormat};
 use std::default::Default;
 use std::f32;
 use std::mem;
@@ -134,17 +133,17 @@ impl<'a> PaintContext<'a> {
                       image: Arc<Image>,
                       image_rendering: image_rendering::T) {
         let size = Size2D::new(image.width as i32, image.height as i32);
-        let (pixel_width, pixels, source_format) = match image.pixels {
-            PixelsByColorType::RGBA8(ref pixels) => (4, pixels, SurfaceFormat::B8G8R8A8),
-            PixelsByColorType::K8(ref pixels) => (1, pixels, SurfaceFormat::A8),
-            PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
-            PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
+        let (pixel_width, source_format) = match image.format {
+            PixelFormat::RGBA8 => (4, SurfaceFormat::B8G8R8A8),
+            PixelFormat::K8 => (1, SurfaceFormat::A8),
+            PixelFormat::RGB8 => panic!("RGB8 color type not supported"),
+            PixelFormat::KA8 => panic!("KA8 color type not supported"),
         };
         let stride = image.width * pixel_width;
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
-        let azure_surface = draw_target_ref.create_source_surface_from_data(pixels,
+        let azure_surface = draw_target_ref.create_source_surface_from_data(&image.bytes,
                                                                             size,
                                                                             stride as i32,
                                                                             source_format);

@@ -48,9 +48,6 @@ git = "https://github.com/servo/rust-selectors"
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
-[dependencies.png]
-git = "https://github.com/servo/rust-png"
-
 [dependencies.url]
 version = "0.2.33"
 features = ["query_encoding"]

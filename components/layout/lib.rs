@@ -50,7 +50,6 @@ extern crate gfx_traits;
 extern crate layout_traits;
 extern crate libc;
 extern crate msg;
-extern crate png;
 extern crate script;
 extern crate script_traits;
 extern crate selectors;

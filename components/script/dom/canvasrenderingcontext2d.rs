@@ -35,7 +35,7 @@ use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
 use canvas::canvas_paint_task::CanvasPaintTask;
 
 use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
-use png::PixelsByColorType;
+use net_traits::image::base::PixelFormat;
 
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
@@ -286,11 +286,11 @@ impl CanvasRenderingContext2D {
         };
 
         let image_size = Size2D::new(img.width as f64, img.height as f64);
-        let image_data = match img.pixels {
-            PixelsByColorType::RGBA8(ref pixels) => pixels.to_vec(),
-            PixelsByColorType::K8(_) => panic!("K8 color type not supported"),
-            PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
-            PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
+        let image_data = match img.format {
+            PixelFormat::RGBA8 => img.bytes.to_vec(),
+            PixelFormat::K8 => panic!("K8 color type not supported"),
+            PixelFormat::RGB8 => panic!("RGB8 color type not supported"),
+            PixelFormat::KA8 => panic!("KA8 color type not supported"),
         };
 
         return Some((image_data, image_size));
