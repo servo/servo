@@ -38,6 +38,14 @@ pub enum CanvasMsg {
 }
 
 #[derive(Clone)]
+pub enum CanvasCommonMsg {
+    Close,
+    Recreate(Size2D<i32>),
+    SendPixelContents(Sender<Vec<u8>>),
+    SendNativeSurface(Sender<NativeSurface>),
+}
+
+#[derive(Clone)]
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
@@ -102,14 +110,14 @@ pub enum CanvasWebGLMsg {
     DeleteProgram(u32),
     DeleteShader(u32),
     BindBuffer(u32, u32),
-    BindFramebuffer(u32, u32),
+    BindFramebuffer(u32, WebGLFramebufferBindingRequest),
     BindRenderbuffer(u32, u32),
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
     EnableVertexAttribArray(u32),
-    GetAttribLocation(u32, String, Sender<i32>),
-    GetShaderInfoLog(u32, Sender<String>),
-    GetShaderParameter(u32, u32, Sender<i32>),
+    GetShaderInfoLog(u32, Sender<Option<String>>),
+    GetShaderParameter(u32, u32, Sender<WebGLShaderParameter>),
+    GetAttribLocation(u32, String, Sender<Option<i32>>),
     GetUniformLocation(u32, String, Sender<Option<i32>>),
     LinkProgram(u32),
     ShaderSource(u32, String),
@@ -121,14 +129,29 @@ pub enum CanvasWebGLMsg {
     DrawingBufferHeight(Sender<i32>),
 }
 
-#[derive(Clone)]
-pub enum CanvasCommonMsg {
-    Close,
-    Recreate(Size2D<i32>),
-    SendPixelContents(Sender<Vec<u8>>),
-    SendNativeSurface(Sender<NativeSurface>),
+#[derive(Clone, Copy, PartialEq)]
+pub enum WebGLError {
+    InvalidEnum,
+    InvalidOperation,
+    InvalidValue,
+    OutOfMemory,
+    ContextLost,
 }
 
+pub type WebGLResult<T> = Result<T, WebGLError>;
+
+#[derive(Clone)]
+pub enum WebGLFramebufferBindingRequest {
+    Explicit(u32),
+    Default,
+}
+
+#[derive(Clone)]
+pub enum WebGLShaderParameter {
+    Int(i32),
+    Bool(bool),
+    Invalid,
+}
 
 #[derive(Clone)]
 pub struct CanvasGradientStop {

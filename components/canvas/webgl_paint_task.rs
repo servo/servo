@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg, WebGLShaderParameter, WebGLFramebufferBindingRequest};
 use euclid::size::Size2D;
 use core::nonzero::NonZero;
 use gleam::gl;
@@ -109,8 +109,8 @@ impl WebGLPaintTask {
                 self.delete_shader(id),
             CanvasWebGLMsg::BindBuffer(target, id) =>
                 self.bind_buffer(target, id),
-            CanvasWebGLMsg::BindFramebuffer(target, id) =>
-                self.bind_framebuffer(target, id),
+            CanvasWebGLMsg::BindFramebuffer(target, request) =>
+                self.bind_framebuffer(target, request),
             CanvasWebGLMsg::BindRenderbuffer(target, id) =>
                 self.bind_renderbuffer(target, id),
             CanvasWebGLMsg::BindTexture(target, id) =>
@@ -329,7 +329,13 @@ impl WebGLPaintTask {
     }
 
     #[inline]
-    fn bind_framebuffer(&self, target: u32, id: u32) {
+    fn bind_framebuffer(&self, target: u32, request: WebGLFramebufferBindingRequest) {
+        let id = match request {
+            WebGLFramebufferBindingRequest::Explicit(id) => id,
+            WebGLFramebufferBindingRequest::Default =>
+                self.gl_context.borrow_draw_buffer().unwrap().get_framebuffer(),
+        };
+
         gl::bind_framebuffer(target, id);
     }
 
@@ -361,19 +367,35 @@ impl WebGLPaintTask {
         gl::enable_vertex_attrib_array(attrib_id);
     }
 
-    fn get_attrib_location(&self, program_id: u32, name: String, chan: Sender<i32> ) {
+    fn get_attrib_location(&self, program_id: u32, name: String, chan: Sender<Option<i32>> ) {
         let attrib_location = gl::get_attrib_location(program_id, &name);
+
+        let attrib_location = if attrib_location == -1 {
+            None
+        } else {
+            Some(attrib_location)
+        };
+
         chan.send(attrib_location).unwrap();
     }
 
-    fn get_shader_info_log(&self, shader_id: u32, chan: Sender<String>) {
+    fn get_shader_info_log(&self, shader_id: u32, chan: Sender<Option<String>>) {
+        // TODO(ecoal95): Right now we always return a value, we should
+        // check for gl errors and return None there
         let info = gl::get_shader_info_log(shader_id);
-        chan.send(info).unwrap();
+        chan.send(Some(info)).unwrap();
     }
 
-    fn get_shader_parameter(&self, shader_id: u32, param_id: u32, chan: Sender<i32>) {
-        let parameter = gl::get_shader_iv(shader_id, param_id);
-        chan.send(parameter as i32).unwrap();
+    fn get_shader_parameter(&self, shader_id: u32, param_id: u32, chan: Sender<WebGLShaderParameter>) {
+        let result = match param_id {
+            gl::SHADER_TYPE =>
+                WebGLShaderParameter::Int(gl::get_shader_iv(shader_id, param_id)),
+            gl::DELETE_STATUS | gl::COMPILE_STATUS =>
+                WebGLShaderParameter::Bool(gl::get_shader_iv(shader_id, param_id) != 0),
+            _ => panic!("Unexpected shader parameter type"),
+        };
+
+        chan.send(result).unwrap();
     }
 
     fn get_uniform_location(&self, program_id: u32, name: String, chan: Sender<Option<i32>>) {
