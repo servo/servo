@@ -987,7 +987,7 @@ impl<'a> NodeHelpers for &'a Node {
     fn summarize(self) -> NodeInfo {
         NodeInfo {
             uniqueId: self.get_unique_id(),
-            baseURI: self.GetBaseURI().unwrap_or("".to_owned()),
+            baseURI: self.BaseURI(),
             parent: self.GetParentNode().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType(),
             namespaceURI: "".to_owned(), //FIXME
@@ -1950,9 +1950,8 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-baseuri
-    fn GetBaseURI(self) -> Option<DOMString> {
-        // FIXME (#1824) implement.
-        None
+    fn BaseURI(self) -> DOMString {
+        self.owner_doc().URL()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
