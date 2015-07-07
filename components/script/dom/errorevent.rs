@@ -65,10 +65,8 @@ impl ErrorEvent {
                colno: u32,
                error: HandleValue) -> Root<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global);
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
         {
-            let ev = ev.r();
-            let event = EventCast::from_ref(ev);
+            let event = EventCast::from_ref(ev.r());
             event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
                             cancelable == EventCancelable::Cancelable);
             *ev.message.borrow_mut() = message;
@@ -125,15 +123,11 @@ impl<'a> ErrorEventMethods for &'a ErrorEvent {
     }
 
     fn Message(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let message = self.message.borrow();
-        message.clone()
+        self.message.borrow().clone()
     }
 
     fn Filename(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let filename = self.filename.borrow();
-        filename.clone()
+        self.filename.borrow().clone()
     }
 
     fn Error(self, _cx: *mut JSContext) -> JSVal {

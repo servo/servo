@@ -189,9 +189,7 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
     fn Value(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let textinput = self.textinput.borrow();
-        textinput.get_content()
+        self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value

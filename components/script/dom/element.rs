@@ -853,21 +853,15 @@ impl<'a> AttributeHandlers for &'a Element {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>> {
         let name = &self.parsed_name(name);
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let attrs = self.attrs.borrow();
-        attrs.iter().map(|attr| attr.root())
+        self.attrs.borrow().iter().map(|attr| attr.root())
              .find(|a| a.r().name() == name)
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let attrs = self.attrs.borrow();
-        for ref attr in attrs.iter() {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        for ref attr in self.attrs.borrow().iter() {
             let attr = attr.root();
-            let attr_local_name = attr.r().local_name();
-            if attr_local_name == local_name {
+            if attr.r().local_name() == local_name {
                 attributes.push(JS::from_rooted(&attr));
             }
         }
@@ -1010,10 +1004,7 @@ impl<'a> AttributeHandlers for &'a Element {
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
         self.get_attribute(&ns!(""), &atom!("class")).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value = attr.value();
-            value.tokens().map(|tokens| {
+            attr.r().value().tokens().map(|tokens| {
                 tokens.iter().any(|atom| is_equal(name, atom))
             }).unwrap_or(false)
         }).unwrap_or(false)
@@ -1027,12 +1018,8 @@ impl<'a> AttributeHandlers for &'a Element {
 
     fn has_attribute(self, local_name: &Atom) -> bool {
         assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let attrs = self.attrs.borrow();
-        attrs.iter().map(|attr| attr.root()).any(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            attr.local_name() == local_name && attr.namespace() == &ns!("")
+        self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
+            attr.r().local_name() == local_name && attr.r().namespace() == &ns!("")
         })
     }
 
@@ -1077,12 +1064,11 @@ impl<'a> AttributeHandlers for &'a Element {
 
     fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom> {
         self.get_attribute(&ns!(""), local_name).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value = attr.value();
-            value.tokens()
-                 .expect("Expected a TokenListAttrValue")
-                 .to_vec()
+            attr.r()
+                .value()
+                .tokens()
+                .expect("Expected a TokenListAttrValue")
+                .to_vec()
         }).unwrap_or(vec!())
     }
 
@@ -1663,10 +1649,7 @@ impl<'a> ::selectors::Element for &'a Element {
     }
     fn get_id(&self) -> Option<Atom> {
         self.get_attribute(&ns!(""), &atom!("id")).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value = attr.value();
-            match *value {
+            match *attr.r().value() {
                 AttrValue::Atom(ref val) => val.clone(),
                 _ => panic!("`id` attribute should be AttrValue::Atom"),
             }
@@ -1735,10 +1718,7 @@ impl<'a> ::selectors::Element for &'a Element {
             NamespaceConstraint::Specific(ref ns) => {
                 self.get_attribute(ns, local_name)
                     .map_or(false, |attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.r();
-                        let value = attr.value();
-                        test(&value)
+                        test(&attr.r().value())
                     })
             },
             NamespaceConstraint::Any => {

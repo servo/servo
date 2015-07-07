@@ -212,11 +212,9 @@ pub trait DedicatedWorkerGlobalScopeHelpers {
 
 impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
     fn script_chan(self) -> Box<ScriptChan+Send> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let worker = self.worker.borrow();
         box SendableWorkerScriptChan {
             sender: self.own_sender.clone(),
-            worker: worker.as_ref().unwrap().clone(),
+            worker: self.worker.borrow().as_ref().unwrap().clone(),
         }
     }
 

@@ -468,10 +468,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             let check_anchor = |&node: &&HTMLAnchorElement| {
                 let elem = ElementCast::from_ref(node);
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                    // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                    let attr = attr.r();
-                    let value = attr.value();
-                    &**value == &*fragid
+                    &**attr.r().value() == &*fragid
                 })
             };
             let doc_node = NodeCast::from_ref(self);
@@ -1562,10 +1559,7 @@ impl<'a> DocumentMethods for &'a Document {
                 return false;
             }
             element.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                let attr = attr.r();
-                let value = attr.value();
-                &**value == &*name
+                &**attr.r().value() == &*name
             })
         })
     }

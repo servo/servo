@@ -623,9 +623,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-statustext-attribute
     fn StatusText(self) -> ByteString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let status_text = self.status_text.borrow();
-        status_text.clone()
+        self.status_text.borrow().clone()
     }
 
     // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
@@ -1031,11 +1029,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         }
 
 
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let response = self.response.borrow();
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(&response, DecoderTrap::Replace).unwrap().to_owned()
+        encoding.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
     }
     fn filter_response_headers(self) -> Headers {
         // https://fetch.spec.whatwg.org/#concept-response-header-list

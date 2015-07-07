@@ -250,10 +250,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
         let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.get_attribute(&ns!(""), &local_name).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value = attr.value();
-            (**value).to_owned()
+            (**attr.r().value()).to_owned()
         })
     }
 
