@@ -14,7 +14,7 @@ use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
-use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars};
+use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
 
 use string_cache::{Atom, Namespace};
 
@@ -49,11 +49,7 @@ impl AttrValue {
     }
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        let tokens = atoms.iter().fold(String::new(), |mut s, atom| {
-            if !s.is_empty() { s.push('\x20'); }
-            s.push_str(atom);
-            s
-        });
+        let tokens = str_join(&atoms, "\x20");
         AttrValue::TokenList(tokens, atoms)
     }
 

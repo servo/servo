@@ -13,7 +13,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
 
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
 use string_cache::Atom;
 
 use std::borrow::ToOwned;
@@ -158,10 +158,6 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     // https://dom.spec.whatwg.org/#stringification-behavior
     fn Stringifier(self) -> DOMString {
         let tokenlist = self.element.root().r().get_tokenlist_attribute(&self.local_name);
-        tokenlist.iter().fold(String::new(), |mut s, atom| {
-            if !s.is_empty() { s.push('\x20'); }
-            s.push_str(atom);
-            s
-        })
+        str_join(&tokenlist, "\x20")
     }
 }
