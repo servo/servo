@@ -208,6 +208,19 @@ impl SpecificFragmentInfo {
     }
 }
 
+impl fmt::Debug for SpecificFragmentInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SpecificFragmentInfo::ScannedText(ref info) => {
+                write!(f, " \"{}\"", info.run.text.slice_chars(info.range.begin().get() as usize,
+                                                               info.range.end().get() as usize));
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
 /// Clamp a value obtained from style_length, based on min / max lengths.
 fn clamp_size(size: Au,
               min_size: LengthOrPercentage,
@@ -2120,10 +2133,11 @@ impl Fragment {
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "({} {} ", self.debug_id(), self.specific.get_type()));
-        try!(write!(f, "bb {:?} bp {:?} m {:?}",
+        try!(write!(f, "bb {:?} bp {:?} m {:?}{:?}",
                     self.border_box,
                     self.border_padding,
-                    self.margin));
+                    self.margin,
+                    self.specific));
         write!(f, ")")
     }
 }

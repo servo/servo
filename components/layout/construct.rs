@@ -1249,7 +1249,7 @@ impl<'a> FlowConstructor<'a> {
 
         let mut layout_data_ref = node.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
-        let style = (*node.get_style(&layout_data)).clone();
+        let mut style = (*node.get_style(&layout_data)).clone();
         let damage = layout_data.data.restyle_damage;
         match node.construction_result_mut(layout_data) {
             &mut ConstructionResult::None => true,
@@ -1297,8 +1297,10 @@ impl<'a> FlowConstructor<'a> {
                                                     .repair_style_and_bubble_inline_sizes(&style);
                         }
                         _ => {
+                            if node.is_replaced_content() {
+                                properties::modify_style_for_replaced_content(&mut style);
+                            }
                             fragment.repair_style(&style);
-                            return true
                         }
                     }
                 }
