@@ -1551,77 +1551,73 @@ impl Node {
         }
 
         // Step 6.
-        match parent.type_id() {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children()
-                               .any(|c| c.r().is_text())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                                if let Some(child) = child {
-                                    if child.inclusively_following_siblings()
-                                        .any(|child| child.r().is_doctype()) {
-                                            return Err(HierarchyRequest);
-                                    }
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest),
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(_) => {
-                        if !parent.child_elements().is_empty() {
-                            return Err(HierarchyRequest);
-                        }
-                        if let Some(ref child) = child {
-                            if child.inclusively_following_siblings()
-                                .any(|child| child.r().is_doctype()) {
-                                    return Err(HierarchyRequest);
+        if parent.type_id() == NodeTypeId::Document {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children()
+                           .any(|c| c.r().is_text())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
                             }
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if parent.children()
-                                 .any(|c| c.r().is_doctype())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match child {
-                            Some(child) => {
-                                if parent.children()
-                                         .take_while(|c| c.r() != child)
-                                         .any(|c| c.r().is_element())
-                                {
-                                    return Err(HierarchyRequest);
+                            if let Some(child) = child {
+                                if child.inclusively_following_siblings()
+                                    .any(|child| child.r().is_doctype()) {
+                                        return Err(HierarchyRequest);
                                 }
-                            },
-                            None => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest),
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(_) => {
+                    if !parent.child_elements().is_empty() {
+                        return Err(HierarchyRequest);
+                    }
+                    if let Some(ref child) = child {
+                        if child.inclusively_following_siblings()
+                            .any(|child| child.r().is_doctype()) {
+                                return Err(HierarchyRequest);
                         }
-                    },
-                    NodeTypeId::CharacterData(_) => (),
-                    NodeTypeId::Document => unreachable!(),
-                }
-            },
-            _ => (),
-        };
-
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if parent.children()
+                             .any(|c| c.r().is_doctype())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match child {
+                        Some(child) => {
+                            if parent.children()
+                                     .take_while(|c| c.r() != child)
+                                     .any(|c| c.r().is_element())
+                            {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        None => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                    }
+                },
+                NodeTypeId::CharacterData(_) => (),
+                NodeTypeId::Document => unreachable!(),
+            }
+        }
         Ok(())
     }
 
