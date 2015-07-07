@@ -303,11 +303,8 @@ impl<'a> RangeMethods for &'a Range {
 
         // Step 1.
         match start_node.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
-                if node.GetParentNode().is_none() {
-                    return Err(HierarchyRequest);
-                }
-            },
+            // Handled under step 2.
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => (),
             NodeTypeId::CharacterData(_) => return Err(HierarchyRequest),
             _ => ()
         }
@@ -316,28 +313,22 @@ impl<'a> RangeMethods for &'a Range {
         let (reference_node, parent) =
             if start_node.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text) {
                 // Step 3.
-                let parent = start_node.GetParentNode();
+                let parent = match start_node.GetParentNode() {
+                    Some(parent) => parent,
+                    // Step 1.
+                    None => return Err(HierarchyRequest)
+                };
                 // Step 5.
                 (Some(Root::from_ref(start_node.r())), parent)
             } else {
                 // Steps 4-5.
-                match start_node.ChildNodes().r().Item(start_offset) {
-                    Some(node) => {
-                        let parent = node.GetParentNode();
-                        (Some(node), parent)
-                    },
-                    None => (None, Some(Root::from_ref(start_node.r())))
-                }
+                let child = start_node.ChildNodes().r().Item(start_offset);
+                (child, Root::from_ref(start_node.r()))
             };
-
-        // FIXME: This isn't in the spec, need to figure out what to actually do here.
-        if parent.is_none() {
-            return Err(HierarchyRequest);
-        }
 
         // Step 6.
         try!(Node::ensure_pre_insertion_validity(node,
-                                                 parent.r().unwrap(),
+                                                 parent.r(),
                                                  reference_node.r()));
 
         // Step 7.
@@ -346,31 +337,24 @@ impl<'a> RangeMethods for &'a Range {
             match TextCast::to_ref(start_node.r()) {
                 Some(text) => {
                     split_text = try!(text.SplitText(start_offset));
-                    (Some(NodeCast::from_root(split_text)),
-                     reference_node.r().unwrap().GetParentNode())
+                    let new_parent = match reference_node.r().unwrap().GetParentNode() {
+                        Some(parent) => parent,
+                        None => return Err(HierarchyRequest)
+                    };
+                    (Some(NodeCast::from_root(split_text)), new_parent)
                 },
                 _ => (reference_node, parent)
             };
 
         // Step 8.
         let reference_node = if Some(node) == reference_node.r() {
-            reference_node.unwrap().GetNextSibling()
+            node.GetNextSibling()
         } else {
             reference_node
         };
 
         // Step 9.
-        match node.GetParentNode() {
-            Some(parent) => { try!(parent.RemoveChild(node)); },
-            _ => ()
-        }
-
-        // FIXME: This isn't in the spec, need to figure out what to actually do here.
-        if parent.is_none() {
-            return Err(HierarchyRequest);
-        }
-
-        let parent = parent.r().unwrap();
+        node.remove_self();
 
         // Step 10.
         let new_offset =
@@ -384,11 +368,11 @@ impl<'a> RangeMethods for &'a Range {
         };
 
         // Step 12.
-        try!(Node::pre_insert(node, parent, reference_node.r()));
+        try!(Node::pre_insert(node, parent.r(), reference_node.r()));
 
         // Step 13.
         if self.Collapsed() {
-            self.inner().borrow_mut().set_end(node, new_offset);
+            self.inner().borrow_mut().set_end(parent.r(), new_offset);
         }
 
         Ok(())
