@@ -337,11 +337,12 @@ impl<'a> RangeMethods for &'a Range {
             match TextCast::to_ref(start_node.r()) {
                 Some(text) => {
                     split_text = try!(text.SplitText(start_offset));
-                    let new_parent = match reference_node.r().unwrap().GetParentNode() {
+                    let new_reference = NodeCast::from_root(split_text);
+                    let new_parent = match new_reference.GetParentNode() {
                         Some(parent) => parent,
                         None => return Err(HierarchyRequest)
                     };
-                    (Some(NodeCast::from_root(split_text)), new_parent)
+                    (Some(new_reference), new_parent)
                 },
                 _ => (reference_node, parent)
             };
