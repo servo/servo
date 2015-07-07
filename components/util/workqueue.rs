@@ -13,7 +13,6 @@ use task_state;
 
 use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, weak_rng, XorShiftRng};
-use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 
