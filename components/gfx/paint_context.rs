@@ -14,12 +14,12 @@ use text::TextRun;
 use text::glyph::CharIndex;
 
 use azure::azure::AzIntSize;
-use azure::azure_hl::{Color, ColorPattern};
+use azure::azure_hl::{AntialiasMode, Color, ColorPattern, CompositionOp};
 use azure::azure_hl::{DrawOptions, DrawSurfaceOptions, DrawTarget, ExtendMode, FilterType};
 use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
 use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, FilterNode, LinearGradientPattern};
 use azure::azure_hl::{JoinStyle, CapStyle};
-use azure::azure_hl::{Pattern, PatternRef, Path, PathBuilder, CompositionOp, AntialiasMode};
+use azure::azure_hl::{Pattern, PatternRef, Path, PathBuilder, SurfacePattern};
 use azure::scaled_font::ScaledFont;
 use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
@@ -130,6 +130,7 @@ impl<'a> PaintContext<'a> {
 
     pub fn draw_image(&self,
                       bounds: &Rect<Au>,
+                      stretch_size: &Size2D<Au>,
                       image: Arc<Image>,
                       image_rendering: image_rendering::T) {
         let size = Size2D::new(image.width as i32, image.height as i32);
@@ -154,19 +155,60 @@ impl<'a> PaintContext<'a> {
         // TODO(pcwalton): According to CSS-IMAGES-3 § 5.3, nearest-neighbor interpolation is a
         // conforming implementation of `crisp-edges`, but it is not the best we could do.
         // Something like Scale2x would be ideal.
-        let draw_surface_options = match image_rendering {
-            image_rendering::T::Auto => DrawSurfaceOptions::new(Filter::Linear, true),
-            image_rendering::T::CrispEdges | image_rendering::T::Pixelated => {
-                DrawSurfaceOptions::new(Filter::Point, true)
-            }
+        let draw_surface_filter = match image_rendering {
+            image_rendering::T::Auto => Filter::Linear,
+            image_rendering::T::CrispEdges | image_rendering::T::Pixelated => Filter::Point,
         };
 
+        let draw_surface_options = DrawSurfaceOptions::new(draw_surface_filter, true);
         let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
-        draw_target_ref.draw_surface(azure_surface,
-                                     dest_rect,
-                                     source_rect,
-                                     draw_surface_options,
-                                     draw_options);
+
+        // Fast path: No need to create a pattern.
+        if bounds.size == *stretch_size {
+            draw_target_ref.draw_surface(azure_surface,
+                                         dest_rect,
+                                         source_rect,
+                                         draw_surface_options,
+                                         draw_options);
+            return
+        }
+
+        // Slightly slower path: No need to stretch.
+        //
+        // Annoyingly, surface patterns in Azure/Skia are relative to the top left of the *canvas*,
+        // not the rectangle we're drawing to. So we need to translate it explicitly.
+        let matrix = Matrix2D::identity().translate(dest_rect.origin.x, dest_rect.origin.y);
+        let stretch_size = stretch_size.to_nearest_azure_size();
+        if source_rect.size == stretch_size {
+            let pattern = SurfacePattern::new(azure_surface.azure_source_surface,
+                                              true,
+                                              true,
+                                              &matrix);
+            draw_target_ref.fill_rect(&dest_rect,
+                                      PatternRef::Surface(&pattern),
+                                      Some(&draw_options));
+            return
+        }
+
+        // Slow path: Both stretch and a pattern are needed.
+        let draw_surface_options = DrawSurfaceOptions::new(draw_surface_filter, true);
+        let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
+        let temporary_draw_target =
+            self.draw_target.create_similar_draw_target(&stretch_size.to_azure_int_size(),
+                                                        self.draw_target.get_format());
+        let temporary_dest_rect = Rect::new(Point2D::new(0.0, 0.0), stretch_size);
+        temporary_draw_target.draw_surface(azure_surface,
+                                           temporary_dest_rect,
+                                           source_rect,
+                                           draw_surface_options,
+                                           draw_options);
+
+        let temporary_surface = temporary_draw_target.snapshot();
+        let pattern = SurfacePattern::new(temporary_surface.azure_source_surface,
+                                          true,
+                                          true,
+                                          &matrix);
+        draw_target_ref.fill_rect(&dest_rect, PatternRef::Surface(&pattern), None);
     }
 
     pub fn clear(&self) {
@@ -1129,9 +1171,7 @@ pub trait ToAzureRect {
 
 impl ToAzureRect for Rect<Au> {
     fn to_nearest_azure_rect(&self) -> Rect<AzFloat> {
-        Rect::new(self.origin.to_nearest_azure_point(), Size2D::new(self.size.width.to_nearest_px() as AzFloat,
-                                                                    self.size.height.to_nearest_px() as AzFloat))
-
+        Rect::new(self.origin.to_nearest_azure_point(), self.size.to_nearest_azure_size())
     }
     fn to_azure_rect(&self) -> Rect<AzFloat> {
         Rect::new(self.origin.to_azure_point(), Size2D::new(self.size.width.to_f32_px(),
@@ -1140,10 +1180,23 @@ impl ToAzureRect for Rect<Au> {
 }
 
 pub trait ToAzureSize {
+    fn to_nearest_azure_size(&self) -> Size2D<AzFloat>;
     fn to_azure_size(&self) -> Size2D<AzFloat>;
 }
 
+impl ToAzureSize for Size2D<Au> {
+    fn to_nearest_azure_size(&self) -> Size2D<AzFloat> {
+        Size2D::new(self.width.to_nearest_px() as AzFloat, self.height.to_nearest_px() as AzFloat)
+    }
+    fn to_azure_size(&self) -> Size2D<AzFloat> {
+        Size2D::new(self.width.to_f32_px(), self.height.to_f32_px())
+    }
+}
+
 impl ToAzureSize for AzIntSize {
+    fn to_nearest_azure_size(&self) -> Size2D<AzFloat> {
+        Size2D::new(self.width as AzFloat, self.height as AzFloat)
+    }
     fn to_azure_size(&self) -> Size2D<AzFloat> {
         Size2D::new(self.width as AzFloat, self.height as AzFloat)
     }

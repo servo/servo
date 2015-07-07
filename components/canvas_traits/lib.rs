@@ -284,7 +284,8 @@ impl FillOrStrokeStyle {
                 Pattern::Surface(SurfacePattern::new(
                     source_surface.azure_source_surface,
                     surface_style.repeat_x,
-                    surface_style.repeat_y))
+                    surface_style.repeat_y,
+                    &Matrix2D::identity()))
             }
         }
     }
