@@ -1802,7 +1802,7 @@ impl Fragment {
                     block_size_above_baseline: computed_block_size +
                                                    self.border_padding.block_start_end(),
                     depth_below_baseline: Au(0),
-                    ascent: computed_block_size + self.border_padding.block_end,
+                    ascent: computed_block_size + self.border_padding.block_start_end(),
                 }
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {

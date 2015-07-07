@@ -133,6 +133,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 == img_block_maxwidth_a.html img_block_maxwidth_ref.html
 == img_block_maxwidth_b.html img_block_maxwidth_ref.html
 == img_dynamic_remove.html img_dynamic_remove_ref.html
+== img_padding_a.html img_padding_b.html
 != img_simple.html img_simple_ref.html
 == img_size_a.html img_size_b.html
 == img_width_attribute_intrinsic_width_a.html img_width_attribute_intrinsic_width_ref.html
