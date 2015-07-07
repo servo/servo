@@ -440,12 +440,12 @@ pub mod longhands {
         }
 
         fn cascade_property_custom(computed_value: &computed_value::T,
-                                   declaration: &PropertyDeclaration,
+                                   _declaration: &PropertyDeclaration,
                                    style: &mut ComputedValues,
-                                   inherited_style: &ComputedValues,
+                                   _inherited_style: &ComputedValues,
                                    context: &computed::Context,
-                                   seen: &mut PropertyBitField,
-                                   cacheable: &mut bool) {
+                                   _seen: &mut PropertyBitField,
+                                   _cacheable: &mut bool) {
             Arc::make_unique(&mut style.box_)._servo_display_for_hypothetical_box =
                 longhands::_servo_display_for_hypothetical_box::derive_from_display(
                     *computed_value,
@@ -2081,12 +2081,12 @@ pub mod longhands {
         }
 
         fn cascade_property_custom(computed_value: &computed_value::T,
-                                   declaration: &PropertyDeclaration,
+                                   _declaration: &PropertyDeclaration,
                                    style: &mut ComputedValues,
-                                   inherited_style: &ComputedValues,
+                                   _inherited_style: &ComputedValues,
                                    context: &computed::Context,
-                                   seen: &mut PropertyBitField,
-                                   cacheable: &mut bool) {
+                                   _seen: &mut PropertyBitField,
+                                   _cacheable: &mut bool) {
             Arc::make_unique(&mut style.inheritedtext)._servo_text_decorations_in_effect =
                 longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(
                     *computed_value,
