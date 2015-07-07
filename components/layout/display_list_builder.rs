@@ -36,7 +36,7 @@ use msg::compositor_msg::{ScrollPolicy, LayerId};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image_cache_task::UsePlaceholder;
-use png::{self, PixelsByColorType};
+use net_traits::image::base::{Image, PixelFormat};
 use std::cmp;
 use std::default::Default;
 use std::iter::repeat;
@@ -50,7 +50,8 @@ use style::computed_values::{border_style, image_rendering, overflow_x, position
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
 use style::values::RGBA;
-use style::values::computed::{Image, LinearGradient};
+use style::values::computed;
+use style::values::computed::LinearGradient;
 use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use url::Url;
@@ -108,7 +109,7 @@ pub trait FragmentDisplayListBuilding {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &png::Image)
+                                     image: &Image)
                                      -> Size2D<Au>;
 
     /// Adds the display items necessary to paint the background image of this fragment to the
@@ -363,7 +364,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let background = style.get_background();
         match background.background_image {
             None => {}
-            Some(Image::LinearGradient(ref gradient)) => {
+            Some(computed::Image::LinearGradient(ref gradient)) => {
                 self.build_display_list_for_background_linear_gradient(display_list,
                                                                        level,
                                                                        absolute_bounds,
@@ -371,7 +372,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                        gradient,
                                                                        style)
             }
-            Some(Image::Url(ref image_url)) => {
+            Some(computed::Image::Url(ref image_url)) => {
                 self.build_display_list_for_background_image(style,
                                                              display_list,
                                                              layout_context,
@@ -386,7 +387,7 @@ impl FragmentDisplayListBuilding for Fragment {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &png::Image)
+                                     image: &Image)
                                      -> Size2D<Au> {
         // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
         // wide.
@@ -1111,10 +1112,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                         &*self.style,
                                                                         Cursor::DefaultCursor),
                                                (*clip).clone()),
-                    image: Arc::new(png::Image {
+                    image: Arc::new(Image {
                         width: width as u32,
                         height: height as u32,
-                        pixels: PixelsByColorType::RGBA8(canvas_data),
+                        format: PixelFormat::RGBA8,
+                        bytes: canvas_data,
                     }),
                     stretch_size: stacking_relative_content_box.size,
                     image_rendering: image_rendering::T::Auto,

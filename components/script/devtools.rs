@@ -4,6 +4,7 @@
 
 use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{ConsoleAPI, PageError};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
@@ -104,23 +105,10 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     //TODO: check the messageTypes against a global Cache for console messages and page exceptions
     let mut messages = Vec::new();
     if message_types.contains(PAGE_ERROR) {
-        //TODO: do for real
-        messages.push(CachedConsoleMessage::ConsoleAPI {
-            __type__: "consoleAPICall".to_owned(),
-            level: "error".to_owned(),
-            filename: "http://localhost/~mihai/mozilla/test.html".to_owned(),
-            lineNumber: 0,
-            functionName: String::new(),
-            timeStamp: 0,
-            private: false,
-            arguments: Vec::new(),
-        })
-    }
-    if message_types.contains(CONSOLE_API) {
         //TODO: make script error reporter pass all reported errors
         //      to devtools and cache them for returning here.
-        messages.push(CachedConsoleMessage::PageError {
-            __type__: "pageError".to_owned(),
+        let msg = PageError {
+            _type: "PageError".to_owned(),
             errorMessage: "page error test".to_owned(),
             sourceName: String::new(),
             lineText: String::new(),
@@ -133,7 +121,22 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
             exception: false,
             strict: false,
             private: false,
-        })
+        };
+        messages.push(CachedConsoleMessage::PageError(msg));
+    }
+    if message_types.contains(CONSOLE_API) {
+        //TODO: do for real
+        let msg = ConsoleAPI {
+            _type: "ConsoleAPI".to_owned(),
+            level: "error".to_owned(),
+            filename: "http://localhost/~mihai/mozilla/test.html".to_owned(),
+            lineNumber: 0,
+            functionName: String::new(),
+            timeStamp: 0,
+            private: false,
+            arguments: vec!["console error test".to_owned()],
+        };
+        messages.push(CachedConsoleMessage::ConsoleAPI(msg));
     }
     reply.send(messages).unwrap();
 }

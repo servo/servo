@@ -38,12 +38,6 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
-[dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image"
-
-[dependencies.png]
-git = "https://github.com/servo/rust-png"
-
 [dependencies.skia]
 git = "https://github.com/servo/skia"
 

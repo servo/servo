@@ -13118,6 +13118,10 @@
         "url": "/dom/nodes/Node-appendChild.html"
       },
       {
+        "path": "dom/nodes/Node-baseURI.html",
+        "url": "/dom/nodes/Node-baseURI.html"
+      },
+      {
         "path": "dom/nodes/Node-childNodes.html",
         "url": "/dom/nodes/Node-childNodes.html"
       },

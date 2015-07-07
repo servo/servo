@@ -101,7 +101,12 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        true
+        // https://html.spec.whatwg.org/multipage/#hyperlink
+        // "a [...] element[s] with an href attribute [...] must [..] create a
+        // hyperlink"
+        // https://html.spec.whatwg.org/multipage/#the-a-element
+        // "The activation behaviour of a elements *that create hyperlinks*"
+        ElementCast::from_ref(*self).has_attribute(&atom!("href"))
     }
 
 
@@ -141,14 +146,13 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
 
         //TODO: Step 4. Download the link is `download` attribute is set.
 
-        if let Some(ref href) = element.get_attribute(&ns!(""), &atom!("href")) {
-            let mut value = href.r().Value();
-            if let Some(suffix) = ismap_suffix {
-                value.push_str(&suffix);
-            }
-            debug!("clicked on link to {}", value);
-            doc.r().load_anchor_href(value);
+        let href = element.get_attribute(&ns!(""), &atom!("href")).unwrap();
+        let mut value = href.r().Value();
+        if let Some(suffix) = ismap_suffix {
+            value.push_str(&suffix);
         }
+        debug!("clicked on link to {}", value);
+        doc.r().load_anchor_href(value);
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
