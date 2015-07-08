@@ -4,8 +4,60 @@
 
 //! Utility functions for doubly-linked lists.
 
+use mem::HeapSizeOf;
+
+use serde::de::{Error, SeqVisitor, Visitor};
+use serde::ser::impls::SeqIteratorVisitor;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::LinkedList;
+use std::marker::PhantomData;
 use std::mem;
+
+pub struct SerializableLinkedList<T>(pub LinkedList<T>);
+
+impl<T: HeapSizeOf> HeapSizeOf for SerializableLinkedList<T> {
+    fn heap_size_of_children(&self) -> usize {
+        self.0.heap_size_of_children()
+    }
+}
+
+impl<T> Serialize for SerializableLinkedList<T> where T: Serialize {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
+        serializer.visit_seq(SeqIteratorVisitor::new(self.0.iter(), Some(self.0.len())))
+    }
+}
+
+impl<T> Deserialize for SerializableLinkedList<T> where T: Deserialize {
+    fn deserialize<D>(deserializer: &mut D) -> Result<SerializableLinkedList<T>, D::Error>
+                      where D: Deserializer {
+        struct SerializableLinkedListVisitor<T> {
+            marker: PhantomData<T>,
+        }
+
+        impl<T> Visitor for SerializableLinkedListVisitor<T> where T: Deserialize {
+            type Value = SerializableLinkedList<T>;
+
+            #[inline]
+            fn visit_seq<V>(&mut self, mut visitor: V)
+                            -> Result<SerializableLinkedList<T>, V::Error>
+                            where V: SeqVisitor {
+                let mut list = LinkedList::new();
+                for _ in 0..visitor.size_hint().0 {
+                    match try!(visitor.visit()) {
+                        Some(element) => list.push_back(element),
+                        None => return Err(Error::end_of_stream_error()),
+                    }
+                }
+                try!(visitor.end());
+                Ok(SerializableLinkedList(list))
+            }
+        }
+
+        deserializer.visit_seq(SerializableLinkedListVisitor {
+            marker: PhantomData,
+        })
+    }
+}
 
 /// Splits the head off a list in O(1) time, and returns the head.
 pub fn split_off_head<T>(list: &mut LinkedList<T>) -> LinkedList<T> {

@@ -33,3 +33,6 @@ cssparser = "0.3.1"
 num = "0.1.24"
 url = "*"
 euclid = "0.1"
+serde = "*"
+serde_macros = "*"
+

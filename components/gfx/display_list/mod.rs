@@ -25,28 +25,27 @@ use text::TextRun;
 
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
-
-use std::collections::linked_list::{self, LinkedList};
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use libc::uintptr_t;
-use paint_task::PaintLayer;
 use msg::compositor_msg::{LayerId, LayerKind};
 use net_traits::image::base::Image;
-use util::opts;
-use util::cursor::Cursor;
-use util::linked_list::prepend_from;
-use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
-use util::mem::HeapSizeOf;
-use util::range::Range;
+use paint_task::PaintLayer;
 use smallvec::SmallVec8;
+use std::collections::linked_list::{self, LinkedList};
 use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
 use style::computed_values::{pointer_events};
 use style::properties::ComputedValues;
+use util::cursor::Cursor;
+use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
+use util::linked_list::{SerializableLinkedList, prepend_from};
+use util::mem::HeapSizeOf;
+use util::opts;
+use util::range::Range;
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
 // layout to use.
@@ -66,7 +65,7 @@ const MIN_INDENTATION_LENGTH: usize = 4;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
+#[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -82,22 +81,22 @@ impl OpaqueNode {
 ///
 /// TODO(pcwalton): We could reduce the size of this structure with a more "skip list"-like
 /// structure, omitting several pointers and lengths.
-#[derive(HeapSizeOf)]
+#[derive(HeapSizeOf, Deserialize, Serialize)]
 pub struct DisplayList {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
-    pub background_and_borders: LinkedList<DisplayItem>,
+    pub background_and_borders: SerializableLinkedList<DisplayItem>,
     /// Borders and backgrounds for block-level descendants: step 4.
-    pub block_backgrounds_and_borders: LinkedList<DisplayItem>,
+    pub block_backgrounds_and_borders: SerializableLinkedList<DisplayItem>,
     /// Floats: step 5. These are treated as pseudo-stacking contexts.
-    pub floats: LinkedList<DisplayItem>,
+    pub floats: SerializableLinkedList<DisplayItem>,
     /// All non-positioned content.
-    pub content: LinkedList<DisplayItem>,
+    pub content: SerializableLinkedList<DisplayItem>,
     /// All positioned content that does not get a stacking context.
-    pub positioned_content: LinkedList<DisplayItem>,
+    pub positioned_content: SerializableLinkedList<DisplayItem>,
     /// Outlines: step 10.
-    pub outlines: LinkedList<DisplayItem>,
+    pub outlines: SerializableLinkedList<DisplayItem>,
     /// Child stacking contexts.
-    pub children: LinkedList<Arc<StackingContext>>,
+    pub children: SerializableLinkedList<Arc<StackingContext>>,
 }
 
 impl DisplayList {
@@ -105,13 +104,13 @@ impl DisplayList {
     #[inline]
     pub fn new() -> DisplayList {
         DisplayList {
-            background_and_borders: LinkedList::new(),
-            block_backgrounds_and_borders: LinkedList::new(),
-            floats: LinkedList::new(),
-            content: LinkedList::new(),
-            positioned_content: LinkedList::new(),
-            outlines: LinkedList::new(),
-            children: LinkedList::new(),
+            background_and_borders: SerializableLinkedList(LinkedList::new()),
+            block_backgrounds_and_borders: SerializableLinkedList(LinkedList::new()),
+            floats: SerializableLinkedList(LinkedList::new()),
+            content: SerializableLinkedList(LinkedList::new()),
+            positioned_content: SerializableLinkedList(LinkedList::new()),
+            outlines: SerializableLinkedList(LinkedList::new()),
+            children: SerializableLinkedList(LinkedList::new()),
         }
     }
 
@@ -119,56 +118,56 @@ impl DisplayList {
     /// `other` in the process.
     #[inline]
     pub fn append_from(&mut self, other: &mut DisplayList) {
-        self.background_and_borders.append(&mut other.background_and_borders);
-        self.block_backgrounds_and_borders.append(&mut other.block_backgrounds_and_borders);
-        self.floats.append(&mut other.floats);
-        self.content.append(&mut other.content);
-        self.positioned_content.append(&mut other.positioned_content);
-        self.outlines.append(&mut other.outlines);
-        self.children.append(&mut other.children);
+        self.background_and_borders.0.append(&mut other.background_and_borders.0);
+        self.block_backgrounds_and_borders.0.append(&mut other.block_backgrounds_and_borders.0);
+        self.floats.0.append(&mut other.floats.0);
+        self.content.0.append(&mut other.content.0);
+        self.positioned_content.0.append(&mut other.positioned_content.0);
+        self.outlines.0.append(&mut other.outlines.0);
+        self.children.0.append(&mut other.children.0);
     }
 
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.
     #[inline]
     pub fn form_float_pseudo_stacking_context(&mut self) {
-        prepend_from(&mut self.floats, &mut self.outlines);
-        prepend_from(&mut self.floats, &mut self.positioned_content);
-        prepend_from(&mut self.floats, &mut self.content);
-        prepend_from(&mut self.floats, &mut self.block_backgrounds_and_borders);
-        prepend_from(&mut self.floats, &mut self.background_and_borders);
+        prepend_from(&mut self.floats.0, &mut self.outlines.0);
+        prepend_from(&mut self.floats.0, &mut self.positioned_content.0);
+        prepend_from(&mut self.floats.0, &mut self.content.0);
+        prepend_from(&mut self.floats.0, &mut self.block_backgrounds_and_borders.0);
+        prepend_from(&mut self.floats.0, &mut self.background_and_borders.0);
     }
 
     /// Merges all display items from all non-positioned-content stacking levels to the
     /// positioned-content stacking level.
     #[inline]
     pub fn form_pseudo_stacking_context_for_positioned_content(&mut self) {
-        prepend_from(&mut self.positioned_content, &mut self.outlines);
-        prepend_from(&mut self.positioned_content, &mut self.content);
-        prepend_from(&mut self.positioned_content, &mut self.floats);
-        prepend_from(&mut self.positioned_content, &mut self.block_backgrounds_and_borders);
-        prepend_from(&mut self.positioned_content, &mut self.background_and_borders);
+        prepend_from(&mut self.positioned_content.0, &mut self.outlines.0);
+        prepend_from(&mut self.positioned_content.0, &mut self.content.0);
+        prepend_from(&mut self.positioned_content.0, &mut self.floats.0);
+        prepend_from(&mut self.positioned_content.0, &mut self.block_backgrounds_and_borders.0);
+        prepend_from(&mut self.positioned_content.0, &mut self.background_and_borders.0);
     }
 
     /// Returns a list of all items in this display list concatenated together. This is extremely
     /// inefficient and should only be used for debugging.
     pub fn all_display_items(&self) -> Vec<DisplayItem> {
         let mut result = Vec::new();
-        for display_item in self.background_and_borders.iter() {
+        for display_item in self.background_and_borders.0.iter() {
             result.push((*display_item).clone())
         }
-        for display_item in self.block_backgrounds_and_borders.iter() {
+        for display_item in self.block_backgrounds_and_borders.0.iter() {
             result.push((*display_item).clone())
         }
-        for display_item in self.floats.iter() {
+        for display_item in self.floats.0.iter() {
             result.push((*display_item).clone())
         }
-        for display_item in self.content.iter() {
+        for display_item in self.content.0.iter() {
             result.push((*display_item).clone())
         }
-        for display_item in self.positioned_content.iter() {
+        for display_item in self.positioned_content.0.iter() {
             result.push((*display_item).clone())
         }
-        for display_item in self.outlines.iter() {
+        for display_item in self.outlines.0.iter() {
             result.push((*display_item).clone())
         }
         result
@@ -207,11 +206,11 @@ impl DisplayList {
         };
 
         doit(&(self.all_display_items()));
-        if self.children.len() != 0 {
+        if self.children.0.len() != 0 {
             println!("{} Children stacking contexts list length: {}",
                      indentation,
-                     self.children.len());
-            for stacking_context in self.children.iter() {
+                     self.children.0.len());
+            for stacking_context in self.children.0.iter() {
                 stacking_context.print(indentation.clone() +
                                        &indentation[0..MIN_INDENTATION_LENGTH]);
             }
@@ -219,7 +218,7 @@ impl DisplayList {
     }
 }
 
-#[derive(HeapSizeOf)]
+#[derive(HeapSizeOf, Deserialize, Serialize)]
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
 pub struct StackingContext {
     /// The display items that make up this stacking context.
@@ -315,7 +314,7 @@ impl StackingContext {
 
             // Sort positioned children according to z-index.
             let mut positioned_children = SmallVec8::new();
-            for kid in display_list.children.iter() {
+            for kid in display_list.children.0.iter() {
                 positioned_children.push((*kid).clone());
             }
             positioned_children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
@@ -329,7 +328,7 @@ impl StackingContext {
             paint_subcontext.push_clip_if_applicable();
 
             // Steps 1 and 2: Borders and background for the root.
-            for display_item in display_list.background_and_borders.iter() {
+            for display_item in display_list.background_and_borders.0.iter() {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
@@ -360,24 +359,24 @@ impl StackingContext {
             }
 
             // Step 4: Block backgrounds and borders.
-            for display_item in display_list.block_backgrounds_and_borders.iter() {
+            for display_item in display_list.block_backgrounds_and_borders.0.iter() {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // Step 5: Floats.
-            for display_item in display_list.floats.iter() {
+            for display_item in display_list.floats.0.iter() {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
 
             // Step 7: Content.
-            for display_item in display_list.content.iter() {
+            for display_item in display_list.content.0.iter() {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // Step 8: Positioned descendants with `z-index: auto`.
-            for display_item in display_list.positioned_content.iter() {
+            for display_item in display_list.positioned_content.0.iter() {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
@@ -409,7 +408,7 @@ impl StackingContext {
             }
 
             // Step 10: Outlines.
-            for display_item in display_list.outlines.iter() {
+            for display_item in display_list.outlines.0.iter() {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
@@ -443,7 +442,8 @@ impl StackingContext {
 
         } else {
             // Optimize the display list to throw out out-of-bounds display items and so forth.
-            let display_list = DisplayListOptimizer::new(tile_bounds).optimize(&*self.display_list);
+            let display_list =
+                DisplayListOptimizer::new(tile_bounds).optimize(&*self.display_list);
 
             self.draw_into_context(&display_list,
                                    paint_context,
@@ -515,12 +515,16 @@ impl StackingContext {
                         // If the point is inside the border, it didn't hit the border!
                         let interior_rect =
                             Rect::new(
-                                Point2D::new(border.base.bounds.origin.x + border.border_widths.left,
-                                             border.base.bounds.origin.y + border.border_widths.top),
+                                Point2D::new(border.base.bounds.origin.x +
+                                             border.border_widths.left,
+                                             border.base.bounds.origin.y +
+                                             border.border_widths.top),
                                 Size2D::new(border.base.bounds.size.width -
-                                                (border.border_widths.left + border.border_widths.right),
+                                                (border.border_widths.left +
+                                                 border.border_widths.right),
                                             border.base.bounds.size.height -
-                                                (border.border_widths.top + border.border_widths.bottom)));
+                                                (border.border_widths.top +
+                                                 border.border_widths.bottom)));
                         if geometry::rect_contains_point(interior_rect, point) {
                             continue
                         }
@@ -548,13 +552,13 @@ impl StackingContext {
         // painting steps in CSS 2.1 Appendix E.
         //
         // Step 10: Outlines.
-        hit_test_in_list(point, result, topmost_only, self.display_list.outlines.iter().rev());
+        hit_test_in_list(point, result, topmost_only, self.display_list.outlines.0.iter().rev());
         if topmost_only && !result.is_empty() {
             return
         }
 
         // Steps 9 and 8: Positioned descendants with nonnegative z-indices.
-        for kid in self.display_list.children.iter().rev() {
+        for kid in self.display_list.children.0.iter().rev() {
             if kid.z_index < 0 {
                 continue
             }
@@ -574,14 +578,14 @@ impl StackingContext {
             &self.display_list.floats,
             &self.display_list.block_backgrounds_and_borders,
         ].iter() {
-            hit_test_in_list(point, result, topmost_only, display_list.iter().rev());
+            hit_test_in_list(point, result, topmost_only, display_list.0.iter().rev());
             if topmost_only && !result.is_empty() {
                 return
             }
         }
 
         // Step 3: Positioned descendants with negative z-indices.
-        for kid in self.display_list.children.iter().rev() {
+        for kid in self.display_list.children.0.iter().rev() {
             if kid.z_index >= 0 {
                 continue
             }
@@ -595,7 +599,7 @@ impl StackingContext {
         hit_test_in_list(point,
                          result,
                          topmost_only,
-                         self.display_list.background_and_borders.iter().rev())
+                         self.display_list.background_and_borders.0.iter().rev())
     }
 
     pub fn print(&self, mut indentation: String) {
@@ -628,7 +632,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
         Some(_) | None => {}
     }
 
-    for kid in this.display_list.children.iter() {
+    for kid in this.display_list.children.0.iter() {
         match find_stacking_context_with_layer_id(kid, layer_id) {
             Some(stacking_context) => return Some(stacking_context),
             None => {}
@@ -639,7 +643,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
 }
 
 /// One drawing command in the list.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub enum DisplayItem {
     SolidColorClass(Box<SolidColorDisplayItem>),
     TextClass(Box<TextDisplayItem>),
@@ -651,7 +655,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
@@ -679,7 +683,7 @@ impl BaseDisplayItem {
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+#[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -693,7 +697,7 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+#[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
@@ -805,7 +809,7 @@ impl ClippingRegion {
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -834,7 +838,7 @@ impl DisplayItemMetadata {
 }
 
 /// Paints a solid color.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct SolidColorDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -844,7 +848,7 @@ pub struct SolidColorDisplayItem {
 }
 
 /// Paints text.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -869,7 +873,7 @@ pub struct TextDisplayItem {
     pub blur_radius: Au,
 }
 
-#[derive(Clone, Eq, PartialEq, HeapSizeOf)]
+#[derive(Clone, Eq, PartialEq, HeapSizeOf, Deserialize, Serialize)]
 pub enum TextOrientation {
     Upright,
     SidewaysLeft,
@@ -877,7 +881,7 @@ pub enum TextOrientation {
 }
 
 /// Paints an image.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
     #[ignore_heap_size_of = "Because it is non-owning"]
@@ -895,7 +899,7 @@ pub struct ImageDisplayItem {
 
 
 /// Paints a gradient.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GradientDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -926,7 +930,7 @@ impl HeapSizeOf for GradientDisplayItem {
 
 
 /// Paints a border.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -949,7 +953,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, Default, PartialEq, Debug, Copy, HeapSizeOf)]
+#[derive(Clone, Default, PartialEq, Debug, Copy, HeapSizeOf, Deserialize, Serialize)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
@@ -979,7 +983,7 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
 }
 
 /// Paints a line segment.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
@@ -991,7 +995,7 @@ pub struct LineDisplayItem {
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct BoxShadowDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1016,7 +1020,7 @@ pub struct BoxShadowDisplayItem {
 }
 
 /// How a box shadow should be clipped.
-#[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf, Deserialize, Serialize)]
 pub enum BoxShadowClipMode {
     /// No special clipping should occur. This is used for (shadowed) text decorations.
     None,

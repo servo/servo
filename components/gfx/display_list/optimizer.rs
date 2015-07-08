@@ -29,16 +29,18 @@ impl DisplayListOptimizer {
     /// Optimizes the given display list, returning an equivalent, but cheaper-to-paint, one.
     pub fn optimize(self, display_list: &DisplayList) -> DisplayList {
         let mut result = DisplayList::new();
-        self.add_in_bounds_display_items(&mut result.background_and_borders,
-                                         display_list.background_and_borders.iter());
-        self.add_in_bounds_display_items(&mut result.block_backgrounds_and_borders,
-                                         display_list.block_backgrounds_and_borders.iter());
-        self.add_in_bounds_display_items(&mut result.floats, display_list.floats.iter());
-        self.add_in_bounds_display_items(&mut result.content, display_list.content.iter());
-        self.add_in_bounds_display_items(&mut result.positioned_content,
-                                         display_list.positioned_content.iter());
-        self.add_in_bounds_display_items(&mut result.outlines, display_list.outlines.iter());
-        self.add_in_bounds_stacking_contexts(&mut result.children, display_list.children.iter());
+        self.add_in_bounds_display_items(&mut result.background_and_borders.0,
+                                         display_list.background_and_borders.0.iter());
+        self.add_in_bounds_display_items(&mut result.block_backgrounds_and_borders.0,
+                                         display_list.block_backgrounds_and_borders.0.iter());
+        self.add_in_bounds_display_items(&mut result.floats.0, display_list.floats.0.iter());
+        self.add_in_bounds_display_items(&mut result.content.0, display_list.content.0.iter());
+        self.add_in_bounds_display_items(&mut result.positioned_content.0,
+                                         display_list.positioned_content.0.iter());
+        self.add_in_bounds_display_items(&mut result.outlines.0,
+                                         display_list.outlines.0.iter());
+        self.add_in_bounds_stacking_contexts(&mut result.children.0,
+                                             display_list.children.0.iter());
         result
     }
 

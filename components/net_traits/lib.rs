@@ -3,15 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
+#![feature(custom_derive)]
+#![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(vec_push_all)]
+#![plugin(serde_macros)]
 
 extern crate euclid;
 extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate png;
+extern crate serde;
 extern crate stb_image;
 extern crate url;
 extern crate util;

@@ -10,6 +10,7 @@ use util::vec::byte_swap;
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
+#[derive(Deserialize, Serialize)]
 pub enum PixelFormat {
     K8,         // Luminance channel only
     KA8,        // Luminance + alpha
@@ -17,6 +18,7 @@ pub enum PixelFormat {
     RGBA8,      // RGB + alpha, 8 bits per channel
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct Image {
     pub width: u32,
     pub height: u32,

@@ -84,7 +84,7 @@ impl DisplayListBuildingResult {
         match *self {
             DisplayListBuildingResult::None => return,
             DisplayListBuildingResult::StackingContext(ref mut stacking_context) => {
-                display_list.children.push_back((*stacking_context).clone())
+                display_list.children.0.push_back((*stacking_context).clone())
             }
             DisplayListBuildingResult::Normal(ref mut source_display_list) => {
                 display_list.append_from(&mut **source_display_list)
@@ -784,7 +784,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Append the outline to the display list.
         let color = style.resolve_color(style.get_outline().outline_color).to_gfx_color();
-        display_list.outlines.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
+        display_list.outlines.0.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(bounds,
                                        DisplayItemMetadata::new(self.node,
                                                                 style,
@@ -808,7 +808,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let container_size = Size2D::zero();
 
         // Compute the text fragment bounds and draw a border surrounding them.
-        display_list.content.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
+        display_list.content.0.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(*stacking_relative_border_box,
                                        DisplayItemMetadata::new(self.node,
                                                                 style,
@@ -830,12 +830,14 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let line_display_item = box LineDisplayItem {
             base: BaseDisplayItem::new(baseline,
-                                       DisplayItemMetadata::new(self.node, style, Cursor::DefaultCursor),
+                                       DisplayItemMetadata::new(self.node,
+                                                                style,
+                                                                Cursor::DefaultCursor),
                                        (*clip).clone()),
             color: color::rgb(0, 200, 0),
             style: border_style::T::dashed,
         };
-        display_list.content.push_back(DisplayItem::LineClass(line_display_item));
+        display_list.content.0.push_back(DisplayItem::LineClass(line_display_item));
     }
 
     fn build_debug_borders_around_fragment(&self,
@@ -843,7 +845,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                            stacking_relative_border_box: &Rect<Au>,
                                            clip: &ClippingRegion) {
         // This prints a debug border around the border of this fragment.
-        display_list.content.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
+        display_list.content.0.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(*stacking_relative_border_box,
                                        DisplayItemMetadata::new(self.node,
                                                                 &*self.style,
@@ -1079,7 +1081,7 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::Image(ref mut image_fragment) => {
                 // Place the image into the display list.
                 if let Some(ref image) = image_fragment.image {
-                    display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
+                    display_list.content.0.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
                         base: BaseDisplayItem::new(stacking_relative_content_box,
                                                    DisplayItemMetadata::new(self.node,
                                                                             &*self.style,
@@ -1106,7 +1108,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     },
                     None => repeat(0xFFu8).take(width * height * 4).collect(),
                 };
-                display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
+                display_list.content.0.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
                     base: BaseDisplayItem::new(stacking_relative_content_box,
                                                DisplayItemMetadata::new(self.node,
                                                                         &*self.style,
@@ -1361,7 +1363,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                           container_size);
 
         // Create the text display item.
-        display_list.content.push_back(DisplayItem::TextClass(box TextDisplayItem {
+        display_list.content.0.push_back(DisplayItem::TextClass(box TextDisplayItem {
             base: BaseDisplayItem::new(stacking_relative_content_box,
                                        DisplayItemMetadata::new(self.node, self.style(), cursor),
                                        (*clip).clone()),
@@ -1438,7 +1440,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let stacking_relative_box = stacking_relative_box.to_physical(self.style.writing_mode,
                                                                       container_size);
         let metadata = DisplayItemMetadata::new(self.node, &*self.style, Cursor::DefaultCursor);
-        display_list.content.push_back(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
+        display_list.content.0.push_back(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
             base: BaseDisplayItem::new(shadow_bounds(&stacking_relative_box, blur_radius, Au(0)),
                                        metadata,
                                        (*clip).clone()),
@@ -1859,12 +1861,12 @@ impl StackingContextConstruction for DisplayList {
     fn push(&mut self, display_item: DisplayItem, level: StackingLevel) {
         match level {
             StackingLevel::BackgroundAndBorders => {
-                self.background_and_borders.push_back(display_item)
+                self.background_and_borders.0.push_back(display_item)
             }
             StackingLevel::BlockBackgroundsAndBorders => {
-                self.block_backgrounds_and_borders.push_back(display_item)
+                self.block_backgrounds_and_borders.0.push_back(display_item)
             }
-            StackingLevel::Content => self.content.push_back(display_item),
+            StackingLevel::Content => self.content.0.push_back(display_item),
         }
     }
 }
