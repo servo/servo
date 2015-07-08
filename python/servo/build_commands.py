@@ -194,7 +194,7 @@ class MachCommands(CommandBase):
                             stderr=subprocess.PIPE)
 
                     # Wait for cargo to terminate
-                    for line in process.stdout: process(line)
+                    for line in process.stdout: print(line)
                 else:
                     subprocess.call(["cargo", "build"], env=self.build_env())
 
@@ -228,7 +228,7 @@ class MachCommands(CommandBase):
                             stderr=subprocess.PIPE)
         
                     # Wait for make to terminate
-                    for line in process.stdout: process(line)
+                    for line in process.stdout: print(line)
                     status = process.returncode
                     if status:
                             return status
@@ -249,7 +249,7 @@ class MachCommands(CommandBase):
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Wait for cargo to terminate
-            for line in process.stdout: process(line)
+            for line in process.stdout: print(line)
             status = process.returncode
         else:
             status = subprocess.call(
@@ -296,7 +296,7 @@ class MachCommands(CommandBase):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 # Wait for cargo to terminate
-                for line in process.stdout: process(line)
+                for line in process.stdout: print(line)
                 ret = process.returncode
             else:
                 ret = subprocess.call(["cargo", "build"] + opts,
@@ -343,7 +343,7 @@ class MachCommands(CommandBase):
                             ["cargo", "build"] + opts, env=env, shell=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 # Wait for cargo to terminate
-                for line in process.stdout: process(line)
+                for line in process.stdout: print(line)
                 ret = process.returncode
             else:
                 ret = subprocess.call(["cargo", "build"] + opts, env=env)
@@ -397,7 +397,7 @@ class MachCommands(CommandBase):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
             # Wait for cargo to terminate
-            for line in process.stdout: process(line)
+            for line in process.stdout: print(line)
             status = process.returncode
             return status
         else:
