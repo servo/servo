@@ -4,7 +4,7 @@
 
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 use canvas_traits::CanvasMsg;
 use css::node_style::StyledNode;
