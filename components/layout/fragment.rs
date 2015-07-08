@@ -112,11 +112,6 @@ pub struct Fragment {
     pub debug_id: u16,
 }
 
-#[allow(unsafe_code)]
-unsafe impl Send for Fragment {}
-#[allow(unsafe_code)]
-unsafe impl Sync for Fragment {}
-
 impl Encodable for Fragment {
     fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
         e.emit_struct("fragment", 0, |e| {
