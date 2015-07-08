@@ -267,21 +267,21 @@ impl HSTSList {
         })
     }
 
-    fn has_domain(&self, host: String) -> bool {
+    fn has_domain(&self, host: &str) -> bool {
         self.entries.iter().any(|e| {
             e.matches_domain(&host)
         })
     }
 
-    fn has_subdomain(&self, host: String) -> bool {
+    fn has_subdomain(&self, host: &str) -> bool {
         self.entries.iter().any(|e| {
-            e.matches_subdomain(&host)
+            e.matches_subdomain(host)
         })
     }
 
     pub fn push(&mut self, entry: HSTSEntry) {
-        let have_domain = self.has_domain(entry.host.clone());
-        let have_subdomain = self.has_subdomain(entry.host.clone());
+        let have_domain = self.has_domain(&entry.host);
+        let have_subdomain = self.has_subdomain(&entry.host);
 
         if !have_domain && !have_subdomain {
             self.entries.push(entry);
