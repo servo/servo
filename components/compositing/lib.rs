@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
+#![feature(iter_cmp)]
 #![feature(slice_bytes)]
 #![feature(vec_push_all)]
 
@@ -43,6 +44,7 @@ pub use constellation::Constellation;
 
 pub mod compositor_task;
 
+mod buffer_map;
 mod compositor_layer;
 mod compositor;
 mod headless;

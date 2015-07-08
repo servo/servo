@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use buffer_map::BufferMap;
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
 use compositor_task::Msg;
@@ -50,6 +51,8 @@ use time::{precise_time_ns, precise_time_s};
 use url::Url;
 use util::geometry::{Au, PagePx, ScreenPx, ViewportPx};
 use util::opts;
+
+const BUFFER_MAP_SIZE : usize = 10000000;
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
@@ -154,6 +157,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
+
+    /// A data structure to store unused LayerBuffers.
+    buffer_map: BufferMap,
 }
 
 pub struct ScrollEvent {
@@ -290,6 +296,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             last_composite_time: 0,
             has_seen_quit_event: false,
             ready_to_save_state: ReadyState::Unknown,
+            buffer_map: BufferMap::new(BUFFER_MAP_SIZE),
         }
     }
 
@@ -385,6 +392,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                 epoch,
                                                 frame_tree_id);
                 }
+            }
+
+            (Msg::ReturnUnusedLayerBuffers(layer_buffers),
+             ShutdownState::NotShuttingDown) => {
+                self.cache_unused_buffers(layer_buffers);
             }
 
             (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point),
@@ -547,10 +559,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         // If we have an old root layer, release all old tiles before replacing it.
-        match self.scene.root {
-            Some(ref layer) => layer.clear_all_tiles(self),
-            None => { }
+        let old_root_layer = self.scene.root.take();
+        if let Some(ref old_root_layer) = old_root_layer {
+            old_root_layer.clear_all_tiles(self)
         }
+
         self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree, None));
         self.scene.set_root_layer_size(self.window_size.as_f32());
 
@@ -616,13 +629,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn remove_pipeline_root_layer(&mut self, pipeline_id: PipelineId) {
-        if let Some(ref root_layer) = self.scene.root {
-            // Remove all the compositor layers for this pipeline
-            // and send any owned buffers back to the paint task.
-            root_layer.remove_root_layer_with_pipeline_id(self, pipeline_id);
+        let root_layer = match self.scene.root {
+            Some(ref root_layer) => root_layer.clone(),
+            None => return,
+        };
 
-            self.pipeline_details.remove(&pipeline_id);
-        }
+        // Remove all the compositor layers for this pipeline and recache
+        // any buffers that they owned.
+        root_layer.remove_root_layer_with_pipeline_id(self, pipeline_id);
+        self.pipeline_details.remove(&pipeline_id);
     }
 
     fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties) -> bool {
@@ -787,9 +802,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         }
 
-        let pipeline = self.get_pipeline(pipeline_id);
-        let message = PaintMsg::UnusedBuffer(new_layer_buffer_set.buffers);
-        let _ = pipeline.paint_chan.send(message);
+        self.cache_unused_buffers(new_layer_buffer_set.buffers);
     }
 
     fn assign_painted_buffers_to_layer(&mut self,
@@ -1141,7 +1154,29 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         chan.send(ConstellationMsg::KeyEvent(key, state, modifiers)).unwrap()
     }
 
-    fn convert_buffer_requests_to_pipeline_requests_map(&self,
+    fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
+        if opts::get().gpu_painting {
+            return;
+        }
+
+        for buffer_request in paint_request.buffer_requests.iter_mut() {
+            if self.buffer_map.mem() == 0 {
+                return;
+            }
+
+            if let Some(mut buffer) = self.buffer_map.find(buffer_request.screen_rect.size) {
+                buffer.rect = buffer_request.page_rect;
+                buffer.screen_pos = buffer_request.screen_rect;
+                buffer.resolution = paint_request.scale;
+                buffer.native_surface.mark_wont_leak();
+                buffer.painted_with_cpu = true;
+                buffer.content_age = buffer_request.content_age;
+                buffer_request.layer_buffer = Some(buffer);
+            }
+        }
+    }
+
+    fn convert_buffer_requests_to_pipeline_requests_map(&mut self,
                                                         requests: Vec<(Rc<Layer<CompositorData>>,
                                                                        Vec<BufferRequest>)>)
                                                         -> HashMap<PipelineId, Vec<PaintRequest>> {
@@ -1173,27 +1208,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 LayerKind::Layer2D
             };
 
-            vec.push(PaintRequest {
+            let mut paint_request = PaintRequest {
                 buffer_requests: layer_requests,
                 scale: scale.get(),
                 layer_id: layer.extra_data.borrow().id,
                 epoch: layer.extra_data.borrow().requested_epoch,
                 layer_kind: layer_kind,
-            });
+            };
+            self.fill_paint_request_with_cached_layer_buffers(&mut paint_request);
+            vec.push(paint_request);
         }
 
         results
-    }
-
-    fn send_back_unused_buffers(&mut self,
-                                unused_buffers: Vec<(Rc<Layer<CompositorData>>,
-                                                     Vec<Box<LayerBuffer>>)>) {
-        for (layer, buffers) in unused_buffers.into_iter() {
-            if !buffers.is_empty() {
-                let pipeline = self.get_pipeline(layer.pipeline_id());
-                let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(buffers));
-            }
-        }
     }
 
     fn send_viewport_rect_for_layer(&self, layer: Rc<Layer<CompositorData>>) {
@@ -1230,7 +1256,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.scene.get_buffer_requests(&mut layers_and_requests, &mut unused_buffers);
 
         // Return unused tiles first, so that they can be reused by any new BufferRequests.
-        self.send_back_unused_buffers(unused_buffers);
+        self.cache_unused_buffers(unused_buffers);
 
         if layers_and_requests.len() == 0 {
             return false;
@@ -1526,6 +1552,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                                 layer_id),
 
             None => None,
+        }
+    }
+
+    pub fn cache_unused_buffers(&mut self, buffers: Vec<Box<LayerBuffer>>) {
+        if !buffers.is_empty() {
+            self.buffer_map.insert_buffers(&self.native_display, buffers);
         }
     }
 }

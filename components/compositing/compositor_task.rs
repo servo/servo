@@ -14,7 +14,7 @@ use windowing::{WindowEvent, WindowMethods};
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use layers::platform::surface::NativeDisplay;
-use layers::layers::LayerBufferSet;
+use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, FrameTreeId};
 use msg::compositor_msg::{PaintListener, ScriptListener};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
@@ -111,6 +111,18 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
         self.send(Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id));
     }
 
+    fn ignore_buffer_requests(&mut self, buffer_requests: Vec<BufferRequest>) {
+        let mut layer_buffers = Vec::new();
+        for request in buffer_requests.into_iter() {
+            if let Some(layer_buffer) = request.layer_buffer {
+                layer_buffers.push(layer_buffer);
+            }
+        }
+        if !layer_buffers.is_empty() {
+            self.send(Msg::ReturnUnusedLayerBuffers(layer_buffers));
+        }
+    }
+
     fn initialize_layers_for_pipeline(&mut self,
                                       pipeline_id: PipelineId,
                                       properties: Vec<LayerProperties>,
@@ -184,6 +196,9 @@ pub enum Msg {
     NewFavicon(Url),
     /// <head> tag finished parsing
     HeadParsed,
+    /// Signal that the paint task ignored the paint requests that carried
+    /// these layer buffers, so that they can be re-added to the surface cache.
+    ReturnUnusedLayerBuffers(Vec<Box<LayerBuffer>>),
 }
 
 impl Debug for Msg {
@@ -212,6 +227,7 @@ impl Debug for Msg {
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
             Msg::HeadParsed => write!(f, "HeadParsed"),
+            Msg::ReturnUnusedLayerBuffers(..) => write!(f, "ReturnUnusedLayerBuffers"),
         }
     }
 }

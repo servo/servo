@@ -9,7 +9,6 @@
 #![feature(custom_derive)]
 #![feature(hashmap_hasher)]
 #![cfg_attr(any(target_os="linux", target_os = "android"), feature(heap_api))]
-#![feature(iter_cmp)]
 #![feature(plugin)]
 #![feature(str_char)]
 #![feature(vec_push_all)]
@@ -76,7 +75,6 @@ pub mod font_cache_task;
 pub mod font_template;
 
 // Misc.
-mod buffer_map;
 mod filters;
 
 // Platform-specific implementations.
