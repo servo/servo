@@ -7,14 +7,18 @@ use core_graphics::font::CGFont;
 use core_text::font::CTFont;
 use core_text;
 
+use serde::de::{Error, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::ToOwned;
+use std::ops::Deref;
 
 /// Platform specific font representation for mac.
 /// The identifier is a PostScript font name. The
 /// CTFont object is cached here for use by the
 /// paint functions that create CGFont references.
+#[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
-    pub ctfont: Option<CTFont>,
+    pub ctfont: CachedCTFont,
     pub identifier: String,
     pub font_data: Option<Vec<u8>>
 }
@@ -39,9 +43,43 @@ impl FontTemplateData {
         };
 
         FontTemplateData {
-            ctfont: ctfont,
+            ctfont: CachedCTFont(ctfont),
             identifier: identifier.to_owned(),
             font_data: font_data
         }
     }
 }
+
+pub struct CachedCTFont(Option<CTFont>);
+
+impl Deref for CachedCTFont {
+    type Target = Option<CTFont>;
+    fn deref(&self) -> &Option<CTFont> {
+        &self.0
+    }
+}
+
+impl Serialize for CachedCTFont {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
+        serializer.visit_none()
+    }
+}
+
+impl Deserialize for CachedCTFont {
+    fn deserialize<D>(deserializer: &mut D) -> Result<CachedCTFont, D::Error>
+                      where D: Deserializer {
+        struct NoneOptionVisitor;
+
+        impl Visitor for NoneOptionVisitor {
+            type Value = CachedCTFont;
+
+            #[inline]
+            fn visit_none<E>(&mut self) -> Result<CachedCTFont,E> where E: Error {
+                Ok(CachedCTFont(None))
+            }
+        }
+
+        deserializer.visit_option(NoneOptionVisitor)
+    }
+}
+
