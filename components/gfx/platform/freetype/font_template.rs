@@ -10,6 +10,7 @@ use string_cache::Atom;
 /// The identifier is an absolute path, and the bytes
 /// field is the loaded data that can be passed to
 /// freetype and azure directly.
+#[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
     pub bytes: Vec<u8>,
     pub identifier: Atom,

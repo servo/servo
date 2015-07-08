@@ -10,9 +10,9 @@
 #![feature(hasher_write)]
 #![feature(plugin)]
 #![feature(vec_push_all)]
-#![feature(vec_push_all)]
 
 #![plugin(string_cache_plugin)]
+#![plugin(serde_macros)]
 #![plugin(plugins)]
 
 #[macro_use] extern crate log;
@@ -20,6 +20,7 @@
 
 extern crate fnv;
 extern crate euclid;
+extern crate serde;
 extern crate smallvec;
 extern crate url;
 

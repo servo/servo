@@ -58,6 +58,7 @@ use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, Reflo
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
+use serde::json;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -906,6 +907,9 @@ impl LayoutTask {
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
                     stacking_context.print("#".to_owned());
+                }
+                if opts::get().dump_display_list_json {
+                    println!("{}", json::to_string_pretty(&stacking_context).unwrap());
                 }
 
                 rw_data.stacking_context = Some(stacking_context.clone());

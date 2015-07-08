@@ -19,7 +19,7 @@ use util::vec::*;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, Deserialize, Serialize)]
 struct GlyphEntry {
     value: u32,
 }
@@ -250,7 +250,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, Deserialize, Serialize)]
 struct DetailedGlyph {
     id: GlyphId,
     // glyph's advance, in the text's direction (LTR or RTL)
@@ -269,7 +269,7 @@ impl DetailedGlyph {
     }
 }
 
-#[derive(PartialEq, Clone, Eq, Debug, Copy)]
+#[derive(PartialEq, Clone, Eq, Debug, Copy, Deserialize, Serialize)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: CharIndex,
@@ -293,7 +293,7 @@ impl Ord for DetailedGlyphRecord {
 // until a lookup is actually performed; this matches the expected
 // usage pattern of setting/appending all the detailed glyphs, and
 // then querying without setting.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 struct DetailedGlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
@@ -500,7 +500,7 @@ impl<'a> GlyphInfo<'a> {
 /// |               +---+---+                     |
 /// +---------------------------------------------+
 /// ~~~
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
@@ -515,7 +515,7 @@ pub struct GlyphStore {
 }
 
 int_range_index! {
-    #[derive(RustcEncodable)]
+    #[derive(Deserialize, Serialize, RustcEncodable)]
     #[doc = "An index that refers to a character in a text run. This could \
              point to the middle of a glyph."]
     #[derive(HeapSizeOf)]
