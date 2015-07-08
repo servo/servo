@@ -4,7 +4,7 @@
 
 //! Data needed by the layout task.
 
-#![allow(unsafe_code)]
+#![deny(unsafe_code)]
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
@@ -138,6 +138,7 @@ pub struct SharedLayoutContext {
 // XXX UNSOUND!!! for stylist
 // XXX UNSOUND!!! for new_animations_sender
 // XXX UNSOUND!!! for canvas_layers_sender
+#[allow(unsafe_code)]
 unsafe impl Sync for SharedLayoutContext {}
 
 pub struct LayoutContext<'a> {
