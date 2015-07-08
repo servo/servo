@@ -46,10 +46,11 @@ function myCloneContents(range) {
   var originalEndOffset = range.endOffset;
 
   // "If original start node and original end node are the same, and they are
-  // a Text or Comment node:"
+  // a Text, ProcessingInstruction, or Comment node:"
   if (range.startContainer == range.endContainer
   && (range.startContainer.nodeType == Node.TEXT_NODE
-  || range.startContainer.nodeType == Node.COMMENT_NODE)) {
+  || range.startContainer.nodeType == Node.COMMENT_NODE
+  || range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE)) {
     // "Let clone be the result of calling cloneNode(false) on original
     // start node."
     var clone = originalStartNode.cloneNode(false);
@@ -130,10 +131,11 @@ function myCloneContents(range) {
     }
   }
 
-  // "If first partially contained child is a Text or Comment node:"
+  // "If first partially contained child is a Text, ProcessingInstruction, or Comment node:"
   if (firstPartiallyContainedChild
   && (firstPartiallyContainedChild.nodeType == Node.TEXT_NODE
-  || firstPartiallyContainedChild.nodeType == Node.COMMENT_NODE)) {
+  || firstPartiallyContainedChild.nodeType == Node.COMMENT_NODE
+  || firstPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE)) {
     // "Let clone be the result of calling cloneNode(false) on original
     // start node."
     var clone = originalStartNode.cloneNode(false);
@@ -185,10 +187,11 @@ function myCloneContents(range) {
     frag.appendChild(clone);
   }
 
-  // "If last partially contained child is a Text or Comment node:"
+  // "If last partially contained child is a Text, ProcessingInstruction, or Comment node:"
   if (lastPartiallyContainedChild
   && (lastPartiallyContainedChild.nodeType == Node.TEXT_NODE
-  || lastPartiallyContainedChild.nodeType == Node.COMMENT_NODE)) {
+  || lastPartiallyContainedChild.nodeType == Node.COMMENT_NODE
+  || lastPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE)) {
     // "Let clone be the result of calling cloneNode(false) on original
     // end node."
     var clone = originalEndNode.cloneNode(false);
