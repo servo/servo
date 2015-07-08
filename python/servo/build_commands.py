@@ -189,12 +189,13 @@ class MachCommands(CommandBase):
             with cd(path.join(apk_builder_dir, "apk-builder")):
                 if verbose:
                     process = subprocess.Popen(
-                            ["cargo", "build"], shell=True,
-                            env=self.build_env(), stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+                    ["cargo", "build"], shell=True,
+                    env=self.build_env(), stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
 
                     # Wait for cargo to terminate
-                    for line in process.stdout: print(line)
+                    for line in process.stdout: 
+                        print(line)
                 else:
                     subprocess.call(["cargo", "build"], env=self.build_env())
 
@@ -228,7 +229,8 @@ class MachCommands(CommandBase):
                             stderr=subprocess.PIPE)
 
                     # Wait for make to terminate
-                    for line in process.stdout: print(line)
+                    for line in process.stdout: 
+                        print(line)
                     status = process.returncode
                     if status:
                             return status
@@ -249,7 +251,8 @@ class MachCommands(CommandBase):
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Wait for cargo to terminate
-            for line in process.stdout: print(line)
+            for line in process.stdout: 
+                print(line)
             status = process.returncode
         else:
             status = subprocess.call(
@@ -296,7 +299,8 @@ class MachCommands(CommandBase):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 # Wait for cargo to terminate
-                for line in process.stdout: print(line)
+                for line in process.stdout: 
+                    print(line)
                 ret = process.returncode
             else:
                 ret = subprocess.call(["cargo", "build"] + opts,
@@ -343,7 +347,8 @@ class MachCommands(CommandBase):
                             ["cargo", "build"] + opts, env=env, shell=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 # Wait for cargo to terminate
-                for line in process.stdout: print(line)
+                for line in process.stdout: 
+                    print(line)
                 ret = process.returncode
             else:
                 ret = subprocess.call(["cargo", "build"] + opts, env=env)
@@ -397,9 +402,10 @@ class MachCommands(CommandBase):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Wait for cargo to terminate
-            for line in process.stdout: print(line)
+            for line in process.stdout:
+                print(line)
             status = process.returncode
             return status
         else:
-        	return subprocess.call(["cargo", "clean"] + opts,
+            return subprocess.call(["cargo", "clean"] + opts,
                                env=self.build_env(), cwd=self.servo_crate())
