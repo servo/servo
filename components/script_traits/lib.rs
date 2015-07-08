@@ -6,7 +6,7 @@
 //! The traits are here instead of in script so that these modules won't have
 //! to depend on script.
 
-#[deny(missing_docs)]
+#![deny(missing_docs)]
 
 extern crate devtools_traits;
 extern crate euclid;
@@ -55,14 +55,19 @@ pub struct NewLayoutInfo {
     pub load_data: LoadData,
 }
 
+/// `StylesheetLoadResponder` is used to notify a responder that a style sheet
+/// has loaded.
 pub trait StylesheetLoadResponder {
+    /// Respond to a loaded style sheet.
     fn respond(self: Box<Self>);
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ScriptState {
+    /// The document has been loaded.
     DocumentLoaded,
+    /// The document is still loading.
     DocumentLoading,
 }
 
@@ -96,7 +101,7 @@ pub enum ConstellationControlMsg {
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     FocusIFrame(PipelineId, SubpageId),
-    // Passes a webdriver command to the script task for execution
+    /// Passes a webdriver command to the script task for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
@@ -141,7 +146,10 @@ pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
 #[derive(Clone)]
 pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
 
+/// This trait allows creating a `ScriptTask` without depending on the `script`
+/// crate.
 pub trait ScriptTaskFactory {
+    /// Create a `ScriptTask`.
     fn create<C>(_phantom: Option<&mut Self>,
                  id: PipelineId,
                  parent_info: Option<(PipelineId, SubpageId)>,
@@ -158,7 +166,9 @@ pub trait ScriptTaskFactory {
                  window_size: Option<WindowSizeData>,
                  load_data: LoadData)
                  where C: ScriptListener + Send;
+    /// Create a script -> layout channel (`Sender`, `Receiver` pair).
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
+    /// Clone the `Sender` in `pair`.
     fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
                             -> Box<Any+Send>;
 }
