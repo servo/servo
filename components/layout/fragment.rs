@@ -213,11 +213,10 @@ impl fmt::Debug for SpecificFragmentInfo {
         match *self {
             SpecificFragmentInfo::ScannedText(ref info) => {
                 write!(f, " \"{}\"", info.run.text.slice_chars(info.range.begin().get() as usize,
-                                                               info.range.end().get() as usize));
+                                                               info.range.end().get() as usize))
             }
-            _ => {}
+            _ => Ok(())
         }
-        Ok(())
     }
 }
 
