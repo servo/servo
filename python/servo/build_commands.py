@@ -189,8 +189,8 @@ class MachCommands(CommandBase):
             with cd(path.join(apk_builder_dir, "apk-builder")):
                 if verbose:
                     process = subprocess.Popen(
-                            ["cargo", "build"], shell=True, 
-                            env=self.build_env(), stdout=subprocess.PIPE, 
+                            ["cargo", "build"], shell=True,
+                            env=self.build_env(), stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
 
                     # Wait for cargo to terminate
@@ -221,12 +221,12 @@ class MachCommands(CommandBase):
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
             with cd(self.android_support_dir()):
-                if verbose:                
+                if verbose:
                     process = subprocess.Popen(
                             make_cmd + ["-f", "openssl.makefile"], shell=True,
-                            env=self.build_env(), stdout=subprocess.PIPE, 
+                            env=self.build_env(), stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
-        
+
                     # Wait for make to terminate
                     for line in process.stdout: print(line)
                     status = process.returncode
@@ -289,7 +289,7 @@ class MachCommands(CommandBase):
 
         build_start = time()
         with cd(path.join("ports", "cef")):
-            if verbose:            
+            if verbose:
                 process = subprocess.Popen(
                     ["cargo", "build"] + opts,
                     env=self.build_env(), shell=True,
@@ -368,7 +368,7 @@ class MachCommands(CommandBase):
         if is_headless_build():
             args += ["--no-default-features", "--features", "headless"]
         return subprocess.call(
-                args, env=self.build_env(), 
+                args, env=self.build_env(),
                         cwd=self.servo_crate())
     @Command('clean',
              description='Clean the build directory.',
@@ -392,10 +392,10 @@ class MachCommands(CommandBase):
         opts += params
         if verbose:
             process = subprocess.Popen(
-                    ["cargo", "clean"] + opts, env=self.build_env(), 
+                    ["cargo", "clean"] + opts, env=self.build_env(),
                     cwd=self.servo_crate(), shell=True,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        
+
             # Wait for cargo to terminate
             for line in process.stdout: print(line)
             status = process.returncode
