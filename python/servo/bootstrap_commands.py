@@ -54,8 +54,6 @@ def download(desc, src, writer):
                 if fsize is not None:
                     pct = recved * 100.0 / fsize
                     print("\rDownloading %s: %5.1f%%" % (desc, pct), end="")
-                else:
-                    print("\rDownloading %s" % desc, end="")
 
                 sys.stdout.flush()
             writer.write(chunk)
@@ -207,27 +205,19 @@ class MachCommands(CommandBase):
         extract(tgz_file, cargo_dir, movedir=nightly_dir)
         print("Cargo ready.")
 
-    @Command('bootstrap-hsts-preload',
+    @Command('update-hsts-preload',
              description='Download the HSTS preload list',
              category='bootstrap')
-    @CommandArgument('--force', '-f',
-                     action='store_true',
-                     help='Force download even if HSTS list already exist')
     def bootstrap_hsts_preload(self, force=False):
         preload_filename = "hsts_preload.json"
         preload_path = path.join(self.context.topdir, "resources")
-
-        if not force and path.exists(path.join(preload_path, preload_filename)):
-            print("HSTS preload list already downloaded.", end=" ")
-            print("Use |bootstrap-hsts-preload --force| to download again.")
-            return
 
         chromium_hsts_url = "https://chromium.googlesource.com/chromium/src" + \
             "/net/+/master/http/transport_security_state_static.json?format=TEXT"
 
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
-        except URLError, e:
+        except urllib2.URLError, e:
             print("Unable to download chromium HSTS preload list, are you connected to the internet?")
             sys.exit(1)
 
