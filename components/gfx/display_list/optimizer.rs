@@ -37,7 +37,8 @@ impl DisplayListOptimizer {
         self.add_in_bounds_display_items(&mut result.content, display_list.content.iter());
         self.add_in_bounds_display_items(&mut result.positioned_content,
                                          display_list.positioned_content.iter());
-        self.add_in_bounds_display_items(&mut result.outlines, display_list.outlines.iter());
+        self.add_in_bounds_display_items(&mut result.outlines,
+                                         display_list.outlines.iter());
         self.add_in_bounds_stacking_contexts(&mut result.children, display_list.children.iter());
         result
     }
