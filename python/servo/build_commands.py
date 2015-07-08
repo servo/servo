@@ -231,21 +231,21 @@ class MachCommands(CommandBase):
 					for line in process.stdout: process(line)
 						    status = process.returncode
 					if status:
-						        return status
+							return status
 				else:
-		            status = subprocess.call(
-		                make_cmd + ["-f", "openssl.makefile"],
-		                env=self.build_env())
-		            if status:
-		                return status
+			    status = subprocess.call(
+				make_cmd + ["-f", "openssl.makefile"],
+				env=self.build_env())
+			    if status:
+				return status
             openssl_dir = path.join(self.android_support_dir(), "openssl-1.0.1k")
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
 		if verbose:
 		    process = subprocess.Popen(
-		        ["cargo", "build"] + opts, env=env,
-		        cwd=self.servo_crate(), shell=True,
+			["cargo", "build"] + opts, env=env,
+			cwd=self.servo_crate(), shell=True,
 				stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 			# Wait for cargo to terminate
@@ -253,8 +253,8 @@ class MachCommands(CommandBase):
 			status = process.returncode
 		else:
 		    status = subprocess.call(
-		        	["cargo", "build"] + opts,
-		        	env=env, cwd=self.servo_crate())
+				["cargo", "build"] + opts,
+				env=env, cwd=self.servo_crate())
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -299,8 +299,8 @@ class MachCommands(CommandBase):
 				for line in process.stdout: process(line)
 				ret = process.returncode
 			else:
-		        ret = subprocess.call(["cargo", "build"] + opts,
-		                              env=self.build_env())
+			ret = subprocess.call(["cargo", "build"] + opts,
+					      env=self.build_env())
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -339,7 +339,7 @@ class MachCommands(CommandBase):
         build_start = time()
         with cd(path.join("ports", "gonk")):
 			if verbose:
-		        process = subprocess.Popen(
+			process = subprocess.Popen(
 					["cargo", "build"] + opts, env=env, shell=True
 					stdout=subprocess.PIPE, 
 					stderr=subprocess.PIPE)
@@ -370,7 +370,7 @@ class MachCommands(CommandBase):
         if is_headless_build():
             args += ["--no-default-features", "--features", "headless"]
         return subprocess.call(
-            			args, env=self.build_env(), 
+				args, env=self.build_env(), 
 						cwd=self.servo_crate())
     @Command('clean',
              description='Clean the build directory.',
@@ -403,5 +403,5 @@ class MachCommands(CommandBase):
 			status = process.returncode
 			return status
 		else:
-        	return subprocess.call(["cargo", "clean"] + opts,
+		return subprocess.call(["cargo", "clean"] + opts,
                                env=self.build_env(), cwd=self.servo_crate())
