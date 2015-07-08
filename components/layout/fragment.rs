@@ -18,7 +18,6 @@ use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
-use opaque_node::OpaqueNodeMethods;
 use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect, Size2D};
@@ -29,7 +28,6 @@ use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
-use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -403,7 +401,6 @@ impl ImageFragmentInfo {
 
 #[derive(Clone)]
 pub struct ReplacedImageFragmentInfo {
-    pub for_node: UntrustedNodeAddress,
     pub computed_inline_size: Option<Au>,
     pub computed_block_size: Option<Au>,
     pub dom_inline_size: Option<Au>,
@@ -416,10 +413,7 @@ impl ReplacedImageFragmentInfo {
                dom_width: Option<Au>,
                dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
-        let untrusted_node = node.opaque().to_untrusted_node_address();
-
         ReplacedImageFragmentInfo {
-            for_node: untrusted_node,
             computed_inline_size: None,
             computed_block_size: None,
             dom_inline_size: if is_vertical {
