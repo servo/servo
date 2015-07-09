@@ -67,7 +67,7 @@ use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
-use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
+use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::{SerializableContentType, SerializableHeaders, SerializableMethod};
 use net_traits::{SerializableUrl};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
@@ -104,6 +104,7 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
+use std::thread;
 use time::Tm;
 
 use hyper::header::{ContentType, HttpDate};
@@ -1607,9 +1608,15 @@ impl ScriptTask {
 
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
                                                              load_data.url.clone())));
+        let (action_sender, action_receiver) = channel();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan.clone(),
+            receiver: action_receiver,
+        };
+        thread::spawn(move || listener.run());
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
         };
 
         if load_data.url.scheme == "javascript" {
@@ -1624,7 +1631,7 @@ impl ScriptTask {
             data: load_data.data,
             cors: None,
             pipeline_id: Some(id),
-        }, LoadConsumer::Listener(listener))).unwrap();
+        }, LoadConsumer::Listener(response_target))).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }

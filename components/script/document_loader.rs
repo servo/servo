@@ -73,7 +73,7 @@ impl DocumentLoader {
     }
 
     /// Create and initiate a new network request.
-    pub fn load_async(&mut self, load: LoadType, listener: Box<AsyncResponseTarget + Send>) {
+    pub fn load_async(&mut self, load: LoadType, listener: AsyncResponseTarget) {
         let pending = self.prepare_async_load(load);
         pending.load_async(listener)
     }

@@ -115,14 +115,20 @@ impl ResponseAction {
 
 /// A target for async networking events. Commonly used to dispatch a runnable event to another
 /// thread storing the wrapped closure for later execution.
-pub trait AsyncResponseTarget {
-    fn invoke_with_listener(&self, action: ResponseAction);
+pub struct AsyncResponseTarget {
+    pub sender: Sender<ResponseAction>,
+}
+
+impl AsyncResponseTarget {
+    pub fn invoke_with_listener(&self, action: ResponseAction) {
+        self.sender.send(action).unwrap()
+    }
 }
 
 /// A wrapper for a network load that can either be channel or event-based.
 pub enum LoadConsumer {
     Channel(Sender<LoadResponse>),
-    Listener(Box<AsyncResponseTarget + Send>),
+    Listener(AsyncResponseTarget),
 }
 
 /// Handle to a resource task
@@ -196,7 +202,7 @@ impl PendingAsyncLoad {
     }
 
     /// Initiate the network request associated with this pending load, using the provided target.
-    pub fn load_async(mut self, listener: Box<AsyncResponseTarget + Send>) {
+    pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
         let load_data = LoadData::new(self.url, self.pipeline);
         let consumer = LoadConsumer::Listener(listener);
