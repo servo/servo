@@ -46,8 +46,8 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use net_traits::ControlMsg::Load;
 use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
-use net_traits::{AsyncResponseListener, Metadata, SerializableHeaders, SerializableMethod};
-use net_traits::{SerializableUrl};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, SerializableHeaders};
+use net_traits::{SerializableMethod, SerializableUrl};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
 use cors::CORSResponse;
 use util::str::DOMString;
@@ -59,7 +59,7 @@ use std::cell::{RefCell, Cell};
 use std::default::Default;
 use std::sync::{Mutex, Arc};
 use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::thread::sleep_ms;
+use std::thread::{self, sleep_ms};
 use time;
 use url::{Url, UrlParser};
 
@@ -271,11 +271,17 @@ impl XMLHttpRequest {
             }
         }
 
+        let (action_sender, action_receiver) = channel();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan,
+            receiver: action_receiver,
         };
-        resource_task.send(Load(load_data, LoadConsumer::Listener(listener))).unwrap();
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
+        };
+        thread::spawn(move || listener.run());
+        resource_task.send(Load(load_data, LoadConsumer::Listener(response_target))).unwrap();
     }
 }
 
