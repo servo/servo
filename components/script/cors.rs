@@ -17,6 +17,7 @@ use net_traits::{SerializableStringResult};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use time;
 use time::{now, Timespec};
@@ -132,9 +133,14 @@ impl CORSRequest {
             listener: listener,
             response: RefCell::new(None),
         };
+        let (action_sender, action_receiver) = mpsc::channel();
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             script_chan: script_chan,
+            receiver: action_receiver,
+        };
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
         };
 
         // TODO: this exists only to make preflight check non-blocking
@@ -145,7 +151,7 @@ impl CORSRequest {
             let mut context = listener.context.lock();
             let context = context.as_mut().unwrap();
             *context.response.borrow_mut() = Some(response);
-            listener.invoke_with_listener(ResponseAction::ResponseComplete(
+            response_target.invoke_with_listener(ResponseAction::ResponseComplete(
                     SerializableStringResult(Ok(()))));
         });
     }

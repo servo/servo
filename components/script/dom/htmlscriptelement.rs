@@ -39,12 +39,14 @@ use js::jsval::UndefinedValue;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{Encoding, EncodingRef, DecoderTrap};
-use net_traits::{Metadata, AsyncResponseListener};
+use net_traits::{Metadata, AsyncResponseListener, AsyncResponseTarget};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use html5ever::tree_builder::NextParserState;
 use std::cell::{RefCell, Cell};
 use std::mem;
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use string_cache::Atom;
 use url::{Url, UrlParser};
 
@@ -329,12 +331,18 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                             url: url.clone(),
                         }));
 
+                        let (action_sender, action_receiver) = mpsc::channel();
                         let listener = box NetworkListener {
                             context: context,
                             script_chan: script_chan,
+                            receiver: action_receiver,
                         };
+                        let response_target = AsyncResponseTarget {
+                            sender: action_sender,
+                        };
+                        thread::spawn(move || listener.run());
 
-                        doc.r().load_async(LoadType::Script(url), listener);
+                        doc.r().load_async(LoadType::Script(url), response_target);
 
                         if self.parser_inserted.get() {
                             doc.r().get_current_parser().unwrap().r().suspend();
