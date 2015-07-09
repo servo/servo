@@ -109,6 +109,10 @@ isDefaultNamespace(document, 'barURI', false, 'For document, bar namespace is no
 isDefaultNamespace(document, 'bazURI', false, 'For document, baz namespace is not default');
 isDefaultNamespace(document, 'http://www.w3.org/1999/xhtml', true, 'For document, xhtml namespace is default');
 
+var comment = document.createComment('comment');
+document.appendChild(comment);
+lookupNamespaceURI(comment, 'bar', null, 'Comment does not have bar namespace');
+
 </script>
 </body>
 </html>
