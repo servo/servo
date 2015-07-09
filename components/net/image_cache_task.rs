@@ -12,6 +12,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::mem;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
+use std::thread;
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
 use util::taskpool::TaskPool;
@@ -98,14 +99,17 @@ struct ResourceLoadInfo {
 struct ResourceListener {
     url: Url,
     sender: Sender<ResourceLoadInfo>,
+    receiver: Receiver<ResponseAction>,
 }
 
-impl AsyncResponseTarget for ResourceListener {
-    fn invoke_with_listener(&self, action: ResponseAction) {
-        self.sender.send(ResourceLoadInfo {
-            action: action,
-            url: self.url.clone(),
-        }).unwrap();
+impl ResourceListener {
+    fn run(&self) {
+        while let Ok(action) = self.receiver.recv() {
+            self.sender.send(ResourceLoadInfo {
+                action: action,
+                url: self.url.clone(),
+            }).unwrap();
+        }
     }
 }
 
@@ -328,11 +332,17 @@ impl ImageCache {
                         e.insert(pending_load);
 
                         let load_data = LoadData::new(url.clone(), None);
+                        let (action_sender, action_receiver) = channel();
                         let listener = box ResourceListener {
                             url: url,
                             sender: self.progress_sender.clone(),
+                            receiver: action_receiver,
                         };
-                        let msg = ControlMsg::Load(load_data, LoadConsumer::Listener(listener));
+                        let msg = ControlMsg::Load(load_data,
+                                                   LoadConsumer::Listener(AsyncResponseTarget {
+                            sender: action_sender,
+                        }));
+                        thread::spawn(move || listener.run());
                         self.resource_task.send(msg).unwrap();
                     }
                 }
