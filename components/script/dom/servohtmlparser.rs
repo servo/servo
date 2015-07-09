@@ -84,7 +84,7 @@ impl ParserContext {
 
 impl AsyncResponseListener for ParserContext {
     fn headers_available(&self, metadata: Metadata) {
-        let content_type = metadata.content_type.clone();
+        let content_type = metadata.content_type.clone().map(|content_type| content_type.0);
 
         let parser = ScriptTask::page_fetch_complete(self.id.clone(), self.subpage.clone(),
                                                      metadata);
