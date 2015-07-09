@@ -757,23 +757,18 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&self,
-                                  rw_data: &mut LayoutTaskData,
+                                  traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
 
-        match rw_data.parallel_traversal {
-            None => panic!("solve_contraints_parallel() called with no parallel traversal ready"),
-            Some(ref mut traversal) => {
-                // NOTE: this currently computes borders, so any pruning should separate that
-                // operation out.
-                parallel::traverse_flow_tree_preorder(layout_root,
-                                                      self.profiler_metadata(),
-                                                      self.time_profiler_chan.clone(),
-                                                      shared_layout_context,
-                                                      traversal);
-            }
-        }
+        // NOTE: this currently computes borders, so any pruning should separate that
+        // operation out.
+        parallel::traverse_flow_tree_preorder(layout_root,
+                                              self.profiler_metadata(),
+                                              self.time_profiler_chan.clone(),
+                                              shared_layout_context,
+                                              traversal);
     }
 
     /// Verifies that every node was either marked as a leaf or as a nonleaf in the flow tree.
@@ -1152,9 +1147,9 @@ impl LayoutTask {
                     // Sequential mode.
                     self.solve_constraints(&mut root_flow, &layout_context)
                 }
-                Some(_) => {
+                Some(ref mut parallel) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(rw_data,
+                    self.solve_constraints_parallel(parallel,
                                                     &mut root_flow,
                                                     &mut *layout_context);
                 }
