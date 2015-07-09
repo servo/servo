@@ -368,7 +368,7 @@ pub struct FrameId(pub u32);
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct WorkerId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct PipelineId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
