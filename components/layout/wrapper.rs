@@ -191,10 +191,6 @@ impl<'ln> LayoutNode<'ln> {
         }
     }
 
-    pub fn has_children(self) -> bool {
-        self.first_child().is_some()
-    }
-
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
     pub fn layout_parent_node(self, shared: &SharedLayoutContext) -> Option<LayoutNode<'ln>> {
