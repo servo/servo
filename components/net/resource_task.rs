@@ -14,6 +14,7 @@ use mime_classifier::MIMEClassifier;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
+use net_traits::{SerializableContentType, SerializableStringResult};
 use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
@@ -116,14 +117,17 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             }
         }
 
-        let supplied_type = metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
+        let supplied_type =
+            metadata.content_type.map(|SerializableContentType(ContentType(Mime(toplevel,
+                                                                                sublevel,
+                                                                                _)))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
         metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type,
                                                     &partial_body).map(|(toplevel, sublevel)| {
             let mime_tp: TopLevel = toplevel.parse().unwrap();
             let mime_sb: SubLevel = sublevel.parse().unwrap();
-            ContentType(Mime(mime_tp, mime_sb, vec!()))
+            SerializableContentType(ContentType(Mime(mime_tp, mime_sb, vec!())))
         });
 
     }
@@ -277,8 +281,9 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(consumer, Metadata::default(load_data.url))
-                    .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
+                start_sending(consumer, Metadata::default((*load_data.url).clone()))
+                    .send(ProgressMsg::Done(SerializableStringResult(Err(
+                                    "no loader for scheme".to_string())))).unwrap();
                 return
             }
         };
