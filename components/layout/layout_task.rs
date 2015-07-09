@@ -718,7 +718,7 @@ impl LayoutTask {
         // TODO we don't really even need to load this if mq does not match
         let (metadata, iter) = load_bytes_iter(pending);
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
-        let final_url = metadata.final_url;
+        let final_url = metadata.final_url.0;
 
         let sheet = Stylesheet::from_bytes_iter(iter,
                                                 final_url,

@@ -248,10 +248,10 @@ impl ImageCache {
                 pending_load.bytes.push_all(&data);
             }
             ResponseAction::ResponseComplete(result) => {
-                match result {
+                match *result {
                     Ok(()) => {
                         let pending_load = self.pending_loads.get_mut(&msg.url).unwrap();
-                        pending_load.result = Some(result);
+                        pending_load.result = Some((*result).clone());
 
                         let bytes = mem::replace(&mut pending_load.bytes, vec!());
                         let url = msg.url.clone();
