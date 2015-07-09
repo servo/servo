@@ -33,9 +33,15 @@ pub fn traverse_dom_preorder(root: LayoutNode,
         construct_flows.process(node);
     }
 
-    let layout_context  = LayoutContext::new(shared_layout_context);
-    let recalc_style    = RecalcStyleForNode { layout_context: &layout_context };
-    let construct_flows = ConstructFlows     { layout_context: &layout_context };
+    let layout_context = LayoutContext::new(shared_layout_context);
+    let recalc_style = RecalcStyleForNode {
+        layout_context: &layout_context,
+        root: root.opaque(),
+    };
+    let construct_flows = ConstructFlows {
+        layout_context: &layout_context,
+        root: root.opaque(),
+    };
 
     doit(root, recalc_style, construct_flows);
 }
