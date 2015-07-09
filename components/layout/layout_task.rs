@@ -441,7 +441,6 @@ impl LayoutTask {
     fn build_shared_layout_context(&self,
                                    rw_data: &LayoutTaskData,
                                    screen_size_changed: bool,
-                                   reflow_root: Option<&LayoutNode>,
                                    url: &Url,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
@@ -456,7 +455,6 @@ impl LayoutTask {
             canvas_layers_sender: self.canvas_layers_sender.clone(),
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
-            reflow_root: reflow_root.map(|node| node.opaque()),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
             new_animations_sender: rw_data.new_animations_sender.clone(),
@@ -557,7 +555,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
@@ -1188,7 +1185,6 @@ impl LayoutTask {
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          screen_size_changed,
-                                                                         Some(&node),
                                                                          &self.url,
                                                                          data.reflow_info.goal);
 
@@ -1300,7 +1296,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
@@ -1323,7 +1318,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
@@ -1357,7 +1351,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
