@@ -74,7 +74,7 @@ use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyMod
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
-use net_traits::{Metadata, PendingAsyncLoad, AsyncResponseTarget};
+use net_traits::{Metadata, PendingAsyncLoad, AsyncResponseTarget, SerializableUrl};
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
 use util::opts;
@@ -1723,7 +1723,9 @@ impl<'a> DocumentMethods for &'a Document {
         }
         let window = self.window.root();
         let (tx, rx) = channel();
-        let _ = window.r().resource_task().send(GetCookiesForUrl(url, tx, NonHTTP));
+        let _ = window.r().resource_task().send(GetCookiesForUrl(SerializableUrl(url),
+                                                                 tx,
+                                                                 NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.unwrap_or("".to_owned()))
     }
@@ -1736,7 +1738,9 @@ impl<'a> DocumentMethods for &'a Document {
             return Err(Security);
         }
         let window = self.window.root();
-        let _ = window.r().resource_task().send(SetCookiesForUrl(url, cookie, NonHTTP));
+        let _ = window.r().resource_task().send(SetCookiesForUrl(SerializableUrl(url),
+                                                                 cookie,
+                                                                 NonHTTP));
         Ok(())
     }
 
