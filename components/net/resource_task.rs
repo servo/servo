@@ -61,7 +61,7 @@ pub fn global_init() {
 
 pub enum ProgressSender {
     Channel(Sender<ProgressMsg>),
-    Listener(Box<AsyncResponseTarget>),
+    Listener(AsyncResponseTarget),
 }
 
 impl ProgressSender {
