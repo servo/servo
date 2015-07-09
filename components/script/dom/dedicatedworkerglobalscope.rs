@@ -171,7 +171,7 @@ impl DedicatedWorkerGlobalScope {
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let serialized_url = url.serialize();
             let global = DedicatedWorkerGlobalScope::new(
-                url, id, devtools_chan, runtime.clone(), resource_task,
+                url.0, id, devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver);
 
             {
