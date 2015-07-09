@@ -1,0 +1,13 @@
+MixedContentTestCase(
+  {
+    "opt_in_method": "%(opt_in_method)s",
+    "origin": "%(origin)s",
+    "source_scheme": "%(source_scheme)s",
+    "context_nesting": "%(context_nesting)s",
+    "redirection": "%(redirection)s",
+    "subresource": "%(subresource)s",
+    "expectation": "%(expectation)s"
+  },
+  document.querySelector("meta[name=assert]").content,
+  new SanityChecker()
+).start();

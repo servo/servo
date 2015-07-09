@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>worker-importscripts-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-inline' 127.0.0.1:8000; connect-src 'self';
+-->
+    <script></script>
+</head>
+
+<body>
+    <script>
+        window.wasPostTestScriptParsed = true;
+        var result = '';
+        try {
+            var worker = new Worker('http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/worker-importscripts.js');
+            worker.onmessage = function(event) {
+                result = event.data;
+                test(function() {
+                    assert_equals(result, 'importScripts blocked: NetworkError: Failed to execute \'importScripts\' on \'WorkerGlobalScope\': The script at \'http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/post-message.js\' failed to load.')
+                });
+                log("TEST COMPLETE");
+            };
+        } catch (e) {
+            result = e;
+            test(function() {
+                assert_equals(result, 'importScripts blocked')
+            });
+            log("TEST COMPLETE");
+        }
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

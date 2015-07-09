@@ -23,20 +23,15 @@
             storage.setItem("setItem", "true");
         }
 
-        function shouldBeEqualToString(express, expectValue) {
-            assert_equals(typeof express, "string");
-            assert_equals(express, expectValue);
-        }
-
         function runTest() {
             doWedgeThySelf();
 
-            shouldBeEqualToString(storage.getItem('clear'), "almost");
-            shouldBeEqualToString(storage.getItem('key'), "too");
-            shouldBeEqualToString(storage.getItem('getItem'), "funny");
-            shouldBeEqualToString(storage.getItem('removeItem'), "to");
-            shouldBeEqualToString(storage.getItem('length'), "be");
-            shouldBeEqualToString(storage.getItem('setItem'), "true");
+            assert_equals(storage.getItem('clear'), "almost");
+            assert_equals(storage.getItem('key'), "too");
+            assert_equals(storage.getItem('getItem'), "funny");
+            assert_equals(storage.getItem('removeItem'), "to");
+            assert_equals(storage.getItem('length'), "be");
+            assert_equals(storage.getItem('setItem'), "true");
 
             // Test to see if an exception is thrown for any of the built in
             // functions.

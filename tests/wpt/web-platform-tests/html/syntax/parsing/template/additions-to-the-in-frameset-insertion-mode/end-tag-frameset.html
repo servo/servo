@@ -7,14 +7,14 @@
 <link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#in-head-addition">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src='../../testcommon.js'></script>
+<script src="/html/resources/common.js"></script>
 <link rel="stylesheet" href="/resources/testharness.css">
 </head>
 <body>
 <div id="log"></div>
 <script type="text/javascript">
 
-testInIFrame('../../resources/frameset-end-tag.html', function(context) {
+testInIFrame('/html/semantics/scripting-1/the-template-element/resources/frameset-end-tag.html', function(context) {
     var doc = context.iframes[0].contentDocument;
 
     var frameset = doc.querySelector('frameset');

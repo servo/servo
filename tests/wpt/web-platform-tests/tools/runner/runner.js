@@ -145,7 +145,8 @@ VisualOutput.prototype = {
         this.result_count = {"PASS":0,
                              "FAIL":0,
                              "ERROR":0,
-                             "TIMEOUT":0};
+                             "TIMEOUT":0,
+                             "NOTRUN":0};
         for (var p in this.result_count) {
             if (this.result_count.hasOwnProperty(p)) {
                 this.elem.querySelector("td." + p).textContent = 0;
@@ -183,12 +184,19 @@ VisualOutput.prototype = {
         var subtest_pass_count = subtests.reduce(function(prev, current) {
             return (current.status === "PASS") ? prev + 1 : prev;
         }, 0);
+
+        var subtest_notrun_count = subtests.reduce(function(prev, current) {
+            return (current.status === "NOTRUN") ? prev +1 : prev;
+        }, 0);
+
         var subtests_count = subtests.length;
 
         var test_status;
         if (subtest_pass_count === subtests_count &&
             (status == "OK" || status == "PASS")) {
             test_status = "PASS";
+        } else if (subtest_notrun_count == subtests_count) {
+            test_status = "NOTRUN";
         } else if (subtests_count > 0 && status === "OK") {
             test_status = "FAIL";
         } else {
@@ -225,7 +233,7 @@ VisualOutput.prototype = {
             }
         }
 
-        var status_arr = ["PASS", "FAIL", "ERROR", "TIMEOUT"];
+        var status_arr = ["PASS", "FAIL", "ERROR", "TIMEOUT", "NOTRUN"];
         for (var i = 0; i < status_arr.length; i++) {
             this.elem.querySelector("td." + status_arr[i]).textContent = this.result_count[status_arr[i]];
         }
@@ -707,7 +715,7 @@ function setup() {
 }
 
 window.completion_callback = function(tests, status) {
-    var harness_status_map = {0:"OK", 1:"ERROR", 2:"TIMEOUT"};
+    var harness_status_map = {0:"OK", 1:"ERROR", 2:"TIMEOUT", 3:"NOTRUN"};
     var subtest_status_map = {0:"PASS", 1:"FAIL", 2:"TIMEOUT", 3:"NOTRUN"};
 
     // this ugly hack is because IE really insists on holding on to the objects it creates in

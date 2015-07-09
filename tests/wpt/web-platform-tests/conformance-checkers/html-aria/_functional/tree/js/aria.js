@@ -20,7 +20,6 @@ var Aria = {
 Aria.Tree = Class.create();
 Aria.Tree.prototype = {
 	initialize: function(inNode){
-		if(!$(inNode) && console.error) console.error('Error from aria.js: Aria.Tree instance initialized with invalid element, '+ inNode);
 		this.el = $(inNode);
 		this.index = Aria.Trees.length; // each tree should know its index in the Aria singleton's list, in order to concatenate id strings
 		this.strActiveDescendant = this.el.getAttribute('aria-activedescendant');
@@ -112,8 +111,7 @@ Aria.Tree.prototype = {
 			case Event.KEY_UP:       this.keyUp();    break;
 			case Event.KEY_RIGHT:    this.keyRight(); break;
 			case Event.KEY_DOWN:     this.keyDown();  break;
-			default: 
-				//console.log(inEvent.keyCode);
+			default:
 				return;
 		}
 		Event.stop(inEvent);

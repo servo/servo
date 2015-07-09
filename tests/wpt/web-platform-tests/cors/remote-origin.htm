@@ -49,7 +49,6 @@ function reverseOrigin(expect_pass, origin)
     else
     {
         t.callback = t.step_func(function(e) {
-            if (e.response) console.log(e.response);
             assert_equals(e.state, "error");
             assert_equals(e.response, "");
             this.done();

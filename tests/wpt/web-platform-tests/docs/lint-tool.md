@@ -19,6 +19,10 @@ reason shouldn't prevent the test from being merged. In those cases you can
 [white-list test files](#updating-the-whiteslist) to suppress the errors.
 Otherwise, use the details in this section to fix all errors reported.
 
+* **CONSOLE**: Test-file line has a `console.*(...)` call; **fix**: remove
+  the `console.*(...)` call (and in some cases, consider adding an
+  `assert_*` of some kind in place of it).
+
 * **CR AT EOL**: Test-file line ends with CR (U+000D) character; **fix**:
   reformat file so each line just has LF (U+000A) line ending (standard,
   cross-platform "Unix" line endings instead of, e.g., DOS line endings).

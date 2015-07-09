@@ -25,7 +25,7 @@
         client.onreadystatechange = function () {
           if (client.readyState < 4) {return}
           test.step( function () {
-            assert_equals(client.responseText, user + '\npass')
+            assert_true(client.responseText == (user + '\npass'), 'responseText should contain the right user and password')
             assert_equals(client.status, 200)
             assert_equals(client.getResponseHeader('x-challenge'), 'DID-NOT')
             test.done()

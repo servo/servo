@@ -27,9 +27,7 @@ t.step(function () {
   }
 
   function gotVideo(stream) {
-    console.log(stream);
     var video = stream;
-    console.log(video);
     video.onremovetrack = function () {
        assert_unreached("onremovetrack is not triggered when removal of track is triggered by the script itself");
     };

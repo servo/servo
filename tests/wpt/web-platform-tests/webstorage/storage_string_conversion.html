@@ -17,31 +17,26 @@
 
         assert_equals(storage.length, 0);
 
-        function shouldBeEqualToString(express, expectValue) {
-            assert_equals(typeof express, "string");
-            assert_equals(express, expectValue);
-        }
-
         storage.a = null;
-        shouldBeEqualToString(storage.a, "null");
+        assert_equals(storage.a, "null");
         storage.b = 0;
-        shouldBeEqualToString(storage.b, "0");
+        assert_equals(storage.b, "0");
         storage.c = function(){};
-        shouldBeEqualToString(storage.c, "function (){}");
+        assert_equals(storage.c, "function (){}");
 
         storage.setItem('d', null);
-        shouldBeEqualToString(storage.d, "null");
+        assert_equals(storage.d, "null");
         storage.setItem('e', 0);
-        shouldBeEqualToString(storage.e, "0");
+        assert_equals(storage.e, "0");
         storage.setItem('f', function(){});
-        shouldBeEqualToString(storage.f, "function (){}");
+        assert_equals(storage.f, "function (){}");
 
         storage['g'] = null;
-        shouldBeEqualToString(storage.g, "null");
+        assert_equals(storage.g, "null");
         storage['h'] = 0;
-        shouldBeEqualToString(storage.h, "0");
+        assert_equals(storage.h, "0");
         storage['i'] = function(){};
-        shouldBeEqualToString(storage.f, "function (){}");
+        assert_equals(storage.f, "function (){}");
 
     }, name + " only stores strings");
 });

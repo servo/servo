@@ -319,9 +319,8 @@ http://%25
 http://hello%00
 
 # Escaped numbers should be treated like IP addresses if they are.
-# No special handling for IPv4 or IPv4-like URLs
-http://%30%78%63%30%2e%30%32%35%30.01  s:http p:/ h:192.168.0.1
-http://%30%78%63%30%2e%30%32%35%30.01%2e  s:http p:/ h:0xc0.0250.01.
+http://%30%78%63%30%2e%30%32%35%30.01  s:http h:192.168.0.1 p:/
+http://%30%78%63%30%2e%30%32%35%30.01%2e  s:http h:192.168.0.1 p:/
 http://192.168.0.257
 
 # Invalid escaping should trigger the regular host error handling.

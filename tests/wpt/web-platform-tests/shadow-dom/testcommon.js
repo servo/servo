@@ -180,8 +180,6 @@ function unit(f) {
         var ctx = newContext();
         try {
             f(ctx);
-        } catch(e) {
-            console.log(e.getMessage());
         } finally {
             cleanContext(ctx);
         }

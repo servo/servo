@@ -20,7 +20,6 @@ test(function() {
 }, 'If LOCATION is already in the import map, let IMPORT be the imported document for LOCATION and stop. (1)');
 
 test(function() {
-   console.log(window.parentOfFirst);
    assert_true(window.first.import === window.parentOfFirst.import.getElementById('child').import);
 }, 'If LOCATION is already in the import map, let IMPORT be the imported document for LOCATION and stop. (2)');
 </script>

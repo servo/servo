@@ -25,7 +25,7 @@
         client.setRequestHeader('X-User', open_user)
         // initial request - this will get a 401 response and re-try with HTTP auth
         client.send(null)
-        assert_equals(client.responseText, open_user + '\nopen-pass')
+        assert_true(client.responseText == (open_user + '\nopen-pass'), 'responseText should contain the right user and password')
         assert_equals(client.status, 200)
         assert_equals(client.getResponseHeader('x-challenge'), 'DID')
         // Another request, this time user,pass is omitted and an Authorization header set explicitly

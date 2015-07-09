@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html><head>
-	<title> scheduler: appending code to initially non-empty SCRIPT tag in DOM after setting innerText/innerHTML</title>
+	<title> scheduler: appending code to initially non-empty SCRIPT tag in DOM after setting textContent/innerHTML</title>
 	<script src="/resources/testharness.js"></script>
 	<script src="/resources/testharnessreport.js"></script>
 	<script src="testlib/testlib.js"></script>
@@ -14,7 +14,7 @@
 		var script=document.getElementsByTagName('script')[3];
 		script.innerHTML='';
 		script.appendChild( document.createTextNode('log("injected script code 1");') );
-		script.innerText='';
+		script.textContent='';
 		script.appendChild( document.createTextNode('log("injected script code 2");') );
 		log('end script #1');
 	</script>

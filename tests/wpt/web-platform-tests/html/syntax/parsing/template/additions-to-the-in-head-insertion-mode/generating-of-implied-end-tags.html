@@ -8,7 +8,7 @@
 <link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#in-head-addition">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src='../../testcommon.js'></script>
+<script src="/html/resources/common.js"></script>
 <link rel="stylesheet" href="/resources/testharness.css">
 </head>
 <body>
@@ -75,7 +75,7 @@ test(function () {
     var div = template.content.querySelector('#dv');
 
     assert_not_equals( div, null, 'Template should contain DIV element');
-    assert_equals(div.innerText, 'Div content', 'Wrong template content inner text');
+    assert_equals(div.textContent, 'Div content', 'Wrong template content inner text');
 
 }, 'Generating of implied end tags. Test some text and DIV element');
 
@@ -97,13 +97,13 @@ test(function () {
 
     assert_not_equals(template.content.querySelector('#dv'), null,
             'Template should contain DIV element');
-    assert_equals(template.content.querySelector('#dv').innerText,
+    assert_equals(template.content.querySelector('#dv').textContent,
             'Div content', 'Wrong template content inner text');
 
 }, 'Generating of implied end tags. Test wrong end tag');
 
 
-testInIFrame('../../resources/head-template-contents-table-no-end-tag.html', function(context) {
+testInIFrame('/html/semantics/scripting-1/the-template-element/resources/head-template-contents-table-no-end-tag.html', function(context) {
     var doc = context.iframes[0].contentDocument;
 
     var template = doc.head.querySelector('template');
@@ -121,7 +121,7 @@ testInIFrame('../../resources/head-template-contents-table-no-end-tag.html', fun
 }, 'Generating of implied end tags. Test table elements. Load HTML document from file');
 
 
-testInIFrame('../../resources/head-template-contents-div-no-end-tag.html', function(context) {
+testInIFrame('/html/semantics/scripting-1/the-template-element/resources/head-template-contents-div-no-end-tag.html', function(context) {
     var doc = context.iframes[0].contentDocument;
 
     var template = doc.head.querySelector('template');
@@ -130,7 +130,7 @@ testInIFrame('../../resources/head-template-contents-div-no-end-tag.html', funct
 
     var div = template.content.querySelector('div');
     assert_not_equals(div, null, 'Template should contain div element');
-    assert_equals(div.innerText, 'Hello, template\n    ', 'Invalid div contents');
+    assert_equals(div.textContent, 'Hello, template\n    ', 'Invalid div contents');
 
 }, 'Generating of implied end tags. Test div element. Load HTML document from file');
 </script>

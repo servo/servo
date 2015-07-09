@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+%(generated_disclaimer)s
+<html>
+  <head>
+    <title>Mixed-Content: %(spec_title)s</title>
+    <meta charset='utf-8'>
+    <meta name="description" content="%(spec_description)s">
+    <meta name="assert" content="%(test_description)s">%(meta_opt_in)s
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for mixed-content tests. -->
+    <script src="/mixed-content/generic/common.js"></script>
+    <!-- The original specification JSON for validating the scenario. -->
+    <script src="/mixed-content/spec_json.js"></script>
+    <!-- Internal checking of the tests -->
+    <script src="/mixed-content/generic/sanity-checker.js"></script>
+    <!-- Simple wrapper API for all mixed-content test cases. -->
+    <script src="/mixed-content/generic/mixed-content-test-case.js?pipe=sub"></script>
+  </head>
+  <body>
+    <h1>%(spec_title)s</h1>
+    <h2>%(spec_description)s</h2>
+    <pre>%(test_description)s</pre>
+
+    <p>See <a href="%(spec_specification_url)s" target="_blank">specification</a>
+       details for this test.</p>
+
+    <div id="log"></div>
+    <script>%(test_js)s</script>
+  </body>
+</html>

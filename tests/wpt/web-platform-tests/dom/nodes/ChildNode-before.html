@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>ChildNode.before</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-childnode-before">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function test_before(child, nodeName, innerHTML) {
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.before();
+        assert_equals(parent.innerHTML, innerHTML);
+    }, nodeName + '.before() without any argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.before(null);
+        var expected = 'null' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with null as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.before(undefined);
+        var expected = 'undefined' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with undefined as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.before('');
+        assert_equals(parent.firstChild.data, '');
+    }, nodeName + '.before() with the empty string as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.before('text');
+        var expected = 'text' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with only text as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        parent.appendChild(child);
+        child.before(x);
+        var expected = '<x></x>' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with only one element as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        parent.appendChild(child);
+        child.before(x, 'text');
+        var expected = '<x></x>text' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with one element and text as arguments.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.before('text', child);
+        var expected = 'text' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with context object itself as the argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        var z = document.createElement('z');
+        parent.appendChild(y);
+        parent.appendChild(child);
+        parent.appendChild(x);
+        child.before(x, y, z);
+        var expected = '<x></x><y></y><z></z>' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with all siblings of child as arguments.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        parent.appendChild(x);
+        parent.appendChild(y);
+        parent.appendChild(child);
+        child.before(y, x);
+        var expected = '<y></y><x></x>' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() when pre-insert behaves like prepend.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        parent.appendChild(x);
+        parent.appendChild(document.createTextNode('1'));
+        var y = document.createElement('y');
+        parent.appendChild(y);
+        parent.appendChild(child);
+        child.before(x, '2');
+        var expected = '1<y></y><x></x>2' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with one sibling of child and text as arguments.');
+
+    test(function() {
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        x.before(y);
+        assert_equals(x.previousSibling, null);
+    }, nodeName + '.before() on a child without any parent.');
+}
+
+test_before(document.createComment('test'), 'Comment', '<!--test-->');
+test_before(document.createElement('test'), 'Element', '<test></test>');
+test_before(document.createTextNode('test'), 'Text', 'test');
+
+</script>
+</html>
