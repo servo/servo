@@ -1,15 +1,15 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this file,
-# You can obtain one at http://mozilla.org/MPL/2.0/.
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import sys
 sys.path.append("./parser/")
 sys.path.append("./ply/")
 import os
 import cPickle
-import WebIDL
-from Configuration import *
+from Configuration import Configuration
 from CodegenRust import CGBindingRoot, replaceFileIfChanged
+
 
 def generate_binding_rs(config, outputprefix, webidlfile):
     """
@@ -21,6 +21,7 @@ def generate_binding_rs(config, outputprefix, webidlfile):
     root = CGBindingRoot(config, outputprefix, webidlfile)
     if replaceFileIfChanged(filename, root.define()):
         print "Generating binding implementation: %s" % (filename)
+
 
 def main():
     # Parse arguments.
@@ -46,7 +47,7 @@ def main():
     config = Configuration(configFile, parserData)
 
     # Generate the prototype classes.
-    generate_binding_rs(config, outputPrefix, webIDLFile);
+    generate_binding_rs(config, outputPrefix, webIDLFile)
 
 if __name__ == '__main__':
     main()
