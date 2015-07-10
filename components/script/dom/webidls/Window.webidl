@@ -33,6 +33,7 @@
   readonly attribute Window frames;
   //[Replaceable] readonly attribute unsigned long length;
   //[Unforgeable] readonly attribute WindowProxy top;
+  readonly attribute Window top;
   //         attribute any opener;
   //readonly attribute WindowProxy parent;
   readonly attribute Window parent;
