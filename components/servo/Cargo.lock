@@ -832,6 +832,7 @@ dependencies = [
  "euclid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "net_traits 0.0.1",
  "openssl 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -863,6 +864,7 @@ version = "0.0.1"
 dependencies = [
  "euclid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
@@ -1126,6 +1128,7 @@ dependencies = [
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "serde 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

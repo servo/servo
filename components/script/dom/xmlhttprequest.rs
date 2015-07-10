@@ -53,6 +53,7 @@ use cors::CORSResponse;
 use util::str::DOMString;
 use util::task::spawn_named;
 
+use ipc_channel::ipc;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
@@ -271,7 +272,7 @@ impl XMLHttpRequest {
             }
         }
 
-        let (action_sender, action_receiver) = channel();
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan,

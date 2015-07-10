@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use script_task::{ScriptChan, ScriptMsg, Runnable};
+use ipc_channel::ipc::IpcReceiver;
 use net_traits::{AsyncResponseListener, ResponseAction};
-use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 
 /// An off-thread sink for async network event runnables. All such events are forwarded to
@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 pub struct NetworkListener<T: AsyncResponseListener + PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<T>>,
     pub script_chan: Box<ScriptChan+Send>,
-    pub receiver: Receiver<ResponseAction>,
+    pub receiver: IpcReceiver<ResponseAction>,
 }
 
 impl<T: AsyncResponseListener + PreInvoke + Send + 'static> NetworkListener<T> {
