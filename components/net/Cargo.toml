@@ -22,6 +22,11 @@ git = "https://github.com/servo/rust-png"
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.hyper]
+version = "0.5.2"
+path = "/Users/pcwalton/Source/servo-packages/hyper"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 url = "0.2.35"
@@ -31,7 +36,7 @@ rustc-serialize = "0.3"
 cookie="*"
 regex = "0.1.14"
 regex_macros = "0.1.8"
-hyper = "0.5"
 flate2 = "0.2.0"
 uuid = "0.1.16"
 euclid = "0.1"
+

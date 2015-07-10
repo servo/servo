@@ -46,8 +46,8 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use net_traits::ControlMsg::Load;
 use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, SerializableHeaders};
-use net_traits::{SerializableMethod, SerializableUrl};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use net_traits::{SerializableUrl};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
 use cors::CORSResponse;
 use util::str::DOMString;
@@ -547,15 +547,14 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
             None => ()
         }
 
-        load_data.preserved_headers =
-            SerializableHeaders((*self.request_headers.borrow()).clone());
+        load_data.preserved_headers = (*self.request_headers.borrow()).clone();
 
         if !load_data.preserved_headers.has::<Accept>() {
             let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
             load_data.preserved_headers.set(Accept(vec![qitem(mime)]));
         }
 
-        load_data.method = SerializableMethod((*self.request_method.borrow()).clone());
+        load_data.method = (*self.request_method.borrow()).clone();
 
         // CORS stuff
         let global = self.global.root();
@@ -565,12 +564,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
         } else {
             RequestMode::CORS
         };
-        let mut combined_headers = (*load_data.headers).clone();
+        let mut combined_headers = load_data.headers.clone();
         combined_headers.extend(load_data.preserved_headers.iter());
         let cors_request = CORSRequest::maybe_new(referer_url.clone(),
                                                   (*load_data.url).clone(),
                                                   mode,
-                                                  (*load_data.method).clone(),
+                                                  load_data.method.clone(),
                                                   combined_headers);
         match cors_request {
             Ok(None) => {
@@ -796,8 +795,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(
                 gen_id,
-                metadata.headers.map(|headers| headers.0),
-                metadata.status.map(|status| status.0)));
+                metadata.headers,
+                metadata.status));
         Ok(())
     }
 
