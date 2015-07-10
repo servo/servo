@@ -44,10 +44,13 @@ git = "https://github.com/servo/skia"
 [dependencies.script_traits]
 path = "../script_traits"
 
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
+
 [dependencies]
 log = "0.3"
 fnv = "1.0"
-url = "0.2.36"
 time = "0.1.12"
 bitflags = "0.3"
 rustc-serialize = "0.3"

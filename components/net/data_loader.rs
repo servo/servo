@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{LoadData, Metadata, LoadConsumer, SerializableStringResult};
+use net_traits::{LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
 use resource_task::start_sending;
@@ -26,11 +26,11 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
-    let mut metadata = Metadata::default((*url).clone());
+    let mut metadata = Metadata::default(url.clone());
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
-        SchemeData::NonRelative(ref scheme_data) => (*scheme_data).clone(),
+        SchemeData::NonRelative(scheme_data) => scheme_data,
         _ => panic!("Expected a non-relative scheme URL.")
     };
     match url.query {
@@ -42,8 +42,8 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
     }
     let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
     if parts.len() != 2 {
-        start_sending(start_chan, metadata).send(Done(SerializableStringResult(Err(
-                        "invalid data uri".to_string())))).unwrap();
+        start_sending(start_chan,
+                      metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
         return;
     }
 
@@ -70,16 +70,15 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
         let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {
             Err(..) => {
-                progress_chan.send(Done(SerializableStringResult(Err(
-                                "non-base64 data uri".to_string())))).unwrap();
+                progress_chan.send(Done(Err("non-base64 data uri".to_string()))).unwrap();
             }
             Ok(data) => {
                 progress_chan.send(Payload(data)).unwrap();
-                progress_chan.send(Done(SerializableStringResult(Ok(())))).unwrap();
+                progress_chan.send(Done(Ok(()))).unwrap();
             }
         }
     } else {
         progress_chan.send(Payload(bytes)).unwrap();
-        progress_chan.send(Done(SerializableStringResult(Ok(())))).unwrap();
+        progress_chan.send(Done(Ok(()))).unwrap();
     }
 }

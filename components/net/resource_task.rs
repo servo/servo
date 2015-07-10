@@ -14,7 +14,6 @@ use mime_classifier::MIMEClassifier;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
-use net_traits::{SerializableContentType, SerializableStringResult};
 use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
@@ -22,6 +21,7 @@ use util::task::spawn_named;
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -30,7 +30,7 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Sender};
 
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
@@ -60,7 +60,7 @@ pub fn global_init() {
 }
 
 pub enum ProgressSender {
-    Channel(Sender<ProgressMsg>),
+    Channel(IpcSender<ProgressMsg>),
     Listener(AsyncResponseTarget),
 }
 
@@ -118,16 +118,14 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         }
 
         let supplied_type =
-            metadata.content_type.map(|SerializableContentType(ContentType(Mime(toplevel,
-                                                                                sublevel,
-                                                                                _)))| {
+            metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
         metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type,
                                                     &partial_body).map(|(toplevel, sublevel)| {
             let mime_tp: TopLevel = toplevel.parse().unwrap();
             let mime_sb: SubLevel = sublevel.parse().unwrap();
-            SerializableContentType(ContentType(Mime(mime_tp, mime_sb, vec!())))
+            ContentType(Mime(mime_tp, mime_sb, vec!()))
         });
 
     }
@@ -139,7 +137,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
 pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
         LoadConsumer::Channel(start_chan) => {
-            let (progress_chan, progress_port) = channel();
+            let (progress_chan, progress_port) = ipc::channel().unwrap();
             let result = start_chan.send(LoadResponse {
                 metadata:      metadata,
                 progress_port: progress_port,
@@ -159,7 +157,7 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
-    let (setup_chan, setup_port) = channel();
+    let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         ResourceManager::new(setup_port, user_agent, setup_chan_clone, devtools_chan).start();
@@ -203,18 +201,18 @@ pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, S
 }
 
 struct ResourceManager {
-    from_client: Receiver<ControlMsg>,
+    from_client: IpcReceiver<ControlMsg>,
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
-    resource_task: Sender<ControlMsg>,
+    resource_task: IpcSender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>,
+    fn new(from_client: IpcReceiver<ControlMsg>,
            user_agent: Option<String>,
-           resource_task: Sender<ControlMsg>,
+           resource_task: IpcSender<ControlMsg>,
            devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
@@ -281,9 +279,8 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(consumer, Metadata::default((*load_data.url).clone()))
-                    .send(ProgressMsg::Done(SerializableStringResult(Err(
-                                    "no loader for scheme".to_string())))).unwrap();
+                start_sending(consumer, Metadata::default(load_data.url))
+                    .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }
         };

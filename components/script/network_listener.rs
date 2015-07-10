@@ -4,7 +4,6 @@
 
 use script_task::{ScriptChan, ScriptMsg, Runnable};
 use net_traits::{AsyncResponseListener, ResponseAction};
-use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 
 /// An off-thread sink for async network event runnables. All such events are forwarded to
@@ -12,17 +11,14 @@ use std::sync::{Arc, Mutex};
 pub struct NetworkListener<T: AsyncResponseListener + PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<T>>,
     pub script_chan: Box<ScriptChan+Send>,
-    pub receiver: Receiver<ResponseAction>,
 }
 
 impl<T: AsyncResponseListener + PreInvoke + Send + 'static> NetworkListener<T> {
-    pub fn run(&self) {
-        while let Ok(action) = self.receiver.recv() {
-            self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
-                context: self.context.clone(),
-                action: action,
-            })).unwrap();
-        }
+    pub fn notify(&self, action: ResponseAction) {
+        self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
+            context: self.context.clone(),
+            action: action,
+        })).unwrap();
     }
 }
 

@@ -45,7 +45,7 @@ use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
 use js::jsval::JSVal;
@@ -57,12 +57,12 @@ use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
 use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
+use serde::{Serialize, Deserialize};
 use smallvec::SmallVec1;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
-use serde::Serialize;
 use util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -346,16 +346,23 @@ impl JSTraceable for Box<LayoutRPC+'static> {
     }
 }
 
-impl<T> JSTraceable for IpcSender<T> where T: Serialize {
+impl JSTraceable for () {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+    }
+}
+
+impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
     }
 }
 
-impl JSTraceable for () {
+impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
     #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
     }
 }
 

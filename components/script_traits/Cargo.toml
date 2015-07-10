@@ -25,8 +25,11 @@ path = "../devtools_traits"
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
+
 [dependencies]
-url = "0.2.36"
 libc = "0.1"
 euclid = "0.1"
 serde = "0.4"
