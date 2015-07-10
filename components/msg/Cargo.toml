@@ -21,13 +21,31 @@ git = "https://github.com/servo/rust-layers"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
+features = [ "serde-serialization" ]
+
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.hyper]
+version = "0.5.2"
+git = "https://github.com/pcwalton/hyper"
+branch = "servo-serde"
+features = [ "serde-serialization" ]
+
+[dependencies.euclid]
+version = "0.1.2"
+git = "https://github.com/servo/euclid"
+
+[dependencies.url]
+version = "0.2.35"
+git = "https://github.com/servo/rust-url"
+features = [ "serde_serialization" ]
 
 [dependencies]
-url = "0.2.35"
 bitflags = "*"
-hyper = "0.5"
 rustc-serialize = "0.3.4"
-euclid = "0.1"
+serde = "*"
+serde_macros = "*"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "*"

@@ -9,6 +9,7 @@ path = "lib.rs"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
+features = [ "serde-serialization" ]
 
 [dependencies.util]
 path = "../util"
@@ -19,9 +20,14 @@ path = "../msg"
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
+[dependencies.hyper]
+version = "0.5.2"
+git = "https://github.com/pcwalton/hyper"
+branch = "servo-serde"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 url = "0.2.35"
-hyper = "0.5"
 euclid = "0.1"
 

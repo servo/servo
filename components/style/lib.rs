@@ -12,6 +12,7 @@
 #![feature(vec_push_all)]
 #![feature(vec_push_all)]
 
+#![plugin(serde_macros)]
 #![plugin(string_cache_plugin)]
 #![plugin(plugins)]
 
@@ -20,6 +21,7 @@
 
 extern crate fnv;
 extern crate euclid;
+extern crate serde;
 extern crate smallvec;
 extern crate url;
 

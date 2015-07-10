@@ -13,6 +13,7 @@ macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
+        #[derive(Deserialize, Serialize)]
         pub enum $name {
             $( $variant ),+
         }

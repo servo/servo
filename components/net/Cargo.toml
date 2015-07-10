@@ -18,6 +18,13 @@ path = "../devtools_traits"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
+features = [ "serde-serialization" ]
+
+[dependencies.hyper]
+version = "0.5.2"
+git = "https://github.com/pcwalton/hyper"
+branch = "servo-serde"
+features = [ "serde-serialization" ]
 
 [dependencies]
 log = "*"
@@ -28,7 +35,6 @@ rustc-serialize = "0.3"
 cookie="*"
 regex = "0.1.14"
 regex_macros = "0.1.8"
-hyper = "0.5"
 flate2 = "0.2.0"
 uuid = "0.1.16"
 euclid = "0.1"

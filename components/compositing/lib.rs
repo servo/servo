@@ -14,6 +14,7 @@ extern crate azure;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx;
+extern crate ipc_channel;
 extern crate layers;
 extern crate layout_traits;
 extern crate png;
