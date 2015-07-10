@@ -22,6 +22,6 @@ git = "https://github.com/servo/rust-stb-image"
 [dependencies]
 log = "*"
 url = "0.2.35"
-hyper = "0.5"
+hyper = "0.6"
 euclid = "0.1"
 

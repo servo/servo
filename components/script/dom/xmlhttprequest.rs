@@ -1038,6 +1038,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         use std::fmt;
         use hyper::header::{Header, HeaderFormat};
         use hyper::header::SetCookie;
+        use hyper::error::Result;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
         #[derive(Clone, Debug)]
@@ -1047,7 +1048,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
                 "set-cookie2"
             }
 
-            fn parse_header(_: &[Vec<u8>]) -> Option<SetCookie2> {
+            fn parse_header(_: &[Vec<u8>]) -> Result<SetCookie2> {
                 unimplemented!()
             }
         }

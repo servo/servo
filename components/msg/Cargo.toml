@@ -28,7 +28,7 @@ git = "https://github.com/pcwalton/ipc-channel"
 [dependencies]
 url = "0.2.35"
 bitflags = "*"
-hyper = "0.5"
+hyper = "0.6"
 rustc-serialize = "0.3.4"
 euclid = "0.1"
 serde = "*"

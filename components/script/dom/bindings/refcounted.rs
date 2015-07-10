@@ -34,11 +34,19 @@ use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
 use std::marker::PhantomData;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use core::nonzero::NonZero;
 
-thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> = Rc::new(RefCell::new(None)));
+
+#[allow(missing_docs)]  // FIXME
+mod dummy {  // Attributes don’t apply through the macro.
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use super::LiveDOMReferences;
+    thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> =
+            Rc::new(RefCell::new(None)));
+}
+pub use self::dummy::LIVE_REFERENCES;
 
 
 /// A pointer to a Rust DOM object that needs to be destroyed.
