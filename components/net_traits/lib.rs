@@ -95,7 +95,7 @@ pub enum ResponseAction {
     /// Invoke data_available
     DataAvailable(Vec<u8>),
     /// Invoke response_complete
-    ResponseComplete(SerializableStringResult)
+    ResponseComplete(Result<(), String>)
 }
 
 impl ResponseAction {
@@ -104,7 +104,7 @@ impl ResponseAction {
         match self {
             ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
             ResponseAction::DataAvailable(d) => listener.data_available(d),
-            ResponseAction::ResponseComplete(r) => listener.response_complete(r.0),
+            ResponseAction::ResponseComplete(r) => listener.response_complete(r),
         }
     }
 }
@@ -286,7 +286,7 @@ pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
-    Done(SerializableStringResult)
+    Done(Result<(), String>)
 }
 
 /// Convenience function for synchronously loading a whole resource.
@@ -301,10 +301,8 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
     loop {
         match response.progress_port.recv().unwrap() {
             ProgressMsg::Payload(data) => buf.push_all(&data),
-            ProgressMsg::Done(SerializableStringResult(Ok(()))) => {
-                return Ok((response.metadata, buf))
-            }
-            ProgressMsg::Done(SerializableStringResult(Err(e))) => return Err(e)
+            ProgressMsg::Done(Ok(())) => return Ok((response.metadata, buf)),
+            ProgressMsg::Done(Err(e)) => return Err(e)
         }
     }
 }
@@ -330,51 +328,10 @@ impl Iterator for ProgressMsgPortIterator {
     fn next(&mut self) -> Option<Vec<u8>> {
         match self.progress_port.recv().unwrap() {
             ProgressMsg::Payload(data) => Some(data),
-            ProgressMsg::Done(SerializableStringResult(Ok(())))  => None,
-            ProgressMsg::Done(SerializableStringResult(Err(e)))  => {
+            ProgressMsg::Done(Ok(()))  => None,
+            ProgressMsg::Done(Err(e))  => {
                 error!("error receiving bytes: {}", e);
                 None
-            }
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SerializableStringResult(pub Result<(),String>);
-
-#[derive(Deserialize, Serialize)]
-enum SerializableStringResultInternal {
-    Ok(()),
-    Err(String),
-}
-
-impl Deref for SerializableStringResult {
-    type Target = Result<(),String>;
-
-    fn deref(&self) -> &Result<(),String> {
-        &self.0
-    }
-}
-
-impl Serialize for SerializableStringResult {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        let result = match **self {
-            Ok(ref value) => SerializableStringResultInternal::Ok(*value),
-            Err(ref value) => SerializableStringResultInternal::Err((*value).clone()),
-        };
-        result.serialize(serializer)
-    }
-}
-
-impl Deserialize for SerializableStringResult {
-    fn deserialize<D>(deserializer: &mut D) -> Result<SerializableStringResult, D::Error>
-                      where D: Deserializer {
-        let result: SerializableStringResultInternal =
-            try!(Deserialize::deserialize(deserializer));
-        match result {
-            SerializableStringResultInternal::Ok(value) => Ok(SerializableStringResult(Ok(value))),
-            SerializableStringResultInternal::Err(value) => {
-                Ok(SerializableStringResult(Err(value)))
             }
         }
     }
