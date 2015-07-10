@@ -88,6 +88,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::Url;
 
+use ipc_channel::ipc;
 use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
@@ -1517,7 +1518,7 @@ impl ScriptTask {
 
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
                                                              load_data.url.clone())));
-        let (action_sender, action_receiver) = channel();
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan.clone(),

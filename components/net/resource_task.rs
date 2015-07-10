@@ -22,6 +22,7 @@ use util::task::spawn_named;
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -30,7 +31,7 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Sender};
 
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
@@ -60,7 +61,7 @@ pub fn global_init() {
 }
 
 pub enum ProgressSender {
-    Channel(Sender<ProgressMsg>),
+    Channel(IpcSender<ProgressMsg>),
     Listener(AsyncResponseTarget),
 }
 
@@ -139,7 +140,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
 pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
         LoadConsumer::Channel(start_chan) => {
-            let (progress_chan, progress_port) = channel();
+            let (progress_chan, progress_port) = ipc::channel().unwrap();
             let result = start_chan.send(LoadResponse {
                 metadata:      metadata,
                 progress_port: progress_port,
@@ -159,7 +160,7 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
-    let (setup_chan, setup_port) = channel();
+    let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         ResourceManager::new(setup_port, user_agent, setup_chan_clone, devtools_chan).start();
@@ -203,18 +204,18 @@ pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, S
 }
 
 struct ResourceManager {
-    from_client: Receiver<ControlMsg>,
+    from_client: IpcReceiver<ControlMsg>,
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
-    resource_task: Sender<ControlMsg>,
+    resource_task: IpcSender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>,
+    fn new(from_client: IpcReceiver<ControlMsg>,
            user_agent: Option<String>,
-           resource_task: Sender<ControlMsg>,
+           resource_task: IpcSender<ControlMsg>,
            devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
