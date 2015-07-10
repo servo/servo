@@ -53,6 +53,7 @@ fooElem.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns', 'bazURI');
 lookupNamespaceURI(fooElem, null, 'bazURI', 'Element should have baz namespace');
 lookupNamespaceURI(fooElem, '', 'bazURI', 'Element should have baz namespace');
 lookupNamespaceURI(fooElem, 'prefix', 'fooNamespace', 'Element has namespace URI matching prefix');
+lookupNamespaceURI(fooElem, 'xmlns', null, 'Element does not has namespace with xlmns prefix');
 lookupNamespaceURI(fooElem, 'bar', 'barURI', 'Element has bar namespace');
 
 isDefaultNamespace(fooElem, null, false, 'Empty namespace is not default');

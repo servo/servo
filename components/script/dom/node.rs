@@ -1922,11 +1922,11 @@ impl Node {
         fn attr_defines_namespace(attr: &Attr,
                                   prefix: &Option<Atom>) -> bool {
             *attr.namespace() == ns!(XMLNS) &&
-                match (attr.prefix().clone(), prefix.clone()) {
-                    (Some(attr_prefix), Some(prefix)) =>
-                        attr_prefix == atom!("xmlns") &&
-                            *attr.local_name() == prefix,
-                    (None, None) => *attr.local_name() == atom!("xmlns"),
+                match (attr.prefix(), prefix) {
+                    (&Some(ref attr_prefix), &Some(ref prefix)) =>
+                        attr_prefix == &atom!("xmlns") &&
+                            attr.local_name() == prefix,
+                    (&None, &None) => *attr.local_name() == atom!("xmlns"),
                     _ => false
                 }
         }
@@ -1940,7 +1940,7 @@ impl Node {
                 }
 
 
-                let prefix_atom = prefix.clone().map(|s| Atom::from_slice(&s));
+                let prefix_atom = prefix.as_ref().map(|s| Atom::from_slice(s));
 
                 // Step 2.
                 let namespace_attr =
