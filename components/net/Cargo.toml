@@ -19,6 +19,9 @@ path = "../devtools_traits"
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 log = "*"
 url = "0.2.35"
