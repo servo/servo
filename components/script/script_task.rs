@@ -68,7 +68,6 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
-use net_traits::{SerializableUrl};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem::{self, Report, Reporter, ReportsChan};
@@ -1271,7 +1270,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoHTMLParser> {
-        let final_url = (*metadata.final_url).clone();
+        let final_url = metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
         // We should either be initializing a root page or loading a child page of an
@@ -1632,7 +1631,7 @@ impl ScriptTask {
         }
 
         resource_task.send(ControlMsg::Load(NetLoadData {
-            url: SerializableUrl(load_data.url),
+            url: load_data.url,
             method: load_data.method,
             headers: Headers::new(),
             preserved_headers: load_data.headers,

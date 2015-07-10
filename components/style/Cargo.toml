@@ -15,9 +15,12 @@ path = "../plugins"
 [dependencies.util]
 path = "../util"
 
-
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
+
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
 
 [dependencies]
 log = "*"

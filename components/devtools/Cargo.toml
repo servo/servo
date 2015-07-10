@@ -28,5 +28,8 @@ features = [ "serde-serialization" ]
 log = "*"
 time = "*"
 rustc-serialize = "0.3"
-url = "*"
+
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
 

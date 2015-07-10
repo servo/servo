@@ -56,6 +56,10 @@ git = "https://github.com/aweinstock314/rust-clipboard"
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 num = "0.1.24"
@@ -70,3 +74,4 @@ core-graphics = "*"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"
+

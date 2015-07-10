@@ -29,7 +29,12 @@ git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies.hyper]
 version = "0.5.2"
-path = "/Users/pcwalton/Source/servo-packages/hyper"
+git = "https://github.com/pcwalton/hyper"
+branch = "servo-serde"
+features = [ "serde-serialization" ]
+
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
 features = [ "serde-serialization" ]
 
 [dependencies]

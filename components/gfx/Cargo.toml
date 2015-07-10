@@ -44,6 +44,10 @@ git = "https://github.com/servo/skia"
 [dependencies.script_traits]
 path = "../script_traits"
 
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 fnv = "1.0"

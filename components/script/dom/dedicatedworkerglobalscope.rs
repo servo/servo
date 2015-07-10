@@ -183,7 +183,7 @@ impl DedicatedWorkerGlobalScope {
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let serialized_url = url.serialize();
             let global = DedicatedWorkerGlobalScope::new(
-                url.0, id, devtools_chan, runtime.clone(), resource_task,
+                url, id, devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.

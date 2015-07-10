@@ -65,6 +65,13 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.6"
 features = [ "serde-serialization" ]
 
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "query_encoding", "serde-serialization" ]
+
+[dependencies.websocket]
+path = "/Users/pcwalton/Source/servo-packages/rust-websocket"
+
 [dependencies]
 log = "*"
 encoding = "0.2"
@@ -76,7 +83,6 @@ libc = "*"
 cssparser = "0.3.1"
 unicase = "0.1"
 num = "0.1.24"
-websocket = "0.12"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = "0.2"
