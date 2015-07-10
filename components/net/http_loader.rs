@@ -10,6 +10,7 @@ use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
+use ipc_channel::ipc::{self, IpcSender};
 use log;
 use std::collections::HashSet;
 use file_loader;
@@ -35,7 +36,8 @@ use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>)
+pub fn factory(cookies_chan: IpcSender<ControlMsg>,
+               devtools_chan: Option<Sender<DevtoolsControlMsg>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
         spawn_named("http_loader".to_owned(),
@@ -72,7 +74,7 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
 }
 
 fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>,
-        cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+        cookies_chan: IpcSender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -183,7 +185,7 @@ reason: \"certificate verify failed\" }]))";
             req.headers_mut().set(accept);
         }
 
-        let (tx, rx) = channel();
+        let (tx, rx) = ipc::channel().unwrap();
         cookies_chan.send(ControlMsg::GetCookiesForUrl(SerializableUrl(url.clone()),
                                                        tx,
                                                        CookieSource::HTTP)).unwrap();

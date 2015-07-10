@@ -39,12 +39,12 @@ use js::jsval::UndefinedValue;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{Encoding, EncodingRef, DecoderTrap};
+use ipc_channel::ipc;
 use net_traits::{Metadata, AsyncResponseListener, AsyncResponseTarget};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use html5ever::tree_builder::NextParserState;
 use std::cell::{RefCell, Cell};
 use std::mem;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use string_cache::Atom;
@@ -331,7 +331,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                             url: url.clone(),
                         }));
 
-                        let (action_sender, action_receiver) = mpsc::channel();
+                        let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let listener = box NetworkListener {
                             context: context,
                             script_chan: script_chan,
