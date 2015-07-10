@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{LoadData, Metadata, LoadConsumer, SerializableStringResult};
+use net_traits::{LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending, start_sending_sniffed, ProgressSender};
@@ -65,19 +65,17 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
                             Ok(ReadStatus::EOF) | Err(_) =>
                                 (res.map(|_| ()), start_sending(senders, metadata)),
                         };
-                        progress_chan.send(Done(SerializableStringResult(res))).unwrap();
+                        progress_chan.send(Done(res)).unwrap();
                     }
                     Err(e) => {
                         let progress_chan = start_sending(senders, metadata);
-                        progress_chan.send(Done(SerializableStringResult(Err(e.description()
-                                                                              .to_string()))))
-                                     .unwrap();
+                        progress_chan.send(Done(Err(e.description().to_string()))).unwrap();
                     }
                 }
             }
             Err(_) => {
                 let progress_chan = start_sending(senders, metadata);
-                progress_chan.send(Done(SerializableStringResult(Err(url.to_string())))).unwrap();
+                progress_chan.send(Done(Err(url.to_string()))).unwrap();
             }
         }
     });
