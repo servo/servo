@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{LoadData, Metadata, LoadConsumer};
-use net_traits::{SerializableStringResult};
 use net_traits::ProgressMsg::Done;
 use mime_classifier::MIMEClassifier;
 use resource_task::start_sending;
@@ -28,7 +27,7 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
                 headers: None,
                 status: Some(RawStatus(200, "OK".into())),
             });
-            chan.send(Done(SerializableStringResult(Ok(())))).unwrap();
+            chan.send(Done(Ok(()))).unwrap();
             return
         }
         "crash" => panic!("Loading the about:crash URL."),
@@ -40,7 +39,7 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
         }
         _ => {
             start_sending(start_chan, Metadata::default(load_data.url))
-                .send(Done(SerializableStringResult(Err("Unknown about: URL.".to_string()))))
+                .send(Done(Err("Unknown about: URL.".to_string())))
                 .unwrap();
             return
         }
