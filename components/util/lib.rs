@@ -5,6 +5,7 @@
 #![feature(alloc)]
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
+#![feature(custom_derive)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(heap_api)]
@@ -17,6 +18,8 @@
 #![feature(step_by)]
 #![feature(step_trait)]
 #![feature(zero_one)]
+
+#![plugin(serde_macros)]
 
 #[macro_use] extern crate log;
 
@@ -31,6 +34,7 @@ extern crate num as num_lib;
 extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
+extern crate serde;
 extern crate smallvec;
 extern crate url;
 

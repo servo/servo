@@ -38,6 +38,7 @@ harness = false
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
+features = [ "serde-serialization" ]
 
 [features]
 default = ["glutin_app", "window"]
@@ -101,7 +102,7 @@ optional = true
 
 [dependencies]
 env_logger = "*"
-url = "0.2.35"
+url = "0.2.36"
 time = "0.1.12"
 bitflags = "*"
 libc = "*"

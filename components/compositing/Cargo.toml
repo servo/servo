@@ -48,14 +48,18 @@ git = "https://github.com/servo/rust-layers"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
+features = [ "serde-serialization" ]
 
 [dependencies.clipboard]
 git = "https://github.com/aweinstock314/rust-clipboard"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 log = "*"
 num = "0.1.24"
-url = "0.2.35"
+url = "0.2.36"
 time = "0.1.17"
 libc = "*"
 gleam = "0.1"
