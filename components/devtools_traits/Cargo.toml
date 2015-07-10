@@ -22,3 +22,9 @@ time = "*"
 rustc-serialize = "0.3"
 url = "0.2"
 bitflags = "*"
+
+[dependencies.hyper]
+version = "0.5.2"
+path = "/Users/pcwalton/Source/servo-packages/hyper"
+features = [ "serde-serialization" ]
+

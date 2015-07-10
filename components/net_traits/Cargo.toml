@@ -27,6 +27,10 @@ features = [ "serde-serialization" ]
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.hyper]
+version = "0.6"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 url = "0.2.36"

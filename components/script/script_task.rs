@@ -68,7 +68,6 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
-use net_traits::{SerializableContentType, SerializableHeaders, SerializableMethod};
 use net_traits::{SerializableUrl};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
@@ -1378,9 +1377,7 @@ impl ScriptTask {
         });
 
         let content_type = match metadata.content_type {
-            Some(SerializableContentType(ContentType(Mime(TopLevel::Text,
-                                                          SubLevel::Plain,
-                                                          _)))) => {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 Some("text/plain".to_owned())
             }
             _ => None
@@ -1636,9 +1633,9 @@ impl ScriptTask {
 
         resource_task.send(ControlMsg::Load(NetLoadData {
             url: SerializableUrl(load_data.url),
-            method: SerializableMethod(load_data.method),
-            headers: SerializableHeaders(Headers::new()),
-            preserved_headers: SerializableHeaders(load_data.headers),
+            method: load_data.method,
+            headers: Headers::new(),
+            preserved_headers: load_data.headers,
             data: load_data.data,
             cors: None,
             pipeline_id: Some(id),

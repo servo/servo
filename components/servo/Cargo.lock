@@ -811,6 +811,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "mime"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "miniz-sys"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

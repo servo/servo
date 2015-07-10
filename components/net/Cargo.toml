@@ -27,6 +27,11 @@ features = [ "serde-serialization" ]
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.hyper]
+version = "0.5.2"
+path = "/Users/pcwalton/Source/servo-packages/hyper"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 url = "0.2.36"
@@ -39,3 +44,4 @@ regex_macros = "0.1.8"
 flate2 = "0.2.0"
 uuid = "0.1.16"
 euclid = "0.1"
+
