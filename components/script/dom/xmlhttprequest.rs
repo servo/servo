@@ -47,7 +47,6 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use net_traits::ControlMsg::Load;
 use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
-use net_traits::{SerializableUrl};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
 use cors::CORSResponse;
 use util::str::DOMString;
@@ -218,7 +217,7 @@ impl XMLHttpRequest {
                 let mut load_data = self.load_data.borrow_mut().take().unwrap();
                 load_data.cors = Some(ResourceCORSData {
                     preflight: self.req.preflight_flag,
-                    origin: SerializableUrl(self.req.origin.clone())
+                    origin: self.req.origin.clone()
                 });
 
                 XMLHttpRequest::initiate_async_xhr(self.xhr.clone(), self.script_chan.clone(),
@@ -567,7 +566,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
         let mut combined_headers = load_data.headers.clone();
         combined_headers.extend(load_data.preserved_headers.iter());
         let cors_request = CORSRequest::maybe_new(referer_url.clone(),
-                                                  (*load_data.url).clone(),
+                                                  load_data.url.clone(),
                                                   mode,
                                                   load_data.method.clone(),
                                                   combined_headers);

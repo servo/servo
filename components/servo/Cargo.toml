@@ -99,9 +99,12 @@ optional = true
 path = "../../support/android-rs-glue/glue"
 optional = true
 
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
+
 [dependencies]
 env_logger = "*"
-url = "0.2.35"
 time = "0.1.12"
 bitflags = "*"
 libc = "*"

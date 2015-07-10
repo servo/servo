@@ -399,7 +399,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                 // encoding as the fallback encoding.
 
                 (UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap(), true,
-                 metadata.final_url.0)
+                 metadata.final_url)
             },
 
             // Step 2.b.1.c.

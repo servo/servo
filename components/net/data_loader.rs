@@ -26,7 +26,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
-    let mut metadata = Metadata::default((*url).clone());
+    let mut metadata = Metadata::default(url.clone());
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
