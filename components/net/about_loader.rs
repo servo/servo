@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{LoadData, Metadata, LoadConsumer, SerializableContentType, SerializableRawStatus};
+use net_traits::{LoadData, Metadata, LoadConsumer};
 use net_traits::{SerializableStringResult, SerializableUrl};
 use net_traits::ProgressMsg::Done;
 use mime_classifier::MIMEClassifier;
@@ -23,12 +23,10 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
         "blank" => {
             let chan = start_sending(start_chan, Metadata {
                 final_url: load_data.url,
-                content_type: Some(SerializableContentType(ContentType(Mime(TopLevel::Text,
-                                                                            SubLevel::Html,
-                                                                            vec![])))),
+                content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
                 charset: Some("utf-8".to_string()),
                 headers: None,
-                status: Some(SerializableRawStatus(RawStatus(200, "OK".into()))),
+                status: Some(RawStatus(200, "OK".into())),
             });
             chan.send(Done(SerializableStringResult(Ok(())))).unwrap();
             return
