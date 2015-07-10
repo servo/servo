@@ -53,11 +53,11 @@ pub mod image {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct LoadData {
     pub url: SerializableUrl,
-    pub method: SerializableMethod,
+    pub method: Method,
     /// Headers that will apply to the initial request only
-    pub headers: SerializableHeaders,
+    pub headers: Headers,
     /// Headers that will apply to the initial request and any redirects
-    pub preserved_headers: SerializableHeaders,
+    pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub pipeline_id: Option<PipelineId>,
@@ -67,9 +67,9 @@ impl LoadData {
     pub fn new(url: Url, id: Option<PipelineId>) -> LoadData {
         LoadData {
             url: SerializableUrl(url),
-            method: SerializableMethod(Method::Get),
-            headers: SerializableHeaders(Headers::new()),
-            preserved_headers: SerializableHeaders(Headers::new()),
+            method: Method::Get,
+            headers: Headers::new(),
+            preserved_headers: Headers::new(),
             data: None,
             cors: None,
             pipeline_id: id,
@@ -232,16 +232,16 @@ pub struct Metadata {
     pub final_url: SerializableUrl,
 
     /// MIME type / subtype.
-    pub content_type: Option<(SerializableContentType)>,
+    pub content_type: Option<(ContentType)>,
 
     /// Character set.
     pub charset: Option<String>,
 
     /// Headers
-    pub headers: Option<SerializableHeaders>,
+    pub headers: Option<Headers>,
 
     /// HTTP Status
-    pub status: Option<SerializableRawStatus>,
+    pub status: Option<RawStatus>,
 }
 
 impl Metadata {
@@ -253,7 +253,7 @@ impl Metadata {
             charset:      None,
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(SerializableRawStatus(RawStatus(200, "OK".into()))),
+            status: Some(RawStatus(200, "OK".into())),
         }
     }
 
@@ -262,7 +262,7 @@ impl Metadata {
         match content_type {
             None => (),
             Some(mime) => {
-                self.content_type = Some(SerializableContentType(ContentType(mime.clone())));
+                self.content_type = Some(ContentType(mime.clone()));
                 let &Mime(_, _, ref parameters) = mime;
                 for &(ref k, ref v) in parameters.iter() {
                     if &Attr::Charset == k {
@@ -342,106 +342,6 @@ impl Iterator for ProgressMsgPortIterator {
     }
 }
 
-#[derive(Clone)]
-pub struct SerializableMethod(pub Method);
-
-impl Deref for SerializableMethod {
-    type Target = Method;
-
-    fn deref(&self) -> &Method {
-        &self.0
-    }
-}
-
-impl Serialize for SerializableMethod {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        format!("{}", self.0).serialize(serializer)
-    }
-}
-
-impl Deserialize for SerializableMethod {
-    fn deserialize<D>(deserializer: &mut D) -> Result<SerializableMethod, D::Error>
-                      where D: Deserializer {
-        let string_representation: String = try!(Deserialize::deserialize(deserializer));
-        Ok(SerializableMethod(FromStr::from_str(&string_representation[..]).unwrap()))
-    }
-}
-
-#[derive(Clone)]
-pub struct SerializableHeaders(pub Headers);
-
-impl Deref for SerializableHeaders {
-    type Target = Headers;
-
-    fn deref(&self) -> &Headers {
-        &self.0
-    }
-}
-
-impl DerefMut for SerializableHeaders {
-    fn deref_mut(&mut self) -> &mut Headers {
-        &mut self.0
-    }
-}
-
-impl Serialize for SerializableHeaders {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        struct HeadersVisitor<'a> {
-            iter: HeadersItems<'a>,
-            len: usize,
-        }
-
-        impl<'a> ser::MapVisitor for HeadersVisitor<'a> {
-            fn visit<S>(&mut self, serializer: &mut S) -> Result<Option<()>, S::Error>
-                        where S: Serializer {
-                match self.iter.next() {
-                    Some(header_item) => {
-                        try!(serializer.visit_map_elt(header_item.name(),
-                                                      header_item.value_string()));
-                        Ok(Some(()))
-                    }
-                    None => Ok(None),
-                }
-            }
-
-            fn len(&self) -> Option<usize> {
-                Some(self.len)
-            }
-        }
-
-        serializer.visit_map(HeadersVisitor {
-            iter: self.iter(),
-            len: self.len(),
-        })
-    }
-}
-
-impl Deserialize for SerializableHeaders {
-    fn deserialize<D>(deserializer: &mut D) -> Result<SerializableHeaders, D::Error>
-                      where D: Deserializer {
-        struct HeadersVisitor;
-
-        impl de::Visitor for HeadersVisitor {
-            type Value = SerializableHeaders;
-
-            fn visit_map<V>(&mut self, mut visitor: V) -> Result<SerializableHeaders, V::Error>
-                            where V: de::MapVisitor {
-                let mut result = Headers::new();
-                while let Some((key, value)) = try!(visitor.visit()) {
-                    let (key, value): (String, String) = (key, value);
-                    result.set_raw(key, vec![value.into_bytes()]);
-                }
-                try!(visitor.end());
-                Ok(SerializableHeaders(result))
-            }
-        }
-
-        let result = SerializableHeaders(Headers::new());
-        try!(deserializer.visit_map(HeadersVisitor));
-        Ok(result)
-    }
-}
-
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct SerializableUrl(pub Url);
 
@@ -470,57 +370,6 @@ impl Deserialize for SerializableUrl {
                       where D: Deserializer {
         let string_representation: String = try!(Deserialize::deserialize(deserializer));
         Ok(SerializableUrl(FromStr::from_str(&string_representation[..]).unwrap()))
-    }
-}
-
-#[derive(Clone, PartialEq)]
-pub struct SerializableContentType(pub ContentType);
-
-impl Deref for SerializableContentType {
-    type Target = ContentType;
-
-    fn deref(&self) -> &ContentType {
-        &self.0
-    }
-}
-
-impl Serialize for SerializableContentType {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        format!("{}", self.0).serialize(serializer)
-    }
-}
-
-impl Deserialize for SerializableContentType {
-    fn deserialize<D>(deserializer: &mut D) -> Result<SerializableContentType, D::Error>
-                      where D: Deserializer {
-        let string_representation: String = try!(Deserialize::deserialize(deserializer));
-        Ok(SerializableContentType(Header::parse_header(
-                    &[string_representation.into_bytes()]).unwrap()))
-    }
-}
-
-#[derive(Clone, PartialEq)]
-pub struct SerializableRawStatus(pub RawStatus);
-
-impl Deref for SerializableRawStatus {
-    type Target = RawStatus;
-
-    fn deref(&self) -> &RawStatus {
-        &self.0
-    }
-}
-
-impl Serialize for SerializableRawStatus {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        ((self.0).0, (self.0).1.clone().into_owned()).serialize(serializer)
-    }
-}
-
-impl Deserialize for SerializableRawStatus {
-    fn deserialize<D>(deserializer: &mut D) -> Result<SerializableRawStatus, D::Error>
-                      where D: Deserializer {
-        let representation: (u16, String) = try!(Deserialize::deserialize(deserializer));
-        Ok(SerializableRawStatus(RawStatus(representation.0, Cow::Owned(representation.1))))
     }
 }
 
