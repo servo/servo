@@ -45,6 +45,7 @@ use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
 use js::jsval::JSVal;
@@ -61,6 +62,7 @@ use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
+use serde::Serialize;
 use util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -338,6 +340,13 @@ impl JSTraceable for ScriptListener {
 }
 
 impl JSTraceable for Box<LayoutRPC+'static> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T> JSTraceable for IpcSender<T> where T: Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

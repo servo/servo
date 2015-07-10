@@ -51,6 +51,7 @@ use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
@@ -185,7 +186,7 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    webdriver_script_chan: RefCell<Option<Sender<WebDriverJSResult>>>,
+    webdriver_script_chan: RefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -562,7 +563,7 @@ pub trait WindowHelpers {
     fn emit_timeline_marker(self, marker: TimelineMarker);
     fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
-    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>);
+    fn set_webdriver_script_chan(self, chan: Option<IpcSender<WebDriverJSResult>>);
     fn is_alive(self) -> bool;
     fn parent(self) -> Option<Root<Window>>;
 }
@@ -945,7 +946,7 @@ impl<'a> WindowHelpers for &'a Window {
         *self.devtools_marker_sender.borrow_mut() = None;
     }
 
-    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>) {
+    fn set_webdriver_script_chan(self, chan: Option<IpcSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
 

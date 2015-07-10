@@ -6,13 +6,15 @@
 //! reduce coupling between these two components.
 
 use compositor_msg::Epoch;
+
 use euclid::rect::Rect;
 use euclid::size::TypedSize2D;
 use euclid::scale_factor::ScaleFactor;
 use hyper::header::Headers;
 use hyper::method::Method;
+use ipc_channel::ipc::IpcSender;
 use layers::geometry::DevicePixel;
-use png;
+use png::Image;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use std::collections::HashMap;
@@ -31,20 +33,20 @@ impl ConstellationChan {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum IFrameSandboxState {
     IFrameSandboxed,
     IFrameUnsandboxed
 }
 
 // We pass this info to various tasks, so it lives in a separate, cloneable struct.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
     pub parent_info: Option<(PipelineId, SubpageId)>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Deserialize, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
@@ -209,6 +211,7 @@ pub enum FocusType {
 }
 
 /// Messages from the compositor and script to the constellation.
+#[derive(Deserialize, Serialize)]
 pub enum Msg {
     Exit,
     Failure(Failure),
@@ -234,14 +237,14 @@ pub enum Msg {
     TickAnimation(PipelineId),
     /// Request that the constellation send the current pipeline id for the provided frame
     /// id, or for the root frame if this is None, over a provided channel
-    GetPipeline(Option<FrameId>, Sender<Option<PipelineId>>),
+    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
     /// Request that the constellation send the FrameId corresponding to the document
     /// with the provided parent pipeline id and subpage id
-    GetFrame(PipelineId, SubpageId, Sender<Option<FrameId>>),
+    GetFrame(PipelineId, SubpageId, IpcSender<Option<FrameId>>),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
-    GetClipboardContents(Sender<String>),
+    GetClipboardContents(IpcSender<String>),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Notifies the constellation that the viewport has been constrained in some manner
@@ -256,7 +259,7 @@ pub enum Msg {
     HeadParsed,
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum AnimationState {
     AnimationsPresent,
     AnimationCallbacksPresent,
@@ -265,6 +268,7 @@ pub enum AnimationState {
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
+#[derive(Deserialize, Serialize)]
 pub enum MozBrowserEvent {
     /// Sent when the scroll position within a browser <iframe> changes.
     AsyncScroll,
@@ -329,16 +333,17 @@ impl MozBrowserEvent {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
-    LoadUrl(PipelineId, LoadData, Sender<LoadStatus>),
+    LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
-    TakeScreenshot(PipelineId, Sender<Option<png::Image>>)
+    TakeScreenshot(PipelineId, IpcSender<Option<Image>>)
 }
 
 /// Similar to net::resource_task::LoadData
 /// can be passed to LoadUrl to load a page with GET/POST
 /// parameters or headers
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
@@ -357,16 +362,16 @@ impl LoadData {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub enum NavigationDirection {
     Forward,
     Back,
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct FrameId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct WorkerId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]

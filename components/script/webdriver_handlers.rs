@@ -22,8 +22,8 @@ use script_task::get_page;
 use js::jsapi::{RootedValue, HandleValue};
 use js::jsval::UndefinedValue;
 
+use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
@@ -58,7 +58,10 @@ pub fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSRe
     }
 }
 
-pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<WebDriverJSResult>) {
+pub fn handle_execute_script(page: &Rc<Page>,
+                             pipeline: PipelineId,
+                             eval: String,
+                             reply: IpcSender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window();
     let cx = window.r().get_cx();
@@ -68,8 +71,10 @@ pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String
     reply.send(jsval_to_webdriver(cx, rval.handle())).unwrap();
 }
 
-pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: String,
-                                   reply: Sender<WebDriverJSResult>) {
+pub fn handle_execute_async_script(page: &Rc<Page>,
+                                   pipeline: PipelineId,
+                                   eval: String,
+                                   reply: IpcSender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window();
     let cx = window.r().get_cx();
@@ -81,7 +86,7 @@ pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: 
 pub fn handle_get_frame_id(page: &Rc<Page>,
                            pipeline: PipelineId,
                            webdriver_frame_id: WebDriverFrameId,
-                           reply: Sender<Result<Option<(PipelineId, SubpageId)>, ()>>) {
+                           reply: IpcSender<Result<Option<(PipelineId, SubpageId)>, ()>>) {
     let window = match webdriver_frame_id {
         WebDriverFrameId::Short(_) => {
             // This isn't supported yet
@@ -109,7 +114,7 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
 }
 
 pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
-                               reply: Sender<Result<Option<String>, ()>>) {
+                               reply: IpcSender<Result<Option<String>, ()>>) {
     reply.send(match page.document().r().QuerySelector(selector.clone()) {
         Ok(node) => {
             let result = node.map(|x| NodeCast::from_ref(x.r()).get_unique_id());
@@ -119,8 +124,10 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
     }).unwrap();
 }
 
-pub fn handle_find_elements_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
-                                reply: Sender<Result<Vec<String>, ()>>) {
+pub fn handle_find_elements_css(page: &Rc<Page>,
+                                _pipeline: PipelineId,
+                                selector: String,
+                                reply: IpcSender<Result<Vec<String>, ()>>) {
     reply.send(match page.document().r().QuerySelectorAll(selector.clone()) {
         Ok(ref nodes) => {
             let mut result = Vec::with_capacity(nodes.r().Length() as usize);
@@ -137,16 +144,21 @@ pub fn handle_find_elements_css(page: &Rc<Page>, _pipeline: PipelineId, selector
     }).unwrap();
 }
 
-pub fn handle_get_active_element(page: &Rc<Page>, _pipeline: PipelineId, reply: Sender<Option<String>>) {
+pub fn handle_get_active_element(page: &Rc<Page>,
+                                 _pipeline: PipelineId,
+                                 reply: IpcSender<Option<String>>) {
     reply.send(page.document().r().GetActiveElement().map(
         |elem| NodeCast::from_ref(elem.r()).get_unique_id())).unwrap();
 }
 
-pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: Sender<String>) {
+pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
     reply.send(page.document().r().Title()).unwrap();
 }
 
-pub fn handle_get_text(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Result<String, ()>>) {
+pub fn handle_get_text(page: &Rc<Page>,
+                       pipeline: PipelineId,
+                       node_id: String,
+                       reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(ref node) => {
             Ok(node.r().GetTextContent().unwrap_or("".to_owned()))
@@ -155,7 +167,10 @@ pub fn handle_get_text(page: &Rc<Page>, pipeline: PipelineId, node_id: String, r
     }).unwrap();
 }
 
-pub fn handle_get_name(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Result<String, ()>>) {
+pub fn handle_get_name(page: &Rc<Page>,
+                       pipeline: PipelineId,
+                       node_id: String,
+                       reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(node) => {
             let element = ElementCast::to_ref(node.r()).unwrap();
