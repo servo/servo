@@ -16,9 +16,13 @@ path = "../msg"
 [dependencies.util]
 path = "../util"
 
+[dependencies.hyper]
+version = "0.6"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 time = "*"
 rustc-serialize = "0.3"
 url = "*"
-hyper = "0.6"
+
