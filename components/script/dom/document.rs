@@ -82,6 +82,7 @@ use layout_interface::{ReflowGoal, ReflowQueryType};
 
 use euclid::point::Point2D;
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
+use ipc_channel::ipc;
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
 use url::Url;
@@ -1712,7 +1713,7 @@ impl<'a> DocumentMethods for &'a Document {
             return Err(Security);
         }
         let window = self.window.root();
-        let (tx, rx) = channel();
+        let (tx, rx) = ipc::channel().unwrap();
         let _ = window.r().resource_task().send(GetCookiesForUrl(SerializableUrl(url),
                                                                  tx,
                                                                  NonHTTP));

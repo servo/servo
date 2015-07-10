@@ -17,7 +17,6 @@ use net_traits::{SerializableStringResult};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use time;
 use time::{now, Timespec};
@@ -32,6 +31,7 @@ use hyper::header::{ContentType, Host};
 use hyper::method::Method;
 use hyper::status::StatusClass::Success;
 
+use ipc_channel::ipc;
 use unicase::UniCase;
 use url::{SchemeData, Url};
 use util::task::spawn_named;
@@ -133,7 +133,7 @@ impl CORSRequest {
             listener: listener,
             response: RefCell::new(None),
         };
-        let (action_sender, action_receiver) = mpsc::channel();
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             script_chan: script_chan,

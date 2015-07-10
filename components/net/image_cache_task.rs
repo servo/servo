@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc::{self, IpcReceiver};
 use net_traits::image::base::{Image, load_from_memory};
 use net_traits::image_cache_task::{ImageState, ImageCacheTask, ImageCacheChan, ImageCacheCommand};
 use net_traits::image_cache_task::{ImageCacheResult, ImageResponse, UsePlaceholder};
@@ -99,7 +100,7 @@ struct ResourceLoadInfo {
 struct ResourceListener {
     url: Url,
     sender: Sender<ResourceLoadInfo>,
-    receiver: Receiver<ResponseAction>,
+    receiver: IpcReceiver<ResponseAction>,
 }
 
 impl ResourceListener {
@@ -332,7 +333,7 @@ impl ImageCache {
                         e.insert(pending_load);
 
                         let load_data = LoadData::new(url.clone(), None);
-                        let (action_sender, action_receiver) = channel();
+                        let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let listener = box ResourceListener {
                             url: url,
                             sender: self.progress_sender.clone(),
