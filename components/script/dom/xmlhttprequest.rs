@@ -46,20 +46,21 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use net_traits::ControlMsg::Load;
 use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, SerializableHeaders};
-use net_traits::{SerializableMethod, SerializableUrl};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
 use cors::CORSResponse;
 use util::str::DOMString;
 use util::task::spawn_named;
 
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
 use std::default::Default;
 use std::sync::{Mutex, Arc};
 use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::thread::{self, sleep_ms};
+use std::thread::sleep_ms;
 use time;
 use url::{Url, UrlParser};
 
@@ -217,7 +218,7 @@ impl XMLHttpRequest {
                 let mut load_data = self.load_data.borrow_mut().take().unwrap();
                 load_data.cors = Some(ResourceCORSData {
                     preflight: self.req.preflight_flag,
-                    origin: SerializableUrl(self.req.origin.clone())
+                    origin: self.req.origin.clone()
                 });
 
                 XMLHttpRequest::initiate_async_xhr(self.xhr.clone(), self.script_chan.clone(),
@@ -271,16 +272,17 @@ impl XMLHttpRequest {
             }
         }
 
-        let (action_sender, action_receiver) = channel();
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan,
-            receiver: action_receiver,
         };
         let response_target = AsyncResponseTarget {
             sender: action_sender,
         };
-        thread::spawn(move || listener.run());
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify(message.to().unwrap());
+        });
         resource_task.send(Load(load_data, LoadConsumer::Listener(response_target))).unwrap();
     }
 }
@@ -546,15 +548,14 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
             None => ()
         }
 
-        load_data.preserved_headers =
-            SerializableHeaders((*self.request_headers.borrow()).clone());
+        load_data.preserved_headers = (*self.request_headers.borrow()).clone();
 
         if !load_data.preserved_headers.has::<Accept>() {
             let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
             load_data.preserved_headers.set(Accept(vec![qitem(mime)]));
         }
 
-        load_data.method = SerializableMethod((*self.request_method.borrow()).clone());
+        load_data.method = (*self.request_method.borrow()).clone();
 
         // CORS stuff
         let global = self.global.root();
@@ -564,12 +565,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
         } else {
             RequestMode::CORS
         };
-        let mut combined_headers = (*load_data.headers).clone();
+        let mut combined_headers = load_data.headers.clone();
         combined_headers.extend(load_data.preserved_headers.iter());
         let cors_request = CORSRequest::maybe_new(referer_url.clone(),
-                                                  (*load_data.url).clone(),
+                                                  load_data.url.clone(),
                                                   mode,
-                                                  (*load_data.method).clone(),
+                                                  load_data.method.clone(),
                                                   combined_headers);
         match cors_request {
             Ok(None) => {
@@ -791,10 +792,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
             _ => {}
         };
         // XXXManishearth Clear cache entries in case of a network error
-        self.process_partial_response(XHRProgress::HeadersReceived(
-                gen_id,
-                metadata.headers.map(|headers| headers.0),
-                metadata.status.map(|status| status.0)));
+        self.process_partial_response(XHRProgress::HeadersReceived(gen_id,
+                                                                   metadata.headers,
+                                                                   metadata.status));
         Ok(())
     }
 

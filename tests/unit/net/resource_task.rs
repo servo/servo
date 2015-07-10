@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::resource_task::new_resource_task;
-use net::resource_task::parse_hostsfile;
-use net::resource_task::replace_hosts;
+use ipc_channel::ipc;
+use net::resource_task::{new_resource_task, parse_hostsfile, replace_hosts};
 use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::ProgressMsg;
 use std::borrow::ToOwned;
@@ -21,7 +20,7 @@ fn test_exit() {
 #[test]
 fn test_bad_scheme() {
     let resource_task = new_resource_task(None, None);
-    let (start_chan, start) = channel();
+    let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan))).unwrap();
     let response = start.recv().unwrap();
@@ -170,7 +169,7 @@ fn test_replace_hosts() {
 
     //Start the resource task and make a request to our TCP server
     let resource_task = new_resource_task(None, None);
-    let (start_chan, _) = channel();
+    let (start_chan, _start_port) = ipc::channel().unwrap();
     let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
     let msg = ControlMsg::Load(replace_hosts(LoadData::new(url, None), host_table),
                                LoadConsumer::Channel(start_chan));
