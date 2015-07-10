@@ -69,8 +69,6 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
-use net_traits::{SerializableContentType, SerializableHeaders, SerializableMethod};
-use net_traits::{SerializableUrl};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
@@ -105,7 +103,6 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
-use std::thread;
 use time::Tm;
 
 use hyper::header::{ContentType, HttpDate};
@@ -1312,7 +1309,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoHTMLParser> {
-        let final_url = (*metadata.final_url).clone();
+        let final_url = metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
         // We should either be initializing a root page or loading a child page of an
@@ -1418,9 +1415,7 @@ impl ScriptTask {
         });
 
         let content_type = match metadata.content_type {
-            Some(SerializableContentType(ContentType(Mime(TopLevel::Text,
-                                                          SubLevel::Plain,
-                                                          _)))) => {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 Some("text/plain".to_owned())
             }
             _ => None
@@ -1687,13 +1682,14 @@ impl ScriptTask {
 
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
                                                              load_data.url.clone())));
-        let (action_sender, action_receiver) = channel();
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan.clone(),
-            receiver: action_receiver,
         };
-        thread::spawn(move || listener.run());
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify(message.to().unwrap());
+        });
         let response_target = AsyncResponseTarget {
             sender: action_sender,
         };
@@ -1703,10 +1699,10 @@ impl ScriptTask {
         }
 
         resource_task.send(ControlMsg::Load(NetLoadData {
-            url: SerializableUrl(load_data.url),
-            method: SerializableMethod(load_data.method),
-            headers: SerializableHeaders(Headers::new()),
-            preserved_headers: SerializableHeaders(load_data.headers),
+            url: load_data.url,
+            method: load_data.method,
+            headers: Headers::new(),
+            preserved_headers: load_data.headers,
             data: load_data.data,
             cors: None,
             pipeline_id: Some(id),

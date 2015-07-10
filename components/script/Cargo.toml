@@ -76,7 +76,7 @@ rustc-serialize = "0.3"
 libc = "0.1"
 unicase = "0.1"
 num = "0.1.24"
-websocket = "0.12"
+websocket = "0.12.0"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }

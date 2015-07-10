@@ -23,13 +23,16 @@ features = ["unstable"]
 version = "0.3"
 features = [ "serde-serialization" ]
 
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
+
 [dependencies]
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
 rustc-serialize = "0.3"
 matches = "0.1"
-url = "0.2.36"
 bitflags = "0.3"
 num = "0.1.24"
 lazy_static = "0.1.10"

@@ -910,6 +910,7 @@ version = "0.0.1"
 dependencies = [
  "cookie 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "net 0.0.1",
  "net_traits 0.0.1",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",

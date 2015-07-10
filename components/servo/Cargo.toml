@@ -100,9 +100,12 @@ optional = true
 path = "../../support/android-rs-glue/glue"
 optional = true
 
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
+
 [dependencies]
 env_logger = "0.3"
-url = "0.2.36"
 time = "0.1.12"
 bitflags = "0.3"
 libc = "0.1"

@@ -14,7 +14,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::mem;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
-use std::thread;
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
 use util::taskpool::TaskPool;
@@ -96,23 +95,6 @@ impl ImageListener {
 struct ResourceLoadInfo {
     action: ResponseAction,
     url: Url,
-}
-
-struct ResourceListener {
-    url: Url,
-    sender: Sender<ResourceLoadInfo>,
-    receiver: Receiver<ResponseAction>,
-}
-
-impl ResourceListener {
-    fn run(&self) {
-        while let Ok(action) = self.receiver.recv() {
-            self.sender.send(ResourceLoadInfo {
-                action: action,
-                url: self.url.clone(),
-            }).unwrap();
-        }
-    }
 }
 
 /// Implementation of the image cache
@@ -252,10 +234,10 @@ impl ImageCache {
                 pending_load.bytes.push_all(&data);
             }
             ResponseAction::ResponseComplete(result) => {
-                match *result {
+                match result {
                     Ok(()) => {
                         let pending_load = self.pending_loads.get_mut(&msg.url).unwrap();
-                        pending_load.result = Some((*result).clone());
+                        pending_load.result = Some(result);
 
                         let bytes = mem::replace(&mut pending_load.bytes, vec!());
                         let url = msg.url.clone();
@@ -334,17 +316,20 @@ impl ImageCache {
                         e.insert(pending_load);
 
                         let load_data = LoadData::new(url.clone(), None);
-                        let (action_sender, action_receiver) = channel();
-                        let listener = box ResourceListener {
-                            url: url,
-                            sender: self.progress_sender.clone(),
-                            receiver: action_receiver,
+                        let (action_sender, action_receiver) = ipc::channel().unwrap();
+                        let response_target = AsyncResponseTarget {
+                            sender: action_sender,
                         };
                         let msg = ControlMsg::Load(load_data,
-                                                   LoadConsumer::Listener(AsyncResponseTarget {
-                            sender: action_sender,
-                        }));
-                        thread::spawn(move || listener.run());
+                                                   LoadConsumer::Listener(response_target));
+                        let progress_sender = self.progress_sender.clone();
+                        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                            let action: ResponseAction = message.to().unwrap();
+                            progress_sender.send(ResourceLoadInfo {
+                                action: action,
+                                url: url.clone(),
+                            }).unwrap();
+                        });
                         self.resource_task.send(msg).unwrap();
                     }
                 }

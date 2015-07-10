@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, SerializableMethod};
-use net_traits::{SerializableHeaders, SerializableRawStatus, SerializableStringResult};
-use net_traits::{SerializableUrl};
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 use hsts::{HSTSList, secure_url};
 
+use ipc_channel::ipc::{self, IpcSender};
 use log;
 use std::collections::HashSet;
 use file_loader;
@@ -38,7 +37,7 @@ use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>,
+pub fn factory(cookies_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
@@ -53,7 +52,7 @@ fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
     metadata.status = None;
 
     match start_sending_opt(start_chan, metadata) {
-        Ok(p) => p.send(Done(SerializableStringResult(Err(err)))).unwrap(),
+        Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
@@ -88,7 +87,7 @@ fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
 fn load(mut load_data: LoadData,
         start_chan: LoadConsumer,
         classifier: Arc<MIMEClassifier>,
-        cookies_chan: Sender<ControlMsg>,
+        cookies_chan: IpcSender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
@@ -96,7 +95,7 @@ fn load(mut load_data: LoadData,
     //        repository DOES exist, please update this constant to use it.
     let max_redirects = 50;
     let mut iters = 0;
-    let mut url = load_data.url.0.clone();
+    let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -156,9 +155,7 @@ reason: \"certificate verify failed\" }]))";
                 &HttpsConnector::new(Openssl { context: Arc::new(context) }))
         };
 
-        let mut req = match Request::with_connector(load_data.method.0.clone(),
-                                                    url.clone(),
-                                                    &mut connector) {
+        let mut req = match req {
             Ok(req) => req,
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
@@ -187,11 +184,11 @@ reason: \"certificate verify failed\" }]))";
         // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
         // Only preserve ones which have been explicitly marked as such.
         if iters == 1 {
-            let mut combined_headers = (*load_data.headers).clone();
+            let mut combined_headers = load_data.headers.clone();
             combined_headers.extend(load_data.preserved_headers.iter());
             *req.headers_mut() = combined_headers;
         } else {
-            *req.headers_mut() = (*load_data.preserved_headers).clone();
+            *req.headers_mut() = load_data.preserved_headers.clone();
         }
 
         req.headers_mut().set(host);
@@ -206,8 +203,8 @@ reason: \"certificate verify failed\" }]))";
             req.headers_mut().set(accept);
         }
 
-        let (tx, rx) = channel();
-        cookies_chan.send(ControlMsg::GetCookiesForUrl(SerializableUrl(url.clone()),
+        let (tx, rx) = ipc::channel().unwrap();
+        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
                                                        tx,
                                                        CookieSource::HTTP)).unwrap();
         if let Some(cookie_list) = rx.recv().unwrap() {
@@ -220,7 +217,7 @@ reason: \"certificate verify failed\" }]))";
             req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
         }
         if log_enabled!(log::LogLevel::Info) {
-            info!("{}", load_data.method.0);
+            info!("{}", load_data.method);
             for header in req.headers().iter() {
                 info!(" - {}", header);
             }
@@ -248,7 +245,7 @@ reason: \"certificate verify failed\" }]))";
                 writer
             },
             _ => {
-                match *load_data.method {
+                match load_data.method {
                     Method::Get | Method::Head => (),
                     _ => req.headers_mut().set(ContentLength(0))
                 }
@@ -266,9 +263,9 @@ reason: \"certificate verify failed\" }]))";
         // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
         let request_id = uuid::Uuid::new_v4().to_simple_string();
         if let Some(ref chan) = devtools_chan {
-            let net_event = NetworkEvent::HttpRequest((*load_data.url).clone(),
-                                                      (*load_data.method).clone(),
-                                                      (*load_data.headers).clone(),
+            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
+                                                      load_data.method.clone(),
+                                                      load_data.headers.clone(),
                                                       load_data.data.clone());
             chan.send(DevtoolsControlMsg::FromChrome(
                     ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
@@ -294,7 +291,7 @@ reason: \"certificate verify failed\" }]))";
         if let Some(cookies) = response.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                    cookies_chan.send(ControlMsg::SetCookiesForUrl(SerializableUrl(url.clone()),
+                    cookies_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
                                                                    cookies,
                                                                    CookieSource::HTTP)).unwrap();
                 }
@@ -332,10 +329,10 @@ reason: \"certificate verify failed\" }]))";
 
                     // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
                     // historically UAs have rewritten POST->GET on 301 and 302 responses.
-                    if *load_data.method == Method::Post &&
+                    if load_data.method == Method::Post &&
                         (response.status == StatusCode::MovedPermanently ||
                          response.status == StatusCode::Found) {
-                        load_data.method = SerializableMethod(Method::Get);
+                        load_data.method = Method::Get;
                     }
 
                     if redirected_to.contains(&url) {
@@ -359,8 +356,8 @@ reason: \"certificate verify failed\" }]))";
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
         });
-        metadata.headers = Some(SerializableHeaders(adjusted_headers));
-        metadata.status = Some(SerializableRawStatus(response.status_raw().clone()));
+        metadata.headers = Some(adjusted_headers);
+        metadata.status = Some(response.status_raw().clone());
 
         let mut encoding_str: Option<String> = None;
         //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
@@ -396,7 +393,7 @@ reason: \"certificate verify failed\" }]))";
                             send_data(&mut response_decoding, start_chan, metadata, classifier);
                         }
                         Err(err) => {
-                            send_error((*metadata.final_url).clone(), err.to_string(), start_chan);
+                            send_error(metadata.final_url, err.to_string(), start_chan);
                             return;
                         }
                     }
@@ -445,5 +442,5 @@ fn send_data<R: Read>(reader: &mut R,
         };
     }
 
-    let _ = progress_chan.send(Done(SerializableStringResult(Ok(()))));
+    let _ = progress_chan.send(Done(Ok(())));
 }
