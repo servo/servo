@@ -26,9 +26,12 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.6"
 features = [ "serde-serialization" ]
 
+[dependencies.url]
+version = "0.2"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
-url = "0.2.35"
 euclid = "0.1"
 serde = "*"
 serde_macros = "*"

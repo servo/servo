@@ -17,11 +17,15 @@ path = "../util"
 time = "*"
 rustc-serialize = "0.3"
 url = "*"
-hyper = "0.6"
 bitflags = "*"
+
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
 
 [dependencies.hyper]
 version = "0.5.2"
-path = "/Users/pcwalton/Source/servo-packages/hyper"
+git = "https://github.com/pcwalton/hyper"
+branch = "servo-serde"
 features = [ "serde-serialization" ]
 

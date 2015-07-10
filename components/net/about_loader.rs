@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{LoadData, Metadata, LoadConsumer};
-use net_traits::{SerializableStringResult, SerializableUrl};
+use net_traits::{SerializableStringResult};
 use net_traits::ProgressMsg::Done;
 use mime_classifier::MIMEClassifier;
 use resource_task::start_sending;
@@ -36,10 +36,10 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
             let mut path = resources_dir_path();
             path.push("failure.html");
             assert!(path.exists());
-            load_data.url = SerializableUrl(Url::from_file_path(&*path).unwrap());
+            load_data.url = Url::from_file_path(&*path).unwrap();
         }
         _ => {
-            start_sending(start_chan, Metadata::default(load_data.url.0))
+            start_sending(start_chan, Metadata::default(load_data.url))
                 .send(Done(SerializableStringResult(Err("Unknown about: URL.".to_string()))))
                 .unwrap();
             return
