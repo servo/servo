@@ -69,7 +69,7 @@ use std::iter::{FilterMap, Peekable};
 use std::mem;
 use std::sync::Arc;
 use uuid;
-use string_cache::{Atom, QualName};
+use string_cache::{Atom, Namespace, QualName};
 
 //
 // The basic Node structure
@@ -1903,6 +1903,79 @@ impl Node {
         }
         content
     }
+
+    pub fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
+        match namespace {
+            ns!("") => None,
+            Namespace(ref ns) => Some((**ns).to_owned())
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#locate-a-namespace
+    pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
+        fn attr_defines_namespace(attr: &Attr,
+                                  prefix: &Option<Atom>) -> bool {
+            *attr.namespace() == ns!(XMLNS) &&
+                match (attr.prefix(), prefix) {
+                    (&Some(ref attr_prefix), &Some(ref prefix)) =>
+                        attr_prefix == &atom!("xmlns") &&
+                            attr.local_name() == prefix,
+                    (&None, &None) => *attr.local_name() == atom!("xmlns"),
+                    _ => false
+                }
+        }
+
+        match node.type_id {
+            NodeTypeId::Element(_) => {
+                let element = ElementCast::to_ref(node).unwrap();
+                // Step 1.
+                if *element.namespace() != ns!("") && *element.prefix() == prefix {
+                    return element.namespace().clone()
+                }
+
+
+                let prefix_atom = prefix.as_ref().map(|s| Atom::from_slice(s));
+
+                // Step 2.
+                let namespace_attr =
+                    element.attrs()
+                           .iter()
+                           .map(|attr| attr.root())
+                           .find(|attr| attr_defines_namespace(attr.r(),
+                                                               &prefix_atom));
+
+                // Steps 2.1-2.
+                if let Some(attr) = namespace_attr {
+                    return namespace_from_domstring(Some(attr.Value()));
+                }
+
+                match node.GetParentElement() {
+                    // Step 3.
+                    None => ns!(""),
+                    // Step 4.
+                    Some(parent) => Node::locate_namespace(NodeCast::from_ref(parent.r()), prefix)
+                }
+            },
+            NodeTypeId::Document => {
+                match DocumentCast::to_ref(node).unwrap().GetDocumentElement().r() {
+                    // Step 1.
+                    None => ns!(""),
+                    // Step 2.
+                    Some(document_element) => {
+                        Node::locate_namespace(NodeCast::from_ref(document_element), prefix)
+                    }
+                }
+            },
+            NodeTypeId::DocumentType => ns!(""),
+            NodeTypeId::DocumentFragment => ns!(""),
+            _ => match node.GetParentElement() {
+                     // Step 1.
+                     None => ns!(""),
+                     // Step 2.
+                     Some(parent) => Node::locate_namespace(NodeCast::from_ref(parent.r()), prefix)
+                 }
+        }
+    }
 }
 
 impl<'a> NodeMethods for &'a Node {
@@ -2457,15 +2530,23 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
-    fn LookupNamespaceURI(self, _namespace: Option<DOMString>) -> Option<DOMString> {
-        // FIXME (#1826) implement.
-        None
-    }
+    fn LookupNamespaceURI(self, prefix: Option<DOMString>) -> Option<DOMString> {
+        // Step 1.
+        let prefix = match prefix {
+            Some(ref p) if p.is_empty() => None,
+            pre => pre
+        };
+
+        // Step 2.
+        Node::namespace_to_string(Node::locate_namespace(self, prefix))
+     }
 
     // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
-    fn IsDefaultNamespace(self, _namespace: Option<DOMString>) -> bool {
-        // FIXME (#1826) implement.
-        false
+    fn IsDefaultNamespace(self, namespace: Option<DOMString>) -> bool {
+        // Step 1.
+        let namespace = namespace_from_domstring(namespace);
+        // Steps 2 and 3.
+        Node::locate_namespace(self, None) == namespace
     }
 }
 

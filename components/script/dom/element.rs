@@ -1121,10 +1121,7 @@ impl<'a> AttributeHandlers for &'a Element {
 impl<'a> ElementMethods for &'a Element {
     // https://dom.spec.whatwg.org/#dom-element-namespaceuri
     fn GetNamespaceURI(self) -> Option<DOMString> {
-        match self.namespace {
-            ns!("") => None,
-            Namespace(ref ns) => Some((**ns).to_owned())
-        }
+        Node::namespace_to_string(self.namespace.clone())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-localname
