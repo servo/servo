@@ -820,6 +820,7 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
     (domclass.dom_class.interface_chain[depth as usize] as u32 == proto_id) as u8
 }
 
+#[allow(missing_docs)]  // FIXME
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };

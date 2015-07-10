@@ -7,7 +7,7 @@ use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
 use hyper::header::{Accept, IfUnmodifiedSince, IfMatch, IfRange, Location};
-use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage, Language};
+use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage};
 use hyper::header::{QualityItem, qitem, q};
 use hyper::status::StatusCode;
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};

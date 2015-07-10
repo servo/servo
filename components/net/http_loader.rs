@@ -17,10 +17,10 @@ use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Lo
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::HttpConnector;
+use hyper::net::{HttpConnector, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
-use openssl::ssl::{SslContext, SSL_VERIFY_PEER};
+use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use std::io::{self, Read, Write};
 use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
@@ -117,24 +117,20 @@ fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
 
         info!("requesting {}", url.serialize());
 
-        fn verifier(ssl: &mut SslContext) {
-            ssl.set_verify(SSL_VERIFY_PEER, None);
-            let mut certs = resources_dir_path();
-            certs.push("certs");
-            ssl.set_CA_file(&certs).unwrap();
-        };
-
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]))";
 
-        let mut connector = if opts::get().nossl {
-            HttpConnector(None)
+        let req = if opts::get().nossl {
+            Request::with_connector(load_data.method.clone(), url.clone(), &HttpConnector)
         } else {
-            HttpConnector(Some(box verifier as Box<Fn(&mut SslContext) + Send>))
+            let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+            context.set_verify(SSL_VERIFY_PEER, None);
+            context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+            Request::with_connector(load_data.method.clone(), url.clone(),
+                &HttpsConnector::new(Openssl { context: Arc::new(context) }))
         };
-
-        let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
+        let mut req = match req {
             Ok(req) => req,
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
