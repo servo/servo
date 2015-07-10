@@ -1920,13 +1920,12 @@ impl Node {
     // https://dom.spec.whatwg.org/#locate-a-namespace
     pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
         fn attr_defines_namespace(attr: &Attr,
-                                  prefix: Option<DOMString>,
-                                  prefix_atom: Atom) -> bool {
+                                  prefix: &Option<Atom>) -> bool {
             *attr.namespace() == ns!(XMLNS) &&
-                match (attr.prefix().clone(), prefix) {
-                    (Some(attr_prefix), Some(_)) =>
+                match (attr.prefix().clone(), prefix.clone()) {
+                    (Some(attr_prefix), Some(prefix)) =>
                         attr_prefix == atom!("xmlns") &&
-                            *attr.local_name() == prefix_atom,
+                            *attr.local_name() == prefix,
                     (None, None) => *attr.local_name() == atom!("xmlns"),
                     _ => false
                 }
@@ -1940,7 +1939,8 @@ impl Node {
                     return element.namespace().clone()
                 }
 
-                let prefix_atom = prefix.clone().map_or(atom!(""), |p| Atom::from_slice(&p));
+
+                let prefix_atom = prefix.clone().map(|s| Atom::from_slice(&s));
 
                 // Step 2.
                 let namespace_attr =
@@ -1948,8 +1948,7 @@ impl Node {
                            .iter()
                            .map(|attr| attr.root())
                            .find(|attr| attr_defines_namespace(attr.r(),
-                                                               prefix.clone(),
-                                                               prefix_atom.clone()));
+                                                               &prefix_atom));
 
                 // Steps 2.1-2.
                 if let Some(attr) = namespace_attr {
