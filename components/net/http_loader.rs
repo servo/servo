@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
-use net_traits::{SerializableStringResult, SerializableUrl};
+use net_traits::{SerializableStringResult};
 use net_traits::ProgressMsg::{Payload, Done};
 use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
@@ -79,7 +79,7 @@ fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
     //        repository DOES exist, please update this constant to use it.
     let max_redirects = 50;
     let mut iters = 0;
-    let mut url = load_data.url.0.clone();
+    let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -188,7 +188,7 @@ reason: \"certificate verify failed\" }]))";
         }
 
         let (tx, rx) = ipc::channel().unwrap();
-        cookies_chan.send(ControlMsg::GetCookiesForUrl(SerializableUrl(url.clone()),
+        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
                                                        tx,
                                                        CookieSource::HTTP)).unwrap();
         if let Some(cookie_list) = rx.recv().unwrap() {
@@ -247,7 +247,7 @@ reason: \"certificate verify failed\" }]))";
         // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
         let request_id = uuid::Uuid::new_v4().to_simple_string();
         if let Some(ref chan) = devtools_chan {
-            let net_event = NetworkEvent::HttpRequest((*load_data.url).clone(),
+            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
                                                       load_data.method.clone(),
                                                       load_data.headers.clone(),
                                                       load_data.data.clone());
@@ -273,7 +273,7 @@ reason: \"certificate verify failed\" }]))";
         if let Some(cookies) = response.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                    cookies_chan.send(ControlMsg::SetCookiesForUrl(SerializableUrl(url.clone()),
+                    cookies_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
                                                                    cookies,
                                                                    CookieSource::HTTP)).unwrap();
                 }
@@ -377,7 +377,7 @@ reason: \"certificate verify failed\" }]))";
                             send_data(&mut response_decoding, start_chan, metadata, classifier);
                         }
                         Err(err) => {
-                            send_error((*metadata.final_url).clone(), err.to_string(), start_chan);
+                            send_error(metadata.final_url.clone(), err.to_string(), start_chan);
                             return;
                         }
                     }
