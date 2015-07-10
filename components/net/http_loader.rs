@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
-use net_traits::{SerializableStringResult};
 use net_traits::ProgressMsg::{Payload, Done};
 use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
@@ -49,7 +48,7 @@ fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
     metadata.status = None;
 
     match start_sending_opt(start_chan, metadata) {
-        Ok(p) => p.send(Done(SerializableStringResult(Err(err)))).unwrap(),
+        Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
@@ -423,5 +422,5 @@ fn send_data<R: Read>(reader: &mut R,
         };
     }
 
-    let _ = progress_chan.send(Done(SerializableStringResult(Ok(()))));
+    let _ = progress_chan.send(Done(Ok(())));
 }
