@@ -21,14 +21,21 @@ git = "https://github.com/servo/rust-layers"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
+features = [ "serde-serialization" ]
+
+[dependencies.hyper]
+version = "0.6"
+features = [ "serde-serialization" ]
+
+[dependencies.url]
+version = "0.2.36"
+features = [ "serde_serialization" ]
 
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies]
-url = "0.2.35"
 bitflags = "*"
-hyper = "0.6"
 rustc-serialize = "0.3.4"
 euclid = "0.1"
 serde = "*"
