@@ -24,12 +24,16 @@ git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies.hyper]
 version = "0.5.2"
-path = "/Users/pcwalton/Source/servo-packages/hyper"
+git = "https://github.com/pcwalton/hyper"
+branch = "servo-serde"
+features = [ "serde-serialization" ]
+
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
 features = [ "serde-serialization" ]
 
 [dependencies]
 log = "*"
-url = "0.2.35"
 time = "0.1.17"
 openssl="0.6.1"
 rustc-serialize = "0.3"

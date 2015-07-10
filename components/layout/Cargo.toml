@@ -55,11 +55,14 @@ git = "https://github.com/servo/rust-selectors"
 [dependencies.clock_ticks]
 git = "https://github.com/tomaka/clock_ticks"
 
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
+
 [dependencies]
 log = "*"
 encoding = "0.2"
 fnv = "1.0"
-url = "0.2.35"
 bitflags = "*"
 rustc-serialize = "0.3"
 libc = "*"

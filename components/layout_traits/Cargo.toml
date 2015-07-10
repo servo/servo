@@ -25,6 +25,9 @@ path = "../profile_traits"
 [dependencies.util]
 path = "../util"
 
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
+features = [ "serde-serialization" ]
+
 [dependencies]
-url = "0.2.35"
 euclid = "0.1"

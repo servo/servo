@@ -48,7 +48,7 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
     let url = load_data.url;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
-        let metadata = Metadata::default(url.0.clone());
+        let metadata = Metadata::default(url.clone());
         let file_path: Result<PathBuf, ()> = url.to_file_path();
         match file_path {
             Ok(file_path) => {

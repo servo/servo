@@ -22,18 +22,15 @@ extern crate url;
 extern crate util;
 extern crate msg;
 
-use hyper::header::{ContentType, Header, Headers, HeadersItems};
+use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
-use serde::de;
-use serde::ser;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
 
-use std::borrow::Cow;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::thread;
@@ -52,7 +49,7 @@ pub mod image {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct LoadData {
-    pub url: SerializableUrl,
+    pub url: Url,
     pub method: Method,
     /// Headers that will apply to the initial request only
     pub headers: Headers,
@@ -66,7 +63,7 @@ pub struct LoadData {
 impl LoadData {
     pub fn new(url: Url, id: Option<PipelineId>) -> LoadData {
         LoadData {
-            url: SerializableUrl(url),
+            url: url,
             method: Method::Get,
             headers: Headers::new(),
             preserved_headers: Headers::new(),
@@ -140,9 +137,9 @@ pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer),
     /// Store a set of cookies for a given originating URL
-    SetCookiesForUrl(SerializableUrl, String, CookieSource),
+    SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(SerializableUrl, IpcSender<Option<String>>, CookieSource),
+    GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
     Exit
 }
 
@@ -222,14 +219,14 @@ pub struct ResourceCORSData {
     /// CORS Preflight flag
     pub preflight: bool,
     /// Origin of CORS Request
-    pub origin: SerializableUrl,
+    pub origin: Url,
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Metadata {
     /// Final URL after redirects.
-    pub final_url: SerializableUrl,
+    pub final_url: Url,
 
     /// MIME type / subtype.
     pub content_type: Option<(ContentType)>,
@@ -248,7 +245,7 @@ impl Metadata {
     /// Metadata with defaults for everything optional.
     pub fn default(url: Url) -> Self {
         Metadata {
-            final_url:    SerializableUrl(url),
+            final_url:    url,
             content_type: None,
             charset:      None,
             headers: None,
@@ -339,37 +336,6 @@ impl Iterator for ProgressMsgPortIterator {
                 None
             }
         }
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct SerializableUrl(pub Url);
-
-impl Deref for SerializableUrl {
-    type Target = Url;
-
-    fn deref(&self) -> &Url {
-        &self.0
-    }
-}
-
-impl DerefMut for SerializableUrl {
-    fn deref_mut(&mut self) -> &mut Url {
-        &mut self.0
-    }
-}
-
-impl Serialize for SerializableUrl {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        format!("{}", self.0).serialize(serializer)
-    }
-}
-
-impl Deserialize for SerializableUrl {
-    fn deserialize<D>(deserializer: &mut D) -> Result<SerializableUrl, D::Error>
-                      where D: Deserializer {
-        let string_representation: String = try!(Deserialize::deserialize(deserializer));
-        Ok(SerializableUrl(FromStr::from_str(&string_representation[..]).unwrap()))
     }
 }
 

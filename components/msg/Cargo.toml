@@ -23,7 +23,6 @@ git = "https://github.com/servo/rust-layers"
 git = "https://github.com/servo/rust-png"
 
 [dependencies]
-url = "0.2.35"
 bitflags = "*"
 rustc-serialize = "0.3.4"
 euclid = "0.1"
@@ -32,7 +31,12 @@ serde_macros = "*"
 
 [dependencies.hyper]
 version = "0.5.2"
-path = "/Users/pcwalton/Source/servo-packages/hyper"
+git = "https://github.com/pcwalton/hyper"
+branch = "servo-serde"
+features = [ "serde-serialization" ]
+
+[dependencies.url]
+path = "/Users/pcwalton/Source/servo-packages/rust-url"
 features = [ "serde-serialization" ]
 
 [target.x86_64-apple-darwin.dependencies]
