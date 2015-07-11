@@ -328,7 +328,7 @@ impl<A,B> JSTraceable for fn(A) -> B {
     }
 }
 
-impl JSTraceable for Box<ScriptListener+'static> {
+impl JSTraceable for ScriptListener {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

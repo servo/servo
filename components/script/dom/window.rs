@@ -105,7 +105,7 @@ pub struct Window {
     navigator: MutNullableHeap<JS<Navigator>>,
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
-    compositor: DOMRefCell<Box<ScriptListener+'static>>,
+    compositor: DOMRefCell<ScriptListener>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
@@ -241,7 +241,7 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor<'a>(&'a self) -> RefMut<'a, Box<ScriptListener+'static>> {
+    pub fn compositor<'a>(&'a self) -> RefMut<'a, ScriptListener> {
         self.compositor.borrow_mut()
     }
 
@@ -964,7 +964,7 @@ impl Window {
                script_chan: Box<ScriptChan+Send>,
                image_cache_chan: ImageCacheChan,
                control_chan: ScriptControlChan,
-               compositor: Box<ScriptListener+'static>,
+               compositor: ScriptListener,
                image_cache_task: ImageCacheTask,
                resource_task: ResourceTask,
                storage_task: StorageTask,
