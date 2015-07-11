@@ -36,6 +36,7 @@ use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressH
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
+use dom::htmlimageelement::{self, HTMLImageElement};
 use dom::uievent::UIEvent;
 use dom::node::{Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
@@ -53,12 +54,12 @@ use webdriver_handlers;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
-use script_traits::{CompositorEvent, MouseButton};
-use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
-use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
+use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
+use script_traits::{CompositorEvent, MouseButton};
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptState, ScriptTaskFactory};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan, FocusType};
@@ -69,6 +70,7 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
+use net_traits::image_cache_task::{ImageResponse};
 use net_traits::storage_task::StorageTask;
 use string_cache::Atom;
 use util::str::DOMString;
@@ -78,6 +80,7 @@ use util::task_state;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
+use ipc_channel::ipc;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
@@ -98,6 +101,7 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
+use std::thread;
 use time::Tm;
 
 use hyper::header::{ContentType, HttpDate};
@@ -196,6 +200,8 @@ pub enum ScriptMsg {
     RefcountCleanup(TrustedReference),
     /// Notify a document that all pending loads are complete.
     DocumentLoadsComplete(PipelineId),
+    /// The image cache task has sent a reply to us.
+    ImageResponseReceived(Trusted<HTMLImageElement>, ImageResponse),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -483,14 +489,23 @@ impl ScriptTask {
         }
 
         let (devtools_sender, devtools_receiver) = channel();
+
+        // Create a thread to proxy IPC messages from the image cache task to us, since we can't
+        // select over a combination of IPC and in-process messages.
+        let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
         let (image_cache_channel, image_cache_port) = channel();
+        thread::spawn(move || {
+            while let Ok(message) = ipc_image_cache_port.recv() {
+                image_cache_channel.send(message).unwrap()
+            }
+        });
 
         ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
 
             image_cache_task: image_cache_task,
-            image_cache_channel: ImageCacheChan(image_cache_channel),
+            image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
             image_cache_port: image_cache_port,
 
             resource_task: resource_task,
@@ -783,6 +798,8 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(addr),
             ScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
+            ScriptMsg::ImageResponseReceived(element, image) =>
+                htmlimageelement::handle_image_response(element, image),
         }
     }
 

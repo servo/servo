@@ -48,6 +48,11 @@ version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "aster"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "azure"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-azure#d8c86d7864bdf782734981f17ca7561c97bdaf98"
@@ -613,6 +618,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipc-channel"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/ipc-channel#aa2eab807ba1e7e287d283c2788c317c53d26970"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "js"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-mozjs#f59c04795c84b82e00fdbd694bed90c56fa6567a"
@@ -672,6 +688,7 @@ dependencies = [
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layout_traits 0.0.1",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -806,6 +823,7 @@ dependencies = [
  "euclid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "net_traits 0.0.1",
  "openssl 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -837,11 +855,14 @@ version = "0.0.1"
 dependencies = [
  "euclid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
+ "serde 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
- "url 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.35 (git+https://github.com/servo/rust-url)",
  "util 0.0.1",
 ]
 
@@ -1008,6 +1029,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "quasi"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "quasi_codegen"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "aster 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "quasi_macros"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "quasi_codegen 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "quicksort"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1062,6 +1104,7 @@ dependencies = [
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1122,6 +1165,32 @@ dependencies = [
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "serde"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "serde_codegen"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "aster 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi_macros 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "serde_macros"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde_codegen 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1273,6 +1342,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "unicase"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "url"
+version = "0.2.35"
+source = "git+https://github.com/servo/rust-url#5f8e323118a11063e4c6d7e62b2d832a33c32bb0"
+dependencies = [
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "url"
