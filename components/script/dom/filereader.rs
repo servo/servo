@@ -13,7 +13,7 @@ use dom::bindings::js::{Root, JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{reflect_dom_object, Reflectable};
 use dom::event::{EventHelpers, EventCancelable, EventBubbles};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::blob::{Blob, BlobHelpers};
 use dom::domexception::{DOMException, DOMErrorName};
 use dom::progressevent::ProgressEvent;
@@ -100,7 +100,7 @@ pub struct FileReader {
 impl FileReader {
     pub fn new_inherited(global: GlobalRef) -> FileReader {
         FileReader {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::FileReader),//?
+            eventtarget: EventTarget::new_inherited(),//?
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(FileReaderReadyState::Empty),
             error: MutNullableHeap::new(None),

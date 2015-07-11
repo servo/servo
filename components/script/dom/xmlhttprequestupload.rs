@@ -19,8 +19,7 @@ pub struct XMLHttpRequestUpload {
 impl XMLHttpRequestUpload {
     fn new_inherited() -> XMLHttpRequestUpload {
         XMLHttpRequestUpload {
-            eventtarget: XMLHttpRequestEventTarget::new_inherited(
-                XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
+            eventtarget: XMLHttpRequestEventTarget::new_inherited(),
         }
     }
     pub fn new(global: GlobalRef) -> Root<XMLHttpRequestUpload> {

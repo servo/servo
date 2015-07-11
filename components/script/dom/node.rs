@@ -83,9 +83,6 @@ pub struct Node {
     /// The JavaScript reflector for this node.
     eventtarget: EventTarget,
 
-    /// The type of node that this is.
-    type_id: NodeTypeId,
-
     /// The parent of this node.
     parent_node: MutNullableHeap<JS<Node>>,
 
@@ -279,9 +276,10 @@ impl LayoutDataRef {
 }
 
 /// The different types of nodes.
-#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
-#[derive(HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum NodeTypeId {
+    Node,
+
     CharacterData(CharacterDataTypeId),
     DocumentType,
     DocumentFragment,
@@ -555,7 +553,7 @@ impl<'a> NodeHelpers for &'a Node {
 
     /// Returns a string that describes this node.
     fn debug_str(self) -> String {
-        format!("{:?}", self.type_id)
+        format!("{:?}", self.type_id())
     }
 
     fn is_in_doc(self) -> bool {
@@ -564,12 +562,15 @@ impl<'a> NodeHelpers for &'a Node {
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
     fn type_id(self) -> NodeTypeId {
-        self.type_id
+        if let &EventTargetTypeId::Node(type_id) = self.eventtarget.type_id() {
+            return type_id;
+        }
+        unreachable!();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-length
     fn len(self) -> u32 {
-        match self.type_id {
+        match self.type_id() {
             NodeTypeId::DocumentType => 0,
             NodeTypeId::CharacterData(_) => {
                 CharacterDataCast::to_ref(self).unwrap().Length()
@@ -585,12 +586,12 @@ impl<'a> NodeHelpers for &'a Node {
 
     #[inline]
     fn is_anchor_element(self) -> bool {
-        self.type_id == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement))
+        self.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement))
     }
 
     #[inline]
     fn is_doctype(self) -> bool {
-        self.type_id == NodeTypeId::DocumentType
+        self.type_id() == NodeTypeId::DocumentType
     }
 
     fn get_flag(self, flag: NodeFlags) -> bool {
@@ -1125,7 +1126,7 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId {
-        (*self.unsafe_get()).type_id
+        (*self.unsafe_get()).type_id()
     }
 
     #[inline]
@@ -1479,8 +1480,7 @@ impl Node {
 
     fn new_(type_id: NodeTypeId, doc: Option<&Document>) -> Node {
         Node {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Node(type_id)),
-            type_id: type_id,
+            eventtarget: EventTarget::new_inherited(),
 
             parent_node: Default::default(),
             first_child: Default::default(),
@@ -1546,6 +1546,8 @@ impl Node {
 
         // Step 4-5.
         match node.type_id() {
+            NodeTypeId::Node => unreachable!(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::CharacterData) => unreachable!(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
                 if parent.is_document() {
                     return Err(HierarchyRequest);
@@ -1628,7 +1630,7 @@ impl Node {
                     }
                 },
                 NodeTypeId::CharacterData(_) => (),
-                NodeTypeId::Document => unreachable!(),
+                NodeTypeId::Document | NodeTypeId::Node => unreachable!(),
             }
         }
         Ok(())
@@ -1789,6 +1791,8 @@ impl Node {
         // Step 2.
         // XXXabinader: clone() for each node as trait?
         let copy: Root<Node> = match node.type_id() {
+            NodeTypeId::Node => unreachable!(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::CharacterData) => unreachable!(),
             NodeTypeId::DocumentType => {
                 let doctype: &DocumentType = DocumentTypeCast::to_ref(node).unwrap();
                 let doctype = DocumentType::new(doctype.name().clone(),
@@ -1924,7 +1928,7 @@ impl Node {
                 }
         }
 
-        match node.type_id {
+        match node.type_id() {
             NodeTypeId::Element(_) => {
                 let element = ElementCast::to_ref(node).unwrap();
                 // Step 1.
@@ -1980,7 +1984,9 @@ impl Node {
 impl<'a> NodeMethods for &'a Node {
     // https://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(self) -> u16 {
-        match self.type_id {
+        match self.type_id() {
+            NodeTypeId::Node => unreachable!(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::CharacterData) => unreachable!(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) =>
                 NodeConstants::TEXT_NODE,
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) =>
@@ -2000,11 +2006,13 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodename
     fn NodeName(self) -> DOMString {
-        match self.type_id {
+        match self.type_id() {
+            NodeTypeId::Node => unreachable!(),
             NodeTypeId::Element(..) => {
                 let elem: &Element = ElementCast::to_ref(self).unwrap();
                 elem.TagName()
             }
+            NodeTypeId::CharacterData(CharacterDataTypeId::CharacterData) => unreachable!(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => "#text".to_owned(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let processing_instruction: &ProcessingInstruction =
@@ -2028,7 +2036,8 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
     fn GetOwnerDocument(self) -> Option<Root<Document>> {
-        match self.type_id {
+        match self.type_id() {
+            NodeTypeId::Node => unreachable!(),
             NodeTypeId::CharacterData(..) |
             NodeTypeId::Element(..) |
             NodeTypeId::DocumentType |
@@ -2083,7 +2092,7 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
-        match self.type_id {
+        match self.type_id() {
             NodeTypeId::CharacterData(..) => {
                 let chardata: &CharacterData = CharacterDataCast::to_ref(self).unwrap();
                 Some(chardata.Data())
@@ -2096,7 +2105,7 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(self, val: Option<DOMString>) {
-        match self.type_id {
+        match self.type_id() {
             NodeTypeId::CharacterData(..) => {
                 self.SetTextContent(val)
             }
@@ -2106,7 +2115,8 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn GetTextContent(self) -> Option<DOMString> {
-        match self.type_id {
+        match self.type_id() {
+            NodeTypeId::Node => unreachable!(),
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
                 let content = Node::collect_text_contents(self.traverse_preorder());
@@ -2126,7 +2136,8 @@ impl<'a> NodeMethods for &'a Node {
     // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn SetTextContent(self, value: Option<DOMString>) {
         let value = value.unwrap_or(String::new());
-        match self.type_id {
+        match self.type_id() {
+            NodeTypeId::Node => unreachable!(),
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
                 // Step 1-2.
@@ -2167,7 +2178,7 @@ impl<'a> NodeMethods for &'a Node {
     fn ReplaceChild(self, node: &Node, child: &Node) -> Fallible<Root<Node>> {
 
         // Step 1.
-        match self.type_id {
+        match self.type_id() {
             NodeTypeId::Document |
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => (),
@@ -2186,6 +2197,7 @@ impl<'a> NodeMethods for &'a Node {
 
         // Step 4-5.
         match node.type_id() {
+            NodeTypeId::Node => unreachable!(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is_document() =>
                 return Err(HierarchyRequest),
             NodeTypeId::DocumentType if !self.is_document() => return Err(HierarchyRequest),
@@ -2249,7 +2261,7 @@ impl<'a> NodeMethods for &'a Node {
                     }
                 },
                 NodeTypeId::CharacterData(..) => (),
-                NodeTypeId::Document => unreachable!()
+                NodeTypeId::Document | NodeTypeId::Node => unreachable!()
             }
         }
 

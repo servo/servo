@@ -18,7 +18,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::reflect_dom_object;
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use script_task::Runnable;
 use script_task::ScriptMsg;
 use std::cell::{Cell, RefCell};
@@ -79,7 +79,7 @@ fn establish_a_websocket_connection(url: (Host, String, bool), origin: String)
 impl WebSocket {
     fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
         WebSocket {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
+            eventtarget: EventTarget::new_inherited(),
             url: url,
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(WebSocketRequestState::Connecting),
