@@ -15,6 +15,7 @@ use euclid::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
+use ipc_channel::ipc;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
@@ -190,7 +191,7 @@ impl<'a> LayoutContext<'a> {
                     (ImageState::LoadError, _) => None,
                     // Not loaded, test mode - load the image synchronously
                     (_, true) => {
-                        let (sync_tx, sync_rx) = channel();
+                        let (sync_tx, sync_rx) = ipc::channel().unwrap();
                         self.shared.image_cache_task.request_image(url,
                                                                    ImageCacheChan(sync_tx),
                                                                    None);
