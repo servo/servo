@@ -2,12 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
+
 extern crate euclid;
 extern crate gfx;
+extern crate ipc_channel;
 extern crate script_traits;
 extern crate msg;
 extern crate profile_traits;
 extern crate net_traits;
+extern crate serde;
 extern crate url;
 extern crate util;
 
@@ -19,27 +24,29 @@ extern crate util;
 use euclid::rect::Rect;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::PaintChan;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use profile_traits::mem;
 use profile_traits::time;
 use net_traits::image_cache_task::ImageCacheTask;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::Sender;
 use util::geometry::Au;
 use url::Url;
 
 /// Messages sent to the layout task from the constellation and/or compositor.
+#[derive(Deserialize, Serialize)]
 pub enum LayoutControlMsg {
     ExitNow(PipelineExitType),
-    GetCurrentEpoch(Sender<Epoch>),
+    GetCurrentEpoch(IpcSender<Epoch>),
     TickAnimations,
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
 }
 
 /// A channel wrapper for constellation messages
-#[derive(Clone)]
-pub struct LayoutControlChan(pub Sender<LayoutControlMsg>);
+#[derive(Clone, Deserialize, Serialize)]
+pub struct LayoutControlChan(pub IpcSender<LayoutControlMsg>);
 
 // A static method creating a layout task
 // Here to remove the compositor -> layout dependency
@@ -50,7 +57,7 @@ pub trait LayoutTaskFactory {
               url: Url,
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
-              pipeline_port: Receiver<LayoutControlMsg>,
+              pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,

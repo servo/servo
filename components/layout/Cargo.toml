@@ -55,6 +55,9 @@ git = "https://github.com/servo/rust-selectors"
 [dependencies.clock_ticks]
 git = "https://github.com/tomaka/clock_ticks"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 log = "*"
 encoding = "0.2"

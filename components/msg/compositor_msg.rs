@@ -16,7 +16,7 @@ use std::fmt;
 use constellation_msg::PipelineId;
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
 pub struct Epoch(pub u32);
 
 impl Epoch {

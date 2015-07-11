@@ -85,7 +85,7 @@ impl Pipeline {
         let (paint_port, paint_chan) = PaintChan::new();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
-        let (pipeline_chan, pipeline_port) = channel();
+        let (pipeline_chan, pipeline_port) = ipc::channel().unwrap();
 
         let failure = Failure {
             pipeline_id: id,

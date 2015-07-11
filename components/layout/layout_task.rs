@@ -39,6 +39,7 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
+use ipc_channel::ipc::IpcReceiver;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
@@ -65,6 +66,7 @@ use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::thread;
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
 use style::selector_matching::Stylist;
@@ -155,7 +157,7 @@ pub struct LayoutTask {
     /// The port on which we receive messages from the script task.
     pub port: Receiver<Msg>,
 
-    /// The port on which we receive messages from the constellation
+    /// The port on which we receive messages from the constellation.
     pub pipeline_port: Receiver<LayoutControlMsg>,
 
     /// The port on which we receive messages from the image cache
@@ -213,7 +215,7 @@ impl LayoutTaskFactory for LayoutTask {
               url: Url,
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
-              pipeline_port: Receiver<LayoutControlMsg>,
+              pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,
@@ -284,7 +286,7 @@ impl LayoutTask {
            is_iframe: bool,
            port: Receiver<Msg>,
            chan: LayoutChan,
-           pipeline_port: Receiver<LayoutControlMsg>,
+           pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
            script_chan: ScriptControlChan,
            paint_chan: PaintChan,
@@ -314,12 +316,20 @@ impl LayoutTask {
         let (image_cache_sender, image_cache_receiver) = channel();
         let (canvas_layers_sender, canvas_layers_receiver) = channel();
 
+        // Start a thread to proxy IPC messages from the layout thread to us.
+        let (pipeline_sender, pipeline_receiver) = channel();
+        thread::spawn(move || {
+            while let Ok(message) = pipeline_port.recv() {
+                pipeline_sender.send(message).unwrap()
+            }
+        });
+
         LayoutTask {
             id: id,
             url: url,
             is_iframe: is_iframe,
             port: port,
-            pipeline_port: pipeline_port,
+            pipeline_port: pipeline_receiver,
             chan: chan,
             script_chan: script_chan,
             constellation_chan: constellation_chan.clone(),
