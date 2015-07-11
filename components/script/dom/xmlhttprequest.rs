@@ -155,7 +155,7 @@ pub struct XMLHttpRequest {
 impl XMLHttpRequest {
     fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
         XMLHttpRequest {
-            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestEventTargetTypeId::XMLHttpRequest),
+            eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),

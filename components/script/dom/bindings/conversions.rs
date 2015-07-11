@@ -645,7 +645,7 @@ pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
 }
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
-unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
+pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
     use dom::bindings::utils::DOMJSClass;
     use js::glue::GetProxyHandlerExtra;
 
@@ -653,12 +653,12 @@ unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
     if is_dom_class(&*clasp) {
         debug!("plain old dom object");
         let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
-        return Ok((*domjsclass).dom_class);
+        return Ok(&(&*domjsclass).dom_class);
     }
     if is_dom_proxy(obj) {
         debug!("proxy dom object");
         let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
-        return Ok(*dom_class);
+        return Ok(&*dom_class);
     }
     debug!("not a dom object");
     Err(())
