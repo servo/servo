@@ -17,7 +17,7 @@ use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 
@@ -52,7 +52,7 @@ impl Worker {
                      sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
                      -> Worker {
         Worker {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
+            eventtarget: EventTarget::new_inherited(),
             global: GlobalField::from_rooted(&global),
             sender: sender,
         }

@@ -1430,6 +1430,8 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             Some(NodeTypeId::Document) => {
                 (display::T::none, float::T::none, position::T::static_)
             }
+            Some(NodeTypeId::Node) => unreachable!(),
+            Some(NodeTypeId::CharacterData(CharacterDataTypeId::CharacterData)) => unreachable!(),
         };
 
         debug!("building flow for node: {:?} {:?} {:?} {:?}", display, float, positioning, node.type_id());
@@ -1585,6 +1587,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLObjectElement))) => self.has_object_data(),
             Some(NodeTypeId::Element(_)) => false,
+            Some(NodeTypeId::Node) => unreachable!(),
         }
     }
 

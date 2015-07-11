@@ -15,7 +15,7 @@ use dom::bindings::utils::{reflect_dom_object, Reflectable};
 use dom::blob::Blob;
 use dom::domexception::{DOMException, DOMErrorName};
 use dom::event::{EventCancelable, EventBubbles};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -80,7 +80,7 @@ pub struct FileReader {
 impl FileReader {
     pub fn new_inherited(global: GlobalRef) -> FileReader {
         FileReader {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::FileReader),//?
+            eventtarget: EventTarget::new_inherited(),//?
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(FileReaderReadyState::Empty),
             error: MutNullableHeap::new(None),

@@ -223,8 +223,9 @@ class Descriptor(DescriptorProvider):
                     if m.isDeleter():
                         addIndexedOrNamedOperation('Deleter', m)
 
-                iface.setUserData('hasConcreteDescendant', True)
                 iface = iface.parent
+                if iface:
+                    iface.setUserData('hasConcreteDescendant', True)
 
             if self.proxy:
                 iface = self.interface
