@@ -355,7 +355,9 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
         let char_vec = unsafe {
             slice::from_raw_parts(chars as *const u16, length as usize)
         };
-        String::from_utf16(char_vec).unwrap()
+        // This is a wilful spec violation.
+        // See https://github.com/servo/servo/issues/6564
+        String::from_utf16_lossy(char_vec)
     }
 }
 
