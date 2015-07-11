@@ -37,6 +37,7 @@ use canvas::canvas_paint_task::CanvasPaintTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
 use net_traits::image::base::PixelFormat;
 
+use ipc_channel::ipc;
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -321,7 +322,7 @@ impl CanvasRenderingContext2D {
         let window = window_from_node(canvas.r());
         let window = window.r();
         let image_cache = window.image_cache_task();
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = ipc::channel().unwrap();
         image_cache.request_image(url, ImageCacheChan(response_chan), None);
         let result = response_port.recv().unwrap();
         result.image_response

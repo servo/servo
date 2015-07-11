@@ -26,7 +26,7 @@ git = "https://github.com/servo/rust-png"
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies]
-url = "0.2.35"
+url = "0.2.36"
 bitflags = "*"
 hyper = "0.6"
 rustc-serialize = "0.3.4"

@@ -39,7 +39,8 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::router::ROUTER;
 use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
@@ -313,7 +314,6 @@ impl LayoutTask {
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
-        let (image_cache_sender, image_cache_receiver) = channel();
         let (canvas_layers_sender, canvas_layers_receiver) = channel();
 
         // Start a thread to proxy IPC messages from the layout thread to us.
@@ -323,6 +323,11 @@ impl LayoutTask {
                 pipeline_sender.send(message).unwrap()
             }
         });
+
+        // Ask the router to proxy IPC messages from the image cache task to us.
+        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
+        let image_cache_receiver =
+            ROUTER.route_ipc_receiver_to_mpsc_receiver(ipc_image_cache_receiver);
 
         LayoutTask {
             id: id,
@@ -341,7 +346,7 @@ impl LayoutTask {
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
-            image_cache_sender: ImageCacheChan(image_cache_sender),
+            image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(
