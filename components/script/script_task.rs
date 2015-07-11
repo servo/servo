@@ -297,8 +297,9 @@ pub struct ScriptTask {
 
     /// For communicating load url messages to the constellation
     constellation_chan: ConstellationChan,
+
     /// A handle to the compositor for communicating ready state messages.
-    compositor: DOMRefCell<Box<ScriptListener+'static>>,
+    compositor: DOMRefCell<ScriptListener>,
 
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
@@ -374,29 +375,28 @@ impl ScriptTaskFactory for ScriptTask {
         box pair.sender() as Box<Any+Send>
     }
 
-    fn create<C>(_phantom: Option<&mut ScriptTask>,
-                 id: PipelineId,
-                 parent_info: Option<(PipelineId, SubpageId)>,
-                 compositor: C,
-                 layout_chan: &OpaqueScriptLayoutChannel,
-                 control_chan: ScriptControlChan,
-                 control_port: Receiver<ConstellationControlMsg>,
-                 constellation_chan: ConstellationChan,
-                 failure_msg: Failure,
-                 resource_task: ResourceTask,
-                 storage_task: StorageTask,
-                 image_cache_task: ImageCacheTask,
-                 devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: Option<WindowSizeData>,
-                 load_data: LoadData)
-                 where C: ScriptListener + Send + 'static {
+    fn create(_phantom: Option<&mut ScriptTask>,
+              id: PipelineId,
+              parent_info: Option<(PipelineId, SubpageId)>,
+              compositor: ScriptListener,
+              layout_chan: &OpaqueScriptLayoutChannel,
+              control_chan: ScriptControlChan,
+              control_port: Receiver<ConstellationControlMsg>,
+              constellation_chan: ConstellationChan,
+              failure_msg: Failure,
+              resource_task: ResourceTask,
+              storage_task: StorageTask,
+              image_cache_task: ImageCacheTask,
+              devtools_chan: Option<DevtoolsControlChan>,
+              window_size: Option<WindowSizeData>,
+              load_data: LoadData) {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         spawn_named_with_send_on_failure(format!("ScriptTask {:?}", id), task_state::SCRIPT, move || {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let script_task = ScriptTask::new(box compositor as Box<ScriptListener>,
+            let script_task = ScriptTask::new(compositor,
                                               script_port,
                                               NonWorkerScriptChan(script_chan),
                                               control_chan,
@@ -464,7 +464,7 @@ impl ScriptTask {
     }
 
     /// Creates a new script task.
-    pub fn new(compositor: Box<ScriptListener+'static>,
+    pub fn new(compositor: ScriptListener,
                port: Receiver<ScriptMsg>,
                chan: NonWorkerScriptChan,
                control_chan: ScriptControlChan,

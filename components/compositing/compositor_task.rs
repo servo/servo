@@ -13,10 +13,11 @@ use windowing::{WindowEvent, WindowMethods};
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use ipc_channel::ipc::IpcReceiver;
 use layers::platform::surface::NativeDisplay;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, FrameTreeId};
-use msg::compositor_msg::{PaintListener, ScriptListener};
+use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use profile_traits::mem;
@@ -61,31 +62,28 @@ impl CompositorReceiver for Receiver<Msg> {
     }
 }
 
-/// Implementation of the abstract `ScriptListener` interface.
-impl ScriptListener for Box<CompositorProxy+'static+Send> {
-    fn scroll_fragment_point(&mut self,
-                             pipeline_id: PipelineId,
-                             layer_id: LayerId,
-                             point: Point2D<f32>) {
-        self.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
-    }
+pub fn run_script_listener_thread(mut compositor_proxy: Box<CompositorProxy + 'static + Send>,
+                                  receiver: IpcReceiver<ScriptToCompositorMsg>) {
+    while let Ok(msg) = receiver.recv() {
+        match msg {
+            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point) => {
+                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
+            }
 
-    fn close(&mut self) {
-        let (chan, port) = channel();
-        self.send(Msg::Exit(chan));
-        port.recv().unwrap();
-    }
+            ScriptToCompositorMsg::Exit => {
+                let (chan, port) = channel();
+                compositor_proxy.send(Msg::Exit(chan));
+                port.recv().unwrap();
+            }
 
-    fn dup(&mut self) -> Box<ScriptListener+'static> {
-        box self.clone_compositor_proxy() as Box<ScriptListener+'static>
-    }
+            ScriptToCompositorMsg::SetTitle(pipeline_id, title) => {
+                compositor_proxy.send(Msg::ChangePageTitle(pipeline_id, title))
+            }
 
-    fn set_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
-        self.send(Msg::ChangePageTitle(pipeline_id, title))
-    }
-
-    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        self.send(Msg::KeyEvent(key, state, modifiers));
+            ScriptToCompositorMsg::SendKeyEvent(key, key_state, key_modifiers) => {
+                compositor_proxy.send(Msg::KeyEvent(key, key_state, key_modifiers))
+            }
+        }
     }
 }
 
