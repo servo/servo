@@ -11,7 +11,6 @@ use dom::window::Window;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::rc::Rc;
-use url::Url;
 
 /// Encapsulates a handle to a frame in a frame tree.
 #[derive(JSTraceable)]
@@ -21,11 +20,6 @@ pub struct Page {
 
     /// The outermost frame containing the document and window.
     frame: DOMRefCell<Option<Frame>>,
-
-    /// Cached copy of the most recent url loaded by the script, after all redirections.
-    /// TODO(tkuehn): this currently does not follow any particular caching policy
-    /// and simply caches pages forever (!).
-    url: Url,
 
     /// Indicates if reflow is required when reloading.
     needs_reflow: Cell<bool>,
@@ -61,11 +55,10 @@ impl IterablePage for Rc<Page> {
 }
 
 impl Page {
-    pub fn new(id: PipelineId, url: Url) -> Page {
+    pub fn new(id: PipelineId) -> Page {
         Page {
             id: id,
             frame: DOMRefCell::new(None),
-            url: url,
             needs_reflow: Cell::new(true),
             children: DOMRefCell::new(vec!()),
         }
