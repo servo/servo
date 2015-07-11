@@ -442,6 +442,15 @@ impl<'a> WindowMethods for &'a Window {
         self.parent().unwrap_or(self.Window())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-top
+    fn Top(self) -> Root<Window> {
+        let mut window = self.Window();
+        while let Some(parent) = window.parent() {
+            window = parent;
+        }
+        window
+    }
+
     fn Performance(self) -> Root<Performance> {
         self.performance.or_init(|| {
             Performance::new(self, self.navigation_start,
