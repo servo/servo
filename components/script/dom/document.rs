@@ -396,6 +396,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     fn unregister_named_element(self,
                                 to_unregister: &Element,
                                 id: Atom) {
+        debug!("Removing named element from document {:p}: {:p} id={}", self, to_unregister, id);
         let mut idmap = self.idmap.borrow_mut();
         let is_empty = match idmap.get_mut(&id) {
             None => false,
@@ -417,6 +418,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     fn register_named_element(self,
                               element: &Element,
                               id: Atom) {
+        debug!("Adding named element to document {:p}: {:p} id={}", self, element, id);
         assert!({
             let node = NodeCast::from_ref(element);
             node.is_in_doc()
