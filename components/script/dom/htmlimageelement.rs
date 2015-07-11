@@ -23,15 +23,18 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
+use script_task::{Runnable, ScriptChan, ScriptMsg};
 use util::str::DOMString;
 use string_cache::Atom;
 
+use ipc_channel::ipc::{self, IpcReceiver};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponder, ImageResponse};
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 use std::sync::Arc;
+use std::thread;
 
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -67,22 +70,52 @@ trait PrivateHTMLImageElementHelpers {
 /// which marks the element as dirty and triggers a reflow.
 struct Responder {
     element: Trusted<HTMLImageElement>,
+    script_chan: Box<ScriptChan + Send>,
+    receiver: IpcReceiver<ImageResponse>,
 }
 
 impl Responder {
-    fn new(element: Trusted<HTMLImageElement>) -> Responder {
+    fn new(script_chan: Box<ScriptChan + Send>,
+           element: Trusted<HTMLImageElement>,
+           receiver: IpcReceiver<ImageResponse>) -> Responder {
         Responder {
-            element: element
+            script_chan: script_chan,
+            element: element,
+            receiver: receiver,
+        }
+    }
+
+    fn run(self) {
+        let image_response = self.receiver.recv().unwrap();
+        self.script_chan
+            .send(ScriptMsg::RunnableMsg(box ImageResponseHandlerRunnable::new(self.element,
+                                                                               image_response)))
+            .unwrap()
+    }
+
+}
+
+struct ImageResponseHandlerRunnable {
+    element: Trusted<HTMLImageElement>,
+    image: ImageResponse,
+}
+
+impl ImageResponseHandlerRunnable {
+    fn new(element: Trusted<HTMLImageElement>, image: ImageResponse)
+           -> ImageResponseHandlerRunnable {
+        ImageResponseHandlerRunnable {
+            element: element,
+            image: image,
         }
     }
 }
 
-impl ImageResponder for Responder {
-    fn respond(&self, image: ImageResponse) {
+impl Runnable for ImageResponseHandlerRunnable {
+    fn handler(self: Box<Self>) {
         // Update the image field
         let element = self.element.root();
         let element_ref = element.r();
-        *element_ref.image.borrow_mut() = match image {
+        *element_ref.image.borrow_mut() = match self.image {
             ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
                 Some(image)
             }
@@ -130,8 +163,18 @@ impl<'a> PrivateHTMLImageElementHelpers for &'a HTMLImageElement {
                 *self.url.borrow_mut() = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(window.get_cx(), self, window.script_chan());
-                let responder = box Responder::new(trusted_node);
-                image_cache.request_image(img_url, window.image_cache_chan(), Some(responder));
+                let (responder_sender, responder_receiver) = ipc::channel().unwrap();
+                let responder = Responder::new(window.script_chan(),
+                                               trusted_node,
+                                               responder_receiver);
+
+                // TODO(pcwalton): Create an IPC thread that can be shared by all responders in
+                // the script task.
+                thread::spawn(move || responder.run());
+
+                image_cache.request_image(img_url,
+                                          window.image_cache_chan(),
+                                          Some(ImageResponder::new(responder_sender)));
             }
         }
     }

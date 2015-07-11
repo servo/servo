@@ -23,7 +23,7 @@ git = "https://github.com/servo/rust-layers"
 git = "https://github.com/servo/rust-png"
 
 [dependencies]
-url = "0.2.35"
+url = "0.2.36"
 bitflags = "*"
 hyper = "0.5"
 rustc-serialize = "0.3.4"

@@ -39,6 +39,7 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
+use ipc_channel::ipc;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
@@ -65,6 +66,7 @@ use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::thread;
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
 use style::selector_matching::Stylist;
@@ -311,8 +313,17 @@ impl LayoutTask {
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
-        let (image_cache_sender, image_cache_receiver) = channel();
         let (canvas_layers_sender, canvas_layers_receiver) = channel();
+
+        // Create a thread to proxy IPC messages from the image cache task to us, since we can't
+        // select over a combination of IPC and in-process messages.
+        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
+        let (image_cache_sender, image_cache_receiver) = channel();
+        thread::spawn(move || {
+            while let Ok(message) = ipc_image_cache_receiver.recv() {
+                image_cache_sender.send(message).unwrap()
+            }
+        });
 
         LayoutTask {
             id: id,
@@ -331,7 +342,7 @@ impl LayoutTask {
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
-            image_cache_sender: ImageCacheChan(image_cache_sender),
+            image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(

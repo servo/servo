@@ -26,5 +26,5 @@ path = "../profile_traits"
 path = "../util"
 
 [dependencies]
-url = "0.2.35"
+url = "0.2.36"
 euclid = "0.1"

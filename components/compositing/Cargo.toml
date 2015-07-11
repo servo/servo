@@ -55,7 +55,7 @@ git = "https://github.com/aweinstock314/rust-clipboard"
 [dependencies]
 log = "*"
 num = "0.1.24"
-url = "0.2.35"
+url = "0.2.36"
 time = "0.1.17"
 libc = "*"
 gleam = "0.1"
