@@ -14,6 +14,7 @@ use fnv::FnvHasher;
 use platform::font::FontHandle;
 use platform::font_template::FontTemplateData;
 use smallvec::SmallVec8;
+use string_cache::Atom;
 use util::cache::HashCache;
 use util::geometry::Au;
 use util::mem::HeapSizeOf;
@@ -60,7 +61,7 @@ struct FallbackFontCacheEntry {
 /// can be shared by multiple text runs.
 struct PaintFontCacheEntry {
     pt_size: Au,
-    identifier: String,
+    identifier: Atom,
     font: Rc<RefCell<ScaledFont>>,
 }
 
@@ -261,9 +262,9 @@ impl FontContext {
     /// Create a paint font for use with azure. May return a cached
     /// reference if already used by this font context.
     pub fn get_paint_font_from_template(&mut self,
-                                         template: &Arc<FontTemplateData>,
-                                         pt_size: Au)
-                                         -> Rc<RefCell<ScaledFont>> {
+                                        template: &Arc<FontTemplateData>,
+                                        pt_size: Au)
+                                        -> Rc<RefCell<ScaledFont>> {
         for cached_font in self.paint_font_cache.iter() {
             if cached_font.pt_size == pt_size &&
                cached_font.identifier == template.identifier {
