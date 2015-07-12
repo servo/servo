@@ -61,9 +61,9 @@ impl FontFamily {
         None
     }
 
-    fn add_template(&mut self, identifier: &str, maybe_data: Option<Vec<u8>>) {
+    fn add_template(&mut self, identifier: Atom, maybe_data: Option<Vec<u8>>) {
         for template in self.templates.iter() {
-            if template.identifier() == identifier {
+            if *template.identifier() == identifier {
                 return;
             }
         }
@@ -140,7 +140,7 @@ impl FontCache {
                             match maybe_resource {
                                 Ok((_, bytes)) => {
                                     let family = &mut self.web_families.get_mut(&family_name).unwrap();
-                                    family.add_template(&url.to_string(), Some(bytes));
+                                    family.add_template(Atom::from_slice(&url.to_string()), Some(bytes));
                                 },
                                 Err(_) => {
                                     debug!("Failed to load web font: family={:?} url={}", family_name, url);
@@ -150,7 +150,7 @@ impl FontCache {
                         Source::Local(ref local_family_name) => {
                             let family = &mut self.web_families.get_mut(&family_name).unwrap();
                             get_variations_for_family(&local_family_name, |path| {
-                                family.add_template(&path, None);
+                                family.add_template(Atom::from_slice(&path), None);
                             });
                         }
                     }
@@ -192,7 +192,7 @@ impl FontCache {
 
             if s.templates.len() == 0 {
                 get_variations_for_family(family_name, |path| {
-                    s.add_template(&path, None);
+                    s.add_template(Atom::from_slice(&path), None);
                 });
             }
 

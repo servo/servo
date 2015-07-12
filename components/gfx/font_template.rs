@@ -6,8 +6,8 @@ use font::FontHandleMethods;
 use platform::font_context::FontContextHandle;
 use platform::font::FontHandle;
 use platform::font_template::FontTemplateData;
+use string_cache::Atom;
 
-use std::borrow::ToOwned;
 use std::sync::{Arc, Weak};
 use style::computed_values::{font_stretch, font_weight};
 
@@ -46,7 +46,7 @@ impl PartialEq for FontTemplateDescriptor {
 /// font instance handles. It contains a unique
 /// FontTemplateData structure that is platform specific.
 pub struct FontTemplate {
-    identifier: String,
+    identifier: Atom,
     descriptor: Option<FontTemplateDescriptor>,
     weak_ref: Option<Weak<FontTemplateData>>,
     // GWTODO: Add code path to unset the strong_ref for web fonts!
@@ -58,9 +58,9 @@ pub struct FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    pub fn new(identifier: &str, maybe_bytes: Option<Vec<u8>>) -> FontTemplate {
+    pub fn new(identifier: Atom, maybe_bytes: Option<Vec<u8>>) -> FontTemplate {
         let maybe_data = match maybe_bytes {
-            Some(_) => Some(FontTemplateData::new(identifier, maybe_bytes)),
+            Some(_) => Some(FontTemplateData::new(identifier.clone(), maybe_bytes)),
             None => None,
         };
 
@@ -75,7 +75,7 @@ impl FontTemplate {
         };
 
         FontTemplate {
-            identifier: identifier.to_owned(),
+            identifier: identifier,
             descriptor: None,
             weak_ref: maybe_weak_ref,
             strong_ref: maybe_strong_ref,
@@ -83,8 +83,8 @@ impl FontTemplate {
         }
     }
 
-    pub fn identifier<'a>(&'a self) -> &'a str {
-        &*self.identifier
+    pub fn identifier(&self) -> &Atom {
+        &self.identifier
     }
 
     /// Get the data for creating a font if it matches a given descriptor.
@@ -158,7 +158,7 @@ impl FontTemplate {
         }
 
         assert!(self.strong_ref.is_none());
-        let template_data = Arc::new(FontTemplateData::new(&self.identifier, None));
+        let template_data = Arc::new(FontTemplateData::new(self.identifier.clone(), None));
         self.weak_ref = Some(template_data.downgrade());
         template_data
     }
