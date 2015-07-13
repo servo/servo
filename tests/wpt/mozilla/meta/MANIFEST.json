@@ -5349,6 +5349,12 @@
             "url": "/_mozilla/mozilla/proxy_setter.html"
           }
         ],
+        "mozilla/range_deleteContents.html": [
+          {
+            "path": "mozilla/range_deleteContents.html",
+            "url": "/_mozilla/mozilla/range_deleteContents.html"
+          }
+        ],
         "mozilla/response-data-brotli.htm": [
           {
             "path": "mozilla/response-data-brotli.htm",
