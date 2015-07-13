@@ -151,15 +151,6 @@ impl WebSocket {
         };
         let response = request.send().unwrap();
         response.validate().unwrap();
-        ws.r().ready_state.set(WebSocketRequestState::Open);
-        //Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
-        //if so return without setting any states
-        let ready_state = ws.r().ready_state.get();
-        let failed = ws.r().failed.get();
-        if failed && (ready_state == WebSocketRequestState::Closed || ready_state == WebSocketRequestState::Closing) {
-            //Do nothing else. Let the close finish.
-            return Ok(ws);
-        }
 
         let (temp_sender, temp_receiver) = response.begin().split();
         *ws.r().sender.borrow_mut() = Some(temp_sender);
@@ -169,7 +160,7 @@ impl WebSocket {
         let global_root = ws.r().global.root();
         let addr: Trusted<WebSocket> =
             Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
-        let open_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
+        let open_task = box WebSocketTaskHandler::new(addr, WebSocketTask::ConnectionEstablished);
         global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
         //TODO: Spawn thread here for receive loop
         /*TODO: Add receive loop here and make new thread run this
@@ -276,7 +267,8 @@ impl<'a> WebSocketMethods for &'a WebSocket {
 
 
 pub enum WebSocketTask {
-    Open,
+    /// Task queued when *the WebSocket connection is established*.
+    ConnectionEstablished,
     Close,
 }
 
@@ -293,19 +285,27 @@ impl WebSocketTaskHandler {
         }
     }
 
-    fn dispatch_open(&self) {
+    fn connection_established(&self) {
         /*TODO: Items 1, 3, 4, & 5 under "WebSocket connection is established" as specified here:
           https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol
         */
-        let ws = self.addr.root(); //Get root
-        let ws = ws.r(); //Get websocket reference
+        let ws = self.addr.root();
+
+        // Step 1: Protocols.
+
+        // Step 2.
+        ws.ready_state.set(WebSocketRequestState::Open);
+
+        // Step 3: Extensions.
+        // Step 4: Protocols.
+        // Step 5: Cookies.
+
+        // Step 6.
         let global = ws.global.root();
-        let event = Event::new(global.r(),
-            "open".to_owned(),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable);
-        let target = EventTargetCast::from_ref(ws);
-        event.r().fire(target);
+        let event = Event::new(global.r(), "open".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        event.fire(EventTargetCast::from_ref(ws.r()));
     }
 
     fn dispatch_close(&self) {
@@ -347,8 +347,8 @@ impl WebSocketTaskHandler {
 impl Runnable for WebSocketTaskHandler {
     fn handler(self: Box<WebSocketTaskHandler>) {
         match self.task {
-            WebSocketTask::Open => {
-                self.dispatch_open();
+            WebSocketTask::ConnectionEstablished => {
+                self.connection_established();
             }
             WebSocketTask::Close => {
                 self.dispatch_close();
