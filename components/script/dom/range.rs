@@ -708,6 +708,80 @@ impl RangeMethods for Range {
         Ok(())
     }
 
+    // https://dom.spec.whatwg.org/#dom-range-deletecontents
+    fn DeleteContents(&self) -> ErrorResult {
+        // Step 1.
+        if self.Collapsed() {
+            return Ok(());
+        }
+
+        // Step 2.
+        let start_node = self.StartContainer();
+        let end_node = self.EndContainer();
+        let start_offset = self.StartOffset();
+        let end_offset = self.EndOffset();
+
+        // Step 3.
+        if start_node == end_node {
+            if let Some(text) = start_node.downcast::<CharacterData>() {
+                return text.ReplaceData(start_offset,
+                                        end_offset - start_offset,
+                                        "".to_owned());
+            }
+        }
+
+        // Step 4.
+        let mut contained_children = RootedVec::new();
+        let ancestor = self.CommonAncestorContainer();
+
+        for child in start_node.following_nodes(ancestor.r()) {
+            if self.contains(child.r()) &&
+               !contained_children.contains(&child.GetParentNode().unwrap()) {
+                contained_children.push(child);
+            }
+        }
+
+        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(end_node.r()) {
+            // Step 5.
+            (Root::from_ref(start_node.r()), start_offset)
+        } else {
+            // Step 6.
+            fn compute_reference(start_node: &Node, end_node: &Node) -> (Root<Node>, u32) {
+                let mut reference_node = Root::from_ref(start_node);
+                while let Some(parent) = reference_node.GetParentNode() {
+                    if parent.is_inclusive_ancestor_of(end_node) {
+                        return (parent, reference_node.index())
+                    }
+                    reference_node = parent;
+                }
+                panic!()
+            }
+
+            compute_reference(start_node.r(), end_node.r())
+        };
+
+        // Step 7.
+        if let Some(text) = start_node.downcast::<CharacterData>() {
+            try!(text.ReplaceData(start_offset,
+                                  start_node.len() - start_offset,
+                                  "".to_owned()));
+        }
+
+        // Step 8.
+        for child in contained_children {
+            child.remove_self();
+        }
+
+        // Step 9.
+        if let Some(text) = end_node.downcast::<CharacterData>() {
+            try!(text.ReplaceData(0, end_offset, "".to_owned()));
+        }
+
+        // Step 10.
+        try!(self.SetStart(new_node.r(), new_offset));
+        self.SetEnd(new_node.r(), new_offset)
+    }
+
     // https://dom.spec.whatwg.org/#dom-range-surroundcontents
     fn SurroundContents(&self, new_parent: &Node) -> ErrorResult {
         // Step 1.

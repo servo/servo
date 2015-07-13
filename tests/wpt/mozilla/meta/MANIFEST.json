@@ -4447,6 +4447,12 @@
             "url": "/_mozilla/mozilla/proxy_setter.html"
           }
         ],
+        "mozilla/range-deleteContents.html": [
+          {
+            "path": "mozilla/range-deleteContents.html",
+            "url": "/_mozilla/mozilla/range-deleteContents.html"
+          }
+        ],
         "mozilla/script_type.html": [
           {
             "path": "mozilla/script_type.html",
