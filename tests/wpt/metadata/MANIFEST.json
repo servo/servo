@@ -26471,7 +26471,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "websockets/interfaces/WebSocket/url/resolve.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/resolve.html",
+            "url": "/websockets/interfaces/WebSocket/url/resolve.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
