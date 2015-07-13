@@ -24,6 +24,7 @@ use script_task::ScriptMsg;
 use std::cell::{Cell, RefCell};
 use std::borrow::ToOwned;
 use util::str::DOMString;
+use util::task::spawn_named;
 
 use hyper::header::Host;
 use websocket::Message;
@@ -98,54 +99,44 @@ impl WebSocket {
         let parsed_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
         let url = try!(parse_url(&parsed_url).map_err(|_| Error::Syntax));
 
-        /*TODO: This constructor is only a prototype, it does not accomplish the specs
-          defined here:
-          http://html.spec.whatwg.org
-          The remaining 8 items must be satisfied.
-          TODO: This constructor should be responsible for spawning a thread for the
-          receive loop after ws.r().Open() - See comment
-        */
+        // Step 2: Disallow https -> ws connections.
+        // Step 3: Potentially block access to some ports.
+        // Step 4-5: Protocols.
+        // Step 6: Origin.
+
+        // Step 7.
         let ws = reflect_dom_object(box WebSocket::new_inherited(global, parsed_url),
                                     global,
                                     WebSocketBinding::Wrap);
+        let address = Trusted::new(global.get_cx(), ws.r(), global.script_chan());
 
-        let channel = establish_a_websocket_connection(url, global.get_url().serialize());
-        let (temp_sender, _temp_receiver) = match channel {
-            Ok(channel) => channel,
-            Err(e) => {
-                debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let global_root = ws.r().global.root();
-                let address = Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
-                let task = box CloseTask {
-                    addr: address,
-                };
-                global_root.r().script_chan().send(ScriptMsg::RunnableMsg(task)).unwrap();
-                return Ok(ws);
-            }
-        };
+        let origin = global.get_url().serialize();
+        let sender = global.script_chan();
+        spawn_named(format!("WebSocket connection to {}", url.serialize()), move || {
+            // Step 8: Protocols.
 
-        //Create everything necessary for starting the open asynchronous task, then begin the task.
-        let global_root = ws.r().global.root();
-        let addr: Trusted<WebSocket> =
-            Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
-        let open_task = box ConnectionEstablishedTask {
-            addr: addr,
-            sender: temp_sender,
-        };
-        global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
-        //TODO: Spawn thread here for receive loop
-        /*TODO: Add receive loop here and make new thread run this
-          Receive is an infinite loop "similiar" the one shown here:
-          https://github.com/cyderize/rust-websocket/blob/master/examples/client.rs#L64
-          TODO: The receive loop however does need to follow the spec. These are outlined here
-          under "WebSocket message has been received" items 1-5:
-          https://github.com/cyderize/rust-websocket/blob/master/examples/client.rs#L64
-          TODO: The receive loop also needs to dispatch an asynchronous event as stated here:
-          https://github.com/cyderize/rust-websocket/blob/master/examples/client.rs#L64
-          TODO: When the receive loop receives a close message from the server,
-          it confirms the websocket is now closed. This requires the close event
-          to be fired (dispatch_close fires the close event - see implementation below)
-        */
+            // Step 9.
+            let channel = establish_a_websocket_connection(url, origin);
+            let (temp_sender, _temp_receiver) = match channel {
+                Ok(channel) => channel,
+                Err(e) => {
+                    debug!("Failed to establish a WebSocket connection: {:?}", e);
+                    let task = box CloseTask {
+                        addr: address,
+                    };
+                    sender.send(ScriptMsg::RunnableMsg(task)).unwrap();
+                    return;
+                }
+            };
+
+            let open_task = box ConnectionEstablishedTask {
+                addr: address,
+                sender: temp_sender,
+            };
+            sender.send(ScriptMsg::RunnableMsg(open_task)).unwrap();
+        });
+
+        // Step 7.
         Ok(ws)
     }
 
