@@ -215,7 +215,9 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
+impl<'ln> ::selectors::Node for LayoutNode<'ln> {
+    type Element = LayoutElement<'ln>;
+
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -248,7 +250,7 @@ impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
 
     /// If this is an element, accesses the element data.
     #[inline]
-    fn as_element(&self) -> Option<LayoutElement<'ln>> {
+    fn as_element(&self) -> Option<Self::Element> {
         ElementCast::to_layout_js(&self.node).map(|element| {
             LayoutElement {
                 element: element,
@@ -262,6 +264,10 @@ impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
             NodeTypeId::Document(..) => true,
             _ => false
         }
+    }
+
+    fn is_element_or_non_empty_text(&self) -> bool {
+        unimplemented!()
     }
 }
 

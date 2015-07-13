@@ -2579,7 +2579,9 @@ impl<'a> VirtualMethods for &'a Node {
     }
 }
 
-impl<'a> ::selectors::Node<&'a Element> for &'a Node {
+impl<'a> ::selectors::Node for &'a Node {
+    type Element = &'a Element;
+
     fn parent_node(&self) -> Option<&'a Node> {
         (*self).parent_node.get()
                .map(|node| node.root().get_unsound_ref_forever())
@@ -2615,8 +2617,12 @@ impl<'a> ::selectors::Node<&'a Element> for &'a Node {
         is_document(*self)
     }
 
-    fn as_element(&self) -> Option<&'a Element> {
+    fn as_element(&self) -> Option<Self::Element> {
         ElementCast::to_ref(*self)
+    }
+
+    fn is_element_or_non_empty_text(&self) -> bool {
+        self.is_element() || !self.GetTextContent().map_or(true, |s| s.is_empty())
     }
 }
 
