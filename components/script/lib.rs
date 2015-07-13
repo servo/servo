@@ -21,6 +21,7 @@
 #![feature(rc_unique)]
 #![feature(slice_chars)]
 #![feature(str_utf16)]
+#![feature(unicode)]
 #![feature(vec_push_all)]
 
 #![deny(unsafe_code)]
@@ -49,6 +50,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate num;
 extern crate rustc_serialize;
+extern crate rustc_unicode;
 extern crate time;
 extern crate canvas;
 extern crate canvas_traits;

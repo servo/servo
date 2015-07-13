@@ -69,6 +69,11 @@ pub struct Opts {
     pub userscripts: Option<String>,
 
     pub output_file: Option<String>,
+
+    /// Replace unpaires surrogates in DOM strings with U+FFFD.
+    /// See https://github.com/servo/servo/issues/6564
+    pub replace_surrogates: bool,
+
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -187,6 +192,8 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
     print_option("parallel-display-list-building", "Build display lists in parallel.");
+    print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
+                                        See https://github.com/servo/servo/issues/6564");
 
     println!("");
 
@@ -223,6 +230,7 @@ pub fn default_opts() -> Opts {
         nossl: false,
         userscripts: None,
         output_file: None,
+        replace_surrogates: false,
         headless: true,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
@@ -397,6 +405,7 @@ pub fn from_cmdline_args(args: &[String]) {
         nossl: nossl,
         userscripts: opt_match.opt_default("userscripts", ""),
         output_file: opt_match.opt_str("o"),
+        replace_surrogates: debug_options.contains(&"replace-surrogates"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
