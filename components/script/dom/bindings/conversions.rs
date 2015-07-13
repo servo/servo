@@ -370,7 +370,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
                         }
                     }
                     if ::util::opts::get().replace_surrogates {
-                        warn!(message!());
+                        error!(message!());
                         s.push('\u{FFFD}');
                     } else {
                         panic!(message!());
