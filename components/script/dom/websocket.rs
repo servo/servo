@@ -152,14 +152,6 @@ impl WebSocket {
         let response = request.send().unwrap();
         response.validate().unwrap();
         ws.r().ready_state.set(WebSocketRequestState::Open);
-        //Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
-        //if so return without setting any states
-        let ready_state = ws.r().ready_state.get();
-        let failed = ws.r().failed.get();
-        if failed && (ready_state == WebSocketRequestState::Closed || ready_state == WebSocketRequestState::Closing) {
-            //Do nothing else. Let the close finish.
-            return Ok(ws);
-        }
 
         let (temp_sender, temp_receiver) = response.begin().split();
         *ws.r().sender.borrow_mut() = Some(temp_sender);
