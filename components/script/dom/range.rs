@@ -19,7 +19,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::characterdata::CharacterDataTypeId;
 use dom::document::{Document, DocumentHelpers};
 use dom::documentfragment::DocumentFragment;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId, SuppressObserver};
 
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
@@ -677,6 +677,70 @@ impl<'a> RangeMethods for &'a Range {
 
         Ok(())
     }
+
+    // https://dom.spec.whatwg.org/#dom-range-deletecontents
+    fn DeleteContents(self) -> ErrorResult {
+        // Step 1.
+        if self.Collapsed() {
+            return Ok(());
+        }
+
+        // Step 2.
+        let (start_node, start_offset, end_node, end_offset) = {
+            let inner = self.inner.borrow();
+
+            (inner.start.node(),
+             inner.start.offset(),
+             inner.end.node(),
+             inner.end.offset())
+        };
+
+        // Step 3.
+        if start_node == end_node {
+            if let Some(text) = CharacterDataCast::to_ref(start_node.r()) {
+                return text.ReplaceData(start_offset,
+                                        end_offset - start_offset,
+                                        "".to_owned());
+            }
+        }
+
+        // Step 4.
+        let (_, _, contained_children) = try!(self.contained_children());
+
+        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(end_node.r()) {
+            // Step 5.
+            (Root::from_ref(start_node.r()), start_offset)
+        } else {
+            // Step 6.
+            let reference_node = start_node.ancestors()
+                                           .find(|n| n.is_inclusive_ancestor_of(end_node.r()))
+                                           .unwrap();
+            (reference_node.GetParentNode().unwrap(), reference_node.index() + 1)
+        };
+
+        // Step 7.
+        if let Some(text) = CharacterDataCast::to_ref(start_node.r()) {
+            try!(text.ReplaceData(start_offset,
+                                  start_node.len() - start_offset,
+                                  "".to_owned()));
+        }
+
+        // Step 8 - remove contained nodes
+        for child in contained_children {
+            let parent = child.GetParentNode().unwrap();
+            Node::remove(child.r(), parent.r(), SuppressObserver::Unsuppressed);
+        }
+
+        // Step 9.
+        if let Some(text) = CharacterDataCast::to_ref(end_node.r()) {
+            try!(text.ReplaceData(0, end_offset, "".to_owned()));
+        }
+
+        // Step 10.
+        try!(self.SetStart(new_node.r(), new_offset));
+        self.SetEnd(new_node.r(), new_offset)
+    }
+
 }
 
 #[derive(JSTraceable)]
