@@ -373,7 +373,8 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
                         error!(message!());
                         s.push('\u{FFFD}');
                     } else {
-                        panic!(message!());
+                        panic!(concat!(message!(), " Use `-Z replace-surrogates` \
+                            on the command line to make this non-fatal."));
                     }
                 }
             }
