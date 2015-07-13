@@ -55,7 +55,7 @@ impl HTMLLabelElement {
 }
 
 impl<'a> HTMLLabelElementMethods for &'a HTMLLabelElement {
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fae-form
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
     }

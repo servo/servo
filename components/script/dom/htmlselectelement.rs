@@ -105,7 +105,7 @@ impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fae-form
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
     }

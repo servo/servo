@@ -745,7 +745,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/infrastructure.html#home-subtree
+    // https://html.spec.whatwg.org/multipage/#home-subtree
     fn is_in_same_home_subtree<T>(self, other: &T) -> bool
         where T: ElementBase + Reflectable
     {

@@ -570,7 +570,7 @@ pub trait FormControl {
         true
     }
 
-    // https://html.spec.whatwg.org/multipage/syntax.html#create-an-element-for-the-token
+    // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
     // Part of step 4.
     // '..suppress the running of the reset the form owner algorithm
     // when the parser subsequently attempts to insert the element..'
@@ -616,7 +616,7 @@ pub trait FormControl {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#form-owner
+    // https://html.spec.whatwg.org/multipage/#form-owner
     fn after_set_form_attr(&self) {
         let elem = self.to_element();
         let form_id = elem.get_string_attribute(&atom!(form));
@@ -648,7 +648,7 @@ pub trait FormControl {
         let elem = self.to_element();
         let node = NodeCast::from_ref(elem);
 
-        // https://html.spec.whatwg.org/multipage/syntax.html#create-an-element-for-the-token
+        // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
         // Part of step 4.
         // '..suppress the running of the reset the form owner algorithm
         // when the parser subsequently attempts to insert the element..'

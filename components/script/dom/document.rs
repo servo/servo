@@ -155,7 +155,7 @@ pub struct Document {
     /// their 'form' content attribute. Used to reset form controls
     /// whenever any element with the same ID as the form attribute
     /// is inserted or removed from the document.
-    /// See https://html.spec.whatwg.org/multipage/forms.html#form-owner
+    /// See https://html.spec.whatwg.org/multipage/#form-owner
     form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
 }
 

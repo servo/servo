@@ -297,7 +297,7 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
     make_setter!(SetPlaceholder, "placeholder");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fae-form
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
     }

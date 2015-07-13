@@ -103,7 +103,7 @@ impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fae-form
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
     }
