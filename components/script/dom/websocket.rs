@@ -169,8 +169,15 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     }
 
     fn Send(self, data: Option<USVString>) -> Fallible<()> {
-        if self.ready_state.get() == WebSocketRequestState::Connecting {
-            return Err(Error::InvalidState);
+        match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                return Err(Error::InvalidState);
+            },
+            WebSocketRequestState::Open => (),
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
+                // TODO: Update bufferedAmount.
+                return Ok(());
+            }
         }
 
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
