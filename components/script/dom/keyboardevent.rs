@@ -784,15 +784,11 @@ impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
     }
 
     fn Key(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let key_string = self.key_string.borrow();
-        key_string.clone()
+        self.key_string.borrow().clone()
     }
 
     fn Code(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let code = self.code.borrow();
-        code.clone()
+        self.code.borrow().clone()
     }
 
     fn Location(self) -> u32 {

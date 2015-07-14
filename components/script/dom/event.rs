@@ -180,9 +180,7 @@ impl<'a> EventMethods for &'a Event {
 
     // https://dom.spec.whatwg.org/#dom-event-type
     fn Type(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let type_ = self.type_.borrow();
-        type_.clone()
+        self.type_.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target
