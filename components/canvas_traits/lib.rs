@@ -5,7 +5,11 @@
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
 #![feature(core)]
+#![feature(custom_derive)]
 #![feature(nonzero)]
+#![feature(plugin)]
+#![plugin(serde_macros)]
+
 extern crate core;
 extern crate azure;
 extern crate euclid;
@@ -14,6 +18,7 @@ extern crate gfx_traits;
 extern crate ipc_channel;
 extern crate layers;
 extern crate offscreen_gl_context;
+extern crate serde;
 
 use azure::azure::{AzFloat, AzColor};
 use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
@@ -26,28 +31,51 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use gfx_traits::color;
-use std::sync::mpsc::{Sender};
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use std::sync::mpsc::Sender;
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use core::nonzero::NonZero;
-use ipc_channel::ipc::IpcSharedMemory;
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
     Common(CanvasCommonMsg),
+    FromLayout(FromLayoutMsg),
+    FromPaint(FromPaintMsg),
     WebGL(CanvasWebGLMsg),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasCommonMsg {
     Close,
     Recreate(Size2D<i32>),
-    SendPixelContents(Sender<IpcSharedMemory>),
-    SendNativeSurface(Sender<NativeSurface>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum FromLayoutMsg {
+    SendPixelContents(IpcSender<IpcSharedMemory>),
 }
 
 #[derive(Clone)]
+pub enum FromPaintMsg {
+    SendNativeSurface(Sender<NativeSurface>),
+}
+
+impl Serialize for FromPaintMsg {
+    fn serialize<S>(&self, _: &mut S) -> Result<(),S::Error> where S: Serializer {
+        panic!("can't serialize a `FromPaintMsg`!")
+    }
+}
+
+impl Deserialize for FromPaintMsg {
+    fn deserialize<D>(_: &mut D) -> Result<FromPaintMsg,D::Error> where D: Deserializer {
+        panic!("can't deserialize a `FromPaintMsg`!")
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
@@ -60,7 +88,7 @@ pub enum Canvas2dMsg {
     ClosePath,
     Fill,
     FillRect(Rect<f32>),
-    GetImageData(Rect<f64>, Size2D<f64>, Sender<Vec<u8>>),
+    GetImageData(Rect<f64>, Size2D<f64>, IpcSender<Vec<u8>>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     PutImageData(Vec<u8>, Rect<f64>, Option<Rect<f64>>),
@@ -85,9 +113,9 @@ pub enum Canvas2dMsg {
     SetShadowColor(RGBA),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasWebGLMsg {
-    GetContextAttributes(Sender<GLContextAttributes>),
+    GetContextAttributes(IpcSender<GLContextAttributes>),
     ActiveTexture(u32),
     BlendColor(f32, f32, f32, f32),
     BlendEquation(u32),
@@ -99,12 +127,12 @@ pub enum CanvasWebGLMsg {
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     CompileShader(u32),
-    CreateBuffer(Sender<Option<NonZero<u32>>>),
-    CreateFramebuffer(Sender<Option<NonZero<u32>>>),
-    CreateRenderbuffer(Sender<Option<NonZero<u32>>>),
-    CreateTexture(Sender<Option<NonZero<u32>>>),
-    CreateProgram(Sender<Option<NonZero<u32>>>),
-    CreateShader(u32, Sender<Option<NonZero<u32>>>),
+    CreateBuffer(IpcSender<Option<NonZero<u32>>>),
+    CreateFramebuffer(IpcSender<Option<NonZero<u32>>>),
+    CreateRenderbuffer(IpcSender<Option<NonZero<u32>>>),
+    CreateTexture(IpcSender<Option<NonZero<u32>>>),
+    CreateProgram(IpcSender<Option<NonZero<u32>>>),
+    CreateShader(u32, IpcSender<Option<NonZero<u32>>>),
     DeleteBuffer(u32),
     DeleteFramebuffer(u32),
     DeleteRenderbuffer(u32),
@@ -117,21 +145,21 @@ pub enum CanvasWebGLMsg {
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
     EnableVertexAttribArray(u32),
-    GetShaderInfoLog(u32, Sender<Option<String>>),
-    GetShaderParameter(u32, u32, Sender<WebGLShaderParameter>),
-    GetAttribLocation(u32, String, Sender<Option<i32>>),
-    GetUniformLocation(u32, String, Sender<Option<i32>>),
+    GetShaderInfoLog(u32, IpcSender<Option<String>>),
+    GetShaderParameter(u32, u32, IpcSender<WebGLShaderParameter>),
+    GetAttribLocation(u32, String, IpcSender<Option<i32>>),
+    GetUniformLocation(u32, String, IpcSender<Option<i32>>),
     LinkProgram(u32),
     ShaderSource(u32, String),
     Uniform4fv(i32, Vec<f32>),
     UseProgram(u32),
     VertexAttribPointer2f(u32, i32, bool, i32, i64),
     Viewport(i32, i32, i32, i32),
-    DrawingBufferWidth(Sender<i32>),
-    DrawingBufferHeight(Sender<i32>),
+    DrawingBufferWidth(IpcSender<i32>),
+    DrawingBufferHeight(IpcSender<i32>),
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Deserialize, Serialize)]
 pub enum WebGLError {
     InvalidEnum,
     InvalidOperation,
@@ -142,26 +170,26 @@ pub enum WebGLError {
 
 pub type WebGLResult<T> = Result<T, WebGLError>;
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum WebGLFramebufferBindingRequest {
     Explicit(u32),
     Default,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum WebGLShaderParameter {
     Int(i32),
     Bool(bool),
     Invalid,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct CanvasGradientStop {
     pub offset: f64,
     pub color: RGBA,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct LinearGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -183,7 +211,7 @@ impl LinearGradientStyle {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -209,7 +237,7 @@ impl RadialGradientStyle {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct SurfaceStyle {
     pub surface_data: Vec<u8>,
     pub surface_size: Size2D<i32>,
@@ -230,7 +258,7 @@ impl SurfaceStyle {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum FillOrStrokeStyle {
     Color(RGBA),
     LinearGradient(LinearGradientStyle),
@@ -293,7 +321,7 @@ impl FillOrStrokeStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub enum LineCapStyle {
     Butt = 0,
     Round = 1,
@@ -319,7 +347,7 @@ impl LineCapStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub enum LineJoinStyle {
     Round = 0,
     Bevel = 1,
@@ -345,7 +373,7 @@ impl LineJoinStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub enum RepetitionStyle {
     Repeat,
     RepeatX,
@@ -365,7 +393,7 @@ impl RepetitionStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub enum CompositionStyle {
     SrcIn,
     SrcOut,
@@ -431,7 +459,7 @@ impl CompositionStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub enum BlendingStyle {
     Multiply,
     Screen,
@@ -513,7 +541,7 @@ impl BlendingStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub enum CompositionOrBlending {
     Composition(CompositionStyle),
     Blending(BlendingStyle),

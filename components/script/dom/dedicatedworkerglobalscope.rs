@@ -24,7 +24,7 @@ use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
 use script_task::StackRootTLS;
 
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{ConstellationChan, PipelineId};
 
 use devtools_traits::DevtoolsControlChan;
 
@@ -113,6 +113,7 @@ impl DedicatedWorkerGlobalScope {
                      devtools_chan: Option<DevtoolsControlChan>,
                      runtime: Rc<Runtime>,
                      resource_task: ResourceTask,
+                     constellation_chan: ConstellationChan,
                      parent_sender: Box<ScriptChan+Send>,
                      own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                      receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
@@ -120,7 +121,7 @@ impl DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url,
-                runtime, resource_task, mem_profiler_chan, devtools_chan),
+                runtime, resource_task, mem_profiler_chan, devtools_chan, constellation_chan),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -135,13 +136,14 @@ impl DedicatedWorkerGlobalScope {
                devtools_chan: Option<DevtoolsControlChan>,
                runtime: Rc<Runtime>,
                resource_task: ResourceTask,
+               constellation_chan: ConstellationChan,
                parent_sender: Box<ScriptChan+Send>,
                own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             worker_url, id, mem_profiler_chan, devtools_chan, runtime.clone(), resource_task,
-            parent_sender, own_sender, receiver);
+            constellation_chan, parent_sender, own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 }
@@ -153,6 +155,7 @@ impl DedicatedWorkerGlobalScope {
                             devtools_chan: Option<DevtoolsControlChan>,
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
+                            constellation_chan: ConstellationChan,
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
@@ -180,7 +183,7 @@ impl DedicatedWorkerGlobalScope {
             let parent_sender_for_reporter = parent_sender.clone();
             let global = DedicatedWorkerGlobalScope::new(
                 url, id, mem_profiler_chan.clone(), devtools_chan, runtime.clone(), resource_task,
-                parent_sender, own_sender, receiver);
+                constellation_chan, parent_sender, own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let reporter_name = format!("worker-reporter-{}", random::<u64>());

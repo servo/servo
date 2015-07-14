@@ -55,6 +55,10 @@ git = "https://github.com/servo/rust-selectors"
 [dependencies.clock_ticks]
 git = "https://github.com/tomaka/clock_ticks"
 
+[dependencies.cssparser]
+version = "0.3"
+features = [ "serde-serialization" ]
+
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
@@ -66,7 +70,6 @@ url = "0.2.36"
 bitflags = "0.3"
 rustc-serialize = "0.3"
 libc = "0.1"
-cssparser = "0.3.1"
 smallvec = "0.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"

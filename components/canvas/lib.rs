@@ -13,12 +13,12 @@ extern crate azure;
 extern crate cssparser;
 extern crate euclid;
 extern crate gfx_traits;
+extern crate ipc_channel;
 extern crate util;
 extern crate gleam;
 extern crate num;
 extern crate layers;
 extern crate offscreen_gl_context;
-extern crate ipc_channel;
 
 #[macro_use]
 extern crate log;

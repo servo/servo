@@ -11,6 +11,9 @@
 
 use pipeline::{Pipeline, CompositionPipeline};
 
+use canvas::canvas_paint_task::CanvasPaintTask;
+use canvas::webgl_paint_task::WebGLPaintTask;
+use canvas_traits::CanvasMsg;
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
@@ -35,6 +38,7 @@ use msg::webdriver_msg;
 use net_traits::{self, ResourceTask};
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
+use offscreen_gl_context::GLContextAttributes;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
@@ -44,7 +48,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use style::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
@@ -126,7 +130,13 @@ pub struct Constellation<LTF, STF> {
     clipboard_ctx: Option<ClipboardContext>,
 
     /// Bits of state used to interact with the webdriver implementation
-    webdriver: WebDriverData
+    webdriver: WebDriverData,
+
+    /// A list of in-process senders to `CanvasPaintTask`s.
+    canvas_paint_tasks: Vec<Sender<CanvasMsg>>,
+
+    /// A list of in-process senders to `WebGLPaintTask`s.
+    webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
@@ -255,7 +265,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 } else {
                     None
                 },
-                webdriver: WebDriverData::new()
+                webdriver: WebDriverData::new(),
+                canvas_paint_tasks: Vec::new(),
+                webgl_paint_tasks: Vec::new(),
             };
             constellation.run();
         });
@@ -486,6 +498,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             ConstellationMsg::HeadParsed => {
                 debug!("constellation got head parsed message");
                 self.compositor_proxy.send(CompositorMsg::HeadParsed);
+            }
+            ConstellationMsg::CreateCanvasPaintTask(size, sender) => {
+                debug!("constellation got create-canvas-paint-task message");
+                self.handle_create_canvas_paint_task_msg(&size, sender)
+            }
+            ConstellationMsg::CreateWebGLPaintTask(size, attributes, sender) => {
+                debug!("constellation got create-WebGL-paint-task message");
+                self.handle_create_webgl_paint_task_msg(&size, attributes, sender)
             }
         }
         true
@@ -905,6 +925,28 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
             }
         }
+    }
+
+    fn handle_create_canvas_paint_task_msg(
+            &mut self,
+            size: &Size2D<i32>,
+            response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
+        let id = self.canvas_paint_tasks.len();
+        let (out_of_process_sender, in_process_sender) = CanvasPaintTask::start(*size);
+        self.canvas_paint_tasks.push(in_process_sender);
+        response_sender.send((out_of_process_sender, id)).unwrap()
+    }
+
+    fn handle_create_webgl_paint_task_msg(
+            &mut self,
+            size: &Size2D<i32>,
+            attributes: GLContextAttributes,
+            response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
+        let id = self.webgl_paint_tasks.len();
+        let (out_of_process_sender, in_process_sender) =
+            WebGLPaintTask::start(*size, attributes).unwrap();
+        self.webgl_paint_tasks.push(in_process_sender);
+        response_sender.send((out_of_process_sender, id)).unwrap()
     }
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {

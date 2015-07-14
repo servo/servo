@@ -22,6 +22,15 @@ git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.serde]
+version = "0.4"
+features = [ "nightly" ]
+
+[dependencies.cssparser]
+version = "0.3"
+features = [ "serde-serialization" ]
+
 [dependencies]
-cssparser = "0.3.1"
 euclid = "0.1"
+serde_macros = "0.4"
+
