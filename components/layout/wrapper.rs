@@ -211,7 +211,9 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
+impl<'ln> ::selectors::Node for LayoutNode<'ln> {
+    type Element = LayoutElement<'ln>;
+
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -257,6 +259,14 @@ impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
         match self.type_id() {
             NodeTypeId::Document(..) => true,
             _ => false
+        }
+    }
+
+    fn is_element_or_non_empty_text(&self) -> bool {
+        // FIXME(pcwalton): Doesn't check if non-empty text.
+        match self.type_id() {
+            NodeTypeId::Element(..) => true,
+            _ => false,
         }
     }
 }
@@ -932,10 +942,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn renderer(&self) -> Option<Sender<CanvasMsg>> {
+    pub fn in_process_renderer(&self) -> Option<Sender<CanvasMsg>> {
         unsafe {
             let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.and_then(|elem| elem.get_renderer())
+            canvas_element.and_then(|elem| elem.get_in_process_renderer())
         }
     }
 

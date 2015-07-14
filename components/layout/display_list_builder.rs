@@ -21,6 +21,7 @@ use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
 use table_cell::CollapsedBordersForCell;
 
+use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
 use euclid::Matrix4;
 use gfx_traits::color;
@@ -40,6 +41,7 @@ use net_traits::image::base::{Image, PixelFormat};
 use std::cmp;
 use std::default::Default;
 use std::sync::Arc;
+use std::sync::mpsc::channel;
 use std::f32;
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin,
@@ -58,9 +60,6 @@ use util::cursor::Cursor;
 use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
-
-use canvas_traits::{CanvasMsg, CanvasCommonMsg};
-use std::sync::mpsc::channel;
 
 /// A possible `PaintLayer` for an stacking context
 pub enum StackingContextLayer {
@@ -1099,10 +1098,10 @@ impl FragmentDisplayListBuilding for Fragment {
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
                 let (sender, receiver) = channel::<Vec<u8>>();
-                let canvas_data = match canvas_fragment_info.renderer {
+                let canvas_data = match canvas_fragment_info.in_process_renderer {
                     Some(ref renderer) =>  {
-                        renderer.lock().unwrap().send(CanvasMsg::Common(
-                                CanvasCommonMsg::SendPixelContents(sender))).unwrap();
+                        renderer.lock().unwrap().send(CanvasMsg::FromLayout(
+                                    FromLayoutMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
                     None => vec![0xFFu8; width * height * 4],
@@ -1248,7 +1247,7 @@ impl FragmentDisplayListBuilding for Fragment {
         if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
             let layer_id = layer.as_ref().unwrap().id;
             layout_context.shared.canvas_layers_sender
-                .send((layer_id, fragment_info.renderer.clone())).unwrap();
+                .send((layer_id, fragment_info.in_process_renderer.clone())).unwrap();
         }
 
         let transform_style = self.style().get_used_transform_style();
