@@ -208,7 +208,11 @@ impl<'a> WebSocketMethods for &'a WebSocket {
         self.ready_state.get() as u16
     }
 
-    fn Send(self, data: Option<USVString>)-> Fallible<()>{
+    fn Send(self, data: Option<USVString>) -> Fallible<()> {
+        if self.ready_state.get() == WebSocketRequestState::Connecting {
+            return Err(Error::InvalidState);
+        }
+
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
                 "If argument is a string"
           TODO: Need to buffer data
