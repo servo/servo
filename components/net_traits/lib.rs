@@ -31,7 +31,6 @@ use msg::constellation_msg::{PipelineId};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
 
-use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::thread;
 

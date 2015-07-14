@@ -340,6 +340,8 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,
                         };
+                        // TODO(pcwalton): Share this thread with other network listeners for each
+                        // script task.
                         thread::spawn(move || listener.run());
 
                         doc.r().load_async(LoadType::Script(url), response_target);
