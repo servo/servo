@@ -1645,22 +1645,10 @@ impl<'a> ::selectors::Element for &'a Element {
     }
 
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn get_local_name<'a, T: ElementHelpers<'a>>(this: T) -> &'a Atom {
-            this.local_name()
-        }
-
-        get_local_name(*self)
+        ElementHelpers::local_name(*self)
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn get_namespace<'a, T: ElementHelpers<'a>>(this: T) -> &'a Namespace {
-            this.namespace()
-        }
-
-        get_namespace(*self)
+        self.namespace()
     }
     fn get_hover_state(&self) -> bool {
         let node = NodeCast::from_ref(*self);
@@ -1707,13 +1695,7 @@ impl<'a> ::selectors::Element for &'a Element {
         }
     }
     fn has_class(&self, name: &Atom) -> bool {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn has_class<T: AttributeHandlers>(this: T, name: &Atom) -> bool {
-            this.has_class(name)
-        }
-
-        has_class(*self, name)
+        AttributeHandlers::has_class(*self, name)
     }
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
