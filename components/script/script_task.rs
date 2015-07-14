@@ -1619,6 +1619,7 @@ impl ScriptTask {
             script_chan: script_chan.clone(),
             receiver: action_receiver,
         };
+        // TODO(pcwalton): Share this thread with other network listeners for each script task.
         thread::spawn(move || listener.run());
         let response_target = AsyncResponseTarget {
             sender: action_sender,
