@@ -279,7 +279,7 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(consumer, Metadata::default(load_data.url.clone()))
+                start_sending(consumer, Metadata::default(load_data.url))
                     .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }
