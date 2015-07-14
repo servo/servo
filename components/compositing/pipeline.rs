@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorProxy;
-use layout_traits::{LayoutControlMsg, LayoutTaskFactory, LayoutControlChan};
-use script_traits::{ScriptControlChan, ScriptTaskFactory};
+use layout_traits::{LayoutTaskFactory, LayoutControlChan};
+use script_traits::{LayoutControlMsg, ScriptControlChan, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use compositor_task;
@@ -14,17 +14,19 @@ use euclid::scale_factor::ScaleFactor;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcReceiver};
 use layers::geometry::DevicePixel;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
-use profile_traits::mem;
+use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
-use std::sync::mpsc::{Receiver, channel};
+use std::any::Any;
+use std::mem;
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
@@ -74,63 +76,33 @@ impl Pipeline {
                            resource_task: ResourceTask,
                            storage_task: StorageTask,
                            time_profiler_chan: time::ProfilerChan,
-                           mem_profiler_chan: mem::ProfilerChan,
+                           mem_profiler_chan: profile_mem::ProfilerChan,
                            window_rect: Option<TypedRect<PagePx, f32>>,
                            script_chan: Option<ScriptControlChan>,
                            load_data: LoadData,
                            device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
-                           -> Pipeline
+                           -> (Pipeline, PipelineContent)
                            where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
-        let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
         let (paint_port, paint_chan) = PaintChan::new();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
         let (pipeline_chan, pipeline_port) = ipc::channel().unwrap();
+        let mut pipeline_port = Some(pipeline_port);
 
         let failure = Failure {
             pipeline_id: id,
             parent_info: parent_info,
         };
 
-        let script_chan = match script_chan {
-            None => {
-                let (script_chan, script_port) = channel();
-                let (script_to_compositor_chan, script_to_compositor_port) =
-                    ipc::channel().unwrap();
-
-                let window_size = window_rect.map(|rect| {
-                    WindowSizeData {
-                        visible_viewport: rect.size,
-                        initial_viewport: rect.size * ScaleFactor::new(1.0),
-                        device_pixel_ratio: device_pixel_ratio,
-                    }
-                });
-
-                let compositor_proxy_for_script_listener_thread =
-                    compositor_proxy.clone_compositor_proxy();
-                thread::spawn(move || {
-                    compositor_task::run_script_listener_thread(
-                        compositor_proxy_for_script_listener_thread,
-                        script_to_compositor_port)
-                });
-
-                ScriptTaskFactory::create(None::<&mut STF>,
-                                          id,
-                                          parent_info,
-                                          ScriptListener::new(script_to_compositor_chan),
-                                          &layout_pair,
-                                          ScriptControlChan(script_chan.clone()),
-                                          script_port,
-                                          constellation_chan.clone(),
-                                          failure.clone(),
-                                          resource_task,
-                                          storage_task.clone(),
-                                          image_cache_task.clone(),
-                                          devtools_chan,
-                                          window_size,
-                                          load_data.clone());
-                ScriptControlChan(script_chan)
+        let window_size = window_rect.map(|rect| {
+            WindowSizeData {
+                visible_viewport: rect.size,
+                initial_viewport: rect.size * ScaleFactor::new(1.0),
+                device_pixel_ratio: device_pixel_ratio,
             }
+        });
+
+        let (script_chan, script_port) = match script_chan {
             Some(script_chan) => {
                 let (containing_pipeline_id, subpage_id) =
                     parent_info.expect("script_pipeline != None but subpage_id == None");
@@ -138,54 +110,59 @@ impl Pipeline {
                     containing_pipeline_id: containing_pipeline_id,
                     new_pipeline_id: id,
                     subpage_id: subpage_id,
-                    layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>,
-                                                                         &layout_pair),
                     load_data: load_data.clone(),
+                    paint_chan: box() (paint_chan.clone()) as Box<Any + Send>,
+                    failure: failure,
+                    pipeline_port: mem::replace(&mut pipeline_port, None).unwrap(),
+                    layout_shutdown_chan: layout_shutdown_chan.clone(),
                 };
 
-                let ScriptControlChan(ref chan) = script_chan;
-                chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)).unwrap();
-                script_chan.clone()
+                script_chan.0
+                           .send(ConstellationControlMsg::AttachLayout(new_layout_info))
+                           .unwrap();
+                (script_chan, None)
+            }
+            None => {
+                let (script_chan, script_port) = channel();
+                (ScriptControlChan(script_chan), Some(script_port))
             }
         };
 
-        PaintTask::create(id,
-                          load_data.url.clone(),
-                          paint_chan.clone(),
-                          paint_port,
-                          compositor_proxy,
-                          constellation_chan.clone(),
-                          font_cache_task.clone(),
-                          failure.clone(),
-                          time_profiler_chan.clone(),
-                          mem_profiler_chan.clone(),
-                          paint_shutdown_chan);
+        let pipeline = Pipeline::new(id,
+                                     parent_info,
+                                     script_chan.clone(),
+                                     LayoutControlChan(pipeline_chan),
+                                     paint_chan.clone(),
+                                     layout_shutdown_port,
+                                     paint_shutdown_port,
+                                     load_data.url.clone(),
+                                     window_rect);
 
-        LayoutTaskFactory::create(None::<&mut LTF>,
-                                  id,
-                                  load_data.url.clone(),
-                                  parent_info.is_some(),
-                                  layout_pair,
-                                  pipeline_port,
-                                  constellation_chan,
-                                  failure,
-                                  script_chan.clone(),
-                                  paint_chan.clone(),
-                                  image_cache_task,
-                                  font_cache_task,
-                                  time_profiler_chan,
-                                  mem_profiler_chan,
-                                  layout_shutdown_chan);
+        let pipeline_content = PipelineContent {
+            id: id,
+            parent_info: parent_info,
+            constellation_chan: constellation_chan,
+            compositor_proxy: compositor_proxy,
+            devtools_chan: devtools_chan,
+            image_cache_task: image_cache_task,
+            font_cache_task: font_cache_task,
+            resource_task: resource_task,
+            storage_task: storage_task,
+            time_profiler_chan: time_profiler_chan,
+            mem_profiler_chan: mem_profiler_chan,
+            window_size: window_size,
+            script_chan: script_chan,
+            load_data: load_data,
+            failure: failure,
+            script_port: script_port,
+            paint_chan: paint_chan,
+            paint_port: Some(paint_port),
+            pipeline_port: pipeline_port,
+            paint_shutdown_chan: paint_shutdown_chan,
+            layout_shutdown_chan: layout_shutdown_chan,
+        };
 
-        Pipeline::new(id,
-                      parent_info,
-                      script_chan,
-                      LayoutControlChan(pipeline_chan),
-                      paint_chan,
-                      layout_shutdown_port,
-                      paint_shutdown_port,
-                      load_data.url,
-                      window_rect)
+        (pipeline, pipeline_content)
     }
 
     pub fn new(id: PipelineId,
@@ -289,3 +266,92 @@ impl Pipeline {
         script_channel.send(event).unwrap();
     }
 }
+
+pub struct PipelineContent {
+    id: PipelineId,
+    parent_info: Option<(PipelineId, SubpageId)>,
+    constellation_chan: ConstellationChan,
+    compositor_proxy: Box<CompositorProxy + Send + 'static>,
+    devtools_chan: Option<DevtoolsControlChan>,
+    image_cache_task: ImageCacheTask,
+    font_cache_task: FontCacheTask,
+    resource_task: ResourceTask,
+    storage_task: StorageTask,
+    time_profiler_chan: time::ProfilerChan,
+    mem_profiler_chan: profile_mem::ProfilerChan,
+    window_size: Option<WindowSizeData>,
+    script_chan: ScriptControlChan,
+    load_data: LoadData,
+    failure: Failure,
+    script_port: Option<Receiver<ConstellationControlMsg>>,
+    paint_chan: PaintChan,
+    paint_port: Option<Receiver<PaintMsg>>,
+    paint_shutdown_chan: Sender<()>,
+    pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
+    layout_shutdown_chan: Sender<()>,
+}
+
+impl PipelineContent {
+    pub fn start_all<LTF,STF>(mut self) where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
+        let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
+        let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel().unwrap();
+
+        self.start_paint_task();
+
+        let compositor_proxy_for_script_listener_thread =
+            self.compositor_proxy.clone_compositor_proxy();
+        thread::spawn(move || {
+            compositor_task::run_script_listener_thread(
+                compositor_proxy_for_script_listener_thread,
+                script_to_compositor_port)
+        });
+
+        ScriptTaskFactory::create(None::<&mut STF>,
+                                  self.id,
+                                  self.parent_info,
+                                  ScriptListener::new(script_to_compositor_chan),
+                                  &layout_pair,
+                                  self.script_chan.clone(),
+                                  mem::replace(&mut self.script_port, None).unwrap(),
+                                  self.constellation_chan.clone(),
+                                  self.failure.clone(),
+                                  self.resource_task,
+                                  self.storage_task.clone(),
+                                  self.image_cache_task.clone(),
+                                  self.devtools_chan,
+                                  self.window_size,
+                                  self.load_data.clone());
+
+        LayoutTaskFactory::create(None::<&mut LTF>,
+                                  self.id,
+                                  self.load_data.url.clone(),
+                                  self.parent_info.is_some(),
+                                  layout_pair,
+                                  self.pipeline_port.unwrap(),
+                                  self.constellation_chan,
+                                  self.failure,
+                                  self.script_chan.clone(),
+                                  self.paint_chan.clone(),
+                                  self.image_cache_task,
+                                  self.font_cache_task,
+                                  self.time_profiler_chan,
+                                  self.mem_profiler_chan,
+                                  self.layout_shutdown_chan);
+    }
+
+    pub fn start_paint_task(&mut self) {
+        PaintTask::create(self.id,
+                          self.load_data.url.clone(),
+                          self.paint_chan.clone(),
+                          mem::replace(&mut self.paint_port, None).unwrap(),
+                          self.compositor_proxy.clone_compositor_proxy(),
+                          self.constellation_chan.clone(),
+                          self.font_cache_task.clone(),
+                          self.failure.clone(),
+                          self.time_profiler_chan.clone(),
+                          self.mem_profiler_chan.clone(),
+                          self.paint_shutdown_chan.clone());
+
+    }
+}
+

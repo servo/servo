@@ -1111,6 +1111,7 @@ dependencies = [
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "layout_traits 0.0.1",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -1150,9 +1151,12 @@ version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
  "euclid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "serde 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]

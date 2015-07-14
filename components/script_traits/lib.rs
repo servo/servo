@@ -6,18 +6,24 @@
 //! The traits are here instead of in script so that these modules won't have
 //! to depend on script.
 
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
 #![deny(missing_docs)]
 
 extern crate devtools_traits;
 extern crate euclid;
+extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
+extern crate serde;
 extern crate util;
 extern crate url;
 
 use devtools_traits::DevtoolsControlChan;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
+use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
@@ -29,6 +35,7 @@ use net_traits::storage_task::StorageTask;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
+use util::geometry::Au;
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -40,6 +47,19 @@ use euclid::rect::Rect;
 pub struct UntrustedNodeAddress(pub *const c_void);
 unsafe impl Send for UntrustedNodeAddress {}
 
+/// Messages sent to the layout task from the constellation and/or compositor.
+#[derive(Deserialize, Serialize)]
+pub enum LayoutControlMsg {
+    /// Requests that this layout task exit.
+    ExitNow(PipelineExitType),
+    /// Requests the current epoch (layout counter) from this layout.
+    GetCurrentEpoch(IpcSender<Epoch>),
+    /// Asks layout to run another step in its animation.
+    TickAnimations,
+    /// Informs layout as to which regions of the page are visible.
+    SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
+}
+
 /// The initial data associated with a newly-created framed pipeline.
 pub struct NewLayoutInfo {
     /// Id of the parent of this new pipeline.
@@ -48,11 +68,19 @@ pub struct NewLayoutInfo {
     pub new_pipeline_id: PipelineId,
     /// Id of the new frame associated with this pipeline.
     pub subpage_id: SubpageId,
-    /// Channel for communicating with this new pipeline's layout task.
-    /// (This is a LayoutChannel.)
-    pub layout_chan: Box<Any+Send>,
     /// Network request data which will be initiated by the script task.
     pub load_data: LoadData,
+    /// The paint channel, cast to `Box<Any>`.
+    ///
+    /// TODO(pcwalton): When we convert this to use IPC, this will need to become an
+    /// `IpcAnySender`.
+    pub paint_chan: Box<Any + Send>,
+    /// Information on what to do on task failure.
+    pub failure: Failure,
+    /// A port on which layout can receive messages from the pipeline.
+    pub pipeline_port: IpcReceiver<LayoutControlMsg>,
+    /// A shutdown channel so that layout can notify others when it's done.
+    pub layout_shutdown_chan: Sender<()>,
 }
 
 /// `StylesheetLoadResponder` is used to notify a responder that a style sheet
