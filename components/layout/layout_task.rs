@@ -40,7 +40,7 @@ use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
 use ipc_channel::ipc::IpcReceiver;
-use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
+use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -53,10 +53,10 @@ use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheC
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse};
-use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
-use script::layout_interface::{MouseOverResponse, Msg, Reflow, ReflowGoal, ReflowQueryType};
+use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
+use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -559,6 +559,9 @@ impl LayoutTask {
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
                 sender.send(rw_data.epoch).unwrap();
             },
+            Msg::CreateLayoutTask(info) => {
+                self.create_layout_task(info)
+            }
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
@@ -605,6 +608,24 @@ impl LayoutTask {
         }
 
         reports_chan.send(reports);
+    }
+
+    fn create_layout_task(&self, info: NewLayoutTaskInfo) {
+        LayoutTaskFactory::create(None::<&mut LayoutTask>,
+                                  info.id,
+                                  info.url.clone(),
+                                  info.is_parent,
+                                  info.layout_pair,
+                                  info.pipeline_port,
+                                  info.constellation_chan,
+                                  info.failure,
+                                  ScriptControlChan(info.script_chan.clone()),
+                                  *info.paint_chan.downcast::<PaintChan>().unwrap(),
+                                  self.image_cache_task.clone(),
+                                  self.font_cache_task.clone(),
+                                  self.time_profiler_chan.clone(),
+                                  self.mem_profiler_chan.clone(),
+                                  info.layout_shutdown_chan);
     }
 
     /// Enters a quiescent state in which no new messages except for
@@ -1399,3 +1420,4 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
+
