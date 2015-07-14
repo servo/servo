@@ -324,7 +324,7 @@ impl<'a> RangeMethods for &'a Range {
         let end_offset = end.offset();
 
         // Step 1.
-        let fragment = DocumentFragment::new(start_node.r().owner_doc().r());
+        let fragment = DocumentFragment::new(start_node.owner_doc().r());
 
         // Step 2.
         if start == end {
@@ -332,10 +332,10 @@ impl<'a> RangeMethods for &'a Range {
         }
 
         if end_node == start_node {
-            match end_node.r().type_id() {
+            match end_node.type_id() {
                 NodeTypeId::CharacterData(_) => {
                     // Step 4.1.
-                    let clone = start_node.r().CloneNode(true);
+                    let clone = start_node.CloneNode(true);
                     // Step 4.2.
                     let text = CharacterDataCast::to_ref(start_node.r())
                                    .unwrap()
@@ -389,11 +389,11 @@ impl<'a> RangeMethods for &'a Range {
         }
 
         if let Some(child) = first_contained_child {
-            match child.r().type_id() {
+            match child.type_id() {
                 // Step 13.
                 NodeTypeId::CharacterData(_) => {
                     // Step 13.1.
-                    let clone = start_node.r().CloneNode(true);
+                    let clone = start_node.CloneNode(true);
                     // Step 13.2.
                     let text = CharacterDataCast::to_ref(start_node.r())
                                    .unwrap()
@@ -431,11 +431,11 @@ impl<'a> RangeMethods for &'a Range {
         }
 
         if let Some(child) = last_contained_child {
-            match child.r().type_id() {
+            match child.type_id() {
                 // Step 16.
                 NodeTypeId::CharacterData(_) => {
                     // Step 16.1.
-                    let clone = end_node.r().CloneNode(true);
+                    let clone = end_node.CloneNode(true);
                     // Step 16.2.
                     let text = CharacterDataCast::to_ref(end_node.r())
                                    .unwrap()
