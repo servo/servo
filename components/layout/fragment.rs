@@ -291,7 +291,7 @@ impl InlineAbsoluteFragmentInfo {
 #[derive(Clone)]
 pub struct CanvasFragmentInfo {
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
-    pub renderer: Option<Arc<Mutex<Sender<CanvasMsg>>>>,
+    pub in_process_renderer: Option<Arc<Mutex<Sender<CanvasMsg>>>>,
 }
 
 impl CanvasFragmentInfo {
@@ -300,7 +300,7 @@ impl CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 Some(Au::from_px(node.canvas_width() as i32)),
                 Some(Au::from_px(node.canvas_height() as i32))),
-            renderer: node.renderer().map(|rec| Arc::new(Mutex::new(rec))),
+            in_process_renderer: node.in_process_renderer().map(|rec| Arc::new(Mutex::new(rec))),
         }
     }
 
