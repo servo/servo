@@ -102,27 +102,35 @@ impl Pipeline {
             }
         });
 
-        if let Some(ref script_chan) = script_chan {
-            let (containing_pipeline_id, subpage_id) =
-                parent_info.expect("script_pipeline != None but subpage_id == None");
-            let new_layout_info = NewLayoutInfo {
-                containing_pipeline_id: containing_pipeline_id,
-                new_pipeline_id: id,
-                subpage_id: subpage_id,
-                load_data: load_data.clone(),
-                paint_chan: box() (paint_chan.clone()) as Box<Any + Send>,
-                failure: failure,
-                pipeline_port: mem::replace(&mut pipeline_port, None).unwrap(),
-                layout_shutdown_chan: layout_shutdown_chan.clone(),
-            };
+        let (script_chan, script_port) = match script_chan {
+            Some(script_chan) => {
+                let (containing_pipeline_id, subpage_id) =
+                    parent_info.expect("script_pipeline != None but subpage_id == None");
+                let new_layout_info = NewLayoutInfo {
+                    containing_pipeline_id: containing_pipeline_id,
+                    new_pipeline_id: id,
+                    subpage_id: subpage_id,
+                    load_data: load_data.clone(),
+                    paint_chan: box() (paint_chan.clone()) as Box<Any + Send>,
+                    failure: failure,
+                    pipeline_port: mem::replace(&mut pipeline_port, None).unwrap(),
+                    layout_shutdown_chan: layout_shutdown_chan.clone(),
+                };
 
-            script_chan.0.send(ConstellationControlMsg::AttachLayout(new_layout_info)).unwrap();
-        }
+                script_chan.0
+                           .send(ConstellationControlMsg::AttachLayout(new_layout_info))
+                           .unwrap();
+                (script_chan, None)
+            }
+            None => {
+                let (script_chan, script_port) = channel();
+                (ScriptControlChan(script_chan), Some(script_port))
+            }
+        };
 
-        let (script_chan, script_port) = channel();
         let pipeline = Pipeline::new(id,
                                      parent_info,
-                                     ScriptControlChan(script_chan.clone()),
+                                     script_chan.clone(),
                                      LayoutControlChan(pipeline_chan),
                                      paint_chan.clone(),
                                      layout_shutdown_port,
@@ -272,10 +280,10 @@ pub struct PipelineContent {
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     window_size: Option<WindowSizeData>,
-    script_chan: Sender<ConstellationControlMsg>,
+    script_chan: ScriptControlChan,
     load_data: LoadData,
     failure: Failure,
-    script_port: Receiver<ConstellationControlMsg>,
+    script_port: Option<Receiver<ConstellationControlMsg>>,
     paint_chan: PaintChan,
     paint_port: Option<Receiver<PaintMsg>>,
     paint_shutdown_chan: Sender<()>,
@@ -303,8 +311,8 @@ impl PipelineContent {
                                   self.parent_info,
                                   ScriptListener::new(script_to_compositor_chan),
                                   &layout_pair,
-                                  ScriptControlChan(self.script_chan.clone()),
-                                  self.script_port,
+                                  self.script_chan.clone(),
+                                  mem::replace(&mut self.script_port, None).unwrap(),
                                   self.constellation_chan.clone(),
                                   self.failure.clone(),
                                   self.resource_task,
@@ -322,7 +330,7 @@ impl PipelineContent {
                                   self.pipeline_port.unwrap(),
                                   self.constellation_chan,
                                   self.failure,
-                                  ScriptControlChan(self.script_chan.clone()),
+                                  self.script_chan.clone(),
                                   self.paint_chan.clone(),
                                   self.image_cache_task,
                                   self.font_cache_task,
