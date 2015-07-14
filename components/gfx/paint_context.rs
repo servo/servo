@@ -783,7 +783,7 @@ impl<'a> PaintContext<'a> {
                 _ =>  panic!("invalid border style")
         };
 
-        let mut lighter_color;
+        let lighter_color;
         let mut darker_color = color::black();
         if color != darker_color {
             darker_color = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
