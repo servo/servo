@@ -72,7 +72,7 @@ use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
@@ -155,6 +155,15 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
 impl<T: JSTraceable> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
+    }
+}
+
+impl<T: JSTraceable + ?Sized> JSTraceable for Weak<T> {
+    fn trace(&self, trc: *mut JSTracer) {
+        match self.upgrade() {
+            Some(ptr) => ptr.trace(trc),
+            _ => ()
+        }
     }
 }
 

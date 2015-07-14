@@ -200,7 +200,7 @@ impl Drop for Node {
 /// https://dom.spec.whatwg.org/#concept-node-insert
 /// https://dom.spec.whatwg.org/#concept-node-remove
 #[derive(Copy, Clone)]
-enum SuppressObserver {
+pub enum SuppressObserver {
     Suppressed,
     Unsuppressed
 }
@@ -421,6 +421,7 @@ pub trait NodeHelpers {
     fn preceding_siblings(self) -> ReverseSiblingIterator;
     fn following_nodes(self, root: &Node) -> FollowingNodeIterator;
     fn preceding_nodes(self, root: &Node) -> PrecedingNodeIterator;
+    fn inclusive_descending_last_children(self) -> LastChildIterator;
     fn descending_last_children(self) -> LastChildIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: &Node) -> bool;
@@ -767,6 +768,12 @@ impl<'a> NodeHelpers for &'a Node {
         PrecedingNodeIterator {
             current: Some(Root::from_ref(self)),
             root: Root::from_ref(root),
+        }
+    }
+
+    fn inclusive_descending_last_children(self) -> LastChildIterator {
+        LastChildIterator {
+            current: Some(Root::from_ref(&self))
         }
     }
 
@@ -1632,7 +1639,38 @@ impl Node {
         debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
 
-        // Steps 1-2: ranges.
+        let count = match node.type_id() {
+            NodeTypeId::DocumentFragment => node.children().count() as u32,
+            _ => 1
+        };
+
+        // Step 2.
+        if let Some(child) = child {
+            for range in parent.owner_doc().ranges() {
+                match range.upgrade() {
+                    Some(range) => {
+                        let (start_node, start_offset, end_node, end_offset) = {
+                            let range = range.borrow();
+                            let start = &range.start();
+                            let end = &range.end();
+                            (start.node(), start.offset(), end.node(), end.offset())
+                        };
+
+                        // Step 2.1.
+                        if start_node.r() == parent && start_offset > child.index() {
+                            range.borrow_mut().set_start(start_node.r(), start_offset + count);
+                        }
+
+                        // Step 2.2.
+                        if end_node.r() == parent && end_offset > child.index() {
+                            range.borrow_mut().set_end(end_node.r(), end_offset + count);
+                        }
+                    },
+                    _ => ()
+                }
+            }
+        }
+
         let mut new_nodes = RootedVec::new();
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
@@ -1721,11 +1759,46 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
+    pub fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent.r() == parent));
+        // Step 1.
+        let index = node.index();
 
-        // Step 1-5: ranges.
-        // Step 6.
+        for range in node.owner_doc().ranges() {
+            match range.upgrade() {
+                Some(range) => {
+                    let (start_node, start_offset, end_node, end_offset) = {
+                        let range = range.borrow();
+                        let start = &range.start();
+                        let end = &range.end();
+                        (start.node(), start.offset(), end.node(), end.offset())
+                    };
+
+                    // Step 2.
+                    if node.is_inclusive_ancestor_of(start_node.r()) {
+                        range.borrow_mut().set_start(parent, index);
+                    }
+
+                    // Step 3.
+                    if node.is_inclusive_ancestor_of(end_node.r()) {
+                        range.borrow_mut().set_end(parent, index);
+                    }
+
+                    // Step 4.
+                    if start_node.r() == parent && start_offset > index {
+                        range.borrow_mut().set_start(start_node.r(), start_offset - 1);
+                    }
+
+                    // Step 5.
+                    if end_node.r() == parent && end_offset > index {
+                        range.borrow_mut().set_end(end_node.r(), end_offset - 1);
+                    }
+                },
+                _ => ()
+            }
+        }
+
+         // Step 6.
         let old_previous_sibling = node.GetPreviousSibling();
         // Steps 7-8: mutation observers.
         // Step 9.
