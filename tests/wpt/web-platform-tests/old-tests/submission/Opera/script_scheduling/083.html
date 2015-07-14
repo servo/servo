@@ -18,7 +18,7 @@
 		}
 		var doc = frames[0].document;
 		doc.open('text/html');
-		doc.write('<script>top.log("IFRAME script");top.document.addEventListener("foo", function(e){ console.log(e+ " "+top+" "+self.location.href); top.log("event: "+e.type); }, false)<\/script>');
+		doc.write('<script>top.log("IFRAME script");top.document.addEventListener("foo", function(e){ top.log("event: "+e.type); }, false)<\/script>');
 		log('end script #1');
 	</script>
 	<script>

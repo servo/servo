@@ -1,0 +1,39 @@
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>media-src-track-block</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS"]'></script>
+    <!-- enforcing policy:
+media-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <script>
+        function loaded() {
+            alert_assert("FAIL");
+        }
+
+        function errored() {
+            alert_assert("PASS");
+        }
+
+        function start() {
+            var track = document.querySelector('track');
+            track.track.mode = "hidden";
+            track.setAttribute('src', 'resources/track.vtt');
+        }
+
+    </script>
+</head>
+
+<body onload="start()">
+    <video>
+        <track kind="captions" onload="loaded()" onerror="errored()">
+    </video>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=media-src%20&apos;none&apos;"></script>
+</body>
+
+</html>

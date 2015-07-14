@@ -15,12 +15,12 @@
 
             var index = 0;
             var key = "name";
-            var val = "user";
+            var val = "x".repeat(1024);
 
             assert_throws("QUOTA_EXCEEDED_ERR", function() {
                 while (true) {
                     index++;
-                    sessionStorage.setItem("" + key + index, "" + index);
+                    sessionStorage.setItem("" + key + index, "" + val + index);
                 }
             });
 

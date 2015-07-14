@@ -1,0 +1,76 @@
+<!doctype html>
+ <head>
+  <meta charset=utf-8>
+  <title>MouseEvent - mousemove event order</title>
+  <style>
+    .testarea { margin: auto; width: 80%; height: 250px; border: 1px solid grey; position: relative; }
+
+    #start,#end { background-color: red; border: 1px solid black; margin: 0; padding: 0; }
+   /* start/end layout */
+   #start.green,#end.green { background-color: green; }
+   #start { position: absolute; left: 15%; top: 15%; width: 50%; height: 50%; }
+   #end { position: absolute; right: 15%; bottom: 15%; width: 50%; height: 50%; }
+  </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+   setup({explicit_timeout: true});
+  </script>
+  <script src="/uievents/resources/eventrecorder.js"></script>
+ </head>
+ <body>
+ <p><strong>Description</strong>: Verifies that mousemove events track the pointer position and transition from top-most
+ visible element to top-most visible element, changing targets
+ in the DOM along the way.</p>
+
+ <p><strong>Instructions</strong>: </p>
+ <ol>
+   <li>Move the pointer to the upper-left red box and then move it directly toward and into the lower-right red box.
+ </ol>
+ <p><strong>Test Passes</strong> if both boxes turn green and the word 'PASS' appears below</p>
+
+ <section class="testarea">
+  <div id="end"></div>
+  <div id="start"></div>
+ </section>
+
+ <script>
+    var start = document.getElementById("start");
+    var end = document.getElementById("end");
+
+    EventRecorder.configure({
+      mergeEventTypes: ["mousemove"],
+      objectMap: {
+         "div#start": start,
+         "div#end": end
+      }
+    });
+
+
+    start.addRecordedEventListener('mousemove', function (e) {
+      e.stopPropagation();
+      this.className = "green";
+    });
+
+    end.addRecordedEventListener('mousemove', function (e) {
+      e.stopPropagation();
+      this.className = "green";
+      endTest();
+      done();
+    });
+
+    function endTest() {
+      EventRecorder.stop();
+      var results = EventRecorder.getRecords();
+      // Check results:
+      assert_equals(results.length, 2, "Two mousemove events");
+      assert_equals(results[0].event.type, "mousemove", "First event is a mousemove event");
+      assert_equals(results[1].event.type, "mousemove", "Second event is a mousemove event");
+      assert_equals(results[0].event.target, "div#start", "First event targetted #start");
+      assert_equals(results[1].event.target, "div#end", "Second event targetted #end");
+    }
+
+    EventRecorder.start();
+  </script>
+ </body>
+</html>

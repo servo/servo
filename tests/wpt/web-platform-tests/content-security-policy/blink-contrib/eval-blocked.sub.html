@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>eval-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS EvalError","PASS EvalError"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';
+-->
+</head>
+
+<body>
+    <script>
+        try {
+            eval("alert_assert('FAIL (1 of 2)')");
+        } catch (e) {
+            log("PASS EvalError");
+        }
+
+    </script>
+    <script>
+        try {
+            window.eval("alert_assert('FAIL (1 of 2)')");
+        } catch (e) {
+            log("PASS EvalError");
+        }
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=script-src%20&apos;unsafe-inline&apos;"></script>
+</body>
+
+</html>

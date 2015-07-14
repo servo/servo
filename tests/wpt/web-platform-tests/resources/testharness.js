@@ -517,19 +517,27 @@ policies and contribution forms [3].
 
     function promise_test(func, name, properties) {
         var test = async_test(name, properties);
-        Promise.resolve(test.step(func, test, test))
-            .then(
-                function() {
-                    test.done();
-                })
-            .catch(test.step_func(
-                function(value) {
-                    if (value instanceof AssertionError) {
-                        throw value;
-                    }
-                    assert(false, "promise_test", null,
-                           "Unhandled rejection with value: ${value}", {value:value});
-                }));
+        // If there is no promise tests queue make one.
+        test.step(function() {
+            if (!tests.promise_tests) {
+                tests.promise_tests = Promise.resolve();
+            }
+        });
+        tests.promise_tests = tests.promise_tests.then(function() {
+            return Promise.resolve(test.step(func, test, test))
+                .then(
+                    function() {
+                        test.done();
+                    })
+                .catch(test.step_func(
+                    function(value) {
+                        if (value instanceof AssertionError) {
+                            throw value;
+                        }
+                        assert(false, "promise_test", null,
+                               "Unhandled rejection with value: ${value}", {value:value});
+                    }));
+        });
     }
 
     function promise_rejects(test, expected, promise) {
@@ -2048,28 +2056,11 @@ policies and contribution forms [3].
             log.removeChild(log.lastChild);
         }
 
-        var script_prefix = null;
-        var scripts = document.getElementsByTagName("script");
-        for (var i = 0; i < scripts.length; i++) {
-            var src;
-            if (scripts[i].src) {
-                src = scripts[i].src;
-            } else if (scripts[i].href) {
-                //SVG case
-                src = scripts[i].href.baseVal;
-            }
-
-            var matches = src && src.match(/^(.*\/|)testharness\.js$/);
-            if (matches) {
-                script_prefix = matches[1];
-                break;
-            }
-        }
-
-        if (script_prefix !== null) {
+        var harness_url = get_harness_url();
+        if (harness_url !== null) {
             var stylesheet = output_document.createElementNS(xhtml_ns, "link");
             stylesheet.setAttribute("rel", "stylesheet");
-            stylesheet.setAttribute("href", script_prefix + "testharness.css");
+            stylesheet.setAttribute("href", harness_url + "testharness.css");
             var heads = output_document.getElementsByTagName("head");
             if (heads.length) {
                 heads[0].appendChild(stylesheet);
@@ -2425,6 +2416,7 @@ policies and contribution forms [3].
 
     AssertionError.prototype.get_stack = function() {
         var stack = new Error().stack;
+        // IE11 does not initialize 'Error.stack' until the object is thrown.
         if (!stack) {
             try {
                 throw new Error();
@@ -2432,18 +2424,30 @@ policies and contribution forms [3].
                 stack = e.stack;
             }
         }
+
         var lines = stack.split("\n");
-        var rv = [];
-        var re = /\/resources\/testharness\.js/;
+
+        // Create a pattern to match stack frames originating within testharness.js.  These include the
+        // script URL, followed by the line/col (e.g., '/resources/testharness.js:120:21').
+        var re = new RegExp((get_script_url() || "\\btestharness.js") + ":\\d+:\\d+");
+
+        // Some browsers include a preamble that specifies the type of the error object.  Skip this by
+        // advancing until we find the first stack frame originating from testharness.js.
         var i = 0;
-        // Fire remove any preamble that doesn't match the regexp
-        while (!re.test(lines[i])) {
-            i++
+        while (!re.test(lines[i]) && i < lines.length) {
+            i++;
         }
-        // Then remove top frames in testharness.js itself
-        while (re.test(lines[i])) {
-            i++
+
+        // Then skip the top frames originating from testharness.js to begin the stack at the test code.
+        while (re.test(lines[i]) && i < lines.length) {
+            i++;
         }
+
+        // Paranoid check that we didn't skip all frames.  If so, return the original stack unmodified.
+        if (i >= lines.length) {
+            return stack;
+        }
+
         return lines.slice(i).join("\n");
     }
 
@@ -2491,7 +2495,7 @@ policies and contribution forms [3].
         Array.prototype.push.apply(array, items);
     }
 
-    function forEach (array, callback, thisObj)
+    function forEach(array, callback, thisObj)
     {
         for (var i = 0; i < array.length; i++) {
             if (array.hasOwnProperty(i)) {
@@ -2535,11 +2539,46 @@ policies and contribution forms [3].
         }
     }
 
+    /** Returns the 'src' URL of the first <script> tag in the page to include the file 'testharness.js'. */
+    function get_script_url()
+    {
+        if (!('document' in self)) {
+            return undefined;
+        }
+
+        var scripts = document.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+            var src;
+            if (scripts[i].src) {
+                src = scripts[i].src;
+            } else if (scripts[i].href) {
+                //SVG case
+                src = scripts[i].href.baseVal;
+            }
+
+            var matches = src && src.match(/^(.*\/|)testharness\.js$/);
+            if (matches) {
+                return src;
+            }
+        }
+        return undefined;
+    }
+
+    /** Returns the URL path at which the files for testharness.js are assumed to reside (e.g., '/resources/').
+        The path is derived from inspecting the 'src' of the <script> tag that included 'testharness.js'. */
+    function get_harness_url()
+    {
+        var script_url = get_script_url();
+
+        // Exclude the 'testharness.js' file from the returned path, but '+ 1' to include the trailing slash.
+        return script_url ? script_url.slice(0, script_url.lastIndexOf('/') + 1) : undefined;
+    }
+
     function supports_post_message(w)
     {
         var supports;
         var type;
-        // Given IE  implements postMessage across nested iframes but not across
+        // Given IE implements postMessage across nested iframes but not across
         // windows or tabs, you can't infer cross-origin communication from the presence
         // of postMessage on the current window object only.
         //

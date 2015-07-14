@@ -9,18 +9,23 @@
 <div id="log"></div>
 <script>
 
-    test(function() {
-        assert_true("sessionStorage" in window, "sessionStorage exist");
+async_test(function(t) {
 
-        var storage = window.sessionStorage;
+    var storage = window.sessionStorage;
+    storage.clear();
 
-        storage.setItem("FOO", "BAR");
-        assert_equals(storage.getItem("FOO"), "BAR", "storage.getItem('FOO')");
-        window.open("storage_session_window_open_second.html");
+    storage.setItem("FOO", "BAR");
+    var win = window.open("resources/storage_session_window_open_second.html");
+    window.addEventListener('message', t.step_func(function(e) {
+        e.data.forEach(t.step_func(function(assertion) {
+            assert_equals(assertion.actual, assertion.expected, assertion.message);
+        }));
+        win.close();
+        t.done();
+    }));
 
-    }, "A new window to make sure there is a copy of the previous window's sessionStorage, and that they diverge after a change");
+}, "A new window to make sure there is a copy of the previous window's sessionStorage, and that they diverge after a change");
 
 </script>
 </body>
 </html>
-

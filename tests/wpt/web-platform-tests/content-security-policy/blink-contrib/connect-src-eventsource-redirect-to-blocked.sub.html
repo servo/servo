@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>connect-src-eventsource-redirect-to-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS EventSource() did not follow the disallowed redirect.","PASS successfullyParsed is true","TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+connect-src 'self'; script-src 'self' 'unsafe-inline';
+-->
+    <script></script>
+</head>
+
+<body>
+    <script>
+        var es;
+        try {
+            es = new EventSource("/common/redirect.py?location= http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/simple-event-stream");
+        } catch (e) {
+            log("FAIL " + "EventSource() should not throw an exception.");
+        }
+        es.onload = function() {
+            log("FAIL " + "EventSource() should fail to follow the disallowed redirect.");
+            log("TEST COMPLETE");
+        };
+        es.onerror = function() {
+            log("PASS " + "EventSource() did not follow the disallowed redirect.");
+            log("TEST COMPLETE");
+        };
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=connect-src%20&apos;self&apos;/security/contentSecurityPolicy/resources/redir.php"></script>
+</body>
+
+</html>

@@ -12,6 +12,10 @@
       var test = async_test()
       test.step(function() {
         var client = new XMLHttpRequest()
+        var headersUnsent = client.getAllResponseHeaders();
+         test.step(function() {
+           assert_equals(headersUnsent, "")
+         });
         client.onreadystatechange = function() {
           test.step(function() {
             var headers = client.getAllResponseHeaders().toLowerCase()

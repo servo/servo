@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>object-src-applet-archive-code-codebase</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+object-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+
+</head>
+
+<body>
+    <script>
+        var len = navigator.mimeTypes.length;
+        var allTypes = "";
+        var appletMimeType = "application/x-java-applet";
+        for (var i = 0; i < len; i++) {
+            console.log("Found navigator.mimeType " + navigator.mimeTypes[i].type);
+            allTypes += navigator.mimeTypes[i].type + ';';
+        }
+        if (allTypes.indexOf(appletMimeType) == -1) {
+            t_log.set_status(t_log.NOTRUN, "No Java Plugin, cannot run test.");
+            t_log.phase = t_log.phases.HAS_RESULT;
+            t_log.done();
+        } else {
+            var s = document.createElement('script');
+            s.src = "../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=object-src%20&apos;none&apos;";
+            document.body.appendChild(s);
+        }
+
+    </script>
+    This test passes if there is a CSP violation saying the plugin was blocked.
+    <applet code="code.class" codebase="/plugins/codebase/"></applet>
+    <div id="log"></div>
+</body>
+
+</html>

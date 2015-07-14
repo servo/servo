@@ -28,7 +28,7 @@
                     var pos = url.lastIndexOf("/");
                     if (pos != -1) {
                         url = url.substr(0, pos + 1);
-                        url = url + "iframe/local_set_item_iframe.html";
+                        url = url + "resources/local_set_item_iframe.html";
                     }
 
                    assert_equals(event.url, url);
@@ -40,7 +40,7 @@
 
             var el = document.createElement("iframe");
             el.setAttribute('id', 'ifrm');
-            el.setAttribute('src', 'iframe/local_set_item_iframe.html');
+            el.setAttribute('src', 'resources/local_set_item_iframe.html');
             document.body.appendChild(el);
         }, "Local event is fired due to an invocation of the setItem() method.");
     </script>

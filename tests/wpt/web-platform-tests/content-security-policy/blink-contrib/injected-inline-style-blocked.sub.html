@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>injected-inline-style-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+style-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+</head>
+
+<body>
+    <div id="test1">
+        PASS 1/2
+    </div>
+    <div id="test2">
+        PASS 2/2
+    </div>
+    <script src="resources/inject-style.js"></script>
+    <script>
+        log(document.styleSheets.length == 0 ? "PASS" : "FAIL");
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=style-src%20&apos;none&apos;"></script>
+</body>
+
+</html>

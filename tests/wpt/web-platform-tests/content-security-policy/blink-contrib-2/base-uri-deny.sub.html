@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>base-uri-deny</title>
+    <base href="http://www1.{{host}}:{{ports[http][0]}}/">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS document.baseURI is document.location.href","TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+base-uri 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <script>
+        console.info('Check that base URIs cannot be set if they violate the page\'s policy.');
+        var base = document.createElement('base');
+        base.href = 'http://www1.{{host}}:{{ports[http][0]}}/';
+        document.head.appendChild(base);
+        if (document.baseURI == document.location.href) {
+            log("PASS document.baseURI is document.location.href");
+            log("TEST COMPLETE");
+        }
+
+    </script>
+</head>
+
+<body>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=base-uri%20&apos;self&apos;"></script>
+</body>
+
+</html>

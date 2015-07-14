@@ -153,6 +153,10 @@ td.TIMEOUT {
     color:  #f6bb42;
 }
 
+td.NOTRUN {
+    color:  #00c;
+}
+
 td.ERROR {
     color: #da4453;
     font-weight: bold;

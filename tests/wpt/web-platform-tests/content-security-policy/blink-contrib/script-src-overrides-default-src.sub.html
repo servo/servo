@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>script-src-overrides-default-src</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS 1 of 2","PASS 2 of 2"]'></script>
+    <!-- enforcing policy:
+default-src about:; script-src 'self' 'unsafe-inline' 'self' 'unsafe-inline'; connect-src 'self';
+-->
+</head>
+
+<body onload="alert_assert(&apos;PASS 2 of 2&apos;)">
+    <script>
+        alert_assert('PASS 1 of 2');
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

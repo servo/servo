@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>report-disallowed-from-meta</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS"]'></script>
+    <!-- enforcing policy:
+img-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <meta http-equiv="Content-Security-Policy" content="img-src 'none'; report-uri /content-security-policy/support/report.py?op=put&reportID=5ada7c32-1c46-4b79-a95f-af33fcf95f8e">
+</head>
+
+<body>
+    This image should be blocked, but should not show up in the violation report because meta policies MUST ignore report-uri.
+    <img src="../resources/abe.png" onerror="alert_assert('PASS')" onload="alert_assert('FAIL')">
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

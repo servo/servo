@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>scriptnonce-ignore-unsafeinline</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script nonce='noncynonce'>
+        function log(msg) {
+            test(function() {
+                assert_unreached(msg)
+            });
+        }
+
+    </script>
+    <script nonce='noncynonce'>
+        var t_alert = async_test('Expecting alerts: ["PASS (1/2)","PASS (2/2)"]');
+        var expected_alerts = ["PASS (1/2)", "PASS (2/2)"];
+
+        function alert_assert(msg) {
+            t_alert.step(function() {
+                if (msg.match(/^FAIL/i)) {
+                    assert_unreached(msg);
+                    t_alert.done();
+                }
+                for (var i = 0; i < expected_alerts.length; i++) {
+                    if (expected_alerts[i] == msg) {
+                        assert_true(expected_alerts[i] == msg);
+                        expected_alerts.splice(i, 1);
+                        if (expected_alerts.length == 0) {
+                            t_alert.done();
+                        }
+                        return;
+                    }
+                }
+                assert_unreached('unexpected alert: ' + msg);
+                t_log.done();
+            });
+        }
+
+    </script>
+    <!-- enforcing policy:
+script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/=nonce' 'unsafe-inline'; connect-src 'self';
+-->
+    <script nonce="noncynonce">
+
+
+    </script>
+    <script nonce="noncynonce">
+        alert_assert('PASS (1/2)');
+
+    </script>
+    <script nonce="noncy+/=nonce">
+        alert_assert('PASS (2/2)');
+
+    </script>
+    <script>
+        alert_assert('FAIL (1/1)');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests that a valid nonce disables inline JavaScript, even if &apos;unsafe-inline&apos; is present.
+    </p>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=script-src%20&apos;nonce-noncynonce&apos;%20&apos;nonce-noncy+/=nonce&apos;%20&apos;unsafe-inline&apos;"></script>
+</body>
+
+</html>

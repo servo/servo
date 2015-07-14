@@ -1,0 +1,2 @@
+Content-Security-Policy: referrer no-referrer-when-downgrade
+Access-Control-Allow-Origin: *

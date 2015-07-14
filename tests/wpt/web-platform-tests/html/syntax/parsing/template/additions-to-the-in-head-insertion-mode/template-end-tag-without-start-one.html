@@ -8,7 +8,7 @@
 <link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#in-head-addition">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src='../../testcommon.js'></script>
+<script src="/html/resources/common.js"></script>
 <link rel="stylesheet" href="/resources/testharness.css">
 </head>
 <body>
@@ -86,7 +86,7 @@ test(function () {
     + 'Test valid <template> element, <title> element and </template> tag after them');
 
 
-testInIFrame('../../resources/end-template-tag-in-head.html', function(context) {
+testInIFrame('/html/semantics/scripting-1/the-template-element/resources/end-template-tag-in-head.html', function(context) {
     var doc = context.iframes[0].contentDocument;
 
     assert_equals(doc.head.querySelector('template'), null, '</template> must be ignored');

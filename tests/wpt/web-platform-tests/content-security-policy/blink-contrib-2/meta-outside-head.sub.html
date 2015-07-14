@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>meta-outside-head</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS (1/1)"]'></script>
+    <!-- enforcing policy:
+script-src 'self' 'unsafe-inline' 'none'; connect-src 'self';
+-->
+</head>
+
+<body>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'none'">
+    <p>This test checks that Content Security Policy delivered via a meta element is not enforced if the element is outside the document&apos;s head.</p>
+    <script>
+        alert_assert("PASS (1/1)");
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

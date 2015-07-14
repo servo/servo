@@ -10,7 +10,7 @@
     <script>
         var proto = Object.create(HTMLElement.prototype);
         proto.createdCallback = function() {
-            document.querySelector('#log').innerText = 'Created callback was called';
+            document.querySelector('#log').textContent = 'Created callback was called';
         };
         document.registerElement('x-element', {prototype: proto});
     </script>

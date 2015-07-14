@@ -8,14 +8,16 @@
 <body>
 
 	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+	<iframe id="myFrame"></iframe>
 
 	<script>
           var t = async_test(undefined, {timeout:3500});
           onload = t.step_func(function() {
-            document.open();
-            document.write("<title> scheduler: parser-created defer script after document load</title><script src='/resources/testharness.js'><\/script><script src='/resources/testharnessreport.js'><\/script><script src='testlib/testlib.js'><\/script><script>var t=async_test()<\/script><div id=log></div><script defer src='data:text/javascript,t.done();'><\/script>");
-            document.close();
-            setTimeout(t.step_func(function() {assert_unreached()}, 500));
+            var doc = document.getElementById("myFrame").contentDocument;
+            var win = document.getElementById("myFrame").contentWindow;
+            doc.open();
+            doc.write("<title> scheduler: parser-created defer script after document load</title><script src='/resources/testharness.js'><\/script><script src='/resources/testharnessreport.js'><\/script><script src='testlib/testlib.js'><\/script><script>var t=async_test()<\/script><div id=log></div><script defer src='data:text/javascript,parent.t.done();'><\/script>");
+            doc.close();
           })
         </script>
 </body></html>
