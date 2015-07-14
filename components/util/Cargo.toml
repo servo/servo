@@ -22,8 +22,8 @@ path = "../plugins"
 git = "https://github.com/servo/rust-azure"
 
 [dependencies.url]
-path = "/Users/pcwalton/Source/servo-packages/rust-url"
-features = [ "serde-serialization" ]
+version = "0.2"
+features = [ "serde_serialization" ]
 
 [dependencies]
 log = "*"

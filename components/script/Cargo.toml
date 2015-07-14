@@ -66,11 +66,8 @@ version = "0.6"
 features = [ "serde-serialization" ]
 
 [dependencies.url]
-path = "/Users/pcwalton/Source/servo-packages/rust-url"
-features = [ "query_encoding", "serde-serialization" ]
-
-[dependencies.websocket]
-path = "/Users/pcwalton/Source/servo-packages/rust-websocket"
+version = "0.2"
+features = [ "query_encoding", "serde_serialization" ]
 
 [dependencies]
 log = "*"
@@ -83,6 +80,7 @@ libc = "*"
 cssparser = "0.3.1"
 unicase = "0.1"
 num = "0.1.24"
+websocket = "0.12.0"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = "0.2"

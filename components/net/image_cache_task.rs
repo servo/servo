@@ -254,7 +254,7 @@ impl ImageCache {
                 match result {
                     Ok(()) => {
                         let pending_load = self.pending_loads.get_mut(&msg.url).unwrap();
-                        pending_load.result = Some(result.clone());
+                        pending_load.result = Some(result);
 
                         let bytes = mem::replace(&mut pending_load.bytes, vec!());
                         let url = msg.url.clone();
@@ -339,10 +339,13 @@ impl ImageCache {
                             sender: self.progress_sender.clone(),
                             receiver: action_receiver,
                         };
-                        let msg = ControlMsg::Load(load_data,
-                                                   LoadConsumer::Listener(AsyncResponseTarget {
+                        let response_target = AsyncResponseTarget {
                             sender: action_sender,
-                        }));
+                        };
+                        let msg = ControlMsg::Load(load_data,
+                                                   LoadConsumer::Listener(response_target));
+                        // TODO(pcwalton): Create a single thread to be shared by all IPC network
+                        // listeners for each script task.
                         thread::spawn(move || listener.run());
                         self.resource_task.send(msg).unwrap();
                     }

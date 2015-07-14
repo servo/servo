@@ -33,7 +33,7 @@ features = [ "serde-serialization" ]
 
 [dependencies.url]
 version = "0.2"
-features = [ "serde-serialization" ]
+features = [ "serde_serialization" ]
 
 [dependencies]
 log = "*"

@@ -24,8 +24,8 @@ features = [ "serde-serialization" ]
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies.url]
-path = "/Users/pcwalton/Source/servo-packages/rust-url"
-features = [ "serde-serialization" ]
+version = "0.2"
+features = [ "serde_serialization" ]
 
 [dependencies]
 log = "*"
