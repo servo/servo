@@ -30,7 +30,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
-        SchemeData::NonRelative(ref scheme_data) => (*scheme_data).clone(),
+        SchemeData::NonRelative(scheme_data) => scheme_data,
         _ => panic!("Expected a non-relative scheme URL.")
     };
     match url.query {
