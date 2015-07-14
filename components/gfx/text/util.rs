@@ -105,12 +105,3 @@ pub fn float_to_fixed(before: usize, f: f64) -> i32 {
 pub fn fixed_to_float(before: usize, f: i32) -> f64 {
     f as f64 * 1.0f64 / ((1i32 << before) as f64)
 }
-
-pub fn fixed_to_rounded_int(before: isize, f: i32) -> isize {
-    let half = 1i32 << (before-1) as usize;
-    if f > 0i32 {
-        ((half + f) >> before) as isize
-    } else {
-       -((half - f) >> before as usize) as isize
-    }
-}
