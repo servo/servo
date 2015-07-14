@@ -4,7 +4,6 @@
 
 use euclid::point::Point2D;
 use std::cmp::{Ordering, PartialOrd};
-use std::iter::repeat;
 use std::mem;
 use std::u16;
 use std::vec::Vec;
@@ -530,8 +529,7 @@ impl<'a> GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
-            entry_buffer: repeat(GlyphEntry::initial()).take(length)
-                                                       .collect(),
+            entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
             is_whitespace: is_whitespace,
         }

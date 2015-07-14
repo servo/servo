@@ -5232,7 +5232,6 @@ class CGBindingRoot(CGThing):
             'util::str::DOMString',
             'std::borrow::ToOwned',
             'std::cmp',
-            'std::iter::repeat',
             'std::mem',
             'std::num',
             'std::ptr',
@@ -5555,7 +5554,7 @@ class CallbackMember(CGNativeMember):
         if self.argCount > 0:
             replacements["argCount"] = self.argCountStr
             replacements["argvDecl"] = string.Template(
-                "let mut argv = repeat(UndefinedValue()).take(${argCount}).collect::<Vec<_>>();\n"
+                "let mut argv = vec![UndefinedValue(); ${argCount}];\n"
             ).substitute(replacements)
         else:
             # Avoid weird 0-sized arrays

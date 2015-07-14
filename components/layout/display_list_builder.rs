@@ -39,7 +39,6 @@ use net_traits::image_cache_task::UsePlaceholder;
 use net_traits::image::base::{Image, PixelFormat};
 use std::cmp;
 use std::default::Default;
-use std::iter::repeat;
 use std::sync::Arc;
 use std::f32;
 use style::computed_values::filter::Filter;
@@ -1104,7 +1103,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                 CanvasCommonMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
-                    None => repeat(0xFFu8).take(width * height * 4).collect(),
+                    None => vec![0xFFu8; width * height * 4],
                 };
                 display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
                     base: BaseDisplayItem::new(stacking_relative_content_box,
