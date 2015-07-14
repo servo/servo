@@ -11,14 +11,15 @@ use paint_context::PaintContext;
 
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
+use canvas_traits::CanvasMsg;
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use ipc_channel::ipc::IpcSender;
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
-use canvas_traits::CanvasMsg;
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -29,7 +30,7 @@ use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::mem as std_mem;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::collections::HashMap;
 use url::Url;
@@ -71,7 +72,7 @@ pub struct PaintRequest {
 
 pub enum Msg {
     PaintInit(Epoch, Arc<StackingContext>),
-    CanvasLayer(LayerId, Arc<Mutex<Sender<CanvasMsg>>>),
+    CanvasLayer(LayerId, IpcSender<CanvasMsg>),
     Paint(Vec<PaintRequest>, FrameTreeId),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -129,7 +130,7 @@ pub struct PaintTask<C> {
     worker_threads: Vec<WorkerThreadProxy>,
 
     /// A map to track the canvas specific layers
-    canvas_map: HashMap<LayerId, Arc<Mutex<Sender<CanvasMsg>>>>,
+    canvas_map: HashMap<LayerId, IpcSender<CanvasMsg>>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing

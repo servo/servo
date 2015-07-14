@@ -24,6 +24,7 @@ use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
+use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
@@ -32,7 +33,6 @@ use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
 use std::fmt;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
@@ -291,7 +291,8 @@ impl InlineAbsoluteFragmentInfo {
 #[derive(Clone)]
 pub struct CanvasFragmentInfo {
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
-    pub renderer: Option<Arc<Mutex<Sender<CanvasMsg>>>>,
+    pub renderer_id: Option<usize>,
+    pub ipc_renderer: Option<Arc<Mutex<IpcSender<CanvasMsg>>>>,
 }
 
 impl CanvasFragmentInfo {
@@ -300,7 +301,9 @@ impl CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 Some(Au::from_px(node.canvas_width() as i32)),
                 Some(Au::from_px(node.canvas_height() as i32))),
-            renderer: node.renderer().map(|rec| Arc::new(Mutex::new(rec))),
+            renderer_id: node.canvas_renderer_id(),
+            ipc_renderer: node.canvas_ipc_renderer()
+                              .map(|renderer| Arc::new(Mutex::new(renderer))),
         }
     }
 

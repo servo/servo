@@ -39,7 +39,7 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
@@ -196,8 +196,8 @@ pub struct LayoutTask {
 
     /// To receive a canvas renderer associated to a layer, this message is propagated
     /// to the paint chan
-    pub canvas_layers_receiver: Receiver<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
-    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+    pub canvas_layers_receiver: Receiver<(LayerId, IpcSender<CanvasMsg>)>,
+    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -1020,9 +1020,7 @@ impl LayoutTask {
         // Send new canvas renderers to the paint task
         while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
             // Just send if there's an actual renderer
-            if let Some(renderer) = renderer {
-                self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
-            }
+            self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
         }
 
         // Perform post-style recalculation layout passes.

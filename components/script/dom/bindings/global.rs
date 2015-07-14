@@ -17,7 +17,7 @@ use dom::window::{self, WindowHelpers};
 use devtools_traits::DevtoolsControlChan;
 use script_task::{ScriptChan, ScriptPort, ScriptMsg, ScriptTask};
 
-use msg::constellation_msg::{PipelineId, WorkerId};
+use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
 
@@ -88,6 +88,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.mem_profiler_chan(),
             GlobalRef::Worker(worker) => worker.mem_profiler_chan(),
+        }
+    }
+
+    /// Get a `ConstellationChan` to send messages to the constellation channel when available.
+    pub fn constellation_chan(&self) -> ConstellationChan {
+        match *self {
+            GlobalRef::Window(window) => window.constellation_chan(),
+            GlobalRef::Worker(worker) => worker.constellation_chan(),
         }
     }
 

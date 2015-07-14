@@ -70,6 +70,7 @@ impl Worker {
         };
 
         let resource_task = global.resource_task();
+        let constellation_chan = global.constellation_chan();
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
@@ -91,7 +92,7 @@ impl Worker {
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             worker_url, global.pipeline(), global.mem_profiler_chan(), global.devtools_chan(),
-            worker_ref, resource_task, global.script_chan(), sender, receiver);
+            worker_ref, resource_task, constellation_chan, global.script_chan(), sender, receiver);
 
         Ok(worker)
     }

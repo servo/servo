@@ -11,12 +11,15 @@
 extern crate log;
 
 extern crate azure;
+extern crate canvas;
+extern crate canvas_traits;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx;
 extern crate ipc_channel;
 extern crate layers;
 extern crate layout_traits;
+extern crate offscreen_gl_context;
 extern crate png;
 extern crate script_traits;
 extern crate msg;

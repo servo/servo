@@ -62,8 +62,8 @@ use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
-use serde::Serialize;
 use util::str::{LengthOrPercentageOrAuto};
+use serde::{Deserialize, Serialize};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
@@ -332,6 +332,13 @@ impl<A,B> JSTraceable for fn(A) -> B {
     }
 }
 
+impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
 impl JSTraceable for ScriptListener {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
@@ -340,13 +347,6 @@ impl JSTraceable for ScriptListener {
 }
 
 impl JSTraceable for Box<LayoutRPC+'static> {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> JSTraceable for IpcSender<T> where T: Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
