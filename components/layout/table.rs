@@ -25,7 +25,6 @@ use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use std::cmp;
 use std::fmt;
-use std::iter;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::properties::ComputedValues;
@@ -718,8 +717,7 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
         }
         PreviousBlockCollapsedBorders::FromTable(collapsed_border) => {
             child_table_row.final_collapsed_borders.block_start =
-                iter::repeat(collapsed_border).take(child_table_row.block_flow.base.children.len())
-                                              .collect()
+                vec![collapsed_border; child_table_row.block_flow.base.children.len()]
         }
         PreviousBlockCollapsedBorders::NotCollapsingBorders => {}
     }
