@@ -357,12 +357,8 @@ reason: \"certificate verify failed\" }]))";
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         if let Some(ref chan) = devtools_chan {
             let net_event_response =
-                NetworkEvent::HttpResponse(metadata.headers.as_ref().map(|headers| {
-                                               (*headers).clone()
-                                           }),
-                                           metadata.status.as_ref().map(|status| {
-                                               (*status).clone()
-                                           }),
+                NetworkEvent::HttpResponse(metadata.headers.clone(),
+                                           metadata.status.clone(),
                                            None);
             chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)).unwrap();
         }
@@ -376,7 +372,7 @@ reason: \"certificate verify failed\" }]))";
                             send_data(&mut response_decoding, start_chan, metadata, classifier);
                         }
                         Err(err) => {
-                            send_error(metadata.final_url.clone(), err.to_string(), start_chan);
+                            send_error(metadata.final_url, err.to_string(), start_chan);
                             return;
                         }
                     }

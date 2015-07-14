@@ -280,6 +280,7 @@ impl XMLHttpRequest {
         let response_target = AsyncResponseTarget {
             sender: action_sender,
         };
+        // TODO(pcwalton): Share this thread with other network listeners for each script task.
         thread::spawn(move || listener.run());
         resource_task.send(Load(load_data, LoadConsumer::Listener(response_target))).unwrap();
     }
@@ -790,10 +791,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
             _ => {}
         };
         // XXXManishearth Clear cache entries in case of a network error
-        self.process_partial_response(XHRProgress::HeadersReceived(
-                gen_id,
-                metadata.headers,
-                metadata.status));
+        self.process_partial_response(XHRProgress::HeadersReceived(gen_id,
+                                                                   metadata.headers,
+                                                                   metadata.status));
         Ok(())
     }
 
