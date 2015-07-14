@@ -33,6 +33,7 @@ use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
 use websocket::header::Origin;
+use websocket::result::WebSocketResult;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 enum WebSocketRequestState {
@@ -101,6 +102,19 @@ fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bo
     Ok((parsed_url, host, port, resource, secure))
 }
 
+/// *Establish a WebSocket Connection* as defined in RFC 6455.
+fn establish_a_websocket_connection(url: Url, origin: String)
+    -> WebSocketResult<(Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
+    let mut request = try!(Client::connect(url));
+    request.headers.set(Origin(origin));
+
+    let response = try!(request.send());
+    try!(response.validate());
+
+    Ok(response.begin().split())
+}
+
+
 impl WebSocket {
     pub fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
         WebSocket {
@@ -138,11 +152,11 @@ impl WebSocket {
                                     global,
                                     WebSocketBinding::Wrap);
 
-        // TODO Client::connect does not conform to RFC 6455
-        // see https://github.com/cyderize/rust-websocket/issues/38
-        let mut request = match Client::connect(url) {
-            Ok(request) => request,
-            Err(_) => {
+        let channel = establish_a_websocket_connection(url, global.get_url().serialize());
+        let (temp_sender, temp_receiver) = match channel {
+            Ok(channel) => channel,
+            Err(e) => {
+                debug!("Failed to establish a WebSocket connection: {:?}", e);
                 let global_root = ws.r().global.root();
                 let address = Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
                 let task = box WebSocketTaskHandler::new(address, WebSocketTask::Close);
@@ -150,11 +164,7 @@ impl WebSocket {
                 return Ok(ws);
             }
         };
-        request.headers.set(Origin(global.get_url().serialize()));
-        let response = request.send().unwrap();
-        response.validate().unwrap();
 
-        let (temp_sender, temp_receiver) = response.begin().split();
         *ws.r().sender.borrow_mut() = Some(temp_sender);
         *ws.r().receiver.borrow_mut() = Some(temp_receiver);
 
