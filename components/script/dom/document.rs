@@ -62,7 +62,7 @@ use dom::nodelist::NodeList;
 use dom::nodeiterator::NodeIterator;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
-use dom::range::Range;
+use dom::range::{Range, RangeHelpers, RangeInner};
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
@@ -102,7 +102,7 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::default::Default;
 use std::ptr;
 use std::sync::mpsc::channel;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use time;
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
@@ -158,6 +158,8 @@ pub struct Document {
     reflow_timeout: Cell<Option<u64>>,
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableHeap<JS<HTMLBaseElement>>,
+    /// List of ranges
+    ranges: RefCell<Vec<Weak<RefCell<RangeInner>>>>,
 }
 
 impl PartialEq for Document {
@@ -1138,6 +1140,7 @@ impl Document {
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
+            ranges: RefCell::new(Vec::new()),
         }
     }
 
@@ -1169,6 +1172,21 @@ impl Document {
             node.set_owner_doc(document.r());
         }
         document
+    }
+
+    pub fn add_range(&self, range: &Range) {
+        self.ranges.borrow_mut().push(range.inner().downgrade());
+    }
+
+    pub fn remove_range(&self, range: &Range) {
+        let range = range.inner().borrow();
+        self.ranges.borrow_mut().retain(|r| match r.upgrade() {
+                                                Some(r) => *r.borrow() != *range,
+                                                _ => false });
+    }
+
+    pub fn ranges(&self) -> Vec<Weak<RefCell<RangeInner>>> {
+        self.ranges.borrow().clone()
     }
 }
 

@@ -11,8 +11,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextDerived};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{RootedReference};
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -67,24 +66,76 @@ impl<'a> TextMethods for &'a Text {
         // Step 5.
         let node = NodeCast::from_ref(self);
         let owner_doc = node.owner_doc();
-        let new_node = owner_doc.r().CreateTextNode(new_data);
+        let new_text = owner_doc.r().CreateTextNode(new_data);
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
-            // Step 7.
-            parent.r().InsertBefore(NodeCast::from_ref(new_node.r()),
-                                    node.GetNextSibling().r())
-                  .unwrap();
-            // TODO: Ranges.
+            // Step 7.1.
+            let new_node = NodeCast::from_ref(new_text.r());
+            parent.InsertBefore(new_node, node.GetNextSibling().r()).unwrap();
+            for range in parent.owner_doc().ranges() {
+                match range.upgrade() {
+                    Some(range) => {
+                        let (start_node, start_offset, end_node, end_offset) = {
+                            let range = range.borrow();
+                            let start = &range.start();
+                            let end = &range.end();
+                            (start.node(), start.offset(), end.node(), end.offset())
+                        };
+
+                        // Step 7.2.
+                        if start_node.r() == node && start_offset > offset {
+                            range.borrow_mut().set_start(new_node, start_offset - offset);
+                        }
+
+                        // Step 7.3.
+                        if end_node.r() == node && end_offset > offset {
+                            range.borrow_mut().set_end(new_node, end_offset - offset);
+                        }
+
+                        // Step 7.4.
+                        if start_node == *parent && start_offset == node.index() + 1 {
+                            range.borrow_mut().set_start(start_node.r(), start_offset + 1);
+                        }
+
+                        // Step 7.5.
+                        if end_node == *parent && end_offset == node.index() + 1 {
+                            range.borrow_mut().set_end(end_node.r(), end_offset + 1);
+                        }
+                    },
+                    _ => ()
+                }
+            }
         }
         // Step 8.
         cdata.DeleteData(offset, count).unwrap();
         if parent.is_none() {
-            // Step 9.
-            // TODO: Ranges
+            for range in node.owner_doc().ranges() {
+                match range.upgrade() {
+                    Some(range) => {
+                        let (start_node, start_offset, end_node, end_offset) = {
+                            let range = range.borrow();
+                            let start = &range.start();
+                            let end = &range.end();
+                            (start.node(), start.offset(), end.node(), end.offset())
+                        };
+
+                        // Step 9.1.
+                        if start_node.r() == node && start_offset > offset {
+                            range.borrow_mut().set_start(start_node.r(), offset);
+                        }
+
+                        // Step 9.2.
+                        if end_node.r() == node && end_offset > offset {
+                            range.borrow_mut().set_end(end_node.r(), offset);
+                        }
+                    },
+                    _ => ()
+                }
+            }
         }
         // Step 10.
-        Ok(new_node)
+        Ok(new_text)
     }
 
     // https://dom.spec.whatwg.org/#dom-text-wholetext
