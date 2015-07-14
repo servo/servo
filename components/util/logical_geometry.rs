@@ -167,6 +167,7 @@ impl Debug for DebugWritingMode {
 
     #[cfg(debug_assertions)]
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
+        use std::fmt::Display;
         self.mode.fmt(formatter)
     }
 }

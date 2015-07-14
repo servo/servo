@@ -10,7 +10,7 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLFramebufferBindingRequest};
-use std::sync::mpsc::{channel, Sender};
+use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -18,11 +18,11 @@ pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
     id: u32,
     is_deleted: Cell<bool>,
-    renderer: Sender<CanvasMsg>,
+    renderer: IpcSender<CanvasMsg>,
 }
 
 impl WebGLFramebuffer {
-    fn new_inherited(renderer: Sender<CanvasMsg>, id: u32) -> WebGLFramebuffer {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLFramebuffer {
         WebGLFramebuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -31,15 +31,17 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn maybe_new(global: GlobalRef, renderer: Sender<CanvasMsg>) -> Option<Root<WebGLFramebuffer>> {
-        let (sender, receiver) = channel();
+    pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
+                     -> Option<Root<WebGLFramebuffer>> {
+        let (sender, receiver) = ipc::channel().unwrap();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateFramebuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|fb_id| WebGLFramebuffer::new(global, renderer, *fb_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: Sender<CanvasMsg>, id: u32) -> Root<WebGLFramebuffer> {
+    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32)
+               -> Root<WebGLFramebuffer> {
         reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id), global, WebGLFramebufferBinding::Wrap)
     }
 }

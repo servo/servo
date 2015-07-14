@@ -11,6 +11,7 @@ use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use ipc_channel::ipc::{self, IpcSender};
 use layers::platform::surface::NativeSurface;
 use gfx_traits::color;
 use num::ToPrimitive;
@@ -21,6 +22,7 @@ use util::vec::byte_swap;
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::mpsc::{channel, Sender};
+use std::thread;
 
 impl<'a> CanvasPaintTask<'a> {
     /// It reads image data from the canvas
@@ -160,13 +162,25 @@ impl<'a> CanvasPaintTask<'a> {
         }
     }
 
-    pub fn start(size: Size2D<i32>) -> Sender<CanvasMsg> {
-        let (chan, port) = channel::<CanvasMsg>();
+    /// Creates a new `CanvasPaintTask` and returns the out-of-process sender and the in-process
+    /// sender for it.
+    pub fn start(size: Size2D<i32>) -> (IpcSender<CanvasMsg>, Sender<CanvasMsg>) {
+        // TODO(pcwalton): Ask the pipeline to create this for us instead of spawning it directly.
+        // This will be needed for multiprocess Servo.
+        let (in_process_chan, in_process_port) = channel::<CanvasMsg>();
+        let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
+        let in_process_chan_for_child = in_process_chan.clone();
         spawn_named("CanvasTask".to_owned(), move || {
-            let mut painter = CanvasPaintTask::new(size);
+            // Create a thread to proxy our out-of-process messages to us.
+            thread::spawn(move || {
+                while let Ok(msg) = out_of_process_port.recv() {
+                    in_process_chan_for_child.send(msg).unwrap();
+                }
+            });
 
+            let mut painter = CanvasPaintTask::new(size);
             loop {
-                match port.recv().unwrap() {
+                match in_process_port.recv().unwrap() {
                     CanvasMsg::Canvas2d(message) => {
                         match message {
                             Canvas2dMsg::FillRect(ref rect) => painter.fill_rect(rect),
@@ -224,17 +238,22 @@ impl<'a> CanvasPaintTask<'a> {
                         match message {
                             CanvasCommonMsg::Close => break,
                             CanvasCommonMsg::Recreate(size) => painter.recreate(size),
-                            CanvasCommonMsg::SendPixelContents(chan) =>
-                                painter.send_pixel_contents(chan),
-                            CanvasCommonMsg::SendNativeSurface(chan) =>
-                                painter.send_native_surface(chan),
                         }
                     },
+                    CanvasMsg::LayoutToCanvasMsg(message) => {
+                        match message {
+                            LayoutToCanvasMsg::SendPixelContents(chan) =>
+                                painter.send_pixel_contents(chan),
+                            LayoutToCanvasMsg::SendNativeSurface(chan) =>
+                                painter.send_native_surface(chan),
+                        }
+                    }
                     CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D task"),
                 }
             }
         });
-        chan
+
+        (out_of_process_chan, in_process_chan)
     }
 
     fn save_context_state(&mut self) {
@@ -529,7 +548,10 @@ impl<'a> CanvasPaintTask<'a> {
         chan.send(native_surface).unwrap();
     }
 
-    fn get_image_data(&self, mut dest_rect: Rect<f64>, canvas_size: Size2D<f64>, chan: Sender<Vec<u8>>) {
+    fn get_image_data(&self,
+                      mut dest_rect: Rect<f64>,
+                      canvas_size: Size2D<f64>,
+                      chan: IpcSender<Vec<u8>>) {
         if dest_rect.size.width < 0.0 {
             dest_rect.size.width = -dest_rect.size.width;
             dest_rect.origin.x -= dest_rect.size.width;

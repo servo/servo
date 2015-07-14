@@ -2579,7 +2579,9 @@ impl<'a> VirtualMethods for &'a Node {
     }
 }
 
-impl<'a> ::selectors::Node<&'a Element> for &'a Node {
+impl<'a> ::selectors::Node for &'a Node {
+    type Element = &'a Element;
+
     fn parent_node(&self) -> Option<&'a Node> {
         (*self).parent_node.get()
                .map(|node| node.root().get_unsound_ref_forever())
@@ -2617,6 +2619,11 @@ impl<'a> ::selectors::Node<&'a Element> for &'a Node {
 
     fn as_element(&self) -> Option<&'a Element> {
         ElementCast::to_ref(*self)
+    }
+
+    fn is_element_or_non_empty_text(&self) -> bool {
+        // FIXME(pcwalton): Doesn't check if non-empty text.
+        self.is_element()
     }
 }
 

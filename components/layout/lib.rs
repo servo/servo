@@ -46,6 +46,7 @@ extern crate fnv;
 extern crate euclid;
 extern crate gfx;
 extern crate gfx_traits;
+extern crate ipc_channel;
 extern crate layout_traits;
 extern crate libc;
 extern crate msg;

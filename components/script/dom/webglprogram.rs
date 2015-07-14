@@ -14,7 +14,7 @@ use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLError};
-use std::sync::mpsc::{channel, Sender};
+use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -24,11 +24,11 @@ pub struct WebGLProgram {
     is_deleted: Cell<bool>,
     fragment_shader: MutNullableHeap<JS<WebGLShader>>,
     vertex_shader: MutNullableHeap<JS<WebGLShader>>,
-    renderer: Sender<CanvasMsg>,
+    renderer: IpcSender<CanvasMsg>,
 }
 
 impl WebGLProgram {
-    fn new_inherited(renderer: Sender<CanvasMsg>, id: u32) -> WebGLProgram {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLProgram {
         WebGLProgram {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -39,15 +39,16 @@ impl WebGLProgram {
         }
     }
 
-    pub fn maybe_new(global: GlobalRef, renderer: Sender<CanvasMsg>) -> Option<Root<WebGLProgram>> {
-        let (sender, receiver) = channel();
+    pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
+                     -> Option<Root<WebGLProgram>> {
+        let (sender, receiver) = ipc::channel().unwrap();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateProgram(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|program_id| WebGLProgram::new(global, renderer, *program_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: Sender<CanvasMsg>, id: u32) -> Root<WebGLProgram> {
+    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32) -> Root<WebGLProgram> {
         reflect_dom_object(box WebGLProgram::new_inherited(renderer, id), global, WebGLProgramBinding::Wrap)
     }
 }
@@ -112,7 +113,7 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
             return Ok(None);
         }
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, name, sender))).unwrap();
         Ok(receiver.recv().unwrap())
     }
@@ -128,7 +129,7 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
             return Ok(None);
         }
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, name, sender))).unwrap();
         Ok(receiver.recv().unwrap())
     }
