@@ -405,7 +405,7 @@ impl<'a> RangeMethods for &'a Range {
                 },
                 _ => {
                     // Step 14.1.
-                    let clone = child.CloneNode(true);
+                    let clone = child.CloneNode(false);
                     // Step 14.2.
                     try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
                     // Step 14.3.
@@ -446,7 +446,7 @@ impl<'a> RangeMethods for &'a Range {
                 },
                 _ => {
                     // Step 17.1.
-                    let clone = child.CloneNode(true);
+                    let clone = child.CloneNode(false);
                     // Step 17.2.
                     try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
                     // Step 17.3.
