@@ -359,9 +359,16 @@ pub struct RootedTraceableSet {
     set: Vec<TraceableInfo>
 }
 
-/// TLV Holds a set of JSTraceables that need to be rooted
-thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
-              Rc::new(RefCell::new(RootedTraceableSet::new())));
+#[allow(missing_docs)]  // FIXME
+mod dummy {  // Attributes don’t apply through the macro.
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use super::RootedTraceableSet;
+    /// TLV Holds a set of JSTraceables that need to be rooted
+    thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
+                  Rc::new(RefCell::new(RootedTraceableSet::new())));
+}
+pub use self::dummy::ROOTED_TRACEABLES;
 
 impl RootedTraceableSet {
     fn new() -> RootedTraceableSet {

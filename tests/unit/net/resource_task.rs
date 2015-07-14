@@ -6,7 +6,6 @@ use net::resource_task::{new_resource_task, parse_hostsfile, replace_hosts};
 use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::ProgressMsg;
 use std::borrow::ToOwned;
-use std::boxed;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
@@ -162,9 +161,7 @@ fn test_replace_hosts() {
     host_table_box.insert("foo.bar.com".to_owned(), "127.0.0.1".to_owned());
     host_table_box.insert("servo.test.server".to_owned(), "127.0.0.2".to_owned());
 
-    let host_table: *mut HashMap<String, String> = unsafe {
-        boxed::into_raw(host_table_box)
-    };
+    let host_table: *mut HashMap<String, String> = Box::into_raw(host_table_box);
 
     //Start the TCP server
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();

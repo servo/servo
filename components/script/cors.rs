@@ -460,11 +460,7 @@ fn is_simple_method(m: &Method) -> bool {
 pub fn allow_cross_origin_request(req: &CORSRequest, headers: &Headers) -> bool {
     match headers.get::<AccessControlAllowOrigin>() {
         Some(&AccessControlAllowOrigin::Any) => true, // Not always true, depends on credentials mode
-        // FIXME: https://github.com/servo/servo/issues/6020
-        Some(&AccessControlAllowOrigin::Value(ref url)) =>
-            url.scheme == req.origin.scheme &&
-            url.host() == req.origin.host() &&
-            url.port() == req.origin.port(),
+        Some(&AccessControlAllowOrigin::Value(ref url)) => req.origin.serialize() == *url,
         Some(&AccessControlAllowOrigin::Null) |
         None => false
     }

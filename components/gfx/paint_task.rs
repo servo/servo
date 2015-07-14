@@ -27,7 +27,6 @@ use msg::constellation_msg::PipelineExitType;
 use profile_traits::mem::{self, Reporter, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
-use skia::SkiaGrGLNativeContextRef;
 use std::borrow::ToOwned;
 use std::mem as std_mem;
 use std::sync::{Arc, Mutex};
@@ -498,43 +497,48 @@ impl WorkerThread {
             match self.receiver.recv().unwrap() {
                 MsgToWorkerThread::Exit => break,
                 MsgToWorkerThread::PaintTile(thread_id, tile, stacking_context, scale, layer_kind) => {
-                    let draw_target = self.optimize_and_paint_tile(thread_id,
-                                                                   &tile,
-                                                                   stacking_context,
-                                                                   scale,
-                                                                   layer_kind);
-                    let buffer = self.create_layer_buffer_for_painted_tile(tile,
-                                                                           draw_target,
-                                                                           scale);
+                    let buffer = self.optimize_and_paint_tile(thread_id,
+                                                              tile,
+                                                              stacking_context,
+                                                              scale,
+                                                              layer_kind);
                     self.sender.send(MsgFromWorkerThread::PaintedTile(buffer)).unwrap()
                 }
             }
         }
     }
 
+    fn create_draw_target_for_layer_buffer(&self,
+                                           size: Size2D<i32>,
+                                           layer_buffer: &mut Box<LayerBuffer>)
+                                           -> DrawTarget {
+        if !opts::get().gpu_painting {
+            DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
+        } else {
+            let gl_rasterization_context =
+                layer_buffer.native_surface.gl_rasterization_context(native_display!(self), size);
+            match gl_rasterization_context {
+                Some(gl_rasterization_context) => {
+                    gl_rasterization_context.make_current();
+                    DrawTarget::new_with_gl_rasterization_context(gl_rasterization_context,
+                                                                  SurfaceFormat::B8G8R8A8)
+                }
+                None => panic!("Could not create GPU rasterization context for LayerBuffer"),
+            }
+        }
+   }
+
     fn optimize_and_paint_tile(&mut self,
                                thread_id: usize,
-                               tile: &BufferRequest,
+                               mut tile: BufferRequest,
                                stacking_context: Arc<StackingContext>,
                                scale: f32,
                                layer_kind: LayerKind)
-                               -> DrawTarget {
-        let size = Size2D::new(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
-        let draw_target = if !opts::get().gpu_painting {
-            DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
-        } else {
-            // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
-            // paintbuffers) instead of recreating them.
-            let native_graphics_context =
-                native_display!(self) as *const _ as SkiaGrGLNativeContextRef;
-            let draw_target = DrawTarget::new_with_fbo(BackendType::Skia,
-                                                       native_graphics_context,
-                                                       size,
-                                                       SurfaceFormat::B8G8R8A8);
-
-            draw_target.make_current();
-            draw_target
-        };
+                               -> Box<LayerBuffer> {
+        let size = Size2D::new(tile.screen_rect.size.width as i32,
+                               tile.screen_rect.size.height as i32);
+        let mut buffer = self.create_layer_buffer(&mut tile, scale);
+        let draw_target = self.create_draw_target_for_layer_buffer(size, &mut buffer);
 
         {
             // Build the paint context.
@@ -595,41 +599,25 @@ impl WorkerThread {
             }
         }
 
-        draw_target
-    }
-
-    fn create_layer_buffer_for_gpu_painted_tile(&mut self,
-                                                tile: BufferRequest,
-                                                draw_target: DrawTarget,
-                                                scale: f32)
-                                                -> Box<LayerBuffer> {
-        // GPU painting path:
-        draw_target.make_current();
-
-        // We mark the native surface as not leaking in case the surfaces
-        // die on their way to the compositor task.
-        // FIXME(pcwalton): We should supply the texture and native surface *to* the draw target in
-        // GPU painting mode, so that it doesn't have to recreate it.
-        let mut native_surface: NativeSurface =
-            NativeSurface::from_draw_target_backing(draw_target.steal_draw_target_backing());
-        native_surface.mark_wont_leak();
-
-        box LayerBuffer {
-            native_surface: native_surface,
-            rect: tile.page_rect,
-            screen_pos: tile.screen_rect,
-            resolution: scale,
-            painted_with_cpu: false,
-            content_age: tile.content_age,
+        // Extract the texture from the draw target and place it into its slot in the buffer. If
+        // using CPU painting, upload it first.
+        if !opts::get().gpu_painting {
+            draw_target.snapshot().get_data_surface().with_data(|data| {
+                buffer.native_surface.upload(native_display!(self), data);
+                debug!("painting worker thread uploading to native surface {}",
+                       buffer.native_surface.get_id());
+            });
         }
+
+        draw_target.finish();
+        buffer
     }
 
-    fn create_layer_buffer_for_cpu_painted_tile(&mut self,
-                                                mut tile: BufferRequest,
-                                                draw_target: DrawTarget,
-                                                scale: f32)
-                                                -> Box<LayerBuffer> {
-        let mut layer_buffer = tile.layer_buffer.take().unwrap_or_else(|| {
+    fn create_layer_buffer(&mut self,
+                           tile: &mut BufferRequest,
+                           scale: f32)
+                           -> Box<LayerBuffer> {
+        tile.layer_buffer.take().unwrap_or_else(|| {
             // Create an empty native surface. We mark it as not leaking
             // in case it dies in transit to the compositor task.
             let width = tile.screen_rect.size.width;
@@ -644,29 +632,10 @@ impl WorkerThread {
                 rect: tile.page_rect,
                 screen_pos: tile.screen_rect,
                 resolution: scale,
-                painted_with_cpu: true,
+                painted_with_cpu: !opts::get().gpu_painting,
                 content_age: tile.content_age,
             }
-        });
-
-        draw_target.snapshot().get_data_surface().with_data(|data| {
-            layer_buffer.native_surface.upload(native_display!(self), data);
-            debug!("painting worker thread uploading to native surface {}",
-                   layer_buffer.native_surface.get_id());
-        });
-        layer_buffer
-    }
-
-    fn create_layer_buffer_for_painted_tile(&mut self,
-                                            tile: BufferRequest,
-                                            draw_target: DrawTarget,
-                                            scale: f32)
-                                            -> Box<LayerBuffer> {
-        if opts::get().gpu_painting {
-            self.create_layer_buffer_for_gpu_painted_tile(tile, draw_target, scale)
-        } else {
-            self.create_layer_buffer_for_cpu_painted_tile(tile, draw_target, scale)
-        }
+        })
     }
 }
 

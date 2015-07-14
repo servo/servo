@@ -1155,10 +1155,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
-        if opts::get().gpu_painting {
-            return;
-        }
-
         for buffer_request in paint_request.buffer_requests.iter_mut() {
             if self.buffer_map.mem() == 0 {
                 return;
@@ -1169,7 +1165,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 buffer.screen_pos = buffer_request.screen_rect;
                 buffer.resolution = paint_request.scale;
                 buffer.native_surface.mark_wont_leak();
-                buffer.painted_with_cpu = true;
+                buffer.painted_with_cpu = !opts::get().gpu_painting;
                 buffer.content_age = buffer_request.content_age;
                 buffer_request.layer_buffer = Some(buffer);
             }
