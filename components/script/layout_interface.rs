@@ -10,6 +10,7 @@ use dom::node::LayoutData;
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use ipc_channel::ipc::IpcSender;
 use libc::uintptr_t;
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
@@ -71,7 +72,7 @@ pub enum Msg {
     ExitNow(PipelineExitType),
 
     /// Get the last epoch counter for this layout task.
-    GetCurrentEpoch(Sender<Epoch>)
+    GetCurrentEpoch(IpcSender<Epoch>)
 }
 
 /// Synchronous messages that script can send to layout.

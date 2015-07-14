@@ -251,8 +251,11 @@ pub trait DocumentHelpers<'a> {
     fn title_changed(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
-    fn dispatch_key_event(self, key: Key, state: KeyState,
-        modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
+    fn dispatch_key_event(self,
+                          key: Key,
+                          state: KeyState,
+                          modifiers: KeyModifiers,
+                          compositor: &mut ScriptListener);
     fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
                                    -> Fallible<Root<Node>>;
     fn get_body_attribute(self, local_name: &Atom) -> DOMString;
@@ -760,10 +763,11 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// The entry point for all key processing for web content
-    fn dispatch_key_event(self, key: Key,
+    fn dispatch_key_event(self,
+                          key: Key,
                           state: KeyState,
                           modifiers: KeyModifiers,
-                          compositor: &mut Box<ScriptListener+'static>) {
+                          compositor: &mut ScriptListener) {
         let window = self.window.root();
         let focused = self.get_focused_element();
         let body = self.GetBody();

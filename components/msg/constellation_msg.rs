@@ -57,7 +57,7 @@ pub struct WindowSizeData {
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
 pub enum KeyState {
     Pressed,
     Released,
@@ -65,7 +65,7 @@ pub enum KeyState {
 }
 
 //N.B. Based on the glutin key enum
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
 pub enum Key {
     Space,
     Apostrophe,
@@ -191,6 +191,7 @@ pub enum Key {
 }
 
 bitflags! {
+    #[derive(Deserialize, Serialize)]
     flags KeyModifiers: u8 {
         const NONE = 0x00,
         const SHIFT = 0x01,
@@ -368,15 +369,15 @@ pub struct FrameId(pub u32);
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct WorkerId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct PipelineId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct SubpageId(pub u32);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum PipelineExitType {
     PipelineOnly,
     Complete,

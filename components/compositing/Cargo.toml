@@ -52,6 +52,9 @@ git = "https://github.com/servo/rust-png"
 [dependencies.clipboard]
 git = "https://github.com/aweinstock314/rust-clipboard"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 log = "*"
 num = "0.1.24"

@@ -7,13 +7,16 @@ use layout_traits::{LayoutControlMsg, LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
+use compositor_task;
 use devtools_traits::DevtoolsControlChan;
 use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
+use ipc_channel::ipc;
 use layers::geometry::DevicePixel;
+use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
 use profile_traits::mem;
@@ -22,6 +25,7 @@ use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use std::sync::mpsc::{Receiver, channel};
+use std::thread;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
 use util::opts;
@@ -81,7 +85,7 @@ impl Pipeline {
         let (paint_port, paint_chan) = PaintChan::new();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
-        let (pipeline_chan, pipeline_port) = channel();
+        let (pipeline_chan, pipeline_port) = ipc::channel().unwrap();
 
         let failure = Failure {
             pipeline_id: id,
@@ -91,6 +95,8 @@ impl Pipeline {
         let script_chan = match script_chan {
             None => {
                 let (script_chan, script_port) = channel();
+                let (script_to_compositor_chan, script_to_compositor_port) =
+                    ipc::channel().unwrap();
 
                 let window_size = window_rect.map(|rect| {
                     WindowSizeData {
@@ -100,10 +106,18 @@ impl Pipeline {
                     }
                 });
 
+                let compositor_proxy_for_script_listener_thread =
+                    compositor_proxy.clone_compositor_proxy();
+                thread::spawn(move || {
+                    compositor_task::run_script_listener_thread(
+                        compositor_proxy_for_script_listener_thread,
+                        script_to_compositor_port)
+                });
+
                 ScriptTaskFactory::create(None::<&mut STF>,
                                           id,
                                           parent_info,
-                                          compositor_proxy.clone_compositor_proxy(),
+                                          ScriptListener::new(script_to_compositor_chan),
                                           &layout_pair,
                                           ScriptControlChan(script_chan.clone()),
                                           script_port,

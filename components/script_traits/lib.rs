@@ -150,22 +150,21 @@ pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
 /// crate.
 pub trait ScriptTaskFactory {
     /// Create a `ScriptTask`.
-    fn create<C>(_phantom: Option<&mut Self>,
-                 id: PipelineId,
-                 parent_info: Option<(PipelineId, SubpageId)>,
-                 compositor: C,
-                 layout_chan: &OpaqueScriptLayoutChannel,
-                 control_chan: ScriptControlChan,
-                 control_port: Receiver<ConstellationControlMsg>,
-                 constellation_msg: ConstellationChan,
-                 failure_msg: Failure,
-                 resource_task: ResourceTask,
-                 storage_task: StorageTask,
-                 image_cache_task: ImageCacheTask,
-                 devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: Option<WindowSizeData>,
-                 load_data: LoadData)
-                 where C: ScriptListener + Send;
+    fn create(_phantom: Option<&mut Self>,
+              id: PipelineId,
+              parent_info: Option<(PipelineId, SubpageId)>,
+              compositor: ScriptListener,
+              layout_chan: &OpaqueScriptLayoutChannel,
+              control_chan: ScriptControlChan,
+              control_port: Receiver<ConstellationControlMsg>,
+              constellation_msg: ConstellationChan,
+              failure_msg: Failure,
+              resource_task: ResourceTask,
+              storage_task: StorageTask,
+              image_cache_task: ImageCacheTask,
+              devtools_chan: Option<DevtoolsControlChan>,
+              window_size: Option<WindowSizeData>,
+              load_data: LoadData);
     /// Create a script -> layout channel (`Sender`, `Receiver` pair).
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
     /// Clone the `Sender` in `pair`.
