@@ -86,7 +86,6 @@ pub struct FontMetrics {
 }
 
 pub type SpecifiedFontStyle = FontStyle;
-pub type UsedFontStyle = FontStyle;
 
 pub struct Font {
     pub handle: FontHandle,

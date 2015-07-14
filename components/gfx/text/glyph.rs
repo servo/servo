@@ -523,8 +523,9 @@ int_range_index! {
 }
 
 impl<'a> GlyphStore {
-    // Initializes the glyph store, but doesn't actually shape anything.
-    // Use the set_glyph, set_glyphs() methods to store glyph data.
+    /// Initializes the glyph store, but doesn't actually shape anything.
+    ///
+    /// Use the `add_*` methods to store glyph data.
     pub fn new(length: usize, is_whitespace: bool) -> GlyphStore {
         assert!(length > 0);
 
@@ -619,10 +620,6 @@ impl<'a> GlyphStore {
         debug!("adding spacer for chracter without associated glyph[idx={:?}]", i);
 
         self.entry_buffer[i.to_usize()] = entry;
-    }
-
-    pub fn iter_glyphs_for_char_index(&'a self, i: CharIndex) -> GlyphIterator<'a> {
-        self.iter_glyphs_for_char_range(&Range::new(i, CharIndex(1)))
     }
 
     #[inline]
