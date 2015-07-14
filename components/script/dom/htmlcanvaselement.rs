@@ -106,7 +106,7 @@ impl HTMLCanvasElement {
 
 pub trait LayoutHTMLCanvasElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>>;
+    unsafe fn get_in_process_renderer(&self) -> Option<Sender<CanvasMsg>>;
     #[allow(unsafe_code)]
     unsafe fn get_canvas_width(&self) -> u32;
     #[allow(unsafe_code)]
@@ -115,14 +115,14 @@ pub trait LayoutHTMLCanvasElementHelpers {
 
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
+    unsafe fn get_in_process_renderer(&self) -> Option<Sender<CanvasMsg>> {
         let ref canvas = *self.unsafe_get();
         if let Some(context) = canvas.context.get() {
             match context {
                 CanvasContext::Context2d(context)
-                    => Some(context.to_layout().get_renderer()),
+                    => Some(context.to_layout().get_in_process_renderer()),
                 CanvasContext::WebGL(context)
-                    => Some(context.to_layout().get_renderer()),
+                    => Some(context.to_layout().get_in_process_renderer()),
             }
         } else {
             None

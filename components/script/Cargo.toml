@@ -58,6 +58,10 @@ features = ["query_encoding"]
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
+[dependencies.cssparser]
+version = "0.3"
+features = [ "serde-serialization" ]
+
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
@@ -70,7 +74,6 @@ bitflags = "*"
 rustc-serialize = "*"
 libc = "*"
 hyper = "0.6"
-cssparser = "0.3.1"
 unicase = "0.1"
 num = "0.1.24"
 websocket = "0.12"
@@ -82,3 +85,5 @@ string_cache_plugin = "0.1"
 euclid = "0.1"
 tendril = "0.1.1"
 rand = "0.3"
+serde = "*"
+
