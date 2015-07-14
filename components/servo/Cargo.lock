@@ -49,7 +49,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "aster"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1060,7 +1060,7 @@ name = "quasi_codegen"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1202,7 +1202,7 @@ name = "serde_codegen"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi_macros 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
