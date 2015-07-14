@@ -42,8 +42,8 @@ use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
 use dom::worker::TrustedWorkerAddress;
 use parse::html::{ParseContext, parse_html};
-use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
-use layout_interface;
+use layout_interface::{self, NewLayoutTaskInfo, ScriptLayoutChan, LayoutChan, ReflowGoal};
+use layout_interface::{ReflowQueryType};
 use network_listener::NetworkListener;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
@@ -925,18 +925,44 @@ impl ScriptTask {
             containing_pipeline_id,
             new_pipeline_id,
             subpage_id,
-            layout_chan,
             load_data,
+            paint_chan,
+            failure,
+            pipeline_port,
+            layout_shutdown_chan,
         } = new_layout_info;
+
+        let layout_pair = ScriptTask::create_layout_channel(None::<&mut ScriptTask>);
+        let layout_chan = LayoutChan(*ScriptTask::clone_layout_channel(
+            None::<&mut ScriptTask>,
+            &layout_pair).downcast::<Sender<layout_interface::Msg>>().unwrap());
+
+        let layout_creation_info = NewLayoutTaskInfo {
+            id: new_pipeline_id,
+            url: load_data.url.clone(),
+            is_parent: false,
+            layout_pair: layout_pair,
+            pipeline_port: pipeline_port,
+            constellation_chan: self.constellation_chan.clone(),
+            failure: failure,
+            paint_chan: paint_chan,
+            script_chan: self.control_chan.0.clone(),
+            image_cache_task: self.image_cache_task.clone(),
+            layout_shutdown_chan: layout_shutdown_chan,
+        };
 
         let page = self.root_page();
         let parent_page = page.find(containing_pipeline_id).expect("ScriptTask: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
-
         let parent_window = parent_page.window();
-        let chan = layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap();
-        let layout_chan = LayoutChan(chan.clone());
+
+        // Tell layout to actually spawn the task.
+        parent_window.layout_chan()
+                     .0
+                     .send(layout_interface::Msg::CreateLayoutTask(layout_creation_info))
+                     .unwrap();
+
         // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id)),
                                            layout_chan, parent_window.r().window_size(),

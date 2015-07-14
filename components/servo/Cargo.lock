@@ -1063,6 +1063,7 @@ dependencies = [
  "html5ever 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "layout_traits 0.0.1",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
