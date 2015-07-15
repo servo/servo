@@ -126,14 +126,13 @@ impl WebSocket {
             }
         };
 
-        *ws.r().sender.borrow_mut() = Some(temp_sender);
-
         //Create everything necessary for starting the open asynchronous task, then begin the task.
         let global_root = ws.r().global.root();
         let addr: Trusted<WebSocket> =
             Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
         let open_task = box ConnectionEstablishedTask {
             addr: addr,
+            sender: temp_sender,
         };
         global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
         //TODO: Spawn thread here for receive loop
@@ -247,11 +246,14 @@ impl<'a> WebSocketMethods for &'a WebSocket {
 /// Task queued when *the WebSocket connection is established*.
 struct ConnectionEstablishedTask {
     addr: Trusted<WebSocket>,
+    sender: Sender<WebSocketStream>,
 }
 
 impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
+
+        *ws.r().sender.borrow_mut() = Some(self.sender);
 
         // Step 1: Protocols.
 
