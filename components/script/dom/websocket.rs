@@ -46,7 +46,6 @@ enum WebSocketRequestState {
 }
 
 no_jsmanaged_fields!(Sender<WebSocketStream>);
-no_jsmanaged_fields!(Receiver<WebSocketStream>);
 
 #[dom_struct]
 pub struct WebSocket {
@@ -55,7 +54,6 @@ pub struct WebSocket {
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
     sender: RefCell<Option<Sender<WebSocketStream>>>,
-    receiver: RefCell<Option<Receiver<WebSocketStream>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
     full: Cell<bool>, //Flag to tell if websocket queue is full
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
@@ -87,7 +85,6 @@ impl WebSocket {
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             failed: Cell::new(false),
             sender: RefCell::new(None),
-            receiver: RefCell::new(None),
             full: Cell::new(false),
             clean_close: Cell::new(true),
             code: Cell::new(0),
@@ -115,7 +112,7 @@ impl WebSocket {
                                     WebSocketBinding::Wrap);
 
         let channel = establish_a_websocket_connection(url, global.get_url().serialize());
-        let (temp_sender, temp_receiver) = match channel {
+        let (temp_sender, _temp_receiver) = match channel {
             Ok(channel) => channel,
             Err(e) => {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
@@ -130,7 +127,6 @@ impl WebSocket {
         };
 
         *ws.r().sender.borrow_mut() = Some(temp_sender);
-        *ws.r().receiver.borrow_mut() = Some(temp_receiver);
 
         //Create everything necessary for starting the open asynchronous task, then begin the task.
         let global_root = ws.r().global.root();
