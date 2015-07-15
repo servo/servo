@@ -45,6 +45,7 @@ use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
+use profile_traits::mem;
 use util::geometry::{self, Au, MAX_RECT};
 use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
@@ -64,7 +65,7 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
-use std::mem;
+use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
@@ -117,6 +118,9 @@ pub struct Window {
     timers: TimerManager,
 
     next_worker_id: Cell<WorkerId>,
+
+    /// For sending messages to the memory profiler.
+    mem_profiler_chan: mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -538,6 +542,7 @@ pub trait WindowHelpers {
     fn window_size(self) -> Option<WindowSizeData>;
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
+    fn mem_profiler_chan(self) -> mem::ProfilerChan;
     fn devtools_chan(self) -> Option<DevtoolsControlChan>;
     fn layout_chan(self) -> LayoutChan;
     fn constellation_chan(self) -> ConstellationChan;
@@ -721,7 +726,7 @@ impl<'a> WindowHelpers for &'a Window {
     /// layout task has finished any pending request messages.
     fn join_layout(self) {
         let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = mem::replace(&mut *layout_join_port, None) {
+        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
             match join_port.try_recv() {
                 Err(Empty) => {
                     info!("script: waiting on layout");
@@ -821,6 +826,10 @@ impl<'a> WindowHelpers for &'a Window {
 
     fn resource_task(self) -> ResourceTask {
         self.resource_task.clone()
+    }
+
+    fn mem_profiler_chan(self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
     }
 
     fn devtools_chan(self) -> Option<DevtoolsControlChan> {
@@ -968,6 +977,7 @@ impl Window {
                image_cache_task: ImageCacheTask,
                resource_task: ResourceTask,
                storage_task: StorageTask,
+               mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<DevtoolsControlChan>,
                constellation_chan: ConstellationChan,
                layout_chan: LayoutChan,
@@ -993,6 +1003,7 @@ impl Window {
             page: page,
             navigator: Default::default(),
             image_cache_task: image_cache_task,
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
             browser_context: DOMRefCell::new(None),
             performance: Default::default(),

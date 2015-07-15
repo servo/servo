@@ -23,6 +23,7 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use devtools_traits::DevtoolsControlChan;
 
 use msg::constellation_msg::{PipelineId, WorkerId};
+use profile_traits::mem;
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
@@ -52,6 +53,7 @@ pub struct WorkerGlobalScope {
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
+    mem_profiler_chan: mem::ProfilerChan,
     devtools_chan: Option<DevtoolsControlChan>,
 }
 
@@ -60,6 +62,7 @@ impl WorkerGlobalScope {
                          worker_url: Url,
                          runtime: Rc<Runtime>,
                          resource_task: ResourceTask,
+                         mem_profiler_chan: mem::ProfilerChan,
                          devtools_chan: Option<DevtoolsControlChan>) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
@@ -72,8 +75,13 @@ impl WorkerGlobalScope {
             console: Default::default(),
             crypto: Default::default(),
             timers: TimerManager::new(),
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
         }
+    }
+
+    pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
     }
 
     pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {

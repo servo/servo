@@ -60,6 +60,7 @@ use smallvec::SmallVec1;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
+use profile_traits::mem::ProfilerChan;
 use util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -299,6 +300,7 @@ no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyl
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 no_jsmanaged_fields!(RepetitionStyle);
 no_jsmanaged_fields!(WebGLError);
+no_jsmanaged_fields!(ProfilerChan);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]
