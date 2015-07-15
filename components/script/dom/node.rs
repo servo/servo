@@ -1023,19 +1023,13 @@ impl<'a> NodeHelpers for &'a Node {
     fn parse_fragment(self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
         let context_node: &Node = NodeCast::from_ref(self);
         let context_document = document_from_node(self);
-        let mut new_children: RootedVec<JS<Node>> = RootedVec::new();
+        let fragment = DocumentFragment::new(context_document.r());
         if context_document.r().is_html_document() {
-            parse_html_fragment(context_node, markup, &mut new_children);
+            let fragment_node = NodeCast::from_ref(fragment.r());
+            parse_html_fragment(context_node, markup, fragment_node);
         } else {
             // FIXME: XML case
             unimplemented!();
-        }
-        let fragment = DocumentFragment::new(context_document.r());
-        {
-            let fragment_node = NodeCast::from_ref(fragment.r());
-            for node in new_children.iter() {
-                fragment_node.AppendChild(node.root().r()).unwrap();
-            }
         }
         Ok(fragment)
     }
