@@ -44,6 +44,9 @@ git = "https://github.com/servo/skia"
 [dependencies.script_traits]
 path = "../script_traits"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 log = "0.3"
 fnv = "1.0"

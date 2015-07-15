@@ -13,6 +13,9 @@ path = "../profile_traits"
 [dependencies.util]
 path = "../util"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 log = "0.3"
 libc = "0.1"

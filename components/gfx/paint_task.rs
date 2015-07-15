@@ -15,6 +15,8 @@ use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
@@ -24,7 +26,7 @@ use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
-use profile_traits::mem::{self, Reporter, ReportsChan};
+use profile_traits::mem::{self, Reporter, ReporterRequest, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use std::borrow::ToOwned;
@@ -98,14 +100,6 @@ impl PaintChan {
     }
 }
 
-impl Reporter for PaintChan {
-    // Just injects an appropriate event into the paint task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        let PaintChan(ref c) = *self;
-        c.send(Msg::CollectReports(reports_chan)).is_ok()
-    }
-}
-
 pub struct PaintTask<C> {
     id: PipelineId,
     _url: Url,
@@ -170,11 +164,20 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
 
-                // Register this thread as a memory reporter, via its own channel.
-                let reporter = box chan.clone();
+                // Register the memory reporter.
                 let reporter_name = format!("paint-reporter-{}", id.0);
-                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(),
-                                                                          reporter));
+                let (reporter_sender, reporter_receiver) =
+                    ipc::channel::<ReporterRequest>().unwrap();
+                let paint_chan_for_reporter = chan.clone();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
+                    // Just injects an appropriate event into the paint task's queue.
+                    let request: ReporterRequest = message.to().unwrap();
+                    paint_chan_for_reporter.0.send(Msg::CollectReports(request.reports_channel))
+                                             .unwrap();
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
 
                 // FIXME: rust/#5967
                 let mut paint_task = PaintTask {
@@ -266,8 +269,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
-                Msg::CollectReports(_) => {
+                Msg::CollectReports(ref channel) => {
                     // FIXME(njn): should eventually measure the paint task.
+                    channel.send(Vec::new())
                 }
                 Msg::Exit(response_channel, _) => {
                     let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
