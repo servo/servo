@@ -39,13 +39,13 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{self, IpcReceiver};
 use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use profile_traits::mem::{self, Report, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportsChan};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use net_traits::{load_bytes_iter, PendingAsyncLoad};
@@ -77,7 +77,7 @@ use util::geometry::{Au, MAX_RECT};
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
 use util::opts;
-use util::task::spawn_named_with_send_on_failure;
+use util::task::{self, spawn_named_with_send_on_failure};
 use util::task_state;
 use util::workqueue::WorkQueue;
 
@@ -306,10 +306,16 @@ impl LayoutTask {
             None
         };
 
-        // Register this thread as a memory reporter, via its own channel.
-        let reporter = box chan.clone();
+        // Create a memory reporter thread.
         let reporter_name = format!("layout-reporter-{}", id.0);
-        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
+        let (memory_reporter_sender, memory_reporter_receiver) = ipc::channel().unwrap();
+        let layout_chan_for_memory_reporter = chan.clone();
+        task::spawn_named(reporter_name.clone(), move || {
+            layout_reporter_thread(memory_reporter_receiver, layout_chan_for_memory_reporter)
+        });
+        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                reporter_name.clone(),
+                Reporter(memory_reporter_sender)));
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
@@ -1419,5 +1425,12 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .style
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
+}
+
+// Just injects an appropriate event into the layout task's queue.
+fn layout_reporter_thread(receiver: IpcReceiver<ReporterRequest>, sender: LayoutChan) {
+    while let Ok(request) = receiver.recv() {
+        sender.0.send(Msg::CollectReports(request.reports_channel)).unwrap()
+    }
 }
 

@@ -4,26 +4,25 @@
 
 //! Memory profiling functions.
 
+use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::mem::{ProfilerChan, ProfilerMsg, Reporter, ReportsChan};
-use self::system_reporter::SystemReporter;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread::sleep_ms;
-use std::sync::mpsc::{channel, Receiver};
 use util::task::spawn_named;
 
 pub struct Profiler {
     /// The port through which messages are received.
-    pub port: Receiver<ProfilerMsg>,
+    pub port: IpcReceiver<ProfilerMsg>,
 
     /// Registered memory reporters.
-    reporters: HashMap<String, Box<Reporter + Send>>,
+    reporters: HashMap<String, Reporter>,
 }
 
 impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
-        let (chan, port) = channel();
+        let (chan, port) = ipc::channel().unwrap();
 
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
@@ -48,16 +47,20 @@ impl Profiler {
 
         let mem_profiler_chan = ProfilerChan(chan);
 
-        // Register the system memory reporter, which will run on the memory profiler's own thread.
-        // It never needs to be unregistered, because as long as the memory profiler is running the
-        // system memory reporter can make measurements.
-        let system_reporter = box SystemReporter;
-        mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(), system_reporter));
+        // Register the system memory reporter, which will run on its own thread. It never needs to
+        // be unregistered, because as long as the memory profiler is running the system memory
+        // reporter can make measurements.
+        let (system_reporter_sender, system_reporter_receiver) = ipc::channel().unwrap();
+        spawn_named("System memory profiler".to_owned(), move || {
+            system_reporter::system_reporter_thread(system_reporter_receiver)
+        });
+        mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(),
+                                                             Reporter(system_reporter_sender)));
 
         mem_profiler_chan
     }
 
-    pub fn new(port: Receiver<ProfilerMsg>) -> Profiler {
+    pub fn new(port: IpcReceiver<ProfilerMsg>) -> Profiler {
         Profiler {
             port: port,
             reporters: HashMap::new(),
@@ -119,12 +122,11 @@ impl Profiler {
         // If anything goes wrong with a reporter, we just skip it.
         let mut forest = ReportsForest::new();
         for reporter in self.reporters.values() {
-            let (chan, port) = channel();
-            if reporter.collect_reports(ReportsChan(chan)) {
-                if let Ok(reports) = port.recv() {
-                    for report in reports.iter() {
-                        forest.insert(&report.path, report.size);
-                    }
+            let (chan, port) = ipc::channel().unwrap();
+            reporter.collect_reports(ReportsChan(chan));
+            if let Ok(reports) = port.recv() {
+                for report in reports.iter() {
+                    forest.insert(&report.path, report.size);
                 }
             }
         }
@@ -296,8 +298,9 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
+    use ipc_channel::ipc::IpcReceiver;
     use libc::{c_char, c_int, c_void, size_t};
-    use profile_traits::mem::{Report, Reporter, ReportsChan};
+    use profile_traits::mem::{Report, ReporterRequest};
     use std::borrow::ToOwned;
     use std::ffi::CString;
     use std::mem::size_of;
@@ -305,52 +308,53 @@ mod system_reporter {
     #[cfg(target_os="macos")]
     use task_info::task_basic_info::{virtual_size, resident_size};
 
-    /// Collects global measurements from the OS and heap allocators.
-    pub struct SystemReporter;
-
-    impl Reporter for SystemReporter {
-        fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-            let mut reports = vec![];
-            {
-                let mut report = |path, size| {
-                    if let Some(size) = size {
-                        reports.push(Report { path: path, size: size });
-                    }
-                };
-
-                // Virtual and physical memory usage, as reported by the OS.
-                report(path!["vsize"], get_vsize());
-                report(path!["resident"], get_resident());
-
-                // Memory segments, as reported by the OS.
-                for seg in get_resident_segments().iter() {
-                    report(path!["resident-according-to-smaps", seg.0], Some(seg.1));
-                }
-
-                // Total number of bytes allocated by the application on the system
-                // heap.
-                report(path!["system-heap-allocated"], get_system_heap_allocated());
-
-                // The descriptions of the following jemalloc measurements are taken
-                // directly from the jemalloc documentation.
-
-                // "Total number of bytes allocated by the application."
-                report(path!["jemalloc-heap-allocated"], get_jemalloc_stat("stats.allocated"));
-
-                // "Total number of bytes in active pages allocated by the application.
-                // This is a multiple of the page size, and greater than or equal to
-                // |stats.allocated|."
-                report(path!["jemalloc-heap-active"], get_jemalloc_stat("stats.active"));
-
-                // "Total number of bytes in chunks mapped on behalf of the application.
-                // This is a multiple of the chunk size, and is at least as large as
-                // |stats.active|. This does not include inactive chunks."
-                report(path!["jemalloc-heap-mapped"], get_jemalloc_stat("stats.mapped"));
-            }
-            reports_chan.send(reports);
-
-            true
+    pub fn system_reporter_thread(receiver: IpcReceiver<ReporterRequest>) {
+        while let Ok(request) = receiver.recv() {
+            collect_reports(request)
         }
+    }
+
+    /// Collects global measurements from the OS and heap allocators.
+    fn collect_reports(request: ReporterRequest) {
+        let mut reports = vec![];
+        {
+            let mut report = |path, size| {
+                if let Some(size) = size {
+                    reports.push(Report { path: path, size: size });
+                }
+            };
+
+            // Virtual and physical memory usage, as reported by the OS.
+            report(path!["vsize"], get_vsize());
+            report(path!["resident"], get_resident());
+
+            // Memory segments, as reported by the OS.
+            for seg in get_resident_segments().iter() {
+                report(path!["resident-according-to-smaps", seg.0], Some(seg.1));
+            }
+
+            // Total number of bytes allocated by the application on the system
+            // heap.
+            report(path!["system-heap-allocated"], get_system_heap_allocated());
+
+            // The descriptions of the following jemalloc measurements are taken
+            // directly from the jemalloc documentation.
+
+            // "Total number of bytes allocated by the application."
+            report(path!["jemalloc-heap-allocated"], get_jemalloc_stat("stats.allocated"));
+
+            // "Total number of bytes in active pages allocated by the application.
+            // This is a multiple of the page size, and greater than or equal to
+            // |stats.allocated|."
+            report(path!["jemalloc-heap-active"], get_jemalloc_stat("stats.active"));
+
+            // "Total number of bytes in chunks mapped on behalf of the application.
+            // This is a multiple of the chunk size, and is at least as large as
+            // |stats.active|. This does not include inactive chunks."
+            report(path!["jemalloc-heap-mapped"], get_jemalloc_stat("stats.mapped"));
+        }
+
+        request.reports_channel.send(reports);
     }
 
     #[cfg(target_os="linux")]

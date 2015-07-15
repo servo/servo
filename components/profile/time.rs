@@ -4,12 +4,12 @@
 
 //! Timing functions.
 
+use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::f64;
-use std::sync::mpsc::{channel, Receiver};
 use std::thread::sleep_ms;
 use std_time::precise_time_ns;
 use util::task::spawn_named;
@@ -86,14 +86,14 @@ type ProfilerBuckets = BTreeMap<(ProfilerCategory, Option<TimerMetadata>), Vec<f
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
-    pub port: Receiver<ProfilerMsg>,
+    pub port: IpcReceiver<ProfilerMsg>,
     buckets: ProfilerBuckets,
     pub last_msg: Option<ProfilerMsg>,
 }
 
 impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
-        let (chan, port) = channel();
+        let (chan, port) = ipc::channel().unwrap();
         match period {
             Some(period) => {
                 let period = (period * 1000.) as u32;
@@ -128,7 +128,7 @@ impl Profiler {
         ProfilerChan(chan)
     }
 
-    pub fn new(port: Receiver<ProfilerMsg>) -> Profiler {
+    pub fn new(port: IpcReceiver<ProfilerMsg>) -> Profiler {
         Profiler {
             port: port,
             buckets: BTreeMap::new(),
