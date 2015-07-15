@@ -5,8 +5,8 @@
 use compositor_task::{CompositorEventListener, CompositorReceiver, Msg};
 use windowing::WindowEvent;
 
-use geom::scale_factor::ScaleFactor;
-use geom::size::Size2D;
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::Size2D;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile_traits::mem;
@@ -80,7 +80,7 @@ impl CompositorEventListener for NullCompositor {
                 return false
             }
 
-            Msg::GetGraphicsMetadata(chan) => {
+            Msg::GetNativeDisplay(chan) => {
                 chan.send(None).unwrap();
             }
 
@@ -111,6 +111,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::IsReadyToSaveImageReply(..) => {}
             Msg::NewFavicon(..) => {}
             Msg::HeadParsed => {}
+            Msg::ReturnUnusedLayerBuffers(..) => {}
         }
         true
     }

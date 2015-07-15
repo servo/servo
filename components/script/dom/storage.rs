@@ -5,12 +5,11 @@
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JSRef, Temporary, Rootable, RootedReference};
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget};
+use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use dom::window::WindowHelpers;
@@ -39,7 +38,7 @@ impl Storage {
         }
     }
 
-    pub fn new(global: &GlobalRef, storage_type: StorageType) -> Temporary<Storage> {
+    pub fn new(global: &GlobalRef, storage_type: StorageType) -> Root<Storage> {
         reflect_dom_object(box Storage::new_inherited(global, storage_type), *global, StorageBinding::Wrap)
     }
 
@@ -57,7 +56,7 @@ impl Storage {
 
 }
 
-impl<'a> StorageMethods for JSRef<'a, Storage> {
+impl<'a> StorageMethods for &'a Storage {
     fn Length(self) -> u32 {
         let (sender, receiver) = channel();
 
@@ -134,7 +133,7 @@ trait PrivateStorageHelpers {
                                      new_value: Option<DOMString>);
 }
 
-impl<'a> PrivateStorageHelpers for JSRef<'a, Storage> {
+impl<'a> PrivateStorageHelpers for &'a Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
     fn broadcast_change_notification(self, key: Option<DOMString>, old_value: Option<DOMString>,
                                      new_value: Option<DOMString>){
@@ -166,7 +165,7 @@ impl StorageEventRunnable {
 impl MainThreadRunnable for StorageEventRunnable {
     fn handler(self: Box<StorageEventRunnable>, script_task: &ScriptTask) {
         let this = *self;
-        let storage_root = this.element.to_temporary().root();
+        let storage_root = this.element.root();
         let storage = storage_root.r();
         let global_root = storage.global.root();
         let global_ref = global_root.r();
@@ -180,18 +179,18 @@ impl MainThreadRunnable for StorageEventRunnable {
             this.key, this.old_value, this.new_value,
             ev_url.to_string(),
             Some(storage)
-        ).root();
-        let event: JSRef<Event> = EventCast::from_ref(storage_event.r());
+        );
+        let event = EventCast::from_ref(storage_event.r());
 
         let root_page = script_task.root_page();
         for it_page in root_page.iter() {
-            let it_window_root = it_page.window().root();
+            let it_window_root = it_page.window();
             let it_window = it_window_root.r();
             assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
             // TODO: Such a Document object is not necessarily fully active, but events fired on such
             // objects are ignored by the event loop until the Document becomes fully active again.
             if ev_window.pipeline() != it_window.pipeline() {
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(it_window);
+                let target = EventTargetCast::from_ref(it_window);
                 event.fire(target);
             }
         }

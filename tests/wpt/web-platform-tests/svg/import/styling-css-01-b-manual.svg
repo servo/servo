@@ -1,0 +1,90 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Chris lilley" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: styling-css-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/styling.html#StylingWithCSS">
+        <p>
+          Test element and class selectors.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+      <p>
+Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+The test is passed if all six shapes have a green fill.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: styling-css-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <defs>
+        <style type="text/css">
+          rect { fill: green }
+          .warning { fill: green }
+          .bar {fill: green}
+        </style>
+      </defs>
+    </defs>
+    <!-- ====================================================================== -->
+    <!-- Element (GI) selectors  =============================================== -->
+    <!-- ====================================================================== -->
+
+    <text style="font-size:12px;" x="40" y="36">
+      element selectors:
+    </text>
+
+      <circle cx="160" cy="100" r="30" fill="green"/>
+      <g style="fill: red">
+          <rect x="220" y="80" width="60" height="40"/>
+      </g>
+      <polygon points="300,100, 320,120, 340,110, 360,120, 390,90, 340,70" fill="green"/>
+
+    <!-- ====================================================================== -->
+    <!-- class selectors  =============================================== -->
+    <!-- ====================================================================== -->
+    <g transform="translate(0, 150)">
+
+      <text style="font-size:12px;" x="40" y="36">
+        class selectors:
+      </text>
+
+      <g style="fill: red">
+        <circle class="warning" cx="160" cy="100" r="30"/>
+        <rect x="220" y="80" width="60" height="40"/>
+        <polygon class="foo bar baz" points="300,100, 320,120, 340,110, 360,120, 390,90, 340,70"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" style="fill: none;stroke:#000" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

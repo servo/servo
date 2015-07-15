@@ -9,9 +9,9 @@
 
 use animation;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, SharedLayoutContextWrapper, heap_size_of_local_context};
+use context::{SharedLayoutContext, heap_size_of_local_context};
 use css::node_style::StyledNode;
-use data::{LayoutDataAccess, LayoutDataWrapper};
+use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
@@ -19,26 +19,27 @@ use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
-use parallel::{self, UnsafeFlow};
+use parallel::{self, WorkQueueData};
 use sequential;
-use wrapper::{LayoutNode, TLayoutNode};
+use wrapper::LayoutNode;
 
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use fnv::FnvHasher;
-use geom::Matrix4;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::scale_factor::ScaleFactor;
-use geom::size::Size2D;
+use euclid::Matrix4;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::Size2D;
 use gfx_traits::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
-use gfx::display_list::{StackingContext};
+use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
+use ipc_channel::ipc::IpcReceiver;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
@@ -63,12 +64,11 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
-use std::ptr;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::thread;
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
-use style::node::TNode;
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
@@ -110,7 +110,7 @@ pub struct LayoutTaskData {
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<SharedLayoutContextWrapper, UnsafeFlow>>,
+    pub parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
 
     /// The dirty rect. Used during display list construction.
     pub dirty: Rect<Au>,
@@ -157,7 +157,7 @@ pub struct LayoutTask {
     /// The port on which we receive messages from the script task.
     pub port: Receiver<Msg>,
 
-    /// The port on which we receive messages from the constellation
+    /// The port on which we receive messages from the constellation.
     pub pipeline_port: Receiver<LayoutControlMsg>,
 
     /// The port on which we receive messages from the image cache
@@ -215,7 +215,7 @@ impl LayoutTaskFactory for LayoutTask {
               url: Url,
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
-              pipeline_port: Receiver<LayoutControlMsg>,
+              pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,
@@ -286,7 +286,7 @@ impl LayoutTask {
            is_iframe: bool,
            port: Receiver<Msg>,
            chan: LayoutChan,
-           pipeline_port: Receiver<LayoutControlMsg>,
+           pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
            script_chan: ScriptControlChan,
            paint_chan: PaintChan,
@@ -301,8 +301,7 @@ impl LayoutTask {
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", task_state::LAYOUT,
-                                opts::get().layout_threads,
-                                SharedLayoutContextWrapper(ptr::null())))
+                                opts::get().layout_threads))
         } else {
             None
         };
@@ -317,12 +316,20 @@ impl LayoutTask {
         let (image_cache_sender, image_cache_receiver) = channel();
         let (canvas_layers_sender, canvas_layers_receiver) = channel();
 
+        // Start a thread to proxy IPC messages from the layout thread to us.
+        let (pipeline_sender, pipeline_receiver) = channel();
+        thread::spawn(move || {
+            while let Ok(message) = pipeline_port.recv() {
+                pipeline_sender.send(message).unwrap()
+            }
+        });
+
         LayoutTask {
             id: id,
             url: url,
             is_iframe: is_iframe,
             port: port,
-            pipeline_port: pipeline_port,
+            pipeline_port: pipeline_receiver,
             chan: chan,
             script_chan: script_chan,
             constellation_chan: constellation_chan.clone(),
@@ -386,7 +393,7 @@ impl LayoutTask {
             canvas_layers_sender: self.canvas_layers_sender.clone(),
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
-            reflow_root: reflow_root.map(|node| OpaqueNodeMethods::from_layout_node(node)),
+            reflow_root: reflow_root.map(|node| node.opaque()),
             dirty: Rect::zero(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
@@ -760,23 +767,18 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&self,
-                                  rw_data: &mut LayoutTaskData,
+                                  traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
 
-        match rw_data.parallel_traversal {
-            None => panic!("solve_contraints_parallel() called with no parallel traversal ready"),
-            Some(ref mut traversal) => {
-                // NOTE: this currently computes borders, so any pruning should separate that
-                // operation out.
-                parallel::traverse_flow_tree_preorder(layout_root,
-                                                      self.profiler_metadata(),
-                                                      self.time_profiler_chan.clone(),
-                                                      shared_layout_context,
-                                                      traversal);
-            }
-        }
+        // NOTE: this currently computes borders, so any pruning should separate that
+        // operation out.
+        parallel::traverse_flow_tree_preorder(layout_root,
+                                              self.profiler_metadata(),
+                                              self.time_profiler_chan.clone(),
+                                              shared_layout_context,
+                                              traversal);
     }
 
     /// Verifies that every node was either marked as a leaf or as a nonleaf in the flow tree.
@@ -839,17 +841,17 @@ impl LayoutTask {
             flow::mut_base(&mut **layout_root).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            match rw_data.parallel_traversal {
-                None => {
-                    sequential::build_display_list_for_subtree(layout_root,
-                                                               shared_layout_context);
-                }
-                Some(ref mut traversal) => {
+            match (&mut rw_data.parallel_traversal, opts::get().parallel_display_list_building) {
+                (&mut Some(ref mut traversal), true) => {
                     parallel::build_display_list_for_subtree(layout_root,
                                                              self.profiler_metadata(),
                                                              self.time_profiler_chan.clone(),
                                                              shared_layout_context,
                                                              traversal);
+                }
+                _ => {
+                    sequential::build_display_list_for_subtree(layout_root,
+                                                               shared_layout_context);
                 }
             }
 
@@ -873,10 +875,12 @@ impl LayoutTask {
                                                                      &origin,
                                                                      &origin,
                                                                      0,
-                                                                     &Matrix4::identity(),
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
-                                                                     Some(paint_layer)));
+                                                                     Some(paint_layer),
+                                                                     Matrix4::identity(),
+                                                                     Matrix4::identity(),
+                                                                     true));
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
@@ -1153,9 +1157,9 @@ impl LayoutTask {
                     // Sequential mode.
                     self.solve_constraints(&mut root_flow, &layout_context)
                 }
-                Some(_) => {
+                Some(ref mut parallel) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(rw_data,
+                    self.solve_constraints_parallel(parallel,
                                                     &mut root_flow,
                                                     &mut *layout_context);
                 }

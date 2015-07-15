@@ -17,11 +17,11 @@ use wrappers::CefWrap;
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeGraphicsMetadata;
+use layers::platform::surface::NativeDisplay;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use net::net_error_list::NetError;
@@ -51,7 +51,7 @@ pub struct Window {
 
 #[cfg(target_os="macos")]
 fn load_gl() {
-    const RTLD_DEFAULT: *mut c_void = (-2) as *mut c_void;
+    const RTLD_DEFAULT: *mut c_void = (-2isize) as usize as *mut c_void;
 
     extern {
         fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
@@ -265,26 +265,17 @@ impl WindowMethods for Window {
         }
     }
 
-    #[cfg(target_os="macos")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use cgl::{CGLGetCurrentContext, CGLGetPixelFormat};
-
-        // FIXME(pcwalton)
+    #[cfg(target_os="linux")]
+    fn native_display(&self) -> NativeDisplay {
+        use x11::xlib;
         unsafe {
-            NativeGraphicsMetadata {
-                pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),
-            }
+            NativeDisplay::new(DISPLAY as *mut xlib::Display)
         }
     }
 
-    #[cfg(target_os="linux")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use x11::xlib;
-        unsafe {
-            NativeGraphicsMetadata {
-                display: DISPLAY as *mut xlib::Display,
-            }
-        }
+    #[cfg(not(target_os="linux"))]
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new()
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)

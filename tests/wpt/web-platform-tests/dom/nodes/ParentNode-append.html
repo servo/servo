@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>ParentNode.append</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-parentnode-append">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function test_append(node, nodeName) {
+
+    test(function() {
+        var parent = node.cloneNode();
+        parent.append();
+        assert_array_equals(parent.childNodes, []);
+    }, nodeName + '.append() without any argument, on a parent having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        parent.append(null);
+        assert_equals(parent.childNodes[0].textContent, 'null');
+    }, nodeName + '.append() with null as an argument, on a parent having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        parent.append(undefined);
+        assert_equals(parent.childNodes[0].textContent, 'undefined');
+    }, nodeName + '.append() with undefined as an argument, on a parent having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        parent.append('text');
+        assert_equals(parent.childNodes[0].textContent, 'text');
+    }, nodeName + '.append() with only text as an argument, on a parent having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        var x = document.createElement('x');
+        parent.append(x);
+        assert_array_equals(parent.childNodes, [x]);
+    }, nodeName + '.append() with only one element as an argument, on a parent having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        var child = document.createElement('test');
+        parent.appendChild(child);
+        parent.append(null);
+        assert_equals(parent.childNodes[0], child);
+        assert_equals(parent.childNodes[1].textContent, 'null');
+    }, nodeName + '.append() with null as an argument, on a parent having a child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        var x = document.createElement('x');
+        var child = document.createElement('test');
+        parent.appendChild(child);
+        parent.append(x, 'text');
+        assert_equals(parent.childNodes[0], child);
+        assert_equals(parent.childNodes[1], x);
+        assert_equals(parent.childNodes[2].textContent, 'text');
+    }, nodeName + '.append() with one element and text as argument, on a parent having a child.');
+}
+
+test_append(document.createElement('div'), 'Element');
+test_append(document.createDocumentFragment(), 'DocumentFrgment');
+</script>
+</html>

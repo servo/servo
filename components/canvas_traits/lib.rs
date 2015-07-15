@@ -5,9 +5,10 @@
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
 #![feature(core)]
+#![feature(nonzero)]
 extern crate core;
 extern crate azure;
-extern crate geom;
+extern crate euclid;
 extern crate cssparser;
 extern crate gfx_traits;
 extern crate layers;
@@ -19,10 +20,10 @@ use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
 use azure::azure_hl::{SurfacePattern, SurfaceFormat};
 use cssparser::RGBA;
-use geom::matrix2d::Matrix2D;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use euclid::matrix2d::Matrix2D;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
 use gfx_traits::color;
 use std::sync::mpsc::{Sender};
 use layers::platform::surface::NativeSurface;
@@ -34,6 +35,14 @@ pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
     Common(CanvasCommonMsg),
     WebGL(CanvasWebGLMsg),
+}
+
+#[derive(Clone)]
+pub enum CanvasCommonMsg {
+    Close,
+    Recreate(Size2D<i32>),
+    SendPixelContents(Sender<Vec<u8>>),
+    SendNativeSurface(Sender<NativeSurface>),
 }
 
 #[derive(Clone)]
@@ -101,14 +110,14 @@ pub enum CanvasWebGLMsg {
     DeleteProgram(u32),
     DeleteShader(u32),
     BindBuffer(u32, u32),
-    BindFramebuffer(u32, u32),
+    BindFramebuffer(u32, WebGLFramebufferBindingRequest),
     BindRenderbuffer(u32, u32),
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
     EnableVertexAttribArray(u32),
-    GetAttribLocation(u32, String, Sender<i32>),
-    GetShaderInfoLog(u32, Sender<String>),
-    GetShaderParameter(u32, u32, Sender<i32>),
+    GetShaderInfoLog(u32, Sender<Option<String>>),
+    GetShaderParameter(u32, u32, Sender<WebGLShaderParameter>),
+    GetAttribLocation(u32, String, Sender<Option<i32>>),
     GetUniformLocation(u32, String, Sender<Option<i32>>),
     LinkProgram(u32),
     ShaderSource(u32, String),
@@ -120,14 +129,29 @@ pub enum CanvasWebGLMsg {
     DrawingBufferHeight(Sender<i32>),
 }
 
-#[derive(Clone)]
-pub enum CanvasCommonMsg {
-    Close,
-    Recreate(Size2D<i32>),
-    SendPixelContents(Sender<Vec<u8>>),
-    SendNativeSurface(Sender<NativeSurface>),
+#[derive(Clone, Copy, PartialEq)]
+pub enum WebGLError {
+    InvalidEnum,
+    InvalidOperation,
+    InvalidValue,
+    OutOfMemory,
+    ContextLost,
 }
 
+pub type WebGLResult<T> = Result<T, WebGLError>;
+
+#[derive(Clone)]
+pub enum WebGLFramebufferBindingRequest {
+    Explicit(u32),
+    Default,
+}
+
+#[derive(Clone)]
+pub enum WebGLShaderParameter {
+    Int(i32),
+    Bool(bool),
+    Invalid,
+}
 
 #[derive(Clone)]
 pub struct CanvasGradientStop {
@@ -260,7 +284,8 @@ impl FillOrStrokeStyle {
                 Pattern::Surface(SurfacePattern::new(
                     source_surface.azure_source_surface,
                     surface_style.repeat_x,
-                    surface_style.repeat_y))
+                    surface_style.repeat_y,
+                    &Matrix2D::identity()))
             }
         }
     }

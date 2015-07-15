@@ -17,7 +17,9 @@
         counter++
         test(function() {
           var client = new XMLHttpRequest()
+          assert_equals(client.status, 0);
           client.open(method, "resources/status.py?code=" + code + "&text=" + encodeURIComponent(text) + "&content=" + encodeURIComponent(content) + "&type=" + encodeURIComponent(type), false)
+          assert_equals(client.status, 0);
           client.send(null)
           assert_equals(client.status, code)
           assert_equals(client.statusText, text)

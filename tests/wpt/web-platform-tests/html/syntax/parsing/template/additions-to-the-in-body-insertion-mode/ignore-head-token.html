@@ -8,7 +8,7 @@
 <link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#in-body-addition">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src='../../testcommon.js'></script>
+<script src="/html/resources/common.js"></script>
 <link rel="stylesheet" href="/resources/testharness.css">
 </head>
 <body>
@@ -115,7 +115,7 @@ test(function() {
     + 'Test HEAD tag inside template tag assigned to another template\'s innerHTML');
 
 
-testInIFrame('../../resources/template-contents-head.html', function(context) {
+testInIFrame('/html/semantics/scripting-1/the-template-element/resources/template-contents-head.html', function(context) {
     var doc = context.iframes[0].contentDocument;
 
     var template = doc.body.querySelector('template');

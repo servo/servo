@@ -10,9 +10,9 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{window_from_node, Node};
 use dom::window::Window;
@@ -36,7 +36,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 #[must_root]
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct Sink {
     pub base_url: Option<Url>,
     pub document: JS<Document>,
@@ -46,8 +46,8 @@ pub struct Sink {
 /// into functions.
 #[derive(Copy, Clone)]
 pub struct FragmentContext<'a> {
-    pub context_elem: JSRef<'a, Node>,
-    pub form_elem: Option<JSRef<'a, Node>>,
+    pub context_elem: &'a Node,
+    pub form_elem: Option<&'a Node>,
 }
 
 pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
@@ -91,10 +91,10 @@ impl AsyncResponseListener for ParserContext {
         let parser = match parser {
             Some(parser) => parser,
             None => return,
-        }.root();
+        };
 
         let parser = parser.r();
-        let win = parser.window().root();
+        let win = parser.window();
         *self.parser.borrow_mut() = Some(Trusted::new(win.r().get_cx(), parser,
                                                       self.script_chan.clone()));
 
@@ -128,18 +128,18 @@ impl AsyncResponseListener for ParserContext {
             // FIXME: use Vec<u8> (html5ever #34)
             let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
             let parser = match self.parser.borrow().as_ref() {
-                Some(parser) => parser.to_temporary(),
+                Some(parser) => parser.root(),
                 None => return,
-            }.root();
+            };
             parser.r().parse_chunk(data);
         }
     }
 
     fn response_complete(&self, status: Result<(), String>) {
         let parser = match self.parser.borrow().as_ref() {
-            Some(parser) => parser.to_temporary(),
+            Some(parser) => parser.root(),
             None => return,
-        }.root();
+        };
         let doc = parser.r().document.root();
         doc.r().finish_load(LoadType::PageSource(self.url.clone()));
 
@@ -156,10 +156,7 @@ impl AsyncResponseListener for ParserContext {
 impl PreInvoke for ParserContext {
 }
 
-// NB: JSTraceable is *not* auto-derived.
-// You must edit the impl below if you add fields!
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct ServoHTMLParser {
     reflector_: Reflector,
     tokenizer: DOMRefCell<Tokenizer>,
@@ -176,7 +173,7 @@ pub struct ServoHTMLParser {
     pipeline: Option<PipelineId>,
 }
 
-impl<'a> Parser for JSRef<'a, ServoHTMLParser> {
+impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
         self.document.root().r().set_current_parser(Some(self));
         self.pending_input.borrow_mut().push(input);
@@ -201,12 +198,12 @@ impl<'a> Parser for JSRef<'a, ServoHTMLParser> {
 
 impl ServoHTMLParser {
     #[allow(unrooted_must_root)]
-    pub fn new(base_url: Option<Url>, document: JSRef<Document>, pipeline: Option<PipelineId>)
-               -> Temporary<ServoHTMLParser> {
-        let window = document.window().root();
+    pub fn new(base_url: Option<Url>, document: &Document, pipeline: Option<PipelineId>)
+               -> Root<ServoHTMLParser> {
+        let window = document.window();
         let sink = Sink {
             base_url: base_url,
-            document: JS::from_rooted(document),
+            document: JS::from_ref(document),
         };
 
         let tb = TreeBuilder::new(sink, TreeBuilderOpts {
@@ -220,7 +217,7 @@ impl ServoHTMLParser {
             reflector_: Reflector::new(),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
-            document: JS::from_rooted(document),
+            document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(false),
             pipeline: pipeline,
@@ -231,12 +228,12 @@ impl ServoHTMLParser {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new_for_fragment(base_url: Option<Url>, document: JSRef<Document>,
-                            fragment_context: FragmentContext) -> Temporary<ServoHTMLParser> {
-        let window = document.window().root();
+    pub fn new_for_fragment(base_url: Option<Url>, document: &Document,
+                            fragment_context: FragmentContext) -> Root<ServoHTMLParser> {
+        let window = document.window();
         let sink = Sink {
             base_url: base_url,
-            document: JS::from_rooted(document),
+            document: JS::from_ref(document),
         };
 
         let tb_opts = TreeBuilderOpts {
@@ -244,8 +241,8 @@ impl ServoHTMLParser {
             .. Default::default()
         };
         let tb = TreeBuilder::new_for_fragment(sink,
-                                               JS::from_rooted(fragment_context.context_elem),
-                                               fragment_context.form_elem.map(|n| JS::from_rooted(n)),
+                                               JS::from_ref(fragment_context.context_elem),
+                                               fragment_context.form_elem.map(|n| JS::from_ref(n)),
                                                tb_opts);
 
         let tok_opts = tokenizer::TokenizerOpts {
@@ -258,7 +255,7 @@ impl ServoHTMLParser {
             reflector_: Reflector::new(),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
-            document: JS::from_rooted(document),
+            document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(true),
             pipeline: None,
@@ -274,21 +271,15 @@ impl ServoHTMLParser {
     }
 }
 
-impl Reflectable for ServoHTMLParser {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
-
 trait PrivateServoHTMLParserHelpers {
     /// Synchronously run the tokenizer parse loop until explicitly suspended or
     /// the tokenizer runs out of input.
     fn parse_sync(self);
     /// Retrieve the window object associated with this parser.
-    fn window(self) -> Temporary<Window>;
+    fn window(self) -> Root<Window>;
 }
 
-impl<'a> PrivateServoHTMLParserHelpers for JSRef<'a, ServoHTMLParser> {
+impl<'a> PrivateServoHTMLParserHelpers for &'a ServoHTMLParser {
     fn parse_sync(self) {
         let mut first = true;
 
@@ -309,7 +300,7 @@ impl<'a> PrivateServoHTMLParserHelpers for JSRef<'a, ServoHTMLParser> {
             let mut pending_input = self.pending_input.borrow_mut();
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
-                self.tokenizer.borrow_mut().feed(chunk);
+                self.tokenizer.borrow_mut().feed(chunk.into());
             } else {
                 self.tokenizer.borrow_mut().run();
             }
@@ -322,7 +313,7 @@ impl<'a> PrivateServoHTMLParserHelpers for JSRef<'a, ServoHTMLParser> {
         }
     }
 
-    fn window(self) -> Temporary<Window> {
+    fn window(self) -> Root<Window> {
         let doc = self.document.root();
         window_from_node(doc.r())
     }
@@ -337,7 +328,7 @@ pub trait ServoHTMLParserHelpers {
     fn resume(self);
 }
 
-impl<'a> ServoHTMLParserHelpers for JSRef<'a, ServoHTMLParser> {
+impl<'a> ServoHTMLParserHelpers for &'a ServoHTMLParser {
     fn suspend(self) {
         assert!(!self.suspended.get());
         self.suspended.set(true);
@@ -362,21 +353,15 @@ impl tree_builder::Tracer for Tracer {
     }
 }
 
-impl JSTraceable for ServoHTMLParser {
-    #[allow(unsafe_code)]
+impl JSTraceable for Tokenizer {
     fn trace(&self, trc: *mut JSTracer) {
-        self.reflector_.trace(trc);
-
         let tracer = Tracer {
             trc: trc,
         };
         let tracer = &tracer as &tree_builder::Tracer<Handle=JS<Node>>;
 
-        unsafe {
-            let tokenizer = self.tokenizer.borrow_for_gc_trace();
-            let tree_builder = tokenizer.sink();
-            tree_builder.trace_handles(tracer);
-            tree_builder.sink().trace(trc);
-        }
+        let tree_builder = self.sink();
+        tree_builder.trace_handles(tracer);
+        tree_builder.sink().trace(trc);
     }
 }

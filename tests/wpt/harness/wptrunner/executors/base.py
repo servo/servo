@@ -99,7 +99,7 @@ class TestExecutor(object):
         self.timeout_multiplier = timeout_multiplier
         self.debug_info = debug_info
         self.last_environment = {"protocol": "http",
-                                 "prefs": []}
+                                 "prefs": {}}
         self.protocol = None # This must be set in subclasses
 
     @property

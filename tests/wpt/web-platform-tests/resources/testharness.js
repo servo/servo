@@ -22,7 +22,8 @@ policies and contribution forms [3].
             "normal":10000,
             "long":60000
         },
-        test_timeout:null
+        test_timeout:null,
+        message_events: ["start", "test_state", "result", "completion"]
     };
 
     var xhtml_ns = "http://www.w3.org/1999/xhtml";
@@ -64,6 +65,40 @@ policies and contribution forms [3].
         this.output_handler = null;
         this.all_loaded = false;
         var this_obj = this;
+        this.message_events = [];
+
+        this.message_functions = {
+            start: [add_start_callback, remove_start_callback,
+                    function (properties) {
+                        this_obj._dispatch("start_callback", [properties],
+                                           {type: "start", properties: properties});
+                    }],
+
+            test_state: [add_test_state_callback, remove_test_state_callback,
+                         function(test) {
+                             this_obj._dispatch("test_state_callback", [test],
+                                                {type: "test_state",
+                                                 test: test.structured_clone()});
+                         }],
+            result: [add_result_callback, remove_result_callback,
+                     function (test) {
+                         this_obj.output_handler.show_status();
+                         this_obj._dispatch("result_callback", [test],
+                                            {type: "result",
+                                             test: test.structured_clone()});
+                     }],
+            completion: [add_completion_callback, remove_completion_callback,
+                         function (tests, harness_status) {
+                             var cloned_tests = map(tests, function(test) {
+                                 return test.structured_clone();
+                             });
+                             this_obj._dispatch("completion_callback", [tests, harness_status],
+                                                {type: "complete",
+                                                 tests: cloned_tests,
+                                                 status: harness_status.structured_clone()});
+                         }]
+        }
+
         on_event(window, 'load', function() {
             this_obj.all_loaded = true;
         });
@@ -150,29 +185,38 @@ policies and contribution forms [3].
         this.output_handler = output;
 
         var this_obj = this;
+
         add_start_callback(function (properties) {
             this_obj.output_handler.init(properties);
-            this_obj._dispatch("start_callback", [properties],
-                           { type: "start", properties: properties });
         });
+
         add_test_state_callback(function(test) {
             this_obj.output_handler.show_status();
-            this_obj._dispatch("test_state_callback", [test],
-                               { type: "test_state", test: test.structured_clone() });
         });
+
         add_result_callback(function (test) {
             this_obj.output_handler.show_status();
-            this_obj._dispatch("result_callback", [test],
-                               { type: "result", test: test.structured_clone() });
         });
+
         add_completion_callback(function (tests, harness_status) {
             this_obj.output_handler.show_results(tests, harness_status);
-            var cloned_tests = map(tests, function(test) { return test.structured_clone(); });
-            this_obj._dispatch("completion_callback", [tests, harness_status],
-                               { type: "complete", tests: cloned_tests,
-                                 status: harness_status.structured_clone() });
         });
+        this.setup_messages(settings.message_events);
     };
+
+    WindowTestEnvironment.prototype.setup_messages = function(new_events) {
+        var this_obj = this;
+        forEach(settings.message_events, function(x) {
+            var current_dispatch = this_obj.message_events.indexOf(x) !== -1;
+            var new_dispatch = new_events.indexOf(x) !== -1;
+            if (!current_dispatch && new_dispatch) {
+                this_obj.message_functions[x][0](this_obj.message_functions[x][2]);
+            } else if (current_dispatch && !new_dispatch) {
+                this_obj.message_functions[x][1](this_obj.message_functions[x][2]);
+            }
+        });
+        this.message_events = new_events;
+    }
 
     WindowTestEnvironment.prototype.next_default_test_name = function() {
         //Don't use document.title to work around an Opera bug in XHTML documents
@@ -185,6 +229,9 @@ policies and contribution forms [3].
 
     WindowTestEnvironment.prototype.on_new_harness_properties = function(properties) {
         this.output_handler.setup(properties);
+        if (properties.hasOwnProperty("message_events")) {
+            this.setup_messages(properties.message_events);
+        }
     };
 
     WindowTestEnvironment.prototype.add_on_loaded_callback = function(callback) {
@@ -470,19 +517,27 @@ policies and contribution forms [3].
 
     function promise_test(func, name, properties) {
         var test = async_test(name, properties);
-        Promise.resolve(test.step(func, test, test))
-            .then(
-                function() {
-                    test.done();
-                })
-            .catch(test.step_func(
-                function(value) {
-                    if (value instanceof AssertionError) {
-                        throw value;
-                    }
-                    assert(false, "promise_test", null,
-                           "Unhandled rejection with value: ${value}", {value:value});
-                }));
+        // If there is no promise tests queue make one.
+        test.step(function() {
+            if (!tests.promise_tests) {
+                tests.promise_tests = Promise.resolve();
+            }
+        });
+        tests.promise_tests = tests.promise_tests.then(function() {
+            return Promise.resolve(test.step(func, test, test))
+                .then(
+                    function() {
+                        test.done();
+                    })
+                .catch(test.step_func(
+                    function(value) {
+                        if (value instanceof AssertionError) {
+                            throw value;
+                        }
+                        assert(false, "promise_test", null,
+                               "Unhandled rejection with value: ${value}", {value:value});
+                    }));
+        });
     }
 
     function promise_rejects(test, expected, promise) {
@@ -1448,13 +1503,13 @@ policies and contribution forms [3].
     RemoteTest.prototype.structured_clone = function() {
         var clone = {};
         Object.keys(this).forEach(
-                function(key) {
+                (function(key) {
                     if (typeof(this[key]) === "object") {
                         clone[key] = merge({}, this[key]);
                     } else {
                         clone[key] = this[key];
                     }
-                });
+                }).bind(this));
         clone.phases = merge({}, this.phases);
         return clone;
     };
@@ -1858,20 +1913,41 @@ policies and contribution forms [3].
         tests.test_state_callbacks.push(callback);
     }
 
-    function add_result_callback(callback)
-    {
+    function add_result_callback(callback) {
         tests.test_done_callbacks.push(callback);
     }
 
-    function add_completion_callback(callback)
-    {
-       tests.all_done_callbacks.push(callback);
+    function add_completion_callback(callback) {
+        tests.all_done_callbacks.push(callback);
     }
 
     expose(add_start_callback, 'add_start_callback');
     expose(add_test_state_callback, 'add_test_state_callback');
     expose(add_result_callback, 'add_result_callback');
     expose(add_completion_callback, 'add_completion_callback');
+
+    function remove(array, item) {
+        var index = array.indexOf(item);
+        if (index > -1) {
+            array.splice(index, 1);
+        }
+    }
+
+    function remove_start_callback(callback) {
+        remove(tests.start_callbacks, callback);
+    }
+
+    function remove_test_state_callback(callback) {
+        remove(tests.test_state_callbacks, callback);
+    }
+
+    function remove_result_callback(callback) {
+        remove(tests.test_done_callbacks, callback);
+    }
+
+    function remove_completion_callback(callback) {
+       remove(tests.all_done_callbacks, callback);
+    }
 
     /*
      * Output listener
@@ -1980,28 +2056,11 @@ policies and contribution forms [3].
             log.removeChild(log.lastChild);
         }
 
-        var script_prefix = null;
-        var scripts = document.getElementsByTagName("script");
-        for (var i = 0; i < scripts.length; i++) {
-            var src;
-            if (scripts[i].src) {
-                src = scripts[i].src;
-            } else if (scripts[i].href) {
-                //SVG case
-                src = scripts[i].href.baseVal;
-            }
-
-            var matches = src && src.match(/^(.*\/|)testharness\.js$/);
-            if (matches) {
-                script_prefix = matches[1];
-                break;
-            }
-        }
-
-        if (script_prefix !== null) {
+        var harness_url = get_harness_url();
+        if (harness_url !== null) {
             var stylesheet = output_document.createElementNS(xhtml_ns, "link");
             stylesheet.setAttribute("rel", "stylesheet");
-            stylesheet.setAttribute("href", script_prefix + "testharness.css");
+            stylesheet.setAttribute("href", harness_url + "testharness.css");
             var heads = output_document.getElementsByTagName("head");
             if (heads.length) {
                 heads[0].appendChild(stylesheet);
@@ -2357,6 +2416,7 @@ policies and contribution forms [3].
 
     AssertionError.prototype.get_stack = function() {
         var stack = new Error().stack;
+        // IE11 does not initialize 'Error.stack' until the object is thrown.
         if (!stack) {
             try {
                 throw new Error();
@@ -2364,18 +2424,30 @@ policies and contribution forms [3].
                 stack = e.stack;
             }
         }
+
         var lines = stack.split("\n");
-        var rv = [];
-        var re = /\/resources\/testharness\.js/;
+
+        // Create a pattern to match stack frames originating within testharness.js.  These include the
+        // script URL, followed by the line/col (e.g., '/resources/testharness.js:120:21').
+        var re = new RegExp((get_script_url() || "\\btestharness.js") + ":\\d+:\\d+");
+
+        // Some browsers include a preamble that specifies the type of the error object.  Skip this by
+        // advancing until we find the first stack frame originating from testharness.js.
         var i = 0;
-        // Fire remove any preamble that doesn't match the regexp
-        while (!re.test(lines[i])) {
-            i++
+        while (!re.test(lines[i]) && i < lines.length) {
+            i++;
         }
-        // Then remove top frames in testharness.js itself
-        while (re.test(lines[i])) {
-            i++
+
+        // Then skip the top frames originating from testharness.js to begin the stack at the test code.
+        while (re.test(lines[i]) && i < lines.length) {
+            i++;
         }
+
+        // Paranoid check that we didn't skip all frames.  If so, return the original stack unmodified.
+        if (i >= lines.length) {
+            return stack;
+        }
+
         return lines.slice(i).join("\n");
     }
 
@@ -2423,7 +2495,7 @@ policies and contribution forms [3].
         Array.prototype.push.apply(array, items);
     }
 
-    function forEach (array, callback, thisObj)
+    function forEach(array, callback, thisObj)
     {
         for (var i = 0; i < array.length; i++) {
             if (array.hasOwnProperty(i)) {
@@ -2467,11 +2539,46 @@ policies and contribution forms [3].
         }
     }
 
+    /** Returns the 'src' URL of the first <script> tag in the page to include the file 'testharness.js'. */
+    function get_script_url()
+    {
+        if (!('document' in self)) {
+            return undefined;
+        }
+
+        var scripts = document.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+            var src;
+            if (scripts[i].src) {
+                src = scripts[i].src;
+            } else if (scripts[i].href) {
+                //SVG case
+                src = scripts[i].href.baseVal;
+            }
+
+            var matches = src && src.match(/^(.*\/|)testharness\.js$/);
+            if (matches) {
+                return src;
+            }
+        }
+        return undefined;
+    }
+
+    /** Returns the URL path at which the files for testharness.js are assumed to reside (e.g., '/resources/').
+        The path is derived from inspecting the 'src' of the <script> tag that included 'testharness.js'. */
+    function get_harness_url()
+    {
+        var script_url = get_script_url();
+
+        // Exclude the 'testharness.js' file from the returned path, but '+ 1' to include the trailing slash.
+        return script_url ? script_url.slice(0, script_url.lastIndexOf('/') + 1) : undefined;
+    }
+
     function supports_post_message(w)
     {
         var supports;
         var type;
-        // Given IE  implements postMessage across nested iframes but not across
+        // Given IE implements postMessage across nested iframes but not across
         // windows or tabs, you can't infer cross-origin communication from the presence
         // of postMessage on the current window object only.
         //

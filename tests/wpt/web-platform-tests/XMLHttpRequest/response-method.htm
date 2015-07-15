@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: influence of HTTP method on response</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      ["GET", "HEAD", "POST"].forEach(function(method) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          client.open(method, "resources/echo-method.py", false)
+          client.send()
+          assert_equals(client.responseText, (method === "HEAD" ? "" : method))
+        }, method)
+      })
+    </script>
+  </body>
+</html>

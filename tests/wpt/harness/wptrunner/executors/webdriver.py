@@ -444,7 +444,7 @@ class Session(object):
                 body = {"id": frame.json()}
             else:
                 body = {"id": frame}
-        print body
+
         return self.send_command("POST", url, body)
 
     @command

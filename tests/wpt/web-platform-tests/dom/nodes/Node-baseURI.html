@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Node.baseURI</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var element = document.createElement("div");
+  document.body.appendChild(element);
+  assert_equals(element.baseURI, document.URL);
+}, "For elements belonging to document, baseURI should be document url")
+
+test(function() {
+  var element = document.createElement("div");
+  assert_equals(element.baseURI, document.URL);
+}, "For elements unassigned to document, baseURI should be document url")
+
+test(function() {
+  var fragment = document.createDocumentFragment();
+  var element = document.createElement("div");
+  fragment.appendChild(element);
+  assert_equals(element.baseURI, document.URL)
+}, "For elements belonging to document fragments, baseURI should be document url")
+
+test(function() {
+  var fragment = document.createDocumentFragment();
+  var element = document.createElement("div");
+  fragment.appendChild(element);
+  document.body.appendChild(fragment);
+  assert_equals(element.baseURI, document.URL)
+}, "After inserting fragment into document, element baseURI should be document url")
+</script>

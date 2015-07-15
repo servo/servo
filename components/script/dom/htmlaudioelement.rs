@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAudioElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -30,7 +30,7 @@ impl HTMLAudioElementDerived for EventTarget {
 impl HTMLAudioElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLAudioElement {
+                     document: &Document) -> HTMLAudioElement {
         HTMLAudioElement {
             htmlmediaelement:
                 HTMLMediaElement::new_inherited(HTMLMediaElementTypeId::HTMLAudioElement, localName, prefix, document)
@@ -40,7 +40,7 @@ impl HTMLAudioElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLAudioElement> {
+               document: &Document) -> Root<HTMLAudioElement> {
         let element = HTMLAudioElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAudioElementBinding::Wrap)
     }

@@ -1,0 +1,100 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="AG" author="CM" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: painting-render-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#ColorInterpolationProperty">
+      <p>
+        This tests that the 'color-interpolation' property is honored when
+        alpha compositing is performed.
+      </p>
+      <p>
+        The test slide consists of seven rectangular regions,
+        each of which is filled with either a dark or light
+        shade of gray.  The 'color-interpolation' property
+        is used on the rectangles to control whether a
+        dark or light shade of gray appears.  Text inside each
+        rectangular region indicates whether the shade of gray
+        should be dark or light.  The top two rectangular regions
+        are references against which the remaining five are to
+        be compared.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>all rectangles marked as "dark" have the same fill color,</li>
+        <li>all rectangles marked as "light" have the same fill color,</li>
+        <li>the rectangle marked "dark or light" has the same fill color
+          as either the "dark" rectangles or the "light" rectangles, and</li>
+        <li>the rendering matches the reference rendering, except for
+          any differences in font used to render the text.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-render-02-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <g transform='translate(90,10)'>
+      <rect y='100' width='300' height='200'/>
+      <g stroke='black' stroke-width='2'>
+        <rect width='150' height='100' fill='#7F7F7F'/>
+        <rect x='150' width='150' height='100' fill='#BBBBBB'/>
+        <g fill='white' fill-opacity='0.5'>
+          <rect y='100' width='100' height='100'/>
+          <g color-interpolation='linearRGB'>
+            <rect x='100' y='100' width='100' height='100' color-interpolation='linearRGB'/>
+            <rect x='200' y='100' width='100' height='100' color-interpolation='sRGB'/>
+            <rect y='200' width='150' height='100' color-interpolation='auto'/>
+            <rect x='150' y='200' width='150' height='100' color-interpolation='inherit'/>
+          </g>
+        </g>
+      </g>
+      <g text-anchor='middle' transform='translate(0,5)'>
+        <text x='75' y='50'>dark</text>
+        <text x='225' y='50'>light</text>
+        <text x='50' y='150'>dark</text>
+        <text x='150' y='150'>light</text>
+        <text x='250' y='150'>dark</text>
+        <text x='75' y='250'>dark or light</text>
+        <text x='225' y='250'>light</text>
+      </g>
+    </g>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

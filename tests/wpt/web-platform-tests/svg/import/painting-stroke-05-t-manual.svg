@@ -1,0 +1,88 @@
+<svg version="1.1" baseProfile="tiny" shape-rendering="geometricPrecision" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="BB" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: painting-stroke-05-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#StrokeProperties">
+      <p>
+        User agents may render graphical primitives with different levels of accuracy.
+        This test is aimed at determining how a UA renders thin strokes.
+      </p>
+      <p>
+        The test file contains a number of vertical and horizontal lines.
+        The stroke width of the vertical lines increase from left to right.
+        The stroke width of the horizontal lines increase from top to bottom.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      Run the test. No interaction required.
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if user is able to see a smooth stroke width
+        increment for the vertical and horizontal lines. The top left hand
+        corner should contain strokes that are very thin in width and the bottom
+        right hand corner should contain thick strokes.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-stroke-05-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="20" x="240" y="30" text-anchor="middle">Rendering thin strokes</text>
+
+    <polyline points="030,50 030,300" stroke="black" stroke-width="0.001"/>
+    <polyline points="50,50 50,300" stroke="black" stroke-width="0.1"/>
+    <polyline points="70,50 70,300" stroke="black" stroke-width="0.2"/>
+    <polyline points="90,50 90,300" stroke="black" stroke-width="0.3"/>
+    <polyline points="110,50 110,300" stroke="black" stroke-width="0.4"/>
+    <polyline points="130,50 130,300" stroke="black" stroke-width="0.5"/>
+    <polyline points="150,50 150,300" stroke="black" stroke-width="0.6"/>
+    <polyline points="170,50 170,300" stroke="black" stroke-width="0.7"/>
+    <polyline points="190,50 190,300" stroke="black" stroke-width="0.8"/>
+    <polyline points="210,50 210,300" stroke="black" stroke-width="0.9"/>
+    <polyline points="230,50 230,300" stroke="black" stroke-width="1.0"/>
+    <polyline points="250,50 250,300" stroke="black" stroke-width="1.1"/>
+    <polyline points="270,50 270,300" stroke="black" stroke-width="1.2"/>
+    <polyline points="290,50 290,300" stroke="black" stroke-width="1.3"/>
+    <polyline points="310,50 310,300" stroke="black" stroke-width="1.4"/>
+    <polyline points="330,50 330,300" stroke="black" stroke-width="1.5"/>
+    <polyline points="350,50 350,300" stroke="black" stroke-width="1.6"/>
+    <polyline points="370,50 370,300" stroke="black" stroke-width="1.7"/>
+    <polyline points="390,50 390,300" stroke="black" stroke-width="1.8"/>
+    <polyline points="410,50 410,300" stroke="black" stroke-width="1.9"/>
+    <polyline points="430,50 430,300" stroke="black" stroke-width="2.0"/>
+    <polyline points="450,50 450,300" stroke="black" stroke-width="2.1"/>
+
+    <line x1="10" x2="470" y1="100" y2="100" stroke="darkblue" stroke-width="0.1"/>
+    <line x1="10" x2="470" y1="150" y2="150" stroke="darkblue" stroke-width="0.5"/>
+    <line x1="10" x2="470" y1="200" y2="200" stroke="darkblue" stroke-width="1"/>
+    <line x1="10" x2="470" y1="250" y2="250" stroke="darkblue" stroke-width="2"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

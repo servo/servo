@@ -1,0 +1,60 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="CL" author="Microsoft" status="accepted" version="$Revision: 1.3 $" testname="$RCSfile: coords-transformattr-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/coords.html#TransformAttribute">
+      <p>
+        If 'sy' is not specified for a 'scale' transform, it is assumed to be equal to 'sx'.
+      </p>
+      <p>
+        Specify a series of various red graphics elements. Specify an equivalent series of black graphics elements that are defined to have dimensions
+        that are half the size as the red elements. Specify a 'transform' value of 'scale' with only the 'sx' value specified  (i.e., 'scale(2)'). If the 'sy'
+        parameter takes the same value as the 'sx', there will be no red on the page. 
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+			<p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-transformattr-04-f.svg,v $</title>
+    <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <rect width="100" height="200" fill="red" />
+    <rect transform="scale(2)" width="50" height="100" />
+    <ellipse cx="160" cy="100" rx="50" ry="100" fill="red" />
+    <ellipse transform="scale(2)" cx="80" cy="50" rx="25" ry="50" />
+    <line x1="220" x2="320" y1="10" y2="200" stroke="red" stroke-width="10" />
+    <line transform="scale(2)" x1="110" x2="160" y1="5" y2="100" stroke="black" stroke-width="5" />
+    <path d="M 330 0 L 430 0 380 200 Z" fill="red" />
+    <path transform="scale(2)" d="M 165 0 L 215 0 190 100 Z" fill="black" />
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

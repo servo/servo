@@ -21,8 +21,8 @@ use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
 use table_cell::CollapsedBordersForCell;
 
-use geom::{Point2D, Rect, Size2D, SideOffsets2D};
-use geom::Matrix4;
+use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
+use euclid::Matrix4;
 use gfx_traits::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
@@ -36,21 +36,22 @@ use msg::compositor_msg::{ScrollPolicy, LayerId};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image_cache_task::UsePlaceholder;
-use png::{self, PixelsByColorType};
+use net_traits::image::base::{Image, PixelFormat};
 use std::cmp;
 use std::default::Default;
-use std::iter::repeat;
 use std::sync::Arc;
 use std::f32;
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin,
                              background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position,
-                             visibility, transform};
+                             visibility, transform, transform_style};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
 use style::values::RGBA;
-use style::values::computed::{Image, LinearGradient, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed;
+use style::values::computed::LinearGradient;
+use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use url::Url;
 use util::cursor::Cursor;
@@ -107,7 +108,7 @@ pub trait FragmentDisplayListBuilding {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &png::Image)
+                                     image: &Image)
                                      -> Size2D<Au>;
 
     /// Adds the display items necessary to paint the background image of this fragment to the
@@ -362,7 +363,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let background = style.get_background();
         match background.background_image {
             None => {}
-            Some(Image::LinearGradient(ref gradient)) => {
+            Some(computed::Image::LinearGradient(ref gradient)) => {
                 self.build_display_list_for_background_linear_gradient(display_list,
                                                                        level,
                                                                        absolute_bounds,
@@ -370,7 +371,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                        gradient,
                                                                        style)
             }
-            Some(Image::Url(ref image_url)) => {
+            Some(computed::Image::Url(ref image_url)) => {
                 self.build_display_list_for_background_image(style,
                                                              display_list,
                                                              layout_context,
@@ -385,7 +386,7 @@ impl FragmentDisplayListBuilding for Fragment {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &png::Image)
+                                     image: &Image)
                                      -> Size2D<Au> {
         // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
         // wide.
@@ -1102,7 +1103,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                 CanvasCommonMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
-                    None => repeat(0xFFu8).take(width * height * 4).collect(),
+                    None => vec![0xFFu8; width * height * 4],
                 };
                 display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
                     base: BaseDisplayItem::new(stacking_relative_content_box,
@@ -1110,10 +1111,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                         &*self.style,
                                                                         Cursor::DefaultCursor),
                                                (*clip).clone()),
-                    image: Arc::new(png::Image {
+                    image: Arc::new(Image {
                         width: width as u32,
                         height: height as u32,
-                        pixels: PixelsByColorType::RGBA8(canvas_data),
+                        format: PixelFormat::RGBA8,
+                        bytes: canvas_data,
                     }),
                     stretch_size: stacking_relative_content_box.size,
                     image_rendering: image_rendering::T::Auto,
@@ -1146,22 +1148,23 @@ impl FragmentDisplayListBuilding for Fragment {
         if let Some(ref operations) = self.style().get_effects().transform {
             let transform_origin = self.style().get_effects().transform_origin;
             let transform_origin =
-                Point2D::new(model::specified(transform_origin.horizontal,
+                Point3D::new(model::specified(transform_origin.horizontal,
                                               border_box.size.width).to_f32_px(),
                              model::specified(transform_origin.vertical,
-                                              border_box.size.height).to_f32_px());
+                                              border_box.size.height).to_f32_px(),
+                             transform_origin.depth.to_f32_px());
 
             let pre_transform = Matrix4::create_translation(transform_origin.x,
                                                             transform_origin.y,
-                                                            0.0);
+                                                            transform_origin.z);
             let post_transform = Matrix4::create_translation(-transform_origin.x,
                                                              -transform_origin.y,
-                                                             0.0);
+                                                             -transform_origin.z);
 
             for operation in operations {
                 let matrix = match operation {
                     &transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                        let theta = f32::consts::PI_2 - theta.radians();
+                        let theta = 2.0f32 * f32::consts::PI - theta.radians();
                         Matrix4::create_rotation(ax, ay, az, theta)
                     }
                     &transform::ComputedOperation::Perspective(d) => {
@@ -1189,6 +1192,31 @@ impl FragmentDisplayListBuilding for Fragment {
 
             transform = pre_transform.mul(&transform).mul(&post_transform);
         }
+
+        let perspective = match self.style().get_effects().perspective {
+            LengthOrNone::Length(d) => {
+                let perspective_origin = self.style().get_effects().perspective_origin;
+                let perspective_origin =
+                    Point2D::new(model::specified(perspective_origin.horizontal,
+                                                  border_box.size.width).to_f32_px(),
+                                 model::specified(perspective_origin.vertical,
+                                                  border_box.size.height).to_f32_px());
+
+                let pre_transform = Matrix4::create_translation(perspective_origin.x,
+                                                                perspective_origin.y,
+                                                                0.0);
+                let post_transform = Matrix4::create_translation(-perspective_origin.x,
+                                                                 -perspective_origin.y,
+                                                                 0.0);
+
+                let perspective_matrix = Matrix4::create_perspective(d.to_f32_px());
+
+                pre_transform.mul(&perspective_matrix).mul(&post_transform)
+            }
+            LengthOrNone::None => {
+                Matrix4::identity()
+            }
+        };
 
         // FIXME(pcwalton): Is this vertical-writing-direction-safe?
         let margin = self.margin.to_physical(base_flow.writing_mode);
@@ -1221,16 +1249,19 @@ impl FragmentDisplayListBuilding for Fragment {
                 .send((layer_id, fragment_info.renderer.clone())).unwrap();
         }
 
+        let transform_style = self.style().get_used_transform_style();
         let layer = layer.map(|l| Arc::new(l));
 
         Arc::new(StackingContext::new(display_list,
                                       &border_box,
                                       &overflow,
                                       self.style().get_box().z_index.number_or_zero(),
-                                      &transform,
                                       filters,
                                       self.style().get_effects().mix_blend_mode,
-                                      layer))
+                                      layer,
+                                      transform,
+                                      perspective,
+                                      transform_style == transform_style::T::flat))
     }
 
     #[inline(never)]
@@ -1489,11 +1520,28 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(&self.base,
-                                                      display_list,
-                                                      layout_context,
-                                                      StackingContextLayer::IfCanvas(self.layer_id(0))))
+            if self.will_get_layer() {
+                // If we got here, then we need a new layer.
+                let scroll_policy = if self.is_fixed() {
+                    ScrollPolicy::FixedPosition
+                } else {
+                    ScrollPolicy::Scrollable
+                };
+
+                let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
+                let layer = StackingContextLayer::Existing(paint_layer);
+                let stacking_context = self.fragment.create_stacking_context(&self.base,
+                                                                             display_list,
+                                                                             layout_context,
+                                                                             layer);
+                DisplayListBuildingResult::StackingContext(stacking_context)
+            } else {
+                DisplayListBuildingResult::StackingContext(
+                    self.fragment.create_stacking_context(&self.base,
+                                                          display_list,
+                                                          layout_context,
+                                                          StackingContextLayer::IfCanvas(self.layer_id(0))))
+            }
         } else {
             match self.fragment.style.get_box().position {
                 position::T::static_ => {}

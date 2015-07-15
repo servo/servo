@@ -14,6 +14,7 @@ use msg::constellation_msg::{AnimationState, Msg, PipelineId};
 use script::layout_interface::Animation;
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use std::mem;
+use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use style::animation::{GetMod, PropertyAnimation};
 use style::properties::ComputedValues;
@@ -84,7 +85,7 @@ pub fn recalc_style_for_animation(flow: &mut Flow, animation: &Animation) {
         }
 
         let mut new_style = fragment.style.clone();
-        animation.property_animation.update(&mut *new_style.make_unique(), progress);
+        animation.property_animation.update(&mut *Arc::make_unique(&mut new_style), progress);
         damage.insert(incremental::compute_damage(&Some(fragment.style.clone()), &new_style));
         fragment.style = new_style
     });

@@ -8,5 +8,6 @@ name = "plugins"
 path = "lib.rs"
 plugin = true
 
-[dependencies]
-tenacious = "*"
+[dependencies.tenacious]
+git = "https://github.com/servo/rust-tenacious"
+

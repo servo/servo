@@ -1,0 +1,79 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="ED" status="issue"
+    version="$Revision: 1.6 $" testname="$RCSfile: conform-viewers-02-f.svg,v $">
+    <!--
+      XXX The issue with this test is that data: URIs shouldn't contain
+          gzipped content, since there's no way to identify the
+          content encoding in data: URIs.  See:
+            * http://www.w3.org/mid/20101217190531.GB31176@wok.mcc.id.au
+            * http://www.w3.org/mid/1801756505.20110119200752@w3.org
+      -->
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/conform.html#ConformingSVGViewers">
+      <p>
+        Test that the viewer can read gzipped content in data uri.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Open the test in any SVG player.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if you see a star in the middle of the test frame.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: conform-viewers-02-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+		<text x="240" y="40" text-anchor="middle">Test data uri with svgz content</text>
+		
+		<text fill="black" x="50%" y="200" text-anchor="middle">FAILED</text>
+    <image xlink:href="data:image/svg+xml;base64,H4sICA/BlksCA3N0YXIuc3ZnAMVUwW7bMAw9d8D+QVAvLeDIkiha0mDn0A7oZcMO
+Wz/Aa+zUgGsHttq0+/pRTtwkwLBuwIAhcPRIihT5RCofn9bsqam2V/1zwSWTTGfT
+x9nzQ9uNBb8PYfMhTbfbrdiC6Id1qqWUKfnx5ft3jOWrqh4nRLhu2lANrFkV/Hv7
+OPC9Plqqm/JxHJuyuyIDG8PqY/XUlKHpu4IrkfF0jpHugsxi23RVOdwM5aqpujCF
+bteKs/Ve820ou7Huh4eCP5RhaJ4vQKDJtLOQSPodpIWzVmgrHUGPWhhvrLmkQlXB
+wdM+q4zh7CWKTgqtPABZdRRRAJmRrCQaBULazLhDFrddE4isx7Eavm7Ku+pLdztW
+fDlXP4Z+w+Lf4q5v+6Hg53Vd852mp/1NeCH2BQXs63qsAgmvhPyx+8FZTc5nZ3l6
+yt7MaRTL9oTTIXJKkUELjd4hvFXbby5gIYWVkkh3iRaZMtZpopw4M2i0NQnZncqk
+8okymROgVZYstEbhNRpPN3JHvQgS6AqM9iRSdaA0OTnLWX1qrI+NO8LPfkmY/Aty
+5Rvk7jv1lMfdOKSv85CvWThwM8G2DNXFAoynZqNuJFKoJS1ljpfzrOSbMtwfO77V
+1YhOKGk8Rct8JjJEE7ua7vQzAyIeaKA/Me19AggRUf+D1RPSCRgXEZIV3KyDycOZ
+BCTOvjoi0KRTPiJFScCE9mf8oLuYJpdaZWgvzuMDcHkY639UFh3R7g+glv0/dZ7W
+dJRRe8jIoErAWfIzBhN6aCJSNjEO2TXpdGK8ZsYqWpGh3K3XDGkqJg1ktBqGGHcq
+8kZPeyBmh5IiYhYj7k+Zc8rTNa15fJ2XPwFubI+E2wUAAA==" width="200" height="200" x="130" y="70"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+  -->
+</svg>

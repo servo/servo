@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
@@ -22,24 +22,29 @@ pub struct Location {
 }
 
 impl Location {
-    fn new_inherited(window: JSRef<Window>) -> Location {
+    fn new_inherited(window: &Window) -> Location {
         Location {
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window)
+            window: JS::from_ref(window)
         }
     }
 
-    pub fn new(window: JSRef<Window>) -> Temporary<Location> {
+    pub fn new(window: &Window) -> Root<Location> {
         reflect_dom_object(box Location::new_inherited(window),
                            GlobalRef::Window(window),
                            LocationBinding::Wrap)
     }
 }
 
-impl<'a> LocationMethods for JSRef<'a, Location> {
+impl<'a> LocationMethods for &'a Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
     fn Assign(self, url: DOMString) {
         self.window.root().r().load_url(url);
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-hash
+    fn Hash(self) -> USVString {
+        UrlHelper::Hash(&self.get_url())
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-href
@@ -47,9 +52,34 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         UrlHelper::Href(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-host
+    fn Host(self) -> USVString {
+        UrlHelper::Host(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-hostname
+    fn Hostname(self) -> USVString {
+        UrlHelper::Hostname(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-password
+    fn Password(self) -> USVString {
+        UrlHelper::Password(&self.get_url())
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-pathname
     fn Pathname(self) -> USVString {
         UrlHelper::Pathname(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-port
+    fn Port(self) -> USVString {
+        UrlHelper::Port(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-protocol
+    fn Protocol(self) -> USVString {
+        UrlHelper::Protocol(&self.get_url())
     }
 
     // https://url.spec.whatwg.org/#URLUtils-stringification-behavior
@@ -62,9 +92,9 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         UrlHelper::Search(&self.get_url())
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-hash
-    fn Hash(self) -> USVString {
-        UrlHelper::Hash(&self.get_url())
+    // https://url.spec.whatwg.org/#dom-urlutils-username
+    fn Username(self) -> USVString {
+        UrlHelper::Username(&self.get_url())
     }
 }
 
@@ -72,7 +102,7 @@ trait PrivateLocationHelpers {
     fn get_url(self) -> Url;
 }
 
-impl<'a> PrivateLocationHelpers for JSRef<'a, Location> {
+impl<'a> PrivateLocationHelpers for &'a Location {
     fn get_url(self) -> Url {
         let window = self.window.root();
         window.r().get_url()

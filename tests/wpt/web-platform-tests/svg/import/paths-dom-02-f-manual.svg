@@ -1,0 +1,274 @@
+<svg version="1.1" baseProfile="full" onload="CreatePath();setTimeout('AnimatePath();', 500);" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.5 $" testname="$RCSfile: paths-dom-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#DOMInterfaces">
+        <p>
+          This test is designed to test the PathSegList interface. At first a flower-like shape with 6 petals should be displayed.
+          The roundness and number of petals are then animated using script.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The roundness of the petals is animated from star-like sharp petals to softly rounded petals and back again, and is repeated like that until the animation stops.
+        The number of petals should increase one by one until the flower has a total of 12 petals, and then go back one by one until it has 6 petals, then increase again one by one until the flower has 9 petals.
+        Then the animation will stop. The rendered image should look exactly like the reference image.
+      </p>
+      <p>
+        If the flower is clicked after the animation has finished, it will restart the animation and repeat it for some time.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[Describe the pass criteria of the test here. The pass criteria is what
+        should be displayed when the test is run.]]
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-dom-02-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script><![CDATA[
+      var offset_angle = 90;
+      var current_shift = 0;
+      var shift_inc = 1;
+      var THRESHOLD = 60;
+      var segments_added = 0;
+      var seg_diff = 1;
+      var adjust_count = 0;
+      var anim_count = 0;
+      var adjust_count_max = 8;
+      var anim_count_max = 10;
+      var stopped = false;
+
+      function DegToRad(degs)
+      {
+      return (degs * Math.PI) / 180;
+      }
+
+      function CreatePath()
+      {
+      var pathelm = document.getElementById("mypath");
+      var pathlist = pathelm.pathSegList;
+
+      var move = pathelm.createSVGPathSegMovetoAbs(240 + 30 * Math.cos(DegToRad(offset_angle - 30)),
+      180 + 30 * Math.sin(DegToRad(offset_angle - 30)));
+      pathlist.appendItem(move);
+
+      var angle = offset_angle;
+      for (var i = 0; i < 6; i++)
+      {
+      var x, y, xcp, ycp;
+
+      x = 240 + 30 * Math.cos(DegToRad(angle + 30));
+      y = 180 + 30 * Math.sin(DegToRad(angle + 30));
+
+      xcp = 240 + 120 * Math.cos(DegToRad(angle));
+      ycp = 180 + 120 * Math.sin(DegToRad(angle));
+
+      var curve = pathelm.createSVGPathSegCurvetoCubicAbs(x, y,
+      xcp, ycp,
+      xcp, ycp);
+
+      pathlist.appendItem(curve);
+
+      angle += 60;
+      }
+
+      pathlist.appendItem(pathelm.createSVGPathSegClosePath());
+      setTimeout('AdjustPath()', 500);
+      }
+
+      function AddSegment()
+      {
+      var pathelm = document.getElementById("mypath");
+      var pathlist = pathelm.pathSegList;
+
+      var segments = pathlist.numberOfItems - 2; // Not MoveTo and Close
+      var angle = offset_angle;
+      var inc_angle = 360/(segments+1);
+      var shift_v_x, shift_v_y, xcp, ycp;
+
+      var move = pathlist.getItem(0);
+      move.x = 240 + 30 * Math.cos(DegToRad(offset_angle - inc_angle/2));
+      move.y = 180 + 30 * Math.sin(DegToRad(offset_angle - inc_angle/2));
+
+      for (var i = 0; i < segments; i++)
+      {
+      var curve = pathlist.getItem(1+i);
+
+      shift_v_x = current_shift * Math.cos(DegToRad(angle + 90));
+      shift_v_y = current_shift * Math.sin(DegToRad(angle + 90));
+
+      xcp = 240 + 120 * Math.cos(DegToRad(angle));
+      ycp = 180 + 120 * Math.sin(DegToRad(angle));
+
+      curve.x = 240 + 30 * Math.cos(DegToRad(angle + inc_angle/2));
+      curve.y = 180 + 30 * Math.sin(DegToRad(angle + inc_angle/2));
+
+      curve.x1 = xcp - shift_v_x;
+      curve.y1 = ycp - shift_v_y;
+
+      curve.x2 = xcp + shift_v_x;
+      curve.y2 = ycp + shift_v_y;
+
+      angle += inc_angle;
+      }
+
+      shift_v_x = current_shift * Math.cos(DegToRad(angle + 90));
+      shift_v_y = current_shift * Math.sin(DegToRad(angle + 90));
+
+      xcp = 240 + 120 * Math.cos(DegToRad(angle));
+      ycp = 180 + 120 * Math.sin(DegToRad(angle));
+
+      var x = 240 + 30 * Math.cos(DegToRad(angle + inc_angle/2));
+      var y = 180 + 30 * Math.sin(DegToRad(angle + inc_angle/2));
+
+      var curve = pathelm.createSVGPathSegCurvetoCubicAbs(x, y,
+      xcp - shift_v_x,
+      ycp - shift_v_y,
+      xcp + shift_v_x,
+      ycp + shift_v_y);
+
+      pathlist.insertItemBefore(curve, pathlist.numberOfItems-1);
+      }
+
+      function RemoveSegment()
+      {
+      var pathelm = document.getElementById("mypath");
+      var pathlist = pathelm.pathSegList;
+
+      var segments = pathlist.numberOfItems - 2; // Not MoveTo and Close
+      var angle = offset_angle;
+      var inc_angle = 360/(segments-1);
+      var shift_v_x, shift_v_y, xcp, ycp;
+
+      var move = pathlist.getItem(0);
+      move.x = 240 + 30 * Math.cos(DegToRad(offset_angle - inc_angle/2));
+      move.y = 180 + 30 * Math.sin(DegToRad(offset_angle - inc_angle/2));
+
+      for (var i = 0; i < segments-1; i++)
+      {
+      var curve = pathlist.getItem(1+i);
+
+      shift_v_x = current_shift * Math.cos(DegToRad(angle + 90));
+      shift_v_y = current_shift * Math.sin(DegToRad(angle + 90));
+
+      xcp = 240 + 120 * Math.cos(DegToRad(angle));
+      ycp = 180 + 120 * Math.sin(DegToRad(angle));
+
+      curve.x = 240 + 30 * Math.cos(DegToRad(angle + inc_angle/2));
+      curve.y = 180 + 30 * Math.sin(DegToRad(angle + inc_angle/2));
+
+      curve.x1 = xcp - shift_v_x;
+      curve.y1 = ycp - shift_v_y;
+
+      curve.x2 = xcp + shift_v_x;
+      curve.y2 = ycp + shift_v_y;
+
+      angle += inc_angle;
+      }
+
+      pathlist.removeItem(pathlist.numberOfItems-2);
+      }
+
+      function AdjustPath()
+      {
+      if (seg_diff > 0)
+      {
+      AddSegment();
+      }
+      else
+      {
+      RemoveSegment();
+      }
+
+      segments_added += seg_diff;
+
+      if (segments_added > 5)
+      seg_diff = -1;
+      else if (segments_added <= 0)
+      seg_diff = 1;
+
+      if(adjust_count < adjust_count_max)
+      {
+      adjust_count++;
+      setTimeout('AdjustPath()', 500);
+      }
+      }
+
+      function AnimatePath()
+      {
+      var pathelm = document.getElementById("mypath");
+      var pathlist = pathelm.pathSegList;
+
+      var segments = pathlist.numberOfItems - 2; // Not MoveTo and Close
+      var angle = offset_angle;
+      var inc_angle = 360/segments;
+      for (var i = 0; i < segments; i++)
+      {
+      var curve = pathlist.getItem(1+i);
+
+      var shift_v_x, shift_v_y, xcp, ycp;
+
+      shift_v_x = current_shift * Math.cos(DegToRad(angle + 90));
+      shift_v_y = current_shift * Math.sin(DegToRad(angle + 90));
+
+      xcp = 240 + 120 * Math.cos(DegToRad(angle));
+      ycp = 180 + 120 * Math.sin(DegToRad(angle));
+
+      curve.x1 = xcp - shift_v_x;
+      curve.y1 = ycp - shift_v_y;
+
+      curve.x2 = xcp + shift_v_x;
+      curve.y2 = ycp + shift_v_y;
+
+      angle += inc_angle;
+      }
+
+      current_shift += shift_inc;
+      if (current_shift >= THRESHOLD || current_shift < 0)
+      shift_inc = -shift_inc;
+
+      if(adjust_count >= adjust_count_max)
+      {
+      anim_count++;
+      }
+
+      if(anim_count < anim_count_max)
+      setTimeout('AnimatePath();', 50);
+      else
+      document.getElementById("mypath").addEventListener("click", function func() { adjust_count_max=32768;anim_count_max=32768; AdjustPath(); AnimatePath(); }, false);
+      }
+
+    ]]></script>
+    <path d="" id="mypath" stroke="black" fill="blue"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

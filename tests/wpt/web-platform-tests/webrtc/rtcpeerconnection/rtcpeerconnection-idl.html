@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>IDL check of RTCPeerConnection</title>
+<link rel="author" title="Harald Alvestrand" href="mailto:hta@google.com"/>
+<link rel="help" href="http://w3c.github.io/webrtc-pc/#rtcpeerconnection-interface">
+<link rel='stylesheet' href='/resources/testharness.css' media='all'/>
+</head>
+<body>
+
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test verifies the availability of the RTCPeerConnection interface.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js"
+          data-prefixed-objects=
+              '[{"ancestors":["window"], "name":"RTCPeerConnection"},
+                {"ancestors":["window"], "name":"RTCSessionDescription"},
+                {"ancestors":["window"], "name":"RTCIceCandidate"}]'>
+</script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<!-- The IDL is copied from the 06 March 2015 editors' draft. -->
+<script type="text/plain">
+[ Constructor (RTCConfiguration configuration)]
+interface RTCPeerConnection : EventTarget  {
+    Promise<RTCSessionDescription> createOffer (optional RTCOfferOptions options);
+    Promise<RTCSessionDescription> createAnswer ();
+    Promise<void>                  setLocalDescription (RTCSessionDescription description);
+    readonly    attribute RTCSessionDescription? localDescription;
+    Promise<void>                  setRemoteDescription (RTCSessionDescription description);
+    readonly    attribute RTCSessionDescription? remoteDescription;
+    readonly    attribute RTCSignalingState      signalingState;
+    void                           updateIce (RTCConfiguration configuration);
+    Promise<void>                  addIceCandidate (RTCIceCandidate candidate);
+    readonly    attribute RTCIceGatheringState   iceGatheringState;
+    readonly    attribute RTCIceConnectionState  iceConnectionState;
+    readonly    attribute boolean?               canTrickleIceCandidates;
+    RTCConfiguration               getConfiguration ();
+    void                           close ();
+                attribute EventHandler           onnegotiationneeded;
+                attribute EventHandler           onicecandidate;
+                attribute EventHandler           onsignalingstatechange;
+                attribute EventHandler           oniceconnectionstatechange;
+                attribute EventHandler           onicegatheringstatechange;
+};
+
+partial interface RTCPeerConnection {
+    void createOffer (RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback, optional RTCOfferOptions options);
+    void setLocalDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    void createAnswer (RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    void setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    void addIceCandidate (RTCIceCandidate candidate, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+};
+
+partial interface RTCPeerConnection {
+    sequence<RTCRtpSender>   getSenders ();
+    sequence<RTCRtpReceiver> getReceivers ();
+    RTCRtpSender             addTrack (MediaStreamTrack track, MediaStream... streams);
+    void                     removeTrack (RTCRtpSender sender);
+                attribute EventHandler ontrack;
+};
+
+partial interface RTCPeerConnection {
+    RTCDataChannel createDataChannel ([TreatNullAs=EmptyString] DOMString label, optional RTCDataChannelInit dataChannelDict);
+                attribute EventHandler ondatachannel;
+};
+
+partial interface RTCPeerConnection {
+    RTCDTMFSender createDTMFSender (MediaStreamTrack track);
+};
+
+partial interface RTCPeerConnection {
+    void getStats (MediaStreamTrack? selector, RTCStatsCallback successCallback, RTCPeerConnectionErrorCallback failureCallback);
+};
+
+partial interface RTCPeerConnection {
+    void setIdentityProvider (DOMString provider, optional DOMString protocol, optional DOMString username);
+    void getIdentityAssertion ();
+    readonly    attribute RTCIdentityAssertion? peerIdentity;
+                attribute EventHandler          onidentityresult;
+                attribute EventHandler          onpeeridentity;
+                attribute EventHandler          onidpassertionerror;
+                attribute EventHandler          onidpvalidationerror;
+};
+
+</script>
+<script>
+(function() {
+  var idl_array = new IdlArray();
+  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"),
+                  function(node) {
+                    idl_array.add_idls(node.textContent);
+                  });
+  window.pc = new RTCPeerConnection(null);
+  idl_array.add_objects({"RTCPeerConnection": ["pc"]});
+  idl_array.test();
+  done();
+})();
+</script>
+</body>
+</html>

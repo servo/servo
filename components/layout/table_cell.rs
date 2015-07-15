@@ -19,7 +19,7 @@ use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use wrapper::ThreadSafeLayoutNode;
 
 use cssparser::Color;
-use geom::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::DisplayList;
 use std::fmt;
 use std::sync::Arc;

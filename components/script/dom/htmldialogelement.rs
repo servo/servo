@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLDialogElementDerived;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -34,7 +34,7 @@ impl HTMLDialogElementDerived for EventTarget {
 impl HTMLDialogElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLDialogElement {
+                     document: &Document) -> HTMLDialogElement {
         HTMLDialogElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLDialogElement, localName, prefix, document),
@@ -45,13 +45,13 @@ impl HTMLDialogElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLDialogElement> {
+               document: &Document) -> Root<HTMLDialogElement> {
         let element = HTMLDialogElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDialogElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLDialogElementMethods for JSRef<'a, HTMLDialogElement> {
+impl<'a> HTMLDialogElementMethods for &'a HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
     make_bool_getter!(Open);
 

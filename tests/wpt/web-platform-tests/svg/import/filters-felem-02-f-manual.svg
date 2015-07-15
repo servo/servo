@@ -1,0 +1,127 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="TB" author="ED" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: filters-felem-02-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#FilterElementPrimitiveUnitsAttribute">
+        <p>
+          This tests the 'primitiveUnits' attribute and how it affects other attribute values.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        You should see three rectangles in a row, then a row of three circles, then a row of three stars.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p>
+			<ul>
+				<li>There is no red visible anywhere</li>
+				<li>The first row has three green rectangles</li>
+				<li>The second row has three black circles, and the middle one has more blurred edges than the other two.</li>
+				<li>The third row has three green stars.</li>
+			</ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-felem-02-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <defs>
+      <filter id="usou1" primitiveUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+        <feFlood flood-color="lime" x="25" y="25" width="50" height="50"/>
+      </filter>
+			<filter id="obb1" primitiveUnits="objectBoundingBox" x="0" y="0" width="100%" height="100%">
+        <feFlood flood-color="lime" x="25%" y="25%" width="50%" height="50%"/>
+      </filter>
+			<filter id="default1" x="0" y="0" width="100%" height="100%">
+        <feFlood flood-color="lime" x="25" y="25" width="50" height="50"/>
+      </filter>
+			
+			<filter id="usou2" primitiveUnits="userSpaceOnUse" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="0.2"/>
+      </filter>
+			<filter id="obb2" primitiveUnits="objectBoundingBox" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="0.2"/>
+      </filter>
+			<filter id="default2" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="0.2"/>
+      </filter>
+			
+			<filter id="usou3" primitiveUnits="userSpaceOnUse" x="-50%" y="-50%" width="200%" height="200%">
+        <feOffset dx="2" dy="2"/>
+      </filter>
+			<filter id="obb3" filterUnits="userSpaceOnUse" primitiveUnits="objectBoundingBox" x="-50%" y="-50%" width="200%" height="200%">
+        <feOffset dx="2" dy="2"/>
+      </filter>
+			<filter id="default3" x="-50%" y="-50%" width="200%" height="200%">
+        <feOffset dx="2" dy="2"/>
+      </filter>
+
+			<polygon id="star" points="300,60 311.755,83.819 338.042,87.639 319.021,106.180 323.511,132.360 300,120 276.488,132.360 280.978,106.180 261.957,87.639 288.244,83.819 300,60 311.755,83.819"/>
+			
+    </defs>
+		
+		<g transform="translate(80 0)">
+
+			<rect fill="red" width="50" height="50" transform="translate(25 25)"/>
+			<rect fill="red" width="100" height="100" filter="url(#usou1)" transform="translate(0 0)"/>
+			
+			<rect fill="red" width="50" height="50" transform="translate(125 25)"/>
+			<rect fill="red" width="100" height="100" filter="url(#obb1)" transform="translate(100 0)"/>
+			
+			<rect fill="red" width="50" height="50" transform="translate(225 25)"/>
+			<rect fill="red" width="100" height="100" filter="url(#default1)" transform="translate(200 0)"/>
+			
+			<g transform="translate(50 40)">
+				<circle r="30" filter="url(#usou2)" transform="translate(0 100)"/>
+				<circle r="30" filter="url(#obb2)" transform="translate(100 100)"/>
+				<circle r="30" filter="url(#default2)" transform="translate(200 100)"/>
+			</g>
+			
+			
+			<use xlink:href="#star" transform="translate(-250 150)" fill="red"/>
+			<use xlink:href="#star" transform="translate(-252 148)" fill="lime" filter="url(#usou3)"/>
+			<use xlink:href="#star" transform="translate(-250 150)" fill="none" stroke-width="2" stroke="lime"/>
+						
+			<use xlink:href="#star" transform="translate(-150 150)" fill="red"/>
+			<use xlink:href="#star" transform="translate(-302 5.1)" fill="lime" filter="url(#obb3)"/>
+			<use xlink:href="#star" transform="translate(-150 150)" fill="none" stroke-width="2" stroke="lime"/>
+			
+			<use xlink:href="#star" transform="translate(-50 150)" fill="red"/>
+			<use xlink:href="#star" transform="translate(-52 148)" fill="lime" filter="url(#default3)"/>
+			<use xlink:href="#star" transform="translate(-50 150)" fill="none" stroke-width="2" stroke="lime"/>
+		
+		</g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
+

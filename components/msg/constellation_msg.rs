@@ -6,9 +6,9 @@
 //! reduce coupling between these two components.
 
 use compositor_msg::Epoch;
-use geom::rect::Rect;
-use geom::size::TypedSize2D;
-use geom::scale_factor::ScaleFactor;
+use euclid::rect::Rect;
+use euclid::size::TypedSize2D;
+use euclid::scale_factor::ScaleFactor;
 use hyper::header::Headers;
 use hyper::method::Method;
 use layers::geometry::DevicePixel;
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
 use url::Url;
-use webdriver_msg::{WebDriverScriptCommand, LoadComplete};
+use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
 
 #[derive(Clone)]
 pub struct ConstellationChan(pub Sender<Msg>);
@@ -57,7 +57,7 @@ pub struct WindowSizeData {
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
 pub enum KeyState {
     Pressed,
     Released,
@@ -65,7 +65,7 @@ pub enum KeyState {
 }
 
 //N.B. Based on the glutin key enum
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
 pub enum Key {
     Space,
     Apostrophe,
@@ -191,7 +191,9 @@ pub enum Key {
 }
 
 bitflags! {
+    #[derive(Deserialize, Serialize)]
     flags KeyModifiers: u8 {
+        const NONE = 0x00,
         const SHIFT = 0x01,
         const CONTROL = 0x02,
         const ALT = 0x04,
@@ -328,7 +330,7 @@ impl MozBrowserEvent {
 }
 
 pub enum WebDriverCommandMsg {
-    LoadUrl(PipelineId, LoadData, Sender<LoadComplete>),
+    LoadUrl(PipelineId, LoadData, Sender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
     TakeScreenshot(PipelineId, Sender<Option<png::Image>>)
 }
@@ -367,15 +369,15 @@ pub struct FrameId(pub u32);
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct WorkerId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct PipelineId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct SubpageId(pub u32);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum PipelineExitType {
     PipelineOnly,
     Complete,

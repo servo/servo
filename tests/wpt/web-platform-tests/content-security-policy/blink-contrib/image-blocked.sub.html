@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>image-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS"]'></script>
+    <!-- enforcing policy:
+img-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';
+-->
+</head>
+
+<body>
+    This test passes if it doesn&apos;t alert FAIL and does alert PASS.
+    <img src="../support/pass.png" onload='alert_assert("FAIL")' onerror='alert_assert("PASS")'>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=img-src%20&apos;none&apos;"></script>
+</body>
+
+</html>

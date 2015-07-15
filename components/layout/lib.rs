@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(alloc)]
+#![feature(append)]
+#![feature(arc_unique)]
 #![feature(box_syntax)]
-#![feature(collections)]
-#![feature(core)]
 #![feature(filling_drop)]
+#![feature(hashmap_hasher)]
+#![feature(heap_api)]
+#![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(std_misc)]
+#![feature(raw)]
+#![feature(slice_chars)]
 #![feature(str_char)]
 #![feature(unsafe_no_drop_flag)]
 
 #![deny(unsafe_code)]
-#![allow(unrooted_must_root)]
 
 #![plugin(string_cache_plugin)]
 #![plugin(plugins)]
@@ -35,20 +37,19 @@ extern crate profile_traits;
 extern crate util;
 
 extern crate rustc_serialize;
-extern crate alloc;
 extern crate azure;
 extern crate canvas_traits;
 extern crate clock_ticks;
 extern crate cssparser;
 extern crate encoding;
 extern crate fnv;
-extern crate geom;
+extern crate euclid;
 extern crate gfx;
 extern crate gfx_traits;
+extern crate ipc_channel;
 extern crate layout_traits;
 extern crate libc;
 extern crate msg;
-extern crate png;
 extern crate script;
 extern crate script_traits;
 extern crate selectors;

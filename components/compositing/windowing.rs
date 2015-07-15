@@ -6,11 +6,11 @@
 
 use compositor_task::{CompositorProxy, CompositorReceiver};
 
-use geom::point::TypedPoint2D;
-use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
+use euclid::point::TypedPoint2D;
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::TypedSize2D;
 use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeGraphicsMetadata;
+use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use net::net_error_list::NetError;
 use script_traits::MouseButton;
@@ -64,6 +64,8 @@ pub enum WindowEvent {
     Zoom(f32),
     /// Simulated "pinch zoom" gesture for non-touch platforms (e.g. ctrl-scrollwheel).
     PinchZoom(f32),
+    /// Sent when the user resets zoom to default.
+    ResetZoom,
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
     Navigation(WindowNavigateMsg),
     /// Sent when the user quits the application
@@ -86,6 +88,7 @@ impl Debug for WindowEvent {
             WindowEvent::Scroll(..) => write!(f, "Scroll"),
             WindowEvent::Zoom(..) => write!(f, "Zoom"),
             WindowEvent::PinchZoom(..) => write!(f, "PinchZoom"),
+            WindowEvent::ResetZoom => write!(f, "ResetZoom"),
             WindowEvent::Navigation(..) => write!(f, "Navigation"),
             WindowEvent::Quit => write!(f, "Quit"),
         }
@@ -116,8 +119,8 @@ pub trait WindowMethods {
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
 
-    /// Gets the OS native graphics information for this window.
-    fn native_metadata(&self) -> NativeGraphicsMetadata;
+    /// Gets the OS native graphics display for this window.
+    fn native_display(&self) -> NativeDisplay;
 
     /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
     /// UFCS in Rust yet.

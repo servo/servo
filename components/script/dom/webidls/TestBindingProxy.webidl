@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * This IDL file was created to test the special operations (see
- * http://heycam.github.io/webidl/#idl-special-operations) without converting
+ * https://heycam.github.io/webidl/#idl-special-operations) without converting
  * TestBinding.webidl into a proxy.
  *
  */

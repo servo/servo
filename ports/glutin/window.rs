@@ -6,12 +6,12 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use glutin;
 use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeGraphicsMetadata;
+use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
 use net::net_error_list::NetError;
@@ -26,11 +26,11 @@ use NestedEventLoopListener;
 #[cfg(feature = "window")]
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
-use geom::point::Point2D;
+use euclid::point::Point2D;
 #[cfg(feature = "window")]
-use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode};
+use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 #[cfg(feature = "window")]
-use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
+use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 #[cfg(feature = "window")]
 use std::cell::{Cell, RefCell};
 #[cfg(feature = "window")]
@@ -51,8 +51,26 @@ bitflags! {
         const RIGHT_SHIFT = 8,
         const LEFT_ALT = 16,
         const RIGHT_ALT = 32,
+        const LEFT_SUPER = 64,
+        const RIGHT_SUPER = 128,
     }
 }
+
+// Some shortcuts use Cmd on Mac and Control on other systems.
+#[cfg(all(feature = "window", target_os="macos"))]
+const CMD_OR_CONTROL : constellation_msg::KeyModifiers = SUPER;
+#[cfg(all(feature = "window", not(target_os="macos")))]
+const CMD_OR_CONTROL : constellation_msg::KeyModifiers = CONTROL;
+
+// Some shortcuts use Cmd on Mac and Alt on other systems.
+#[cfg(all(feature = "window", target_os="macos"))]
+const CMD_OR_ALT : constellation_msg::KeyModifiers = SUPER;
+#[cfg(all(feature = "window", not(target_os="macos")))]
+const CMD_OR_ALT : constellation_msg::KeyModifiers = ALT;
+
+// This should vary by zoom level and maybe actual text size (focused or under cursor)
+#[cfg(feature = "window")]
+const LINE_HEIGHT : f32 = 38.0;
 
 /// The type of a window.
 #[cfg(feature = "window")]
@@ -152,6 +170,8 @@ impl Window {
                         (_, VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
                         (_, VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
                         (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
+                        (_, VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
+                        (_, VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
                         (ElementState::Pressed, VirtualKeyCode::Escape) => return true,
                         (_, key_code) => {
                             match Window::glutin_key_to_script_key(key_code) {
@@ -187,15 +207,22 @@ impl Window {
             Event::MouseWheel(delta) => {
                 if self.ctrl_pressed() {
                     // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
-                    if delta < 0 {
+                    let dy = match delta {
+                        MouseScrollDelta::LineDelta(_, dy) => dy,
+                        MouseScrollDelta::PixelDelta(_, dy) => dy
+                    };
+                    if dy < 0.0 {
                         self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0/1.1));
-                    } else if delta > 0 {
+                    } else if dy > 0.0 {
                         self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                     }
                 } else {
-                    let dx = 0.0;
-                    let dy = delta as f32;
-                    self.scroll_window(dx, dy);
+                    match delta {
+                        MouseScrollDelta::LineDelta(dx, dy) => {
+                            self.scroll_window(dx, dy * LINE_HEIGHT);
+                        }
+                        MouseScrollDelta::PixelDelta(dx, dy) => self.scroll_window(dx, dy)
+                    }
                 }
             },
             Event::Refresh => {
@@ -442,7 +469,27 @@ impl Window {
         if modifiers.intersects(LEFT_ALT | RIGHT_ALT) {
             result.insert(ALT);
         }
+        if modifiers.intersects(LEFT_SUPER | RIGHT_SUPER) {
+            result.insert(SUPER);
+        }
         result
+    }
+
+    #[cfg(all(feature = "window", not(target_os="win")))]
+    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
+        match (mods, key) {
+            (CMD_OR_CONTROL, Key::LeftBracket) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+            }
+            (CMD_OR_CONTROL, Key::RightBracket) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+            }
+            _ => {}
+        }
+    }
+
+    #[cfg(all(feature = "window", target_os="win"))]
+    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
     }
 }
 
@@ -571,53 +618,65 @@ impl WindowMethods for Window {
     }
 
     #[cfg(target_os="linux")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
+    fn native_display(&self) -> NativeDisplay {
         use x11::xlib;
-        NativeGraphicsMetadata {
-            display: unsafe { self.window.platform_display() as *mut xlib::Display }
-        }
-    }
-
-    #[cfg(target_os="macos")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use cgl::{CGLGetCurrentContext, CGLGetPixelFormat};
         unsafe {
-            NativeGraphicsMetadata {
-                pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),
-            }
+            NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
         }
     }
 
-    #[cfg(target_os="android")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use egl::egl::GetCurrentDisplay;
-        NativeGraphicsMetadata {
-            display: GetCurrentDisplay(),
-        }
+    #[cfg(not(target_os="linux"))]
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new()
     }
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
-        match key {
-            Key::Equal if mods.contains(CONTROL) => { // Ctrl-+
+
+        match (mods, key) {
+            (_, Key::Equal) if mods & !SHIFT == CMD_OR_CONTROL => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
             }
-            Key::Minus if mods.contains(CONTROL) => { // Ctrl--
+            (CMD_OR_CONTROL, Key::Minus) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0/1.1));
             }
-            Key::Backspace if mods.contains(SHIFT) => { // Shift-Backspace
+            (CMD_OR_CONTROL, Key::Num0) |
+            (CMD_OR_CONTROL, Key::Kp0) => {
+                self.event_queue.borrow_mut().push(WindowEvent::ResetZoom);
+            }
+
+            (SHIFT, Key::Backspace) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            Key::Backspace => { // Backspace
+            (NONE, Key::Backspace) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
-            Key::PageDown => {
-                self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height);
+
+            (CMD_OR_ALT, Key::Right) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            Key::PageUp => {
-                self.scroll_window(0.0, self.framebuffer_size().as_f32().to_untyped().height);
+            (CMD_OR_ALT, Key::Left) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
-            _ => {}
+
+            (NONE, Key::PageDown) |
+            (NONE, Key::Space) => {
+                self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height + 2.0 * LINE_HEIGHT);
+            }
+            (NONE, Key::PageUp) |
+            (SHIFT, Key::Space) => {
+                self.scroll_window(0.0, self.framebuffer_size().as_f32().to_untyped().height - 2.0 * LINE_HEIGHT);
+            }
+            (NONE, Key::Up) => {
+                self.scroll_window(0.0, 3.0 * LINE_HEIGHT);
+            }
+            (NONE, Key::Down) => {
+                self.scroll_window(0.0, -3.0 * LINE_HEIGHT);
+            }
+
+            _ => {
+                self.platform_handle_key(key, mods);
+            }
         }
     }
 
@@ -724,10 +783,8 @@ impl WindowMethods for Window {
     }
 
     #[cfg(target_os="linux")]
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        NativeGraphicsMetadata {
-            display: ptr::null_mut()
-        }
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new(ptr::null_mut())
     }
 
     /// Helper function to handle keyboard events.

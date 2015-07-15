@@ -17,7 +17,7 @@ use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -301,22 +301,11 @@ impl LineBreaker {
     }
 
     /// Acquires a new fragment to lay out from the work list or fragment list as appropriate.
-    /// If the fragment was at the end of an old line, undoes the line break for that fragment.
     /// Note that you probably don't want to call this method directly in order to be incremental-
     /// reflow-safe; try `next_unbroken_fragment` instead.
     fn next_fragment<I>(&mut self, old_fragment_iter: &mut I) -> Option<Fragment>
                         where I: Iterator<Item=Fragment> {
-        let mut fragment;
-        if self.work_list.is_empty() {
-            match old_fragment_iter.next() {
-                None => return None,
-                Some(this_fragment) => fragment = this_fragment,
-            }
-        } else {
-            return self.work_list.pop_front()
-        }
-
-        Some(fragment)
+        self.work_list.pop_front().or_else(|| old_fragment_iter.next())
     }
 
     /// Acquires a new fragment to lay out from the work list or fragment list, merging it with any
@@ -700,7 +689,10 @@ pub struct InlineFragments {
 
 impl fmt::Debug for InlineFragments {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.fragments)
+        for fragment in self.fragments.iter() {
+            try!(write!(f, "\n  * {:?}", fragment))
+        }
+        Ok(())
     }
 }
 
@@ -984,9 +976,9 @@ impl InlineFlow {
             // FIXME(pcwalton): This is an awful lot of uniqueness making. I don't see any easy way
             // to get rid of it without regressing the performance of the non-justified case,
             // though.
-            let run = scanned_text_fragment_info.run.make_unique();
+            let run = Arc::make_unique(&mut scanned_text_fragment_info.run);
             {
-                let glyph_runs = run.glyphs.make_unique();
+                let glyph_runs = Arc::make_unique(&mut run.glyphs);
                 for mut glyph_run in glyph_runs.iter_mut() {
                     let mut range = glyph_run.range.intersect(&fragment_range);
                     if range.is_empty() {
@@ -994,7 +986,7 @@ impl InlineFlow {
                     }
                     range.shift_by(-glyph_run.range.begin());
 
-                    let glyph_store = glyph_run.glyph_store.make_unique();
+                    let glyph_store = Arc::make_unique(&mut glyph_run.glyph_store);
                     glyph_store.distribute_extra_space_in_range(&range,
                                                                 space_per_expansion_opportunity);
                 }

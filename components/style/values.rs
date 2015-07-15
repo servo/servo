@@ -80,7 +80,7 @@ pub mod specified {
     use std::ops::{Add, Mul};
     use url::Url;
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
-    use geom::size::Size2D;
+    use euclid::size::Size2D;
     use parser::ParserContext;
     use util::geometry::Au;
     use super::CSSFloat;
@@ -477,6 +477,45 @@ pub mod specified {
         #[inline]
         pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
             LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::NonNegative)
+        }
+    }
+
+    #[derive(Clone, PartialEq, Copy, Debug)]
+    pub enum LengthOrNone {
+        Length(Length),
+        None,
+    }
+
+    impl ToCss for LengthOrNone {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrNone::Length(length) => length.to_css(dest),
+                &LengthOrNone::None => dest.write_str("none"),
+            }
+        }
+    }
+    impl LengthOrNone {
+        fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+                          -> Result<LengthOrNone, ()>
+        {
+            match try!(input.next()) {
+                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
+                    Length::parse_dimension(value.value, unit).map(LengthOrNone::Length),
+                Token::Number(ref value) if value.value == 0. =>
+                    Ok(LengthOrNone::Length(Length::Absolute(Au(0)))),
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
+                    Ok(LengthOrNone::None),
+                _ => Err(())
+            }
+        }
+        #[allow(dead_code)]
+        #[inline]
+        pub fn parse(input: &mut Parser) -> Result<LengthOrNone, ()> {
+            LengthOrNone::parse_internal(input, &AllowedNumericType::All)
+        }
+        #[inline]
+        pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrNone, ()> {
+            LengthOrNone::parse_internal(input, &AllowedNumericType::NonNegative)
         }
     }
 
@@ -892,7 +931,7 @@ pub mod computed {
     use super::specified::{AngleOrCorner};
     use super::{specified, CSSFloat};
     pub use cssparser::Color as CSSColor;
-    use geom::size::Size2D;
+    use euclid::size::Size2D;
     use properties::longhands;
     use std::fmt;
     use std::ops::{Add, Mul};
@@ -1064,6 +1103,36 @@ pub mod computed {
                 }
                 specified::LengthOrPercentageOrNone::None => {
                     LengthOrPercentageOrNone::None
+                }
+            }
+        }
+    }
+
+    #[derive(PartialEq, Clone, Copy)]
+    pub enum LengthOrNone {
+        Length(Au),
+        None,
+    }
+    impl fmt::Debug for LengthOrNone {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                &LengthOrNone::Length(length) => write!(f, "{:?}", length),
+                &LengthOrNone::None => write!(f, "none"),
+            }
+        }
+    }
+
+    impl ToComputedValue for specified::LengthOrNone {
+        type ComputedValue = LengthOrNone;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> LengthOrNone {
+            match *self {
+                specified::LengthOrNone::Length(value) => {
+                    LengthOrNone::Length(value.to_computed_value(context))
+                }
+                specified::LengthOrNone::None => {
+                    LengthOrNone::None
                 }
             }
         }

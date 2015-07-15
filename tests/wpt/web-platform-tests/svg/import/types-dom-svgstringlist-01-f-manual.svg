@@ -1,0 +1,112 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="CM" author="Microsoft" status="reviewed" version="$Revision: 1.4 $" testname="$RCSfile: types-dom-svgstringlist-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/types.html#InterfaceSVGStringList">
+      <p>
+        The 'getItem', 'replaceItem', and 'removeItem' operations of the 'SVGStringList' interface raise the 'INDEX_SIZE_ERR' exception when the specified index number
+        is greater than the number of items in the list.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Retrieve a 'SVGStringList' object by getting the 'requiredExtensions' attribute from a 'SVGSVGElement'. Attempt to call 'getItem', 'replaceItem',
+        and 'removeItem' with an index larger than the number of items in the list. For each of these operations, verify there was an exception of type 'INDEX_SIZE_ERR' thrown.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: types-dom-svgstringlist-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <svg id="test" />
+    <g transform="translate(96, 96)" font-size="100">
+      <text id="failText" fill="red">FAIL</text>
+      <text id="passText" fill="green" display="none">PASS</text>
+    </g>
+    <script type="text/javascript"><![CDATA[
+        try
+        {
+            var testElement = document.getElementById("test");
+            var svgList = testElement.requiredExtensions;
+            var passingTests = 0;
+             
+            try
+            {
+                svgList.getItem(5);
+            }
+            catch (ex)
+            {
+                if (DOMException.INDEX_SIZE_ERR == ex.code)
+                {
+                    passingTests++;
+                }
+            }
+
+            try
+            {
+                svgList.replaceItem("fakeValue", 5);
+            }
+            catch (ex)
+            {
+                if (DOMException.INDEX_SIZE_ERR == ex.code)
+                {
+                    passingTests++;
+                }
+            }
+
+            try
+            {
+                svgList.removeItem(5);
+            }
+            catch (ex)
+            {
+                if (DOMException.INDEX_SIZE_ERR == ex.code)
+                {
+                    passingTests++;
+                }
+            }
+
+            if (3 == passingTests)
+            {
+                document.getElementById("failText").setAttribute("display", "none");
+                document.getElementById("passText").setAttribute("display", "inline");
+            }
+        }
+        catch(ex)
+        {
+
+            alert("ERROR: " + ex.message);
+      
+        }]]>
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

@@ -1,0 +1,202 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="ED" status="reviewed"
+    version="$Revision: 1.9 $" testname="$RCSfile: svgdom-over-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/svgdom.html#SVGDOMOverview">
+      <p>
+      	This tests how unspecified attributes affect the return values from the
+      	SVG DOM methods related to attributes.
+      </p>
+      <p>
+      	After loading the test, you should see a list of red or green rectangles followed by some text describing each subtest.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+			<p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	The test has passed if there is a line of text saying "Test status: PASSED", and there is a green rectangle to the left of that text.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: svgdom-over-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <rect id="r" width="1" height="1"/>
+      <stop id="s"/>
+      <feConvolveMatrix id="c"/>
+      <image id="i" xlink:href="http://example.org/image.jpg" width="1" height="1"/>
+      <radialGradient id="g"/>
+      <text id="t"/>
+      <text id="tt">sometext</text>
+      <marker id="m"/>
+      <svg id="v"/>
+      <filter id="f"/>
+      <polygon id="p"/>
+    </defs>
+    
+    <script><![CDATA[
+      var ypos = 50;
+      var r = document.getElementById("r");
+      var s = document.getElementById("s");
+      var c = document.getElementById("c");
+      var i = document.getElementById("i");
+      var g = document.getElementById("g");
+      var t = document.getElementById("t");
+      var tt = document.getElementById("tt");
+      var m = document.getElementById("m");
+      var v = document.getElementById("v");
+      var f = document.getElementById("f");
+      var p = document.getElementById("p");
+
+      i.removeAttributeNS("http://www.w3.org/1999/xlink", "href");
+
+      function Subtest(str, code)
+      {
+        this.str = str;
+        this.code = code ? code : str;
+      }
+      
+      Subtest.prototype.getStr = function()
+      {
+        return this.str;
+      }
+
+      Subtest.prototype.getCode = function()
+      {
+        return this.code;
+      }
+      
+      function verify(str, result)
+      {
+        var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        var r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        var t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.appendChild(document.createTextNode(str + ": " + (result ? "PASSED" : "FAILED")));
+        t.setAttribute("class", "result");
+        t.setAttribute("font-size", "9px");
+        t.setAttribute("fill", "black");
+        t.setAttribute("x", "10");
+        t.setAttribute("y", "7");
+        r.setAttribute("y", "1");
+        r.setAttribute("width", "5");
+        r.setAttribute("height", "5");
+        g.setAttribute("fill", result ? "lime" : "red");
+        g.appendChild(r);
+        g.appendChild(t);
+        g.setAttribute("transform", "translate(10 " + ypos + ")");
+        ypos += 10;
+        document.getElementById("test-body-content").appendChild(g);
+        if(result)
+        	passes++;	
+      }
+      
+      var passes = 0;
+      var tests = [ 
+        // test SVGLength
+        new Subtest("r.x.baseVal.value == 0"),
+        new Subtest("r.x.baseVal.unitType == 1 (SVG_LENGTHTYPE_NUMBER)", "r.x.baseVal.unitType == 1"),
+        new Subtest("v.width.baseVal.valueInSpecifiedUnits == 100"),
+        new Subtest("v.width.baseVal.unitType == 2 (SVG_LENGTHTYPE_PERCENTAGE)", "v.width.baseVal.unitType == 2"),
+        new Subtest("tt.textLength.baseVal.value == tt.getComputedTextLength()"),
+        
+        // test SVGAnimatedNumber
+        new Subtest("s.offset.baseVal == 0"),
+        
+        // test SVGAnimatedBoolean
+        new Subtest("c.preserveAlpha.baseVal == false"),
+        
+        // test SVGAnimatedString / DOMString
+        new Subtest("c.className.baseVal == \"\""),
+        new Subtest("i.href.baseVal == \"\""),
+        
+        // test SVGStringList
+        new Subtest("i.requiredFeatures.numberOfItems == 0"),
+      
+        // SVGAnimatedNumberList
+        new Subtest("c.kernelMatrix.baseVal.numberOfItems == 0"),
+
+        // SVGAnimatedLengthList
+        new Subtest("t.x.baseVal.numberOfItems == 0"),
+        
+        // SVGAnimatedPointsList / SVGPointList
+        new Subtest("p.points.numberOfItems == 0"),
+      
+        // SVGAnimatedEnumeration
+        new Subtest("g.gradientUnits.baseVal == 2 (SVG_UNIT_TYPE_OBJECTBOUNDINGBOX)", "g.gradientUnits.baseVal == 2"),
+
+        // SVGAnimatedInteger
+        new Subtest("f.filterResX.baseVal == 0"),
+        
+        // SVGAnimatedAngle
+        new Subtest("m.orientAngle.baseVal.value == 0"),
+        new Subtest("m.orientAngle.baseVal.unitType == 1 (SVG_ANGLETYPE_UNSPECIFIED)", "m.orientAngle.baseVal.unitType == 1"),
+        
+        // SVGAnimatedRect / SVGRect
+        new Subtest("v.viewBox.baseVal.[x,y,width,height] == 0", 
+                "v.viewBox.baseVal.x == 0 && v.viewBox.baseVal.y == 0 && v.viewBox.baseVal.width == 0 && v.viewBox.baseVal.height == 0"),
+        
+        // SVGAnimatedTransformList
+        new Subtest("t.transform.baseVal.numberOfItems == 0"),
+
+        // SVGAnimatedPreserveAspectRatio / SVGPreserveAspectRatio
+        new Subtest("v.preserveAspectRatio.baseVal.align == 6 (SVG_PRESERVEASPECTRATIO_XMIDYMID)", "v.preserveAspectRatio.baseVal.align == 6"),
+        new Subtest("v.preserveAspectRatio.baseVal.meetOrSlice == 1 (SVG_MEETORSLICE_MEET)", "v.preserveAspectRatio.baseVal.meetOrSlice == 1"),
+      
+        // SVGZoomAndPan
+        new Subtest("v.zoomAndPan == 2 (SVG_ZOOMANDPAN_MAGNIFY)", "v.zoomAndPan == 2")
+      ];
+            
+      try {
+	      for (var k = 0; k < tests.length; k++)
+	      {
+	        try 
+	        {
+	          verify(tests[k].getStr(), eval(tests[k].getCode()));
+	        }
+	        catch(e)
+	        {
+	          verify(tests[k].getStr(), false);
+	        }
+	      }
+      }
+      finally
+      {
+      	verify("Test status", tests.length == passes);
+      }      
+    ]]></script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

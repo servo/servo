@@ -1,0 +1,132 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: fonts-elem-05-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#FontElement">
+        <p>
+				 This tests the horiz-origin-x attributes on the font and glyph elements.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+       There are three subtests. The test is passed if for each subtest there is labelling text on the left and on the right, a series of black squares whose lower-left corner aligns with the centre of the corresponding small, pale blue square as shown in the reference graphic.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: fonts-elem-05-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="240" y="50" text-anchor="middle" font-size="30">&lt;font&gt; horiz-origin-x</text>
+    <defs>
+      <font id="orginDefault" horiz-adv-x="1000">
+        <font-face font-family="originDefault" units-per-em="1000" ascent="1000" descent="0" alphabetic="0"/>
+        <missing-glyph horiz-adv-x="800" d="M50 0V800H750V0H50ZM700 50V750H100V50H700Z"/>
+        <glyph unicode="1" glyph-name="gl_1" horiz-adv-x="1500" d="M 0 0 L 250 0 L 250 250 L 0 250 Z"/>
+        <glyph unicode="2" glyph-name="gl_2" horiz-adv-x="1500" d="M 0 0 L 500 0 L 500 500 L 0 500 Z"/>
+        <glyph unicode="3" glyph-name="gl_3" horiz-adv-x="1500" d="M 0 0 L 750 0 L 750 750 L 0 750 Z"/>
+        <glyph unicode="4" glyph-name="gl_4" horiz-adv-x="1500" d="M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z"/>
+      </font>
+
+      <font id="orgin500" horiz-adv-x="1000" horiz-origin-x="500">
+        <font-face font-family="origin500" units-per-em="1000" ascent="1000" descent="0" alphabetic="0"/>
+        <missing-glyph horiz-adv-x="800" d="M50 0V800H750V0H50ZM700 50V750H100V50H700Z"/>
+        <glyph unicode="1" glyph-name="gl_1" horiz-adv-x="1500" d="M 0 0 L 250 0 L 250 250 L 0 250 Z"/>
+        <glyph unicode="2" glyph-name="gl_2" horiz-adv-x="1500" d="M 0 0 L 500 0 L 500 500 L 0 500 Z"/>
+        <glyph unicode="3" glyph-name="gl_3" horiz-adv-x="1500" d="M 0 0 L 750 0 L 750 750 L 0 750 Z"/>
+        <glyph unicode="4" glyph-name="gl_4" horiz-adv-x="1500" d="M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z"/>
+      </font>
+
+      <font id="orgin1000" horiz-adv-x="1000" horiz-origin-x="1000">
+        <font-face font-family="origin1000" units-per-em="1000" ascent="1000" descent="0" alphabetic="0"/>
+        <missing-glyph horiz-adv-x="800" d="M50 0V800H750V0H50ZM700 50V750H100V50H700Z"/>
+        <glyph unicode="1" glyph-name="gl_1" horiz-adv-x="1500" d="M 0 0 L 250 0 L 250 250 L 0 250 Z"/>
+        <glyph unicode="2" glyph-name="gl_2" horiz-adv-x="1500" d="M 0 0 L 500 0 L 500 500 L 0 500 Z"/>
+        <glyph unicode="3" glyph-name="gl_3" horiz-adv-x="1500" d="M 0 0 L 750 0 L 750 750 L 0 750 Z"/>
+        <glyph unicode="4" glyph-name="gl_4" horiz-adv-x="1500" d="M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z"/>
+      </font>
+
+
+      <g id="marker">
+        <line y2="-40" stroke="blue"/>
+        <rect x="-4" y="-4" width="8" height="8" fill="#8888ff"/>
+      </g>
+
+      <g id="marker500">
+        <line y2="-40" stroke="blue"/>
+        <line x1="15" x2="15" y2="-40" stroke="blue"/>
+        <line x2="15" stroke="blue"/>
+        <rect x="-4" y="-4" width="8" height="8" fill="#8888ff"/>
+      </g>
+
+      <g id="marker1000">
+        <line y2="-40" stroke="blue"/>
+        <line x1="30" x2="30" y2="-40" stroke="blue"/>
+        <line x2="30" stroke="blue"/>
+        <rect x="-4" y="-4" width="8" height="8" fill="#8888ff"/>
+      </g>
+    </defs>
+
+    <g transform="translate(20, 120)" font-size="14">
+
+      <g>
+        <text>horiz-origin-x unspecified (0)</text>
+        <use xlink:href="#marker" x="240"/>
+        <use xlink:href="#marker" x="285"/>
+        <use xlink:href="#marker" x="330"/>
+        <use xlink:href="#marker" x="375"/>
+        <text x="240" font-family="originDefault" font-size="30">1234</text>
+      </g>
+
+      <g transform="translate(0, 60)">
+        <text>horiz-origin-x=500</text>
+        <use xlink:href="#marker500" x="240"/>
+        <use xlink:href="#marker500" x="285"/>
+        <use xlink:href="#marker500" x="330"/>
+        <use xlink:href="#marker500" x="375"/>
+        <text x="240" font-family="origin500" font-size="30">1234</text>
+      </g>
+
+
+      <g transform="translate(0, 120)">
+        <text>horiz-adv-x=1000 but ignored</text>
+        <use xlink:href="#marker1000" x="240"/>
+        <use xlink:href="#marker1000" x="285"/>
+        <use xlink:href="#marker1000" x="330"/>
+        <use xlink:href="#marker1000" x="375"/>
+        <text x="240" font-family="origin1000" font-size="30">1234</text>
+      </g>
+
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

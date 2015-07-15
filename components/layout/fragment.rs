@@ -18,10 +18,9 @@ use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
-use opaque_node::OpaqueNodeMethods;
-use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
@@ -29,19 +28,17 @@ use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
-use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
 use std::fmt;
-use std::str::FromStr;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
 use style::computed_values::{text_align, text_decoration, white_space, word_break};
-use style::node::TNode;
+use style::computed_values::transform_style;
 use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -114,11 +111,6 @@ pub struct Fragment {
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     pub debug_id: u16,
 }
-
-#[allow(unsafe_code)]
-unsafe impl Send for Fragment {}
-#[allow(unsafe_code)]
-unsafe impl Sync for Fragment {}
 
 impl Encodable for Fragment {
     fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
@@ -205,6 +197,18 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::TableRow => "SpecificFragmentInfo::TableRow",
             SpecificFragmentInfo::TableWrapper => "SpecificFragmentInfo::TableWrapper",
             SpecificFragmentInfo::UnscannedText(_) => "SpecificFragmentInfo::UnscannedText",
+        }
+    }
+}
+
+impl fmt::Debug for SpecificFragmentInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SpecificFragmentInfo::ScannedText(ref info) => {
+                write!(f, " \"{}\"", info.run.text.slice_chars(info.range.begin().get() as usize,
+                                                               info.range.end().get() as usize))
+            }
+            _ => Ok(())
         }
     }
 }
@@ -391,7 +395,6 @@ impl ImageFragmentInfo {
 
 #[derive(Clone)]
 pub struct ReplacedImageFragmentInfo {
-    pub for_node: UntrustedNodeAddress,
     pub computed_inline_size: Option<Au>,
     pub computed_block_size: Option<Au>,
     pub dom_inline_size: Option<Au>,
@@ -404,11 +407,7 @@ impl ReplacedImageFragmentInfo {
                dom_width: Option<Au>,
                dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
-        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_thread_safe_layout_node(node);
-        let untrusted_node: UntrustedNodeAddress = opaque_node.to_untrusted_node_address();
-
         ReplacedImageFragmentInfo {
-            for_node: untrusted_node,
             computed_inline_size: None,
             computed_block_size: None,
             dom_inline_size: if is_vertical {
@@ -720,13 +719,10 @@ pub struct TableColumnFragmentInfo {
 impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
     pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
-        let span = {
-            let element = node.as_element();
-            element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
-                let n: Option<u32> = FromStr::from_str(string).ok();
-                n
-            }).unwrap_or(0)
-        };
+        let element = node.as_element();
+        let span = element.get_attr(&ns!(""), &atom!("span"))
+                          .and_then(|string| string.parse().ok())
+                          .unwrap_or(0);
         TableColumnFragmentInfo {
             span: span,
         }
@@ -739,7 +735,7 @@ impl Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
         Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            node: node.opaque(),
             style: style,
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
@@ -769,7 +765,7 @@ impl Fragment {
         let node_style = cascade_anonymous(&**node.style());
         let writing_mode = node_style.writing_mode;
         Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            node: node.opaque(),
             style: Arc::new(node_style),
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
@@ -1807,7 +1803,7 @@ impl Fragment {
                     block_size_above_baseline: computed_block_size +
                                                    self.border_padding.block_start_end(),
                     depth_below_baseline: Au(0),
-                    ascent: computed_block_size + self.border_padding.block_end,
+                    ascent: computed_block_size + self.border_padding.block_start_end(),
                 }
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
@@ -1994,6 +1990,12 @@ impl Fragment {
         if self.style().get_effects().transform.is_some() {
             return true
         }
+        match self.style().get_used_transform_style() {
+            transform_style::T::flat | transform_style::T::preserve_3d => {
+                return true
+            }
+            transform_style::T::auto => {}
+        }
 
         // Canvas always layerizes, as an special case
         // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
@@ -2119,10 +2121,11 @@ impl Fragment {
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "({} {} ", self.debug_id(), self.specific.get_type()));
-        try!(write!(f, "bb {:?} bp {:?} m {:?}",
+        try!(write!(f, "bb {:?} bp {:?} m {:?}{:?}",
                     self.border_box,
                     self.border_padding,
-                    self.margin));
+                    self.margin,
+                    self.specific));
         write!(f, ")")
     }
 }

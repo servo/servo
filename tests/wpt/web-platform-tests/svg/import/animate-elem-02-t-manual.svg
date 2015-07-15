@@ -1,0 +1,122 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-02-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test 'additive' and 'accumulate' attributes.
+      </p>
+      <p>
+        The four pictures show the effect with the four possible combinations of
+        'additive' (either 'replace' or 'sum') and 'accumulate' (either 'none' or 'sum').
+        Because two animations are animating the height, the effects of 'additive' and
+        'accumulate' are sometimes different than when there is only a single animation.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+        <p>The test has passed if the four green rectangles each animate their height according to the following:</p>
+       	<p>The leftmost rect:</p>
+        <ul>
+           <li>when the animation starts the height of the green rect should make it align with the bottommost red indicator line</li>
+           <li>after two seconds the height should jump to be 10% of the height of the gray rect it overlaps</li>
+           <li>after four seconds the height should jump to make the green rect align with the bottommost red indicator line</li>
+           <li>after six seconds the height should jump to its final position, 10% of the height of the gray rect</li>
+         </ul>
+        <p>The next to leftmost rect:</p>
+       	<ul>
+           <li>when the animation starts the height of the green rect should be 110% of the height of the gray rect</li>
+           <li>after two seconds the height should jump to be 20% of the height of the gray rect</li>
+           <li>after four seconds the height should jump to be 110% of the height of the gray rect</li>
+           <li>after six seconds the height should jump to its final position, 20% of the height of the gray rect</li>
+         </ul>
+        <p>The next to rightmost rect:</p>
+       	<ul>
+           <li>when the animation starts the height of the green rect should make it align with the bottommost red indicator line</li>
+           <li>after two seconds the height should jump to be 10% of the height of the gray rect</li>
+           <li>after four seconds the height should jump to be 110% of the height of the gray rect</li>
+           <li>after six seconds the height should jump to its final position, 20% of the height of the gray rect</li>
+         </ul>
+        <p>The rightmost rect:</p>
+       	<ul>
+           <li>when the animation starts the height of the green rect should be 110% of the height of the gray rect</li>
+           <li>after two seconds the height should jump to be 20% of the height of the gray rect</li>
+           <li>after four seconds the height should jump to be 120% of the height of the gray rect</li>
+           <li>after six seconds the height should jump to its final position, 30% of the height of the gray rect</li>
+         </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-02-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-family="Arial" font-size="30">
+      <g transform="translate(0, 0)">
+        <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+        <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+        <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+        <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+          <animate id="an5" attributeName="height" calcMode="discrete" additive="replace" accumulate="none" repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+        </rect>
+        <text x="30" y="285" fill="navy">anim.5</text>
+      </g>
+      <g transform="translate(110, 0)">
+        <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+        <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+        <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+        <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+          <animate id="an6" attributeName="height" calcMode="discrete" additive="sum" accumulate="none" repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+        </rect>
+        <text x="30" y="285" fill="navy">anim.6</text>
+      </g>
+      <g transform="translate(220, 0)">
+        <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+        <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+        <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+        <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+          <animate id="an7" attributeName="height" calcMode="discrete" additive="replace" accumulate="sum" repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+        </rect>
+        <text x="30" y="285" fill="navy">anim.7</text>
+      </g>
+      <g transform="translate(330, 0)">
+        <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+        <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+        <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+        <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+          <animate id="an8" attributeName="height" calcMode="discrete" additive="sum" accumulate="sum" repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+        </rect>
+        <text x="30" y="285" fill="navy">anim.8</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

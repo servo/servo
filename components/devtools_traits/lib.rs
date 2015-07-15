@@ -175,32 +175,37 @@ bitflags! {
 }
 
 #[derive(RustcEncodable)]
+pub struct PageError {
+    pub _type: String,
+    pub errorMessage: String,
+    pub sourceName: String,
+    pub lineText: String,
+    pub lineNumber: u32,
+    pub columnNumber: u32,
+    pub category: String,
+    pub timeStamp: u64,
+    pub error: bool,
+    pub warning: bool,
+    pub exception: bool,
+    pub strict: bool,
+    pub private: bool,
+}
+
+#[derive(RustcEncodable)]
+pub struct ConsoleAPI {
+    pub _type: String,
+    pub level: String,
+    pub filename: String,
+    pub lineNumber: u32,
+    pub functionName: String,
+    pub timeStamp: u64,
+    pub private: bool,
+    pub arguments: Vec<String>,
+}
+
 pub enum CachedConsoleMessage {
-    PageError {
-        __type__: String,
-        errorMessage: String,
-        sourceName: String,
-        lineText: String,
-        lineNumber: u32,
-        columnNumber: u32,
-        category: String,
-        timeStamp: u64,
-        error: bool,
-        warning: bool,
-        exception: bool,
-        strict: bool,
-        private: bool,
-    },
-    ConsoleAPI {
-        __type__: String,
-        level: String,
-        filename: String,
-        lineNumber: u32,
-        functionName: String,
-        timeStamp: u64,
-        private: bool,
-        arguments: Vec<String>,
-    },
+    PageError(PageError),
+    ConsoleAPI(ConsoleAPI),
 }
 
 #[derive(Clone)]

@@ -1,0 +1,2 @@
+Access-Control-Allow-Origin: {{location[scheme]}}://{{domains[]}}:{{location[port]}}
+Access-Control-Allow-Credentials: true

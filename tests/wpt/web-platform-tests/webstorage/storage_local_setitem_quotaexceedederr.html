@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
  <head>
-  <title>Web Storage</title>
+  <title>WebStorage Test: localStorage - setItem throws QuotaExceededError</title>
   <meta name="timeout" content="long">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
@@ -15,17 +15,17 @@
 
             var index = 0;
             var key = "name";
-            var val = "user";
+            var val = "x".repeat(1024);
 
             assert_throws("QUOTA_EXCEEDED_ERR", function() {
                 while (true) {
                     index++;
-                    localStorage.setItem("" + key + index, "" + name + index);
+                    localStorage.setItem("" + key + index, "" + val + index);
                 }
             });
 
             localStorage.clear();
-        });
+        }, "Throws QuotaExceededError when the quota has been exceeded");
     </script>
  </body>
 </html>

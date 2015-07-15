@@ -139,55 +139,62 @@ class MarionetteProtocol(Protocol):
 
     def on_environment_change(self, old_environment, new_environment):
         #Unset all the old prefs
-        for name, _ in old_environment.get("prefs", []):
+        for name in old_environment.get("prefs", {}).iterkeys():
             value = self.executor.original_pref_values[name]
             if value is None:
                 self.clear_user_pref(name)
             else:
                 self.set_pref(name, value)
 
-        for name, value in new_environment.get("prefs", []):
+        for name, value in new_environment.get("prefs", {}).iteritems():
             self.executor.original_pref_values[name] = self.get_pref(name)
             self.set_pref(name, value)
 
     def set_pref(self, name, value):
+        if value.lower() not in ("true", "false"):
+            try:
+                int(value)
+            except ValueError:
+                value = "'%s'" % value
+        else:
+            value = value.lower()
+
         self.logger.info("Setting pref %s (%s)" % (name, value))
-        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
+
         script = """
             let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
                                           .getService(Components.interfaces.nsIPrefBranch);
             let pref = '%s';
             let type = prefInterface.getPrefType(pref);
+            let value = %s;
             switch(type) {
                 case prefInterface.PREF_STRING:
-                    prefInterface.setCharPref(pref, '%s');
+                    prefInterface.setCharPref(pref, value);
                     break;
                 case prefInterface.PREF_BOOL:
-                    prefInterface.setBoolPref(pref, %s);
+                    prefInterface.setBoolPref(pref, value);
                     break;
                 case prefInterface.PREF_INT:
-                    prefInterface.setIntPref(pref, %s);
+                    prefInterface.setIntPref(pref, value);
                     break;
             }
-            """ % (name, value, value, value)
-        self.marionette.execute_script(script)
-        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+            """ % (name, value)
+        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
+            self.marionette.execute_script(script)
 
     def clear_user_pref(self, name):
         self.logger.info("Clearing pref %s" % (name))
-        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
         script = """
             let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
                                           .getService(Components.interfaces.nsIPrefBranch);
             let pref = '%s';
             prefInterface.clearUserPref(pref);
             """ % name
-        self.marionette.execute_script(script)
-        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
+            self.marionette.execute_script(script)
 
     def get_pref(self, name):
-        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
-        self.marionette.execute_script("""
+        script = """
             let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
                                           .getService(Components.interfaces.nsIPrefBranch);
             let pref = '%s';
@@ -202,8 +209,9 @@ class MarionetteProtocol(Protocol):
                 case prefInterface.PREF_INVALID:
                     return null;
             }
-            """ % (name))
-        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+            """ % name
+        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
+            self.marionette.execute_script(script)
 
 class MarionetteRun(object):
     def __init__(self, logger, func, marionette, url, timeout):
@@ -383,10 +391,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                              timeout).run()
 
     def _screenshot(self, marionette, url, timeout):
-        try:
-            marionette.navigate(url)
-        except errors.MarionetteException:
-            raise ExecutorException("ERROR", "Failed to load url %s" % (url,))
+        marionette.navigate(url)
 
         marionette.execute_async_script(self.wait_script)
 

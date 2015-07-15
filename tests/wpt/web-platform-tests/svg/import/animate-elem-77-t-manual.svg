@@ -1,0 +1,357 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="NR" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-77-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Tests the inheritance of animated values on text.
+      </p>
+      <p>
+        This test demonstrates how &lt;set&gt; elements change
+        text properties on a &lt;text&gt; element. For
+        each of the text properties being tested, 3
+        &lt;set&gt; elements are set. The first &lt;set&gt;
+        element acts directly on the &lt;text&gt; element. The
+        second &lt;set&gt; element acts on a &lt;g&gt; containing
+        children. The third &lt;set&gt; element acts on an &lt;a&gt;
+        containing children. In each case the test validates that
+        the animated value set on the &lt;g&gt; and &lt;a&gt;
+        elements is inherited by the &lt;text&gt; element.
+        All the &lt;set&gt; elements have a begin attribute
+        set to 0s with an offset of 1s after end.
+        So, the animation will apply 1s after the document is loaded
+        and will repeat every 1s after the animation ends.
+      </p>
+      <p>
+        The first &lt;set&gt; validates the transform property. When
+        applied to the &lt;text&gt; element, the letter A will be
+        translated to the right every 1s, in the &lt;text&gt; column.
+        When applied to the &lt;g&gt; element, the letter A inherits the
+        transform value and is translated to the right every 1s, as
+        seen in the &lt;g&gt; column. When applied to the &lt;a&gt;
+        element, the letter A inherits the transform value and is
+        translated to the right every 1s, as seen in &lt;a&gt; column.
+      </p>
+      <p>
+        The second &lt;set&gt; validates the text-anchor attribute.
+        When applied to the &lt;text&gt; element, the anchor position
+        of letter A is moved from start to end. When applied to the
+        &lt;g&gt; and &lt;a&gt; element, the property is inherited
+        and hence the anchor position of letter A is moved from start
+        to end in the second row.
+      </p>
+      <p>
+        The third &lt;set&gt; validates the font-size attribute.
+        The font size of letter A is changed from 20 to 30.
+        When applied to &lt;g&gt; and &lt;a&gt; elements, the letter
+        A inherits the font-size and hence in row 3, letter A has a
+        font-size of 30 in all 3 right columns of row 3.
+      </p>
+      <p>
+        The fourth &lt;set&gt; validates the font-family attribute.
+        The font-family is changed from default to serif.
+        When applied to &lt;g&gt; and &lt;a&gt; elements, the letter
+        A inherits the font-family attribute and hence in row 4,
+        letter A has serif font-family in all 3 columns.
+      </p>
+      <p>
+        The fifth &lt;set&gt; validates the font-style attribute.
+        The font-style is changed from normal to italic.
+        When applied to &lt;g&gt; and &lt;a&gt; elements, the letter
+        A inherits the font-style attribute and hence in row 5,
+        letter A is animated to italic in all 3 columns.
+      </p>
+      <p>
+        The sixth &lt;set&gt; validates the font-weight attribute.
+        The font-weight is changed from normal to bold.
+        When applied to &lt;g&gt; and &lt;a&gt; elements, the letter
+        A inherits the font-weight attribute and hence in row 6,
+        letter A is changed to bold on the right.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The document is animated such that it alternates between two states, an alternation occurring every second. 
+        For the test to pass each row must show a colored letter A that alternates between the two exact shapes and positions shown
+        by the gray silhouettes.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-77-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerif.svg#FreeSerif"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerifBold.svg#FreeSerifBold"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400" font-style="italic">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerifItalic.svg#FreeSerifItalic"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700"  font-style="italic">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="FreeSerif, serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">text</text>
+    <g transform="translate(80, 80)">
+      <g transform="translate(20,10)" text-anchor="end" font-size="14">
+        <text x="5" y="15">transform</text>
+        <text x="5" y="50">text-anchor</text>
+        <text x="5" y="85">font-size</text>
+        <text x="5" y="120">font-family</text>
+        <text x="5" y="155">font-style</text>
+        <text x="5" y="190">font-weight</text>
+      </g>
+
+      <g id="type" transform="translate(90, -10)" text-anchor="middle" font-size="14">
+        <text x="20" y="3">&lt;text&gt;</text>
+        <text x="135" y="3">&lt;g&gt;</text>
+        <text x="250" y="3">&lt;a&gt;</text>
+      </g>
+
+      <g transform="translate(80,5)" text-anchor="start" font-size="20" fill="rgb(204,0,102)">
+        <text id="one" x="10" y="20" fill="#aaa">A </text>
+
+        <g id="setOne">
+          <defs>
+            <g id="setOneRef">
+              <text x="10" y="20" fill="#aaa">A </text>
+              <text x="10" y="20" fill="#aaa" transform="translate(30,0)">A </text>
+            </g>
+          </defs>
+
+          <use xlink:href="#setOneRef"/>
+          <use xlink:href="#setOneRef" x="110"/>
+          <use xlink:href="#setOneRef" x="220"/>
+
+          <text x="10" y="20">
+            A
+            <animateTransform attributeName="transform" id="firstSet" type="translate" from="30,0" to="30,0" begin="0s; firstSet.end + 1s" dur="1s"/>
+          </text>
+
+          <g transform="translate(110, 0)">
+            <animateTransform attributeName="transform" id="secondSet" type="translate" from="140,0" to="140,0" begin="0s; secondSet.end + 1s" dur="1s"/>
+            <text x="10" y="20">A</text>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animateTransform attributeName="transform" id="thirdSet" type="translate" from="250,0" to="250,0" begin="0s; thirdSet.end + 1s" dur="1s"/>
+            <text x="10" y="20">A</text>
+          </a>
+        </g>
+
+        <g id="setTwo" transform="translate(0,35)">
+          <defs>
+            <g id="setTwoRef">
+              <text x="10" y="20" fill="#aaa">A </text>
+              <text x="10" y="20" fill="#aaa" transform="translate(40,0)" text-anchor="end">A</text>
+            </g>
+          </defs>
+
+          <use xlink:href="#setTwoRef"/>
+          <use xlink:href="#setTwoRef" x="110"/>
+          <use xlink:href="#setTwoRef" x="220"/>
+
+          <text x="10" y="20">
+            A
+            <set id="secondSet1" attributeName="text-anchor" to="end" begin="0s; secondSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="secondSet1_1" type="translate" from="40,0" to="40,0" begin="0s; secondSet1_1.end + 1s" dur="1s"/>
+          </text>
+
+          <g>
+            <set id="secondSet2" attributeName="text-anchor" to="end" begin="0s; secondSet2.end + 1s" dur="1s"/>
+            <text x="120" y="20">
+              A
+              <animateTransform attributeName="transform" id="secondSet2_1" type="translate" from="40,0" to="40,0" begin="0s; secondSet2_1.end + 1s" dur="1s"/>
+            </text>
+          </g>
+
+          <a>
+            <set id="secondSet3" attributeName="text-anchor" to="end" begin="0s; secondSet3.end + 1s" dur="1s"/>
+            <text x="230" y="20">
+              A
+              <animateTransform attributeName="transform" id="secondSet3_1" type="translate" from="40,0" to="40,0" begin="0s; secondSet3_1.end + 1s" dur="1s"/>
+            </text>
+          </a>
+        </g>
+
+        <g id="setThree" transform="translate(0,70)">
+          <defs>
+            <g id="setThreeRef">
+              <text x="10" y="20" fill="#aaa">A </text>
+              <text x="40" y="20" font-size="30" fill="#aaa">A</text>
+            </g>
+          </defs>
+          <use xlink:href="#setThreeRef"/>
+          <use xlink:href="#setThreeRef" x="110"/>
+          <use xlink:href="#setThreeRef" x="220"/>
+
+          <text x="10" y="20">
+            A
+            <set id="thirdSet1" attributeName="font-size" to="30" begin="0s; thirdSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="thirdSet1_1" type="translate" from="30,0" to="30,0" begin="0s; thirdSet1_1.end + 1s" dur="1s"/>
+          </text>
+
+          <g>
+            <set id="thirdSet2" attributeName="font-size" to="30" begin="0s; thirdSet2.end + 1s" dur="1s"/>
+            <text x="120" y="20">
+              A
+              <animateTransform attributeName="transform" id="thirdSet2_1" type="translate" from="30,0" to="30,0" begin="0s; thirdSet2_1.end + 1s" dur="1s"/>
+            </text>
+          </g>
+
+          <a>
+            <set id="thirdSet3" attributeName="font-size" to="30" begin="0s; thirdSet3.end + 1s" dur="1s"/>
+            <text x="230" y="20">
+              A
+              <animateTransform attributeName="transform" id="thirdSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; thirdSet3_1.end + 1s" dur="1s"/>
+            </text>
+          </a>
+        </g>
+
+        <g id="setFour" transform="translate(0,105)">
+          <defs>
+            <g id="setFourRef">
+              <text x="10" y="20" font-size="30" fill="#aaa" font-family="sans-serif">A</text>
+              <text x="40" y="20" font-size="30" fill="#aaa" font-family="serif">A</text>
+            </g>
+          </defs>
+          <use xlink:href="#setFourRef"/>
+          <use xlink:href="#setFourRef" x="110"/>
+          <use xlink:href="#setFourRef" x="220"/>
+
+          <text x="10" y="20" font-size="30" font-family="sans-serif">
+            A
+            <set id="fourthSet1" attributeName="font-family" to="serif" begin="0s; fourthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="fourthSet1_1" type="translate" from="30,0" to="30,0" begin="0s; fourthSet1_1.end + 1s" dur="1s"/>
+          </text>
+
+          <g transform="translate(110,0)" font-family="sans-serif">
+            <set id="fourthSet2" attributeName="font-family" to="serif" begin="0s; fourthSet2.end + 1s" dur="1s"/>
+            <text x="10" y="20" font-size="30">
+              A
+              <animateTransform attributeName="transform" id="fourthSet2_1" type="translate" from="30,0" to="30,0" begin="0s; fourthSet2_1.end + 1s" dur="1s"/>
+            </text>
+          </g>
+
+          <a xlink:href="" transform="translate(220,0)" font-family="sans-serif">
+            <set id="fourthSet3" attributeName="font-family" to="serif" begin="0s; fourthSet3.end + 1s" dur="1s"/>
+            <text x="10" y="20" font-size="30">
+              A
+              <animateTransform attributeName="transform" id="fourthSet3_1" type="translate" from="30,0" to="30,0" begin="0s; fourthSet2_1.end + 1s" dur="1s"/>
+            </text>
+          </a>
+
+        </g>
+
+        <g id="setFive" transform="translate(0,140)">
+          <defs>
+            <g id="setFiveRef">
+              <text x="10" y="20" fill="#aaa">A</text>
+              <text x="40" y="20" fill="#aaa" font-style="italic">A</text>
+            </g>
+          </defs>
+
+          <use xlink:href="#setFiveRef"/>
+          <use xlink:href="#setFiveRef" x="110"/>
+          <use xlink:href="#setFiveRef" x="220"/>
+
+          <text x="10" y="20">
+            A
+            <set id="fifthSet1" attributeName="font-style" to="italic" begin="0s; fifthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="fifthSet1_1" type="translate" from="30,0" to="30,0" begin="0s; fifthSet1_1.end + 1s" dur="1s"/>
+          </text>
+
+          <g transform="translate(110,0)">
+            <set id="fifthSet2" attributeName="font-style" to="italic" begin="0s; fifthSet2.end + 1s" dur="1s"/>
+            <text x="10" y="20">
+              A
+              <animateTransform attributeName="transform" id="fifthSet2_1" type="translate" from="30,0" to="30,0" begin="0s; fifthSet2_1.end + 1s" dur="1s"/>
+            </text>
+          </g>
+
+          <a xlink:href="" transform="translate(220,0)">
+            <set id="fifthSet3" attributeName="font-style" to="italic" begin="0s; fifthSet3.end + 1s" dur="1s"/>
+            <text x="10" y="20">
+              A
+              <animateTransform attributeName="transform" id="fifthSet3_1" type="translate" from="30,0" to="30,0" begin="0s; fifthSet3_1.end + 1s" dur="1s"/>
+            </text>
+          </a>
+        </g>
+
+        <g id="setSix" transform="translate(0,175)">
+          <defs>
+            <g id="setSixRef">
+              <text x="10" y="20" fill="#aaa">A</text>
+              <text x="40" y="20" fill="#aaa" font-weight="bold">A</text>
+            </g>
+          </defs>
+
+          <use xlink:href="#setSixRef"/>
+          <use xlink:href="#setSixRef" x="110"/>
+          <use xlink:href="#setSixRef" x="220"/>
+
+          <text x="10" y="20">
+            A
+            <set id="sixthSet1" attributeName="font-weight" to="bold" begin="0s; sixthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="sixthSet1_1" type="translate" from="30,0" to="30,0" begin="0s; sixthSet1_1.end + 1s" dur="1s"/>
+          </text>
+
+          <g transform="translate(110,0)">
+            <set id="sixthSet2" attributeName="font-weight" to="bold" begin="0s; sixthSet2.end + 1s" dur="1s"/>
+            <text x="10" y="20">
+              A
+              <animateTransform attributeName="transform" id="sixthSet2_1" type="translate" from="30,0" to="30,0" begin="0s; sixthSet2_1.end + 1s" dur="1s"/>
+            </text>
+          </g>
+
+          <a xlink:href="" transform="translate(220,0)">
+            <set id="sixthSet3" attributeName="font-weight" to="bold" begin="0s; sixthSet3.end + 1s" dur="1s"/>
+            <text x="10" y="20">
+              A
+              <animateTransform attributeName="transform" id="sixthSet3_1" type="translate" from="30,0" to="30,0" begin="0s; sixthSet3_1.end + 1s" dur="1s"/>
+            </text>
+          </a>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

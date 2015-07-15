@@ -16,20 +16,23 @@ path = "../util"
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 url = "0.2.35"
 bitflags = "*"
 hyper = "0.5"
 rustc-serialize = "0.3.4"
+euclid = "0.1"
+serde = "*"
+serde_macros = "*"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "*"

@@ -6,10 +6,10 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeGraphicsMetadata;
+use layers::platform::surface::NativeDisplay;
 use libc::c_int;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net::net_error_list::NetError;
@@ -819,10 +819,8 @@ impl WindowMethods for Window {
         ScaleFactor::new(1.0)
     }
 
-    fn native_metadata(&self) -> NativeGraphicsMetadata {
-        NativeGraphicsMetadata {
-            display: self.dpy,
-        }
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new_with_display(self.dpy)
     }
 
     fn handle_key(&self, _: Key, _: KeyModifiers) {

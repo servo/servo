@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ScreenBinding;
 use dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
@@ -21,14 +21,14 @@ impl Screen {
         }
     }
 
-    pub fn new(window: JSRef<Window>) -> Temporary<Screen> {
+    pub fn new(window: &Window) -> Root<Screen> {
         reflect_dom_object(box Screen::new_inherited(),
                            GlobalRef::Window(window),
                            ScreenBinding::Wrap)
     }
 }
 
-impl<'a> ScreenMethods for JSRef<'a, Screen> {
+impl<'a> ScreenMethods for &'a Screen {
     fn ColorDepth(self) -> u32 {
         24
     }

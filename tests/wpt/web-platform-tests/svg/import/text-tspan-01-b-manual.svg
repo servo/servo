@@ -1,0 +1,113 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.10 $" testname="$RCSfile: text-tspan-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TSpanElement">
+      <p>
+        Test tspan element styling and relative position adjustments.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p>
+      <ul>
+        <li>"You are not a banana" is displayed with the word "not" in bold green, with the rest of the sentence in normal blue.</li>
+        <li>"But you are a peach!" is displayed with the word "are" in bold green raised above the baseline, and "a peach!" lowered below the baseline.</li>
+        <li>"Cute and fuzzy" is displayed like there was spaces between each character, and "fuzzy" is displayed on a line below "Cute and".</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-tspan-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+  	<defs>
+	  	<font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400">
+	      <font-face-src>
+	        <font-face-uri xlink:href="../resources/FreeSerif.svg#FreeSerif"/>
+	      </font-face-src>
+	    </font-face>
+	    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700">
+	      <font-face-src>
+	        <font-face-uri xlink:href="../resources/FreeSerifBold.svg#FreeSerifBold"/>
+	      </font-face-src>
+	    </font-face>
+	    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400" font-style="italic">
+	      <font-face-src>
+	        <font-face-uri xlink:href="../resources/FreeSerifItalic.svg#FreeSerifItalic"/>
+	      </font-face-src>
+	    </font-face>
+	    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700"  font-style="italic">
+	      <font-face-src>
+	        <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
+	      </font-face-src>
+	    </font-face>
+  	</defs>
+    <text x="25" y="20" font-size="16">Basics of tspan: changing visual properties and positioning.</text>
+    <!-- From example tspan01 - using tspan to change visual attributes -->
+    <g id="tspan01" font-size="16" font-family="FreeSerif, serif">
+      <text x="74" y="63.75" fill="blue">
+        You are<tspan font-weight="bold" fill="green"> not </tspan>a banana.
+      </text>
+      <rect x="47.5" y="74.25" width="310.5" height="53.5" fill="none" stroke="#000000"/>
+      <text x="65.25" y="90.75" font-size="16">Text: "You are not a banana."</text>
+      <text x="65.25" y="108" font-size="16">'tspan' changes visual attributes of "not",</text>
+      <text x="65.25" y="125.25" font-size="16">to green, bold.</text>
+    </g>
+    <!-- From example tspan02 - using tspan's dx and dy attributes 
+                 for incremental positioning adjustments -->
+    <g id="tspan02" font-size="16" font-family="FreeSerif, serif">
+      <text x="257.5" y="153.75" fill="blue">
+        But you<tspan dx="2em" dy="-10.75" font-weight="bold" fill="green">are</tspan><tspan dy="25.5" xml:space="preserve"> a peach!</tspan>
+      </text>
+      <rect x="225" y="179" width="245.5" height="53.5" fill="none" stroke="#000000"/>
+      <text x="238" y="195" font-size="16">Text: "But you are a peach!"</text>
+      <text x="238" y="212.25" font-size="16">Using dx,dy, 'tspan' raises "are",</text>
+      <text x="238" y="229.5" font-size="16">'tspan' lowers "a peach!"</text>
+    </g>
+    <!-- Example tspan03 - using tspan's x and y attributes 
+                     for multiline text and precise glyph positioning -->
+    <g id="tspan03" fill="#000000" font-size="16" font-family="FreeSerif, serif">
+      <text fill="rgb(255,164,0)">
+        <tspan x="35 53.75 72.5 91.25 110.5 128.75 147.5 166.25" y="200">Cute and </tspan>
+        <tspan x="63.13 81.88 100.63 119.38 138.13" y="230.5">fuzzy.</tspan>
+      </text>
+      <rect x="17.5" y="244.75" width="335.5" height="53.5" fill="none" stroke="#000000"/>
+      <text x="25.25" y="258" font-size="16">Text: "Cute and fuzzy."</text>
+      <text x="25.25" y="275.25" font-size="16">'tspan' char-by-char placement of "Cute and",</text>
+      <text x="25.25" y="292.5" font-size="16">'tspan' char-by-char "fuzzy", below it.</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.10 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -109,7 +109,6 @@ function runValidSelectorTest(type, root, selectors, docType) {
     var ref = s["ref"];
 
     if (!s["exclude"] || (s["exclude"].indexOf(nodeType) === -1 && s["exclude"].indexOf(docType) === -1)) {
-      //console.log("Running tests " + nodeType + ": " + s["testType"] + "&" + testType + "=" + (s["testType"] & testType) + ": " + JSON.stringify(s))
       var foundall, found, context, refNodes, refArray;
 
       if (s["testType"] & TEST_FIND) {
@@ -225,8 +224,6 @@ function runValidSelectorTest(type, root, selectors, docType) {
           }, type + ".query: " + n + " (with no refNodes): " + q);
         }
       }
-    } else {
-      //console.log("Excluding for " + nodeType + ": " + s["testType"] + "&" + testType + "=" + (s["testType"] & testType) + ": " + JSON.stringify(s))
     }
   }
 }

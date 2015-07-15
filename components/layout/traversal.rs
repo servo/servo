@@ -19,9 +19,9 @@ use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode}
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use selectors::bloom::BloomFilter;
+use selectors::Node;
 use util::opts;
 use util::tid::tid;
-use style::node::TNode;
 
 use std::cell::RefCell;
 use std::mem;
@@ -132,7 +132,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         //
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
         // parser.
-        node.initialize_layout_data(self.layout_context.shared.layout_chan.clone());
+        node.initialize_layout_data();
 
         // Get the parent node.
         let parent_opt = node.layout_parent_node(self.layout_context.shared);
@@ -164,7 +164,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                 StyleSharingResult::CannotShare(mut shareable) => {
                     let mut applicable_declarations = ApplicableDeclarations::new();
 
-                    if node.is_element() {
+                    if node.as_element().is_some() {
                         // Perform the CSS selector matching.
                         let stylist = unsafe { &*self.layout_context.shared.stylist };
                         node.match_node(stylist,

@@ -81,6 +81,7 @@ impl Browser {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
+        script::init();
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
@@ -123,7 +124,7 @@ impl Browser {
         let compositor = CompositorTask::create(window,
                                                 compositor_proxy,
                                                 compositor_receiver,
-                                                constellation_chan.clone(),
+                                                constellation_chan,
                                                 time_profiler_chan,
                                                 mem_profiler_chan);
 
@@ -181,7 +182,7 @@ fn create_constellation(opts: opts::Opts,
     match opts.url {
         Some(url) => {
             let ConstellationChan(ref chan) = constellation_chan;
-            chan.send(ConstellationMsg::InitLoadUrl(url.clone())).unwrap();
+            chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
         },
         None => ()
     };

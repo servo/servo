@@ -7,9 +7,7 @@
 
 use geometry::ScreenPx;
 
-use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
-use layers::geometry::DevicePixel;
+use euclid::size::{Size2D, TypedSize2D};
 use getopts;
 use num_cpus;
 use std::collections::HashSet;
@@ -19,7 +17,9 @@ use std::io::{self, Write};
 use std::fs::PathExt;
 use std::mem;
 use std::path::Path;
+use std::process;
 use std::ptr;
+use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
@@ -42,7 +42,7 @@ pub struct Opts {
 
     /// The ratio of device pixels per px at the default scale. If unspecified, will use the
     /// platform default setting.
-    pub device_pixels_per_px: Option<ScaleFactor<ScreenPx, DevicePixel, f32>>,
+    pub device_pixels_per_px: Option<f32>,
 
     /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
     /// cause it to produce output on that interval (`-p`).
@@ -69,6 +69,11 @@ pub struct Opts {
     pub userscripts: Option<String>,
 
     pub output_file: Option<String>,
+
+    /// Replace unpaires surrogates in DOM strings with U+FFFD.
+    /// See https://github.com/servo/servo/issues/6564
+    pub replace_surrogates: bool,
+
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -152,6 +157,9 @@ pub struct Opts {
 
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
+
+    /// Whether to run absolute position calculation and display list construction in parallel.
+    pub parallel_display_list_building: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -159,7 +167,7 @@ fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
     println!("{}", getopts::usage(&message, opts));
 }
 
-pub fn print_debug_usage(app: &str)  {
+pub fn print_debug_usage(app: &str) -> ! {
     fn print_option(name: &str, description: &str) {
         println!("\t{:<35} {}", name, description);
     }
@@ -183,15 +191,20 @@ pub fn print_debug_usage(app: &str)  {
                  "Display an error when display list geometry escapes overflow region.");
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
+    print_option("parallel-display-list-building", "Build display lists in parallel.");
+    print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
+                                        See https://github.com/servo/servo/issues/6564");
 
     println!("");
+
+    process::exit(0)
 }
 
-fn args_fail(msg: &str) {
+fn args_fail(msg: &str) -> ! {
     let mut stderr = io::stderr();
     stderr.write_all(msg.as_bytes()).unwrap();
     stderr.write_all(b"\n").unwrap();
-    env::set_exit_status(1);
+    process::exit(1)
 }
 
 // Always use CPU painting on android.
@@ -217,6 +230,7 @@ pub fn default_opts() -> Opts {
         nossl: false,
         userscripts: None,
         output_file: None,
+        replace_surrogates: false,
         headless: true,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
@@ -241,10 +255,11 @@ pub fn default_opts() -> Opts {
         resources_path: None,
         sniff_mime_types: false,
         disable_share_style_cache: false,
+        parallel_display_list_building: false,
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) -> bool {
+pub fn from_cmdline_args(args: &[String]) {
     let app_name = args[0].to_string();
     let args = args.tail();
 
@@ -279,15 +294,12 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let opt_match = match getopts::getopts(args, &opts) {
         Ok(m) => m,
-        Err(f) => {
-            args_fail(&f.to_string());
-            return false;
-        }
+        Err(f) => args_fail(&f.to_string()),
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(&app_name, &opts);
-        return false;
+        process::exit(0);
     };
 
     let debug_string = match opt_match.opt_str("Z") {
@@ -299,14 +311,12 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         debug_options.insert(split.clone());
     }
     if debug_options.contains(&"help") {
-        print_debug_usage(&app_name);
-        return false;
+        print_debug_usage(&app_name)
     }
 
     let url = if opt_match.free.is_empty() {
         print_usage(&app_name, &opts);
-        args_fail("servo asks that you provide a URL");
-        return false;
+        args_fail("servo asks that you provide a URL")
     } else {
         let ref url = opt_match.free[0];
         let cwd = env::current_dir().unwrap();
@@ -316,8 +326,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
                 if Path::new(url).exists() {
                     Url::from_file_path(&*cwd.join(url)).unwrap()
                 } else {
-                    args_fail(&format!("File not found: {}", url));
-                    return false;
+                    args_fail(&format!("File not found: {}", url))
                 }
             }
             Err(_) => panic!("URL parsing failed"),
@@ -330,7 +339,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        ScaleFactor::new(dppx_str.parse().unwrap())
+        dppx_str.parse().unwrap()
     );
 
     let mut paint_threads: usize = match opt_match.opt_str("t") {
@@ -396,6 +405,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         nossl: nossl,
         userscripts: opt_match.opt_default("userscripts", ""),
         output_file: opt_match.opt_str("o"),
+        replace_surrogates: debug_options.contains(&"replace-surrogates"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
@@ -420,27 +430,23 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         resources_path: opt_match.opt_str("resources-path"),
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
+        parallel_display_list_building: debug_options.contains(&"parallel-display-list-building"),
     };
 
     set(opts);
-    true
 }
 
-static mut EXPERIMENTAL_ENABLED: bool = false;
+static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
 
 /// Turn on experimental features globally. Normally this is done
 /// during initialization by `set` or `from_cmdline_args`, but
 /// tests that require experimental features will also set it.
 pub fn set_experimental_enabled(new_value: bool) {
-    unsafe {
-        EXPERIMENTAL_ENABLED = new_value;
-    }
+    EXPERIMENTAL_ENABLED.store(new_value, Ordering::SeqCst);
 }
 
 pub fn experimental_enabled() -> bool {
-    unsafe {
-        EXPERIMENTAL_ENABLED
-    }
+    EXPERIMENTAL_ENABLED.load(Ordering::SeqCst)
 }
 
 // Make Opts available globally. This saves having to clone and pass

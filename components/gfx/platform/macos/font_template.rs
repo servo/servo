@@ -7,7 +7,7 @@ use core_graphics::font::CGFont;
 use core_text::font::CTFont;
 use core_text;
 
-use std::borrow::ToOwned;
+use string_cache::Atom;
 
 /// Platform specific font representation for mac.
 /// The identifier is a PostScript font name. The
@@ -15,7 +15,7 @@ use std::borrow::ToOwned;
 /// paint functions that create CGFont references.
 pub struct FontTemplateData {
     pub ctfont: Option<CTFont>,
-    pub identifier: String,
+    pub identifier: Atom,
     pub font_data: Option<Vec<u8>>
 }
 
@@ -23,7 +23,7 @@ unsafe impl Send for FontTemplateData {}
 unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {
-    pub fn new(identifier: &str, font_data: Option<Vec<u8>>) -> FontTemplateData {
+    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
         let ctfont = match font_data {
             Some(ref bytes) => {
                 let fontprov = CGDataProvider::from_buffer(bytes);
@@ -34,7 +34,7 @@ impl FontTemplateData {
                 }
             },
             None => {
-                Some(core_text::font::new_from_name(identifier, 0.0).unwrap())
+                Some(core_text::font::new_from_name(identifier.as_slice(), 0.0).unwrap())
             }
         };
 

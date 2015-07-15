@@ -1,0 +1,124 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: pservers-grad-11-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        Test that the viewer has basic capability to handle radial gradients
+        on fills and stroke of objects and text.
+      </p>
+      <p>
+        This test uses the following elements : &lt;radialGradient&gt;, &lt;stop&gt;
+        and the following properties : stop-color, fill:url(#  ), stroke(url# )
+      </p>
+      <p>
+        From top-down (left to right) the appearance of objects is as follows.
+      </p>
+      <p>
+        The top left rectangle  should be a radial gradient from dark blue (in) to lime (outside).
+        The gradient is applied to the fill of the rectangle.
+      </p>
+      <p>
+        The next rectangle has no fill, but has a thick stroke on which the gradient is
+        applied. The gradient goes from dark orange(in) to pale yellow (out).
+      </p>
+      <p>
+        The next item is a text with a radial gradient on the fill. The gradient goes
+        from green (in) to yellow (out).
+      </p>
+      <p>
+        The last item is a text with a 2 user unit stroke on which a black (in) to magenta
+        (out) linear gradient is applied.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendering matches the reference image, apart
+      from any differences in font choice due to CSS2 rules.  Specifically:</p>
+      <ul>
+        <li>The top-left rectangle must be filled with a circular radial gradient
+        with dark blue inside and lime outside.  The center point of the gradient
+        is in the lower-left quadrant of the rectangle.</li>
+        <li>The top-right rectangle has no fill, but a thick stroke which is painted
+        with a radial gradient with dark orange inside and yellow outside.  The
+        center point of this gradient is in the lower-left quadrant of the
+        rectangle.</li>
+        <li>The "Gradient on text fill" text must be filled with a circular radial
+        gradient with green inside and yellow outside.  The center point of the
+        gradient is the center of the text.</li>
+        <li>The "Gradient on text stroke" has no fill, but a stroke which is painted with
+        a circular radial gradient with black inside and pink outside.  The center point of the
+        gradient is the center of the text.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-11-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- Very simple black to red radial gradient                      ======== -->
+    <!-- ====================================================================== -->
+    <radialGradient gradientUnits="userSpaceOnUse" id="Grad1" cx="75" cy="100" r="130" fx="75" fy="100">
+      <stop stop-color="#009" offset="0"/>
+      <stop stop-color="#2e2" offset="1"/>
+    </radialGradient>
+    <rect x="10" y="10" width="210" height="140" fill="url(#Grad1)"/>
+    <text font-family="Arial" font-size="12" x="10" y="165">Radial gradient on fill of rectangle</text>
+    <!-- ====================================================================== -->
+    <!-- Radial gradient on the stroke of a rectangle                  ======== -->
+    <!-- ====================================================================== -->
+    <radialGradient id="Grad2" gradientUnits="userSpaceOnUse" cx="295" cy="100" r="150" fx="295" fy="100">
+      <stop stop-color="#e22" offset="0"/>
+      <stop stop-color="#ff6" offset="1"/>
+    </radialGradient>
+    <rect x="250" y="30" width="170" height="100" fill="none" stroke="url(#Grad2)" stroke-width="40"/>
+    <text font-family="Arial" font-size="12" x="230" y="165">Radial gradient on stroke of rectangle</text>
+    <!-- ====================================================================== -->
+    <!-- Gradient on fill of text                                      ======== -->
+    <!-- ====================================================================== -->
+    <radialGradient id="Grad3" gradientUnits="userSpaceOnUse" cx="225" cy="180" r="90" fx="225" fy="180">
+      <stop stop-color="#060" offset="0"/>
+      <stop stop-color="yellow" offset="1"/>
+    </radialGradient>
+    <text font-family="Arial" font-size="50" fill="url(#Grad3)" x="10" y="210">Gradient on text fill</text>
+    <text font-family="Arial" font-size="12" x="10" y="225">Radial gradient on text, black to yellow</text>
+    <!-- ====================================================================== -->
+    <!-- Gradient on stroke of text                                    ======== -->
+    <!-- ====================================================================== -->
+    <radialGradient id="Grad4" gradientUnits="userSpaceOnUse" cx="225" cy="245" r="90" fx="225" fy="245">
+      <stop stop-color="black" offset="0"/>
+      <stop stop-color="#D6D" offset="1"/>
+    </radialGradient>
+    <text font-family="Arial" font-size="45" fill="none" stroke="url(#Grad4)" stroke-width="2" x="10" y="270">Gradient on text stroke</text>
+    <text font-family="Arial" font-size="12" x="10" y="285">Radial gradient on stroke of text, black to red</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

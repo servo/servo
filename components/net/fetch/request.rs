@@ -184,7 +184,7 @@ impl Request {
         }
         // Step 2
         if self.context != Context::Fetch && !self.headers.has::<AcceptLanguage>() {
-            self.headers.set(AcceptLanguage(vec![qitem(Language::from_str("en-US").unwrap())]));
+            self.headers.set(AcceptLanguage(vec![qitem("en-US".parse().unwrap())]));
         }
         // TODO: Figure out what a Priority object is
         // Step 3

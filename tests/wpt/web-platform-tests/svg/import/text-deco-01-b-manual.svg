@@ -1,0 +1,82 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: text-deco-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextDecorationProperties">
+        <p>
+          Test the 'text-decoration' property.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+    	<p>The test has passed if:</p>
+      <ul>
+      	<li>
+        	The first line of text has no decoration.
+     		</li>
+	      <li>
+	        The second line of text has a line through it.
+	      </li>
+	      <li>
+	        The third line of text is underlined.
+	      </li>
+	      <li>
+	        The fourth line of text has a blue underline with a green stroke under
+	        all characters, except the word "different" which has a yellow underline
+	        with a green stroke.
+	      </li>
+	    </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-deco-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="24" fill="blue" stroke="green" stroke-width=".5">
+      <text x="25" y="65">Normal text</text>
+      <text x="25" y="135" text-decoration="line-through">Text with line-through</text>
+      <text x="25" y="205" text-decoration="underline">Underlined text</text>
+      <!-- START OF PATCH CODE, which is commented out
+    <text x="25" y="345" text-decoration="underline"  xml:space="preserve">One word has different underlining</text>
+    <rect x="25" y="275" width="1000" height="70" stroke="none" fill="white" />
+END OF PATCH CODE, which is commented out -->
+      <text x="25" y="275" text-decoration="underline">
+        <tspan>One</tspan>
+        <tspan fill="yellow" stroke="#F0F">word</tspan>
+        <tspan fill="yellow" stroke="#000">has</tspan>
+        <tspan fill="yellow" stroke="#080" text-decoration="underline">different</tspan>
+        <tspan fill="yellow" stroke="#00F">underlining</tspan>
+      </text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

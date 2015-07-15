@@ -1,0 +1,139 @@
+<svg version="1.1" baseProfile="tiny" onload="domTest(evt)" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: struct-dom-04-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#DOMInterfaces">
+        <p>
+          Verify the basic capability to handle the hasFeature DOMImplementation method.
+          The DOMImplementation instance is retrieved from the Document instance. Then,
+          its hasFeature method is invoked on the various SVG feature strings.
+        </p>
+        <p>
+          The test displays the set of SVG feature strings and, next to them, a text
+          string that shows whether the feature is supported or not.
+        </p>
+        <p>
+          Note that this test uses the 'onload' event on the root svg element.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image, except for the true and
+        false values which may differ depending on the implementation.
+      </p>
+      <p>
+        Note that the test passes whether or not the feature is supported (i.e., true or
+        false are valid). The test fails if no value (true or false) appears next to the feature string
+        value.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-04-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script type="text/ecmascript"><![CDATA[
+
+      var featureStrings = new Array();
+      var length = 0;
+      /*
+      featureStrings[length++] = "xml";
+      featureStrings[length++] = "stylesheets";
+      featureStrings[length++] = "views";
+      featureStrings[length++] = "css2";
+      featureStrings[length++] = "events";
+      featureStrings[length++] = "uievents	";
+      featureStrings[length++] = "mouseevents";
+      featureStrings[length++] = "mutationevents";
+      featureStrings[length++] = "traversal";
+      featureStrings[length++] = "org.w3c.svg";
+      */
+      featureStrings[length++] = "org.w3c.svg.lang";
+      featureStrings[length++] = "org.w3c.svg.dynamic";
+      featureStrings[length++] = "org.w3c.svg.static";
+      featureStrings[length++] = "org.w3c.dom.svg";
+      featureStrings[length++] = "org.w3c.svg";
+      /*
+      featureStrings[length++] = "org.w3c.dom.svg.static";
+      featureStrings[length++] = "org.w3c.dom.svg.animation";
+      featureStrings[length++] = "org.w3c.dom.svg.dynamic";
+      featureStrings[length++] = "org.w3c.svg.all";
+      featureStrings[length++] = "org.w3c.dom.svg.all";
+      */
+      var svg_ns = "http://www.w3.org/2000/svg"
+      function domTest(evt) {
+      // Get Document
+      var target = evt.target;
+      var doc = target.ownerDocument;
+
+      // Get DOMImplementation
+      var domImpl = doc.implementation;
+
+      //
+      // Iterate through the feature strings
+      //
+      for(var i=0; i<featureStrings.length; i++){
+      var supports = domImpl.hasFeature(featureStrings[i], '2.0');
+      //
+      // if time, pretty up by putting xml to traveral in a left column and
+      // org.w3c.svg to org.w3c.dom.svg.all in a right column; add an extra
+      // parameter to addTextElemen t for x coord, and test if i < 9
+      //
+      addTextElement(featureStrings[i], supports, doc, doc.getElementById("test-body-content"), (45 + 40*i));
+      }
+      }
+
+      function addTextElement(label, value, doc, svg, y){
+      var newText = doc.createElementNS(svg_ns, 'text');
+      newText.setAttribute('font-size', '30');
+      newText.setAttribute('x', '5');
+      newText.setAttribute('y', y);
+      var textValue = label;
+      var textContent = doc.createTextNode(textValue);
+      newText.appendChild(textContent);
+      svg.appendChild(newText);
+
+      newText = doc.createElementNS(svg_ns, 'text');
+      newText.setAttribute('font-size', '30');
+      newText.setAttribute('x', '385');
+      newText.setAttribute('y', y);
+      textValue =  value;
+      textContent = doc.createTextNode(textValue);
+      newText.appendChild(textContent);
+      svg.appendChild(newText);
+      }
+
+    ]]></script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

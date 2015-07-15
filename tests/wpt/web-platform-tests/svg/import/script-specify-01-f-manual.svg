@@ -1,0 +1,67 @@
+<svg id="svg-root" width="100%" height="100%" 
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/noSuchLanguage"
+	onload="document.getElementById('testPassed').setAttribute('visibility', 'hidden');
+	        document.getElementById('testFailed').setAttribute('visibility', 'visible');">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="CL" status="reviewed"
+    version="$Revision: 1.6 $" testname="$RCSfile: script-specify-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/script.html#ScriptingLanguage">
+        <p>
+          Tests the assertion that "The ‘contentScriptType’ attribute on the ‘svg’ element specifies the default scripting language" by setting it to an unknown value and checking the script is not executed.
+          The test uses an unknown (bogus) script language,  which looks exactly like ECMAScript.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Load the test.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if string "Good, script didn't run" is displayed.
+				It fails if the string "No! This is not ECMAScript!" is displayed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: script-specify-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+		<!-- Displayed Title -->
+		<text x="140" y="20" fill="black">
+			contentScriptType Test
+		</text>
+
+		<!-- The onload handler would only be run if the user agent implemented the
+		     bogus scripting language MIME type specified in contentScriptType="". -->
+		<g font-size="24" font-weight="bold" transform="translate(240,170)" text-anchor="middle">
+			<text id="testPassed" fill="green">Good, script didn't run.</text>
+			<text id="testFailed" fill="red" visibility="hidden">No! This is not ECMAScript!</text>
+		</g>
+	</g>
+	<g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+  <text id="revision" x="10" y="340" stroke="none" 
+    fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>
+

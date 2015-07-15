@@ -47,7 +47,7 @@ use table_wrapper::TableWrapperFlow;
 use multicol::MulticolFlow;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;
@@ -1393,7 +1393,7 @@ impl ContainingBlockLink {
                 panic!("Link to containing block not established; perhaps you forgot to call \
                         `set_absolute_descendants`?")
             }
-            Some(ref mut link) => link.generated_containing_block_size(for_flow),
+            Some(ref link) => link.upgrade().unwrap().generated_containing_block_size(for_flow),
         }
     }
 }

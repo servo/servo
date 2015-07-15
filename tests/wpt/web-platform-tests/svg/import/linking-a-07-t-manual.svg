@@ -1,0 +1,110 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="BB" author="CL" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: linking-a-07-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/linking.html#Links">
+      <p>
+        Verify that the target attribute on the 'a' element takes precedence over the xlink:show attribute.
+        There are three subtests, in each of which two similarly
+        colored arrows comprise the content of an 'a' element.  The arrow on the left, outlined
+        in blue, has no "target" attribute; the arrow on the right, outlined in red, has a
+        "target" attribute. The
+        link destination is expressed by "xlink:href=".
+        The initial view of this test contains the six arrows, labelling text, and the usual template legend and frame.
+      </p>
+      <p>
+        The top-most (yellow) arrows link to an external SVG file, which is
+        local (in the same directory).  The target file contains SVG 'text' elements
+        which comprise a TOC and brief description of all of the test files
+        for Linking. 
+      </p>
+      <p>
+        The middle (green) arrows links to the same external SVG file, but with xlink:show="new". 
+      </p>
+      <p>
+        The bottom-most (blue) arrows links to the same external SVG file, but with xlink:show="replace". 
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Click each of the arrows once.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if:
+      </p>
+      <ul>
+	      <li>Upon clicking the left-most yellow arrow, the image of the linkingToc-t.svg
+	      file replaces the initial view of this test case in the viewer frame. On clicking the right-most yellow arrow,
+	      the image of the linkingToc-t.svg appears in a new frame.</li>
+	      <li>Upon clicking any of the green arrows the image of the linkingToc-t.svg appears in a new frame.</li>
+	      <li>Upon clicking the left-most blue arrow, the image of the linkingToc-t.svg file replaces the initial 
+	      view of this test case in the viewer frame. 
+	      On clicking the right blue arrow produces the image of the linkingToc-t.svg in a new frame.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: linking-a-07-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="90" y="16" font-size="12">xlink 'show' attribute on  'a' element.</text>
+    <g transform="translate(-120)">
+      <a xlink:href="../images/linkingToc-t.svg">
+        <path fill="yellow" stroke="blue" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+      </a>
+      <g transform="translate(0,90)">
+        <a xlink:href="../images/linkingToc-t.svg" xlink:show="new">
+          <path fill="lime" stroke="blue" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+        </a>
+      </g>
+      <g transform="translate(0,180)">
+        <a xlink:href="../images/linkingToc-t.svg" xlink:show="replace">
+          <path fill="aqua" stroke="blue" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+        </a>
+      </g>
+    </g>
+    <g transform="translate(120)">
+      <a xlink:href="../images/linkingToc-t.svg" target="foo">
+        <path fill="yellow" stroke="red" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+      </a>
+      <g transform="translate(0,90)">
+        <a xlink:href="../images/linkingToc-t.svg" xlink:show="new" target="foo">
+          <path fill="lime" stroke="red" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+        </a>
+      </g>
+      <g transform="translate(0,180)">
+        <a xlink:href="../images/linkingToc-t.svg" xlink:show="replace" target="foo">
+          <path fill="aqua" stroke="red" d="M 165,40 h 100 v -12 l 45 36 l -45 36 v -12 h -100 z"/>
+        </a>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

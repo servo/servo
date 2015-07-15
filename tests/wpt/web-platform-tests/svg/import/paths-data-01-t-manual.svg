@@ -1,0 +1,151 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: paths-data-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#PathData">
+        <p>
+          Test that the viewer has the basic capability to handle the 'path'
+          element and its data (d) attribute in combination with the cubic
+          Bezier curveto commands, C, c, S, s (plus Mm and Zz).
+        </p>
+        <p>
+          There are 8 subtests, each composed from the cubic Bezier path commands per
+          the label by the subtest.  On-curve control points (i.e., the curve position)
+          are marked by small blue squares.  Subtests are filled, or stroked, or
+          both, using simple style properties and colors.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-data-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- First Curve "X" that has subpath utilizing M, C, S, m, c, & s ======== -->
+    <!-- ====================================================================== -->
+    <text font-size="12" x="100" y="14">Cubic bezier curves drawn with commands:</text>
+    <path id="X_curve_MCSmcs" fill="#00FF00" stroke="#00C000" d="   M  210 130      C  145 130     110  80     110  80       S  75  25      10  25          m    0 105      c   65   0      100 -50     100 -50       s   35 -55     100 -55   "/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points  ===================================== -->
+    <!-- ====================================================================== -->
+    <rect x="208" y="128" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="108" y="78" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="8" y="23" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="8" y="128" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="108" y="78" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="208" y="23" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="5" y="82">M, C, S, m, c, s</text>
+    <!-- ====================================================================== -->
+    <!-- Infinity using M, c, c, c, C & z ===================================== -->
+    <!-- ====================================================================== -->
+    <path id="Infinity_McccCz" fill="none" stroke="#000000" d="   M 240  90      c 0  30    7  50    50  0       c 43  -50    50  -30    50  0       c 0  83    -68  -34    -90  -30       C 240  60    240  90    240  90   z  "/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points ====================================== -->
+    <!-- ====================================================================== -->
+    <rect x="238" y="88" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="288" y="88" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="338" y="88" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="248" y="58" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="253" y="50">M, c, c, c, C, z</text>
+    <!-- ====================================================================== -->
+    <!-- Horizontal line utilizing M, C & Z =================================== -->
+    <!-- ====================================================================== -->
+    <path id="Line_MCZ" fill="none" stroke="#000000" d="M80 170   C100 170 160 170 180 170Z"/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points ====================================== -->
+    <!-- ====================================================================== -->
+    <rect x="78" y="168" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="178" y="168" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="110" y="190">M, C, Z</text>
+    <!-- ====================================================================== -->
+    <!-- Inverted V using M, C, c & Z ========================================= -->
+    <!-- ====================================================================== -->
+    <path id="Inv_V_MCcZ" fill="#00C000" stroke="none" d="M5 260 C40 260 60 175  55 160 c  -5  15 15 100 50 100Z"/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points ====================================== -->
+    <!-- ====================================================================== -->
+    <rect x="3" y="258" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="53" y="158" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="103" y="258" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="85" y="220">M, C, c, Z</text>
+    <!-- ====================================================================== -->
+    <!-- Remembrance Ribbon using m, c & s ==================================== -->
+    <!-- ====================================================================== -->
+    <path id="Rem_Rib_mcs" fill="none" stroke="#000000" d="m 200 260      c  50 -40     50 -100     25 -100       s -25  60     25  100  "/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points ====================================== -->
+    <!-- ====================================================================== -->
+    <rect x="198" y="258" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="223" y="158" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="248" y="258" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="165" y="210">m, c, s</text>
+    <!-- ====================================================================== -->
+    <!-- 90 degree arc using M & C ============================================ -->
+    <!-- ====================================================================== -->
+    <path id="Arc_MC" fill="#0000FF" stroke="#000000" d="   M 360 100   C 420 90 460 140 450 190"/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points ====================================== -->
+    <!-- ====================================================================== -->
+    <rect x="358" y="98" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="448" y="188" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="360" y="150">M, C</text>
+    <!-- ====================================================================== -->
+    <!-- Circle using M, c, s, s, s & z ======================================= -->
+    <!-- ====================================================================== -->
+    <path id="Circle_Mcssz" fill="#FFFF00" stroke="#000000" d="M360 210      c   0  20    -16  36    -36  36       s -36 -16    -36 -36       s  16 -36     36 -36    s  36  16     36  36   z  "/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points ====================================== -->
+    <!-- ====================================================================== -->
+    <rect x="358" y="208" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="322" y="244" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="286" y="208" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="322" y="172" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="290" y="265">M, c, s, s, s, z</text>
+    <!-- ====================================================================== -->
+    <!-- Inverted horseshoe using m, c & z ==================================== -->
+    <!-- ====================================================================== -->
+    <path id="Horseshoe_Mcs" fill="#F0F0F0" stroke="#00AA00" d="m 360  325  c -40  -60     95 -100     80    0      z  "/>
+    <!-- ====================================================================== -->
+    <!-- Markers for path control points ====================================== -->
+    <!-- ====================================================================== -->
+    <rect x="358" y="323" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <rect x="438" y="323" width="4" height="4" fill="#4A83FF" stroke="none"/>
+    <text font-size="12" x="380" y="340">m, c, z</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

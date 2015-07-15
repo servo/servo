@@ -139,52 +139,6 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
     }
 }
 
-pub struct LineIterator<'a> {
-    range: Range<CharIndex>,
-    clump: Option<Range<CharIndex>>,
-    slices: NaturalWordSliceIterator<'a>,
-}
-
-impl<'a> Iterator for LineIterator<'a> {
-    type Item = Range<CharIndex>;
-
-    fn next(&mut self) -> Option<Range<CharIndex>> {
-        // Loop until we hit whitespace and are in a clump.
-        loop {
-            match self.slices.next() {
-                Some(slice) => {
-                    match (slice.glyphs.is_whitespace(), self.clump) {
-                        (false, Some(ref mut c))  => {
-                            c.extend_by(slice.range.length());
-                        }
-                        (false, None) => {
-                            let mut range = slice.range;
-                            range.shift_by(slice.offset);
-                            self.clump = Some(range);
-                        }
-                        (true, None)    => { /* chomp whitespace */ }
-                        (true, Some(clump)) => {
-                            self.clump = None;
-                            // The final whitespace clump is not included.
-                            return Some(clump);
-                        }
-                    }
-                }
-                None => {
-                    // Flush any remaining characters as a line.
-                    if self.clump.is_some() {
-                        let mut range = self.clump.take().unwrap();
-                        range.extend_to(self.range.end());
-                        return Some(range);
-                    } else {
-                        return None;
-                    }
-                }
-            }
-        }
-    }
-}
-
 impl<'a> TextRun {
     pub fn new(font: &mut Font, text: String, options: &ShapingOptions) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, &text, options);
@@ -273,21 +227,6 @@ impl<'a> TextRun {
         glyphs
     }
 
-    pub fn char_len(&self) -> CharIndex {
-        match self.glyphs.last() {
-            None => CharIndex(0),
-            Some(ref glyph_run) => glyph_run.range.end(),
-        }
-    }
-
-    pub fn glyphs(&'a self) -> &'a Vec<GlyphRun> {
-        &*self.glyphs
-    }
-
-    pub fn range_is_trimmable_whitespace(&self, range: &Range<CharIndex>) -> bool {
-        self.natural_word_slices_in_range(range).all(|slice| slice.glyphs.is_whitespace())
-    }
-
     pub fn ascent(&self) -> Au {
         self.font_metrics.ascent
     }
@@ -326,11 +265,6 @@ impl<'a> TextRun {
         })
     }
 
-    /// Returns the first glyph run containing the given character index.
-    pub fn first_glyph_run_containing(&'a self, index: CharIndex) -> Option<&'a GlyphRun> {
-        self.index_of_first_glyph_run_containing(index).map(|index| &self.glyphs[index])
-    }
-
     /// Returns the index of the first glyph run containing the given character index.
     fn index_of_first_glyph_run_containing(&self, index: CharIndex) -> Option<usize> {
         (&**self.glyphs).binary_search_index_by(&index, CharIndexComparator)
@@ -364,14 +298,6 @@ impl<'a> TextRun {
             glyph_run: first_glyph_run,
             glyph_run_iter: glyph_run_iter,
             range: *range,
-        }
-    }
-
-    pub fn iter_natural_lines_for_range(&'a self, range: &Range<CharIndex>) -> LineIterator<'a> {
-        LineIterator {
-            range: *range,
-            clump: None,
-            slices: self.natural_word_slices_in_range(range),
         }
     }
 }

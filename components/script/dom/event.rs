@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, Temporary};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use util::str::DOMString;
@@ -18,8 +18,7 @@ use std::default::Default;
 
 use time;
 
-#[jstraceable]
-#[derive(Copy, Clone)]
+#[derive(JSTraceable, Copy, Clone)]
 #[repr(u16)]
 pub enum EventPhase {
     None      = EventConstants::NONE,
@@ -28,8 +27,7 @@ pub enum EventPhase {
     Bubbling  = EventConstants::BUBBLING_PHASE,
 }
 
-#[derive(PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq)]
 pub enum EventTypeId {
     CustomEvent,
     HTMLEvent,
@@ -95,7 +93,7 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Temporary<Event> {
+    pub fn new_uninitialized(global: GlobalRef) -> Root<Event> {
         reflect_dom_object(box Event::new_inherited(EventTypeId::HTMLEvent),
                            global,
                            EventBinding::Wrap)
@@ -104,15 +102,15 @@ impl Event {
     pub fn new(global: GlobalRef,
                type_: DOMString,
                bubbles: EventBubbles,
-               cancelable: EventCancelable) -> Temporary<Event> {
-        let event = Event::new_uninitialized(global).root();
+               cancelable: EventCancelable) -> Root<Event> {
+        let event = Event::new_uninitialized(global);
         event.r().InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
-        Temporary::from_rooted(event.r())
+        event
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
+                       init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
         let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
         Ok(Event::new(global, type_, bubbles, cancelable))
@@ -129,13 +127,13 @@ impl Event {
     }
 
     #[inline]
-    pub fn set_current_target(&self, val: JSRef<EventTarget>) {
-        self.current_target.set(Some(JS::from_rooted(val)));
+    pub fn set_current_target(&self, val: &EventTarget) {
+        self.current_target.set(Some(JS::from_ref(val)));
     }
 
     #[inline]
-    pub fn set_target(&self, val: JSRef<EventTarget>) {
-        self.target.set(Some(JS::from_rooted(val)));
+    pub fn set_target(&self, val: &EventTarget) {
+        self.target.set(Some(JS::from_ref(val)));
     }
 
     #[inline]
@@ -174,7 +172,7 @@ impl Event {
     }
 }
 
-impl<'a> EventMethods for JSRef<'a, Event> {
+impl<'a> EventMethods for &'a Event {
     // https://dom.spec.whatwg.org/#dom-event-eventphase
     fn EventPhase(self) -> u16 {
         self.phase.get() as u16
@@ -182,19 +180,17 @@ impl<'a> EventMethods for JSRef<'a, Event> {
 
     // https://dom.spec.whatwg.org/#dom-event-type
     fn Type(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let type_ = self.type_.borrow();
-        type_.clone()
+        self.type_.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target
-    fn GetTarget(self) -> Option<Temporary<EventTarget>> {
-        self.target.get().map(Temporary::from_rooted)
+    fn GetTarget(self) -> Option<Root<EventTarget>> {
+        self.target.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
-    fn GetCurrentTarget(self) -> Option<Temporary<EventTarget>> {
-        self.current_target.get().map(Temporary::from_rooted)
+    fn GetCurrentTarget(self) -> Option<Root<EventTarget>> {
+        self.current_target.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented
@@ -263,16 +259,16 @@ impl<'a> EventMethods for JSRef<'a, Event> {
 
 pub trait EventHelpers {
     fn set_trusted(self, trusted: bool);
-    fn fire(self, target: JSRef<EventTarget>) -> bool;
+    fn fire(self, target: &EventTarget) -> bool;
 }
 
-impl<'a> EventHelpers for JSRef<'a, Event> {
+impl<'a> EventHelpers for &'a Event {
     fn set_trusted(self, trusted: bool) {
         self.trusted.set(trusted);
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-    fn fire(self, target: JSRef<EventTarget>) -> bool {
+    fn fire(self, target: &EventTarget) -> bool {
         self.set_trusted(true);
         target.dispatch_event(self)
     }

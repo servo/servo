@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use geom::point::Point2D;
+use euclid::point::Point2D;
 use std::cmp::{Ordering, PartialOrd};
-use std::iter::repeat;
 use std::mem;
 use std::u16;
 use std::vec::Vec;
@@ -524,14 +523,14 @@ int_range_index! {
 }
 
 impl<'a> GlyphStore {
-    // Initializes the glyph store, but doesn't actually shape anything.
-    // Use the set_glyph, set_glyphs() methods to store glyph data.
+    /// Initializes the glyph store, but doesn't actually shape anything.
+    ///
+    /// Use the `add_*` methods to store glyph data.
     pub fn new(length: usize, is_whitespace: bool) -> GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
-            entry_buffer: repeat(GlyphEntry::initial()).take(length)
-                                                       .collect(),
+            entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
             is_whitespace: is_whitespace,
         }
@@ -621,10 +620,6 @@ impl<'a> GlyphStore {
         debug!("adding spacer for chracter without associated glyph[idx={:?}]", i);
 
         self.entry_buffer[i.to_usize()] = entry;
-    }
-
-    pub fn iter_glyphs_for_char_index(&'a self, i: CharIndex) -> GlyphIterator<'a> {
-        self.iter_glyphs_for_char_range(&Range::new(i, CharIndex(1)))
     }
 
     #[inline]

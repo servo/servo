@@ -8,10 +8,11 @@ use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{Syntax, Network, JSFailed};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
+use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
-use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, DedicatedWorkerGlobalScopeHelpers};
+use dom::crypto::Crypto;
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScopeHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
@@ -25,8 +26,7 @@ use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
-use js::jsapi::JSContext;
-use js::jsval::JSVal;
+use js::jsapi::{JSContext, HandleValue};
 use js::rust::Runtime;
 use url::{Url, UrlParser};
 
@@ -34,8 +34,7 @@ use std::default::Default;
 use std::cell::Cell;
 use std::rc::Rc;
 
-#[derive(Copy, Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }
@@ -51,6 +50,7 @@ pub struct WorkerGlobalScope {
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
+    crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
     devtools_chan: Option<DevtoolsControlChan>,
 }
@@ -70,6 +70,7 @@ impl WorkerGlobalScope {
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
+            crypto: Default::default(),
             timers: TimerManager::new(),
             devtools_chan: devtools_chan,
         }
@@ -104,14 +105,14 @@ impl WorkerGlobalScope {
     }
 }
 
-impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
+impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
-    fn Self_(self) -> Temporary<WorkerGlobalScope> {
-        Temporary::from_rooted(self)
+    fn Self_(self) -> Root<WorkerGlobalScope> {
+        Root::from_ref(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
-    fn Location(self) -> Temporary<WorkerLocation> {
+    fn Location(self) -> Root<WorkerLocation> {
         self.location.or_init(|| {
             WorkerLocation::new(self, self.worker_url.clone())
         })
@@ -151,12 +152,16 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
-    fn Navigator(self) -> Temporary<WorkerNavigator> {
+    fn Navigator(self) -> Root<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
     }
 
-    fn Console(self) -> Temporary<Console> {
+    fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
+    }
+
+    fn Crypto(self) -> Root<Crypto> {
+        self.crypto.or_init(|| Crypto::new(GlobalRef::Worker(self)))
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
@@ -167,7 +172,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         base64_atob(atob)
     }
 
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -176,7 +181,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                                             self.script_chan())
     }
 
-    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -189,7 +194,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.clear_timeout_or_interval(handle);
     }
 
-    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -198,7 +203,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                                             self.script_chan())
     }
 
-    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -221,9 +226,9 @@ pub trait WorkerGlobalScopeHelpers {
     fn get_cx(self) -> *mut JSContext;
 }
 
-impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
+impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
     fn script_chan(self) -> Box<ScriptChan+Send> {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.script_chan(),
@@ -232,7 +237,7 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn pipeline(self) -> PipelineId {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.pipeline(),
@@ -241,7 +246,7 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.new_script_pair(),
@@ -250,7 +255,7 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn process_event(self, msg: ScriptMsg) {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.process_event(msg),

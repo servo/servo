@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::js::{JS, Temporary, Unrooted};
+use dom::bindings::js::{JS, Root};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::NodeHelpers;
 use dom::window::Window;
@@ -11,21 +11,15 @@ use dom::window::Window;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::rc::Rc;
-use url::Url;
 
 /// Encapsulates a handle to a frame in a frame tree.
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct Page {
     /// Pipeline id associated with this page.
     id: PipelineId,
 
     /// The outermost frame containing the document and window.
     frame: DOMRefCell<Option<Frame>>,
-
-    /// Cached copy of the most recent url loaded by the script, after all redirections.
-    /// TODO(tkuehn): this currently does not follow any particular caching policy
-    /// and simply caches pages forever (!).
-    url: Url,
 
     /// Indicates if reflow is required when reloading.
     needs_reflow: Cell<bool>,
@@ -61,11 +55,10 @@ impl IterablePage for Rc<Page> {
 }
 
 impl Page {
-    pub fn new(id: PipelineId, url: Url) -> Page {
+    pub fn new(id: PipelineId) -> Page {
         Page {
             id: id,
             frame: DOMRefCell::new(None),
-            url: url,
             needs_reflow: Cell::new(true),
             children: DOMRefCell::new(vec!()),
         }
@@ -75,16 +68,12 @@ impl Page {
         self.id
     }
 
-    pub fn window(&self) -> Temporary<Window> {
-        Temporary::from_rooted(self.frame.borrow().as_ref().unwrap().window.clone())
+    pub fn window(&self) -> Root<Window> {
+        self.frame.borrow().as_ref().unwrap().window.root()
     }
 
-    pub fn window_for_script_deallocation(&self) -> Unrooted<Window> {
-        Unrooted::from_js(self.frame.borrow().as_ref().unwrap().window)
-    }
-
-    pub fn document(&self) -> Temporary<Document> {
-        Temporary::from_rooted(self.frame.borrow().as_ref().unwrap().document.clone())
+    pub fn document(&self) -> Root<Document> {
+        self.frame.borrow().as_ref().unwrap().document.root()
     }
 
     // must handle root case separately
@@ -137,7 +126,7 @@ impl Page {
 }
 
 /// Information for one frame in the browsing context.
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 pub struct Frame {
     /// The document for this frame.

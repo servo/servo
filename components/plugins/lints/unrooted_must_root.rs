@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, codemap, visit, ast_map};
+use syntax::{ast, codemap, visit};
 use syntax::attr::AttrMetaMethods;
+use rustc::ast_map;
 use rustc::lint::{Context, LintPass, LintArray};
-use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
-use rustc::util::ppaux::Repr;
 use utils::unsafe_context;
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
@@ -33,20 +32,19 @@ pub struct UnrootedPass;
 // TODO (#3874, sort of): unwrap other types like Vec/Option/HashMap/etc
 fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
-        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
-        ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) =>
+        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) =>
             lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(..) => {
                 match cx.tcx.def_map.borrow()[&ty.id] {
                     def::PathResolution{ base_def: def::DefTy(def_id, _), .. } => {
-                        if ty::has_attr(cx.tcx, def_id, "must_root") {
+                        if cx.tcx.has_attr(def_id, "must_root") {
                             cx.span_lint(UNROOTED_MUST_ROOT, ty.span, warning);
                         }
                     }
                     _ => (),
                 }
             }
-            _ => (),
+        _ => (),
     };
 }
 
@@ -157,13 +155,13 @@ impl LintPass for UnrootedPass {
             _ => return
         };
 
-        let t = expr_ty(cx.tcx, &*expr);
+        let t = cx.tcx.expr_ty(&*expr);
         match t.sty {
-            ty::ty_struct(did, _) |
-            ty::ty_enum(did, _) => {
-                if ty::has_attr(cx.tcx, did, "must_root") {
+            ty::TyStruct(did, _) |
+            ty::TyEnum(did, _) => {
+                if cx.tcx.has_attr(did, "must_root") {
                     cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
-                                 &format!("Expression of type {} must be rooted", t.repr(cx.tcx)));
+                                 &format!("Expression of type {:?} must be rooted", t));
                 }
             }
             _ => {}

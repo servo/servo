@@ -1,0 +1,82 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="Microsoft" status="reviewed"
+    version="$Revision: 1.5 $" testname="$RCSfile: styling-css-09-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/styling.html#StylingWithCSS">
+      <p>
+        Tests that CSS styling from an external style sheet is supported.
+      </p>
+      <p>
+        For each of a representative sampling of selectors, a 'visibility: hidden' style rule is specified
+        to match a corresponding element in the markup. Identically shaped and sized elements (but which are not 
+        applicable to any of the style selectors) are placed beneath them and should be visible
+        if the style sheet was applied correctly.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test passes if there are seven blue shapes on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: styling-css-09-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-size="18">
+    <style type="text/css"><![CDATA[
+        @import url("../images/selector-types-visibility-hidden.css");]]>
+    </style>
+    <path class="reference" d="M 50 125 L 150 125 L 100 75 z" fill="blue" visibility="hidden"/>
+    <path id="testTypeSelector" d="M 50 125 L 150 125 L 100 75 z" fill="red" />
+    <g>
+        <svg width="200" height="200">
+            <circle class="reference" cx="50" cy="175" r="25" fill="blue" visibility="hidden"/>
+            <circle id="testDescendantSelector" cx="50" cy="175" r="25" fill="red" />
+        </svg>
+    </g>
+    <g id="testParentContainer">
+        <ellipse class="reference" cx="160" cy="200" rx="25" ry="45" fill="blue" visibility="hidden"/>
+        <circle class="reference" cx="100" cy="300" r="40" fill="blue" visibility="hidden"/>
+        <ellipse id="testChildSelector" cx="160" cy="200" rx="25" ry="45" fill="red" />
+        <circle id="testAdjacentSiblingSelector" cx="100" cy="300" r="40" fill="red" />
+    </g>
+    <circle class="reference" cx="300" cy="80" r="35" fill="blue" visibility="hidden"/>
+    <circle id="testAttributeSelector" cx="300" cy="80" r="35" fill="red" />
+    <circle class="reference" cx="400" cy="140" r="50" fill="blue" visibility="hidden"/>
+    <circle id="testIdSelector" cx="400" cy="140" r="50" fill="red" />
+    <rect class="reference" x="270" y="240" width="150" height="80" fill="blue" visibility="hidden"/>
+    <g>
+        <rect id="testPseudoClassSelector" x="270" y="240" width="150" height="80" fill="red" />
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

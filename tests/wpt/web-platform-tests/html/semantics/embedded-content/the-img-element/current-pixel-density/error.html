@@ -13,6 +13,7 @@
 <script>
 setup({explicit_done:true});
 onload = function() {
+  var ref = document.getElementById("ref");
   var expected_width = ref.width;
   var expected_height = ref.height;
   [].forEach.call(document.images, function(img) {

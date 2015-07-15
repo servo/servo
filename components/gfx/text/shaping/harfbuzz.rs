@@ -11,7 +11,7 @@ use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use geom::Point2D;
+use euclid::Point2D;
 use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
 use harfbuzz::{RUST_hb_blob_create, RUST_hb_face_create_for_tables};
 use harfbuzz::{hb_blob_t};
@@ -43,7 +43,6 @@ use libc::{c_uint, c_int, c_void, c_char};
 use util::geometry::Au;
 use util::range::Range;
 use std::char;
-use std::iter::repeat;
 use std::mem;
 use std::cmp;
 use std::ptr;
@@ -292,10 +291,9 @@ impl Shaper {
 
         // fast path: all chars are single-byte.
         if byte_max == char_max {
-            byte_to_glyph = repeat(NO_GLYPH).take(byte_max).collect();
+            byte_to_glyph = vec![NO_GLYPH; byte_max];
         } else {
-            byte_to_glyph = repeat(CONTINUATION_BYTE).take(byte_max)
-                                                     .collect();
+            byte_to_glyph = vec![CONTINUATION_BYTE; byte_max];
             for (i, _) in text.char_indices() {
                 byte_to_glyph[i] = NO_GLYPH;
             }

@@ -1,0 +1,185 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVG" author="ED" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: interact-pevents-08-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty">
+      <p>Tests the pointer-events attribute with different 'visible' values, same as the interact-pevents-201-t test but with script instead of declarative animation</p>
+      <p>
+        The 2nd and 3rd columns represent respectively rects with no fill/stroke and transparent fill/stroke.
+        The 4th column (most right column) has a non activatable pointer event as the visibility of the column
+        is set to hidden.
+      </p>
+      <p>
+        The first row tests the default value for pointer-event, i.e. visible fill and stroke will trigger an event.
+        The second row tests pointer-events="visiblePainted", i.e. visible fill and stroke will trigger an event.
+        The third row tests pointer-events="visibleFill", i.e. visible fill only an event.
+        The fourth row tests pointer-events="visibleStroke", i.e. visible stroke only an event.
+        The fifth row tests pointer-events="visible", i.e. visible fill and stroke will trigger an event.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Slowly move the mouse over the rectangles in each row while checking the pass criteria.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if the following conditions are met:
+      </p>
+      <ul>
+        <li>In the first row of squares, the fill and stroke of squares 1 and 3 only must trigger a pale red rectangle to appear
+        over the squares on mouseover.</li>
+        <li>In the second row of squares, the fill and stroke of squares 1 and 3 only must trigger a pale red rectangle to appear
+        over the squares on mouseover.</li>
+        <li>In the third row of squares, the fill only of squares 1, 2 and 3 must trigger a pale red rectangle to appear
+        over the squares on mouseover.</li>
+        <li>In the fourth row of squares, the stroke only of squares 1, 2 and 3 must trigger a pale red rectangle to appear
+        over the squares on mouseover.</li>
+        <li>In the fifth row of squares, the fill and stroke of squares 1, 2 and 3 must trigger a pale red rectangle to appear
+        over the squares on mouseover.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-pevents-08-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script><![CDATA[
+      function show(id)
+      {
+        document.getElementById(id).setAttribute("fill-opacity", "0.4");
+      }
+      
+      function hide(id)
+      {
+        document.getElementById(id).setAttribute("fill-opacity", "0");
+      }
+    ]]></script>
+    <g text-anchor="middle">
+      <text id="display-title" x="240" y="25" fill="#555" font-size="12">
+        <tspan fill="black" font-size="10">Testing pointer-events</tspan> - pale RED rect should appear on mouseover.
+      </text>
+      <text id="comment-1" x="240" y="37" fill="#555" font-size="10">
+        2nd and 3rd columns represent respectively rects with no fill/stroke and transparent fill/stroke
+      </text>
+    </g>
+    <g transform="translate(0, 5)">
+      <g transform="translate(25, 50)">
+        <rect id="m1" x="-10" y="-10" width="200" height="50" fill="red" fill-opacity="0"/>
+        <rect id="r10" width="30" height="30" fill="blue" stroke-width="10" stroke="blue" fill-opacity=".3" stroke-opacity=".3" onmouseover="show('m1')" onmouseout="hide('m1')"/>
+        <rect x="50" width="30" height="30" fill="black" fill-opacity="0.1" stroke-width="10" stroke="black" stroke-opacity="0.1"/>
+        <rect id="r11" x="50" width="30" height="30" fill="none" stroke-width="10" stroke="none" fill-opacity=".3" stroke-opacity=".3" onmouseover="show('m1')" onmouseout="hide('m1')"/>
+        <rect x="100" width="30" height="30" fill="blue" fill-opacity="0.1" stroke-width="10" stroke="blue" stroke-opacity="0.1"/>
+        <rect id="r12" x="100" width="30" height="30" fill="blue" stroke-width="10" stroke="blue" fill-opacity="0" stroke-opacity="0" onmouseover="show('m1')" onmouseout="hide('m1')"/>
+        <rect x="145" y="-5" width="40" height="40" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect x="150" width="30" height="30" fill="none" stroke-width="1" stroke="black" stroke-dasharray="1,1"/>
+        <rect x="155" y="5" width="20" height="20" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect id="r13" x="150" width="30" height="30" fill="black" stroke-width="10" stroke="black" visibility="hidden" onmouseover="show('m1')" onmouseout="hide('m1')"/>
+        <g font-size="12">
+          <text x="200" y="15">default : </text>
+          <text x="200" y="30" fill="#777">fill and stroke of rects 1 and 3 must trigger</text>
+        </g>
+      </g>
+      <g transform="translate(25, 100)">
+        <rect id="m2" x="-10" y="-10" width="200" height="50" fill="red" fill-opacity="0"/>
+        <rect id="r20" width="30" height="30" fill="blue" stroke-width="10" stroke="blue" fill-opacity=".3" stroke-opacity=".3" pointer-events="visiblePainted" onmouseover="show('m2')" onmouseout="hide('m2')"/>
+        <rect x="50" width="30" height="30" fill="black" fill-opacity="0.1" stroke-width="10" stroke="black" stroke-opacity="0.1"/>
+        <rect id="r21" x="50" width="30" height="30" fill="none" stroke-width="10" stroke="none" fill-opacity=".3" stroke-opacity=".3" pointer-events="visiblePainted" onmouseover="show('m2')" onmouseout="hide('m2')"/>
+        <rect x="100" width="30" height="30" fill="blue" fill-opacity="0.1" stroke-width="10" stroke="blue" stroke-opacity="0.1"/>
+        <rect id="r22" x="100" width="30" height="30" fill="blue" stroke-width="10" stroke="blue" fill-opacity="0" stroke-opacity="0" pointer-events="visiblePainted" onmouseover="show('m2')" onmouseout="hide('m2')"/>
+        <rect x="145" y="-5" width="40" height="40" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect x="150" width="30" height="30" fill="none" stroke-width="1" stroke="black" stroke-dasharray="1,1"/>
+        <rect x="155" y="5" width="20" height="20" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect id="r23" x="150" width="30" height="30" fill="black" stroke-width="10" stroke="black" visibility="hidden" pointer-events="visiblePainted" onmouseover="show('m2')" onmouseout="hide('m2')"/>
+        <g font-size="12">
+          <text x="200" y="15">visiblePainted : </text>
+          <text x="200" y="30" fill="#777">fill and stroke of rects 1 and 3 must trigger</text>
+        </g>
+      </g>
+      <g transform="translate(25, 150)">
+        <rect id="m3" x="-10" y="-10" width="200" height="50" fill="red" fill-opacity="0"/>
+        <rect id="r30" width="30" height="30" fill="blue" stroke-width="10" stroke="black" fill-opacity=".3" stroke-opacity=".3" pointer-events="visibleFill" onmouseover="show('m3')" onmouseout="hide('m3')"/>
+
+        <rect x="50" width="30" height="30" fill="blue" fill-opacity="0.1" stroke-width="10" stroke="black" stroke-opacity="0.1"/>
+        <rect id="r31" x="50" width="30" height="30" fill="none" stroke-width="10" stroke="none" fill-opacity=".3" stroke-opacity=".3" pointer-events="visibleFill" onmouseover="show('m3')" onmouseout="hide('m3')"/>
+
+        <rect x="100" width="30" height="30" fill="blue" fill-opacity="0.1" stroke-width="10" stroke="black" stroke-opacity="0.1"/>
+        <rect id="r32" x="100" width="30" height="30" fill="blue" stroke-width="10" stroke="black" fill-opacity="0" stroke-opacity="0" pointer-events="visibleFill" onmouseover="show('m3')" onmouseout="hide('m3')"/>
+
+        <rect x="145" y="-5" width="40" height="40" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect x="150" width="30" height="30" fill="none" stroke-width="1" stroke="black" stroke-dasharray="1,1"/>
+        <rect x="155" y="5" width="20" height="20" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect id="r33" x="150" width="30" height="30" fill="black" stroke-width="10" stroke="black" visibility="hidden" pointer-events="visibleFill" onmouseover="show('m3')" onmouseout="hide('m3')"/>
+        <g font-size="12">
+          <text x="200" y="15">visibleFill : </text>
+          <text x="200" y="30" fill="#777">only fill of rects 1, 2 and 3 must trigger</text>
+        </g>
+      </g>
+      <g transform="translate(25, 200)">
+        <rect id="m4" x="-10" y="-10" width="200" height="50" fill="red" fill-opacity="0"/>
+        <rect id="r40" width="30" height="30" fill="black" stroke-width="10" stroke="blue" fill-opacity=".3" stroke-opacity=".3" pointer-events="visibleStroke" onmouseover="show('m4')" onmouseout="hide('m4')"/>
+
+        <rect x="50" width="30" height="30" fill="black" fill-opacity="0.1" stroke-width="10" stroke="blue" stroke-opacity="0.1"/>
+        <rect id="r41" x="50" width="30" height="30" fill="none" stroke-width="10" stroke="none" fill-opacity=".3" stroke-opacity=".3" pointer-events="visibleStroke" onmouseover="show('m4')" onmouseout="hide('m4')"/>
+
+        <rect x="100" width="30" height="30" fill="black" fill-opacity="0.1" stroke-width="10" stroke="blue" stroke-opacity="0.1"/>
+        <rect id="r42" x="100" width="30" height="30" fill="black" stroke-width="10" stroke="blue" fill-opacity="0" stroke-opacity="0" pointer-events="visibleStroke" onmouseover="show('m4')" onmouseout="hide('m4')"/>
+
+        <rect x="145" y="-5" width="40" height="40" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect x="150" width="30" height="30" fill="none" stroke-width="1" stroke="black" stroke-dasharray="1,1"/>
+        <rect x="155" y="5" width="20" height="20" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect id="r43" x="150" width="30" height="30" fill="black" stroke-width="10" stroke="black" visibility="hidden" pointer-events="visibleStroke" onmouseover="show('m4')" onmouseout="hide('m4')"/>
+        <g font-size="12">
+          <text x="200" y="15">visibleStroke : </text>
+          <text x="200" y="30" fill="#777">only stroke of rects 1, 2 and 3 must trigger</text>
+        </g>
+      </g>
+      <g transform="translate(25, 250)">
+        <rect id="m5" x="-10" y="-10" width="200" height="50" fill="red" fill-opacity="0"/>
+        <rect id="r50" width="30" height="30" fill="blue" stroke-width="10" stroke="blue" fill-opacity=".3" stroke-opacity=".3" pointer-events="visible" onmouseover="show('m5')" onmouseout="hide('m5')"/>
+
+        <rect x="50" width="30" height="30" fill="blue" fill-opacity="0.1" stroke-width="10" stroke="blue" stroke-opacity="0.1"/>
+        <rect id="r51" x="50" width="30" height="30" fill="none" stroke-width="10" stroke="none" fill-opacity=".3" stroke-opacity=".3" pointer-events="visible" onmouseover="show('m5')" onmouseout="hide('m5')"/>
+
+        <rect x="100" width="30" height="30" fill="blue" fill-opacity="0.1" stroke-width="10" stroke="blue" stroke-opacity="0.1"/>
+        <rect id="r52" x="100" width="30" height="30" fill="blue" stroke-width="10" stroke="blue" fill-opacity="0" stroke-opacity="0" pointer-events="visible" onmouseover="show('m5')" onmouseout="hide('m5')"/>
+
+        <rect x="145" y="-5" width="40" height="40" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect x="150" width="30" height="30" fill="none" stroke-width="1" stroke="black" stroke-dasharray="1,1"/>
+        <rect x="155" y="5" width="20" height="20" fill="none" stroke-width="1" stroke="black" stroke-dasharray="3,3" stroke-opacity=".5"/>
+        <rect id="r53" x="150" width="30" height="30" fill="black" stroke-width="10" stroke="black" visibility="hidden" pointer-events="visible" onmouseover="show('m5')" onmouseout="hide('m5')"/>
+        <g font-size="12">
+          <text x="200" y="15">visible : </text>
+          <text x="200" y="30" fill="#777">fill and stroke of rects 1, 2 and 3 must trigger</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>--> 
+</svg>

@@ -1,0 +1,85 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="MI" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: text-fonts-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#FontPropertiesUsedBySVG">
+        <p>
+          Testing font-family attribute.
+          Two SVG fonts are defined.  Various text elements are then
+          used with varying values for the font-family attribute.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The first two text elements should display in their respective fonts,
+        the last two should be displayed using the system font since the
+        value specified for font-family is either invalid or not specified.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-fonts-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-size="18">
+    <!-- Deliberately leave off font-family from the template #test-body-content
+         element, since we want the default font. -->
+    <defs>
+      <font>
+        <font-face font-family="SVGHaettenschweiler"/>
+        <glyph unicode="A" horiz-adv-x="440" d="M440 0l-160 0 -20 180 -80 0 -20 -180 -160 0 120 700 200 0 120 -700zm-200 280l-20 220 -20 -220 40 0z"/>
+        <glyph unicode="B" horiz-adv-x="378" d="M20 0l0 700 180 0c40,0 80,0 100,-20 40,-20 60,-60 60,-100l0 -100c0,-60 -40,-80 -100,-100 80,-20 100,-60 100,-100l0 -140c0,-40 -20,-80 -40,-100 -40,-20 -60,-40 -100,-40l-200 0zm200 460l0 120c0,20 -20,20 -40,20l0 -180c20,0 40,0 40,40zm0 -340l0 180c0,20 -20,40 -40,40l0 -260c20,0 40,20 40,40z"/>
+        <glyph unicode="C" horiz-adv-x="370" d="M360 460l-140 0 0 140c0,0 -20,20 -20,20 -20,0 -20,-20 -20,-20l0 -500c0,0 0,0 20,0 0,0 20,0 20,0l0 180 140 0 0 -180c0,-20 -20,-60 -60,-80 -20,-20 -60,-20 -100,-20 -120,0 -180,40 -180,120l0 460c0,80 60,120 180,120 100,0 160,-40 160,-120l0 -120z"/>
+      </font>
+      <font>
+        <font-face font-family="SVGCharlesworth"/>
+        <glyph unicode="A" horiz-adv-x="712" d="M-60 0l0 20c0,0 20,0 40,0 40,0 40,0 60,20 0,0 20,20 40,80 20,60 40,120 80,200 20,80 40,160 80,220 20,60 40,120 40,120 0,20 -20,20 -80,20l0 20c20,0 80,0 140,0 100,0 140,0 160,0l0 -20c-40,0 -80,0 -80,-20 20,-60 60,-140 80,-220 40,-100 80,-180 100,-260 40,-80 60,-140 60,-140 0,0 20,-20 40,-20 40,0 60,0 60,0l0 -20c0,0 -60,0 -180,0 -20,0 -40,0 -80,0 -40,0 -60,0 -80,0l0 20c20,0 60,0 80,0 20,0 20,20 20,20 0,0 -20,60 -40,140 -40,80 -40,120 -60,140 -60,0 -140,0 -220,0 -20,-20 -20,-40 -20,-80 -20,-40 -40,-80 -40,-120 -20,-60 -20,-80 -20,-80 20,-20 60,-20 80,-20l20 -20c-40,0 -80,0 -140,0 -80,0 -120,0 -140,0zm260 360c40,0 80,0 120,0 60,0 100,0 100,0 0,0 0,0 -20,40 0,20 -20,60 -40,100 0,40 -20,80 -20,100 -20,20 -20,40 -20,60l0 0c-20,-40 -40,-80 -60,-160 -40,-80 -60,-120 -60,-140z"/>
+        <glyph unicode="B" horiz-adv-x="684" d="M160 660c-20,20 -40,20 -100,20l-20 20c20,0 60,0 120,0 80,0 140,0 180,0 60,0 100,0 160,-20 40,-20 60,-60 60,-100 0,-40 -20,-100 -60,-120 -20,-40 -60,-60 -100,-80l0 0c40,0 60,-20 100,-40 20,0 40,-20 60,-40 20,-20 20,-40 40,-60 0,-20 0,-40 0,-60 0,-40 0,-60 -20,-100 -20,-20 -40,-40 -80,-60 -20,-20 -60,-20 -100,-20 -20,0 -40,0 -80,0 -60,0 -100,0 -160,0 -20,0 -60,0 -120,0l20 20c0,0 20,0 40,0 40,0 40,0 60,20 0,0 0,20 0,80 0,80 0,160 0,240 0,80 0,140 0,200 0,60 0,100 0,100zm120 -620c20,0 60,-20 80,-20 20,0 60,0 80,20 20,0 20,20 40,40 20,20 20,40 20,60 0,40 -20,80 -40,100 -20,40 -40,60 -80,80 -40,20 -60,20 -100,20 0,-20 0,-40 0,-80 0,-40 0,-80 0,-120 0,-40 0,-80 0,-100zm0 340c40,0 80,0 100,20 20,20 40,40 60,60 0,20 0,60 0,80 0,20 0,40 0,60 -20,20 -40,40 -60,60 -20,20 -40,20 -60,20 -20,0 -40,0 -40,0 0,0 0,-20 0,-40 0,-20 0,-60 0,-140 0,-60 0,-100 0,-120z"/>
+        <glyph unicode="C" horiz-adv-x="808" d="M740 480l-20 0c0,20 0,60 0,80 -20,20 -20,40 -40,60 -40,20 -60,20 -100,40 -40,20 -60,20 -100,20 -20,0 -20,0 -40,0 -40,0 -100,-20 -120,-40 -40,-20 -60,-40 -80,-80 -20,-20 -40,-40 -60,-80 0,-20 0,-60 0,-80 0,-60 0,-120 20,-160 20,-40 60,-80 100,-120 20,-20 80,-40 120,-60 40,-20 100,-40 140,-40 80,20 160,40 220,60l0 -40c-40,-20 -80,-40 -140,-40 -40,-20 -100,-20 -140,-20 -80,0 -140,20 -200,40 -80,20 -120,60 -180,100 -40,60 -60,120 -60,200 0,0 0,20 0,20 0,60 0,100 20,140 20,40 60,80 100,120 20,40 80,60 140,80 60,20 120,40 200,40 60,0 120,-20 200,-20 0,0 0,0 0,20 20,40 20,40 20,60l20 0c0,-20 0,-60 0,-140 -20,-100 -20,-140 -20,-160z"/>
+      </font>
+    </defs>
+
+    <text x="15" y="60" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = "Haettenschweiler"</text>
+    <text x="340" y="60" font-family="SVGHaettenschweiler" font-size="35">ABC</text>
+
+    <text x="15" y="110" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = "Charlesworth"</text>
+    <text x="340" y="110" font-family="SVGCharlesworth" font-size="35">ABC</text>
+
+    <text x="15" y="160" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = "Invalid Name"</text>
+    <text x="340" y="160" font-family="InvalidFontFamily" font-size="35">ABC</text>
+
+    <text x="15" y="210" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = not specified</text>
+    <text x="340" y="210" font-size="35">ABC</text>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

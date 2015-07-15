@@ -25,7 +25,11 @@ from .base import (
     UnrecognizedArgumentError,
 )
 
-from .decorators import CommandProvider
+from .decorators import (
+    CommandArgument,
+    CommandProvider,
+    Command,
+)
 
 from .config import ConfigSettings
 from .dispatcher import CommandAction
@@ -87,13 +91,6 @@ It looks like you passed an unrecognized argument into mach.
 The %s command does not accept the arguments: %s
 '''.lstrip()
 
-INVALID_COMMAND_CONTEXT = r'''
-It looks like you tried to run a mach command from an invalid context. The %s
-command failed to meet the following conditions: %s
-
-Run |mach help| to show a list of all commands available to the current context.
-'''.lstrip()
-
 INVALID_ENTRY_POINT = r'''
 Entry points should return a list of command providers or directories
 containing command providers. The following entry point is invalid:
@@ -153,7 +150,7 @@ class ContextWrapper(object):
         except AttributeError as e:
             try:
                 ret = object.__getattribute__(self, '_handler')(self, key)
-            except AttributeError, TypeError:
+            except (AttributeError, TypeError):
                 # TypeError is in case the handler comes from old code not
                 # taking a key argument.
                 raise e
@@ -421,41 +418,17 @@ To see more help for a specific command, run:
             raise MachError('ArgumentParser result missing mach handler info.')
 
         handler = getattr(args, 'mach_handler')
-        cls = handler.cls
-
-        if handler.pass_context:
-            instance = cls(context)
-        else:
-            instance = cls()
-
-        if handler.conditions:
-            fail_conditions = []
-            for c in handler.conditions:
-                if not c(instance):
-                    fail_conditions.append(c)
-
-            if fail_conditions:
-                print(self._condition_failed_message(handler.name, fail_conditions))
-                return 1
-
-        fn = getattr(instance, handler.method)
 
         try:
-            result = fn(**vars(args.command_args))
-
-            if not result:
-                result = 0
-
-            assert isinstance(result, (int, long))
-
-            return result
+            return Registrar._run_command_handler(handler, context=context,
+                debug_command=args.debug_command, **vars(args.command_args))
         except KeyboardInterrupt as ki:
             raise ki
         except Exception as e:
             exc_type, exc_value, exc_tb = sys.exc_info()
 
-            # The first frame is us and is never used.
-            stack = traceback.extract_tb(exc_tb)[1:]
+            # The first two frames are us and are never used.
+            stack = traceback.extract_tb(exc_tb)[2:]
 
             # If we have nothing on the stack, the exception was raised as part
             # of calling the @Command method itself. This likely means a
@@ -501,16 +474,6 @@ To see more help for a specific command, run:
         """Helper method to record a structured log event."""
         self.logger.log(level, format_str,
             extra={'action': action, 'params': params})
-
-    @classmethod
-    def _condition_failed_message(cls, name, conditions):
-        msg = ['\n']
-        for c in conditions:
-            part = ['  %s' % c.__name__]
-            if c.__doc__ is not None:
-                part.append(c.__doc__)
-            msg.append(' - '.join(part))
-        return INVALID_COMMAND_CONTEXT % (name, '\n'.join(msg))
 
     def _print_error_header(self, argv, fh):
         fh.write('Error running mach:\n\n')
@@ -598,6 +561,8 @@ To see more help for a specific command, run:
         global_group.add_argument('-h', '--help', dest='help',
             action='store_true', default=False,
             help='Show this help message.')
+        global_group.add_argument('--debug-command', action='store_true',
+            help='Start a Python debugger when command is dispatched.')
 
         for args, kwargs in self.global_arguments:
             global_group.add_argument(*args, **kwargs)

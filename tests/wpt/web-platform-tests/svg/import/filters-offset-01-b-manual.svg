@@ -1,0 +1,112 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Peter Graffagnino" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-offset-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feOffsetElement">
+      <p>
+        The target crosshairs should align with
+        lower left bounds of the associated circle.
+        The color of each crosshair should match
+        the associated circle.
+      </p>
+      <p>
+        Verify the basic capability to handle the feOffset, feMerge and
+        feFlood filter nodes.  Four copies of a filled circle should appear at
+        various offsets and colors.  For each circle a reference crosshair is
+        drawn at the lower left of the circle to indicate the expected color,
+        opacity and position for the filtered element.  The targets are drawn
+        with the standard svg path element.
+      </p>
+      <p>
+        In addition to feFlood, feMerge, and feOffset, this test uses
+        'feComposite' to recolor the SourceGraphic with the feFlood color.
+        The source graphic uses 'circle'. The target cross hairs are drawn
+        with 'path' and use 'fill' and 'fill-opacity'.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered image should match the reference image. Additionally, the
+        target crosshairs should match the color, lower left corner, and
+        opacity of each copy of the filtered circle.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-offset-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <filter id="FOMTest" filterUnits="objectBoundingBox" x="0" y="0" width="2.5" height="4">
+
+        <feOffset result="Off1" dx="40" dy="30"/>
+        <feFlood result="F1" flood-color="#408000" flood-opacity=".8"/>
+        <feComposite in2="Off1" operator="in" result="C1"/>
+
+        <feOffset in="SourceGraphic" result="Off2" dx="80" dy="60"/>
+        <feFlood result="F2" flood-color="#408000" flood-opacity=".6"/>
+        <feComposite in2="Off2" operator="in" result="C2"/>
+
+        <feOffset in="SourceGraphic" result="Off3" dx="120" dy="90"/>
+        <feFlood result="F3" flood-color="#408000" flood-opacity=".4"/>
+        <feComposite in2="Off3" operator="in" result="C3"/>
+
+        <feMerge>
+          <feMergeNode in="C3"/>
+          <feMergeNode in="C2"/>
+          <feMergeNode in="C1"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+
+    <circle cx="160" cy="50" r="40" fill="#000" filter="url(#FOMTest)"/>
+
+    <!--  Add some crosshairs of the same color of the 
+            flood at the same location as the offset -->
+
+    <!-- 20 pixel cross hair at 120,90 -->
+    <path fill="#000" transform="translate(120, 90)" d="M-1,-11h2v10h10v2h-10v10h-2v-10h-10v-2h10v-10"/>
+
+    <!-- 20 pixel cross hair at 160,120 -->
+    <path fill="#408000" fill-opacity=".8" transform="translate(160, 120)" d="M-1,-11h2v10h10v2h-10v10h-2v-10h-10v-2h10v-10"/>
+
+    <!-- 20 pixel cross hair at 200,150 -->
+    <path fill="#408000" fill-opacity=".6" transform="translate(200, 150)" d="M-1,-11h2v10h10v2h-10v10h-2v-10h-10v-2h10v-10"/>
+
+    <!-- 20 pixel cross hair at 240,180 -->
+    <path fill="#408000" fill-opacity=".4" transform="translate(240, 180)" d="M-1,-11h2v10h10v2h-10v10h-2v-10h-10v-2h10v-10"/>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

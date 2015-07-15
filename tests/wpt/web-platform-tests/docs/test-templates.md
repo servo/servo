@@ -7,8 +7,7 @@ Each template is given in two forms, one minimal and one including
 by CSS tests and optional for other tests.
 
 Templates for filenames are also given. In this case `{}` is used to
-delimit text to be replaced `#` represents a digit and `ext` is a
-filename extension.
+delimit text to be replaced and `#` represents a digit.
 
 ## Reftests
 
@@ -27,7 +26,7 @@ filename extension.
 </body>
 ```
 
-Filename: `{test-topic}-###.ext`
+Filename: `{test-topic}-###.html`
 
 ### Reftest Including Metadata
 
@@ -48,7 +47,7 @@ Filename: `{test-topic}-###.ext`
 </body>
 ```
 
-Filename: `{test-topic}-###.ext`
+Filename: `{test-topic}-###.html`
 
 ### Minimal Reftest Reference:
 
@@ -64,7 +63,7 @@ Filename: `{test-topic}-###.ext`
 </body>
 ```
 
-Filename: `{description}.ext` or `{test-topic}-###-ref.ext`
+Filename: `{description}.html` or `{test-topic}-###-ref.html`
 
 ### Reference Including Metadata
 
@@ -81,7 +80,7 @@ Filename: `{description}.ext` or `{test-topic}-###-ref.ext`
 </body>
 ```
 
-Filename: `{description}.ext` or `{test-topic}-###-ref.ext`
+Filename: `{description}.html` or `{test-topic}-###-ref.html`
 
 ## testharness.js tests
 
@@ -98,7 +97,7 @@ ${2:Test body}
 </script>
 ```
 
-Filename: `{test-topic}-###.ext`
+Filename: `{test-topic}-###.html`
 
 ### Script Test With Metadata
 
@@ -117,7 +116,7 @@ ${7:Test body}
 </script>
 ```
 
-Filename: `{test-topic}-###.ext`
+Filename: `{test-topic}-###.html`
 
 ### Manual Test
 
@@ -133,4 +132,4 @@ ${2:Test body}
 </script>
 ```
 
-Filename: `{test-topic}-###-manual.ext`
+Filename: `{test-topic}-###-manual.html`

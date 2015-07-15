@@ -6,15 +6,14 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
 
 #[repr(u16)]
-#[derive(Copy, Clone, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, Debug)]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,
@@ -33,6 +32,7 @@ pub enum DOMErrorName {
     NetworkError = DOMExceptionConstants::NETWORK_ERR,
     AbortError = DOMExceptionConstants::ABORT_ERR,
     URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR,
+    TypeMismatchError = DOMExceptionConstants::TYPE_MISMATCH_ERR,
     QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR,
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
@@ -54,12 +54,12 @@ impl DOMException {
         }
     }
 
-    pub fn new(global: GlobalRef, code: DOMErrorName) -> Temporary<DOMException> {
+    pub fn new(global: GlobalRef, code: DOMErrorName) -> Root<DOMException> {
         reflect_dom_object(box DOMException::new_inherited(code), global, DOMExceptionBinding::Wrap)
     }
 }
 
-impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
+impl<'a> DOMExceptionMethods for &'a DOMException {
     // https://heycam.github.io/webidl/#dfn-DOMException
     fn Code(self) -> u16 {
         match self.code {
@@ -94,6 +94,7 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
             DOMErrorName::NetworkError => "A network error occurred.",
             DOMErrorName::AbortError => "The operation was aborted.",
             DOMErrorName::URLMismatchError => "The given URL does not match another URL.",
+            DOMErrorName::TypeMismatchError => "The given type does not match any expected type.",
             DOMErrorName::QuotaExceededError => "The quota has been exceeded.",
             DOMErrorName::TimeoutError => "The operation timed out.",
             DOMErrorName::InvalidNodeTypeError =>

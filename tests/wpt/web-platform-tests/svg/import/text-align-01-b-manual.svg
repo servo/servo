@@ -1,0 +1,80 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: text-align-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlignmentProperties">
+        <p>
+          Test 'text-anchor' property (horizontal).
+        </p>
+        <p>
+          The three lines test the three values for property 'text-anchor': start, middle and end.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The lines in pink, 'text-anchor:none' and 'text-anchor:start', should both start from the same horizontal position (indicated by the black circle on each line) and extend to the right.
+        The green line, 'text-anchor:middle', should be centered horizontally around the black circle.
+        The blue line, 'text-anchor:end', should be aligned such that the end of the text meets the black circle.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-align-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="34" x="5" y="40">Test 'text-anchor' (horizontal)</text>
+    <g id="text-anchor" font-size="14">
+      <g transform="translate(230,130)">
+        <line stroke="black" x2="50"/>
+        <circle r="3"/>
+        <text font-size="30" fill="fuchsia">text-anchor:none</text>
+      </g>
+      <g transform="translate(230,180)">
+        <line stroke="black" x2="50"/>
+        <circle r="3"/>
+        <text font-size="30" text-anchor="start" fill="fuchsia">text-anchor:start</text>
+      </g>
+      <g transform="translate(230,230)">
+        <line stroke="black" x1="-25" x2="25"/>
+        <circle r="3"/>
+        <text font-size="30" text-anchor="middle" fill="green">text-anchor:middle</text>
+      </g>
+      <g transform="translate(230,280)">
+        <line stroke="black" x1="-50" x2="0"/>
+        <circle r="3"/>
+        <text font-size="30" text-anchor="end" fill="blue">text-anchor:end</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

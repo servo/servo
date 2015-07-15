@@ -1,0 +1,91 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Tim Thompson" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: struct-image-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#ImageElement">
+        <p>
+          To test the 9 structure elements and their relationships.
+        </p>
+      <p>
+        S1 tests the defs element and the rendering of an image via the use element.
+        S2 tests the defs element and the use element by creating an svg element
+        that contains a blue rectangle. S3 tests the nesting of an SVG element, a
+        separate graphics element is defined, its coords relative to the svg element.
+        S4 tests a switch statement, if there is not a green rectangle showing in
+        S4 there is probably a problem processing a switch.
+      </p>
+    	<p>
+        The test uses the 'rect' element, as well as basic fill (solid primary colors),
+        stroke (black 1-pixel lines), font-family and font-size properties.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+        <p>
+          Run the test. No interaction required.
+        </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if the upper left rectangle shows an image,
+        the upper right a blue rectangle, the lower left a cyan rectangle
+        and the lower right a green rectangle.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-image-02-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <image id="image1" x="0" y="0" width="240" height="150" xlink:href="../images/struct-image-02.jpg"/>
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="basic" id="svg01" x="240" y="0" width="240" height="225">
+        <rect width="100%" height="100%" fill="blue"/>
+      </svg>
+    </defs>
+    <g id="square1">
+      <use x="0" y="0" width="240" height="150" xlink:href="#image1"/>
+    </g>
+    <g id="square2">
+      <use xlink:href="#svg01"/>
+    </g>
+    <svg xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="basic" id="square3" x="0" y="150" width="240" height="150">
+      <g>
+        <rect fill="aqua" x="0" y="0" width="240" height="150"/>
+      </g>
+    </svg>
+    <g id="square4">
+      <switch>
+        <rect fill="red" x="240" y="150" width="240" height="150" requiredFeatures="http://www.w3.org/TR/SVG11/feature#ConditionalProcessing" systemLanguage=""/>
+        <rect fill="blue" x="240" y="150" width="240" height="150" requiredFeatures="http://www.w3.org/TR/SVG11/feature#ConditionalProcessing" systemLanguage=""/>
+        <rect fill="green" x="240" y="150" width="240" height="150" requiredFeatures="http://www.w3.org/TR/SVG11/feature#ConditionalProcessing"/>
+        <rect fill="yellow" x="240" y="150" width="240" height="150" requiredFeatures="http://www.w3.org/TR/SVG11/feature#ConditionalProcessing" systemLanguage=""/>
+      </switch>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

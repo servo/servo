@@ -2,29 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(alloc)]
+#![feature(arc_weak)]
+#![cfg_attr(any(target_os="linux", target_os = "android"), feature(box_raw))]
 #![feature(box_syntax)]
-#![feature(collections)]
-#![feature(core)]
-#![feature(plugin, custom_attribute)]
+#![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(std_misc)]
+#![feature(hashmap_hasher)]
+#![cfg_attr(any(target_os="linux", target_os = "android"), feature(heap_api))]
+#![feature(plugin)]
 #![feature(str_char)]
+#![feature(vec_push_all)]
 
 #![plugin(plugins)]
 
 #[macro_use]
 extern crate log;
 
-extern crate alloc;
 extern crate azure;
 #[macro_use] extern crate bitflags;
 extern crate fnv;
-extern crate geom;
+extern crate euclid;
 extern crate layers;
 extern crate libc;
-extern crate stb_image;
-extern crate png;
 #[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
@@ -76,7 +75,6 @@ pub mod font_cache_task;
 pub mod font_template;
 
 // Misc.
-mod buffer_map;
 mod filters;
 
 // Platform-specific implementations.

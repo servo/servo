@@ -1,0 +1,563 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="NR" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: animate-elem-78-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This test demonstrates how &lt;set&gt; elements change
+        graphics properties on elements from the 'Basic Shapes' chapter. For
+        each of the graphics properties being tested, 3
+        &lt;set&gt; elements are set. The first &lt;set&gt;
+        element acts directly on the 'Basic Shape' element. The
+        &lt;set&gt; element acts on a &lt;g&gt; containing
+        children. The third &lt;set&gt; element acts on an &lt;a&gt;
+        containing children. In each case the test validates that
+        the animated value set on the &lt;g&gt; and &lt;a&gt;
+        elements is inherited by the 'Basic Shape' element.
+        All the &lt;set&gt; elements have a begin attribute
+        set to 0s with an offset of 1s after end.
+        So, the animation will apply 1s after the document is loaded
+        and will repeat every 1s after the animation ends.
+      </p>
+      <p>
+        The first &lt;set&gt; validates the fill property, with
+        fill set to orange. When applied directly to the 'Basic Shape'
+        element, the &lt;rect&gt; fill value will change to orange
+        when it is translated to the right every 1s. When applied
+        to the &lt;g&gt; and &lt;a&gt; elements, the &lt;rect&gt;
+        inherits the fill value and is orange.
+      </p>
+      <p>
+        The second &lt;set&gt; validates the fill-style property,
+        with fill-style set to evenodd. When applied to the
+        'Basic Shape' element, the &lt;polyline&gt; fill-style is
+        changed from nonzero to evenodd. When applied to the
+        &lt;g&gt; and &lt;a&gt; elements, the &lt;polyline&gt; inherits
+        the evenodd fill-style.
+      </p>
+      <p>
+        the third &lt;set&gt; validates the stroke property.
+        In this case fill is set to none. When stroke is applied
+        to the 'Basic Shape' element, the &lt;rect&gt; on the right
+        appears with the stroke color. When applied to the &lt;g&gt; and
+        &lt;a&gt; elements, the &lt;rect&gt; inherits the stroke property.
+      </p>
+      <p>
+        the fourth &lt;set&gt; validates the stroke-width property,
+        with stroke-width set to 4. When stroke-width is applied
+        to the 'Basic Shape' element, the &lt;line&gt; on the right
+        has a width of 4. When applied to the &lt;g&gt; and
+        &lt;a&gt; elements, the &lt;line&gt; inherits the stroke-width.
+      </p>
+      <p>
+        the fifth &lt;set&gt; validates the stroke-linecap property,
+        with stroke-linecap set to round. When stroke-linecap is applied
+        to the 'Basic Shape' element, the &lt;line&gt; stroke-linecap
+        value switches from butt to round. When applied to the &lt;g&gt;
+        and &lt;a&gt; elements, the &lt;line&gt; inherits the
+        square stroke-linecap.
+      </p>
+      <p>
+        the sixth &lt;set&gt; validates the stroke-linejoin property,
+        with stroke-linejoin set to bevel. When stroke-linejoin is applied
+        to the 'Basic Shape' element, the &lt;line&gt; stroke-linejoin
+        value switches from miter to bevel. When applied to the &lt;g&gt;
+        and &lt;a&gt; elements, the &lt;line&gt; inherits the
+        bevel stroke-linejoin.
+      </p>
+      <p>
+        the seventh &lt;set&gt; validates the stroke-miterlimit property,
+        with stroke-miterlimit set to 10. When stroke-miterlimit
+        is applied to the 'Basic Shape' element, the miter-length to
+        stroke-width ratio exceeds the miter-limit and the
+        &lt;polyline&gt; switches from bevel to miter.When applied
+        to the &lt;g&gt; and &lt;a&gt; elements,the &lt;line&gt;
+        inherits the stroke-miterlimit.
+      </p>
+      <p>
+        the eighth &lt;set&gt; validates the stroke-dashoffset property,
+        with stroke-dashoffset set to 5.5. When stroke-dashoffset is applied
+        to the 'Basic Shape' element, the &lt;line&gt; has a different
+        dashing pattern. When applied to the &lt;g&gt; and &lt;a&gt;
+        elements, the &lt;line&gt; inherits the property.
+      </p>
+      <p>
+        the ninth &lt;set&gt; validates the display property,
+        with display set to none. When display is applied
+        to the 'Basic Shape' element, the &lt;rect&gt; does not
+        appear on the right. When applied to the &lt;g&gt; and &lt;a&gt;
+        elements, the &lt;line&gt; inherits the display property and
+        hence is not seen.
+      </p>
+      <p>
+        the tenth &lt;set&gt; validates the visibility property,
+        with visibility set to hidden. When visibility is applied
+        to the 'Basic Shape' element, the &lt;rect&gt; is hidden
+        on the right. When applied to the &lt;g&gt; and &lt;a&gt;
+        elements, the &lt;line&gt; inherits the visibility property
+        and hence is not seen.
+      </p>
+      <p>
+        the eleventh &lt;set&gt; validates the color property,
+        with color set to blue. When color is applied to the
+        'Basic Shape' element, the &lt;rect&gt; on the right
+        switches from default color of black to blue. When
+        applied to the &lt;g&gt; and &lt;a&gt;
+        elements, the &lt;line&gt; inherits the color property.
+      </p>
+      <p>
+        The eleventh &lt;set&gt; validates the color property, with
+        color set to orange. When applied directly to the 'Basic Shape'
+        element, the &lt;rect&gt; fill value will change to orange
+        when it is translated to the right every 1s. When applied
+        to the &lt;g&gt; and &lt;a&gt; elements, the &lt;rect&gt;
+        inherits the color value, and via its fill="currentColor"
+        becomes orange.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The document is animated such that it alternates between two states,
+      an alternation occurring every second.  In each row there are three
+      sub-tests, which must behave identically except for any differences
+      noted below.  Each sub-test consists of a colored shape that in one
+      state appears in the left column and in the second state appears in
+      the right column.  The test is passed if the following conditions are
+      met:</p>
+      <ul>
+        <li>For the fill-rule, stroke-width, stroke-linecap, stroke-linejoin,
+        stroke-miterlimit and stroke-dashoffset rows, the red shape must
+        take the exact shape and position of the two gray silhouettes
+        when animating between the two states.</li>
+        <li>For the fill row, the colored square must take the exact
+        shape and position of the two gray silhouettes when animating
+        between the two states.  When in the left column, it must be red,
+        and when in the right column, it must be orange.</li>
+        <li>For the color row, the colored square must take the exact
+        shape and position of the two gray silhouettes when animating
+        between the two states.  When in the left column, it must be
+        red, and when in the right column, it must be orange.</li>
+        <li>For the stroke row, the shape must be invisible when in the
+        left column, and must be a red-stroked, empty-filled square
+        matching the size and position of the gray silhouette when
+        in the right column.</li>
+        <li>For the display and visibility rows, the shape must be a red
+        square matching the size and position of the gray silhouette
+        when in the left column, and must be invisible when in the right
+        column.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-78-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="25" font-size="20">graphics</text>
+    <g transform="translate(80, 75)">
+      <g transform="translate(30,10)" text-anchor="end" font-size="12">
+        <text>fill</text>
+        <text y="20">fill-rule</text>
+        <text y="40">stroke</text>
+        <text y="60">stroke-width</text>
+        <text y="80">stroke-linecap</text>
+        <text y="100">stroke-linejoin</text>
+        <text y="120">stroke-miterlimit</text>
+        <text y="140">stroke-dashoffset</text>
+        <text y="160">display</text>
+        <text y="180">visibility</text>
+        <text y="200">color</text>
+      </g>
+
+      <g id="type" transform="translate(90, -20)" text-anchor="middle" font-size="14">
+        <text x="20" y="3">'Basic Shape'</text>
+        <text x="130" y="3">&lt;g&gt;</text>
+        <text x="235" y="3">&lt;a&gt;</text>
+      </g>
+
+      <g transform="translate(80,0)" fill="rgb(204,0,102)">
+        <rect x="10" width="8" height="8" fill="#ccc"/>
+
+        <g id="setOne">
+          <defs>
+            <g id="setOneRef">
+              <rect x="10" width="8" height="8" fill="#ccc"/>
+              <rect x="10" width="8" height="8" fill="#ccc" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setOneRef"/>
+          <use xlink:href="#setOneRef" x="110"/>
+          <use xlink:href="#setOneRef" x="220"/>
+
+          <rect x="10" width="8" height="8">
+            <set id="firstSet1" attributeName="fill" to="rgb(255, 165, 0)" begin="0s; firstSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="firstSet1_1" type="translate" from="30,0" to="30,0" begin="0s; firstSet1_1.end + 1s" dur="1s"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <set id="firstSet2" attributeName="fill" to="rgb(255, 165, 0)" begin="0s; firstSet2.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="firstSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; firstSet2_1.end + 1s" dur="1s"/>
+            </rect>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="firstSet3" attributeName="fill" to="rgb(255, 165, 0)" begin="0s; firstSet3.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="firstSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; firstSet3_1.end + 1s" dur="1s"/>
+            </rect>
+          </a>
+
+        </g>
+        <g id="setTwo" transform="translate(5,15)" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setTwoRef">
+              <polyline fill="#ccc" stroke="#ccc" stroke-width="1" points="20,10,0,10,15,20,10,2,5,20,20,10">
+              </polyline>
+              <polyline fill="#ccc" stroke="#ccc" fill-rule="evenodd" stroke-width="1" points="20,10,0,10,15,20,10,2,5,20,20,10" transform="translate(30,0)">
+              </polyline>
+            </g>
+          </defs>
+          <use xlink:href="#setTwoRef"/>
+          <use xlink:href="#setTwoRef" x="110"/>
+          <use xlink:href="#setTwoRef" x="220"/>
+
+          <polyline points="20,10,0,10,15,20,10,2,5,20,20,10">
+            <set id="secondSet1" attributeName="fill-rule" to="evenodd" begin="0s; secondSet1_1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="secondSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; secondSet1_1.end + 1s" dur="1s"/>
+          </polyline>
+
+          <g transform="translate(110, 0)">
+            <set id="secondSet2" attributeName="fill-rule" to="evenodd" begin="0s; secondSet2_1.end + 1s" dur="1s"/>
+            <polyline points="20,10,0,10,15,20,10,2,5,20,20,10">
+              <animateTransform attributeName="transform" id="secondSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; secondSet2_1.end + 1s" dur="1s"/>
+            </polyline>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="secondSet3" attributeName="fill-rule" to="evenodd" begin="0s; secondSet3_1.end + 1s" dur="1s"/>
+            <polyline points="20,10,0,10,15,20,10,2,5,20,20,10">
+              <animateTransform attributeName="transform" id="secondSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; secondSet3_1.end + 1s" dur="1s"/>
+            </polyline>
+          </a>
+
+        </g>
+
+        <g id="setThree" transform="translate(0,45)" fill="none">
+          <defs>
+            <g id="setThreeRef">
+              <rect x="10" width="8" height="8" fill="#ccc"/>
+              <rect x="10" width="8" height="8" fill="#ccc" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setThreeRef"/>
+          <use xlink:href="#setThreeRef" x="110"/>
+          <use xlink:href="#setThreeRef" x="220"/>
+
+          <rect x="10" width="8" height="8">
+            <set id="thirdSet1" attributeName="stroke" to="rgb(204,0,102)" begin="0s; thirdSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="thirdSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; thirdSet1_1.end + 1s" dur="1s"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <set id="thirdSet2" attributeName="stroke" to="rgb(204,0,102)" begin="0s; thirdSet2.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="thirdSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; thirdSet2_1.end + 1s" dur="1s"/>
+            </rect>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="thirdSet3" attributeName="stroke" to="rgb(204,0,102)" begin="0s; thirdSet3.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="thirdSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; thirdSet3_1.end + 1s" dur="1s"/>
+            </rect>
+          </a>
+        </g>
+
+        <g id="setFour" transform="translate(0,60)" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setFourRef">
+              <line x1="10" y1="8" x2="20" y2="0" stroke="#ccc">
+              </line>
+              <line x1="10" y1="8" x2="20" y2="0" stroke-width="4" stroke="#ccc" transform="translate(30,0)">
+              </line>
+            </g>
+          </defs>
+          <use xlink:href="#setFourRef"/>
+          <use xlink:href="#setFourRef" x="110"/>
+          <use xlink:href="#setFourRef" x="220"/>
+
+          <line x1="10" y1="8" x2="20" y2="0">
+            <set id="fourthSet1" attributeName="stroke-width" to="4" begin="0s; fourthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="fourthSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; fourthSet1_1.end + 1s" dur="1s"/>
+          </line>
+
+          <g transform="translate(110, 0)">
+            <set id="fourthSet2" attributeName="stroke-width" to="4" begin="0s; fourthSet2.end + 1s" dur="1s"/>
+            <line x1="10" y1="8" x2="20" y2="0">
+              <animateTransform attributeName="transform" id="fourthSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; fourthSet2_1.end + 1s" dur="1s"/>
+            </line>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="fourthSet3" attributeName="stroke-width" to="4" begin="0s; fourthSet3.end + 1s" dur="1s"/>
+            <line x1="10" y1="8" x2="20" y2="0">
+              <animateTransform attributeName="transform" id="fourthSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; fourthSet3_1.end + 1s" dur="1s"/>
+            </line>
+          </a>
+        </g>
+
+        <g id="setFive" transform="translate(0,80)" stroke-width="4" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setFiveRef">
+              <line x1="10" y1="8" x2="20" y2="0" stroke="#ccc">
+              </line>
+              <line x1="10" y1="8" x2="20" y2="0" stroke-linecap="round" stroke="#ccc" transform="translate(30,0)">
+              </line>
+            </g>
+          </defs>
+          <use xlink:href="#setFiveRef"/>
+          <use xlink:href="#setFiveRef" x="110"/>
+          <use xlink:href="#setFiveRef" x="220"/>
+
+          <line x1="10" y1="8" x2="20" y2="0">
+            <set id="fifthSet1" attributeName="stroke-linecap" to="round" begin="0s; fifthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="fifthSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; fifthSet1_1.end + 1s" dur="1s"/>
+          </line>
+
+          <g transform="translate(110, 0)">
+            <set id="fifthSet2" attributeName="stroke-linecap" to="round" begin="0s; fifthSet2.end + 1s" dur="1s"/>
+            <line x1="10" y1="8" x2="20" y2="0">
+              <animateTransform attributeName="transform" id="fifthSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; fifthSet2_1.end + 1s" dur="1s"/>
+            </line>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="fifthSet3" attributeName="stroke-linecap" to="round" begin="0s; fifthSet3.end + 1s" dur="1s"/>
+            <line x1="10" y1="8" x2="20" y2="0">
+              <animateTransform attributeName="transform" id="fifthSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; fifthSet3_1.end + 1s" dur="1s"/>
+            </line>
+          </a>
+        </g>
+
+        <g id="setSix" transform="translate(5,100)" fill="none" stroke-miterlimit="10" stroke-width="3" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setSixRef">
+              <polyline stroke="#ccc" points="5,2,20,5,5,8">
+              </polyline>
+              <polyline stroke="#ccc" points="5,2,20,5,5,8" stroke-linejoin="bevel" transform="translate(30,0)">
+              </polyline>
+            </g>
+          </defs>
+          <use xlink:href="#setSixRef"/>
+          <use xlink:href="#setSixRef" x="110"/>
+          <use xlink:href="#setSixRef" x="220"/>
+
+          <polyline points="5,2,20,5,5,8">
+            <set id="sixthSet1" attributeName="stroke-linejoin" to="bevel" begin="0s; sixthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="sixthSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; sixthSet1_1.end + 1s" dur="1s"/>
+          </polyline>
+
+          <g transform="translate(110, 0)">
+            <set id="sixthSet2" attributeName="stroke-linejoin" to="bevel" begin="0s; sixthSet2.end + 1s" dur="1s"/>
+            <polyline points="5,2,20,5,5,8">
+              <animateTransform attributeName="transform" id="sixthSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; sixthSet2_1.end + 1s" dur="1s"/>
+            </polyline>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="sixthSet3" attributeName="stroke-linejoin" to="bevel" begin="0s; sixthSet3.end + 1s" dur="1s"/>
+            <polyline points="5,2,20,5,5,8">
+              <animateTransform attributeName="transform" id="sixthSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; sixthSet3_1.end + 1s" dur="1s"/>
+            </polyline>
+          </a>
+        </g>
+
+        <g id="setSeven" transform="translate(5,120)" stroke-miterlimit="1" fill="none" stroke-width="3" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setSevenRef">
+              <polyline points="5,0,20,5,5,10" stroke="#ccc"/>
+              <polyline points="5,0,20,5,5,10" stroke="#ccc" stroke-miterlimit="10" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setSevenRef"/>
+          <use xlink:href="#setSevenRef" x="110"/>
+          <use xlink:href="#setSevenRef" x="220"/>
+
+          <polyline points="5,0,20,5,5,10">
+            <set id="seventhSet1" attributeName="stroke-miterlimit" to="10" begin="0s; seventhSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="seventhSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; seventhSet1_1.end + 1s" dur="1s"/>
+          </polyline>
+
+          <g transform="translate(110, 0)">
+            <set id="seventhSet2" attributeName="stroke-miterlimit" to="10" begin="0s; seventhSet2.end + 1s" dur="1s"/>
+            <polyline points="5,0,20,5,5,10">
+              <animateTransform attributeName="transform" id="seventhSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; seventhSet2_1.end + 1s" dur="1s"/>
+            </polyline>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="seventhSet3" attributeName="stroke-miterlimit" to="10" begin="0s; seventhSet3.end + 1s" dur="1s"/>
+            <polyline points="5,0,20,5,5,10">
+              <animateTransform attributeName="transform" id="seventhSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; seventhSet3_1.end + 1s" dur="1s"/>
+            </polyline>
+          </a>
+
+        </g>
+
+        <g id="setEight" transform="translate(-5,145)" stroke-dasharray="3,4,5" stroke-width="3" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setEightRef">
+              <line x1="0" y1="0" x2="25" y2="0" stroke="#ccc"/>
+              <line x1="0" y1="0" x2="25" y2="0" stroke="#ccc" stroke-dashoffset="5.5" transform="translate(40,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setEightRef"/>
+          <use xlink:href="#setEightRef" x="110"/>
+          <use xlink:href="#setEightRef" x="220"/>
+
+          <line x1="0" y1="0" x2="25" y2="0">
+            <set id="eighthSet1" attributeName="stroke-dashoffset" to="5.5" begin="0s; eighthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="eighthSet1_1" type="translate" from="40, 0" to="40,0" begin="0s; eighthSet1_1.end + 1s" dur="1s"/>
+          </line>
+
+          <g transform="translate(110, 0)">
+            <set id="eighthSet2" attributeName="stroke-dashoffset" to="5.5" begin="0s; eighthSet2.end + 1s" dur="1s"/>
+            <line x1="0" y1="0" x2="25" y2="0">
+              <animateTransform attributeName="transform" id="eighthSet2_1" type="translate" from="40, 0" to="40,0" begin="0s; eighthSet2_1.end + 1s" dur="1s"/>
+            </line>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="eighthSet3" attributeName="stroke-dashoffset" to="5.5" begin="0s; eighthSet3.end + 1s" dur="1s"/>
+            <line x1="0" y1="0" x2="25" y2="0">
+              <animateTransform attributeName="transform" id="eighthSet3_1" type="translate" from="40, 0" to="40,0" begin="0s; eighthSet3_1.end + 1s" dur="1s"/>
+            </line>
+          </a>
+        </g>
+
+        <g id="setNine" transform="translate(0,160)">
+          <defs>
+            <g id="setNineRef">
+              <rect x="10" width="8" height="8" fill="#ccc"/>
+              <rect x="10" width="8" height="8" fill="#ccc" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setNineRef"/>
+          <use xlink:href="#setNineRef" x="110"/>
+          <use xlink:href="#setNineRef" x="220"/>
+          <rect x="10" width="8" height="8">
+            <set id="ninthSet1" attributeName="display" to="none" begin="0s; ninthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="ninthSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; ninthSet1_1.end + 1s" dur="1s"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <set id="ninthSet2" attributeName="display" to="none" begin="0s; ninthSet2.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="ninthSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; ninthSet2_1.end + 1s" dur="1s"/>
+            </rect>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="ninthSet3" attributeName="display" to="none" begin="0s; ninthSet3.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="ninthSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; ninthSet3_1.end + 1s" dur="1s"/>
+            </rect>
+          </a>
+        </g>
+
+        <g id="setTen" transform="translate(0,180)">
+          <defs>
+            <g id="setTenRef">
+              <rect x="10" width="8" height="8" fill="#ccc"/>
+              <rect x="10" width="8" height="8" fill="#ccc" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setTenRef"/>
+          <use xlink:href="#setTenRef" x="110"/>
+          <use xlink:href="#setTenRef" x="220"/>
+
+          <rect x="10" width="8" height="8">
+            <set id="tenthSet1" attributeName="visibility" to="hidden" begin="0s; tenthSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="tenthSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; tenthSet1_1.end + 1s" dur="1s"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <set id="tenthSet2" attributeName="visibility" to="hidden" begin="0s; tenthSet2.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="tenthSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; tenthSet2_1.end + 1s" dur="1s"/>
+            </rect>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <set id="tenthSet3" attributeName="visibility" to="hidden" begin="0s; tenthSet3.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="tenthSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; tenthSet3_1.end + 1s" dur="1s"/>
+            </rect>
+          </a>
+        </g>
+
+        <g id="setEleven" color="rgb(204,0,102)" transform="translate(0,200)">
+          <defs>
+            <g id="setElevenRef">
+              <rect x="10" width="8" height="8" fill="#ccc"/>
+              <rect x="10" width="8" height="8" fill="#ccc" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setElevenRef"/>
+          <use xlink:href="#setElevenRef" x="110"/>
+          <use xlink:href="#setTenRef" x="220"/>
+
+          <rect x="10" width="8" height="8" fill="currentColor">
+            <set id="eleventhSet1" attributeName="color" to="rgb(255, 165, 0)" begin="0s; eleventhSet1.end + 1s" dur="1s"/>
+            <animateTransform attributeName="transform" id="eleventhSet1_1" type="translate" from="30, 0" to="30,0" begin="0s; eleventhSet1_1.end + 1s" dur="1s"/>
+          </rect>
+
+          <g transform="translate(110, 0)" fill="currentColor">
+            <set id="eleventhSet2" attributeName="color" to="rgb(255, 165, 0)" begin="0s; eleventhSet2.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="eleventhSet2_1" type="translate" from="30, 0" to="30,0" begin="0s; eleventhSet2_1.end + 1s" dur="1s"/>
+            </rect>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)" fill="currentColor">
+            <!-- This first 'set' is because 'color' on the 'a' might well be a different color from that
+                 inherited from its parent, due to UA style sheet ":visited { color: something }" rules. -->
+            <set attributeName="color" to="rgb(204,0,102)"/>
+            <set id="eleventhSet3" attributeName="color" to="rgb(255, 165, 0)" begin="0s; eleventhSet3.end + 1s" dur="1s"/>
+            <rect x="10" width="8" height="8">
+              <animateTransform attributeName="transform" id="eleventhSet3_1" type="translate" from="30, 0" to="30,0" begin="0s; eleventhSet3_1.end + 1s" dur="1s"/>
+            </rect>
+          </a>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

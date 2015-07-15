@@ -14,11 +14,12 @@ use pipeline::{Pipeline, CompositionPipeline};
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
-use geom::point::Point2D;
-use geom::rect::{Rect, TypedRect};
-use geom::size::Size2D;
-use geom::scale_factor::ScaleFactor;
+use euclid::point::Point2D;
+use euclid::rect::{Rect, TypedRect};
+use euclid::size::Size2D;
+use euclid::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
+use ipc_channel::ipc;
 use layout_traits::{LayoutControlChan, LayoutControlMsg, LayoutTaskFactory};
 use libc;
 use msg::compositor_msg::{Epoch, LayerId};
@@ -190,7 +191,7 @@ pub struct SendableFrameTree {
 }
 
 struct WebDriverData {
-    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadComplete>)>
+    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadStatus>)>
 }
 
 impl WebDriverData {
@@ -709,7 +710,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let mut webdriver_reset = false;
         if let Some((ref expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             if expected_pipeline_id == pipeline_id {
-                reply_chan.send(webdriver_msg::LoadComplete).unwrap();
+                let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
                 webdriver_reset = true;
             }
         }
@@ -1128,7 +1129,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                             // epoch matches what the compositor has drawn. If they match
                             // (and script is idle) then this pipeline won't change again
                             // and can be considered stable.
-                            let (sender, receiver) = channel();
+                            let (sender, receiver) = ipc::channel().unwrap();
                             let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
                             layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)).unwrap();
                             let layout_task_epoch = receiver.recv().unwrap();

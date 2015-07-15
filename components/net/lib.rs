@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(alloc)]
+#![feature(box_raw)]
 #![feature(box_syntax)]
-#![feature(collections)]
-#![feature(core)]
+#![feature(fnbox)]
+#![feature(mpsc_select)]
 #![feature(path_ext)]
 #![feature(plugin)]
-#![feature(std_misc)]
+#![feature(vec_push_all)]
 
 #![plugin(regex_macros)]
 
@@ -16,7 +16,7 @@ extern crate net_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
-extern crate geom;
+extern crate euclid;
 extern crate hyper;
 extern crate png;
 #[macro_use]

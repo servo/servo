@@ -22,7 +22,7 @@ function mediaSourceConfigChangeTest(directory, idA, idB, description)
     mediasource_test(function(test, mediaElement, mediaSource)
     {
         mediaElement.pause();
-        test.failOnEvent(mediaElement, 'error');
+        mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
         var expectResizeEvents = resolutionFromFilename(manifestFilenameA) != resolutionFromFilename(manifestFilenameB);
         var expectedResizeEventCount = 0;
 
@@ -73,9 +73,9 @@ function mediaSourceConfigChangeTest(directory, idA, idB, description)
                     test.expectEvent(sourceBuffer, 'updatestart', 'sourceBuffer');
                     test.expectEvent(sourceBuffer, 'update', 'sourceBuffer');
                     test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
-		});
+                });
 
-		test.waitForExpectedEvents(function()
+                test.waitForExpectedEvents(function()
                 {
                     assert_false(sourceBuffer.updating, "updating");
 

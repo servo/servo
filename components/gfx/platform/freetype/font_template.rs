@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
 use std::fs::File;
 use std::io::Read;
+use string_cache::Atom;
 
 /// Platform specific font representation for Linux.
 /// The identifier is an absolute path, and the bytes
@@ -12,18 +12,18 @@ use std::io::Read;
 /// freetype and azure directly.
 pub struct FontTemplateData {
     pub bytes: Vec<u8>,
-    pub identifier: String,
+    pub identifier: Atom,
 }
 
 impl FontTemplateData {
-    pub fn new(identifier: &str, font_data: Option<Vec<u8>>) -> FontTemplateData {
+    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
         let bytes = match font_data {
             Some(bytes) => {
                 bytes
             },
             None => {
                 // TODO: Handle file load failure!
-                let mut file = File::open(identifier).unwrap();
+                let mut file = File::open(identifier.as_slice()).unwrap();
                 let mut buffer = vec![];
                 file.read_to_end(&mut buffer).unwrap();
                 buffer
@@ -32,7 +32,7 @@ impl FontTemplateData {
 
         FontTemplateData {
             bytes: bytes,
-            identifier: identifier.to_owned(),
+            identifier: identifier,
         }
     }
 }

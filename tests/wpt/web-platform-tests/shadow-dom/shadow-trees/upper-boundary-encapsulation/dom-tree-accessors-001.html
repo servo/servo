@@ -127,8 +127,8 @@ test(function () {
 
     // Replace the content of <title> to distinguish elements in a host
     // document and a shadow tree.
-    doc.getElementsByTagName('title')[0].innerText = 'Title of host document';
-    shadowRoot.getElementsByTagName('title')[0].innerText =
+    doc.getElementsByTagName('title')[0].textContent = 'Title of host document';
+    shadowRoot.getElementsByTagName('title')[0].textContent =
         'Title of shadow tree';
 
     assert_equals(doc.title, 'Title of host document');

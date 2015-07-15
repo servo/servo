@@ -1,0 +1,123 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-34-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test animation of attributes points and fill-rule.
+      </p>
+      <p>
+        The test consists of 2 sub-tests. The first test is a polygon shaped as a digit. The polygon
+        has an animation on its vertex points which  morphs the polygon between the numbers 1, 2, 3
+        and 4. The gray outlines indicates the expected position of the polygon at 1, 2, 3 and 4s.
+        The second test is 4 paths in a u-shape. They have animated fill-rules. Their initial
+        fill-rules are, from left to right, nonzero, evenodd, nonzero (by default value, no fill-rule attribute set)
+        and nonzero (by default value, no fill-rule attribute set). This means, that the second path is
+        initially u-shaped, and all other paths are initially rect-shaped. All four animations are set to evenodd as a last stage.
+        The further expected result is that one path at a time is filled. The other three paths are not filled but have the u-shape.
+        The fourth animation from evenodd to nonzero happens by going back to the initial state,
+        because the fill attribute is not set to freeze. Which path that should be filled at
+        which time is indicated by the number above it (indicating time in seconds). To enhance the
+        difference between the filled path and the rest, the filled path should always have the
+        same color as the morphing polygon. This is achieved by a discrete color animation.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test is passed if all of the following conditions are met:</p>
+      <ul>
+        <li>The red path in the shape of the digit "1" morphs continuously over three seconds
+        (from 1s to 4s in document time) to the shape of "2", "3" and then "4".  The gray paths
+        show the four shapes and positions that the red path takes as it morphs.</li>
+        <li>Initially, when the document is loaded, of the four paths underneath each of the
+        four digits, the second one is u-shaped, while the other three are square shaped.
+        The first path is red, while the remaining three are gray.</li>
+        <li>From 1s to 2s, the path below the "1" digit is red and square-shaped and the others are gray and u-shaped.</li>
+        <li>From 2s to 3s, the path below the "2" digit is red and square-shaped and the others are gray and u-shaped.</li>
+        <li>From 3s to 4s, the path below the "3" digit is red and square-shaped and the others are gray and u-shaped.</li>
+        <li>From 4s onwards, the path below the "4" digit is red and square-shaped and the others are gray and u-shaped.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-34-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="translate(40,0) scale(0.8)">
+      <!-- GRAY SILHOUETTES INDICATING TIME IN SECONDS-->
+      <polygon points="248.5,38.5 276.5,22.5 298.5,19.5 316.5,26.5 332.5,40.5 331.5,57.5 322.5,70.5 307.5,76.5             314.5,80.5 324.5,86.5 333.5,99.5 333.5,121.5 327.5,130.5 312.5,143.5 292.5,149.5             270.5,148.5 248.5,142.5 252.5,114.5 267.5,119.5 282.5,119.5 297.5,115.5             304.5,109.5 295.5,99.5 284.5,92.5 277.5,84.5 270.5,74.5 281.5,66.5 293.5,60.5             297.5,50.5 292.5,45.5 281.5,45.5 274.5,49.5 266.5,53.5" fill="#ccc" stroke="rgb(0,0,0)" stroke-width="1"/>
+
+      <polygon points="108.5,38.5 123.5,26.5 148.5,16.5 172.5,17.5 188.5,19.5 202.5,23.5 206.5,26.5 210.5,37.5          213.5,44.5 215.5,57.5 209.5,68.5 203.5,81.5 187.5,98.5 164.5,120.5 206.5,121.5          224.5,121.5 220.5,149.5 194.5,147.5 181.5,147.5 167.5,146.5 150.5,147.5          133.5,149.5 117.5,148.5 117.5,136.5 118.5,124.5 133.5,115.5 151.5,97.5 170.5,78.5          186.5,59.5 179.5,43.5 159.5,35.5 139.5,40.5 125.5,49.5" fill="#ccc" stroke="rgb(0,0,0)" stroke-width="1"/>
+
+      <polygon points="26.5,32.5 33.5,32.5 40.5,29.5 47.5,23.5 61.5,17.5 73.5,16.5 74.5,33.5 73.5,50.5 73.5,64.5          72.5,77.5 72.5,90.5 72.5,105.5 71.5,126.5 89.5,128.5 90.5,138.5 89.5,151.5          72.5,151.5 54.5,152.5 38.5,152.5 27.5,152.5 28.5,139.5 30.5,127.5 44.5,125.5          46.5,112.5 47.5,99.5 46.5,87.5 48.5,73.5 48.5,53.5 34.5,52.5 22.5,52.5          22.5,51.5 22.5,41.5 22.5,33.5" fill="#ccc" stroke="rgb(0,0,0)" stroke-width="1"/>
+
+      <polygon points="427.5,17.5 439.5,15.5 449.5,15.5 449.5,29.5 447.5,44.5 447.5,59.5 465.5,60.5 466.5,74.5          465.5,89.5 450.5,87.5 449.5,102.5 449.5,123.5 449.5,140.5 449.5,153.5          420.5,154.5 421.5,137.5 420.5,123.5 420.5,111.5 419.5,99.5 392.5,97.5 367.5,99.5          366.5,79.5 367.5,69.5 376.5,43.5 381.5,27.5 384.5,17.5 412.5,16.5 406.5,36.5          400.5,49.5 394.5,70.5 419.5,71.5 423.5,49.5 424.5,33.5" fill="#ccc" stroke="rgb(0,0,0)" stroke-width="1"/>
+
+      <!-- FIRST TEST, POINTS-->
+      <polygon points="26.5,32.5 33.5,32.5 40.5,29.5 47.5,23.5 61.5,17.5 73.5,16.5 74.5,33.5 73.5,50.5 73.5,64.5              72.5,77.5 72.5,90.5 72.5,105.5 71.5,126.5 89.5,128.5 90.5,138.5 89.5,151.5              72.5,151.5 54.5,152.5 38.5,152.5 27.5,152.5 28.5,139.5 30.5,127.5 44.5,125.5              46.5,112.5 47.5,99.5 46.5,87.5 48.5,73.5 48.5,53.5 34.5,52.5 22.5,52.5              22.5,51.5 22.5,41.5 22.5,33.5" fill="rgb(204,0,102)" stroke="rgb(0,0,0)" stroke-width="4">
+        <animate attributeName="points" values="26.5,32.5 33.5,32.5 40.5,29.5 47.5,23.5 61.5,17.5 73.5,16.5 74.5,33.5 73.5,50.5 73.5,64.5              72.5,77.5 72.5,90.5 72.5,105.5 71.5,126.5 89.5,128.5 90.5,138.5 89.5,151.5              72.5,151.5 54.5,152.5 38.5,152.5 27.5,152.5 28.5,139.5 30.5,127.5 44.5,125.5              46.5,112.5 47.5,99.5 46.5,87.5 48.5,73.5 48.5,53.5 34.5,52.5 22.5,52.5              22.5,51.5 22.5,41.5 22.5,33.5 ; 108.5,38.5 123.5,26.5 148.5,16.5 172.5,17.5 188.5,19.5 202.5,23.5 206.5,26.5 210.5,37.5          213.5,44.5 215.5,57.5 209.5,68.5 203.5,81.5 187.5,98.5 164.5,120.5 206.5,121.5          224.5,121.5 220.5,149.5 194.5,147.5 181.5,147.5 167.5,146.5 150.5,147.5          133.5,149.5 117.5,148.5 117.5,136.5 118.5,124.5 133.5,115.5 151.5,97.5 170.5,78.5          186.5,59.5 179.5,43.5 159.5,35.5 139.5,40.5 125.5,49.5;           248.5,38.5 276.5,22.5 298.5,19.5 316.5,26.5 332.5,40.5 331.5,57.5 322.5,70.5 307.5,76.5             314.5,80.5 324.5,86.5 333.5,99.5 333.5,121.5 327.5,130.5 312.5,143.5 292.5,149.5             270.5,148.5 248.5,142.5 252.5,114.5 267.5,119.5 282.5,119.5 297.5,115.5             304.5,109.5 295.5,99.5 284.5,92.5 277.5,84.5 270.5,74.5 281.5,66.5 293.5,60.5             297.5,50.5 292.5,45.5 281.5,45.5 274.5,49.5 266.5,53.5 ;              427.5,17.5 439.5,15.5 449.5,15.5 449.5,29.5 447.5,44.5 447.5,59.5 465.5,60.5 466.5,74.5          465.5,89.5 450.5,87.5 449.5,102.5 449.5,123.5 449.5,140.5 449.5,153.5          420.5,154.5 421.5,137.5 420.5,123.5 420.5,111.5 419.5,99.5 392.5,97.5 367.5,99.5          366.5,79.5 367.5,69.5 376.5,43.5 381.5,27.5 384.5,17.5 412.5,16.5 406.5,36.5          400.5,49.5 394.5,70.5 419.5,71.5 423.5,49.5 424.5,33.5" fill="freeze" begin="1" dur="3s"/>
+
+      </polygon>
+
+
+      <!-- SECOND TEST, FILL-RULE-->
+      <g transform="scale(0.3) translate(-450, 500)">
+        <path fill-rule="nonzero" fill="#ccc" stroke="none" d="M 500,100 L 500,300 700,300 700,100 550,100 550,250 650,250 650,100 500,100 z">
+          <animate attributeName="fill-rule" values="nonzero; evenodd; evenodd; evenodd" begin="1" dur="4" fill="freeze"/>
+          <animate attributeName="fill" from="rgb(204,0,102)" to="#ccc" begin="0" dur="4" calcMode="discrete" fill="freeze"/>
+        </path>
+      </g>
+      <g transform="scale(0.3) translate(-30, 500)">
+        <path fill-rule="evenodd" fill="#ccc" stroke="none" d="M 500,100 L 500,300 700,300 700,100 550,100 550,250 650,250 650,100 500,100 z">
+          <animate attributeName="fill-rule" values="evenodd; nonzero; evenodd; evenodd" begin="1" dur="4" fill="freeze"/>
+          <animate attributeName="fill" from="#ccc" to="rgb(204,0,102)" begin="1" dur="2" calcMode="discrete" fill="remove"/>
+        </path>
+      </g>
+      <g transform="scale(0.3) translate(390, 500)">
+        <path fill="#ccc" stroke="none" d="M 500,100 L 500,300 700,300 700,100 550,100 550,250 650,250 650,100 500,100 z">
+          <animate attributeName="fill-rule" values="evenodd; evenodd; nonzero; evenodd" begin="1" dur="4" fill="freeze"/>
+          <animate attributeName="fill" from="#ccc" to="rgb(204,0,102)" begin="2" dur="2" calcMode="discrete" fill="remove"/>
+        </path>
+      </g>
+      <g transform="scale(0.3) translate(810, 500)">
+        <path fill="#ccc" stroke="none" d="M 500,100 L 500,300 700,300 700,100 550,100 550,250 650,250 650,100 500,100 z">
+          <animate attributeName="fill-rule" values="evenodd; evenodd; evenodd" begin="1" dur="3"/>
+          <animate attributeName="fill" from="#ccc" to="rgb(204,0,102)" begin="3" dur="2" calcMode="discrete" fill="freeze"/>
+        </path>
+      </g>
+    </g>
+
+
+    <text x="5" y="225" font-size="28">Animation on: 'points' and 'fill-rule'.</text>
+    <text x="5" y="255" font-size="18">Digit should match outline at indicated time.</text>
+    <text x="5" y="275" font-size="18">Filled square should follow morphing digit discretely.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

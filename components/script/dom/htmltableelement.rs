@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
-use dom::bindings::js::{JSRef, Rootable, Temporary, OptionalRootable, RootedReference};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -42,7 +42,7 @@ impl HTMLTableElementDerived for EventTarget {
 }
 
 impl HTMLTableElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableElement,
@@ -57,30 +57,29 @@ impl HTMLTableElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
-               -> Temporary<HTMLTableElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+               -> Root<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
+impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     //  https://www.whatwg.org/html/#dom-table-caption
-    fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+    fn GetCaption(self) -> Option<Root<HTMLTableCaptionElement>> {
+        let node = NodeCast::from_ref(self);
         node.children()
-            .map(|c| c.root())
             .filter_map(|c| {
-                HTMLTableCaptionElementCast::to_ref(c.r()).map(Temporary::from_rooted)
+                HTMLTableCaptionElementCast::to_ref(c.r()).map(Root::from_ref)
             })
             .next()
     }
 
     // https://www.whatwg.org/html/#dom-table-caption
-    fn SetCaption(self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+    fn SetCaption(self, new_caption: Option<&HTMLTableCaptionElement>) {
+        let node = NodeCast::from_ref(self);
 
-        if let Some(ref caption) = self.GetCaption().root() {
+        if let Some(ref caption) = self.GetCaption() {
             assert!(node.RemoveChild(NodeCast::from_ref(caption.r())).is_ok());
         }
 
@@ -91,37 +90,37 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 }
 
 pub trait HTMLTableElementHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
-    fn get_border(&self) -> Option<u32>;
-    fn get_cellspacing(&self) -> Option<u32>;
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_background_color(self) -> Option<RGBA>;
+    fn get_border(self) -> Option<u32>;
+    fn get_cellspacing(self) -> Option<u32>;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLTableElementHelpers for HTMLTableElement {
-    fn get_background_color(&self) -> Option<RGBA> {
+impl<'a> HTMLTableElementHelpers for &'a HTMLTableElement {
+    fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
     }
 
-    fn get_border(&self) -> Option<u32> {
+    fn get_border(self) -> Option<u32> {
         self.border.get()
     }
 
-    fn get_cellspacing(&self) -> Option<u32> {
+    fn get_cellspacing(self) -> Option<u32> {
         self.cellspacing.get()
     }
 
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    fn get_width(self) -> LengthOrPercentageOrAuto {
         self.width.get()
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
+impl<'a> VirtualMethods for &'a HTMLTableElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
@@ -143,7 +142,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }

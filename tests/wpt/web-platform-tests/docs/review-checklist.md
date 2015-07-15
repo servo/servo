@@ -83,7 +83,7 @@ The test uses `idlharness.js` if it covers the use case.
 Tests in a single file are separated by one empty line.
 
 
-## In depth Checklist
+## In-depth Checklist
 
 <input type="checkbox">
 A test does not use self-closing start tag ("/" (U+002F)) when using the
@@ -105,6 +105,14 @@ lines).
 The test does not contain commented-out code.
 
 <input type="checkbox">
+The test does not use `console.*` methods for anything. The
+[script test][scripttest] harness never relies on `console.*` methods in
+any way, and so use of `console.*` methods in tests is usually just the
+equivalent of extra `printf`s in production code; i.e., leftover debugging
+that isn't actually useful to the next person running the test. It also
+introduces useless overhead when running tests in automation.
+
+<input type="checkbox">
 The test is placed in the relevant directory, based on the /TR latest
 version link if available.
 
@@ -112,8 +120,6 @@ version link if available.
 If the test needs code running on the server side, the server code must
 be written in python, and the python code must be reviewed carefully to
 ensure it isn't doing anything dangerous.
-
-
 
 [format]: ./test-format-guidelines.html
 [style]: ./test-style-guidelines.html

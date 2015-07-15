@@ -16,7 +16,7 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
         let mut item2 = (*item).clone();
         item2.attrs.push(quote_attr!(cx, #[must_root]));
         item2.attrs.push(quote_attr!(cx, #[privatize]));
-        item2.attrs.push(quote_attr!(cx, #[jstraceable]));
+        item2.attrs.push(quote_attr!(cx, #[derive(JSTraceable)]));
 
         // The following attributes are only for internal usage
         item2.attrs.push(quote_attr!(cx, #[_generate_reflector]));
@@ -30,7 +30,7 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
     }
 }
 
-/// Provides the hook to expand `#[jstraceable]` into an implementation of `JSTraceable`
+/// Provides the hook to expand `#[derive(JSTraceable)]` into an implementation of `JSTraceable`
 ///
 /// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not
 /// implement the method.

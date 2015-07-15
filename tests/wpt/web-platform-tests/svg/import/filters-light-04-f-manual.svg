@@ -1,0 +1,136 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="ED" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: filters-light-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feSpotLightLimitingConeAngleAttribute">
+      <p>
+        Test various values for limitingConeAngle in feSpotLight.
+      </p>
+      <p>
+        There should be four rects in two rows. Each of the rects has a different filter applied,
+        and each of those filters uses different values for limitingConeAngle.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+				The rendered image should look approximately like the reference image, and the third rectangle from the left
+				in each row must be animated.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-light-04-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Title -->
+    <text x="240" y="50" fill="black" font-size="16" font-family="Arial" text-anchor="middle">feSpotLight's limitingConeAngle</text>
+    <!-- ===================================================================== -->
+    <!-- Filter definitions                                                    -->
+    <!-- ===================================================================== -->
+    <defs>
+      <!-- ================================================= -->
+      <!-- feSpotLight                                       -->
+      <!-- ================================================= -->
+      <filter id="spotLightA" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="30"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightB" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="20"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightC" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="0">
+          	<animate attributeName="limitingConeAngle" from="0" to="50" dur="10s" fill="freeze"/>
+          </feSpotLight>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightD" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="5"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightE" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="-30"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightF" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="-20"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightG" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="0">
+          	<animate attributeName="limitingConeAngle" from="0" to="-50" dur="10s" fill="freeze"/>
+          </feSpotLight>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightH" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="-5"/>
+        </feDiffuseLighting>
+      </filter>
+    </defs>
+    <!-- feSpotLight -->
+    <g transform="translate(0 -20)">
+	    <g transform="translate(0 110)" font-size="9" font-family="Arial">
+	      <text x="70" y="30">30</text>
+	      <text x="165" y="30">20</text>
+	      <text x="260" y="30">Animated (0..50)</text>
+	      <text x="355" y="30">5</text>
+				<g transform="translate(0 100)">
+		      <text x="70" y="30">-30</text>
+		      <text x="165" y="30">-20</text>
+		      <text x="260" y="30">Animated (0..-50)</text>
+		      <text x="355" y="30">-5</text>
+		    </g>
+	    </g>
+	    <g>
+	      <rect transform="translate(70, 145)" width="50" height="30" filter="url(#spotLightA)"/>
+	      <rect transform="translate(165, 145)" width="50" height="30" filter="url(#spotLightB)"/>
+	      <rect transform="translate(260, 145)" width="50" height="30" filter="url(#spotLightC)"/>
+	      <rect transform="translate(355, 145)" width="50" height="30" filter="url(#spotLightD)"/>
+	      <rect transform="translate(70, 245)" width="50" height="30" filter="url(#spotLightE)"/>
+	      <rect transform="translate(165, 245)" width="50" height="30" filter="url(#spotLightF)"/>
+	      <rect transform="translate(260, 245)" width="50" height="30" filter="url(#spotLightG)"/>
+	      <rect transform="translate(355, 245)" width="50" height="30" filter="url(#spotLightH)"/>
+	    </g>
+	  </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

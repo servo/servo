@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>shared-worker-connect-src-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["xhr blocked"]'></script>
+    <!-- enforcing policy:
+connect-src 'self' 'none'; script-src 'self' 'unsafe-inline';
+-->
+
+</head>
+
+<body>
+    <script>
+        try {
+            var worker = new SharedWorker('http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/shared-worker-make-xhr-blocked.js');
+            worker.port.onmessage = function(event) {
+                alert_assert(event.data);
+            };
+        } catch (e) {
+            alert_assert(e);
+        }
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

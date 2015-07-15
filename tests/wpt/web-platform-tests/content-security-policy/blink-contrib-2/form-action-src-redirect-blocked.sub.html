@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>form-action-src-redirect-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+form-action 127.0.0.1:8000; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('submit').click();
+                log("TEST COMPLETE");
+            }, 0);
+        });
+        setTimeout(function() {}, 1000);
+
+    </script>
+</head>
+
+<body>
+    <form id="form1" action="/navigation/resources/redirection-response.php?host=localhost:8000&amp;status=302&amp;target=form-target.pl" method="post">
+        <input type="text" name="fieldname" value="fieldvalue">
+        <input type="submit" id="submit" value="submit">
+    </form>
+    <p>Tests that blocking form redirect works correctly. If this test passes, a CSP violation will be generated, and will not see a page indicating a form was POSTed.</p>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=form-action%20127.0.0.1:8000"></script>
+</body>
+
+</html>

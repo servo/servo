@@ -1,0 +1,147 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" owner="CL" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: text-fonts-203-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#FontPropertiesUsedBySVG">
+      <p>
+        This tests the 'font-weight' property when multiple weights are available. A
+        font family with five weights is  specified, with a fallback to 'serif'.
+      </p>
+      <p>
+        The specified font family has five weights - 300, 400, 600, 700 and 800. 
+        See the CSS3 Font specification 
+        for how these are allocated to the nine weight numbers.
+      </p>
+      <p>
+        The absolute keywords 'normal' and bold' are tested by the first two lines on the
+        right hand side of the test, the third line of text tests the to 'bolder' relative
+        keyword and the fourth tests the 'lighter' relative keyword.
+      </p>
+      <p>The fonts are SVG fonts convertted, with the author's explicit permission, 
+       from  <a href="http://justanotherfoundry.com/Zalamander/index.htm">Zalamander Caps</a>
+        by Tim Ahrens of <a href="http://justanotherfoundry.com/">Just Another Foundry</a>.
+        An ASCII subset has been generated for this test. The font names have been 
+        obfuscated, to deter 
+        user agent sniffing for keywords like "Ultrabold". All weights in this generated
+        family are multiples of 100 and greater or equal to 300.</p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The numerical weight values (100 to 900) should show the lighter weights on the
+        lower numbers and the heavier weights on the larger numbers. Heavier is defined
+        to mean 'no lighter'.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-fonts-203-t.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+  <defs>
+    <font-face
+      font-family="ZC"
+      unicode-range="U+0-7F"
+      font-weight="300"
+      font-variant="small-caps">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/ZCL.svg#ZCL"/>
+      </font-face-src>
+    </font-face>
+    <font-face
+      font-family="ZC"
+      unicode-range="U+0-7F"
+      font-weight="400"
+      font-variant="small-caps">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/ZCR.svg#ZCR"/>
+      </font-face-src>
+    </font-face>
+    <font-face
+      font-family="ZC"
+      unicode-range="U+0-7F"
+      font-weight="600"
+      font-variant="small-caps">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/ZCSB.svg#ZCSB"/>
+      </font-face-src>
+    </font-face>
+    <font-face
+      font-family="ZC"
+      unicode-range="U+0-7F"
+      font-weight="700"
+      font-variant="small-caps">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/ZCB.svg#ZCB"/>
+      </font-face-src>
+    </font-face>
+    <font-face
+      font-family="ZC"
+      unicode-range="U+0-7F"
+      font-weight="800"
+      font-variant="small-caps">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/ZCXB.svg#ZCXB"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+
+ <g font-family="'ZC', serif" font-size="30" font-variant="small-caps">
+      <text font-weight="100" x="360" y="50">100</text>
+      <text font-weight="200" x="360" y="85">200</text>
+      <text font-weight="300" x="360" y="120">300</text>
+      <text font-weight="400" x="360" y="155">400</text>
+      <text font-weight="500" x="360" y="190">500</text>
+      <text fill="green" font-weight="600" x="360" y="225">600</text>
+      <text fill="green" font-weight="700" x="360" y="260">700</text>
+      <text fill="green" font-weight="800" x="360" y="295">800</text>
+      <text fill="green" font-weight="900" x="360" y="330">900</text>
+      <text font-weight="bold" x="60" y="80">This is bold</text>
+      <text font-weight="normal" x="60" y="130">This is normal</text>
+      <g font-weight="normal" fill="blue">
+        <text font-weight="bolder" x="60" y="180">Blue is bolder</text>
+      </g>
+      <g font-weight="bold" fill="blue">
+        <text font-weight="lighter" x="60" y="230">Blue is lighter</text>
+      </g>
+      <g font-size="14">
+        <text x="30" y="270">ZalamanderCaps is an OpenType font</text>
+        <text x="30" y="290">by Tim Ahrens of Just Another Foundry</text>
+      </g>
+    </g>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

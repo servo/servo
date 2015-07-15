@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser;
-use geom::size::Size2D;
-use geom::scale_factor::ScaleFactor;
+use euclid::size::Size2D;
+use euclid::scale_factor::ScaleFactor;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
@@ -172,6 +172,7 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
+    ::util::opts::set_experimental_enabled(true);
     let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
 
     let stylesheets = vec![

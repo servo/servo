@@ -64,21 +64,24 @@ def notify_win(title, text):
 
 
 def notify_darwin(title, text):
-    import Foundation
-    import objc
+    try:
+        import Foundation
+        import objc
 
-    NSUserNotification = objc.lookUpClass("NSUserNotification")
-    NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")
+        NSUserNotification = objc.lookUpClass("NSUserNotification")
+        NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")
 
-    note = NSUserNotification.alloc().init()
-    note.setTitle_(title)
-    note.setInformativeText_(text)
+        note = NSUserNotification.alloc().init()
+        note.setTitle_(title)
+        note.setInformativeText_(text)
 
-    now = Foundation.NSDate.dateWithTimeInterval_sinceDate_(0, Foundation.NSDate.date())
-    note.setDeliveryDate_(now)
+        now = Foundation.NSDate.dateWithTimeInterval_sinceDate_(0, Foundation.NSDate.date())
+        note.setDeliveryDate_(now)
 
-    centre = NSUserNotificationCenter.defaultUserNotificationCenter()
-    centre.scheduleNotification_(note)
+        centre = NSUserNotificationCenter.defaultUserNotificationCenter()
+        centre.scheduleNotification_(note)
+    except ImportError:
+        raise Exception("Please make sure that the Python pyobjc module is installed!")
 
 
 def notify_build_done(elapsed):
@@ -104,7 +107,7 @@ def notify(title, text):
             func(title, text)
         except Exception as e:
             extra = getattr(e, "message", "")
-            print("[Warning] Could not generate notification!%s" % extra, file=sys.stderr)
+            print("[Warning] Could not generate notification! %s" % extra, file=sys.stderr)
 
 
 @CommandProvider
@@ -147,7 +150,7 @@ class MachCommands(CommandBase):
         opts = params or []
         features = []
 
-        base_path = path.join("components", "servo", "target")
+        base_path = self.get_target_dir()
         release_path = path.join(base_path, "release", "servo")
         dev_path = path.join(base_path, "debug", "servo")
 

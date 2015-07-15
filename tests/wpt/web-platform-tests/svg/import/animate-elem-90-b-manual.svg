@@ -1,0 +1,104 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2010 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CL" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: animate-elem-90-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+        <p>
+          Test that the class attribute is animatable and that style 
+	sheets select on the animated value.
+<!-- not clear whether to link to dev.w3.org or to /TR
+http://dev.w3.org/SVG/profiles/1.1F2/publish/styling.html#ClassAttribute
+-->
+
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test uses the following elements : 'set',
+        and 'animate'. It requires that CSS style sheets are supported.
+      </p>
+      <p>
+        The test shows a circle which is initially hidden, becomes visible and blue at 
+	3s, abruptly changing to dark red at 5s. Two overlapping animations both animate the 
+	class attribute. The class attribute, as a string value, does not support 
+	linear interpolation so a discrete animation is produced, changing from the 
+	start to the end value midway through the animation duration.
+      </p>
+      <p>
+	The first animation starts at 2s and lasts for 4s so  the mid point is at 3s.
+	The second animation starts at 3s and lasts for 4s so the midpoint is at 5s.
+        The file includes various guides that can be used to verify the
+        correctness of the animation. The value of the class attribute
+	at 02 is "start" so the first CSS rule matches. At 3s it becomes "midway" 
+	so the second rule matches. At 5s it becomes "final midway" so the second and 
+	third rules match; the third rule has higher specificity so determines the fill color.
+        
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The color of the large circle must match the colour of the smaller guide 
+	boxes on the left  at times 0s, 3s and 5s. If the text "CSS not supported"
+	is visible, the test does not apply.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-90-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <style type="text/css">
+	.start {visibility: hidden }
+	.midway {visibility: visible; fill: rgb(0,0,255); }
+	#test-body-content .final {fill: rgb(128,0,0); }
+	.hideme {display: none;}
+    </style>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Guide objects to show where the animation elements belong at which time -->
+    <g font-family="Verdana" font-size="12">
+      <text x="15" y="55">Color at start</text>
+      <rect x="15" y="60" width="30" height="30"/>
+      <circle cx="30" cy="75" r="10" fill="#000"/>
+      <text x="15" y="145">Color at 3s</text>
+      <rect x="15" y="150" width="30" height="30"/>
+      <circle cx="30" cy="165" r="10" fill="rgb(0,0,255)"/>
+      <text x="15" y="235">Color at 5s</text>
+      <rect x="15" y="240" width="30" height="30"/>
+      <circle cx="30" cy="255" r="10" fill="rgb(128,0,0)"/>
+    </g>
+
+    <g>
+      <rect x="150" y="50" width="240" height="240" stroke="black" fill="black"/>
+      <circle cx="270" cy="170" r="110" class="start">
+        <set attributeName="class" attributeType="XML" to="midway" begin="2s" dur="2s" fill="freeze"/>
+        <animate attributeName="class" attributeType="XML" from="midway" to="final midway" begin="3s" dur="4s" fill="freeze"/>
+      </circle>
+    </g>
+    <text x="270" y="170" text-anchor="middle" font-size="40" fill="#F69" class="hideme">CSS not supported</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

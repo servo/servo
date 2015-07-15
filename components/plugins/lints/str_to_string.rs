@@ -4,7 +4,6 @@
 
 use syntax::ast;
 use rustc::lint::{Context, LintPass, LintArray};
-use rustc::middle::ty::expr_ty;
 use rustc::middle::ty;
 
 declare_lint!(STR_TO_STRING, Deny,
@@ -34,12 +33,12 @@ impl LintPass for StrToStringPass {
         fn is_str(cx: &Context, expr: &ast::Expr) -> bool {
             fn walk_ty<'t>(ty: ty::Ty<'t>) -> ty::Ty<'t> {
                 match ty.sty {
-                    ty::ty_ptr(ref tm) | ty::ty_rptr(_, ref tm) => walk_ty(tm.ty),
+                    ty::TyRef(_, ref tm) | ty::TyRawPtr(ref tm) => walk_ty(tm.ty),
                     _ => ty
                 }
             }
-            match walk_ty(expr_ty(cx.tcx, expr)).sty {
-                ty::ty_str => true,
+            match walk_ty(cx.tcx.expr_ty(expr)).sty {
+                ty::TyStr => true,
                 _ => false
             }
         }

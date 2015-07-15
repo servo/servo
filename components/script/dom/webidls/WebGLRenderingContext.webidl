@@ -558,7 +558,7 @@ interface WebGLRenderingContextBase
     //any getBufferParameter(GLenum target, GLenum pname);
     any getParameter(GLenum pname);
 
-    //[WebGLHandlesContextLoss] GLenum getError();
+    [WebGLHandlesContextLoss] GLenum getError();
 
     //any getFramebufferAttachmentParameter(GLenum target, GLenum attachment,
     //                                      GLenum pname);
@@ -569,7 +569,7 @@ interface WebGLRenderingContextBase
     //WebGLShaderPrecisionFormat? getShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype);
     DOMString? getShaderInfoLog(WebGLShader? shader);
 
-    //DOMString? getShaderSource(WebGLShader? shader);
+    DOMString? getShaderSource(WebGLShader? shader);
 
     //any getTexParameter(GLenum target, GLenum pname);
 

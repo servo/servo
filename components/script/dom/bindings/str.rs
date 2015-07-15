@@ -12,8 +12,7 @@ use std::str;
 use std::str::FromStr;
 
 /// Encapsulates the IDL `ByteString` type.
-#[derive(Clone,Eq,PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable,Clone,Eq,PartialEq)]
 pub struct ByteString(Vec<u8>);
 
 impl ByteString {

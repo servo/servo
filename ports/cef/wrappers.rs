@@ -34,11 +34,10 @@ use types::{cef_v8_accesscontrol_t, cef_v8_propertyattribute_t, cef_value_type_t
 use types::{cef_window_info_t, cef_window_open_disposition_t, cef_xml_encoding_type_t, cef_xml_node_type_t};
 
 use libc::{self, c_char, c_int, c_ushort, c_void};
-use std::boxed;
 use std::collections::HashMap;
 use std::mem;
 use std::ptr;
-use std::raw;
+use std::slice;
 
 pub trait CefWrap<CObject> {
     fn to_c(rust_object: Self) -> CObject;
@@ -201,7 +200,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch
             // stack space to create the object in. What a botch.
-            boxed::into_raw(box cef_string_utf16 {
+            Box::into_raw(box cef_string_utf16 {
                 str: ptr,
                 length: buffer.len() as u64,
                 dtor: Some(free_boxed_utf16_string as extern "C" fn(*mut c_ushort)),
@@ -209,10 +208,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
         }
     }
     unsafe fn to_rust(cef_string: *const cef_string_t) -> &'a [u16] {
-        mem::transmute(raw::Slice {
-            data: (*cef_string).str,
-            len: (*cef_string).length as usize,
-        })
+        slice::from_raw_parts((*cef_string).str, (*cef_string).length as usize)
     }
 }
 

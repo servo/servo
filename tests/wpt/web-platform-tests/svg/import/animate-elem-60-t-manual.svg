@@ -1,0 +1,254 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: animate-elem-60-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This test performs basic test on the begin attribute,
+        assuming support for the &lt;set&gt; element and setting the
+        fill attribute on a &lt;rect&gt; element.
+      </p>
+      <p>
+        The test validates the various possibilities for the begin attribute
+        value: no specified value, offset value, event base value, sync base
+        value, indefinite value, repeat value, accessKey value and wallclock.
+      </p>
+      <p>
+        There is one or several &lt;set&gt; elements for each of the possible begin
+        values. For each test, the &lt;set&gt; element(s) has (or have) an indefinite
+        duration and no other timing attribute specified other than begin
+        and dur.
+      </p>
+      <p>
+        There are two sets of vertical markers which help check that the test
+        is handled properly by the user agent. The first set, on the left, shows
+        markers from 0s to 8s, where the times are offset from the document's load time.
+        The rectangles in that area should turn green at the time corresponding
+        to the column they are in. From example, the first rectangle (going left to right)
+        on the "sync base" line should turn green 2 seconds after the document's load.
+        The second set of time vertical markers shows offset from a particular event.
+        For example, for the event base, the markers show an offset to the time
+        the first event base rectangle (the left-most one) is clicked on. For the
+        accessKey line, the times show offsets from the time the 'a' key is pressed
+        and the document has focus.
+      </p>
+      <p>
+        The first &lt;set&gt; has an unspecified begin attribute. That value
+        defaults to an offset of 0s so the animation should apply as soon as
+        the document is loaded.
+      </p>
+      <p>
+        The second &lt;set&gt; has its begin attribute set to '2s'. So its
+        target rectangle should turn green two seconds after the document is
+        loaded.
+      </p>
+      <p>
+        The third &lt;set&gt; has its begin attribute set to an event base
+        value 'click'. The user has to click on the left-most target red rectangle
+        to make the &lt;set&gt; target turn green. There are two rectangles
+        with associated &lt;set&gt; elements. The left most ones has a simple
+        value (no offset) and the second one is offset from the event time by 2 seconds.
+      </p>
+      <p>
+        The fourth &lt;set&gt; elements have their begin attributes set to a sync base
+        value. The first two rectangles have &lt;set&gt; elements synchronized on their sync base
+        begin. The left-most one has no offset and the following one has a 2 seconds offset.
+        The last two rectangles have &lt;set&gt; elements synchronized on their sync base end.
+        The first one (i.e., the third from left to right on that line), has a 2 seconds
+        negative offset. The second one (i.e., the last one on the line) has no offset and should
+        begin at the time its sync base ends.
+      </p>
+      <p>
+        The fifth &lt;set&gt; has its begin attribute set to indefinite and
+        should not turn red and stay green.
+      </p>
+      <p>
+        The sixth &lt;set&gt;s have their begin attributes have their begin attributes
+        based on the repeat() function. The repeat they are synchronized on happens
+        at 3s. The first &lt;set&gt;, which has no offset, should begin at 3s. The
+        second &lt;set&gt;, which has a 2 seconds offset, should start at 5s.
+      </p>
+      <p>
+        The seventh &lt;set&gt;s have their begin attributes set to 'accessKey(a)'.
+        The first one has no offset and should become active (and turn the rectangle
+        green), as soon as the key 'a' is pressed in the user agent. The second &lt;set&gt;
+        has a 2s offset and should become active 2 seconds after the 'a' key is pressed in
+        the user agent.
+      </p>
+      <p>
+        The eight's &lt;set&gt; target has its begin attribute set to
+        'wallclock()'. Therefore, the target should turn red because the
+        target wallclock time is in the past. The SMIL specification states the following about wallclock values in the past:
+        "When a begin time is resolved to be in the past (i.e., before the current presentation time), the element begins immediately,
+        but acts as though it had begun at the specified time (playing from an offset into the media)." (http://www.w3.org/TR/2001/REC-smil-animation-20010904/#AnimFuncTiming).
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test.  Observe the document for at least eight seconds.
+      Then, click on the first red square in the "event base" row,
+      and observe the document for two seconds.  Then, press "a"
+      on the keyboard, and observe the document for another two seconds.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the following conditions are met:</p>
+      <ul>
+        <li>In the first eight seconds of the document, the 10 squares
+        in the left section of the test must become green at the time
+        at the top of the column they are in.  For example, the square in
+        the "offset" row must become green at 2s after the document has
+        been loaded.</li>
+        <li>Immediately once the red square in the "event base" row has been clicked,
+        it must become green.  Two seconds after the click, the second square
+        must become green.</li>
+        <li>Immediately once "a" has been pressed on the keyboard,
+        the first square in the "accessKey()" row must become green.
+        Two seconds after the keypress, the second square must become green.</li>
+        <li>No other changes occur in the document.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-60-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">begin</text>
+    <g transform="translate(100, 80)">
+      <g transform="translate(80,5)" text-anchor="end" font-size="14">
+        <text>unspecified</text>
+        <text y="25">offset</text>
+        <text y="50">event base</text>
+        <text y="75">sync base</text>
+        <text y="100">indefinite</text>
+        <text y="125">repeat()</text>
+        <text y="150">accessKey()</text>
+        <text y="175">wallclock()</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(100, -15)" text-anchor="middle" font-size="8">
+        <text>0s</text>
+        <text x="12">1s</text>
+        <text x="24">2s</text>
+        <text x="36">3s</text>
+        <text x="48">4s</text>
+        <text x="60">5s</text>
+        <text x="72">6s</text>
+        <text x="84">7s</text>
+        <text x="96">8s</text>
+        <text x="120">0s</text>
+        <text x="132">1s</text>
+        <text x="144">2s</text>
+      </g>
+
+      <g id="timeMarkers" transform="translate(94, -10) scale(1, 8)">
+        <rect width="12" height="25" fill="#eee"/>
+        <rect x="12" width="12" height="25" fill="#ddd"/>
+        <rect x="24" width="12" height="25" fill="#eee"/>
+        <rect x="36" width="12" height="25" fill="#ddd"/>
+        <rect x="48" width="12" height="25" fill="#eee"/>
+        <rect x="60" width="12" height="25" fill="#ddd"/>
+        <rect x="72" width="12" height="25" fill="#eee"/>
+        <rect x="84" width="12" height="25" fill="#ddd"/>
+        <rect x="96" width="12" height="25" fill="#eee"/>
+        <rect x="120" width="12" height="25" fill="#eee"/>
+        <rect x="132" width="12" height="25" fill="#ddd"/>
+        <rect x="144" width="12" height="25" fill="#eee"/>
+      </g>
+
+      <g transform="translate(100,0)">
+        <g id="setOne">
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33">
+            <set attributeName="fill" to="#3F3" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setTwo" transform="translate(0, 25)">
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(24,0)">
+            <set id="secondSet" attributeName="fill" to="#3F3" begin="2s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setThree" transform="translate(0, 50)">
+          <rect id="setThreeTarget" x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(120,0)">
+            <set attributeName="fill" id="thirdSet" to="#3F3" begin="setThreeTarget.click" dur="indefinite"/>
+          </rect>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(144,0)">
+            <set attributeName="fill" id="thirdSetOffset" to="#3F3" begin="setThreeTarget.click + 2s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setFour" transform="translate(0, 75)">
+          <set id="endBase" attributeName="display" to="inline" begin="7s" dur="1s"/>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(24,0)">
+            <set attributeName="fill" to="#3F3" begin="secondSet.begin" dur="indefinite"/>
+          </rect>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(48,0)">
+            <set attributeName="fill" to="#3F3" begin="secondSet.begin + 2s" dur="indefinite"/>
+          </rect>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(72,0)">
+            <set attributeName="fill" to="#3F3" begin="endBase.end - 2s" dur="indefinite"/>
+          </rect>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(96,0)">
+            <set attributeName="fill" to="#3F3" begin="endBase.end" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setFive" transform="translate(0, 100)">
+          <rect x="-6" y="-6" width="12" height="12" fill="#3F3">
+            <set attributeName="fill" to="#F33" begin="indefinite" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setSix" transform="translate(0, 125)">
+          <set id="repeatingSet" attributeName="display" to="inline" begin="0s" dur="1s" repeatCount="4"/>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(36,0)">
+            <set attributeName="fill" to="#3F3" begin="repeatingSet.repeat(3)" dur="indefinite"/>
+          </rect>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(60,0)">
+            <set attributeName="fill" to="#3F3" begin="repeatingSet.repeat(3) + 2s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setSeven" transform="translate(0, 150)">
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(120,0)">
+            <set attributeName="fill" to="#3F3" begin="accessKey(a)" dur="indefinite"/>
+          </rect>
+          <rect x="-6" y="-6" width="12" height="12" fill="#F33" transform="translate(144,0)">
+            <set attributeName="fill" to="#3F3" begin="accessKey(a) + 2s" dur="indefinite"/>
+          </rect>
+        </g>
+
+        <g id="setEight" transform="translate(0, 175)">
+          <rect x="-6" y="-6" width="12" height="12" fill="#3F3">
+            <set attributeName="fill" to="#F33" begin="wallclock(2000-06-10T12:34:56Z)" dur="indefinite"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

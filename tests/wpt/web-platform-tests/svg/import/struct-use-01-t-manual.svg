@@ -1,0 +1,112 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-use-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#UseElement">
+        <p>
+          The purpose of this test is to validate proper handling of
+          the use element. In particular, the test checks the proper inheritance
+          of properties through the shadow tree (rather than through the document
+          tree).
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test should display various elements in different shades of green.
+        If an element is not displayed in green, but in red fill and/or yellow
+        stroke, then it is in error.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-use-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+	    <defs>
+	    	<font-face font-family="FreeSerif" unicode-range="U+0020-U+00FF">
+	      <font-face-src>
+	        <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
+	      </font-face-src>
+	    </font-face>
+      <g fill="red" stroke="yellow" stroke-width="3">
+        <rect id="usedRect" width="20" height="20"/>
+        <circle id="usedCircle" cx="10" cy="10" r="10"/>
+        <ellipse id="usedEllipse" cx="10" cy="10" rx="10" ry="10"/>
+        <line id="usedLine" x1="0" y1="10" x2="20" y2="10"/>
+        <path id="usedPath" d="M 0 0 L 20 0 L 20 20 L 0 20 Z"/>
+        <polygon id="usedPolygon" points="0,0 20,0 20,20 0,20 0 0"/>
+        <polyline id="usedPolyline" points="0,0 20,0 20,20"/>
+        <g id="usedG">
+          <rect width="10" height="20"/>
+          <rect x="10" width="10" height="20" fill="rgb(0,128,0)"/>
+        </g>
+        <use id="usedUse" xlink:href="#usedRect"/>
+        <image id="usedImage" xlink:href="../images/20x20.png" width="20" height="20"/>
+        <text id="usedText">Text</text>
+      </g>
+    </defs>
+
+
+    <g>
+      <g id="labels" transform="translate(130, 40)" font-size="20" text-anchor="end">
+        <text>&lt;rect&gt;</text>
+        <text y="30">&lt;circle&gt;</text>
+        <text y="60">&lt;ellipse&gt;</text>
+        <text y="90">&lt;line&gt;</text>
+        <text y="120">&lt;polyline&gt;</text>
+        <text y="150">&lt;polygon&gt;</text>
+        <text y="180">&lt;path&gt;</text>
+        <text y="210">&lt;image&gt;</text>
+        <text y="240">&lt;text&gt;</text>
+      </g>
+      <g id="labelsColumn2" transform="translate(310, 40)" font-size="20" text-anchor="end">
+        <text>&lt;g&gt;</text>
+        <text y="30">&lt;use&gt;</text>
+      </g>
+    </g>
+    <g transform="translate(150, 25)">
+      <use xlink:href="#usedRect" fill="#0F0"/>
+      <use y="30" xlink:href="#usedCircle" fill="#0F0"/>
+      <use y="60" xlink:href="#usedEllipse" fill="#0F0"/>
+      <use y="90" xlink:href="#usedLine" stroke="#0F0" stroke-width="2"/>
+      <use y="120" xlink:href="#usedPolyline" stroke="#0F0" stroke-width="2" fill="none"/>
+      <use y="150" xlink:href="#usedPolygon" fill="#0F0"/>
+      <use y="180" xlink:href="#usedPath" fill="#0F0"/>
+      <use y="210" xlink:href="#usedImage" fill="#FF0"/>
+      <use y="260" xlink:href="#usedText" fill="#0F0" font-weight="bold" font-size="25" font-style="italic" font-family="FreeSerif,serif"/>
+      <use x="180" y="0" xlink:href="#usedG" fill="#0F0"/>
+      <use x="180" y="30" xlink:href="#usedUse" fill="#0c0"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -43,7 +43,7 @@
       }
 
       test(function() {
-        assert_equals((new Date(client.getResponseHeader('Last-Modified'))).getTime(), (new Date(client.responseXML.lastModified)).getTime()) 
+        assert_true((new Date(client.getResponseHeader('Last-Modified'))).getTime() == (new Date(client.responseXML.lastModified)).getTime(), 'responseXML.lastModified time shoud be equal to time in response Last-Modified header')
       }, 'lastModified set according to HTTP header')
 
       test(function() {

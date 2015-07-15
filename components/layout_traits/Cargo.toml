@@ -7,9 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "layout_traits"
 path = "lib.rs"
 
-[dependencies.geom]
-git = "https://github.com/servo/rust-geom"
-
 [dependencies.gfx]
 path = "../gfx"
 
@@ -28,5 +25,12 @@ path = "../profile_traits"
 [dependencies.util]
 path = "../util"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 url = "0.2.35"
+euclid = "0.1"
+serde = "*"
+serde_macros = "*"
+

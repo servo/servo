@@ -1,0 +1,285 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-group-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#Groups">
+        <p>
+          This test validates that properties are inherited (or not, depending on
+          their defintion), from a group to its children.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[
+        Describe how to use the here. The instructions should specify any
+        steps requied to run the test or any manual operation that need
+        to be performed to run the test.
+        ]]
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The two rows displayed in this test should be identical. In the top row,
+        each property is set to the value 'inherit'. In the bottom row, which is
+        the reference, each property is set to the value that should be inherited
+        in the top row.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-group-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="grid" transform="translate(70, 150) rotate(-90)" fill="none" stroke="black">
+      <defs>
+        <rect id="propertyCell" x="-5" y="-14" width="110" height="22"/>
+        <rect id="sampleCell" x="-5" y="-14" width="50" height="22"/>
+      </defs>
+
+      <use xlink:href="#propertyCell"/>
+      <use xlink:href="#propertyCell" y="22"/>
+      <use xlink:href="#propertyCell" y="44"/>
+      <use xlink:href="#propertyCell" y="66"/>
+      <use xlink:href="#propertyCell" y="88"/>
+      <use xlink:href="#propertyCell" y="110"/>
+      <use xlink:href="#propertyCell" y="132"/>
+      <use xlink:href="#propertyCell" y="154"/>
+      <use xlink:href="#propertyCell" y="176"/>
+      <use xlink:href="#propertyCell" y="198"/>
+      <use xlink:href="#propertyCell" y="220"/>
+      <use xlink:href="#propertyCell" y="242"/>
+      <use xlink:href="#propertyCell" y="264"/>
+      <use xlink:href="#propertyCell" y="286"/>
+      <use xlink:href="#propertyCell" y="308"/>
+      <use xlink:href="#propertyCell" y="330"/>
+      <use xlink:href="#propertyCell" y="352"/>
+
+      <g transform="translate(-50, 0)">
+        <use xlink:href="#sampleCell"/>
+        <use xlink:href="#sampleCell" y="22"/>
+        <use xlink:href="#sampleCell" y="44"/>
+        <use xlink:href="#sampleCell" y="66"/>
+        <use xlink:href="#sampleCell" y="88"/>
+        <use xlink:href="#sampleCell" y="110"/>
+        <use xlink:href="#sampleCell" y="132"/>
+        <use xlink:href="#sampleCell" y="154"/>
+        <use xlink:href="#sampleCell" y="176"/>
+        <use xlink:href="#sampleCell" y="198"/>
+        <use xlink:href="#sampleCell" y="220"/>
+        <use xlink:href="#sampleCell" y="242"/>
+        <use xlink:href="#sampleCell" y="264"/>
+        <use xlink:href="#sampleCell" y="286"/>
+        <use xlink:href="#sampleCell" y="308"/>
+        <use xlink:href="#sampleCell" y="330"/>
+        <use xlink:href="#sampleCell" y="352"/>
+      </g>
+
+      <g transform="translate(-100, 0)">
+        <use xlink:href="#sampleCell"/>
+        <use xlink:href="#sampleCell" y="22"/>
+        <use xlink:href="#sampleCell" y="44"/>
+        <use xlink:href="#sampleCell" y="66"/>
+        <use xlink:href="#sampleCell" y="88"/>
+        <use xlink:href="#sampleCell" y="110"/>
+        <use xlink:href="#sampleCell" y="132"/>
+        <use xlink:href="#sampleCell" y="154"/>
+        <use xlink:href="#sampleCell" y="176"/>
+        <use xlink:href="#sampleCell" y="198"/>
+        <use xlink:href="#sampleCell" y="220"/>
+        <use xlink:href="#sampleCell" y="242"/>
+        <use xlink:href="#sampleCell" y="264"/>
+        <use xlink:href="#sampleCell" y="286"/>
+        <use xlink:href="#sampleCell" y="308"/>
+        <use xlink:href="#sampleCell" y="330"/>
+        <use xlink:href="#sampleCell" y="352"/>
+      </g>
+    </g>
+    <g id="properties" transform="translate(70, 150) rotate(-90)">
+      <text>color</text>
+      <text y="22">display</text>
+      <text y="44">fill</text>
+      <text y="66">fill-rule</text>
+      <text y="88">stroke</text>
+      <text y="110">stroke-dasharray</text>
+      <text y="132">stroke-dashoffset</text>
+      <text y="154">stroke-linecap</text>
+      <text y="176">stroke-linejoin</text>
+      <text y="198">stroke-miterlimit</text>
+      <text y="220">stroke-width</text>
+      <text y="242">visibility</text>
+      <text y="264">font-family</text>
+      <text y="286">font-size</text>
+      <text y="308">font-style</text>
+      <text y="330">font-weight</text>
+      <text y="352">text-anchor</text>
+    </g>
+
+    <g id="inheritGroup" transform="translate(56, 155)">
+
+      <g color="#0F0">
+        <rect x="3" y="10" width="16" height="32" fill="currentColor"/>
+      </g>
+
+      <g display="none" transform="translate(22, 0)">
+        <rect x="3" y="10" width="16" height="32" display="inherit"/>
+      </g>
+
+      <g fill="#0F0" transform="translate(44, 0)">
+        <rect x="3" y="10" width="16" height="32" fill="inherit"/>
+      </g>
+
+      <g fill-rule="evenodd" transform="translate(66, 0)">
+        <polygon points="10.5,0 21,21 0,7 21,7 0,21" fill-rule="inherit" fill="#0F0" transform="translate(3, 15) scale(0.7)"/>
+      </g>
+
+      <g stroke="#0F0" transform="translate(88, 0)">
+        <rect x="3" y="10" width="16" height="32" stroke="inherit" fill="none"/>
+      </g>
+
+      <g stroke-dasharray="2,2,5,5" transform="translate(110, 0)">
+        <line x1="11" y1="5" x2="11" y2="40" stroke="#0F0" stroke-dasharray="inherit" stroke-width="2"/>
+      </g>
+
+      <g stroke-dashoffset="4" transform="translate(132, 0)">
+        <line x1="11" y1="5" x2="11" y2="40" stroke="#0F0" stroke-dashoffset="inherit" stroke-dasharray="2,2,5,5" stroke-width="2"/>
+      </g>
+
+      <g stroke-linecap="round" transform="translate(154, 0)">
+        <line x1="11" y1="10" x2="11" y2="40" stroke="#0F0" stroke-linecap="inherit" stroke-width="10"/>
+      </g>
+
+      <g stroke-linejoin="round" transform="translate(176, 0)">
+        <polyline points="3,40 11,10 19,40" stroke="#0F0" stroke-linejoin="inherit" stroke-width="5" fill="none"/>
+      </g>
+
+      <g stroke-miterlimit="1" transform="translate(198, 0)">
+        <polyline points="3,40 11,10 19,40" stroke="#0F0" stroke-miterlimit="inherit" stroke-width="5" fill="none"/>
+      </g>
+
+      <g stroke-width="5" transform="translate(220, 0)">
+        <line x1="11" y1="10" x2="11" y2="40" stroke="#0F0" stroke-width="inherit"/>
+      </g>
+
+      <g visibility="hidden" transform="translate(242, 0)">
+        <line x1="11" y1="10" x2="11" y2="40" stroke="#0F0" visibility="inherit"/>
+      </g>
+
+      <g font-family="serif" transform="translate(264, 0)">
+        <text x="11" y="30" font-size="20" text-anchor="middle" font-family="inherit">A</text>
+      </g>
+
+      <g font-size="10" transform="translate(286, 0)">
+        <text x="11" y="30" font-size="inherit" text-anchor="middle" font-family="serif">A</text>
+      </g>
+
+      <g font-style="italic" transform="translate(308, 0)">
+        <text x="11" y="30" font-style="inherit" text-anchor="middle" font-size="20" font-family="serif">A</text>
+      </g>
+
+      <g font-weight="bold" transform="translate(330, 0)">
+        <text x="11" y="30" font-weight="inherit" text-anchor="middle" font-family="serif" font-size="20">A</text>
+      </g>
+
+      <g text-anchor="middle" transform="translate(352, 0)">
+        <text x="11" y="30" text-anchor="inherit" font-family="serif" font-size="20">A</text>
+      </g>
+    </g>
+
+    <g id="referenceGroup" transform="translate(56, 205)">
+
+      <g>
+        <rect x="3" y="10" width="16" height="32" fill="#0F0"/>
+      </g>
+
+      <g transform="translate(22, 0)">
+        <rect x="3" y="10" width="16" height="32" display="none"/>
+      </g>
+
+      <g transform="translate(44, 0)">
+        <rect x="3" y="10" width="16" height="32" fill="#0F0"/>
+      </g>
+
+      <g transform="translate(66, 0)">
+        <polygon points="10.5,0 21,21 0,7 21,7 0,21" fill-rule="evenodd" fill="#0F0" transform="translate(3, 15) scale(0.7)"/>
+      </g>
+
+      <g transform="translate(88, 0)">
+        <rect x="3" y="10" width="16" height="32" stroke="#0F0" fill="none"/>
+      </g>
+
+      <g stroke-dasharray="2,2,5,5" transform="translate(110, 0)">
+        <line x1="11" y1="5" x2="11" y2="40" stroke="#0F0" stroke-dasharray="inherit" stroke-width="2"/>
+      </g>
+
+      <g transform="translate(132, 0)">
+        <line x1="11" y1="5" x2="11" y2="40" stroke="#0F0" stroke-dashoffset="4" stroke-dasharray="2,2,5,5" stroke-width="2"/>
+      </g>
+
+      <g transform="translate(154, 0)">
+        <line x1="11" y1="10" x2="11" y2="40" stroke="#0F0" stroke-linecap="round" stroke-width="10"/>
+      </g>
+
+      <g transform="translate(176, 0)">
+        <polyline points="3,40 11,10 19,40" stroke="#0F0" stroke-linejoin="round" stroke-width="5" fill="none"/>
+      </g>
+
+      <g transform="translate(198, 0)">
+        <polyline points="3,40 11,10 19,40" stroke="#0F0" stroke-miterlimit="1" stroke-width="5" fill="none"/>
+      </g>
+
+      <g transform="translate(220, 0)">
+        <line x1="11" y1="10" x2="11" y2="40" stroke="#0F0" stroke-width="5"/>
+      </g>
+
+      <g transform="translate(242, 0)">
+        <line x1="11" y1="10" x2="11" y2="40" stroke="#0F0" visibility="hidden"/>
+      </g>
+
+      <g transform="translate(264, 0)">
+        <text x="11" y="30" font-size="20" text-anchor="middle" font-family="serif">A</text>
+      </g>
+
+      <g transform="translate(286, 0)">
+        <text x="11" y="30" font-size="10" text-anchor="middle" font-family="serif">A</text>
+      </g>
+
+      <g transform="translate(308, 0)">
+        <text x="11" y="30" font-style="italic" text-anchor="middle" font-size="20" font-family="serif">A</text>
+      </g>
+
+      <g transform="translate(330, 0)">
+        <text x="11" y="30" font-weight="bold" text-anchor="middle" font-family="serif" font-size="20">A</text>
+      </g>
+
+      <g transform="translate(352, 0)">
+        <text x="11" y="30" text-anchor="middle" font-family="serif" font-size="20">A</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
