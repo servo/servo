@@ -474,7 +474,7 @@ struct CefCompositorProxy {
 }
 
 impl CompositorProxy for CefCompositorProxy {
-    fn send(&mut self, msg: compositor_task::Msg) {
+    fn send(&self, msg: compositor_task::Msg) {
         self.sender.send(msg).unwrap();
         app_wakeup();
     }

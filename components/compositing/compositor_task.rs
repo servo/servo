@@ -35,7 +35,7 @@ use util::cursor::Cursor;
 /// process, and so forth.
 pub trait CompositorProxy : 'static + Send {
     /// Sends a message to the compositor.
-    fn send(&mut self, msg: Msg);
+    fn send(&self, msg: Msg);
     /// Clones the compositor proxy.
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+'static+Send>;
 }
@@ -62,7 +62,7 @@ impl CompositorReceiver for Receiver<Msg> {
     }
 }
 
-pub fn run_script_listener_thread(mut compositor_proxy: Box<CompositorProxy + 'static + Send>,
+pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'static + Send>,
                                   receiver: IpcReceiver<ScriptToCompositorMsg>) {
     while let Ok(msg) = receiver.recv() {
         match msg {
@@ -197,6 +197,8 @@ pub enum Msg {
     /// Signal that the paint task ignored the paint requests that carried
     /// these layer buffers, so that they can be re-added to the surface cache.
     ReturnUnusedLayerBuffers(Vec<Box<LayerBuffer>>),
+    /// Collect memory reports and send them back to the given mem::ReportsChan.
+    CollectMemoryReports(mem::ReportsChan),
 }
 
 impl Debug for Msg {
@@ -226,6 +228,7 @@ impl Debug for Msg {
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
             Msg::HeadParsed => write!(f, "HeadParsed"),
             Msg::ReturnUnusedLayerBuffers(..) => write!(f, "ReturnUnusedLayerBuffers"),
+            Msg::CollectMemoryReports(..) => write!(f, "CollectMemoryReports"),
         }
     }
 }
