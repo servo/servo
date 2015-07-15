@@ -142,7 +142,9 @@ impl WebSocket {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
                 let global_root = ws.r().global.root();
                 let address = Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
-                let task = box WebSocketTaskHandler::new(address, WebSocketTask::Close);
+                let task = box CloseTask {
+                    addr: address,
+                };
                 global_root.r().script_chan().send(ScriptMsg::RunnableMsg(task)).unwrap();
                 return Ok(ws);
             }
@@ -155,7 +157,9 @@ impl WebSocket {
         let global_root = ws.r().global.root();
         let addr: Trusted<WebSocket> =
             Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
-        let open_task = box WebSocketTaskHandler::new(addr, WebSocketTask::ConnectionEstablished);
+        let open_task = box ConnectionEstablishedTask {
+            addr: addr,
+        };
         global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
         //TODO: Spawn thread here for receive loop
         /*TODO: Add receive loop here and make new thread run this
@@ -273,29 +277,13 @@ impl<'a> WebSocketMethods for &'a WebSocket {
 }
 
 
-pub enum WebSocketTask {
-    /// Task queued when *the WebSocket connection is established*.
-    ConnectionEstablished,
-    Close,
-}
-
-pub struct WebSocketTaskHandler {
+/// Task queued when *the WebSocket connection is established*.
+struct ConnectionEstablishedTask {
     addr: Trusted<WebSocket>,
-    task: WebSocketTask,
 }
 
-impl WebSocketTaskHandler {
-    pub fn new(addr: Trusted<WebSocket>, task: WebSocketTask) -> WebSocketTaskHandler {
-        WebSocketTaskHandler {
-            addr: addr,
-            task: task,
-        }
-    }
-
-    fn connection_established(&self) {
-        /*TODO: Items 1, 3, 4, & 5 under "WebSocket connection is established" as specified here:
-          https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol
-        */
+impl Runnable for ConnectionEstablishedTask {
+    fn handler(self: Box<Self>) {
         let ws = self.addr.root();
 
         // Step 1: Protocols.
@@ -314,8 +302,14 @@ impl WebSocketTaskHandler {
                                EventCancelable::NotCancelable);
         event.fire(EventTargetCast::from_ref(ws.r()));
     }
+}
 
-    fn dispatch_close(&self) {
+struct CloseTask {
+    addr: Trusted<WebSocket>,
+}
+
+impl Runnable for CloseTask {
+    fn handler(self: Box<Self>) {
         let ws = self.addr.root();
         let ws = ws.r();
         let global = ws.global.root();
@@ -350,17 +344,3 @@ impl WebSocketTaskHandler {
         event.fire(target);
     }
 }
-
-impl Runnable for WebSocketTaskHandler {
-    fn handler(self: Box<WebSocketTaskHandler>) {
-        match self.task {
-            WebSocketTask::ConnectionEstablished => {
-                self.connection_established();
-            }
-            WebSocketTask::Close => {
-                self.dispatch_close();
-            }
-        }
-    }
-}
-
