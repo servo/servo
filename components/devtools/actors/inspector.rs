@@ -459,7 +459,8 @@ impl Actor for PageStyleActor {
                                 .unwrap();
                 let (width, height) = rx.recv().unwrap();
 
-                let auto_margins = msg.get(&"autoMargins".to_string()).unwrap().as_boolean().unwrap();
+                let auto_margins = msg.get(&"autoMargins".to_string())
+                    .and_then(&Json::as_boolean).unwrap_or(false);
 
                 //TODO: the remaining layout properties (margin, border, padding, position)
                 //      as specified in getLayout in
