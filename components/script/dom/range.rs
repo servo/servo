@@ -13,10 +13,13 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::documentfragment::DocumentFragment;
 use dom::node::{Node, NodeHelpers, NodeTypeId};
+
+use util::str::DOMString;
 
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
@@ -41,7 +44,9 @@ impl Range {
 
     pub fn new_with_doc(document: &Document) -> Root<Range> {
         let root = NodeCast::from_ref(document);
-        Range::new(document, root, 0, root, 0)
+        let range = Range::new(document, root, 0, root, 0);
+        document.add_mutation_observer(range.inner().downgrade());
+        range
     }
 
     pub fn new(document: &Document,
@@ -82,6 +87,12 @@ impl Range {
         let inner = self.inner.borrow();
         inner.start.node().inclusive_ancestors().any(|n| n.r() == node) !=
             inner.end.node().inclusive_ancestors().any(|n| n.r() == node)
+    }
+}
+
+impl Drop for Range {
+    fn drop(&mut self) {
+        //self.StartContainer().owner_doc().remove_mutation_observer(self);
     }
 }
 
@@ -313,21 +324,18 @@ impl<'a> RangeMethods for &'a Range {
     // https://dom.spec.whatwg.org/#dom-range-clonecontents
     // https://dom.spec.whatwg.org/#concept-range-clone
     fn CloneContents(self) -> Fallible<Root<DocumentFragment>> {
-        let inner = self.inner.borrow();
-        let start = &inner.start;
-        let end = &inner.end;
 
         // Step 3.
-        let start_node = start.node();
-        let start_offset = start.offset();
-        let end_node = end.node();
-        let end_offset = end.offset();
+        let start_node = self.StartContainer();
+        let start_offset = self.StartOffset();
+        let end_node = self.EndContainer();
+        let end_offset = self.EndOffset();
 
         // Step 1.
         let fragment = DocumentFragment::new(start_node.owner_doc().r());
 
         // Step 2.
-        if start == end {
+        if self.Collapsed() {
             return Ok(fragment);
         }
 
@@ -780,6 +788,121 @@ impl RangeInner {
         }
         // Step 6.
         Ok(Ordering::Equal)
+    }
+}
+
+pub trait MutationObserver : JSTraceable {
+    fn character_data_replaced(&mut self, node: &Node, offset: u32, count: u32, data: &DOMString);
+    fn node_inserted(&mut self, parent: &Node, child: &Node, index: u32, count: u32);
+    fn node_removed(&mut self, parent: &Node, child: &Node, index: u32);
+    fn text_will_split(&mut self, node: &Node, parent: &Node, offset: u32, new_node: &Node);
+    fn text_split(&mut self, node: &Node, offset: u32);
+}
+
+impl MutationObserver for RangeInner {
+
+    // https://dom.spec.whatwg.org/#dom-characterdata-replacedata-offset-count-data-offset
+    fn character_data_replaced(&mut self, node: &Node, offset: u32, count: u32, data: &DOMString) {
+        let start_node = self.start.node();
+        let start_offset = self.start.offset;
+        let end_node = self.end.node();
+        let end_offset = self.end.offset;
+
+        // Step 8.
+        if start_node.r() == node && start_offset > offset && start_offset <= offset + count {
+            self.start.offset = offset;
+        }
+
+        // Step 9.
+        if end_node.r() == node && end_offset > offset && end_offset <= offset + count {
+            self.end.offset = offset;
+        }
+
+        // Step 10.
+        if start_node.r() == node && start_offset > offset + count {
+            self.start.offset =
+                (self.start.offset as i32 + data.len() as i32 - count as i32) as u32;
+        }
+
+        // Step 11.
+        if end_node.r() == node && end_offset > offset + count {
+            self.end.offset =
+                (self.end.offset as i32 + data.len() as i32 - count as i32) as u32;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-node-insert
+    fn node_inserted(&mut self, parent: &Node, child: &Node, index: u32, count: u32) {
+        // Step 2.1.
+        if self.start.node().r() == parent && self.start.offset > index {
+            self.start.offset += count;
+        }
+
+        // Step 2.2.
+        if self.end.node().r() == parent && self.end.offset > index {
+            self.end.offset += count;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-node-remove
+    fn node_removed(&mut self, parent: &Node, child: &Node, index: u32) {
+        // Step 2.
+        if child.is_inclusive_ancestor_of(self.start.node().r()) {
+            self.start.set(parent, index);
+        }
+
+        // Step 3.
+        if child.is_inclusive_ancestor_of(self.start.node().r()) {
+            self.end.set(parent, index);
+        }
+
+        // Step 4.
+        if self.start.node().r() == parent && self.start.offset > index {
+          self.start.offset -= 1;
+        }
+
+        // Step 5.
+        if self.end.node().r() == parent && self.end.offset > index {
+          self.end.offset -= 1;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-Text-split
+    fn text_will_split(&mut self, node: &Node, parent: &Node, offset: u32, new_node: &Node) {
+        // Step 7.2.
+        if self.start.node().r() == node && self.start.offset > offset {
+            self.start.node = JS::from_ref(new_node);
+            self.start.offset -= offset;
+        }
+
+        // Step 7.3.
+        if self.end.node().r() == node && self.end.offset > offset {
+            self.end.node = JS::from_ref(new_node);
+            self.end.offset -= offset;
+        }
+
+        // Step 7.4.
+        if self.start.node().r() == parent && self.start.offset == node.index() + 1 {
+            self.start.offset += 1;
+        }
+
+        // Step 7.5.
+        if self.end.node().r() == parent && self.end.offset == node.index() + 1 {
+            self.end.offset += 1;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-Text-split
+    fn text_split(&mut self, node: &Node, offset: u32) {
+        // Step 9.1.
+        if self.start.node().r() == node && self.start.offset > offset {
+            self.start.offset = offset;
+        }
+
+        // Step 9.2.
+        if self.end.node().r() == node && self.end.offset > offset {
+            self.end.offset = offset;
+        }
     }
 }
 

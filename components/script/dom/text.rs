@@ -71,16 +71,19 @@ impl<'a> TextMethods for &'a Text {
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
             // Step 7.
-            parent.r().InsertBefore(NodeCast::from_ref(new_node.r()),
-                                    node.GetNextSibling().r())
+            parent.InsertBefore(NodeCast::from_ref(new_node.r()),
+                                node.GetNextSibling().r())
                   .unwrap();
-            // TODO: Ranges.
+            parent.owner_doc().text_will_split(node,
+                                               parent,
+                                               offset,
+                                               NodeCast::from_ref(new_node.r()));
         }
         // Step 8.
         cdata.DeleteData(offset, count).unwrap();
         if parent.is_none() {
             // Step 9.
-            // TODO: Ranges
+            node.owner_doc().text_split(node, offset);
         }
         // Step 10.
         Ok(new_node)

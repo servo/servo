@@ -111,7 +111,9 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
         data.push_str(&arg);
         data.push_str(&self.data.borrow().slice_chars((offset + count) as usize, length as usize));
         *self.data.borrow_mut() = data;
-        // FIXME: Once we have `Range`, we should implement step7 to step11
+
+        let node = NodeCast::from_ref(self);
+        node.owner_doc().character_data_replaced(node, offset, count, arg);
         Ok(())
     }
 

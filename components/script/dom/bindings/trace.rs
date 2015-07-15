@@ -68,7 +68,7 @@ use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
@@ -136,21 +136,30 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
     }
 }
 
-impl<T: JSTraceable> JSTraceable for RefCell<T> {
+impl<T: JSTraceable + ?Sized> JSTraceable for RefCell<T> {
     fn trace(&self, trc: *mut JSTracer) {
         self.borrow().trace(trc)
     }
 }
 
-impl<T: JSTraceable> JSTraceable for Rc<T> {
+impl<T: JSTraceable + ?Sized> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
 }
 
-impl<T: JSTraceable> JSTraceable for Box<T> {
+impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
+    }
+}
+
+impl<T: JSTraceable + ?Sized> JSTraceable for Weak<T> {
+    fn trace(&self, trc: *mut JSTracer) {
+        match self.upgrade() {
+            Some(ptr) => ptr.trace(trc),
+            _ => ()
+        }
     }
 }
 
