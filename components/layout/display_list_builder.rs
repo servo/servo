@@ -829,7 +829,9 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let line_display_item = box LineDisplayItem {
             base: BaseDisplayItem::new(baseline,
-                                       DisplayItemMetadata::new(self.node, style, Cursor::DefaultCursor),
+                                       DisplayItemMetadata::new(self.node,
+                                                                style,
+                                                                Cursor::DefaultCursor),
                                        (*clip).clone()),
             color: color::rgb(0, 200, 0),
             style: border_style::T::dashed,

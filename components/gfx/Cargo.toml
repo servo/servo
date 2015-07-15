@@ -57,6 +57,8 @@ harfbuzz = "0.1"
 smallvec = "0.1"
 string_cache = "0.1"
 euclid = "0.1"
+serde = "*"
+serde_macros = "*"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "*"

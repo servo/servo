@@ -14,9 +14,11 @@
 #![feature(vec_push_all)]
 
 #![plugin(plugins)]
+#![plugin(serde_macros)]
 
 #[macro_use]
 extern crate log;
+extern crate serde;
 
 extern crate azure;
 #[macro_use] extern crate bitflags;

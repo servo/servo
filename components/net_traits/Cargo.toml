@@ -24,4 +24,6 @@ log = "*"
 url = "0.2.35"
 hyper = "0.6"
 euclid = "0.1"
+serde = "*"
+serde_macros = "*"
 
