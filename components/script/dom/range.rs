@@ -15,6 +15,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::characterdata::CharacterDataTypeId;
 use dom::document::{Document, DocumentHelpers};
@@ -44,7 +45,9 @@ impl Range {
 
     pub fn new_with_doc(document: &Document) -> Root<Range> {
         let root = NodeCast::from_ref(document);
-        Range::new(document, root, 0, root, 0)
+        let range = Range::new(document, root, 0, root, 0);
+        document.add_range(range.r());
+        range
     }
 
     pub fn new(document: &Document,
@@ -81,6 +84,12 @@ impl Range {
         let inner = self.inner.borrow();
         inner.start.node().inclusive_ancestors().any(|n| n.r() == node) !=
             inner.end.node().inclusive_ancestors().any(|n| n.r() == node)
+    }
+}
+
+impl Drop for Range {
+    fn drop(&mut self) {
+        self.StartContainer().owner_doc().remove_range(self);
     }
 }
 
@@ -312,21 +321,18 @@ impl<'a> RangeMethods for &'a Range {
     // https://dom.spec.whatwg.org/#dom-range-clonecontents
     // https://dom.spec.whatwg.org/#concept-range-clone
     fn CloneContents(self) -> Fallible<Root<DocumentFragment>> {
-        let inner = self.inner.borrow();
-        let start = &inner.start;
-        let end = &inner.end;
 
         // Step 3.
-        let start_node = start.node();
-        let start_offset = start.offset();
-        let end_node = end.node();
-        let end_offset = end.offset();
+        let start_node = self.StartContainer();
+        let start_offset = self.StartOffset();
+        let end_node = self.EndContainer();
+        let end_offset = self.EndOffset();
 
         // Step 1.
         let fragment = DocumentFragment::new(start_node.owner_doc().r());
 
         // Step 2.
-        if start == end {
+        if self.Collapsed() {
             return Ok(fragment);
         }
 
@@ -698,7 +704,7 @@ impl<'a> RangeMethods for &'a Range {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(PartialEq, JSTraceable)]
 #[must_root]
 #[privatize]
 pub struct RangeInner {
@@ -709,6 +715,14 @@ pub struct RangeInner {
 impl RangeInner {
     fn new(start: BoundaryPoint, end: BoundaryPoint) -> RangeInner {
         RangeInner { start: start, end: end }
+    }
+
+    pub fn start(&self) -> &BoundaryPoint {
+        &self.start
+    }
+
+    pub fn end(&self) -> &BoundaryPoint {
+        &self.end
     }
 
     // https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer
@@ -859,8 +873,8 @@ impl BoundaryPoint {
     }
 
     fn set(&mut self, node: &Node, offset: u32) {
-        debug_assert!(!node.is_doctype());
-        debug_assert!(offset <= node.len());
+        //debug_assert!(offset <= node.len());
+        //debug_assert!(!node.is_doctype());
         self.node = JS::from_ref(node);
         self.offset = offset;
     }
