@@ -6,5 +6,12 @@
 //! rest of Servo. These APIs are here instead of in `profile` so that these
 //! modules won't have to depend on `profile`.
 
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
+
+extern crate ipc_channel;
+extern crate serde;
+
 pub mod mem;
 pub mod time;
+
