@@ -14,22 +14,20 @@ use dom::window::Window;
 pub struct DOMRectList {
     reflector_: Reflector,
     rects: Vec<JS<DOMRect>>,
-    window: JS<Window>,
 }
 
 impl DOMRectList {
-    fn new_inherited<T>(window: &Window, rects: T) -> DOMRectList
+    fn new_inherited<T>(rects: T) -> DOMRectList
                         where T: Iterator<Item=Root<DOMRect>> {
         DOMRectList {
             reflector_: Reflector::new(),
             rects: rects.map(|r| JS::from_rooted(&r)).collect(),
-            window: JS::from_ref(window),
         }
     }
 
     pub fn new<T>(window: &Window, rects: T) -> Root<DOMRectList>
                   where T: Iterator<Item=Root<DOMRect>> {
-        reflect_dom_object(box DOMRectList::new_inherited(window, rects),
+        reflect_dom_object(box DOMRectList::new_inherited(rects),
                            GlobalRef::Window(window), DOMRectListBinding::Wrap)
     }
 }
