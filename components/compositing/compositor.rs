@@ -22,6 +22,8 @@ use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::PaintRequest;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
@@ -37,7 +39,7 @@ use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, WindowSizeData};
 use png;
-use profile_traits::mem;
+use profile_traits::mem::{self, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
 use std::collections::HashMap;
@@ -257,7 +259,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            -> IOCompositor<Window> {
 
         // Register this thread as a memory reporter, via its own channel.
-        let reporter = box CompositorMemoryReporter(sender.clone_compositor_proxy());
+        let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+        let compositor_proxy_for_memory_reporter = sender.clone_compositor_proxy();
+        ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
+            let reporter_request: ReporterRequest = reporter_request.to().unwrap();
+            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(reporter_request.reports_channel));
+        });
+        let reporter = Reporter(reporter_sender);
         mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
 
         let window_size = window.framebuffer_size();
@@ -1723,19 +1731,3 @@ pub enum CompositingReason {
     Zoom,
 }
 
-struct CompositorMemoryReporter(Box<CompositorProxy+'static+Send>);
-
-impl CompositorMemoryReporter {
-    pub fn send(&self, message: Msg) {
-        let CompositorMemoryReporter(ref proxy) = *self;
-        proxy.send(message);
-    }
-}
-
-impl mem::Reporter for CompositorMemoryReporter {
-    fn collect_reports(&self, reports_chan: mem::ReportsChan) -> bool {
-        // FIXME(mrobinson): The port should probably return the success of the message here.
-        self.send(Msg::CollectMemoryReports(reports_chan));
-        true
-    }
-}

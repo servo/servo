@@ -39,13 +39,14 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::router::ROUTER;
 use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use profile_traits::mem::{self, Report, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportsChan};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use net_traits::{load_bytes_iter, PendingAsyncLoad};
@@ -242,11 +243,20 @@ impl LayoutTaskFactory for LayoutTask {
                                              time_profiler_chan,
                                              mem_profiler_chan.clone());
 
-                // Register this thread as a memory reporter, via its own channel.
-                let reporter = box layout_chan.clone();
+                // Create a memory reporter thread.
                 let reporter_name = format!("layout-reporter-{}", id.0);
-                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
-                mem_profiler_chan.send(msg);
+                let (reporter_sender, reporter_receiver) =
+                    ipc::channel::<ReporterRequest>().unwrap();
+                let layout_chan_for_reporter = layout_chan.clone();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
+                    // Just injects an appropriate event into the layout task's queue.
+                    let request: ReporterRequest = message.to().unwrap();
+                    layout_chan_for_reporter.0.send(Msg::CollectReports(request.reports_channel))
+                                              .unwrap();
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
 
                 layout.start();
 
