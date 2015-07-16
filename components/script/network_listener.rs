@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use script_task::{ScriptChan, ScriptMsg, Runnable};
-use ipc_channel::ipc::IpcReceiver;
 use net_traits::{AsyncResponseListener, ResponseAction};
 use std::sync::{Arc, Mutex};
 
@@ -12,17 +11,14 @@ use std::sync::{Arc, Mutex};
 pub struct NetworkListener<T: AsyncResponseListener + PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<T>>,
     pub script_chan: Box<ScriptChan+Send>,
-    pub receiver: IpcReceiver<ResponseAction>,
 }
 
 impl<T: AsyncResponseListener + PreInvoke + Send + 'static> NetworkListener<T> {
-    pub fn run(&self) {
-        while let Ok(action) = self.receiver.recv() {
-            self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
-                context: self.context.clone(),
-                action: action,
-            })).unwrap();
-        }
+    pub fn invoke_with_listener(&self, action: ResponseAction) {
+        self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
+            context: self.context.clone(),
+            action: action,
+        })).unwrap();
     }
 }
 

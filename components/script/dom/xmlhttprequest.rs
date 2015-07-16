@@ -53,13 +53,14 @@ use util::str::DOMString;
 use util::task::spawn_named;
 
 use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
 use std::default::Default;
 use std::sync::{Mutex, Arc};
 use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::thread::{self, sleep_ms};
+use std::thread::sleep_ms;
 use time;
 use url::{Url, UrlParser};
 
@@ -275,13 +276,13 @@ impl XMLHttpRequest {
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan,
-            receiver: action_receiver,
         };
         let response_target = AsyncResponseTarget {
             sender: action_sender,
         };
-        // TODO(pcwalton): Share this thread with other network listeners for each script task.
-        thread::spawn(move || listener.run());
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.invoke_with_listener(message.to().unwrap());
+        });
         resource_task.send(Load(load_data, LoadConsumer::Listener(response_target))).unwrap();
     }
 }

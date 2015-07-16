@@ -87,6 +87,7 @@ use js::rust::Runtime;
 use url::Url;
 
 use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
@@ -99,7 +100,6 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
-use std::thread;
 use time::Tm;
 
 use hyper::header::{ContentType, HttpDate};
@@ -1544,10 +1544,10 @@ impl ScriptTask {
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan.clone(),
-            receiver: action_receiver,
         };
-        // TODO(pcwalton): Share this thread with other network listeners for each script task.
-        thread::spawn(move || listener.run());
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.invoke_with_listener(message.to().unwrap());
+        });
         let response_target = AsyncResponseTarget {
             sender: action_sender,
         };
