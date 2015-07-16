@@ -28,10 +28,9 @@ use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserializer, Serializer};
 use url::Url;
 
-use std::str::FromStr;
 use std::thread;
 
 pub mod image_cache_task;
