@@ -200,7 +200,9 @@ impl<'a> WebSocketMethods for &'a WebSocket {
 
             let mut sender = this.sender.borrow_mut();
             //TODO: Also check if the buffer is full
-            let _ = sender.as_mut().unwrap().send_message(Message::Close(None));
+            if let Some(sender) = sender.as_mut() {
+                let _ = sender.send_message(Message::Close(None));
+            }
         }
 
 
