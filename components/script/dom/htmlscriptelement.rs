@@ -40,13 +40,13 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{Encoding, EncodingRef, DecoderTrap};
 use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use net_traits::{Metadata, AsyncResponseListener, AsyncResponseTarget};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use html5ever::tree_builder::NextParserState;
 use std::cell::{RefCell, Cell};
 use std::mem;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use string_cache::Atom;
 use url::{Url, UrlParser};
 
@@ -335,14 +335,13 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                         let listener = box NetworkListener {
                             context: context,
                             script_chan: script_chan,
-                            receiver: action_receiver,
                         };
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,
                         };
-                        // TODO(pcwalton): Share this thread with other network listeners for each
-                        // script task.
-                        thread::spawn(move || listener.run());
+                        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                            listener.invoke_with_listener(message.to().unwrap());
+                        });
 
                         doc.r().load_async(LoadType::Script(url), response_target);
 
