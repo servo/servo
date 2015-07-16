@@ -1657,7 +1657,18 @@ impl Node {
         }
 
         // XXX assert owner_doc
-        // Step 1-3: ranges.
+        // Step 1.
+        let count = match node.type_id() {
+            NodeTypeId::DocumentFragment => node.children().count() as u32,
+            _ => 1
+        };
+
+        // Step 2.
+        if let Some(child) = child {
+            parent.owner_doc().node_inserted(parent, child, child.index(), count);
+        }
+
+        // Step 3: mutation records
 
         match node.type_id() {
             NodeTypeId::DocumentFragment => {
@@ -1760,8 +1771,12 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &Node, parent: &Node, _suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent.r() == parent));
+        // Step 1.
+        let index = node.index();
 
-        // Step 1-5: ranges.
+        // Steps 2-5
+        parent.owner_doc().node_removed(parent, node, index);
+
         // Step 6-7: mutation observers.
         // Step 8.
         parent.remove_child(node);

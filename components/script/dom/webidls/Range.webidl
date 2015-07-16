@@ -44,10 +44,10 @@ interface Range {
   short compareBoundaryPoints(unsigned short how, Range sourceRange);
   // [Throws]
   // void deleteContents();
-  // [NewObject, Throws]
-  // DocumentFragment extractContents();
-  // [NewObject, Throws]
-  // DocumentFragment cloneContents();
+  [NewObject, Throws]
+  DocumentFragment extractContents();
+  [NewObject, Throws]
+  DocumentFragment cloneContents();
   // [Throws]
   // void insertNode(Node node);
   // [Throws]

@@ -59,6 +59,7 @@ use dom::nodelist::NodeList;
 use dom::nodeiterator::NodeIterator;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::range::MutationObserver;
 use dom::range::Range;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::treewalker::TreeWalker;
@@ -97,7 +98,7 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::default::Default;
 use std::ptr;
 use std::sync::mpsc::channel;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use time;
 
 #[derive(JSTraceable, PartialEq)]
@@ -149,6 +150,8 @@ pub struct Document {
     current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
+    /// List of mutation observers
+    observers: RefCell<Vec<Weak<RefCell<MutationObserver>>>>,
 }
 
 impl PartialEq for Document {
@@ -1073,6 +1076,7 @@ impl Document {
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
+            observers: RefCell::new(Vec::new()),
         }
     }
 
@@ -1104,6 +1108,51 @@ impl Document {
             node.set_owner_doc(document.r());
         }
         document
+    }
+
+    pub fn add_mutation_observer(&self, observer: Weak<RefCell<MutationObserver>>) {
+        self.observers.borrow_mut().push(observer);
+    }
+
+    pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
+        /*self.observers
+            .borrow_mut()
+            .retain(|o| &&*o.upgrade().unwrap().borrow() != &observer);*/
+    }
+
+    pub fn character_data_replaced(&self, node: &Node, offset: u32, count: u32, data: DOMString) {
+        for observer in self.observers.borrow().iter() {
+            let observer = observer.upgrade().unwrap();
+            observer.borrow_mut().character_data_replaced(node, offset, count, &data);
+        }
+    }
+
+    pub fn node_inserted(&self, parent: &Node, child: &Node, index: u32, count: u32) {
+        for observer in self.observers.borrow().iter() {
+            let observer = observer.upgrade().unwrap();
+            observer.borrow_mut().node_inserted(parent, child, index, count);
+        }
+    }
+
+    pub fn node_removed(&self, parent: &Node, child: &Node, index: u32) {
+        for observer in self.observers.borrow().iter() {
+            let observer = observer.upgrade().unwrap();
+            observer.borrow_mut().node_removed(parent, child, index);
+        }
+    }
+
+    pub fn text_will_split(&self, node: &Node, parent: &Node, offset: u32, new_node: &Node) {
+        for observer in self.observers.borrow().iter() {
+            let observer = observer.upgrade().unwrap();
+            observer.borrow_mut().text_will_split(node, parent, offset, new_node);
+        }
+    }
+
+    pub fn text_split(&self, node: &Node, offset: u32) {
+        for observer in self.observers.borrow().iter() {
+            let observer = observer.upgrade().unwrap();
+            observer.borrow_mut().text_split(node, offset);
+        }
     }
 }
 

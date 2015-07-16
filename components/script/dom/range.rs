@@ -2,18 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
-use dom::node::{Node, NodeHelpers};
+use dom::documentfragment::DocumentFragment;
+use dom::node::{Node, NodeHelpers, NodeTypeId};
+
+use util::str::DOMString;
 
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
@@ -38,7 +44,9 @@ impl Range {
 
     pub fn new_with_doc(document: &Document) -> Root<Range> {
         let root = NodeCast::from_ref(document);
-        Range::new(document, root, 0, root, 0)
+        let range = Range::new(document, root, 0, root, 0);
+        document.add_mutation_observer(range.inner().downgrade());
+        range
     }
 
     pub fn new(document: &Document,
@@ -56,6 +64,35 @@ impl Range {
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<Range>> {
         let document = global.as_window().Document();
         Ok(Range::new_with_doc(document.r()))
+    }
+
+    // https://dom.spec.whatwg.org/#contained
+    fn contains(self: &Range, node: &Node) -> bool {
+        let inner = self.inner.borrow();
+        let start = &inner.start;
+        let end = &inner.end;
+        match (bp_position(node, 0, start.node().r(), start.offset()).unwrap(),
+               bp_position(node, node.len(), end.node().r(), end.offset()).unwrap()) {
+            (Ordering::Greater, Ordering::Less) => {
+                true
+            },
+            _ => {
+                false
+            }
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#partially-contained
+    fn partially_contains(self: &Range, node: &Node) -> bool {
+        let inner = self.inner.borrow();
+        inner.start.node().inclusive_ancestors().any(|n| n.r() == node) !=
+            inner.end.node().inclusive_ancestors().any(|n| n.r() == node)
+    }
+}
+
+impl Drop for Range {
+    fn drop(&mut self) {
+        //self.StartContainer().owner_doc().remove_mutation_observer(self);
     }
 }
 
@@ -247,7 +284,7 @@ impl<'a> RangeMethods for &'a Range {
         })
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-intersectsnodenode
+    // https://dom.spec.whatwg.org/#dom-range-intersectsnode
     fn IntersectsNode(self, node: &Node) -> bool {
         let inner = self.inner().borrow();
         let start = &inner.start;
@@ -282,6 +319,336 @@ impl<'a> RangeMethods for &'a Range {
                 false
             }
         }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-range-clonecontents
+    // https://dom.spec.whatwg.org/#concept-range-clone
+    fn CloneContents(self) -> Fallible<Root<DocumentFragment>> {
+
+        // Step 3.
+        let start_node = self.StartContainer();
+        let start_offset = self.StartOffset();
+        let end_node = self.EndContainer();
+        let end_offset = self.EndOffset();
+
+        // Step 1.
+        let fragment = DocumentFragment::new(start_node.owner_doc().r());
+
+        // Step 2.
+        if self.Collapsed() {
+            return Ok(fragment);
+        }
+
+        if end_node == start_node {
+            match end_node.type_id() {
+                NodeTypeId::CharacterData(_) => {
+                    // Step 4.1.
+                    let clone = start_node.CloneNode(true);
+                    // Step 4.2.
+                    let text = CharacterDataCast::to_ref(start_node.r())
+                                   .unwrap()
+                                   .SubstringData(start_offset,
+                                                  end_offset - start_offset);
+                     CharacterDataCast::to_ref(clone.r()).unwrap().SetData(text.unwrap());
+                     // Step 4.3.
+                     try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                     // Step 4.4
+                     return Ok(fragment);
+                },
+                _ => ()
+            }
+        }
+
+        // Steps 5-6.
+        let common_ancestor =
+            start_node.inclusive_ancestors()
+                      .find(|node| node.is_inclusive_ancestor_of(end_node.r()))
+                      .unwrap();
+
+        let first_contained_child =
+            if start_node.is_inclusive_ancestor_of(end_node.r()) {
+                // Step 7.
+                None
+            } else {
+                // Step 8.
+                common_ancestor.children()
+                               .find(|node| Range::partially_contains(self, node))
+            };
+
+        let last_contained_child =
+            if end_node.is_inclusive_ancestor_of(start_node.r()) {
+                // Step 9.
+                None
+            } else {
+                // Step 10.
+                common_ancestor.rev_children()
+                               .find(|node| Range::partially_contains(self, node))
+            };
+
+        // Step 11.
+        let contained_children =
+            common_ancestor.children().filter(|n| Range::contains(self, n));
+
+        // Step 12.
+        if common_ancestor.children()
+                          .filter(|n| Range::contains(self, n))
+                          .any(|n| n.is_doctype()) {
+            return Err(HierarchyRequest);
+        }
+
+        if let Some(child) = first_contained_child {
+            match child.type_id() {
+                // Step 13.
+                NodeTypeId::CharacterData(_) => {
+                    // Step 13.1.
+                    let clone = start_node.CloneNode(true);
+                    // Step 13.2.
+                    let text = CharacterDataCast::to_ref(start_node.r())
+                                   .unwrap()
+                                   .SubstringData(start_offset,
+                                                  start_node.len() - start_offset);
+                    CharacterDataCast::to_ref(clone.r()).unwrap().SetData(text.unwrap());
+                    // Step 13.3.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                },
+                _ => {
+                    // Step 14.1.
+                    let clone = child.CloneNode(false);
+                    // Step 14.2.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                    // Step 14.3.
+                    let subrange = Range::new(clone.owner_doc().r(),
+                                              start_node.r(),
+                                              start_offset,
+                                              child.r(),
+                                              child.len());
+                    // Step 14.4.
+                    let subfragment = try!(subrange.CloneContents());
+                    // Step 14.5.
+                    try!(clone.AppendChild(NodeCast::from_ref(subfragment.r())));
+                }
+            }
+        }
+
+        // Step 15.
+        for child in contained_children {
+            // Step 15.1.
+            let clone = child.CloneNode(true);
+            // Step 15.2.
+            try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+        }
+
+        if let Some(child) = last_contained_child {
+            match child.type_id() {
+                // Step 16.
+                NodeTypeId::CharacterData(_) => {
+                    // Step 16.1.
+                    let clone = end_node.CloneNode(true);
+                    // Step 16.2.
+                    let text = CharacterDataCast::to_ref(end_node.r())
+                                   .unwrap()
+                                   .SubstringData(0, end_offset);
+                    CharacterDataCast::to_ref(clone.r()).unwrap().SetData(text.unwrap());
+                    // Step 16.3.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                },
+                _ => {
+                    // Step 17.1.
+                    let clone = child.CloneNode(false);
+                    // Step 17.2.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                    // Step 17.3.
+                    let subrange = Range::new(clone.owner_doc().r(),
+                                              child.r(),
+                                              0,
+                                              end_node.r(),
+                                              end_offset);
+                    // Step 17.4.
+                    let subfragment = try!(subrange.CloneContents());
+                    // Step 17.5.
+                    try!(clone.AppendChild(NodeCast::from_ref(subfragment.r())));
+                }
+            }
+        }
+
+        // Step 18.
+        Ok(fragment)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-range-extractcontents
+    // https://dom.spec.whatwg.org/#concept-range-extract
+    fn ExtractContents(self) -> Fallible<Root<DocumentFragment>> {
+
+        // Step 3.
+        let (start_node, start_offset, end_node, end_offset) = {
+            let inner = self.inner.borrow();
+            let start = &inner.start;
+            let end = &inner.end;
+            (start.node(), start.offset(), end.node(), end.offset())
+        };
+
+        // Step 1.
+        let fragment = DocumentFragment::new(start_node.owner_doc().r());
+
+        // Step 2.
+        if self.Collapsed() {
+            return Ok(fragment);
+        }
+
+        if end_node == start_node {
+            match end_node.type_id() {
+                NodeTypeId::CharacterData(_) => {
+                    // Step 4.1.
+                    let clone = start_node.CloneNode(true);
+                    // Step 4.2.
+                    let start_data = CharacterDataCast::to_ref(start_node.r()).unwrap();
+                    let text = start_data.SubstringData(start_offset,
+                                                        end_offset - start_offset);
+                    CharacterDataCast::to_ref(clone.r()).unwrap().SetData(text.unwrap());
+                    // Step 4.3.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                    // Step 4.4.
+                    try!(start_data.ReplaceData(start_offset,
+                                                end_offset - start_offset,
+                                                "".to_owned()));
+                    // Step 4.5.
+                    return Ok(fragment);
+                },
+                _ => ()
+            }
+        }
+
+        // Steps 5-6.
+        let common_ancestor =
+            start_node.inclusive_ancestors()
+                      .find(|node| node.is_inclusive_ancestor_of(end_node.r()))
+                      .unwrap();
+
+        let first_contained_child =
+            if start_node.is_inclusive_ancestor_of(end_node.r()) {
+                // Step 7.
+                None
+            } else {
+                // Step 8.
+                common_ancestor.children()
+                               .find(|node| Range::partially_contains(self, node))
+            };
+
+        let last_contained_child =
+            if end_node.is_inclusive_ancestor_of(start_node.r()) {
+                // Step 9.
+                None
+            } else {
+                // Step 10.
+                common_ancestor.rev_children()
+                               .find(|node| Range::partially_contains(self, node))
+            };
+
+        // Step 11.
+        let contained_children =
+            common_ancestor.children().filter(|n| Range::contains(self, n));
+
+        // Step 12.
+        if common_ancestor.children()
+                          .filter(|n| Range::contains(self, n))
+                          .any(|n| n.is_doctype()) {
+            return Err(HierarchyRequest);
+        }
+
+        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(end_node.r()) {
+            // Step 13.
+            (Root::from_ref(start_node.r()), start_offset)
+        } else {
+            // Step 14.1-2.
+            let reference_node = start_node.ancestors()
+                                           .find(|n| n.is_inclusive_ancestor_of(end_node.r()))
+                                           .unwrap();
+            // Step 14.3.
+            (reference_node.GetParentNode().unwrap(), reference_node.index() + 1)
+        };
+
+        if let Some(child) = first_contained_child {
+            match child.type_id() {
+                // Step 15.
+                NodeTypeId::CharacterData(_) => {
+                    // Step 15.1.
+                    let clone = start_node.CloneNode(true);
+                    // Step 15.2.
+                    let start_data = CharacterDataCast::to_ref(start_node.r()).unwrap();
+                    let text = start_data.SubstringData(start_offset,
+                                                        start_node.len() - start_offset);
+                    CharacterDataCast::to_ref(clone.r()).unwrap().SetData(text.unwrap());
+                    // Step 15.3.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                    // Step 15.4.
+                    try!(start_data.ReplaceData(start_offset,
+                                                start_node.len() - start_offset,
+                                                "".to_owned()));
+                },
+                _ => {
+                    // Step 16.1.
+                    let clone = child.CloneNode(false);
+                    // Step 16.2.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                    // Step 16.3.
+                    let subrange = Range::new(clone.owner_doc().r(),
+                                              start_node.r(),
+                                              start_offset,
+                                              child.r(),
+                                              child.len());
+                    // Step 16.4.
+                    let subfragment = try!(subrange.ExtractContents());
+                    // Step 16.5.
+                    try!(clone.AppendChild(NodeCast::from_ref(subfragment.r())));
+                }
+            }
+        }
+
+        // Step 17.
+        for child in contained_children {
+            try!(NodeCast::from_ref(fragment.r()).AppendChild(child.r()));
+        }
+
+        if let Some(child) = last_contained_child {
+            match child.type_id() {
+                // Step 18.
+                NodeTypeId::CharacterData(_) => {
+                    // Step 18.1.
+                    let clone = end_node.CloneNode(true);
+                    // Step 18.2.
+                    let end_data = CharacterDataCast::to_ref(end_node.r()).unwrap();
+                    let text = end_data.SubstringData(0, end_offset);
+                    CharacterDataCast::to_ref(clone.r()).unwrap().SetData(text.unwrap());
+                    // Step 18.3.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                    // Step 18.4.
+                    try!(end_data.ReplaceData(0, end_offset, "".to_owned()));
+                },
+                _ => {
+                    // Step 19.1.
+                    let clone = child.CloneNode(false);
+                    // Step 19.2.
+                    try!(NodeCast::from_ref(fragment.r()).AppendChild(clone.r()));
+                    // Step 19.3.
+                    let subrange = Range::new(clone.owner_doc().r(),
+                                              child.r(),
+                                              0,
+                                              end_node.r(),
+                                              end_offset);
+                    // Step 19.4.
+                    let subfragment = try!(subrange.ExtractContents());
+                    // Step 19.5.
+                    try!(clone.AppendChild(NodeCast::from_ref(subfragment.r())));
+                }
+            }
+        }
+
+        // Step 20.
+        try!(self.SetStart(new_node.r(), new_offset));
+        try!(self.SetEnd(new_node.r(), new_offset));
+
+        // Step 21.
+        Ok(fragment)
     }
 
     // http://dom.spec.whatwg.org/#dom-range-detach
@@ -421,6 +788,121 @@ impl RangeInner {
         }
         // Step 6.
         Ok(Ordering::Equal)
+    }
+}
+
+pub trait MutationObserver : JSTraceable {
+    fn character_data_replaced(&mut self, node: &Node, offset: u32, count: u32, data: &DOMString);
+    fn node_inserted(&mut self, parent: &Node, child: &Node, index: u32, count: u32);
+    fn node_removed(&mut self, parent: &Node, child: &Node, index: u32);
+    fn text_will_split(&mut self, node: &Node, parent: &Node, offset: u32, new_node: &Node);
+    fn text_split(&mut self, node: &Node, offset: u32);
+}
+
+impl MutationObserver for RangeInner {
+
+    // https://dom.spec.whatwg.org/#dom-characterdata-replacedata-offset-count-data-offset
+    fn character_data_replaced(&mut self, node: &Node, offset: u32, count: u32, data: &DOMString) {
+        let start_node = self.start.node();
+        let start_offset = self.start.offset;
+        let end_node = self.end.node();
+        let end_offset = self.end.offset;
+
+        // Step 8.
+        if start_node.r() == node && start_offset > offset && start_offset <= offset + count {
+            self.start.offset = offset;
+        }
+
+        // Step 9.
+        if end_node.r() == node && end_offset > offset && end_offset <= offset + count {
+            self.end.offset = offset;
+        }
+
+        // Step 10.
+        if start_node.r() == node && start_offset > offset + count {
+            self.start.offset =
+                (self.start.offset as i32 + data.len() as i32 - count as i32) as u32;
+        }
+
+        // Step 11.
+        if end_node.r() == node && end_offset > offset + count {
+            self.end.offset =
+                (self.end.offset as i32 + data.len() as i32 - count as i32) as u32;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-node-insert
+    fn node_inserted(&mut self, parent: &Node, child: &Node, index: u32, count: u32) {
+        // Step 2.1.
+        if self.start.node().r() == parent && self.start.offset > index {
+            self.start.offset += count;
+        }
+
+        // Step 2.2.
+        if self.end.node().r() == parent && self.end.offset > index {
+            self.end.offset += count;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-node-remove
+    fn node_removed(&mut self, parent: &Node, child: &Node, index: u32) {
+        // Step 2.
+        if child.is_inclusive_ancestor_of(self.start.node().r()) {
+            self.start.set(parent, index);
+        }
+
+        // Step 3.
+        if child.is_inclusive_ancestor_of(self.start.node().r()) {
+            self.end.set(parent, index);
+        }
+
+        // Step 4.
+        if self.start.node().r() == parent && self.start.offset > index {
+          self.start.offset -= 1;
+        }
+
+        // Step 5.
+        if self.end.node().r() == parent && self.end.offset > index {
+          self.end.offset -= 1;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-Text-split
+    fn text_will_split(&mut self, node: &Node, parent: &Node, offset: u32, new_node: &Node) {
+        // Step 7.2.
+        if self.start.node().r() == node && self.start.offset > offset {
+            self.start.node = JS::from_ref(new_node);
+            self.start.offset -= offset;
+        }
+
+        // Step 7.3.
+        if self.end.node().r() == node && self.end.offset > offset {
+            self.end.node = JS::from_ref(new_node);
+            self.end.offset -= offset;
+        }
+
+        // Step 7.4.
+        if self.start.node().r() == parent && self.start.offset == node.index() + 1 {
+            self.start.offset += 1;
+        }
+
+        // Step 7.5.
+        if self.end.node().r() == parent && self.end.offset == node.index() + 1 {
+            self.end.offset += 1;
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-Text-split
+    fn text_split(&mut self, node: &Node, offset: u32) {
+        // Step 9.1.
+        if self.start.node().r() == node && self.start.offset > offset {
+            self.start.offset = offset;
+        }
+
+        // Step 9.2.
+        if self.end.node().r() == node && self.end.offset > offset {
+            self.end.offset = offset;
+        }
     }
 }
 
