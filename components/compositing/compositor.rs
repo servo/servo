@@ -492,9 +492,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
                 let mut reports = vec![];
+                let name = "compositor-task";
                 reports.push(mem::Report {
-                    path: path!["compositor-task", "buffer-map"],
-                    size: self.buffer_map.mem(),
+                    path: path![name, "buffer-map"], size: self.buffer_map.mem(),
+                });
+                reports.push(mem::Report {
+                    path: path![name, "layer-tree"], size: self.scene.get_memory_usage(),
                 });
                 reports_chan.send(reports);
             }
