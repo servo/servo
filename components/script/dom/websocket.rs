@@ -62,7 +62,6 @@ pub struct WebSocket {
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<DOMString>, //Closing reason
     data: DOMRefCell<DOMString>, //Data from send - TODO: Remove after buffer is added.
-    sendCloseFrame: Cell<bool>
 }
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
@@ -93,7 +92,6 @@ impl WebSocket {
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned()),
             data: DOMRefCell::new("".to_owned()),
-            sendCloseFrame: Cell::new(false)
         }
 
     }
@@ -171,8 +169,15 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     }
 
     fn Send(self, data: Option<USVString>) -> Fallible<()> {
-        if self.ready_state.get() == WebSocketRequestState::Connecting {
-            return Err(Error::InvalidState);
+        match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                return Err(Error::InvalidState);
+            },
+            WebSocketRequestState::Open => (),
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
+                // TODO: Update bufferedAmount.
+                return Ok(());
+            }
         }
 
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
@@ -185,16 +190,22 @@ impl<'a> WebSocketMethods for &'a WebSocket {
         */
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
-        if self.sendCloseFrame.get() { //TODO: Also check if the buffer is full
-            self.sendCloseFrame.set(false);
-            let _ = my_sender.send_message(Message::Close(None));
-            return Ok(());
-        }
         let _ = my_sender.send_message(Message::Text(data.unwrap().0));
         return Ok(())
     }
 
     fn Close(self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
+        fn send_close(this: &WebSocket) {
+            this.ready_state.set(WebSocketRequestState::Closing);
+
+            let mut sender = this.sender.borrow_mut();
+            //TODO: Also check if the buffer is full
+            if let Some(sender) = sender.as_mut() {
+                let _ = sender.send_message(Message::Close(None));
+            }
+        }
+
+
         if let Some(code) = code {
             //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
             if  code != 1000 && (code < 3000 || code > 4999) {
@@ -212,13 +223,8 @@ impl<'a> WebSocketMethods for &'a WebSocket {
             WebSocketRequestState::Connecting => { //Connection is not yet established
                 /*By setting the state to closing, the open function
                   will abort connecting the websocket*/
-                self.ready_state.set(WebSocketRequestState::Closing);
                 self.failed.set(true);
-                self.sendCloseFrame.set(true);
-                //Dispatch send task to send close frame
-                //TODO: Sending here is just empty string, though no string is really needed. Another send, empty
-                //      send, could be used.
-                let _ = self.Send(None);
+                send_close(self);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and
                 //      must fire a close event
             }
@@ -231,10 +237,7 @@ impl<'a> WebSocketMethods for &'a WebSocket {
                 if let Some(reason) = reason {
                     *self.reason.borrow_mut() = reason.0;
                 }
-                self.ready_state.set(WebSocketRequestState::Closing);
-                self.sendCloseFrame.set(true);
-                //Dispatch send task to send close frame
-                let _ = self.Send(None);
+                send_close(self);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and
                 //      must fire a close event
             }
