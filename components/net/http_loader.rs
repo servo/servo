@@ -133,9 +133,7 @@ reason: \"certificate verify failed\" }]))";
                 &HttpsConnector::new(Openssl { context: Arc::new(context) }))
         };
 
-        let mut req = match Request::with_connector(load_data.method.clone(),
-                                                    url.clone(),
-                                                    &mut connector) {
+        let mut req = match req {
             Ok(req) => req,
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&

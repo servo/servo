@@ -16,7 +16,6 @@ path = "../util"
 [dependencies]
 time = "*"
 rustc-serialize = "0.3"
-url = "*"
 bitflags = "*"
 
 [dependencies.url]
@@ -24,8 +23,6 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies.hyper]
-version = "0.5.2"
-git = "https://github.com/pcwalton/hyper"
-branch = "servo-serde"
+version = "0.6"
 features = [ "serde-serialization" ]
 

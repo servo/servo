@@ -27,16 +27,13 @@ git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies]
 bitflags = "*"
-hyper = "0.6"
 rustc-serialize = "0.3.4"
 euclid = "0.1"
 serde = "*"
 serde_macros = "*"
 
 [dependencies.hyper]
-version = "0.5.2"
-git = "https://github.com/pcwalton/hyper"
-branch = "servo-serde"
+version = "0.6"
 features = [ "serde-serialization" ]
 
 [dependencies.url]
