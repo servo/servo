@@ -112,6 +112,7 @@ pub struct Document {
     node: Node,
     window: JS<Window>,
     idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
+    console_timers: DOMRefCell<HashMap<Atom, u64>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -238,6 +239,8 @@ pub trait DocumentHelpers<'a> {
     fn disarm_reflow_timeout(self);
     fn unregister_named_element(self, to_unregister: &Element, id: Atom);
     fn register_named_element(self, element: &Element, id: Atom);
+    fn add_console_timer(self, name: &DOMString);
+    fn remove_console_timer(self, name: &DOMString) -> Option<u64>;
     fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Root<Element>>;
     fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress>;
@@ -457,6 +460,21 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                 elements.insert(head, JS::from_ref(element));
             }
         }
+    }
+
+    fn add_console_timer(self,
+                         name: &DOMString) {
+        let name = atom!(name);
+        let mut console_timers = self.console_timers.borrow_mut();
+        let startTime = time::precise_time_ns();
+        console_timers.insert(name, startTime);
+    }
+
+    fn remove_console_timer(self,
+                            name: &DOMString) -> Option<u64> {
+        let name = &atom!(name);
+        let mut console_timers = self.console_timers.borrow_mut();
+        console_timers.remove(name)
     }
 
     fn load_anchor_href(self, href: DOMString) {
@@ -1038,6 +1056,7 @@ impl Document {
             node: Node::new_without_doc(NodeTypeId::Document),
             window: JS::from_ref(window),
             idmap: DOMRefCell::new(HashMap::new()),
+            console_timers: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
