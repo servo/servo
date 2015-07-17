@@ -50,9 +50,7 @@ impl CharacterData {
 impl<'a> CharacterDataMethods for &'a CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn Data(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let data = self.data.borrow();
-        data.clone()
+        self.data.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-data
@@ -62,9 +60,7 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
     fn Length(self) -> u32 {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let data = self.data.borrow();
-        data.chars().count() as u32
+        self.data.borrow().chars().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-substringdataoffset-count
@@ -154,8 +150,7 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
 }
 
 /// The different types of CharacterData.
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
 pub enum CharacterDataTypeId {
     Comment,
     Text,

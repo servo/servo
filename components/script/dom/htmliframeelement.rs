@@ -14,6 +14,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
+use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{self, AttributeHandlers};
@@ -39,7 +40,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 use util::str::{self, LengthOrPercentageOrAuto};
-use js::jsapi::RootedValue;
+use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 
 enum SandboxAllowance {
@@ -155,6 +156,8 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         if self.Mozbrowser() {
             let window = window_from_node(self);
             let cx = window.r().get_cx();
+            let _ar = JSAutoRequest::new(cx);
+            let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
             let mut detail = RootedValue::new(cx, UndefinedValue());
             event.detail().to_jsval(cx, detail.handle_mut());
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
@@ -177,7 +180,7 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
     #[allow(unsafe_code)]
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+            element::get_attr_for_layout(ElementCast::from_ref(&*self),
                                          &ns!(""),
                                          &atom!("width")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
@@ -188,7 +191,7 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
     #[allow(unsafe_code)]
     fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+            element::get_attr_for_layout(ElementCast::from_ref(&*self),
                                          &ns!(""),
                                          &atom!("height")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
@@ -226,6 +229,27 @@ impl HTMLIFrameElement {
     #[inline]
     pub fn subpage_id(&self) -> Option<SubpageId> {
         self.subpage_id.get()
+    }
+}
+
+pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> Fallible<()> {
+    if iframe.Mozbrowser() {
+        let node = NodeCast::from_ref(iframe);
+        if node.is_in_doc() {
+            let window = window_from_node(iframe);
+            let window = window.r();
+
+            let pipeline_info = Some((iframe.containing_page_pipeline_id().unwrap(),
+                                      iframe.subpage_id().unwrap()));
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let msg = ConstellationMsg::Navigate(pipeline_info, direction);
+            chan.send(msg).unwrap();
+        }
+
+        Ok(())
+    } else {
+        debug!("this frame is not mozbrowser (or experimental_enabled is false)");
+        Err(NotSupported)
     }
 }
 
@@ -305,46 +329,12 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(self) -> Fallible<()> {
-         if self.Mozbrowser() {
-            let node = NodeCast::from_ref(self);
-            if node.is_in_doc() {
-                let window = window_from_node(self);
-                let window = window.r();
-
-                let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
-                                          self.subpage_id().unwrap()));
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                let msg = ConstellationMsg::Navigate(pipeline_info, NavigationDirection::Back);
-                chan.send(msg).unwrap();
-            }
-
-            Ok(())
-        } else {
-            debug!("this frame is not mozbrowser (or experimental_enabled is false)");
-            Err(NotSupported)
-        }
+        Navigate(self, NavigationDirection::Back)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(self) -> Fallible<()> {
-         if self.Mozbrowser() {
-            let node = NodeCast::from_ref(self);
-            if node.is_in_doc() {
-                let window = window_from_node(self);
-                let window = window.r();
-
-                let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
-                                          self.subpage_id().unwrap()));
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                let msg = ConstellationMsg::Navigate(pipeline_info, NavigationDirection::Forward);
-                chan.send(msg).unwrap();
-            }
-
-            Ok(())
-        } else {
-            debug!("this frame is not mozbrowser (or experimental_enabled is false)");
-            Err(NotSupported)
-        }
+        Navigate(self, NavigationDirection::Forward)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload

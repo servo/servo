@@ -352,10 +352,34 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
             JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s, &mut length)
         };
         assert!(!chars.is_null());
-        let char_vec = unsafe {
+        let potentially_ill_formed_utf16 = unsafe {
             slice::from_raw_parts(chars as *const u16, length as usize)
         };
-        String::from_utf16(char_vec).unwrap()
+        let mut s = String::with_capacity(length as usize);
+        for item in ::rustc_unicode::str::utf16_items(potentially_ill_formed_utf16) {
+            use ::rustc_unicode::str::Utf16Item::*;
+            match item {
+                ScalarValue(c) => s.push(c),
+                LoneSurrogate(_) => {
+                    // FIXME: Add more info like document URL in the message?
+                    macro_rules! message {
+                        () => {
+                            "Found an unpaired surrogate in a DOM string. \
+                             If you see this in real web content, \
+                             please comment on https://github.com/servo/servo/issues/6564"
+                        }
+                    }
+                    if ::util::opts::get().replace_surrogates {
+                        error!(message!());
+                        s.push('\u{FFFD}');
+                    } else {
+                        panic!(concat!(message!(), " Use `-Z replace-surrogates` \
+                            on the command line to make this non-fatal."));
+                    }
+                }
+            }
+        }
+        s
     }
 }
 

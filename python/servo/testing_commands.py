@@ -14,6 +14,7 @@ import sys
 import os
 import os.path as path
 import subprocess
+from collections import OrderedDict
 from distutils.spawn import find_executable
 from time import time
 
@@ -64,34 +65,6 @@ class MachCommands(CommandBase):
         if t:
             return subprocess.call([t] + args, env=self.build_env())
 
-    def infer_test_by_dir(self, params):
-        maybe_path = path.normpath(params[0])
-        mach_command = path.join(self.context.topdir, "mach")
-        args = None
-
-        if not path.exists(maybe_path):
-            print("%s is not a valid file or directory" % maybe_path)
-            return 1
-
-        test_dirs = [
-            # path, mach test command, optional flag for path argument
-            (path.join("tests", "wpt"), "test-wpt", None),
-            (path.join("tests", "ref"), "test-ref", ["--name"]),
-        ]
-
-        for test_dir, test_name, path_flag in test_dirs:
-            if not path_flag:
-                path_flag = []
-            if test_dir in maybe_path:
-                args = ([mach_command, test_name] + path_flag +
-                        [maybe_path] + params[1:])
-                break
-        else:
-            print("%s is not a valid test file or directory" % maybe_path)
-            return 1
-
-        return subprocess.call(args, env=self.build_env())
-
     @Command('test',
              description='Run all Servo tests',
              category='testing')
@@ -101,20 +74,58 @@ class MachCommands(CommandBase):
     @CommandArgument('--render-mode', '-rm', default=DEFAULT_RENDER_MODE,
                      help="The render mode to be used on all tests. " +
                           HELP_RENDER_MODE)
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE):
-        if params:
-            return self.infer_test_by_dir(params)
-
-        test_and_args = [
+    @CommandArgument('--release', default=False, action="store_true",
+                     help="Run with a release build of servo")
+    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False):
+        suites = OrderedDict([
             ("tidy", {}),
-            ("ref", {"kind": render_mode}),
-            ("wpt", {}),
-            ("css", {}),
+            ("ref", {"kwargs": {"kind": render_mode},
+                     "path": path.abspath(path.join("tests", "ref")),
+                     "include_arg": "name"}),
+            ("wpt", {"kwargs": {"release": release},
+                     "path": path.abspath(path.join("tests", "wpt", "web-platform-tests")),
+                     "include_arg": "include"}),
+            ("css", {"kwargs": {"release": release},
+                     "path": path.abspath(path.join("tests", "wpt", "css-tests")),
+                     "include_arg": "include"}),
             ("unit", {}),
-        ]
+        ])
+
+        suites_by_prefix = {v["path"]: k for k, v in suites.iteritems() if "path" in v}
+
+        selected_suites = OrderedDict()
+
+        if params is None:
+            params = suites.keys()
+
+        for arg in params:
+            found = False
+            if arg in suites and arg not in selected_suites:
+                selected_suites[arg] = []
+                found = True
+
+            elif os.path.exists(path.abspath(arg)):
+                abs_path = path.abspath(arg)
+                for prefix, suite in suites_by_prefix.iteritems():
+                    if abs_path.startswith(prefix):
+                        if suite not in selected_suites:
+                            selected_suites[suite] = []
+                        selected_suites[suite].append(arg)
+                        found = True
+                        break
+
+            if not found:
+                print("%s is not a valid test path or suite name" % arg)
+                return 1
+
         test_start = time()
-        for t, args in test_and_args:
-            Registrar.dispatch("test-%s" % t, context=self.context, **args)
+        for suite, tests in selected_suites.iteritems():
+            props = suites[suite]
+            kwargs = props.get("kwargs", {})
+            if tests:
+                kwargs[props["include_arg"]] = tests
+
+            Registrar.dispatch("test-%s" % suite, context=self.context, **kwargs)
 
         elapsed = time() - test_start
 
@@ -221,7 +232,7 @@ class MachCommands(CommandBase):
     @Command('test-wpt',
              description='Run the web platform tests',
              category='testing',
-             parser=wptcommandline.create_parser())
+             parser=wptcommandline.create_parser)
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
     def test_wpt(self, **kwargs):

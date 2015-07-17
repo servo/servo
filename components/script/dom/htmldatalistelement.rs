@@ -50,7 +50,7 @@ impl HTMLDataListElement {
 
 impl<'a> HTMLDataListElementMethods for &'a HTMLDataListElement {
     fn Options(self) -> Root<HTMLCollection> {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {

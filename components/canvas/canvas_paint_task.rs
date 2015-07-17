@@ -521,12 +521,10 @@ impl<'a> CanvasPaintTask<'a> {
         })
     }
 
-    fn send_native_surface(&self, chan: Sender<NativeSurface>) {
-        let mut native_surface: NativeSurface =
-            NativeSurface::from_draw_target_backing(self.drawtarget.backing.clone());
-        native_surface.mark_wont_leak();
-
-        chan.send(native_surface).unwrap();
+    fn send_native_surface(&self, _chan: Sender<NativeSurface>) {
+        // FIXME(mrobinson): We need a handle on the NativeDisplay to create compatible
+        // NativeSurfaces for the compositor.
+        unimplemented!()
     }
 
     fn get_image_data(&self, mut dest_rect: Rect<f64>, canvas_size: Size2D<f64>, chan: Sender<Vec<u8>>) {

@@ -7,7 +7,6 @@ use incremental::RestyleDamage;
 use msg::constellation_msg::ConstellationChan;
 use parallel::DomParallelInfo;
 use script::dom::node::SharedLayoutData;
-use script::layout_interface::LayoutChan;
 use std::sync::Arc;
 use style::properties::ComputedValues;
 
@@ -61,7 +60,6 @@ bitflags! {
 }
 
 pub struct LayoutDataWrapper {
-    pub chan: Option<LayoutChan>,
     pub shared_data: SharedLayoutData,
     pub data: Box<PrivateLayoutData>,
 }

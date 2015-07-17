@@ -217,7 +217,7 @@ impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
 }
 
 
-#[jstraceable]
+#[derive(JSTraceable)]
 pub enum Filter {
     None,
     Native(fn (node: &Node) -> u16),

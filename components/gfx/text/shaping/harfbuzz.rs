@@ -43,7 +43,6 @@ use libc::{c_uint, c_int, c_void, c_char};
 use util::geometry::Au;
 use util::range::Range;
 use std::char;
-use std::iter::repeat;
 use std::mem;
 use std::cmp;
 use std::ptr;
@@ -292,10 +291,9 @@ impl Shaper {
 
         // fast path: all chars are single-byte.
         if byte_max == char_max {
-            byte_to_glyph = repeat(NO_GLYPH).take(byte_max).collect();
+            byte_to_glyph = vec![NO_GLYPH; byte_max];
         } else {
-            byte_to_glyph = repeat(CONTINUATION_BYTE).take(byte_max)
-                                                     .collect();
+            byte_to_glyph = vec![CONTINUATION_BYTE; byte_max];
             for (i, _) in text.char_indices() {
                 byte_to_glyph[i] = NO_GLYPH;
             }

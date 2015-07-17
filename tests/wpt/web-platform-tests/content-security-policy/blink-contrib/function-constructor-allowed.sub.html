@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>function-constructor-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS"]'></script>
+    <!-- enforcing policy:
+script-src 'self' 'unsafe-inline' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';
+-->
+</head>
+
+<body>
+    <script>
+        (new Function("alert_assert('PASS')"))();
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

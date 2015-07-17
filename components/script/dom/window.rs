@@ -19,6 +19,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
+use dom::crypto::Crypto;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
@@ -44,6 +45,7 @@ use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
+use profile_traits::mem;
 use util::geometry::{self, Au, MAX_RECT};
 use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
@@ -63,15 +65,14 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
-use std::mem;
+use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
 /// Current state of the window object
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, Debug, PartialEq)]
 enum WindowState {
     Alive,
     Zombie,     // Pipeline is closed, but the window hasn't been GCed yet.
@@ -101,10 +102,11 @@ pub struct Window {
     script_chan: Box<ScriptChan+Send>,
     control_chan: ScriptControlChan,
     console: MutNullableHeap<JS<Console>>,
+    crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
-    compositor: DOMRefCell<Box<ScriptListener+'static>>,
+    compositor: DOMRefCell<ScriptListener>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
@@ -116,6 +118,9 @@ pub struct Window {
     timers: TimerManager,
 
     next_worker_id: Cell<WorkerId>,
+
+    /// For sending messages to the memory profiler.
+    mem_profiler_chan: mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -240,7 +245,7 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor<'a>(&'a self) -> RefMut<'a, Box<ScriptListener+'static>> {
+    pub fn compositor<'a>(&'a self) -> RefMut<'a, ScriptListener> {
         self.compositor.borrow_mut()
     }
 
@@ -337,9 +342,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     fn Document(self) -> Root<Document> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let context = self.browser_context();
-        context.as_ref().unwrap().active_document()
+        self.browser_context().as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
@@ -361,11 +364,13 @@ impl<'a> WindowMethods for &'a Window {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
+    fn Crypto(self) -> Root<Crypto> {
+        self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
+    }
+
     // https://html.spec.whatwg.org/#dom-frameelement
     fn GetFrameElement(self) -> Option<Root<Element>> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let context = self.browser_context();
-        context.as_ref().unwrap().frame_element()
+        self.browser_context().as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
@@ -441,6 +446,15 @@ impl<'a> WindowMethods for &'a Window {
         self.parent().unwrap_or(self.Window())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-top
+    fn Top(self) -> Root<Window> {
+        let mut window = self.Window();
+        while let Some(parent) = window.parent() {
+            window = parent;
+        }
+        window
+    }
+
     fn Performance(self) -> Root<Performance> {
         self.performance.or_init(|| {
             Performance::new(self, self.navigation_start,
@@ -475,7 +489,7 @@ impl<'a> WindowMethods for &'a Window {
         base64_atob(atob)
     }
 
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
     fn RequestAnimationFrame(self, callback: Rc<FrameRequestCallback>) -> i32 {
         let doc = self.Document();
 
@@ -487,7 +501,7 @@ impl<'a> WindowMethods for &'a Window {
         doc.r().request_animation_frame(Box::new(callback))
     }
 
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn CancelAnimationFrame(self, ident: i32) {
         let doc = self.Document();
         doc.r().cancel_animation_frame(ident);
@@ -528,6 +542,7 @@ pub trait WindowHelpers {
     fn window_size(self) -> Option<WindowSizeData>;
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
+    fn mem_profiler_chan(self) -> mem::ProfilerChan;
     fn devtools_chan(self) -> Option<DevtoolsControlChan>;
     fn layout_chan(self) -> LayoutChan;
     fn constellation_chan(self) -> ConstellationChan;
@@ -711,7 +726,7 @@ impl<'a> WindowHelpers for &'a Window {
     /// layout task has finished any pending request messages.
     fn join_layout(self) {
         let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = mem::replace(&mut *layout_join_port, None) {
+        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
             match join_port.try_recv() {
                 Err(Empty) => {
                     info!("script: waiting on layout");
@@ -793,9 +808,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn steal_fragment_name(self) -> Option<String> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let mut name = self.fragment_name.borrow_mut();
-        name.take()
+        self.fragment_name.borrow_mut().take()
     }
 
     fn set_window_size(self, size: WindowSizeData) {
@@ -813,6 +826,10 @@ impl<'a> WindowHelpers for &'a Window {
 
     fn resource_task(self) -> ResourceTask {
         self.resource_task.clone()
+    }
+
+    fn mem_profiler_chan(self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
     }
 
     fn devtools_chan(self) -> Option<DevtoolsControlChan> {
@@ -839,9 +856,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn layout_is_idle(self) -> bool {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let port = self.layout_join_port.borrow();
-        port.is_none()
+        self.layout_join_port.borrow().is_none()
     }
 
     fn get_pending_reflow_count(self) -> u32 {
@@ -958,10 +973,11 @@ impl Window {
                script_chan: Box<ScriptChan+Send>,
                image_cache_chan: ImageCacheChan,
                control_chan: ScriptControlChan,
-               compositor: Box<ScriptListener+'static>,
+               compositor: ScriptListener,
                image_cache_task: ImageCacheTask,
                resource_task: ResourceTask,
                storage_task: StorageTask,
+               mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<DevtoolsControlChan>,
                constellation_chan: ConstellationChan,
                layout_chan: LayoutChan,
@@ -982,10 +998,12 @@ impl Window {
             image_cache_chan: image_cache_chan,
             control_chan: control_chan,
             console: Default::default(),
+            crypto: Default::default(),
             compositor: DOMRefCell::new(compositor),
             page: page,
             navigator: Default::default(),
             image_cache_task: image_cache_task,
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
             browser_context: DOMRefCell::new(None),
             performance: Default::default(),

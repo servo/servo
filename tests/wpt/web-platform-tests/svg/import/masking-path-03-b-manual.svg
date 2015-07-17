@@ -1,0 +1,134 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: masking-path-03-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/masking.html#ClippingPaths">
+      <p>
+        Test 'overflow'/'clip' on outermost and inner 'svg' elements.
+      </p>
+      <p>
+        There are two parts to the test. The first part tests viewport clipping
+        on outermost 'svg' elements. The second part tests viewport clipping
+        on inner 'svg' elements.
+      </p>
+      <p>
+        The test case also tests the initial value of the 'overflow' property
+        to ensure that it is set to 'hidden' for all 'svg' elements.
+        Tester should zoom out and/or pan to check this.
+      </p>
+      <p>
+        To test clipping to the outermost 'svg' element,
+        a rectangle with a light blue interior, a light red border and a black
+        string that says "Clip to outer 'svg'" is painted four times such that
+        it will overflow each of the top, left, right and bottom
+        sides of the bounds of the outermost 'svg' element, respectively.
+      </p>
+      <p>
+        To test clipping to inner 'svg' elements, a rectangle with a light red
+        interior, a light blue border and a black string that says "Clip to
+        inner 'svg'" is painted four times such that it will overflow each of
+        the top, left, right and bottom sides of the bounds of an inner 'svg'
+        element, respectively.  
+      </p>
+      <p>
+        Note that minor text layout differences, as are permissible under CSS2
+        rules, can lead to slightly different visual results regarding where
+        the text strings get clipped.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if:</p>
+      <ul>
+        <li>The four "Outer Clip" boxed strings must not render outside the
+        outermost 'svg' element (the 480x360 rectangular viewport) and
+        must continue to be clipped to this viewport if the image is zoomed in or out,
+        or panned.</li>
+        <li>The four "Inner Clip" boxed strings must not render outside the
+        bounds of the green rectangle.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: masking-path-03-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g shape-rendering="geometricPrecision">
+      <!--text font-size="18" text-anchor="middle" x="240" y="70">Test 'overflow'/'clip' on outermost and inner 'svg' elements</text-->
+      <text font-size="18" x="10" y="70">Test 'overflow'/'clip' on outermost and inner 'svg' elements</text>
+      <!-- Test initial value for 'overflow' property (i.e., hidden)
+       on outermost 'svg' -->
+      <g font-size="48" stroke-width="2">
+        <g transform="translate(115,-20)">
+          <rect width="250" height="60" fill="#ccccff" stroke="#ff8888"/>
+          <text x="15" y="45">Outer Clip</text>
+        </g>
+        <g transform="translate(-175,150)">
+          <rect width="250" height="60" fill="#ccccff" stroke="#ff8888"/>
+          <text x="15" y="45">Outer Clip</text>
+        </g>
+        <g transform="translate(405,150)">
+          <rect width="250" height="60" fill="#ccccff" stroke="#ff8888"/>
+          <text x="15" y="45">Outer Clip</text>
+        </g>
+        <g transform="translate(115,330)">
+          <rect width="250" height="60" fill="#ccccff" stroke="#ff8888"/>
+          <text x="15" y="45">Outer Clip</text>
+        </g>
+      </g>
+      <!-- Test initial value for 'overflow' property (i.e., hidden)
+       on inner 'svg' -->
+      <rect x="115" y="100" width="250" height="160" fill="none" stroke="#006600" stroke-width="5"/>
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="115" y="100" width="250" height="160">
+        <g font-size="32" stroke-width="2">
+          <g transform="translate(50,-15)">
+            <rect width="150" height="35" fill="#ffaaaa" stroke="#6666ff"/>
+            <text x="6" y="26">Inner Clip</text>
+          </g>
+          <g transform="translate(-50,62.5)">
+            <rect width="150" height="35" fill="#ffaaaa" stroke="#6666ff"/>
+            <text x="6" y="26">Inner Clip</text>
+          </g>
+          <g transform="translate(150,62.5)">
+            <rect width="150" height="35" fill="#ffaaaa" stroke="#6666ff"/>
+            <text x="6" y="26">Inner Clip</text>
+          </g>
+          <g transform="translate(50,140)">
+            <rect width="150" height="35" fill="#ffaaaa" stroke="#6666ff"/>
+            <text x="6" y="26">Inner Clip</text>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

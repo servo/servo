@@ -67,8 +67,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLS
 
 pub type SendParam = StringOrURLSearchParams;
 
-#[derive(PartialEq, Copy, Clone)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -77,8 +76,7 @@ enum XMLHttpRequestState {
     Done = 4,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq, Clone, Copy)]
 pub struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
@@ -625,9 +623,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-statustext-attribute
     fn StatusText(self) -> ByteString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let status_text = self.status_text.borrow();
-        status_text.clone()
+        self.status_text.borrow().clone()
     }
 
     // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
@@ -1033,17 +1029,16 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         }
 
 
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let response = self.response.borrow();
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(&response, DecoderTrap::Replace).unwrap().to_owned()
+        encoding.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
     }
     fn filter_response_headers(self) -> Headers {
         // https://fetch.spec.whatwg.org/#concept-response-header-list
         use std::fmt;
         use hyper::header::{Header, HeaderFormat};
         use hyper::header::SetCookie;
+        use hyper::error::Result;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
         #[derive(Clone, Debug)]
@@ -1053,7 +1048,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
                 "set-cookie2"
             }
 
-            fn parse_header(_: &[Vec<u8>]) -> Option<SetCookie2> {
+            fn parse_header(_: &[Vec<u8>]) -> Result<SetCookie2> {
                 unimplemented!()
             }
         }

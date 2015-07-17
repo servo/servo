@@ -233,7 +233,7 @@ impl ResourceManager {
               }
               ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
                 let header = Header::parse_header(&[cookie_list.into_bytes()]);
-                if let Some(SetCookie(cookies)) = header {
+                if let Ok(SetCookie(cookies)) = header {
                   for bare_cookie in cookies.into_iter() {
                     if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
                       self.cookie_storage.push(cookie, source);

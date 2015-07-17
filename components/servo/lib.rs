@@ -111,8 +111,8 @@ impl Browser {
         let constellation_chan = create_constellation(opts.clone(),
                                                       compositor_proxy.clone_compositor_proxy(),
                                                       time_profiler_chan.clone(),
-                                                      devtools_chan,
                                                       mem_profiler_chan.clone(),
+                                                      devtools_chan,
                                                       supports_clipboard);
 
         if let Some(port) = opts.webdriver_port {
@@ -157,8 +157,8 @@ impl Browser {
 fn create_constellation(opts: opts::Opts,
                         compositor_proxy: Box<CompositorProxy+Send>,
                         time_profiler_chan: time::ProfilerChan,
-                        devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         mem_profiler_chan: mem::ProfilerChan,
+                        devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool) -> ConstellationChan {
     let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
 

@@ -80,7 +80,7 @@ impl CompositorEventListener for NullCompositor {
                 return false
             }
 
-            Msg::GetGraphicsMetadata(chan) => {
+            Msg::GetNativeDisplay(chan) => {
                 chan.send(None).unwrap();
             }
 
@@ -111,6 +111,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::IsReadyToSaveImageReply(..) => {}
             Msg::NewFavicon(..) => {}
             Msg::HeadParsed => {}
+            Msg::ReturnUnusedLayerBuffers(..) => {}
         }
         true
     }

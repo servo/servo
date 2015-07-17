@@ -32,7 +32,7 @@ use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::{xml_name_type, validate_and_extract};
+use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::create::create_element;
 use dom::domrect::DOMRect;
@@ -67,7 +67,6 @@ use style::properties::longhands::{self, border_spacing, height};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use util::geometry::Au;
-use util::namespace;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use cssparser::Color;
@@ -117,8 +116,7 @@ impl PartialEq for Element {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
     Element,
@@ -621,14 +619,13 @@ impl<'a> ElementHelpers<'a> for &'a Element {
     }
 
     fn remove_inline_style_property(self, property: DOMString) {
-        #![allow(unsafe_code)] // #6376
         let mut inline_declarations = self.style_attribute.borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                unsafe { declarations.normal.make_unique().remove(index); }
+                Arc::make_unique(&mut declarations.normal).remove(index);
                 return;
             }
 
@@ -636,20 +633,19 @@ impl<'a> ElementHelpers<'a> for &'a Element {
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                unsafe { declarations.important.make_unique().remove(index); }
+                Arc::make_unique(&mut declarations.important).remove(index);
                 return;
             }
         }
     }
 
     fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
-        #![allow(unsafe_code)] // #6376
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
-                unsafe { declarations.important.make_unique() }
+                Arc::make_unique(&mut declarations.important)
             } else {
-                unsafe { declarations.normal.make_unique() }
+                Arc::make_unique(&mut declarations.normal)
             };
 
             for declaration in existing_declarations.iter_mut() {
@@ -857,21 +853,15 @@ impl<'a> AttributeHandlers for &'a Element {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>> {
         let name = &self.parsed_name(name);
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let attrs = self.attrs.borrow();
-        attrs.iter().map(|attr| attr.root())
+        self.attrs.borrow().iter().map(|attr| attr.root())
              .find(|a| a.r().name() == name)
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let attrs = self.attrs.borrow();
-        for ref attr in attrs.iter() {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        for ref attr in self.attrs.borrow().iter() {
             let attr = attr.root();
-            let attr_local_name = attr.r().local_name();
-            if attr_local_name == local_name {
+            if attr.r().local_name() == local_name {
                 attributes.push(JS::from_rooted(&attr));
             }
         }
@@ -1014,10 +1004,7 @@ impl<'a> AttributeHandlers for &'a Element {
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
         self.get_attribute(&ns!(""), &atom!("class")).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value = attr.value();
-            value.tokens().map(|tokens| {
+            attr.r().value().tokens().map(|tokens| {
                 tokens.iter().any(|atom| is_equal(name, atom))
             }).unwrap_or(false)
         }).unwrap_or(false)
@@ -1031,12 +1018,8 @@ impl<'a> AttributeHandlers for &'a Element {
 
     fn has_attribute(self, local_name: &Atom) -> bool {
         assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let attrs = self.attrs.borrow();
-        attrs.iter().map(|attr| attr.root()).any(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            attr.local_name() == local_name && attr.namespace() == &ns!("")
+        self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
+            attr.r().local_name() == local_name && attr.r().namespace() == &ns!("")
         })
     }
 
@@ -1081,12 +1064,11 @@ impl<'a> AttributeHandlers for &'a Element {
 
     fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom> {
         self.get_attribute(&ns!(""), local_name).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value = attr.value();
-            value.tokens()
-                 .expect("Expected a TokenListAttrValue")
-                 .to_vec()
+            attr.r()
+                .value()
+                .tokens()
+                .expect("Expected a TokenListAttrValue")
+                .to_vec()
         }).unwrap_or(vec!())
     }
 
@@ -1125,10 +1107,7 @@ impl<'a> AttributeHandlers for &'a Element {
 impl<'a> ElementMethods for &'a Element {
     // https://dom.spec.whatwg.org/#dom-element-namespaceuri
     fn GetNamespaceURI(self) -> Option<DOMString> {
-        match self.namespace {
-            ns!("") => None,
-            Namespace(ref ns) => Some((**ns).to_owned())
-        }
+        Node::namespace_to_string(self.namespace.clone())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-localname
@@ -1203,7 +1182,7 @@ impl<'a> ElementMethods for &'a Element {
     fn GetAttributeNS(self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        let namespace = &namespace::from_domstring(namespace);
+        let namespace = &namespace_from_domstring(namespace);
         self.get_attribute(namespace, &Atom::from_slice(&local_name))
                      .map(|attr| attr.r().Value())
     }
@@ -1255,7 +1234,7 @@ impl<'a> ElementMethods for &'a Element {
     fn RemoveAttributeNS(self,
                          namespace: Option<DOMString>,
                          local_name: DOMString) {
-        let namespace = namespace::from_domstring(namespace);
+        let namespace = namespace_from_domstring(namespace);
         let local_name = Atom::from_slice(&local_name);
         self.remove_attribute(&namespace, &local_name);
     }
@@ -1652,22 +1631,10 @@ impl<'a> ::selectors::Element for &'a Element {
     }
 
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn get_local_name<'a, T: ElementHelpers<'a>>(this: T) -> &'a Atom {
-            this.local_name()
-        }
-
-        get_local_name(*self)
+        ElementHelpers::local_name(*self)
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn get_namespace<'a, T: ElementHelpers<'a>>(this: T) -> &'a Namespace {
-            this.namespace()
-        }
-
-        get_namespace(*self)
+        self.namespace()
     }
     fn get_hover_state(&self) -> bool {
         let node = NodeCast::from_ref(*self);
@@ -1682,10 +1649,7 @@ impl<'a> ::selectors::Element for &'a Element {
     }
     fn get_id(&self) -> Option<Atom> {
         self.get_attribute(&ns!(""), &atom!("id")).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value = attr.value();
-            match *value {
+            match *attr.r().value() {
                 AttrValue::Atom(ref val) => val.clone(),
                 _ => panic!("`id` attribute should be AttrValue::Atom"),
             }
@@ -1714,13 +1678,7 @@ impl<'a> ::selectors::Element for &'a Element {
         }
     }
     fn has_class(&self, name: &Atom) -> bool {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn has_class<T: AttributeHandlers>(this: T, name: &Atom) -> bool {
-            this.has_class(name)
-        }
-
-        has_class(*self, name)
+        AttributeHandlers::has_class(*self, name)
     }
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
@@ -1760,10 +1718,7 @@ impl<'a> ::selectors::Element for &'a Element {
             NamespaceConstraint::Specific(ref ns) => {
                 self.get_attribute(ns, local_name)
                     .map_or(false, |attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.r();
-                        let value = attr.value();
-                        test(&value)
+                        test(&attr.r().value())
                     })
             },
             NamespaceConstraint::Any => {

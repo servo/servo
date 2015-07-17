@@ -27,8 +27,7 @@ use std::borrow::ToOwned;
 use util::str::DOMString;
 use std::cell::Cell;
 
-#[jstraceable]
-#[derive(PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
 enum ButtonType {
     ButtonSubmit,

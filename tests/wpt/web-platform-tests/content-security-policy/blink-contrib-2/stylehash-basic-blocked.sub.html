@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>stylehash-basic-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script>
+        var t_alert = async_test('Expecting alerts: ["PASS: The \'p\' element\'s text is green, which means the style was correctly applied."]');
+        var expected_alerts = ["PASS: The 'p' element's text is green, which means the style was correctly applied."];
+
+        function alert_assert(msg) {
+            t_alert.step(function() {
+                if (msg.match(/^FAIL/i)) {
+                    assert_unreached(msg);
+                    t_alert.done();
+                }
+                for (var i = 0; i < expected_alerts.length; i++) {
+                    if (expected_alerts[i] == msg) {
+                        assert_true(expected_alerts[i] == msg);
+                        expected_alerts.splice(i, 1);
+                        if (expected_alerts.length == 0) {
+                            t_alert.done();
+                        }
+                        return;
+                    }
+                }
+                assert_unreached('unexpected alert: ' + msg);
+                t_log.done();
+            });
+        }
+
+    </script>
+    <!-- enforcing policy:
+style-src 'sha1-pfeR5wMA6np45oqDTP6Pj3tLpJo='; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <style>p { color: green; }</style>
+    <style>p { color: red; }</style>
+    <style>p { color: purple; }</style>
+    <style>p { color: blue; }</style>
+</head>
+
+<body>
+    <p>
+        This tests the effect of a valid style-hash value, with one valid style and several invalid ones. It passes if the valid style is applied and a CSP violation is generated.
+    </p>
+    <script>
+        var color = window.getComputedStyle(document.querySelector('p')).color;
+        if (color === "rgb(0, 128, 0)")
+            alert_assert("PASS: The 'p' element's text is green, which means the style was correctly applied.");
+        else
+            alert_assert("FAIL: The 'p' element's text is " + color + ", which means the style was incorrectly applied.");
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=style-src%20&apos;sha1-pfeR5wMA6np45oqDTP6Pj3tLpJo=&apos;"></script>
+</body>
+
+</html>

@@ -1,0 +1,169 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-30-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test animated &lt;use&gt; where
+        the referenced &lt;defs&gt; also is animated.
+      </p>
+      <p>
+        The test shows 6 different elements, each element defined in a
+        &lt;defs&gt; and referenced with a &lt;use&gt;. All the elements are
+        animated between 0-3 seconds. The expected animation transform is
+        indicated with a gray silhouette showing the border values (0 and 3 seconds)
+        and an arrow indicating the movement in between.
+        For the two elements with a color animation, the colors goes from white to
+        blue (the same blue color used for all elements).
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test.  No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if:</p>
+      <ul>
+        <li>Each animated element (the line, circle, three-segment polyline, image
+        and the two rectangles) is transformed with a continuous animation
+        over three seconds.  The size and shape of each element must start off
+        as shown by the silhouette at the start of the arrow, and must end
+        up as shown by the silhouette at the end of the arrow.</li>
+        <li>The fill of the two rectangles is animated over three seconds from
+        white to blue.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-30-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform=" translate(20 0) scale(1.3 1.3)">
+      <!-- SILHOUETTES-->
+      <path d="M210 40 C210 40 210 100 170 190" fill="none" stroke="#b4b4b4"/>
+      <path d="M 171 188 l 10 -10 l -10 -4 z" fill="#b4b4b4" stroke="none"/>
+      <polyline fill="none" stroke="#b4b4b4" stroke-width="2" points="200,20 200,40 220,40 220,60"/>
+      <polyline transform="rotate(15)" fill="none" stroke="#b4b4b4" stroke-width="9" points="200,120 200,140 220,140 220,160"/>
+
+      <line x1="40" y1="50" x2="20" y2="10" stroke="#b4b4b4" stroke-width="3"/>
+      <line x1="160" y1="50" x2="80" y2="10" stroke="#b4b4b4" stroke-width="3"/>
+      <line x1="30" y1="30" x2="120" y2="30" stroke="#b4b4b4"/>
+      <path d="M 120 30 l -10 3 l 0 -6 z" fill="#b4b4b4" stroke="none"/>
+
+      <line x1="70" y1="70" x2="145" y2="70" stroke="#b4b4b4"/>
+      <rect x="10" y="60" width="60" height="20" fill="#b4b4b4" stroke="#b4b4b4" stroke-width="2"/>
+      <rect x="145" y="60" width="30" height="40" fill="#b4b4b4" stroke="#b4b4b4" stroke-width="2"/>
+      <path d="M 145 70 l -10 3 l 0 -6 z" fill="#b4b4b4" stroke="none"/>
+
+      <circle cx="30" cy="100" r="10" fill="#b4b4b4" stroke="#b4b4b4"/>
+      <circle cx="100" cy="195" r="15" fill="#b4b4b4" stroke="#b4b4b4"/>
+      <line x1="37" y1="107" x2="89" y2="184" stroke="#b4b4b4"/>
+      <path d="M 90 185 l -3 -12 l -6 5 z" fill="#b4b4b4" stroke="none"/>
+
+      <rect x="300" y="10" width="20" height="20" fill="#b4b4b4" stroke="#b4b4b4" stroke-width="2"/>
+      <rect x="300" y="170" width="20" height="40" fill="#b4b4b4" stroke="#b4b4b4" stroke-width="2"/>
+      <line x1="310" y1="30" x2="310" y2="170" stroke="#b4b4b4"/>
+      <path d="M 310 170 l -3 -10 l 6 0 z" fill="#b4b4b4" stroke="none"/>
+
+      <rect x="230" y="7.5" width="40" height="7.5" fill="#b4b4b4" stroke="none"/>
+      <rect x="230" y="170" width="40" height="30" fill="#b4b4b4" stroke="none"/>
+      <line x1="250" y1="10" x2="250" y2="170" stroke="#b4b4b4"/>
+      <path d="M 250 170 l -3 -10 l 6 0 z" fill="#b4b4b4" stroke="none"/>
+      <!-- END OF SILHOUETTES-->
+
+      <!-- DEFS-->
+      <defs>
+        <line id="lineID" x1="30" y1="50" x2="10" y2="10" stroke="rgb(16, 93, 140)" stroke-width="3">
+          <animate attributeName="x1" from="30" to="90" begin="0" dur="3" fill="freeze"/>
+        </line>
+      </defs>
+
+      <defs>
+        <rect id="rectID" x="10" y="60" width="60" height="20" fill="blue" stroke="black" stroke-width="2">
+          <animateColor attributeName="fill" from="white" to="rgb(16, 93, 140)" begin="0" dur="3" fill="freeze"/>
+          <animate attributeName="height" from="20" to="40" begin="0" dur="3" fill="freeze"/>
+        </rect>
+      </defs>
+
+      <defs>
+        <circle id="circleID" cx="20" cy="100" r="10" fill="rgb(16, 93, 140)" stroke="black">
+          <animate attributeName="cy" from="100" to="130" begin="0" dur="3" fill="freeze"/>
+          <animateTransform attributeName="transform" type="scale" from="1" to="1.5" additive="sum" begin="0" dur="3" fill="freeze"/>
+        </circle>
+      </defs>
+
+      <defs>
+        <polyline id="polylineID" fill="none" stroke="rgb(16, 93, 140)" stroke-width="2" points="200,20 200,40 220,40 220,60">
+          <animateMotion path="M 0 0 l 0 100" begin="0" dur="3" fill="freeze"/>
+          <animate attributeName="stroke-width" from="2" to="9" begin="0" dur="3" fill="freeze"/>
+        </polyline>
+      </defs>
+
+      <defs>
+        <polygon id="polygonID" fill="green" stroke="black" points="240,20 240,40 260,40 260,20" stroke-width="2">
+          <animate attributeName="fill" from="white" to="rgb(16, 93, 140)" begin="0" dur="3" fill="freeze"/>
+        </polygon>
+      </defs>
+
+      <defs>
+        <image id="imageID" x="230" y="20" width="40" height="80" xlink:href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAgEASABIAAD/4RX+RXhpZgAASUkqAAgAAAAJAA8BAgAGAAAAegAAABABAgAXAAAAgAAAABIBAwABAAAAAQAAABoBBQABAAAAoAAAABsBBQABAAAAqAAAACgBAwABAAAAAgAAADIBAgAUAAAAsAAAABMCAwABAAAAAQAAAGmHBAABAAAAxAAAAGYFAABDYW5vbgBDYW5vbiBESUdJVEFMIElYVVMgMzAwAAAAAAAAAAAAALQAAAABAAAAtAAAAAEAAAAyMDAyOjAxOjE1IDA0OjQyOjU4ABsAmoIFAAEAAABWAwAAnYIFAAEAAABeAwAAAJAHAAQAAAAwMjEwA5ACABQAAAAOAgAABJACABQAAAAiAgAAAZEHAAQAAAABAgMAApEFAAEAAAA+AwAAAZIKAAEAAABGAwAAApIFAAEAAABOAwAABJIKAAEAAABmAwAABZIFAAEAAABuAwAABpIFAAEAAAB2AwAAB5IDAAEAAAAFAAAACZIDAAEAAAAAAAAACpIFAAEAAAB+AwAAfJIHAJoBAACGAwAAhpIHAAgBAAA2AgAAAKAHAAQAAAAwMTAwAaADAAEAAAABAAAAAqADAAEAAABABgAAA6ADAAEAAACwBAAABaAEAAEAAAAwBQAADqIFAAEAAAAgBQAAD6IFAAEAAAAoBQAAEKIDAAEAAAACAAAAF6IDAAEAAAACAAAAAKMHAAEAAAADAAAAAAAAADIwMDI6MDE6MTUgMDQ6NDI6NTgAMjAwMjowMToxNSAwNDo0Mjo1OAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAQAAAPUAAAAgAAAA1QAAACAAAAABAAAAyAAAAGQAAAAKAAAAAAAAAAMAAACs3QIAAAABAP//AADoAwAAMAEAACAAAAAMAAEAAwAmAAAAHAQAAAIAAwAEAAAAaAQAAAMAAwAEAAAAcAQAAAQAAwAaAAAAeAQAAAAAAwAGAAAArAQAAAAAAwAEAAAAuAQAAAYAAgAgAAAAwAQAAAcAAgAYAAAA4AQAAAgABAABAAAAcVYQAAkAAgAgAAAA+AQAABAABAABAAAAAAAEAQ0AAwAEAAAAGAUAAAAAAABMAAIAAAADAAEAAAAAAAQAAAABAAAAAAAAAAAAAAAAAAAAAwABAAEwAAD/////BgKtACAAdADVAP//AAAAAAAAAAAAAP//AABABkAGAgAwAdMAngAAAAAAAAAAADQAAACPAD8B1QD1AAAAAAAAAAEAAwAAAAAAAAAHMAAAAAAAAAAA//8AANUA+QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAElNRzpESUdJVEFMIElYVVMgMzAwIEpQRUcAAAAAAAAARmlybXdhcmUgVmVyc2lvbiAxLjAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAPQA9AD0AABqGADOAAAAgE8SAJsAAAAEAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAEQAwABAAAAQAYAAAIQAwABAAAAsAQAAAAAAAAGAAMBAwABAAAABgAAABoBBQABAAAAtAUAABsBBQABAAAAvAUAACgBAwABAAAAAgAAAAECBAABAAAA9AUAAAICBAABAAAA7g8AAAAAAAC0AAAAAQAAALQAAAABAAAA//////////////////////////////////////////////////9//////////////9j/2wCEAAkGBggGBQkIBwgKCQkLDRYPDQwMDRwTFRAWIR0jIiEcIB8kKTQsJCcxJx4fLT0tMTY3Ojo6Iio/RD44QjM3OTYBCQkJDAoMFAwMFA8KCgoPGhoKChoaTxoaGhoaT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT//AABEIAHgAoAMBIQACEQEDEQH/xAGiAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgsQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYX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yjLsY19AaUzJHncWPrmsWro1TsC38J6tge4NONxBMAFc59FJrFprbU1Ti9HoD2sLJhmbHo3SmJZwA5Bj46dqqM7kygiVJkiB+YnPbPFMa9jfcFwSPek43dxqSSsNa7mUbvLVB7tSHUHWLcYmHtkHNCh5sXP5EB1p0TAtHx6g4/lU0OqQyLlrd93q4z+tVZ9G0LnXVCyXdw5/cBMf7uaga+uQwLxIT6gYqlHzZLl5KwNcs7ZljOT6UmYznkp+JFaIhjMRqM+ac/72aljDsR+/z9GqkTYk8uRTnex+rVIszIMfOSfamB//2apR82S5eSsDXLO2ZYzk+lJmM//Y/+0O2lBob3Rvc2hvcCAzLjAAOEJJTQPtClJlc29sdXRpb24AAAAAEABIAAAAAQACAEgAAAABAAI4QklNBA0YRlggR2xvYmFsIExpZ2h0aW5nIEFuZ2xlAAAAAAQAAAAeOEJJTQQZEkZYIEdsb2JhbCBBbHRpdHVkZQAAAAAEAAAAHjhCSU0D8wtQcmludCBGbGFncwAAAAkAAAAAAAAAAAEAOEJJTQQKDkNvcHlyaWdodCBGbGFnAAAAAAEAADhCSU0nEBRKYXBhbmVzZSBQcmludCBGbGFncwAAAAAKAAEAAAAAAAAAAjhCSU0D9RdDb2xvciBIYWxmdG9uZSBTZXR0aW5ncwAAAEgAL2ZmAAEAbGZmAAYAAAAAAAEAL2ZmAAEAoZmaAAYAAAAAAAEAMgAAAAEAWgAAAAYAAAAAAAEANQAAAAEALQAAAAYAAAAAAAE4QklNA/gXQ29sb3IgVHJhbnNmZXIgU2V0dGluZ3MAAABwAAD/////////////////////////////A+gAAAAA/////////////////////////////wPoAAAAAP////////////////////////////8D6AAAAAD/////////////////////////////A+gAADhCSU0ECAZHdWlkZXMAAAAAEAAAAAEAAAJAAAACQAAAAAA4QklNBB4NVVJMIG92ZXJyaWRlcwAAAAQAAAAAOEJJTQQaBlNsaWNlcwAAAAB3AAAABgAAAAAAAAAAAAAAWgAAAHgAAAALAG8AcABlAHIAYQBfAGgAbwB1AHMAZQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAeAAA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">
+          <animate attributeName="y" from="5" to="145" begin="0" dur="3" fill="freeze"/>
+        </image>
+      </defs>
+      <!-- END OF DEFS-->
+
+      <!-- ACTUAL TEST CONTENT-->
+      <use xlink:href="#lineID">
+        <animate attributeName="x" from="10" to="70" begin="0" dur="3" fill="freeze"/>
+      </use>
+
+      <use xlink:href="#rectID">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="140 0" begin="0" dur="3" fill="freeze"/>
+        <animateTransform attributeName="transform" type="scale" from="1 1" to="0.5 1" begin="0" dur="3" additive="sum" fill="freeze"/>
+      </use>
+
+      <use xlink:href="#circleID">
+        <animate attributeName="x" from="10" to="70" begin="0" dur="3" fill="freeze"/>
+      </use>
+
+      <use xlink:href="#polylineID">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="15" additive="sum" begin="0" dur="3" fill="freeze"/>
+      </use>
+
+      <use x="60" y="-10" xlink:href="#polygonID">
+        <animateMotion path="M 0 0 l 0 150" begin="0" dur="3" fill="freeze"/>
+        <animateTransform attributeName="transform" type="scale" from="1 1" to="1 2" begin="0" dur="3" additive="sum" fill="freeze"/>
+      </use>
+
+      <use xlink:href="#imageID">
+        <animateTransform attributeName="transform" type="scale" from="1 .25" to="1 1" begin="0" dur="3" additive="sum" fill="freeze"/>
+      </use>
+      <!-- END OF ACTUAL TEST CONTENT-->
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

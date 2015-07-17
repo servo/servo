@@ -45,8 +45,7 @@ use std::cell::Cell;
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
 
-#[jstraceable]
-#[derive(PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
 enum InputType {
     InputSubmit,
@@ -80,7 +79,7 @@ impl PartialEq for HTMLInputElement {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 struct InputActivationState {
     indeterminate: bool,
@@ -267,9 +266,7 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let textinput = self.textinput.borrow();
-        textinput.get_content()
+        self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value

@@ -11,20 +11,19 @@
 </head>
 <body>
     <script type="text/javascript">
-        
-        
+
+
         var t = async_test("value of sandbox attribute must be an unordered set of unique space-separated tokens.");
-  
+
         function callback(event)
         {
-            t.step(function(){ 
-                assert_true('sandbox' in document.createElement('iframe')); 
+            t.step(function() {
+                assert_true('sandbox' in document.createElement('iframe'));
                 assert_equals(event.data, "cookies are R/W");
             });
             t.done();
         }
 
-        var timer = setTimeout(callback, 4000);
         window.addEventListener("message", callback, false);
     </script>
     <div id=log></div>

@@ -1,0 +1,109 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AE" author="ASl" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: interact-events-203-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#SVGEvents">
+      <p>Tests 'mouseover' event on SVGElementInstance</p>
+      <p>
+        What each case tests is as follows.
+        Case 1: mouseover event on SVGElementInstance. Referenceing an element that contains an event.
+        Case 2: mouseover event on referencing element. Event bubbling from SVGElementInstance to referencing element.
+        Case 3: mouseover event on parent of referencing element. Event bubbling from SVGElementInstance to referencing element ancestors.
+        Case 4: mousedown event on referencing element. SVGElementInstance is not effected by event listener on referencing element.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+    	<p>
+    		Mouseover each of the red rectangles, and then click on the bottommost rectangle.
+    	</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test contains four cases. The cases must produce the following results for the test to pass.
+      </p>
+      <ul>
+      	<li>Case 1: On a mouseover event on the top square, all four squares must turn blue.</li>
+        <li>Case 2: On a mouseover event on the top middle square, all four squares must turn blue and a black stroke
+        must appear on the referencing square (element).</li>
+        <li>Case 3: On a mouseover event on the bottom middle square, all four squares must turn blue and a black
+        stroke must appear on the referencing square (element).</li>
+        <li>Case 4: On a mouseover event on the bottom square, all four squares must turn blue, and on a mousedown event
+        a black stroke must appear on the referencing square (element).</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-events-203-t.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+	
+		<defs>
+			<!-- SVGElementInstance animates fill on mouseover -->
+			<rect id="rect" width="50" height="50" fill="red" onmouseover="document.getElementById('rect').setAttribute('fill','blue')" onmouseout="document.getElementById('rect').setAttribute('fill','red')" />
+		</defs>
+
+    <text x="120" y="20" font-size="15">Shadow tree event listener chain</text>
+
+    <!--basic event dispatch - all rectangles turn blue -->
+    <use fill="red" x="30" y="30" xlink:href="#rect"/>
+    <text x="95" y="45" font-size="12">Case 1: on mouseover all squares must turn blue</text>
+
+    <!-- event bubbling from SVGElementInstance to referencing element -->
+    <!-- all rectangles turn blue and second rectangle displays black stroke  -->
+    <use id="use2" fill="red" x="30" y="100" xlink:href="#rect" onmouseover="document.getElementById('rect1').setAttribute('stroke','black')" onmouseout="document.getElementById('rect1').setAttribute('stroke','none')"/>
+    <rect id="rect1" pointer-events="none" x="30" y="100" width="50" height="50" fill="none" stroke-width="5" stroke="none"/>
+    
+    <g font-size="12">
+      <text x="95" y="115">Case 2: on mouseover all squares must turn blue</text>
+      <text x="95" y="130">and a black stroke must appear on reference square</text>
+    </g>
+
+    <!-- event bubbling from SVGElementInstance to referencing element ancestors-->
+    <!-- all rectangles turn blue and third rectangle displays black stroke  -->
+    <g id="g1" onmouseover="document.getElementById('rect2').setAttribute('stroke','black')" onmouseout="document.getElementById('rect2').setAttribute('stroke','none')">
+      <use fill="red" x="30" y="170" xlink:href="#rect"/>
+      <rect id="rect2" pointer-events="none" x="30" y="170" width="50" height="50" fill="none" stroke-width="5" stroke="none"/>
+    </g>
+    <g font-size="12">
+      <text x="95" y="185">Case 3: on mouseover all squares must turn blue</text>
+      <text x="95" y="200">and a black stroke must appear on reference square</text>
+    </g>
+
+    <!--SVGElementInstance is not effected by event listener on referencing element   -->
+    <!-- all rectangles turn blue and displays black stroke only on mouse down  -->
+    <use id="use3" fill="red" x="30" y="240" xlink:href="#rect" onmousedown="document.getElementById('rect3').setAttribute('stroke','black')" onmouseup="document.getElementById('rect3').setAttribute('stroke','none')"/>
+    <rect id="rect3" pointer-events="none" x="30" y="240" width="50" height="50" fill="none" stroke-width="5" stroke="none"/>
+    <g font-size="12">
+      <text x="95" y="255">Case 4: on mouseover all squares must turn blue</text>
+      <text x="95" y="270">and on mousedown a black stroke must appear on reference square</text>
+    </g>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

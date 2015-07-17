@@ -18,7 +18,6 @@ use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
-use opaque_node::OpaqueNodeMethods;
 use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect, Size2D};
@@ -29,7 +28,6 @@ use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
-use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -113,11 +111,6 @@ pub struct Fragment {
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     pub debug_id: u16,
 }
-
-#[allow(unsafe_code)]
-unsafe impl Send for Fragment {}
-#[allow(unsafe_code)]
-unsafe impl Sync for Fragment {}
 
 impl Encodable for Fragment {
     fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
@@ -204,6 +197,18 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::TableRow => "SpecificFragmentInfo::TableRow",
             SpecificFragmentInfo::TableWrapper => "SpecificFragmentInfo::TableWrapper",
             SpecificFragmentInfo::UnscannedText(_) => "SpecificFragmentInfo::UnscannedText",
+        }
+    }
+}
+
+impl fmt::Debug for SpecificFragmentInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SpecificFragmentInfo::ScannedText(ref info) => {
+                write!(f, " \"{}\"", info.run.text.slice_chars(info.range.begin().get() as usize,
+                                                               info.range.end().get() as usize))
+            }
+            _ => Ok(())
         }
     }
 }
@@ -390,7 +395,6 @@ impl ImageFragmentInfo {
 
 #[derive(Clone)]
 pub struct ReplacedImageFragmentInfo {
-    pub for_node: UntrustedNodeAddress,
     pub computed_inline_size: Option<Au>,
     pub computed_block_size: Option<Au>,
     pub dom_inline_size: Option<Au>,
@@ -403,10 +407,7 @@ impl ReplacedImageFragmentInfo {
                dom_width: Option<Au>,
                dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
-        let untrusted_node = node.opaque().to_untrusted_node_address();
-
         ReplacedImageFragmentInfo {
-            for_node: untrusted_node,
             computed_inline_size: None,
             computed_block_size: None,
             dom_inline_size: if is_vertical {
@@ -1802,7 +1803,7 @@ impl Fragment {
                     block_size_above_baseline: computed_block_size +
                                                    self.border_padding.block_start_end(),
                     depth_below_baseline: Au(0),
-                    ascent: computed_block_size + self.border_padding.block_end,
+                    ascent: computed_block_size + self.border_padding.block_start_end(),
                 }
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
@@ -2120,10 +2121,11 @@ impl Fragment {
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "({} {} ", self.debug_id(), self.specific.get_type()));
-        try!(write!(f, "bb {:?} bp {:?} m {:?}",
+        try!(write!(f, "bb {:?} bp {:?} m {:?}{:?}",
                     self.border_box,
                     self.border_padding,
-                    self.margin));
+                    self.margin,
+                    self.specific));
         write!(f, ")")
     }
 }

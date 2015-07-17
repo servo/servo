@@ -6,18 +6,25 @@
 //! The traits are here instead of in script so that these modules won't have
 //! to depend on script.
 
-#[deny(missing_docs)]
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
+#![deny(missing_docs)]
 
 extern crate devtools_traits;
 extern crate euclid;
+extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
+extern crate profile_traits;
+extern crate serde;
 extern crate util;
 extern crate url;
 
 use devtools_traits::DevtoolsControlChan;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
+use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
@@ -26,9 +33,11 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
+use profile_traits::mem;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
+use util::geometry::Au;
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -40,6 +49,19 @@ use euclid::rect::Rect;
 pub struct UntrustedNodeAddress(pub *const c_void);
 unsafe impl Send for UntrustedNodeAddress {}
 
+/// Messages sent to the layout task from the constellation and/or compositor.
+#[derive(Deserialize, Serialize)]
+pub enum LayoutControlMsg {
+    /// Requests that this layout task exit.
+    ExitNow(PipelineExitType),
+    /// Requests the current epoch (layout counter) from this layout.
+    GetCurrentEpoch(IpcSender<Epoch>),
+    /// Asks layout to run another step in its animation.
+    TickAnimations,
+    /// Informs layout as to which regions of the page are visible.
+    SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
+}
+
 /// The initial data associated with a newly-created framed pipeline.
 pub struct NewLayoutInfo {
     /// Id of the parent of this new pipeline.
@@ -48,21 +70,34 @@ pub struct NewLayoutInfo {
     pub new_pipeline_id: PipelineId,
     /// Id of the new frame associated with this pipeline.
     pub subpage_id: SubpageId,
-    /// Channel for communicating with this new pipeline's layout task.
-    /// (This is a LayoutChannel.)
-    pub layout_chan: Box<Any+Send>,
     /// Network request data which will be initiated by the script task.
     pub load_data: LoadData,
+    /// The paint channel, cast to `Box<Any>`.
+    ///
+    /// TODO(pcwalton): When we convert this to use IPC, this will need to become an
+    /// `IpcAnySender`.
+    pub paint_chan: Box<Any + Send>,
+    /// Information on what to do on task failure.
+    pub failure: Failure,
+    /// A port on which layout can receive messages from the pipeline.
+    pub pipeline_port: IpcReceiver<LayoutControlMsg>,
+    /// A shutdown channel so that layout can notify others when it's done.
+    pub layout_shutdown_chan: Sender<()>,
 }
 
+/// `StylesheetLoadResponder` is used to notify a responder that a style sheet
+/// has loaded.
 pub trait StylesheetLoadResponder {
+    /// Respond to a loaded style sheet.
     fn respond(self: Box<Self>);
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ScriptState {
+    /// The document has been loaded.
     DocumentLoaded,
+    /// The document is still loading.
     DocumentLoading,
 }
 
@@ -96,7 +131,7 @@ pub enum ConstellationControlMsg {
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     FocusIFrame(PipelineId, SubpageId),
-    // Passes a webdriver command to the script task for execution
+    /// Passes a webdriver command to the script task for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
@@ -141,24 +176,29 @@ pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
 #[derive(Clone)]
 pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
 
+/// This trait allows creating a `ScriptTask` without depending on the `script`
+/// crate.
 pub trait ScriptTaskFactory {
-    fn create<C>(_phantom: Option<&mut Self>,
-                 id: PipelineId,
-                 parent_info: Option<(PipelineId, SubpageId)>,
-                 compositor: C,
-                 layout_chan: &OpaqueScriptLayoutChannel,
-                 control_chan: ScriptControlChan,
-                 control_port: Receiver<ConstellationControlMsg>,
-                 constellation_msg: ConstellationChan,
-                 failure_msg: Failure,
-                 resource_task: ResourceTask,
-                 storage_task: StorageTask,
-                 image_cache_task: ImageCacheTask,
-                 devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: Option<WindowSizeData>,
-                 load_data: LoadData)
-                 where C: ScriptListener + Send;
+    /// Create a `ScriptTask`.
+    fn create(_phantom: Option<&mut Self>,
+              id: PipelineId,
+              parent_info: Option<(PipelineId, SubpageId)>,
+              compositor: ScriptListener,
+              layout_chan: &OpaqueScriptLayoutChannel,
+              control_chan: ScriptControlChan,
+              control_port: Receiver<ConstellationControlMsg>,
+              constellation_msg: ConstellationChan,
+              failure_msg: Failure,
+              resource_task: ResourceTask,
+              storage_task: StorageTask,
+              image_cache_task: ImageCacheTask,
+              mem_profiler_chan: mem::ProfilerChan,
+              devtools_chan: Option<DevtoolsControlChan>,
+              window_size: Option<WindowSizeData>,
+              load_data: LoadData);
+    /// Create a script -> layout channel (`Sender`, `Receiver` pair).
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
+    /// Clone the `Sender` in `pair`.
     fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
                             -> Box<Any+Send>;
 }

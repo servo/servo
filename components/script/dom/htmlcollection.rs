@@ -8,11 +8,10 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers, TreeIterator};
 use dom::window::Window;
-use util::namespace;
 use util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::AsciiExt;
@@ -23,7 +22,7 @@ pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 #[must_root]
 pub enum CollectionTypeId {
     Static(Vec<JS<Element>>),
@@ -58,7 +57,7 @@ impl HTMLCollection {
 
     fn all_elements(window: &Window, root: &Node,
                     namespace_filter: Option<Namespace>) -> Root<HTMLCollection> {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct AllElementFilter {
             namespace_filter: Option<Namespace>
         }
@@ -80,7 +79,7 @@ impl HTMLCollection {
             return HTMLCollection::all_elements(window, root, None);
         }
 
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct TagNameFilter {
             tag: Atom,
             ascii_lower_tag: Atom,
@@ -105,13 +104,13 @@ impl HTMLCollection {
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
         let namespace_filter = match maybe_ns {
             Some(ref namespace) if namespace == &"*" => None,
-            ns => Some(namespace::from_domstring(ns)),
+            ns => Some(namespace_from_domstring(ns)),
         };
 
         if tag == "*" {
             return HTMLCollection::all_elements(window, root, namespace_filter);
         }
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct TagNameNSFilter {
             tag: Atom,
             namespace_filter: Option<Namespace>
@@ -136,7 +135,7 @@ impl HTMLCollection {
 
     pub fn by_class_name(window: &Window, root: &Node, classes: DOMString)
                          -> Root<HTMLCollection> {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct ClassNameFilter {
             classes: Vec<Atom>
         }
@@ -154,7 +153,7 @@ impl HTMLCollection {
     }
 
     pub fn children(window: &Window, root: &Node) -> Root<HTMLCollection> {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {

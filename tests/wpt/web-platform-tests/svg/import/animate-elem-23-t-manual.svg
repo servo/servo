@@ -1,0 +1,93 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-23-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test which verifies that the basic facilities of declarative
+        animation are working.
+      </p>
+      <p>
+        This test uses the following elements : 'set',
+        and 'animateColor'.
+      </p>
+      <p>
+        The test is a nine second animation with no repeats. It shows a circle
+        changing color from 3s to 9s.
+      </p>
+      <p>
+        The file includes various guides that can be used to verify the
+        correctness of the animation.
+        Boxes on the left show the correct circle color values at times
+        3s, 6s and 9s.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+	    <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	The test is passed if:
+      </p>
+      <ul>
+				<li>From time t=0 seconds to t=3 seconds the large rectangle is filled with black</li>
+				<li>At t=3 seconds a blue circle appears inside the black rectangle</li>
+				<li>Between time t=3 seconds and t=6 seconds the fill of the circle is animated between blue and bluegreen</li>
+				<li>Between time t=6 seconds and t=9 seconds the fill of the circle is animated between bluegreen and green</li>   
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-23-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Guide objects to show where the animation elements belong at which time -->
+    <g font-size="12">
+      <text x="15" y="55">Color at 3s</text>
+      <rect x="15" y="60" width="30" height="30"/>
+      <circle cx="30" cy="75" r="10" fill="rgb(0,0,255)"/>
+      <text x="15" y="145">Color at 6s</text>
+      <rect x="15" y="150" width="30" height="30"/>
+      <circle cx="30" cy="165" r="10" fill="rgb(0,127,127)"/>
+      <text x="15" y="235">Color at 9s</text>
+      <rect x="15" y="240" width="30" height="30"/>
+      <circle cx="30" cy="255" r="10" fill="rgb(0,255,0)"/>
+    </g>
+
+    <g>
+      <rect x="150" y="50" width="240" height="240" stroke="black" fill="black"/>
+      <circle cx="270" cy="170" r="110" visibility="hidden">
+        <set attributeName="visibility" attributeType="CSS" to="visible" begin="3s" dur="6s" fill="freeze"/>
+        <animateColor attributeName="fill" attributeType="CSS" from="rgb(0,0,255)" to="rgb(0,255,0)" begin="3s" dur="6s" fill="freeze"/>
+      </circle>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

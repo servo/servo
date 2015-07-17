@@ -1,0 +1,141 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Peter Graffagnino" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-displace-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feDisplacementMapElement">
+      <p>
+        Verify the basic capability to handle the feDisplacementMap filter
+        node.  Six images should appear in 2 rows of 3.  On the left in each
+        row a test image of a checker board is displayed.  In the middle
+        column is the displacement map.  In the right-hand column is the
+        result.  All displacement maps are generated as png files with gamma
+        1.0 and must be interpreted linearly for the proper geometric
+        displacement to occur.
+      </p>
+      <p>
+        The top row tests a displacement map which displaces each pixel by an
+        amount equivalent to a rotation of 20 degrees around the center of the
+        image.  A blue reference rectangle is drawn on the result using an svg
+        transform attribute to mimick the same 20 degree rotation.  The edges
+        of the blue rectangle should be parallel to the grid lines in the
+        displaced image.  Distortion of the grid pattern such that the grid
+        lines are slightly curved is indicative of improper gamma handling in
+        the viewer.
+      </p>
+      <p>
+        The bottom row tests a displacement map which distorts the image
+        spherically.
+      </p>
+      <p>
+        In addition to feDisplacementMap, this test uses the 'feImage' and
+        'rect' elements.  Figure labeling uses the text element.  The
+        reference blue rectangle uses fill, fill-opacity, and transform.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered image should match the reference image. The edges
+        of the blue rectangle must be parallel to the grid lines in the
+        displaced image. The center of the bottommost right distorted image 
+        should be on a gridpoint.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-displace-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <filter id="DispMapChecker" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feImage xlink:href="../images/DisplaceChecker.png"/>
+      </filter>
+      <filter id="RotateMap" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feImage xlink:href="../images/rotate20.png"/>
+      </filter>
+      <filter id="SphereMap" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feImage xlink:href="../images/sphere.png"/>
+      </filter>
+      <filter id="RotateMapTest" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feImage result="Map" xlink:href="../images/rotate20.png"/>
+        <feImage result="Texture" xlink:href="../images/DisplaceChecker.png"/>
+        <feDisplacementMap in="Texture" in2="Map" scale="64" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="SphereMapTest" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feImage result="Map" xlink:href="../images/sphere.png"/>
+        <feImage result="Texture" xlink:href="../images/DisplaceChecker.png"/>
+        <feDisplacementMap in="Texture" in2="Map" scale="64" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+
+    <g font-family="Arial" font-size="12" text-anchor="middle">
+      <rect x="15" y="15" width="128" height="128" filter="url(#DispMapChecker)"/>
+      <rect x="20" y="115" width="118" height="20" fill="#DDD"/>
+      <text x="79" y="130">Checkerboard Image</text>
+
+      <rect x="158" y="15" width="128" height="128" filter="url(#RotateMap)"/>
+      <rect x="163" y="112" width="118" height="30" fill="#DDD"/>
+      <text>
+        <tspan x="222" y="125">Displacement Map</tspan>
+        <tspan x="222" y="138">(20 deg. rotation)</tspan>
+      </text>
+
+
+
+      <rect x="301" y="15" width="128" height="128" filter="url(#RotateMapTest)"/>
+      <rect x="-1" y="-1" width="2" height="2" transform="translate(365,79) rotate(20) scale(32)" fill="blue" fill-opacity="0.5"/>
+      <text>
+        <tspan x="365" y="160">Result</tspan>
+        <tspan x="365" y="172">(overlayed with 20 deg.</tspan>
+        <tspan x="365" y="184">rotated blue rectangle)</tspan>
+      </text>
+
+
+      <rect x="15" y="158" width="128" height="128" filter="url(#DispMapChecker)"/>
+      <rect x="20" y="258" width="118" height="20" fill="#DDD"/>
+      <text x="79" y="273">Checkerboard Image</text>
+
+
+      <rect x="158" y="158" width="128" height="128" filter="url(#SphereMap)"/>
+      <rect x="163" y="255" width="118" height="30" fill="#DDD"/>
+      <text>
+        <tspan x="222" y="268">Displacement Map</tspan>
+        <tspan x="222" y="283">(spherical distortion)</tspan>
+      </text>
+
+
+      <rect x="301" y="200" width="128" height="128" filter="url(#SphereMapTest)"/>
+      <text x="365" y="345">Result</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

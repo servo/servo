@@ -36,15 +36,13 @@ use url::Url;
 
 use std::collections::HashMap;
 
-#[derive(Copy, Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
-#[derive(Copy, Clone)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone)]
 pub enum EventTargetTypeId {
     Node(NodeTypeId),
     WebSocket,
@@ -91,8 +89,7 @@ impl EventTargetTypeId {
     }
 }
 
-#[derive(Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Clone, PartialEq)]
 pub enum EventListenerType {
     Additive(Rc<EventListener>),
     Inline(Rc<EventListener>),
@@ -107,8 +104,7 @@ impl EventListenerType {
     }
 }
 
-#[derive(Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Clone, PartialEq)]
 #[privatize]
 pub struct EventListenerEntry {
     phase: ListenerPhase,
@@ -287,9 +283,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
     }
 
     fn has_handlers(self) -> bool {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let handlers = self.handlers.borrow();
-        !handlers.is_empty()
+        !self.handlers.borrow().is_empty()
     }
 }
 

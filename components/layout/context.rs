@@ -4,7 +4,7 @@
 
 //! Data needed by the layout task.
 
-#![allow(unsafe_code)]
+#![deny(unsafe_code)]
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
@@ -129,9 +129,17 @@ pub struct SharedLayoutContext {
     pub goal: ReflowGoal,
 }
 
-pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);
-
-unsafe impl Send for SharedLayoutContextWrapper {}
+// FIXME(#6569) This implementations is unsound:
+// XXX UNSOUND!!! for image_cache_task
+// XXX UNSOUND!!! for image_cache_sender
+// XXX UNSOUND!!! for constellation_chan
+// XXX UNSOUND!!! for layout_chan
+// XXX UNSOUND!!! for font_cache_task
+// XXX UNSOUND!!! for stylist
+// XXX UNSOUND!!! for new_animations_sender
+// XXX UNSOUND!!! for canvas_layers_sender
+#[allow(unsafe_code)]
+unsafe impl Sync for SharedLayoutContext {}
 
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,

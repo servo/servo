@@ -12,7 +12,7 @@
 //!    phase. (This happens through `JSClass.trace` for non-proxy bindings, and
 //!    through `ProxyTraps.trace` otherwise.)
 //! 2. `_trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
-//!    This is typically derived via a `#[dom_struct]` (implies `#[jstraceable]`) annotation.
+//!    This is typically derived via a `#[dom_struct]` (implies `#[derive(JSTraceable)]`) annotation.
 //!    Non-JS-managed types have an empty inline `trace()` method,
 //!    achieved via `no_jsmanaged_fields!` or similar.
 //! 3. For all fields, `Foo::trace()`
@@ -36,6 +36,7 @@ use script_task::ScriptChan;
 
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
+use canvas_traits::WebGLError;
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use euclid::matrix2d::Matrix2D;
@@ -59,6 +60,7 @@ use smallvec::SmallVec1;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
+use profile_traits::mem::ProfilerChan;
 use util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -297,6 +299,8 @@ no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 no_jsmanaged_fields!(RepetitionStyle);
+no_jsmanaged_fields!(WebGLError);
+no_jsmanaged_fields!(ProfilerChan);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]
@@ -326,7 +330,7 @@ impl<A,B> JSTraceable for fn(A) -> B {
     }
 }
 
-impl JSTraceable for Box<ScriptListener+'static> {
+impl JSTraceable for ScriptListener {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -357,9 +361,16 @@ pub struct RootedTraceableSet {
     set: Vec<TraceableInfo>
 }
 
-/// TLV Holds a set of JSTraceables that need to be rooted
-thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
-              Rc::new(RefCell::new(RootedTraceableSet::new())));
+#[allow(missing_docs)]  // FIXME
+mod dummy {  // Attributes don’t apply through the macro.
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use super::RootedTraceableSet;
+    /// TLV Holds a set of JSTraceables that need to be rooted
+    thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
+                  Rc::new(RefCell::new(RootedTraceableSet::new())));
+}
+pub use self::dummy::ROOTED_TRACEABLES;
 
 impl RootedTraceableSet {
     fn new() -> RootedTraceableSet {
@@ -410,7 +421,7 @@ impl RootedTraceableSet {
 /// If you have GC things like *mut JSObject or JSVal, use jsapi::Rooted.
 /// If you have an arbitrary number of Reflectables to root, use RootedVec<JS<T>>
 /// If you know what you're doing, use this.
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
     ptr: &'a T
 }
@@ -434,7 +445,7 @@ impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
 /// Must be a reflectable
 #[allow(unrooted_must_root)]
 #[no_move]
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct RootedVec<T: JSTraceable + Reflectable> {
     v: Vec<T>
 }

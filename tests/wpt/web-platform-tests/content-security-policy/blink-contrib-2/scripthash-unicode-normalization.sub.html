@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>scripthash-unicode-normalization</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/content-security-policy/support/alertAssert.sub.js?alerts=%5B%22PASS%22%2C%22PASS%22%5D">
+
+
+    </script>
+    <!-- enforcing policy:
+script-src 'self' 'unsafe-inline' 'sha256-xy4iRAvdlFCq-M5-4yu4B7dy0Kc2FfljmZO4Jkj3Yhw='; connect-src 'self';
+-->
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!-- The following two scripts contain two separate code points (U+00C5
+        and U+212B, respectively) which, depending on your text editor, might be
+        rendered the same. However, their difference is important as they should
+        be NFC normalized to the same code point, thus they should hash to the
+        same value.-->
+    <script>
+        'Å';
+        alert_assert('PASS');
+
+    </script>
+    <script>
+        'Å';
+        alert_assert('PASS');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests Unicode normalization. While appearing the same, the strings in the scripts are different Unicode points, but through normalization, should be the same when the hash is taken.
+    </p>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

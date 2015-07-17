@@ -1,1 +1,0 @@
-crossorigin_ineligible=true;

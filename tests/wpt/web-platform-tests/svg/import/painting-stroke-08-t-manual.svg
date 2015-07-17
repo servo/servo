@@ -1,0 +1,78 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="CN" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: painting-stroke-08-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#StrokeProperties">
+        <p>
+          Test effects of stroke-opacity range. Values
+          outside the range 0-1.0 must be clamped.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      Run the test. No interaction required.
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        There must be no blue bars visible beside the three pink dots.
+        Four semitransparent blue bars, increasingly more opaque,
+        must line up with the yellow dots. Three fully opaque
+        blue bars must line up with the green dots.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-stroke-08-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="translate(50, 0) scale(1.7)">
+      <circle r="5" fill="#f66" cx="200" cy="20"/>
+      <circle r="5" fill="#f66" cx="200" cy="40"/>
+      <circle r="5" fill="#f66" cx="200" cy="60"/>
+      <circle r="5" fill="#f66" cx="200" cy="80"/>
+      <circle r="5" fill="#ff0" cx="200" cy="80"/>
+      <circle r="5" fill="#ff0" cx="200" cy="100"/>
+      <circle r="5" fill="#ff0" cx="200" cy="120"/>
+      <circle r="5" fill="#ff0" cx="200" cy="140"/>
+      <circle r="5" fill="#6f3" cx="200" cy="160"/>
+      <circle r="5" fill="#6f3" cx="200" cy="180"/>
+      <circle r="5" fill="#6f3" cx="200" cy="200"/>
+      <!-- Test range and values outside range (should be clamped to valid range) -->
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="-1.0" d="   M  20 20   L  200 20"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="-0.1" d="   M  20 40   L  200 40"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="0.0" d="   M  20 60   L  200 60"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="0.2" d="   M  20 80   L  200 80"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="0.4" d="   M  20 100   L  200 100"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="0.6" d="   M  20 120   L  200 120"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="0.8" d="   M  20 140   L  200 140"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="1.0" d="   M  20 160   L  200 160"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="1.1" d="   M  20 180   L  200 180"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-opacity="2.0" d="   M  20 200  L  200 200"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved 
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

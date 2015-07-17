@@ -33,6 +33,7 @@
   readonly attribute Window frames;
   //[Replaceable] readonly attribute unsigned long length;
   //[Unforgeable] readonly attribute WindowProxy top;
+  readonly attribute Window top;
   //         attribute any opener;
   //readonly attribute WindowProxy parent;
   readonly attribute Window parent;
@@ -149,7 +150,7 @@ interface WindowLocalStorage {
 };
 Window implements WindowLocalStorage;
 
-// http://w3c.github.io/animation-timing/#Window-interface-extensions
+// https://w3c.github.io/animation-timing/#Window-interface-extensions
 partial interface Window {
   long requestAnimationFrame(FrameRequestCallback callback);
   void cancelAnimationFrame(long handle);

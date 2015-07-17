@@ -8,7 +8,7 @@
 <link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#appending-to-a-template">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src='../../testcommon.js'></script>
+<script src="/html/resources/common.js"></script>
 <link rel="stylesheet" href="/resources/testharness.css">
 </head>
 <body>
@@ -77,7 +77,7 @@ test(function () {
 
 
 
-testInIFrame('../../resources/template-contents.html', function(context) {
+testInIFrame('/html/semantics/scripting-1/the-template-element/resources/template-contents.html', function(context) {
     var doc = context.iframes[0].contentDocument;
 
     var template = doc.querySelector('template');
@@ -91,7 +91,7 @@ testInIFrame('../../resources/template-contents.html', function(context) {
     + 'Load HTML document from a file');
 
 
-testInIFrame('../../resources/template-contents-nested.html', function(context) {
+testInIFrame('/html/semantics/scripting-1/the-template-element/resources/template-contents-nested.html', function(context) {
     var doc = context.iframes[0].contentDocument;
 
     var template = doc.querySelector('template');

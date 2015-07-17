@@ -26,7 +26,7 @@ interface Node : EventTarget {
   readonly attribute DOMString nodeName;
 
   [Pure]
-  readonly attribute DOMString? baseURI;
+  readonly attribute DOMString baseURI;
 
   [Pure]
   readonly attribute Document? ownerDocument;

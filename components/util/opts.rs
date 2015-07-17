@@ -7,9 +7,7 @@
 
 use geometry::ScreenPx;
 
-use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
-use layers::geometry::DevicePixel;
 use getopts;
 use num_cpus;
 use std::collections::HashSet;
@@ -44,7 +42,7 @@ pub struct Opts {
 
     /// The ratio of device pixels per px at the default scale. If unspecified, will use the
     /// platform default setting.
-    pub device_pixels_per_px: Option<ScaleFactor<ScreenPx, DevicePixel, f32>>,
+    pub device_pixels_per_px: Option<f32>,
 
     /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
     /// cause it to produce output on that interval (`-p`).
@@ -71,6 +69,11 @@ pub struct Opts {
     pub userscripts: Option<String>,
 
     pub output_file: Option<String>,
+
+    /// Replace unpaires surrogates in DOM strings with U+FFFD.
+    /// See https://github.com/servo/servo/issues/6564
+    pub replace_surrogates: bool,
+
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -137,6 +140,9 @@ pub struct Opts {
     /// Dumps the display list after a layout.
     pub dump_display_list: bool,
 
+    /// Dumps the display list in JSON form after a layout.
+    pub dump_display_list_json: bool,
+
     /// Dumps the display list after optimization (post layout, at painting time).
     pub dump_display_list_optimized: bool,
 
@@ -154,6 +160,9 @@ pub struct Opts {
 
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
+
+    /// Whether to run absolute position calculation and display list construction in parallel.
+    pub parallel_display_list_building: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -172,6 +181,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("disable-text-aa", "Disable antialiasing of rendered text.");
     print_option("dump-flow-tree", "Print the flow tree after each layout.");
     print_option("dump-display-list", "Print the display list after each layout.");
+    print_option("dump-display-list-json", "Print the display list in JSON form.");
     print_option("dump-display-list-optimized", "Print optimized display list (at paint time).");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
@@ -185,6 +195,9 @@ pub fn print_debug_usage(app: &str) -> ! {
                  "Display an error when display list geometry escapes overflow region.");
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
+    print_option("parallel-display-list-building", "Build display lists in parallel.");
+    print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
+                                        See https://github.com/servo/servo/issues/6564");
 
     println!("");
 
@@ -221,6 +234,7 @@ pub fn default_opts() -> Opts {
         nossl: false,
         userscripts: None,
         output_file: None,
+        replace_surrogates: false,
         headless: true,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
@@ -238,6 +252,7 @@ pub fn default_opts() -> Opts {
         user_agent: None,
         dump_flow_tree: false,
         dump_display_list: false,
+        dump_display_list_json: false,
         dump_display_list_optimized: false,
         relayout_event: false,
         validate_display_list_geometry: false,
@@ -245,6 +260,7 @@ pub fn default_opts() -> Opts {
         resources_path: None,
         sniff_mime_types: false,
         disable_share_style_cache: false,
+        parallel_display_list_building: false,
     }
 }
 
@@ -328,7 +344,7 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        ScaleFactor::new(dppx_str.parse().unwrap())
+        dppx_str.parse().unwrap()
     );
 
     let mut paint_threads: usize = match opt_match.opt_str("t") {
@@ -394,6 +410,7 @@ pub fn from_cmdline_args(args: &[String]) {
         nossl: nossl,
         userscripts: opt_match.opt_default("userscripts", ""),
         output_file: opt_match.opt_str("o"),
+        replace_surrogates: debug_options.contains(&"replace-surrogates"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
@@ -412,12 +429,14 @@ pub fn from_cmdline_args(args: &[String]) {
         enable_canvas_antialiasing: !debug_options.contains(&"disable-canvas-aa"),
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         dump_display_list: debug_options.contains(&"dump-display-list"),
+        dump_display_list_json: debug_options.contains(&"dump-display-list-json"),
         dump_display_list_optimized: debug_options.contains(&"dump-display-list-optimized"),
         relayout_event: debug_options.contains(&"relayout-event"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
         resources_path: opt_match.opt_str("resources-path"),
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
+        parallel_display_list_building: debug_options.contains(&"parallel-display-list-building"),
     };
 
     set(opts);

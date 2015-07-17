@@ -18,8 +18,7 @@ use std::default::Default;
 
 use time;
 
-#[jstraceable]
-#[derive(Copy, Clone)]
+#[derive(JSTraceable, Copy, Clone)]
 #[repr(u16)]
 pub enum EventPhase {
     None      = EventConstants::NONE,
@@ -28,8 +27,7 @@ pub enum EventPhase {
     Bubbling  = EventConstants::BUBBLING_PHASE,
 }
 
-#[derive(PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq)]
 pub enum EventTypeId {
     CustomEvent,
     HTMLEvent,
@@ -182,9 +180,7 @@ impl<'a> EventMethods for &'a Event {
 
     // https://dom.spec.whatwg.org/#dom-event-type
     fn Type(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let type_ = self.type_.borrow();
-        type_.clone()
+        self.type_.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target

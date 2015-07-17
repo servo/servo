@@ -1,0 +1,80 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: linking-a-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/linking.html#Links">
+      <p>
+        This is the first of a set of three tests that verify the capability to
+        handle links into SVG content, using
+        each of the three fragment identifier forms permissible in SVG.
+      </p>
+      <p>
+        There is a colored arrow comprising the content of an 'a' element.  The
+        link destination is in an auxiliary file, linkingCircle-f.svg, and
+        is expressed by xlink:href="linkingCircle-f.svg#fragmentValue".
+        The initial view of this test contains one pale blue arrow plus labelling text.
+      </p>
+      <p>
+        The (blue) arrow uses the "bare name" fragment identifier
+        form, "#circle-2", to target the circle with id "circle-2" in the external
+        file. 
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The user should activate the link on the center blue arrow.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Upon clicking the first arrow, the full image of the linkingCircle-f.svg
+        file should replace the initial view of this test case in the viewer frame.
+      </p>
+      <p>
+        The reference image illustrates the correct image after the  link is
+        activated (full view of linkingCircle-f.svg).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: linking-a-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="scale(2)">
+      <a xlink:href="../images/linkingCircle-f.svg#circle-2">
+        <path fill="aqua" stroke="blue" d="M 185,40 h -100 v -12 l -45 36 l 45 36 v -12 h 100 z"/>
+      </a>
+      <!-- Code from target file, linkingCircle-f.svg...
+        <circle id="circle-2" cx="85" cy="153" r="20"  stroke="lime" fill="yellow" stroke-width="4"  />
+        <text font-family="Arial" font-size="12"  x="65" y="189">circle-2</text>
+        <rect x="49" y="227" width="72" height="72" fill="none" stroke="black" />
+        -->
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

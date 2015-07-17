@@ -1,0 +1,103 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CC" status="accepted"
+    version="$Revision: 1.2 $" testname="$RCSfile: animate-pservers-grad-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+        <p>
+          This test shows rectangles filled with animated gradient which inherits some of their properties: stop-color, stop-opacity.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	Load the svg and wait 5 seconds for the animation to run, then compare the image to the reference.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The correct result should show:
+      </p>
+      <ul>
+        <li>the top-left rectangle filled initially with a linear green-to-red gradient and turning into a solid green color after 5s.</li>
+        <li>the top-right rectangle filled initially with a green gradient fully opaque on the left and half transparent on the right, but after 5s the rectangle should be filled with a fully opaque solid green.</li>
+        <li>the bottom-left rectangle filled with a static green-to-black opaque gradient.</li>
+        <li>the bottom-right rectangle initially filled with a green-to-yellow fully-opaque gradient animated and turning into a fully-opaque green solid color.</li>
+        <!--<li>Animations numbered a4 to a7 should have no impact.</li>-->
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-pservers-grad-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <g id="g0" stop-color="yellow" stop-opacity="0" color="yellow">
+        <animateColor id="a1" attributeName="stop-color" from="red" to="green" dur="5" fill="freeze"/>
+        <animateColor id="a2" attributeName="color" from="yellow" to="green" dur="5" fill="freeze"/>
+        <animate id="a3" attributeName="stop-opacity" from="0.5" to="1" dur="5" fill="freeze"/>
+
+        <linearGradient id="MyGradient1" stop-color="inherit">
+          <stop offset="0" stop-color="green" stop-opacity="1"/>
+          <stop offset="1" stop-color="inherit" stop-opacity="1"/>
+        </linearGradient>
+        <linearGradient id="MyGradient2" stop-opacity="inherit">
+          <stop offset="0" stop-color="green" stop-opacity="1"/>
+          <stop offset="1" stop-color="green" stop-opacity="inherit"/>
+        </linearGradient>
+
+        <g id="g01">
+          <linearGradient id="MyGradient3">
+            <stop offset="0" stop-color="green" stop-opacity="1"/>
+            <stop offset="1"/>
+          </linearGradient>
+          <linearGradient id="MyGradient4">
+            <stop offset="0" stop-color="green" stop-opacity="1"/>
+            <stop offset="1" stop-color="currentColor" stop-opacity="1"/>
+          </linearGradient>
+        </g>
+      </g>
+    </defs>
+    <g id="g1" stop-color="blue">
+      <animateColor id="a4" attributeName="stop-color" from="blue" to="red" dur="5" fill="freeze"/>
+      <rect id="r1" fill="url(#MyGradient1)" width="100" height="100" x="50" y="50"/>
+    </g>
+    <g id="g2" stop-opacity="1">
+      <animate id="a5" attributeName="stop-opacity" from="1" to="0" dur="5" fill="freeze"/>
+      <rect id="r2" fill="url(#MyGradient2)" width="100" height="100" x="200" y="50"/>
+    </g>
+    <g id="g3" stop-opacity="1" stop-color="blue">
+      <animateColor id="a6" attributeName="stop-color" from="blue" to="red" dur="5" fill="freeze"/>
+      <animate id="a7" attributeName="stop-opacity" from="1" to="0" dur="5" fill="freeze"/>
+      <rect id="r3" fill="url(#MyGradient3)" width="100" height="100" x="50" y="200"/>
+    </g>
+    <g id="g4" color="blue">
+      <animateColor id="a7" attributeName="color" from="blue" to="red" dur="5" fill="freeze"/>
+      <rect id="r4" fill="url(#MyGradient4)" width="100" height="100" x="200" y="200"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.2 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -11,8 +11,7 @@ use net_traits::{Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
 use net_traits::AsyncResponseTarget;
 use url::Url;
 
-#[jstraceable]
-#[derive(PartialEq, Clone, Debug)]
+#[derive(JSTraceable, PartialEq, Clone, Debug)]
 pub enum LoadType {
     Image(Url),
     Script(Url),
@@ -33,14 +32,14 @@ impl LoadType {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct DocumentLoader {
     pub resource_task: ResourceTask,
     notifier_data: Option<NotifierData>,
     blocking_loads: Vec<LoadType>,
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct NotifierData {
     pub script_chan: Box<ScriptChan + Send>,
     pub pipeline: PipelineId,

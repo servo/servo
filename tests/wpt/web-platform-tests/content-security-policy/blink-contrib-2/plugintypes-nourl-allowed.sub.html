@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>plugintypes-nourl-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+plugin-types application/x-webkit-test-netscape; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+</head>
+
+<body>
+    This test passes if there isn&apos;t a CSP violation sayingthe plugin was blocked.
+    <object type="application/x-webkit-test-netscape"></object>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

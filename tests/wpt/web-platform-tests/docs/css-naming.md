@@ -3,15 +3,17 @@ but not mandatory, style to use for other tests.
 
 ## File Name
 
-The file name format is ```test-topic-###.ext``` where ```test-
-topic``` somewhat describes the test and ### is a zero-filled number
-used to keep the file names unique.
+The file name format is ```test-topic-###.ext``` where `test-topic`
+somewhat describes the test, `###` is a zero-filled number used to
+keep the file names unique, and `ext` is typically either
+`html` or `xht`.
 
-**test-topic**
+### test-topic
 
-A short identifier that describes the test. The test-topic should
-avoid conjunctions, articles, and prepositions. It is a file name,
-not an English phrase: it should be as concise as possible.
+`test-topic` is a short identifier that describes the test. The
+`test-topic` should avoid conjunctions, articles, and prepositions.
+It is a file name, not an English phrase: it should be as concise
+as possible.
 
 Examples:
 ```
@@ -20,9 +22,9 @@ Examples:
     float-clear-###.ext
 ```
 
-**###**
+### `###`
 
-This is a zero-filled number used to keep the file names unique when
+`###` is a zero-filled number used to keep the file names unique when
 files have the same test-topic name.
 
 Note: The number format is limited to 999 cases. If you go over this
@@ -59,7 +61,8 @@ If ```bidi-004a``` and ```bidi-004b``` cover all aspects of ```bidi-
 004``` (except their interaction), then bidi-004 should be given the
 combo flag.
 
-**ext**
+### ext
 
-The file extension or format of the file, usually ```.xht``` for
-test files.
+`ext` is the file extension or format of the file.
+For XHTML test files, it should be `xht`.
+For HTML (non-XML) test files, it should be `html`.

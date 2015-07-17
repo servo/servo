@@ -11,6 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
+use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScopeHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
@@ -22,6 +23,7 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use devtools_traits::DevtoolsControlChan;
 
 use msg::constellation_msg::{PipelineId, WorkerId};
+use profile_traits::mem;
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
@@ -33,8 +35,7 @@ use std::default::Default;
 use std::cell::Cell;
 use std::rc::Rc;
 
-#[derive(Copy, Clone, PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }
@@ -50,7 +51,9 @@ pub struct WorkerGlobalScope {
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
+    crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
+    mem_profiler_chan: mem::ProfilerChan,
     devtools_chan: Option<DevtoolsControlChan>,
 }
 
@@ -59,6 +62,7 @@ impl WorkerGlobalScope {
                          worker_url: Url,
                          runtime: Rc<Runtime>,
                          resource_task: ResourceTask,
+                         mem_profiler_chan: mem::ProfilerChan,
                          devtools_chan: Option<DevtoolsControlChan>) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
@@ -69,9 +73,15 @@ impl WorkerGlobalScope {
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
+            crypto: Default::default(),
             timers: TimerManager::new(),
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
         }
+    }
+
+    pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
     }
 
     pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
@@ -156,6 +166,10 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
 
     fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
+    }
+
+    fn Crypto(self) -> Root<Crypto> {
+        self.crypto.or_init(|| Crypto::new(GlobalRef::Worker(self)))
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {

@@ -375,10 +375,9 @@ mod system_reporter {
 
     #[cfg(target_os="linux")]
     fn get_system_heap_allocated() -> Option<usize> {
-        let mut info: struct_mallinfo;
-        unsafe {
-            info = mallinfo();
-        }
+        let info: struct_mallinfo = unsafe {
+            mallinfo()
+        };
         // The documentation in the glibc man page makes it sound like |uordblks|
         // would suffice, but that only gets the small allocations that are put in
         // the brk heap. We need |hblkhd| as well to get the larger allocations

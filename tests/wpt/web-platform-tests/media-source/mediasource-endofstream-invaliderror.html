@@ -11,7 +11,7 @@
         <script>
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
               assert_equals(mediaSource.readyState, 'open');
 
               assert_throws(new TypeError(),
@@ -24,7 +24,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
               assert_equals(mediaSource.readyState, 'open');
 
               assert_throws(new TypeError(),
@@ -37,7 +37,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              test.failOnEvent(mediaElement, 'error');
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
               assert_equals(mediaSource.readyState, 'open');
 
               assert_throws(new TypeError(),

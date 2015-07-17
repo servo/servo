@@ -34,6 +34,30 @@ test(function() {
 }, "isEqualNode should return true when the attributes are in a different order")
 
 test(function() {
+  var a = document.createElementNS("ns", "prefix:foo")
+  var b = document.createElementNS("ns", "prefix:foo")
+  assert_true(a.isEqualNode(b))
+}, "isEqualNode should return true if elements have same namespace, prefix, and local name")
+
+test(function() {
+  var a = document.createElementNS("ns1", "prefix:foo")
+  var b = document.createElementNS("ns2", "prefix:foo")
+  assert_false(a.isEqualNode(b))
+}, "isEqualNode should return false if elements have different namespace")
+
+test(function() {
+  var a = document.createElementNS("ns", "prefix1:foo")
+  var b = document.createElementNS("ns", "prefix2:foo")
+  assert_false(a.isEqualNode(b))
+}, "isEqualNode should return false if elements have different prefix")
+
+test(function() {
+  var a = document.createElementNS("ns", "prefix:foo1")
+  var b = document.createElementNS("ns", "prefix:foo2")
+  assert_false(a.isEqualNode(b))
+}, "isEqualNode should return false if elements have different local name")
+
+test(function() {
   var a = document.createElement("foo")
   a.setAttributeNS("ns", "x:a", "bar")
   var b = document.createElement("foo")

@@ -1,0 +1,149 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-33-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test animateMotion with keyPoints and keyTimes.
+      </p>
+      <p>
+        The test consists of 4 sub-tests. Each test has a purple circle which moves along a path. The path is indicated with a dashed line and sample points where the circle should pass a certain position on the path is indicated with gray circles. On top of each gray circle is a number which indicates the passing time in seconds. In the cases where the purple circle should pass the gray circle two times the first passing time is written above the gray circle and the second passing time is written below.
+      </p>
+      <p>
+        Section 19.2.12 in the spec. states that a motion path is defined by the path attribute or by values or from/to attributes. So in the animateMotion case, values is just used for defining the motionPath and the number of values do not have to relate to the number of keyTimes.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if, for the first four seconds of the document,
+      each of the four purple circles moves along the dashed lines
+      such that they coincide with the gray circles at the times indicated
+      next to those gray circles.  The purple circles must all move continuously
+      over the four seconds, except for the top-right one, which
+      jumps discontinuously at 2s from the second grey circle to
+      the third in that subtest.</p>
+      <p>If a range of times is given next to a grey circle, then the purple
+      circle must stay stationary at that position for that duration.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-33-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- FIRST TEST-->
+    <g transform="translate(110, 50) scale(0.6)">
+      <text x="-160" y="-30" font-size="30" stroke="none" fill="#ccc">0</text>
+      <text x="-50" y="-30" font-size="30" stroke="none" fill="#ccc">0.8-3.2</text>
+      <text x="140" y="-30" font-size="30" stroke="none" fill="#ccc">4</text>
+      <g fill="none" stroke="#888" stroke-dasharray="10,6">
+        <polyline points="-150,0 0,0 150,0"/>
+      </g>
+      <g fill="#ccc" stroke="#555">
+        <circle cx="-150" r="20"/>
+        <circle r="20"/>
+        <circle cx="150" r="20"/>
+      </g>
+      <circle r="20" fill="rgb(204,0,102)" stroke="#000" stroke-width="3">
+        <animateMotion dur="4" values="-150 0; 150 0" calcMode="linear" fill="freeze" keyTimes="0; 0.2; 0.4; 0.6; 0.8; 1" keyPoints="0; 0.5; 0.5; 0.5; 0.5; 1"/>
+      </circle>
+    </g>
+    <!-- SECOND TEST-->
+    <g transform="translate(370, 50) scale(0.6)">
+      <text x="-160" y="-30" font-size="30" stroke="none" fill="#ccc">0</text>
+      <text x="-100" y="-30" font-size="30" stroke="none" fill="#ccc">2</text>
+      <text x="80" y="-30" font-size="30" stroke="none" fill="#ccc">2</text>
+      <text x="140" y="-30" font-size="30" stroke="none" fill="#ccc">4</text>
+      <g fill="none" stroke="#888" stroke-dasharray="10,6">
+        <polyline points="-150,0 -90,0"/>
+        <polyline points="90,0 150,0"/>
+      </g>
+      <g fill="#ccc" stroke="#555">
+        <circle cx="-150" r="20"/>
+        <circle cx="-90" r="20"/>
+        <circle cx="90" r="20"/>
+        <circle cx="150" r="20"/>
+      </g>
+      <circle r="20" fill="rgb(204,0,102)" stroke="#000" stroke-width="3">
+        <animateMotion dur="4" values="-150 0; 150 0" calcMode="linear" fill="freeze" keyTimes="0; 0.5; 0.5; 0.5; 0.5; 1" keyPoints="0; 0.2; 0.4; 0.6; 0.8; 1"/>
+      </circle>
+    </g>
+    <!-- THIRD TEST-->
+    <!-- The lenght of the lines in the polyline (motionpath) are 100,50 and 100.
+		 The animated circle starts at the midpoint of one of the "legs" and also pass 
+		 this point at time 1.4 since 
+		 1.4 = 4*(0.25) + (4*(0.75-0.25))*(1/5).
+		 Where 0.25 is the time at keyPoint 1 (2nd) and 1/5 since the control circle is at 
+		 1/5 of the distance between keyPoint 1 and 0 (2nd and 3rd).-->
+    <g transform="translate(110, 180) scale(0.6)">
+      <text x="-115" y="-30" font-size="30" stroke="none" fill="#ccc">3</text>
+      <text x="-85" y="-60" font-size="30" stroke="none" fill="#ccc">2.6</text>
+      <text x="60" y="-60" font-size="30" stroke="none" fill="#ccc">0</text>
+      <text x="95" y="-30" font-size="30" stroke="none" fill="#ccc">1</text>
+      <text x="-75" y="20" font-size="30" stroke="none" fill="#ccc">4</text>
+      <text x="40" y="20" font-size="30" stroke="none" fill="#ccc">1.4</text>
+      <g fill="none" stroke="#888" stroke-dasharray="10,6">
+        <polyline points="-105,0 -25,-60 25,-60 105,0"/>
+      </g>
+      <g fill="#ccc" stroke="#555">
+        <circle cx="-105" r="20"/>
+        <circle cx="-65" cy="-30" r="20"/>
+        <circle cx="65" cy="-30" r="20"/>
+        <circle cx="105" r="20"/>
+      </g>
+      <circle r="20" fill="rgb(204,0,102)" stroke="#000" stroke-width="3">
+        <animateMotion dur="4" path="M -105,0 L -25,-60 25,-60 105,0" calcMode="linear" fill="freeze" keyPoints="0.8; 1; 0; 0.2" keyTimes="0; 0.25; 0.75; 1"/>
+      </circle>
+    </g>
+    <!-- FOURTH TEST-->
+    <g transform="translate(370, 160) scale(0.6)">
+      <text x="-135" y="-30" font-size="30" stroke="none" fill="#ccc">3</text>
+      <text x="-95" y="-30" font-size="30" stroke="none" fill="#ccc">2.6</text>
+      <text x="65" y="-30" font-size="30" stroke="none" fill="#ccc">0</text>
+      <text x="115" y="-30" font-size="30" stroke="none" fill="#ccc">1</text>
+      <text x="-85" y="50" font-size="30" stroke="none" fill="#ccc">4</text>
+      <text x="50" y="50" font-size="30" stroke="none" fill="#ccc">1.4</text>
+      <g fill="none" stroke="#888" stroke-dasharray="10,6">
+        <polyline points="-125,0 125,0"/>
+      </g>
+      <g fill="#ccc" stroke="#555">
+        <circle cx="-125" r="20"/>
+        <circle cx="-75" r="20"/>
+        <circle cx="75" r="20"/>
+        <circle cx="125" r="20"/>
+      </g>
+      <circle r="20" fill="rgb(204,0,102)" stroke="#000" stroke-width="3">
+        <animateMotion dur="4" from="-125,0" to="125,0" calcMode="linear" fill="freeze" keyPoints="0.8; 1; 0; 0.2" keyTimes="0; 0.25; 0.75; 1"/>
+      </circle>
+    </g>
+    <text x="5" y="235" font-size="28">Test of keyPoints and keyTimes.</text>
+    <text x="5" y="265" font-size="18">Number indicates the circle's passing time in seconds.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

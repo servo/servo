@@ -1,2 +1,0 @@
-Access-Control-Allow-Origin: http://{{domains[]}}:{{ports[http][0]}}
-Access-Control-Allow-Credentials: true

@@ -30,7 +30,7 @@ use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::utils::{namespace_from_domstring, Reflectable, reflect_dom_object};
 use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
@@ -51,7 +51,6 @@ use devtools_traits::NodeInfo;
 use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
-use util::namespace;
 use util::str::DOMString;
 use util::task_state;
 use selectors::parser::Selector;
@@ -70,7 +69,7 @@ use std::iter::{FilterMap, Peekable};
 use std::mem;
 use std::sync::Arc;
 use uuid;
-use string_cache::{Atom, QualName};
+use string_cache::{Atom, Namespace, QualName};
 
 //
 // The basic Node structure
@@ -135,7 +134,7 @@ impl NodeDerived for EventTarget {
 
 bitflags! {
     #[doc = "Flags for node items."]
-    #[jstraceable]
+    #[derive(JSTraceable)]
     flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
@@ -192,7 +191,7 @@ impl NodeFlags {
 impl Drop for Node {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        self.layout_data.dispose();
+        self.layout_data.dispose(self);
     }
 }
 
@@ -213,7 +212,6 @@ pub struct SharedLayoutData {
 
 /// Encapsulates the abstract layout data.
 pub struct LayoutData {
-    chan: Option<LayoutChan>,
     _shared_data: SharedLayoutData,
     _data: NonZero<*const ()>,
 }
@@ -235,17 +233,12 @@ impl LayoutDataRef {
     }
 
     /// Sends layout data, if any, back to the layout task to be destroyed.
-    pub fn dispose(&self) {
+    pub fn dispose(&self, node: &Node) {
         debug_assert!(task_state::get().is_script());
-        if let Some(mut layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
-            let layout_chan = layout_data.chan.take();
-            match layout_chan {
-                None => {}
-                Some(chan) => {
-                    let LayoutChan(chan) = chan;
-                    chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
-                }
-            }
+        if let Some(layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
+            let win = window_from_node(node);
+            let LayoutChan(chan) = win.layout_chan();
+            chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
         }
     }
 
@@ -279,8 +272,7 @@ impl LayoutDataRef {
 }
 
 /// The different types of nodes.
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
 pub enum NodeTypeId {
     CharacterData(CharacterDataTypeId),
     DocumentType,
@@ -319,7 +311,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
             node.r().set_flag(IS_IN_DOC, false);
             vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
-        self.layout_data.dispose();
+        self.layout_data.dispose(self);
     }
 
     //
@@ -537,7 +529,7 @@ pub trait NodeHelpers {
 
 impl<'a> NodeHelpers for &'a Node {
     fn teardown(self) {
-        self.layout_data.dispose();
+        self.layout_data.dispose(self);
         for kid in self.children() {
             kid.r().teardown();
         }
@@ -985,19 +977,17 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     fn get_unique_id(self) -> String {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
         if self.unique_id.borrow().is_empty() {
             let mut unique_id = self.unique_id.borrow_mut();
             *unique_id = uuid::Uuid::new_v4().to_simple_string();
         }
-        let id = self.unique_id.borrow();
-        id.clone()
+        self.unique_id.borrow().clone()
     }
 
     fn summarize(self) -> NodeInfo {
         NodeInfo {
             uniqueId: self.get_unique_id(),
-            baseURI: self.GetBaseURI().unwrap_or("".to_owned()),
+            baseURI: self.BaseURI(),
             parent: self.GetParentNode().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType(),
             namespaceURI: "".to_owned(), //FIXME
@@ -1033,19 +1023,13 @@ impl<'a> NodeHelpers for &'a Node {
     fn parse_fragment(self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
         let context_node: &Node = NodeCast::from_ref(self);
         let context_document = document_from_node(self);
-        let mut new_children: RootedVec<JS<Node>> = RootedVec::new();
+        let fragment = DocumentFragment::new(context_document.r());
         if context_document.r().is_html_document() {
-            parse_html_fragment(context_node, markup, &mut new_children);
+            let fragment_node = NodeCast::from_ref(fragment.r());
+            parse_html_fragment(context_node, markup, fragment_node);
         } else {
             // FIXME: XML case
             unimplemented!();
-        }
-        let fragment = DocumentFragment::new(context_document.r());
-        {
-            let fragment_node = NodeCast::from_ref(fragment.r());
-            for node in new_children.iter() {
-                fragment_node.AppendChild(node.root().r()).unwrap();
-            }
         }
         Ok(fragment)
     }
@@ -1511,9 +1495,10 @@ impl Node {
         // If node is an element, it is _affected by a base URL change_.
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-pre-insert
-    fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
-                  -> Fallible<Root<Node>> {
+    // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
+    pub fn ensure_pre_insertion_validity(node: &Node,
+                                         parent: &Node,
+                                         child: Option<&Node>) -> ErrorResult {
         // Step 1.
         match parent.type_id() {
             NodeTypeId::Document |
@@ -1554,92 +1539,100 @@ impl Node {
         }
 
         // Step 6.
-        match parent.type_id() {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children()
-                               .any(|c| c.r().is_text())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                                if let Some(child) = child {
-                                    if child.inclusively_following_siblings()
-                                        .any(|child| child.r().is_doctype()) {
-                                            return Err(HierarchyRequest);
-                                    }
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest),
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(_) => {
-                        if !parent.child_elements().is_empty() {
-                            return Err(HierarchyRequest);
-                        }
-                        if let Some(ref child) = child {
-                            if child.inclusively_following_siblings()
-                                .any(|child| child.r().is_doctype()) {
-                                    return Err(HierarchyRequest);
+        if parent.type_id() == NodeTypeId::Document {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children()
+                           .any(|c| c.r().is_text())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
                             }
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if parent.children()
-                                 .any(|c| c.r().is_doctype())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match child {
-                            Some(child) => {
-                                if parent.children()
-                                         .take_while(|c| c.r() != child)
-                                         .any(|c| c.r().is_element())
-                                {
-                                    return Err(HierarchyRequest);
+                            if let Some(child) = child {
+                                if child.inclusively_following_siblings()
+                                    .any(|child| child.r().is_doctype()) {
+                                        return Err(HierarchyRequest);
                                 }
-                            },
-                            None => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest),
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(_) => {
+                    if !parent.child_elements().is_empty() {
+                        return Err(HierarchyRequest);
+                    }
+                    if let Some(ref child) = child {
+                        if child.inclusively_following_siblings()
+                            .any(|child| child.r().is_doctype()) {
+                                return Err(HierarchyRequest);
                         }
-                    },
-                    NodeTypeId::CharacterData(_) => (),
-                    NodeTypeId::Document => unreachable!(),
-                }
-            },
-            _ => (),
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if parent.children()
+                             .any(|c| c.r().is_doctype())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match child {
+                        Some(child) => {
+                            if parent.children()
+                                     .take_while(|c| c.r() != child)
+                                     .any(|c| c.r().is_element())
+                            {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        None => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                    }
+                },
+                NodeTypeId::CharacterData(_) => (),
+                NodeTypeId::Document => unreachable!(),
+            }
         }
+        Ok(())
+    }
 
-        // Step 7-8.
+    // https://dom.spec.whatwg.org/#concept-node-pre-insert
+    pub fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
+                      -> Fallible<Root<Node>> {
+        // Step 1.
+        try!(Node::ensure_pre_insertion_validity(node, parent, child));
+
+        // Steps 2-3.
+        let reference_child_root;
         let reference_child = match child {
-            Some(child) if child == node => node.GetNextSibling(),
-            _ => None
+            Some(child) if child == node => {
+                reference_child_root = node.GetNextSibling();
+                reference_child_root.r()
+            },
+            _ => child
         };
-        let reference_child = reference_child.r().or(child);
 
-        // Step 9.
+        // Step 4.
         let document = document_from_node(parent);
         Node::adopt(node, document.r());
 
-        // Step 10.
+        // Step 5.
         Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
 
-        // Step 11.
+        // Step 6.
         return Ok(Root::from_ref(node))
     }
 
@@ -1910,6 +1903,79 @@ impl Node {
         }
         content
     }
+
+    pub fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
+        match namespace {
+            ns!("") => None,
+            Namespace(ref ns) => Some((**ns).to_owned())
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#locate-a-namespace
+    pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
+        fn attr_defines_namespace(attr: &Attr,
+                                  prefix: &Option<Atom>) -> bool {
+            *attr.namespace() == ns!(XMLNS) &&
+                match (attr.prefix(), prefix) {
+                    (&Some(ref attr_prefix), &Some(ref prefix)) =>
+                        attr_prefix == &atom!("xmlns") &&
+                            attr.local_name() == prefix,
+                    (&None, &None) => *attr.local_name() == atom!("xmlns"),
+                    _ => false
+                }
+        }
+
+        match node.type_id {
+            NodeTypeId::Element(_) => {
+                let element = ElementCast::to_ref(node).unwrap();
+                // Step 1.
+                if *element.namespace() != ns!("") && *element.prefix() == prefix {
+                    return element.namespace().clone()
+                }
+
+
+                let prefix_atom = prefix.as_ref().map(|s| Atom::from_slice(s));
+
+                // Step 2.
+                let namespace_attr =
+                    element.attrs()
+                           .iter()
+                           .map(|attr| attr.root())
+                           .find(|attr| attr_defines_namespace(attr.r(),
+                                                               &prefix_atom));
+
+                // Steps 2.1-2.
+                if let Some(attr) = namespace_attr {
+                    return namespace_from_domstring(Some(attr.Value()));
+                }
+
+                match node.GetParentElement() {
+                    // Step 3.
+                    None => ns!(""),
+                    // Step 4.
+                    Some(parent) => Node::locate_namespace(NodeCast::from_ref(parent.r()), prefix)
+                }
+            },
+            NodeTypeId::Document => {
+                match DocumentCast::to_ref(node).unwrap().GetDocumentElement().r() {
+                    // Step 1.
+                    None => ns!(""),
+                    // Step 2.
+                    Some(document_element) => {
+                        Node::locate_namespace(NodeCast::from_ref(document_element), prefix)
+                    }
+                }
+            },
+            NodeTypeId::DocumentType => ns!(""),
+            NodeTypeId::DocumentFragment => ns!(""),
+            _ => match node.GetParentElement() {
+                     // Step 1.
+                     None => ns!(""),
+                     // Step 2.
+                     Some(parent) => Node::locate_namespace(NodeCast::from_ref(parent.r()), prefix)
+                 }
+        }
+    }
 }
 
 impl<'a> NodeMethods for &'a Node {
@@ -1957,9 +2023,8 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-baseuri
-    fn GetBaseURI(self) -> Option<DOMString> {
-        // FIXME (#1824) implement.
-        None
+    fn BaseURI(self) -> DOMString {
+        self.owner_doc().URL()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
@@ -2303,8 +2368,8 @@ impl<'a> NodeMethods for &'a Node {
         fn is_equal_element(node: &Node, other: &Node) -> bool {
             let element: &Element = ElementCast::to_ref(node).unwrap();
             let other_element: &Element = ElementCast::to_ref(other).unwrap();
-            // FIXME: namespace prefix
             (*element.namespace() == *other_element.namespace()) &&
+            (*element.prefix() == *other_element.prefix()) &&
             (*element.local_name() == *other_element.local_name()) &&
             (element.attrs().len() == other_element.attrs().len())
         }
@@ -2317,10 +2382,7 @@ impl<'a> NodeMethods for &'a Node {
         fn is_equal_characterdata(node: &Node, other: &Node) -> bool {
             let characterdata: &CharacterData = CharacterDataCast::to_ref(node).unwrap();
             let other_characterdata: &CharacterData = CharacterDataCast::to_ref(other).unwrap();
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let own_data = characterdata.data();
-            let other_data = other_characterdata.data();
-            *own_data == *other_data
+            *characterdata.data() == *other_characterdata.data()
         }
         fn is_equal_element_attrs(node: &Node, other: &Node) -> bool {
             let element: &Element = ElementCast::to_ref(node).unwrap();
@@ -2443,7 +2505,7 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-lookupprefix
     fn LookupPrefix(self, namespace: Option<DOMString>) -> Option<DOMString> {
-        let namespace = namespace::from_domstring(namespace);
+        let namespace = namespace_from_domstring(namespace);
 
         // Step 1.
         if namespace == ns!("") {
@@ -2468,15 +2530,23 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
-    fn LookupNamespaceURI(self, _namespace: Option<DOMString>) -> Option<DOMString> {
-        // FIXME (#1826) implement.
-        None
-    }
+    fn LookupNamespaceURI(self, prefix: Option<DOMString>) -> Option<DOMString> {
+        // Step 1.
+        let prefix = match prefix {
+            Some(ref p) if p.is_empty() => None,
+            pre => pre
+        };
+
+        // Step 2.
+        Node::namespace_to_string(Node::locate_namespace(self, prefix))
+     }
 
     // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
-    fn IsDefaultNamespace(self, _namespace: Option<DOMString>) -> bool {
-        // FIXME (#1826) implement.
-        false
+    fn IsDefaultNamespace(self, namespace: Option<DOMString>) -> bool {
+        // Step 1.
+        let namespace = namespace_from_domstring(namespace);
+        // Steps 2 and 3.
+        Node::locate_namespace(self, None) == namespace
     }
 }
 
@@ -2536,13 +2606,7 @@ impl<'a> ::selectors::Node<&'a Element> for &'a Node {
     }
 
     fn is_document(&self) -> bool {
-        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
-        // of disambiguating methods.
-        fn is_document<'a, T: DocumentDerived>(this: &T) -> bool {
-            this.is_document()
-        }
-
-        is_document(*self)
+        DocumentDerived::is_document(*self)
     }
 
     fn as_element(&self) -> Option<&'a Element> {

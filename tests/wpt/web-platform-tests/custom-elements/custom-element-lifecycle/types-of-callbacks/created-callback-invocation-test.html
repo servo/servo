@@ -99,7 +99,7 @@ testInIFrame('../../resources/x-element.html', function(doc) {
 
 
 testInIFrame('../../resources/register-and-create-custom-element.html', function(doc) {
-    assert_equals(doc.querySelector('#log').innerText, 'Created callback was called',
+    assert_equals(doc.querySelector('#log').textContent, 'Created callback was called',
         'Callback created should be called');
 }, 'Test created callback is called after custom element is registered and created. ' +
     'Document has browsing context');

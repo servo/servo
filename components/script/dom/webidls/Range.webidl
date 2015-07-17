@@ -48,8 +48,8 @@ interface Range {
   // DocumentFragment extractContents();
   // [NewObject, Throws]
   // DocumentFragment cloneContents();
-  // [Throws]
-  // void insertNode(Node node);
+  [Throws]
+  void insertNode(Node node);
   // [Throws]
   // void surroundContents(Node newParent);
 

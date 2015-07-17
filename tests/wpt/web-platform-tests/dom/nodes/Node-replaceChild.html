@@ -265,6 +265,18 @@ test(function() {
   assert_equals(a.replaceChild(d, c), c);
   assert_array_equals(a.childNodes, [b, d, e]);
 }, "Replacing a node with its next sibling should work (4 children)");
+test(function() {
+  var a = document.createElement("div");
+  var b = document.createElement("div");
+  var c = document.createElement("div");
+  a.appendChild(b);
+  a.appendChild(c);
+  assert_array_equals(a.childNodes, [b, c]);
+  assert_equals(a.replaceChild(b, b), b);
+  assert_array_equals(a.childNodes, [b, c]);
+  assert_equals(a.replaceChild(c, c), c);
+  assert_array_equals(a.childNodes, [b, c]);
+}, "Replacing a node with itself should not move the node");
 
 // Step 7.
 test(function() {

@@ -1,0 +1,105 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-37-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This test validates the animation of the transform attribute shape elements.
+      </p>
+      <p>
+        The test applies an &lt;animateTransform&gt; on various element
+        types: &lt;g&gt;, &lt;use&gt;, &lt;image&gt;, &lt;switch&gt;,
+        &lt;a&gt; and &lt;text&gt;.
+        In all cases the animation should run for 3s, starting at the document's load time.
+        The &lt;circle&gt; has a scale animation, and all the rest of the elements should rotate together about their centers.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if:</p>
+      <ul>
+        <li>each of the seven shapes rotates clockwise, then anti-clockwise, then clockwise again,</li>
+	<li>and the circle is scaled down, then up, then down again</li>
+      </ul>
+      <p>over the course of three seconds.</p>
+      <p>The static reference image shows the final state of the animation.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-37-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="25" font-size="16">&lt;animateTransform&gt; shape elements</text>
+    <g transform="translate(0,0)">
+      <g transform="translate(60,90)">
+        <path id="pathID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" d="M 0 0 Q 30 0 30 -30 Q 0 -30 0 0 Q 0 -30 -30 -30 Q -30 0 0 0 Q -30 0 -30 30 Q 0 30 0 0 Q 0 30 30 30 Q30 0 0 0 Z"/>
+        <animateTransform attributeName="transform" xlink:href="#pathID" type="rotate" values="0;360;180;360" dur="3s"/>
+        <text y="60" text-anchor="middle">&lt;path&gt;</text>
+      </g>
+
+      <g transform="translate(180,90)">
+        <rect id="rectID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" x="-30" y="-20" width="60" height="40"/>
+        <animateTransform attributeName="transform" xlink:href="#rectID" type="rotate" values="0;360;180;360" dur="3s"/>
+        <text y="60" text-anchor="middle">&lt;rect&gt;</text>
+      </g>
+
+      <g transform="translate(300,90)">
+        <circle id="circleID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" r="30"/>
+        <animateTransform attributeName="transform" xlink:href="#circleID" type="scale" values="1;0.2;1.5;1" dur="3s"/>
+        <text y="60" text-anchor="middle">&lt;circle&gt;</text>
+      </g>
+
+      <g transform="translate(420,90)">
+        <ellipse id="ellipseID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" rx="40" ry="20"/>
+        <animateTransform attributeName="transform" xlink:href="#ellipseID" type="rotate" values="0;360;180;360" dur="3s"/>
+        <text y="60" text-anchor="middle">&lt;ellipse&gt;</text>
+      </g>
+
+      <g transform="translate(60,220)">
+        <line id="lineID" stroke="rgb(255,180,0)" stroke-width="10" stroke-linecap="round" x1="-30" y1="-20" x2="30" y2="20"/>
+        <animateTransform attributeName="transform" xlink:href="#lineID" type="rotate" values="0;360;180;360" dur="3s"/>
+        <text y="60" text-anchor="middle">&lt;line&gt;</text>
+      </g>
+
+      <g transform="translate(180,220)">
+        <polyline id="polylineID" stroke="rgb(255,180,0)" stroke-width="10" stroke-linecap="round" fill="none" stroke-linejoin="round" points="-30 20 -30 -20 30 20 30 -20"/>
+        <animateTransform attributeName="transform" xlink:href="#polylineID" type="rotate" values="0;360;180;360" dur="3s"/>
+        <text y="60" text-anchor="middle">&lt;polyline&gt;</text>
+      </g>
+
+      <g transform="translate(300,220)">
+        <polygon id="polygonID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" points="-30 20 -30 -20 30 20 30 -20"/>
+        <animateTransform attributeName="transform" xlink:href="#polygonID" type="rotate" values="0;360;180;360" dur="3s"/>
+        <text y="60" text-anchor="middle">&lt;polygon&gt;</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

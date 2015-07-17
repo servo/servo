@@ -3,22 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(arc_weak)]
-#![feature(box_raw)]
+#![cfg_attr(any(target_os="linux", target_os = "android"), feature(box_raw))]
 #![feature(box_syntax)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(float_consts)]
 #![feature(hashmap_hasher)]
-#![feature(heap_api)]
-#![feature(iter_cmp)]
+#![cfg_attr(any(target_os="linux", target_os = "android"), feature(heap_api))]
 #![feature(plugin)]
 #![feature(str_char)]
 #![feature(vec_push_all)]
 
 #![plugin(plugins)]
+#![plugin(serde_macros)]
 
 #[macro_use]
 extern crate log;
+extern crate serde;
 
 extern crate azure;
 #[macro_use] extern crate bitflags;
@@ -26,8 +26,6 @@ extern crate fnv;
 extern crate euclid;
 extern crate layers;
 extern crate libc;
-extern crate stb_image;
-extern crate png;
 #[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
@@ -79,7 +77,6 @@ pub mod font_cache_task;
 pub mod font_template;
 
 // Misc.
-mod buffer_map;
 mod filters;
 
 // Platform-specific implementations.

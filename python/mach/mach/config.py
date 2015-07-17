@@ -25,7 +25,7 @@ msgfmt binary to perform this conversion. Generation of the original .po file
 can be done via the write_pot() of ConfigSettings.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import collections
 import gettext

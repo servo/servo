@@ -111,6 +111,10 @@ class W3CTestOrgRegexp(Regexp):
     pattern = "w3c\-test\.org"
     error = "W3C-TEST.ORG"
 
+class Webidl2Regexp(Regexp):
+    pattern = "webidl2\.js"
+    error = "WEBIDL2.JS"
+
 class PrintRegexp(Regexp):
     pattern = "print(?:\s|\s*\()"
     error = "PRINT STATEMENT"
@@ -121,6 +125,7 @@ regexps = [item() for item in
             TabsRegexp,
             CRRegexp,
             W3CTestOrgRegexp,
+            Webidl2Regexp,
             PrintRegexp]]
 
 def check_regexp_line(path, f):
@@ -160,16 +165,16 @@ def check_parsed(path, f):
     if source_file.testharness_nodes:
         if len(source_file.testharness_nodes) > 1:
             errors.append(("MULTIPLE-TESTHARNESS",
-                           "%s more than one <script src='/resources/testharness.js>'" % path, None))
+                           "%s more than one <script src='/resources/testharness.js'>" % path, None))
 
         testharnessreport_nodes = source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testharnessreport.js']")
         if not testharnessreport_nodes:
             errors.append(("MISSING-TESTHARNESSREPORT",
-                           "%s missing <script src='/resources/testharnessreport.js>'" % path, None))
+                           "%s missing <script src='/resources/testharnessreport.js'>" % path, None))
         else:
             if len(testharnessreport_nodes) > 1:
                 errors.append(("MULTIPLE-TESTHARNESSREPORT",
-                               "%s more than one <script src='/resources/testharnessreport.js>'" % path, None))
+                               "%s more than one <script src='/resources/testharnessreport.js'>" % path, None))
 
         for element in source_file.variant_nodes:
             if "content" not in element.attrib:
@@ -227,27 +232,46 @@ def output_error_count(error_count):
 
 def main():
     error_count = defaultdict(int)
+    last = None
 
-    def run_lint(path, fn, *args):
+    def run_lint(path, fn, last, *args):
         errors = whitelist_errors(path, fn(path, *args))
+        if errors:
+            last = (errors[-1][0], path)
+
         output_errors(errors)
         for error_type, error, line in errors:
             error_count[error_type] += 1
+        return last
 
     for path in iter_files():
         abs_path = os.path.join(repo_root, path)
         if not os.path.exists(path):
             continue
         for path_fn in path_lints:
-            run_lint(path, path_fn)
+            last = run_lint(path, path_fn, last)
 
         if not os.path.isdir(abs_path):
             with open(abs_path) as f:
                 for file_fn in file_lints:
-                    run_lint(path, file_fn, f)
+                    last = run_lint(path, file_fn, last, f)
                     f.seek(0)
 
     output_error_count(error_count)
+    if error_count:
+        print
+        print "You must fix all errors; for details on how to fix them, see"
+        print "https://github.com/w3c/web-platform-tests/blob/master/docs/lint-tool.md"
+        print
+        print "However, instead of fixing a particular error, it's sometimes"
+        print "OK to add a line to the lint.whitelist file in the root of the"
+        print "web-platform-tests directory to make the lint tool ignore it."
+        print
+        print "For example, to make the lint tool ignore all '%s'" % last[0]
+        print "errors in the %s file," %  last[1]
+        print "you could add the following line to the lint.whitelist file."
+        print
+        print "%s:%s" % (last[0], last[1])
     return sum(error_count.itervalues())
 
 path_lints = [check_path_length]

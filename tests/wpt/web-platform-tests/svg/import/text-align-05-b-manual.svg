@@ -1,0 +1,87 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: text-align-05-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlignmentProperties">
+      <p>
+        Test 'text-anchor' property (vertical).
+      </p>
+      <p>
+        This tests the three values for property 'text-anchor': start, middle and end.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if three vertical lines of text are displayed with
+        each line containing a single black dot.
+      </p>
+      <lu>
+        <li>
+          The first vertical line of text containing the black dot at the top of
+          the text.
+        </li>
+        <li>
+          The second vertical line of text containing the black dot in the
+          middle of the text.
+        </li>
+        <li>
+          The third vertical line of text containing the black dot at the bottom
+          of the text.
+        </li>
+      </lu>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-align-05-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="40" x="5" y="40">Test 'text-anchor' (vertical)</text>
+    <g writing-mode="tb" glyph-orientation-vertical="0">
+      <g id="text-anchor" font-family="Arial" font-size="30" transform="translate(160,150)">
+        <g transform="translate(0,0)">
+          <circle r="3"/>
+          <text text-anchor="start" fill="fuchsia">start</text>
+        </g>
+        <g transform="translate(50,0)">
+          <circle r="3"/>
+          <text text-anchor="middle" fill="green">middle</text>
+        </g>
+        <g transform="translate(100,0)">
+          <circle r="3"/>
+          <text text-anchor="end" fill="blue">end</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

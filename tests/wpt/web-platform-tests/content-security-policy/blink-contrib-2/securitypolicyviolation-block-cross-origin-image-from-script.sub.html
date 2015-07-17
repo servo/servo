@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>securitypolicyviolation-block-cross-origin-image-from-script</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+img-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+</head>
+
+<body>
+    <script>
+        var x = document.createElement('script');
+        x.src = 'http://{{host}}:{{ports[http][0]}}/content-security-policy/support/inject-image.js';
+        document.body.appendChild(x);
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=img-src%20&apos;none&apos;"></script>
+</body>
+
+</html>

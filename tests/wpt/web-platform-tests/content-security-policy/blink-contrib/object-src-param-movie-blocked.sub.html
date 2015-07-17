@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>object-src-param-movie-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+object-src http://localhost:8080; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <script src="resources/object-src-param.js"></script>
+</head>
+
+<body>
+    This test passes if there is a CSP violation saying the plugin was blocked.
+    <script>
+        appendObjectElement('movie');
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=object-src%20http://localhost:8080"></script>
+</body>
+
+</html>

@@ -1,0 +1,67 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CM" author="ED" status="reviewed"
+    version="$Revision: 1.7 $" testname="$RCSfile: struct-image-11-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#ImageElement">
+      <p>
+        Test interactivity in an svg image referenced by an 'image' element.
+      </p>
+      <p>
+        This test requires support for CSS2 and referencing SVG and PNG images via the 'image' element.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Click each of the three rectangles in the center of the testframe once.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if all three rectangles are green after being clicked once each.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-image-11-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script type="application/ecmascript">
+      function makeGreen(evt, expectedId)
+      {
+        if (evt.target.id == expectedId)
+        {
+          evt.target.href.baseVal = "../images/green1x1.png";
+        }
+      }
+    </script>
+    <image id="imageSVG1" x="180" y="50" width="120" height="120" xlink:href="../images/struct-image-11-b-1.svg" onclick="makeGreen(evt, 'imageSVG1')"/>
+    <image id="imageSVG2" x="60" y="170" width="120" height="120" xlink:href="../images/struct-image-11-b-2.svg" onclick="makeGreen(evt, 'imageSVG2')"/>
+    <image id="imageSVG3" x="300" y="170" width="120" height="120" xlink:href="../images/blue1x1.png" onclick="makeGreen(evt, 'imageSVG3')"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

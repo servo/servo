@@ -1,0 +1,105 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: animate-elem-13-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test 'from', 'by', 'to' and 'values'.
+      </p>
+      <p>
+        Six animations have been defined. All six animations define the same simultaneous behavior, but use different combinations of
+        attributes 'from', 'by', 'to' and 'values'. In all cases, from time 2 seconds to time 5 seconds, the rectangle should change
+        from a width of 30 to a width of 300.
+      </p>
+      <p>
+        The text on each line shows the attributes that were used for that particular animation.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      	Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The six orange rectangles should simultaneously animate their widths so that their right edges line up with the ruler lines at the indicated time.
+        From time 0 - 2 seconds all rectangles should have their right edges lined up with the leftmost ruler line, and at time 2 seconds the animation should
+        start, changing the widths of all the rectangles from 30 to 300. At time 5 seconds the animation should stop and the rectangles should all line up with
+        the rightmost ruler line.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-13-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="30">
+      <line x1="190" x2="190" y1="45" y2="300" stroke="#880000" stroke-width="4"/>
+      <line x1="460" x2="460" y1="45" y2="300" stroke="#880000" stroke-width="4"/>
+      <text x="156" y="32">0-2 sec.</text>
+      <text x="370" y="32">5+ sec.</text>
+      <g>
+        <rect x="160" y="60" width="30" height="30" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+          <animate attributeName="width" from="30" to="300" begin="2s" dur="3s" fill="freeze"/>
+        </rect>
+        <text x="20" y="85">from to</text>
+      </g>
+      <g>
+        <rect x="160" y="100" width="30" height="30" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+          <animate attributeName="width" from="30" by="270" begin="2s" dur="3s" fill="freeze"/>
+        </rect>
+        <text x="20" y="125">from by</text>
+      </g>
+      <g>
+        <rect x="160" y="140" width="30" height="30" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+          <animate attributeName="width" by="270" begin="2s" dur="3s" fill="freeze"/>
+        </rect>
+        <text x="20" y="165">by</text>
+      </g>
+      <g>
+        <rect x="160" y="180" width="30" height="30" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+          <animate attributeName="width" to="300" begin="2s" dur="3s" fill="freeze"/>
+        </rect>
+        <text x="20" y="205">to</text>
+      </g>
+      <g>
+        <rect x="160" y="220" width="30" height="30" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+          <animate attributeName="width" values="30;300" begin="2s" dur="3s" fill="freeze"/>
+        </rect>
+        <text x="20" y="245">values</text>
+      </g>
+      <g>
+        <rect x="160" y="260" width="30" height="30" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+          <animate attributeName="width" values="30;120;210;300" begin="2s" dur="3s" fill="freeze"/>
+        </rect>
+        <text x="20" y="285">values</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

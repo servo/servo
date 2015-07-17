@@ -1,0 +1,116 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="ED" author="CM" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: coords-dom-03-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#InterfaceSVGTransformList">
+        <p>
+          This tests that SVGTransformList.createSVGTransformFromMatrix(),
+          SVGSVGElement.createSVGTransformFromMatrix() and SVGTransform.setMatrix()
+          all do not track changes to the SVGMatrix passed to them.
+        </p>
+        <p>
+        After loading the test, three rectangles will be presented.  The
+        upper rectangle indicates the result of testing whether
+        SVGTransformList.createSVGTransformFromMatrix() behaved correctly,
+        the middle rectangle indicates the status for SVGSVGElement.createSVGTransformFromMatrix(),
+        and the bottom rectangle for SVGTransform.setMatrix().
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if the three rectangles are green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-dom-03-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='30' font-size='14'>Test that some methods taking an SVGMatrix take a copy of it</text>
+
+    <rect id='r1' x='10' y='50' width='50' height='50'/>
+    <rect id='r2' x='10' y='110' width='50' height='50'/>
+    <rect id='r3' x='10' y='170' width='50' height='50'/>
+    <g font-size='10'>
+      <text x='70' y='80'>SVGTransformList.createSVGTransformFromMatrix()</text>
+      <text x='70' y='140'>SVGSVGElement.createSVGTransformFromMatrix()</text>
+      <text x='70' y='200'>SVGTransform.setMatrix()</text>
+    </g>
+
+    <g id='g' transform='scale(5)'/>
+
+    <script><![CDATA[
+      var svg = document.documentElement,
+          g = document.getElementById('g'),
+          r1 = document.getElementById('r1'),
+          r2 = document.getElementById('r2'),
+          r3 = document.getElementById('r3');
+
+      var m1 = svg.createSVGMatrix(),
+          m2 = svg.createSVGMatrix(),
+          m3 = svg.createSVGMatrix();
+
+      var t;
+
+      m1.a = 3; m1.b = 0; m1.c = 0; m1.d = 1; m1.e = 0; m1.f = 0;
+      m2.a = 3; m2.b = 0; m2.c = 0; m2.d = 1; m2.e = 0; m2.f = 0;
+      m3.a = 3; m3.b = 0; m3.c = 0; m3.d = 1; m3.e = 0; m3.f = 0;
+
+      try {
+        t = g.transform.baseVal.createSVGTransformFromMatrix(m1);
+        m1.a = 2;
+        r1.setAttribute('fill', t.matrix != m1 && t.matrix.a == 3 ? 'lime' : 'red');
+      } catch (e) {
+      }
+
+      try {
+        t = svg.createSVGTransformFromMatrix(m2);
+        m2.a = 2;
+        r2.setAttribute('fill', t.matrix != m2 && t.matrix.a == 3 ? 'lime' : 'red');
+      } catch (e) {
+      }
+
+      try {
+        t = g.transform.baseVal.getItem(0);
+        t.setMatrix(m3);
+        m3.a = 2;
+        r3.setAttribute('fill', t.matrix != m3 && t.matrix.a == 3 ? 'lime' : 'red');
+      } catch (e) {
+      }
+    ]]></script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

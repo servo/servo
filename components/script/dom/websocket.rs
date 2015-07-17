@@ -25,6 +25,7 @@ use std::cell::{Cell, RefCell};
 use std::borrow::ToOwned;
 use util::str::DOMString;
 
+use hyper::header::Host;
 use websocket::Message;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::client::sender::Sender;
@@ -32,9 +33,11 @@ use websocket::client::receiver::Receiver;
 use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
+use websocket::header::Origin;
+use websocket::result::WebSocketResult;
+use websocket::ws::util::url::parse_url;
 
-#[derive(PartialEq, Copy, Clone)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
 enum WebSocketRequestState {
     Connecting = 0,
     Open = 1,
@@ -48,7 +51,7 @@ no_jsmanaged_fields!(Receiver<WebSocketStream>);
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
-    url: DOMString,
+    url: Url,
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
     sender: RefCell<Option<Sender<WebSocketStream>>>,
@@ -59,50 +62,23 @@ pub struct WebSocket {
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<DOMString>, //Closing reason
     data: DOMRefCell<DOMString>, //Data from send - TODO: Remove after buffer is added.
-    sendCloseFrame: Cell<bool>
 }
 
-fn parse_web_socket_url(url_str: &str) -> Fallible<(Url, String, u16, String, bool)> {
-    // https://html.spec.whatwg.org/multipage/#parse-a-websocket-url's-components
-    // Steps 1 and 2
-    let parsed_url = Url::parse(url_str);
-    let parsed_url = match parsed_url {
-        Ok(parsed_url) => parsed_url,
-        Err(_) => return Err(Error::Syntax),
-    };
+/// *Establish a WebSocket Connection* as defined in RFC 6455.
+fn establish_a_websocket_connection(url: (Host, String, bool), origin: String)
+    -> WebSocketResult<(Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
+    let mut request = try!(Client::connect(url));
+    request.headers.set(Origin(origin));
 
-    // Step 4
-    if parsed_url.fragment != None {
-        return Err(Error::Syntax);
-    }
+    let response = try!(request.send());
+    try!(response.validate());
 
-    // Steps 3 and 5
-    let secure = match parsed_url.scheme.as_ref() {
-        "ws" => false,
-        "wss" => true,
-        _ => return Err(Error::Syntax), // step 3
-    };
-
-    let host = parsed_url.host().unwrap().serialize(); // Step 6
-    let port = parsed_url.port_or_default().unwrap(); // Steps 7 and 8
-    let mut resource = parsed_url.path().unwrap().connect("/"); // Step 9
-    if resource.is_empty() {
-        resource = "/".to_owned(); // Step 10
-    }
-
-    // Step 11
-    if let Some(ref query) = parsed_url.query {
-        resource.push('?');
-        resource.push_str(query);
-    }
-
-    // Step 12
-    // FIXME remove parsed_url once it's no longer used in WebSocket::new
-    Ok((parsed_url, host, port, resource, secure))
+    Ok(response.begin().split())
 }
+
 
 impl WebSocket {
-    pub fn new_inherited(global: GlobalRef, url: DOMString) -> WebSocket {
+    pub fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url,
@@ -116,33 +92,31 @@ impl WebSocket {
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned()),
             data: DOMRefCell::new("".to_owned()),
-            sendCloseFrame: Cell::new(false)
         }
 
     }
 
     pub fn new(global: GlobalRef, url: DOMString) -> Fallible<Root<WebSocket>> {
+        // Step 1.
+        let parsed_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
+        let url = try!(parse_url(&parsed_url).map_err(|_| Error::Syntax));
+
         /*TODO: This constructor is only a prototype, it does not accomplish the specs
           defined here:
           http://html.spec.whatwg.org
-          Item 1 is already satisfied.
           The remaining 8 items must be satisfied.
           TODO: This constructor should be responsible for spawning a thread for the
           receive loop after ws.r().Open() - See comment
         */
-        let ws = reflect_dom_object(box WebSocket::new_inherited(global, url),
+        let ws = reflect_dom_object(box WebSocket::new_inherited(global, parsed_url),
                                     global,
                                     WebSocketBinding::Wrap);
 
-        // FIXME extract the right variables once Client::connect implementation is
-        // fixed to follow the RFC 6455 properly
-        let (parsed_url, _, _, _, _) = try!(parse_web_socket_url(&ws.r().url));
-
-        // TODO Client::connect does not conform to RFC 6455
-        // see https://github.com/cyderize/rust-websocket/issues/38
-        let request = match Client::connect(parsed_url) {
-            Ok(request) => request,
-            Err(_) => {
+        let channel = establish_a_websocket_connection(url, global.get_url().serialize());
+        let (temp_sender, temp_receiver) = match channel {
+            Ok(channel) => channel,
+            Err(e) => {
+                debug!("Failed to establish a WebSocket connection: {:?}", e);
                 let global_root = ws.r().global.root();
                 let address = Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
                 let task = box WebSocketTaskHandler::new(address, WebSocketTask::Close);
@@ -150,19 +124,7 @@ impl WebSocket {
                 return Ok(ws);
             }
         };
-        let response = request.send().unwrap();
-        response.validate().unwrap();
-        ws.r().ready_state.set(WebSocketRequestState::Open);
-        //Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
-        //if so return without setting any states
-        let ready_state = ws.r().ready_state.get();
-        let failed = ws.r().failed.get();
-        if failed && (ready_state == WebSocketRequestState::Closed || ready_state == WebSocketRequestState::Closing) {
-            //Do nothing else. Let the close finish.
-            return Ok(ws);
-        }
 
-        let (temp_sender, temp_receiver) = response.begin().split();
         *ws.r().sender.borrow_mut() = Some(temp_sender);
         *ws.r().receiver.borrow_mut() = Some(temp_receiver);
 
@@ -170,7 +132,7 @@ impl WebSocket {
         let global_root = ws.r().global.root();
         let addr: Trusted<WebSocket> =
             Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
-        let open_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
+        let open_task = box WebSocketTaskHandler::new(addr, WebSocketTask::ConnectionEstablished);
         global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
         //TODO: Spawn thread here for receive loop
         /*TODO: Add receive loop here and make new thread run this
@@ -199,14 +161,25 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     event_handler!(error, GetOnerror, SetOnerror);
 
     fn Url(self) -> DOMString {
-        self.url.clone()
+        self.url.serialize()
     }
 
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
     }
 
-    fn Send(self, data: Option<USVString>)-> Fallible<()>{
+    fn Send(self, data: Option<USVString>) -> Fallible<()> {
+        match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                return Err(Error::InvalidState);
+            },
+            WebSocketRequestState::Open => (),
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
+                // TODO: Update bufferedAmount.
+                return Ok(());
+            }
+        }
+
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
                 "If argument is a string"
           TODO: Need to buffer data
@@ -217,16 +190,22 @@ impl<'a> WebSocketMethods for &'a WebSocket {
         */
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
-        if self.sendCloseFrame.get() { //TODO: Also check if the buffer is full
-            self.sendCloseFrame.set(false);
-            let _ = my_sender.send_message(Message::Close(None));
-            return Ok(());
-        }
         let _ = my_sender.send_message(Message::Text(data.unwrap().0));
         return Ok(())
     }
 
     fn Close(self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
+        fn send_close(this: &WebSocket) {
+            this.ready_state.set(WebSocketRequestState::Closing);
+
+            let mut sender = this.sender.borrow_mut();
+            //TODO: Also check if the buffer is full
+            if let Some(sender) = sender.as_mut() {
+                let _ = sender.send_message(Message::Close(None));
+            }
+        }
+
+
         if let Some(code) = code {
             //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
             if  code != 1000 && (code < 3000 || code > 4999) {
@@ -244,13 +223,8 @@ impl<'a> WebSocketMethods for &'a WebSocket {
             WebSocketRequestState::Connecting => { //Connection is not yet established
                 /*By setting the state to closing, the open function
                   will abort connecting the websocket*/
-                self.ready_state.set(WebSocketRequestState::Closing);
                 self.failed.set(true);
-                self.sendCloseFrame.set(true);
-                //Dispatch send task to send close frame
-                //TODO: Sending here is just empty string, though no string is really needed. Another send, empty
-                //      send, could be used.
-                let _ = self.Send(None);
+                send_close(self);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and
                 //      must fire a close event
             }
@@ -263,10 +237,7 @@ impl<'a> WebSocketMethods for &'a WebSocket {
                 if let Some(reason) = reason {
                     *self.reason.borrow_mut() = reason.0;
                 }
-                self.ready_state.set(WebSocketRequestState::Closing);
-                self.sendCloseFrame.set(true);
-                //Dispatch send task to send close frame
-                let _ = self.Send(None);
+                send_close(self);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and
                 //      must fire a close event
             }
@@ -277,7 +248,8 @@ impl<'a> WebSocketMethods for &'a WebSocket {
 
 
 pub enum WebSocketTask {
-    Open,
+    /// Task queued when *the WebSocket connection is established*.
+    ConnectionEstablished,
     Close,
 }
 
@@ -294,19 +266,27 @@ impl WebSocketTaskHandler {
         }
     }
 
-    fn dispatch_open(&self) {
+    fn connection_established(&self) {
         /*TODO: Items 1, 3, 4, & 5 under "WebSocket connection is established" as specified here:
           https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol
         */
-        let ws = self.addr.root(); //Get root
-        let ws = ws.r(); //Get websocket reference
+        let ws = self.addr.root();
+
+        // Step 1: Protocols.
+
+        // Step 2.
+        ws.ready_state.set(WebSocketRequestState::Open);
+
+        // Step 3: Extensions.
+        // Step 4: Protocols.
+        // Step 5: Cookies.
+
+        // Step 6.
         let global = ws.global.root();
-        let event = Event::new(global.r(),
-            "open".to_owned(),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable);
-        let target = EventTargetCast::from_ref(ws);
-        event.r().fire(target);
+        let event = Event::new(global.r(), "open".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        event.fire(EventTargetCast::from_ref(ws.r()));
     }
 
     fn dispatch_close(&self) {
@@ -348,8 +328,8 @@ impl WebSocketTaskHandler {
 impl Runnable for WebSocketTaskHandler {
     fn handler(self: Box<WebSocketTaskHandler>) {
         match self.task {
-            WebSocketTask::Open => {
-                self.dispatch_open();
+            WebSocketTask::ConnectionEstablished => {
+                self.connection_established();
             }
             WebSocketTask::Close => {
                 self.dispatch_close();

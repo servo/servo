@@ -12,6 +12,7 @@
   var reportField  = "{{GET[reportField]}}";
   var reportValue  = "{{GET[reportValue]}}";
   var reportExists = "{{GET[reportExists]}}";
+  var noCookies = "{{GET[noCookies]}}";
 
   var location = window.location;
   var thisTestName = location.pathname.split('/')[location.pathname.split('/').length - 1].split('.')[0];
@@ -45,12 +46,19 @@
         if (data.error) {
           assert_equals("false", reportExists, reportExists ? "Report sent in error" : "No report sent.");
         } else {
+          if(reportExists != "" && reportExists == "false" && data["csp-report"]) {
+              assert_unreached("CSP report sent, but not expecting one: " + JSON.stringify(data["csp-report"]));
+          }
           // Firefox expands 'self' or origins in a policy to the actual origin value
           // so "www.example.com" becomes "http://www.example.com:80".
           // Accomodate this by just testing that the correct directive name
           // is reported, not the details...
 
-          assert_true(data["csp-report"][reportField].indexOf(reportValue.split(" ")[0]) != -1, reportField + " value of  \"" + data["csp-report"][reportField] + "\" did not match " + reportValue.split(" ")[0] + ".");
+          if(data["csp-report"] != undefined && data["csp-report"][reportField] != undefined) {
+            assert_true(data["csp-report"][reportField].indexOf(reportValue.split(" ")[0]) != -1,
+                reportField + " value of  \"" + data["csp-report"][reportField] + "\" did not match " +
+                reportValue.split(" ")[0] + ".");
+          }
         }
 
         reportTest.done();
@@ -59,5 +67,18 @@
     report.open("GET", reportLocation, true);
     report.send();
   });
+
+  if (noCookies) {
+      var cookieTest = async_test("No cookies sent with report.");
+      var cookieReport = new XMLHttpRequest();
+      cookieReport.onload = cookieTest.step_func(function () {
+          var data = JSON.parse(cookieReport.responseText);
+          assert_equals(data.reportCookies, "None");
+          cookieTest.done();
+      });
+      var cReportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=cookies&timeout=" + timeout + "&reportID=" + reportID;
+      cookieReport.open("GET", cReportLocation, true);
+      cookieReport.send();
+  };
 
 })();

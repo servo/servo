@@ -19,7 +19,8 @@ use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
 use euclid::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use layout_traits::{LayoutControlChan, LayoutControlMsg, LayoutTaskFactory};
+use ipc_channel::ipc;
+use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use libc;
 use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::AnimationState;
@@ -36,7 +37,7 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{ScriptControlChan, ScriptState, ScriptTaskFactory};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -281,21 +282,31 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let PipelineId(ref mut i) = self.next_pipeline_id;
         *i += 1;
 
-        let pipeline = Pipeline::create::<LTF, STF>(pipeline_id,
-                                                    parent_info,
-                                                    self.chan.clone(),
-                                                    self.compositor_proxy.clone_compositor_proxy(),
-                                                    self.devtools_chan.clone(),
-                                                    self.image_cache_task.clone(),
-                                                    self.font_cache_task.clone(),
-                                                    self.resource_task.clone(),
-                                                    self.storage_task.clone(),
-                                                    self.time_profiler_chan.clone(),
-                                                    self.mem_profiler_chan.clone(),
-                                                    initial_window_rect,
-                                                    script_channel,
-                                                    load_data,
-                                                    self.window_size.device_pixel_ratio);
+        let spawning_paint_only = script_channel.is_some();
+        let (pipeline, mut pipeline_content) =
+            Pipeline::create::<LTF, STF>(pipeline_id,
+                                         parent_info,
+                                         self.chan.clone(),
+                                         self.compositor_proxy.clone_compositor_proxy(),
+                                         self.devtools_chan.clone(),
+                                         self.image_cache_task.clone(),
+                                         self.font_cache_task.clone(),
+                                         self.resource_task.clone(),
+                                         self.storage_task.clone(),
+                                         self.time_profiler_chan.clone(),
+                                         self.mem_profiler_chan.clone(),
+                                         initial_window_rect,
+                                         script_channel,
+                                         load_data,
+                                         self.window_size.device_pixel_ratio);
+
+        // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
+        // the content process and call this over there.
+        if spawning_paint_only {
+            pipeline_content.start_paint_task();
+        } else {
+            pipeline_content.start_all::<LTF, STF>();
+        }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
@@ -1128,7 +1139,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                             // epoch matches what the compositor has drawn. If they match
                             // (and script is idle) then this pipeline won't change again
                             // and can be considered stable.
-                            let (sender, receiver) = channel();
+                            let (sender, receiver) = ipc::channel().unwrap();
                             let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
                             layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)).unwrap();
                             let layout_task_epoch = receiver.recv().unwrap();

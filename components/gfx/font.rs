@@ -69,7 +69,7 @@ pub trait FontTableMethods {
     fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, usize);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FontMetrics {
     pub underline_size:   Au,
     pub underline_offset: Au,
@@ -86,7 +86,6 @@ pub struct FontMetrics {
 }
 
 pub type SpecifiedFontStyle = FontStyle;
-pub type UsedFontStyle = FontStyle;
 
 pub struct Font {
     pub handle: FontHandle,

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>form-action-src-get-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+form-action 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('submit').click();
+                log("TEST COMPLETE");
+            }, 0);
+        });
+
+    </script>
+</head>
+
+<body>
+    <form action="../support/pass.png" id="theform" method="get" target="_blank">
+        <input type="text" name="fieldname" value="fieldvalue">
+        <input type="submit" id="submit" value="submit">
+    </form>
+    <p>Tests that allowed form actions work correctly. If this test passes, you will see a page indicating a form was POSTed or a blocked pop-up warning.</p>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

@@ -7,7 +7,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_state::DefaultState;
 use rand::Rng;
 use std::hash::{Hash, Hasher, SipHasher};
-use std::iter::repeat;
 use rand;
 use std::slice::Iter;
 use std::default::Default;
@@ -121,7 +120,7 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: usize) -> SimpleHashCache<K,V> {
         let mut r = rand::thread_rng();
         SimpleHashCache {
-            entries: repeat(None).take(cache_size).collect(),
+            entries: vec![None; cache_size],
             k0: r.gen(),
             k1: r.gen(),
         }

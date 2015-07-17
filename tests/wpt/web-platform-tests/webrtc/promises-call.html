@@ -19,9 +19,7 @@ This test uses data only, and thus does not require fake media devices.
   <script src="/resources/testharnessreport.js"></script>
   <script src="/common/vendor-prefix.js"
           data-prefixed-objects=
-              '[{"ancestors":["window"], "name":"RTCPeerConnection"},
-                {"ancestors":["window"], "name":"RTCSessionDescription"},
-                {"ancestors":["window"], "name":"RTCIceCandidate"}]'
+              '[{"ancestors":["window"], "name":"RTCPeerConnection"}]'
     >
   </script>
   <script type="text/javascript">
@@ -33,15 +31,13 @@ This test uses data only, and thus does not require fake media devices.
   var onIceCandidateToFirst = test.step_func(function(event) {
     // If event.candidate is null = no more candidates.
     if (event.candidate) {
-      var candidate = new RTCIceCandidate(event.candidate);
-      gSecondConnection.addIceCandidate(candidate);
+      gSecondConnection.addIceCandidate(event.candidate);
     }
   });
 
   var onIceCandidateToSecond = test.step_func(function(event) {
     if (event.candidate) {
-      var candidate = new RTCIceCandidate(event.candidate);
-      gFirstConnection.addIceCandidate(candidate);
+      gFirstConnection.addIceCandidate(event.candidate);
     }
   });
 
@@ -105,7 +101,7 @@ This test uses data only, and thus does not require fake media devices.
     })
     .then(function() {
       atStep = 'Create answer';
-      return gSecondConnection.createAnswer()
+      return gSecondConnection.createAnswer();
     })
     .then(function(answer) {
       atStep = 'Set local description at second';

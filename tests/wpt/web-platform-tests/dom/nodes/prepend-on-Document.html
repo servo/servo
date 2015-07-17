@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DocumentType.prepend</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-parentnode-prepend">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function test_prepend_on_Document() {
+
+    var node = document.implementation.createDocument(null, null);
+    test(function() {
+        var parent = node.cloneNode();
+        parent.prepend();
+        assert_array_equals(parent.childNodes, []);
+    }, 'Document.prepend() without any argument, on a Document having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        var x = document.createElement('x');
+        parent.prepend(x);
+        assert_array_equals(parent.childNodes, [x]);
+    }, 'Document.prepend() with only one element as an argument, on a Document having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        parent.appendChild(x);
+        assert_throws('HierarchyRequestError', function() { parent.prepend(y); });
+        assert_array_equals(parent.childNodes, [x]);
+    }, 'Document.append() with only one element as an argument, on a Document having one child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        assert_throws('HierarchyRequestError', function() { parent.prepend('text'); });
+        assert_array_equals(parent.childNodes, []);
+    }, 'Document.prepend() with text as an argument, on a Document having no child.');
+
+    test(function() {
+        var parent = node.cloneNode();
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        assert_throws('HierarchyRequestError', function() { parent.prepend(x, y); });
+        assert_array_equals(parent.childNodes, []);
+    }, 'Document.prepend() with two elements as the argument, on a Document having no child.');
+
+}
+
+test_prepend_on_Document();
+
+</script>
+</html>

@@ -37,9 +37,8 @@ use std::sync::mpsc::Sender;
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
-#[jstraceable]
 #[must_root]
-#[derive(Clone, Copy)]
+#[derive(JSTraceable, Clone, Copy)]
 pub enum CanvasContext {
     Context2d(JS<CanvasRenderingContext2D>),
     WebGL(JS<WebGLRenderingContext>),

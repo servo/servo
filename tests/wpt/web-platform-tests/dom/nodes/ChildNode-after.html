@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>ChildNode.after</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-childnode-after">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function test_after(child, nodeName, innerHTML) {
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.after();
+        assert_equals(parent.innerHTML, innerHTML);
+    }, nodeName + '.after() without any argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.after(null);
+        var expected = innerHTML + 'null';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with null as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.after(undefined);
+        var expected = innerHTML + 'undefined';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with undefined as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.after('');
+        assert_equals(parent.lastChild.data, '');
+    }, nodeName + '.after() with the empty string as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.after('text');
+        var expected = innerHTML + 'text';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with only text as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        parent.appendChild(child);
+        child.after(x);
+        var expected = innerHTML + '<x></x>';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with only one element as an argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        parent.appendChild(child);
+        child.after(x, 'text');
+        var expected = innerHTML + '<x></x>text';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with one element and text as arguments.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        parent.appendChild(child);
+        child.after('text', child);
+        var expected = 'text' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with context object itself as the argument.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        var z = document.createElement('z');
+        parent.appendChild(y);
+        parent.appendChild(child);
+        parent.appendChild(x);
+        child.after(x, y, z);
+        var expected = innerHTML + '<x></x><y></y><z></z>';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with all siblings of child as arguments.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        parent.appendChild(child);
+        parent.appendChild(x);
+        parent.appendChild(y);
+        child.after(y, x);
+        var expected = innerHTML + '<y></y><x></x>';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() when pre-insert behaves like append.');
+
+    test(function() {
+        var parent = document.createElement('div');
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        parent.appendChild(child);
+        parent.appendChild(x);
+        parent.appendChild(document.createTextNode('1'));
+        parent.appendChild(y);
+        child.after(x, '2');
+        var expected = innerHTML + '<x></x>12<y></y>';
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.after() with one sibling of child and text as arguments.');
+
+    test(function() {
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        x.after(y);
+        assert_equals(x.nextSibling, null);
+    }, nodeName + '.after() on a child without any parent.');
+}
+
+test_after(document.createComment('test'), 'Comment', '<!--test-->');
+test_after(document.createElement('test'), 'Element', '<test></test>');
+test_after(document.createTextNode('test'), 'Text', 'test');
+
+</script>
+</html>

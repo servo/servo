@@ -164,7 +164,7 @@ impl<T: Reflectable> HeapGCValue for JS<T> {
 /// Must be used in place of traditional interior mutability to ensure proper
 /// GC barriers are enforced.
 #[must_root]
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct MutHeapJSVal {
     val: UnsafeCell<Heap<JSVal>>,
 }
@@ -196,7 +196,7 @@ impl MutHeapJSVal {
 /// A holder that provides interior mutability for GC-managed values such as
 /// `JS<T>`.
 #[must_root]
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct MutHeap<T: HeapGCValue+Copy> {
     val: Cell<T>,
 }
@@ -225,7 +225,7 @@ impl<T: HeapGCValue+Copy> MutHeap<T> {
 /// place of traditional internal mutability to ensure that the proper GC
 /// barriers are enforced.
 #[must_root]
-#[jstraceable]
+#[derive(JSTraceable)]
 pub struct MutNullableHeap<T: HeapGCValue+Copy> {
     ptr: Cell<Option<T>>
 }

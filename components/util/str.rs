@@ -327,3 +327,11 @@ impl Deref for LowercaseString {
 pub unsafe fn c_str_to_string(s: *const c_char) -> String {
     from_utf8(CStr::from_ptr(s).to_bytes()).unwrap().to_owned()
 }
+
+pub fn str_join<T: AsRef<str>>(strs: &[T], join: &str) -> String {
+    strs.iter().fold(String::new(), |mut acc, s| {
+        if !acc.is_empty() { acc.push_str(join); }
+        acc.push_str(s.as_ref());
+        acc
+    })
+}

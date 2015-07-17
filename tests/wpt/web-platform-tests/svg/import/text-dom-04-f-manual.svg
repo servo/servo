@@ -1,0 +1,157 @@
+<svg id="svg-root" width="100%" height="100%" onload="test()" xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 480 360" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" author="ED" status="reviewed"
+    version="$Revision: 1.4 $" testname="$RCSfile: text-dom-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#InterfaceSVGTextContentElement">
+      <p>
+        This tests the SVGTextContentElement.getSubStringLength method.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        To pass the test there should be no red visible.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-dom-04-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+	<defs>
+		<font horiz-adv-x="4000" id="mini">
+			<font-face font-family="simplesvgfont" units-per-em="4000" ascent="800" descent="-200" alphabetic="0"/>
+			<missing-glyph horiz-adv-x="10000" d="M0 0 4000 0"/>
+			<glyph unicode="a" glyph-name="a" horiz-adv-x="4100" d="M0 4000l2000 -4000l2000 4000Z"/>
+			<glyph unicode="b" glyph-name="b" horiz-adv-x="2000" d="M0 0l2000 0000l0 2000l-2000 0Z"/>
+			<glyph unicode="cb" d="M0 0l2000 2000l-2000 2000Z" horiz-adv-x="800"/>
+			<glyph unicode="c" glyph-name="c" horiz-adv-x="1900" d="M0 0L2000 2000l-2000 0L2000 0Z"/>
+			<glyph unicode="&#x1D352;" glyph-name="compliance" d="M1000,0 h1000 v-1000 h-1000 z" horiz-adv-x="2100"/>
+			<hkern u1="c" u2="a" k="500"/>
+		</font>
+	</defs>
+
+	<script type="text/ecmascript"><![CDATA[
+		function test()
+		{
+			var t = document.getElementById("t");
+			var r = document.getElementById("r");
+			var res = document.getElementById("res");
+			var isPassed = true;
+			
+			// string:  abca&#x1D352;cb
+			// indices: 0123   4  5  67
+			
+			var tests = new Array("getSubStringLength(0,1)", "4100", 	// 'a'
+								  "getSubStringLength(0,2)", "6100", 	// 'ab'
+								  "getSubStringLength(0,3)", "7500", 	// 'abc'
+								  "getSubStringLength(0,4)", "11600", 	// 'abca'
+								  "getSubStringLength(0,5)", "13700",	// 'abca' and high surrogate of 1D352
+								  "getSubStringLength(0,6)", "13700",	// 'abca&#x1D352'
+								  "getSubStringLength(0,7)", "14500",	// 'abca&#x1D352' and half of ligature 'cb'
+								  "getSubStringLength(0,8)", "14500",	// 'abca&#x1D352cb'
+								  "getSubStringLength(0,9)", "14500",	// 'abca&#x1D352cb'
+								  "getSubStringLength(3,1)", "4100",	// 'a'
+								  "getSubStringLength(1,1)", "2000",	// 'b'
+								  "getSubStringLength(4,1)", "2100",	// high surrogate of 1D352
+								  "getSubStringLength(4,2)", "2100",	// '&#x1D352'
+								  "getSubStringLength(5,1)", "2100",	// low surrogate of 1D352
+								  "getSubStringLength(6,1)", "800",		// first half of ligature 'cb'
+								  "getSubStringLength(6,2)", "800",		// ligature 'cb'
+								  "getSubStringLength(7,1)", "800",		// second half of ligature 'cb'
+								  "getSubStringLength(8,1)", "INDEX_SIZE_ERR",
+								  "getSubStringLength(9,0)", "INDEX_SIZE_ERR",
+								  "getSubStringLength(-1,1)", "INDEX_SIZE_ERR",
+								  "getSubStringLength(-57,0)", "INDEX_SIZE_ERR",
+								  "getSubStringLength(0,-52)", "INDEX_SIZE_ERR",
+								  "getSubStringLength(-1,-5)", "INDEX_SIZE_ERR",
+								  "getSubStringLength(7,0)", "0", 		// second half of ligature 'cb'
+								  "getSubStringLength(5,0)", "0",		// high surrogate of 1D352
+								  "getSubStringLength(4,0)", "0"		// low surrogate of 1D352
+								  );
+			
+			try
+			{
+				for(var i = 0; i < tests.length; i=i+2)
+				{
+					try
+					{
+						val = eval("t."+tests[i]);
+					}
+					catch(e)
+					{
+						if(e.code == DOMException.INDEX_SIZE_ERR)
+						{
+							val = "INDEX_SIZE_ERR"
+						}
+						else
+						{
+							val = e;
+						}
+					}
+					
+					if(val != tests[i+1])
+					{
+						throw "Failed " + tests[i] + " got " + val + " but expected " + tests[i+1];
+					}
+				}
+			}
+			catch(f)
+			{
+				isPassed = false;
+				res.textContent = f;
+			}
+			
+			if(isPassed)
+			{
+				r.setAttribute("fill", "none");
+			}
+		}
+	]]></script>
+	
+	<g transform="scale(0.02 0.02) translate(4000 2000)">
+		<g id="reference" fill="red">
+			<path d="M0 4000l2000 -4000l2000 4000Z" transform="scale(1 -1) translate(0 -8000)"/>
+			<path d="M0 0l2000 0000l0 2000l-2000 0Z" transform="translate(4100 6000)"/>
+			<path d="M0 0L2000 2000l-2000 0L2000 0Z" transform="translate(6100 6000)"/>
+			<path d="M0 4000l2000 -4000l2000 4000Z" transform="scale(1 -1) translate(7500 -8000)"/>
+			<path d="M1000,0 h1000 v-1000 h-1000 z" transform="scale(1 -1) translate(11600 -8000)"/>
+			<path d="M0 0l2000 2000l-2000 2000Z" transform="scale(1 -1) translate(13700 -8000)"/>
+		</g>
+		
+		<text id="t" font-family="simplesvgfont" font-size="4000" y="2em" fill="lime">abca&#x1D352;cb</text>
+		<rect id="r" x="5000" y="10%" width="2000" height="2000" fill="red"/>
+		<text id="res" x="50%" text-anchor="middle" font-family="sans-serif" font-size="200" y="80%"></text>
+	</g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

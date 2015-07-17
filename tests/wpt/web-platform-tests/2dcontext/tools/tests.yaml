@@ -448,6 +448,23 @@
 
 
 
+- name: toBlob.png
+  desc: toBlob with image/png returns a PNG Blob
+  testing:
+    - toBlob.png
+  code: |
+    canvas.toBlob(function(data){
+      @assert data.type === "image/png";
+    }, 'image/png');
+
+- name: toBlob.jpeg
+  desc: toBlob with image/jpeg returns a JPEG Blob
+  testing:
+    - toBlob.jpeg
+  code: |
+    canvas.toBlob(function(data){
+      @assert data.type === "image/jpeg";
+    }, 'image/jpeg');
 
 - name: toDataURL.default
   desc: toDataURL with no arguments returns a PNG

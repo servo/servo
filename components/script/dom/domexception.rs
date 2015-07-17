@@ -13,8 +13,7 @@ use util::str::DOMString;
 use std::borrow::ToOwned;
 
 #[repr(u16)]
-#[derive(Copy, Clone, Debug)]
-#[jstraceable]
+#[derive(JSTraceable, Copy, Clone, Debug)]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,
@@ -33,6 +32,7 @@ pub enum DOMErrorName {
     NetworkError = DOMExceptionConstants::NETWORK_ERR,
     AbortError = DOMExceptionConstants::ABORT_ERR,
     URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR,
+    TypeMismatchError = DOMExceptionConstants::TYPE_MISMATCH_ERR,
     QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR,
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
@@ -94,6 +94,7 @@ impl<'a> DOMExceptionMethods for &'a DOMException {
             DOMErrorName::NetworkError => "A network error occurred.",
             DOMErrorName::AbortError => "The operation was aborted.",
             DOMErrorName::URLMismatchError => "The given URL does not match another URL.",
+            DOMErrorName::TypeMismatchError => "The given type does not match any expected type.",
             DOMErrorName::QuotaExceededError => "The quota has been exceeded.",
             DOMErrorName::TimeoutError => "The operation timed out.",
             DOMErrorName::InvalidNodeTypeError =>

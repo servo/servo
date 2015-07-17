@@ -20,7 +20,7 @@
 
         e.target.transaction.abort();
 
-        assert_throws("TransactionInactiveError", function(){
+        assert_throws("InvalidStateError", function(){
             index.openCursor();
         });
         t.done();

@@ -100,8 +100,7 @@ use std::sync::mpsc::channel;
 use std::rc::Rc;
 use time;
 
-#[derive(PartialEq)]
-#[jstraceable]
+#[derive(JSTraceable, PartialEq)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
@@ -164,7 +163,7 @@ impl DocumentDerived for EventTarget {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -172,7 +171,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -180,7 +179,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -189,7 +188,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -197,7 +196,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -205,7 +204,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -213,7 +212,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[jstraceable]
+#[derive(JSTraceable)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -252,13 +251,19 @@ pub trait DocumentHelpers<'a> {
     fn title_changed(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
-    fn dispatch_key_event(self, key: Key, state: KeyState,
-        modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
+    fn dispatch_key_event(self,
+                          key: Key,
+                          state: KeyState,
+                          modifiers: KeyModifiers,
+                          compositor: &mut ScriptListener);
     fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
                                    -> Fallible<Root<Node>>;
     fn get_body_attribute(self, local_name: &Atom) -> DOMString;
     fn set_body_attribute(self, local_name: &Atom, value: DOMString);
 
+    fn fire_mouse_event(self, point: Point2D<f32>,
+                             target: &EventTarget,
+                             event_name: String);
     fn handle_mouse_event(self, js_runtime: *mut JSRuntime,
                           button: MouseButton, point: Point2D<f32>,
                           mouse_event_type: MouseEventType);
@@ -270,11 +275,11 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<&HTMLScriptElement>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32;
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32);
-    /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
+    /// https://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self);
     fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
     fn load_async(self, load: LoadType, listener: Box<AsyncResponseTarget + Send>);
@@ -394,6 +399,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     fn unregister_named_element(self,
                                 to_unregister: &Element,
                                 id: Atom) {
+        debug!("Removing named element from document {:p}: {:p} id={}", self, to_unregister, id);
         let mut idmap = self.idmap.borrow_mut();
         let is_empty = match idmap.get_mut(&id) {
             None => false,
@@ -415,6 +421,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     fn register_named_element(self,
                               element: &Element,
                               id: Atom) {
+        debug!("Adding named element to document {:p}: {:p} id={}", self, element, id);
         assert!({
             let node = NodeCast::from_ref(element);
             node.is_in_doc()
@@ -464,10 +471,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             let check_anchor = |&node: &&HTMLAnchorElement| {
                 let elem = ElementCast::from_ref(node);
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                    // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                    let attr = attr.r();
-                    let value = attr.value();
-                    &**value == &*fragid
+                    &**attr.r().value() == &*fragid
                 })
             };
             let doc_node = NodeCast::from_ref(self);
@@ -670,6 +674,29 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
     }
 
+    fn fire_mouse_event(self,
+                        point: Point2D<f32>,
+                        target: &EventTarget,
+                        event_name: String) {
+        let x = point.x.to_i32().unwrap_or(0);
+        let y = point.y.to_i32().unwrap_or(0);
+
+        let window = self.window.root();
+
+        let mouse_event = MouseEvent::new(window.r(),
+                                          event_name,
+                                          EventBubbles::Bubbles,
+                                          EventCancelable::Cancelable,
+                                          Some(window.r()),
+                                          0i32,
+                                          x, y, x, y,
+                                          false, false, false, false,
+                                          0i16,
+                                          None);
+        let event = EventCast::from_ref(mouse_event.r());
+        event.fire(target);
+    }
+
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
@@ -688,7 +715,15 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // under the mouse.
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
-                target.root().r().set_hover_state(false);
+                let target = target.root();
+                let target_ref = target.r();
+                if target_ref.get_hover_state() {
+                    target_ref.set_hover_state(false);
+
+                    let target = EventTargetCast::from_ref(target_ref);
+
+                    self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                }
             }
         }
 
@@ -700,6 +735,11 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             let target_ref = target.r();
             if !target_ref.get_hover_state() {
                 target_ref.set_hover_state(true);
+
+                let target = EventTargetCast::from_ref(target_ref);
+
+                self.fire_mouse_event(point, &target, "mouseover".to_owned());
+
             }
         }
 
@@ -708,24 +748,8 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             let top_most_node =
                 node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]);
 
-            let x = point.x.to_i32().unwrap_or(0);
-            let y = point.y.to_i32().unwrap_or(0);
-
-            let window = self.window.root();
-            let mouse_event = MouseEvent::new(window.r(),
-                                              "mousemove".to_owned(),
-                                              EventBubbles::Bubbles,
-                                              EventCancelable::Cancelable,
-                                              Some(window.r()),
-                                              0i32,
-                                              x, y, x, y,
-                                              false, false, false, false,
-                                              0i16,
-                                              None);
-
-            let event = EventCast::from_ref(mouse_event.r());
             let target = EventTargetCast::from_ref(top_most_node.r());
-            event.fire(target);
+            self.fire_mouse_event(point, target, "mousemove".to_owned());
         }
 
         // Store the current mouse over targets for next frame
@@ -739,10 +763,11 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// The entry point for all key processing for web content
-    fn dispatch_key_event(self, key: Key,
+    fn dispatch_key_event(self,
+                          key: Key,
                           state: KeyState,
                           modifiers: KeyModifiers,
-                          compositor: &mut Box<ScriptListener+'static>) {
+                          compositor: &mut ScriptListener) {
         let window = self.window.root();
         let focused = self.get_focused_element();
         let body = self.GetBody();
@@ -878,7 +903,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32 {
         let window = self.window.root();
         let window = window.r();
@@ -896,7 +921,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         ident
     }
 
-    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().len() == 0 {
@@ -909,7 +934,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
+    /// https://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self) {
         let animation_frame_list;
         {
@@ -1163,16 +1188,12 @@ impl<'a> DocumentMethods for &'a Document {
 
     // https://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let encoding_name = self.encoding_name.borrow();
-        encoding_name.clone()
+        self.encoding_name.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-inputencoding
     fn InputEncoding(self) -> DOMString {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let encoding_name = self.encoding_name.borrow();
-        encoding_name.clone()
+        self.encoding_name.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-content_type
@@ -1217,9 +1238,7 @@ impl<'a> DocumentMethods for &'a Document {
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Root<Element>> {
         let id = Atom::from_slice(&id);
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let idmap = self.idmap.borrow();
-        idmap.get(&id).map(|ref elements| (*elements)[0].root())
+        self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
@@ -1544,10 +1563,7 @@ impl<'a> DocumentMethods for &'a Document {
                 return false;
             }
             element.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                let attr = attr.r();
-                let value = attr.value();
-                &**value == &*name
+                &**attr.r().value() == &*name
             })
         })
     }
@@ -1725,7 +1741,7 @@ impl<'a> DocumentMethods for &'a Document {
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
                    -> *mut JSObject {
-        #[jstraceable]
+        #[derive(JSTraceable)]
         struct NamedElementFilter {
             name: Atom,
         }

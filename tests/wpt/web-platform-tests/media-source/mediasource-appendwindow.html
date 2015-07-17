@@ -153,7 +153,7 @@
 
               sourceBuffer.abort();
               assert_equals(sourceBuffer.appendWindowStart, 0, "appendWindowStart is 0 after an abort'");
-              assert_equals(sourceBuffer.appendWindowEnd, Number.POSITIVE_INFINITY, 
+              assert_equals(sourceBuffer.appendWindowEnd, Number.POSITIVE_INFINITY,
                             "appendWindowStart is POSITIVE_INFINITY after an abort");
               test.waitForExpectedEvents(function()
               {

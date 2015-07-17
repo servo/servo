@@ -1,0 +1,85 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-26-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test animation options for specifying the target attribute/property.
+      </p>
+      <p>
+        On the left, a circle animates the stroke-width property without
+        specifying a value for 'attributeType'. On the right,
+        a circle animates the stroke-width property and does set 'attributeType' to 'CSS'.
+      </p>
+      <p>
+        For each circle, guides shows what
+        the stroke-width looks like initially and
+        what it looks like at the end of the animation.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>the left blue circle smoothly animates its stroke-width from time t=1 second to time t=5 seconds, so that the blue color fully fills the left donut shape</li>
+        <li>the right pink circle smoothly animates its stroke-width from time t=4 seconds to time t=7 seconds, so that the pink color fully fills the right donut shape</li>
+        <li>both of the stroke-width animations originate from the thin black circle in the middle of each donut shape</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-26-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="30">
+      <circle cx="120" cy="140" r="70" fill="none" stroke="#36e" stroke-width="1">
+        <animate attributeName="stroke-width" from="1" to="60" begin="1s" dur="4s" fill="freeze"/>
+      </circle>
+      <circle cx="120" cy="140" r="40" fill="none" stroke="black" stroke-width="1"/>
+      <circle cx="120" cy="140" r="70" fill="none" stroke="black" stroke-width="1"/>
+      <circle cx="120" cy="140" r="100" fill="none" stroke="black" stroke-width="1"/>
+      <text x="70" y="280">anim. 1</text>
+    </g>
+    <g font-size="30">
+      <circle cx="360" cy="140" r="70" fill="none" stroke="#e3a" stroke-width="1">
+        <animate attributeName="stroke-width" attributeType="CSS" from="1" to="60" begin="4s" dur="3s" fill="freeze"/>
+      </circle>
+      <circle cx="360" cy="140" r="40" fill="none" stroke="black" stroke-width="1"/>
+      <circle cx="360" cy="140" r="70" fill="none" stroke="black" stroke-width="1"/>
+      <circle cx="360" cy="140" r="100" fill="none" stroke="black" stroke-width="1"/>
+      <text x="310" y="280">anim. 2</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

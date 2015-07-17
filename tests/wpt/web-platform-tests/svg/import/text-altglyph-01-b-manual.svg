@@ -1,0 +1,128 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: text-altglyph-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlternateGlyphs">
+        <p>
+          Test 'altGlyph' facilities and many-to-many chars to glyphs.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+      <p>
+        This test requires some support for SVG fonts.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Three text strings show: the word "HAPPY" in pink, the word "SAD" in green
+        and the word "SASSY" in blue.
+      </p>
+      <p>
+        The "HAPPY" and "SAD" strings test the 'altGlyph' facility and
+        the ability to map multiple glyphs to a single character.
+        All characters except the "D" are bracketed by 'altGlyph' elements
+        to use two different glyphs to render each character.
+        For "HAPPY", the horizontal stroke through the center of the characters
+        is a smile stroke.
+        For "SAD", the horizontal stroke through the center of the characters
+        is a frown stroke.
+      </p>
+      <p>
+        The "SASSY" string tests a single glyph representing multiple characters
+        (a ligature). The SVG font in the test case contains an "SS" ligature
+        so that the "SS" in "SASSY" is rendered with a single glyph, where
+        the two parts of the "SS" are connected.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-altglyph-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g stroke-miterlimit="4">
+      <text font-family="Arial" font-size="40" x="5" y="50">Test 'altGlyph' facilities</text>
+      <text font-family="Arial" font-size="30" x="5" y="90">and many-to-many chars to glyphs</text>
+      <defs>
+        <font id="Font1" horiz-adv-x="5">
+          <font-face font-family="HappySad" font-weight="bold" font-style="normal" units-per-em="8" cap-height="8" x-height="4" ascent="8" descent="2" alphabetic="0" mathematical="4" ideographic="-2" hanging="8"/>
+          <missing-glyph d="M1,3h2v2h-2z"/>
+          <glyph id="A1" d="M0,0 L2,8 L4,0 M0,4 C1,3 3,3 4,4"/>
+          <glyph id="H1" d="M0,0 V8 M4,0 V8 M0,4 C1,3 3,3 4,4"/>
+          <glyph id="P1" d="M0,0 V8 H2 C3,8 4,7 4,6 V4 M0,4 C1,3 3,3 4,4"/>
+          <glyph id="S1" d="M0,4 V6 C0,7 1,8 2,8 C3,8 4,7 4,6 M4,4 V2 C4,1 3,0 2,0 C1,0 0,1 0,2 M0,4 C1,3 3,3 4,4"/>
+          <glyph id="Y1" d="M0,8 V4 M4,8 V4 M2,4 V0 M0,4 C1,3 3,3 4,4"/>
+          <glyph id="A2" d="M0,0 L2,8 L4,0 M0,4 C1,5 3,5 4,4"/>
+          <glyph id="H2" d="M0,0 V8 M4,0 V8 M0,4 C1,5 3,5 4,4"/>
+          <glyph id="P2" d="M0,0 V8 H2 C3,8 4,7 4,6 V4 M0,4 C1,5 3,5 4,4"/>
+          <glyph id="S2" d="M0,4 V6 C0,7 1,8 2,8 C3,8 4,7 4,6 M4,4 V2 C4,1 3,0 2,0 C1,0 0,1 0,2 M0,4 C1,5 3,5 4,4"/>
+          <glyph id="Y2" d="M0,8 V4 M4,8 V4 M2,4 V0 M0,4 C1,5 3,5 4,4"/>
+          <glyph id="SS" unicode="SS" horiz-adv-x="6" d="M0,4 V6 C0,7 0,8 1,8 C2,8 2,7 2,6 M2,4 V2 C2,1 2,0 1,0 C0,0 0,1 0,2 M3,4 V6 C3,7 3,8 4,8 C5,8 5,7 5,6 M5,4 V2 C5,1 5,0 4,0 C3,0 3,1 3,2 M0,4 H5"/>
+          <glyph id="A" unicode="A" d="M0,0 L2,8 L4,0 M0,4 H4"/>
+          <glyph id="D" unicode="D" d="M0,0 V8 C3,8 4,7 4,4 C4,1 3,0 0,0z"/>
+          <glyph id="S" unicode="S" d="M0,4 V6 C0,7 1,8 2,8 C3,8 4,7 4,6 M4,4 V2 C4,1 3,0 2,0 C1,0 0,1 0,2 M0,4 H4"/>
+          <glyph id="Y" unicode="Y" d="M0,8 V4 M4,8 V4 M2,4 V0 M0,4 H4"/>
+        </font>
+        <altGlyphDef id="Afrown">
+          <glyphRef xlink:href="#A2"/>
+        </altGlyphDef>
+        <altGlyphDef id="Asmile">
+          <glyphRef xlink:href="#A1"/>
+        </altGlyphDef>
+        <altGlyphDef id="Hsmile">
+          <glyphRef xlink:href="#H1"/>
+        </altGlyphDef>
+        <altGlyphDef id="Psmile">
+          <glyphRef xlink:href="#P1"/>
+        </altGlyphDef>
+        <altGlyphDef id="Sfrown">
+          <glyphRef xlink:href="#S2"/>
+        </altGlyphDef>
+        <altGlyphDef id="Ysmile">
+          <glyphRef xlink:href="#Y1"/>
+        </altGlyphDef>
+      </defs>
+      <g font-family="HappySad" font-size="60" fill="none" stroke-width="5">
+        <text x="140" y="190" stroke="fuchsia">
+<altGlyph xlink:href="#Hsmile">H</altGlyph>
+<altGlyph xlink:href="#Asmile">A</altGlyph>
+<altGlyph xlink:href="#Psmile">P</altGlyph>
+<altGlyph xlink:href="#Psmile">P</altGlyph>
+<altGlyph xlink:href="#Ysmile">Y</altGlyph>
+        </text>
+        <text x="50" y="270" stroke="green">
+          <altGlyph xlink:href="#Sfrown">S</altGlyph><altGlyph xlink:href="#Afrown">A</altGlyph>D
+        </text>
+        <text x="280" y="270" stroke="blue">SASSY</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

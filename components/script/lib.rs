@@ -11,6 +11,7 @@
 #![feature(core)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
+#![feature(custom_derive)]
 #![feature(drain)]
 #![feature(hashmap_hasher)]
 #![feature(mpsc_select)]
@@ -20,6 +21,7 @@
 #![feature(rc_unique)]
 #![feature(slice_chars)]
 #![feature(str_utf16)]
+#![feature(unicode)]
 #![feature(vec_push_all)]
 
 #![deny(unsafe_code)]
@@ -42,16 +44,20 @@ extern crate html5ever;
 extern crate encoding;
 extern crate fnv;
 extern crate hyper;
+extern crate ipc_channel;
 extern crate js;
+extern crate layout_traits;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
-extern crate png;
 extern crate rustc_serialize;
+extern crate rustc_unicode;
 extern crate time;
 extern crate canvas;
 extern crate canvas_traits;
+extern crate rand;
+#[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
@@ -89,6 +95,6 @@ mod webdriver_handlers;
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
-        js::jsapi::JS_Init();
+        assert_eq!(js::jsapi::JS_Init(), 1);
     }
 }

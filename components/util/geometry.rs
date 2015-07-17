@@ -66,7 +66,7 @@ pub enum PagePx {}
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 //
 // FIXME: Implement Au using Length and ScaleFactor instead of a custom type.
-#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord, Deserialize, Serialize)]
 pub struct Au(pub i32);
 
 impl Default for Au {

@@ -16,7 +16,6 @@ use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::window;
-use util::namespace;
 use util::str::DOMString;
 
 use libc;
@@ -65,7 +64,7 @@ use string_cache::{Atom, Namespace};
 pub struct WindowProxyHandler(pub *const libc::c_void);
 
 #[allow(raw_pointer_derive)]
-#[jstraceable]
+#[derive(JSTraceable)]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {
     /// The WindowProxy proxy handler for this global.
@@ -821,6 +820,7 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
     (domclass.dom_class.interface_chain[depth as usize] as u32 == proto_id) as u8
 }
 
+#[allow(missing_docs)]  // FIXME
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
@@ -830,7 +830,7 @@ pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
 pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
                             -> Fallible<(Namespace, Option<Atom>, Atom)> {
     // Step 1.
-    let namespace = namespace::from_domstring(namespace);
+    let namespace = namespace_from_domstring(namespace);
 
     // Step 2.
     try!(validate_qualified_name(qualified_name));
@@ -964,5 +964,15 @@ pub fn xml_name_type(name: &str) -> XMLName {
     match non_qname_colons {
         false => XMLName::QName,
         true => XMLName::Name
+    }
+}
+
+/// Convert a possibly-null URL to a namespace.
+///
+/// If the URL is None, returns the empty namespace.
+pub fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
+    match url {
+        None => ns!(""),
+        Some(ref s) => Namespace(Atom::from_slice(s)),
     }
 }

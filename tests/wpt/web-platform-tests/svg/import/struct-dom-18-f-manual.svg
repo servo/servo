@@ -1,0 +1,147 @@
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="[reviewer]" author="Microsoft" status="created" version="$Revision: 1.4 $" testname="$RCSfile: struct-dom-18-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://dev.w3.org/SVG/profiles/1.1F2/publish/struct.html#InterfaceSVGSVGElement">
+      <p>
+        <!--[[
+        The 'SVGSVGElement' supports 'getIntersectionList' and 'getEnclosureList' with all renderable elements.
+        ]]-->
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        <!--[[
+        Markup for an instance of each renderable SVG element is placed in an 'svg' element. The 'getIntersectionList' and 'getEnclosureList'
+        methods are called from a reference to the parent 'svg' element. For 'getIntersectionList', an 'SVGRect' is used with 'x', 'y', 'width',
+        and 'height' attributes set to intersect each of the renderable elements. For 'getEnclosureList', the same 'SVGRect' is modified to
+        completely enclose all of the renderable elements. For both 'getIntersectionList' and 'getEnclosureList', the returned 'NodeList' element
+        is iterated through and each element is verified through their respective 'id' attributes. For the 'use' element, the 'correspondingUseElement'
+        attribute must be used because an 'SVGElementInstance' reference is obtained via 'getEnclosureList' and 'getIntersectionList'. 
+        ]]-->
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        <!--[[
+        Test passes if there is no red visible on the page.
+        ]]-->
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-18-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <svg id="testSVG">
+        <circle cx="96" cy="96" r="48" id="testCircle" />
+        <ellipse cx="96" cy="96" rx="48" ry="48" id="testEllipse" />
+        <line x1="10" y1="10" x2="10" y2="100" stroke="black" id="testLine" />
+        <path d="M0 10 H 100" stroke-width="5" stroke="black" fill="none" id="testPath" />
+        <polyline points="0,0 120,100 120,120" stroke="black" fill="black" id="testPolyline" />
+        <polygon points="0,0 100,100" stroke="black" fill="black" id="testPolygon" />
+        <rect width="96" height="96" id="testRect" />
+        <use xlink:href="#testRect" id="testUse" />
+        <image xlink:href="../images/black10x10.png" width="100" height="100" id="testImage" />
+        <text x="100" y="100" fill="black" id="testText">Filler text</text>
+    </svg>
+    <text id="failText" x="350" y="350" font-size="50" fill="red">FAIL</text>
+    <script type="text/javascript"><![CDATA[
+        try
+        {
+            var passedCount = 0;
+            var expectedIDList = ["testCircle", "testEllipse", "testLine", "testPath", "testPolyline", "testPolygon", "testRect", "testUse", "testImage", "testText"];
+            var testSVG = document.getElementById("testSVG");
+            var rectElem = testSVG.createSVGRect();
+
+            rectElem.x = 10;
+            rectElem.y = 0;
+            rectElem.width = 130;
+            rectElem.height = 98;
+
+            var intersectionList = testSVG.getIntersectionList(rectElem, null);
+
+            if (null != intersectionList && expectedIDList.length == intersectionList.length)
+            {
+                passedCount++;
+            }
+
+            for (var i = 0; i < intersectionList.length; i++)
+            {
+                var curIntersection = intersectionList[i];
+                var curExpectedId = expectedIDList[i];
+
+                if (curExpectedId == curIntersection.id)
+                {
+                    passedCount++;
+                }
+                // Special case for "use" and SVGElementInstance
+                else if (null != curIntersection.correspondingUseElement && curExpectedId == curIntersection.correspondingUseElement.id)
+                {
+                    passedCount++;
+                }
+            }
+
+            rectElem.x = 0;
+            rectElem.y = 0;
+            rectElem.width = 200;
+            rectElem.height = 200;
+
+            var enclosureList = testSVG.getEnclosureList(rectElem, null);
+
+            if (null != enclosureList && expectedIDList.length == enclosureList.length)
+            {
+                passedCount++;
+            }
+
+            for (var i = 0; i < enclosureList.length; i++)
+            {
+                var curEnclosure = enclosureList[i];
+                var curExpectedId = expectedIDList[i];
+
+                if (curExpectedId == curEnclosure.id)
+                {
+                    passedCount++;
+                }
+                // Special case for "use" and SVGElementInstance
+                else if (null != curEnclosure.correspondingUseElement && curExpectedId == curEnclosure.correspondingUseElement.id)
+                {
+                    passedCount++;
+                }
+            }
+
+            if (22 == passedCount)
+            {
+                document.getElementById("failText").setAttribute("display", "none");
+            }
+        }
+        catch(ex)
+        {
+            // alert('ERROR: ' + ex.message);
+        }]]>
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

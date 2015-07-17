@@ -13,7 +13,6 @@ use task_state;
 
 use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, weak_rng, XorShiftRng};
-use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 
@@ -94,7 +93,7 @@ fn next_power_of_two(mut v: u32) -> u32 {
     v
 }
 
-impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
+impl<QueueData: Sync, WorkData: Send> WorkerThread<QueueData, WorkData> {
     /// The main logic. This function starts up the worker and listens for
     /// messages.
     fn start(&mut self) {
@@ -114,20 +113,13 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
             let mut back_off_sleep = 0 as u32;
 
             // We're off!
-            //
-            // FIXME(pcwalton): Can't use labeled break or continue cross-crate due to a Rust bug.
-            loop {
-                // FIXME(pcwalton): Nasty workaround for the lack of labeled break/continue
-                // cross-crate.
-                let mut work_unit = unsafe {
-                    mem::uninitialized()
-                };
+            'outer: loop {
+                let work_unit;
                 match deque.pop() {
                     Some(work) => work_unit = work,
                     None => {
                         // Become a thief.
                         let mut i = 0;
-                        let mut should_continue = true;
                         loop {
                             // Don't just use `rand % len` because that's slow on ARM.
                             let mut victim;
@@ -153,10 +145,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                 if back_off_sleep >= BACKOFF_INCREMENT_IN_US *
                                         BACKOFFS_UNTIL_CONTROL_CHECK {
                                     match self.port.try_recv() {
-                                        Ok(WorkerMsg::Stop) => {
-                                            should_continue = false;
-                                            break
-                                        }
+                                        Ok(WorkerMsg::Stop) => break 'outer,
                                         Ok(WorkerMsg::Exit) => return,
                                         Ok(_) => panic!("unexpected message"),
                                         _ => {}
@@ -172,10 +161,6 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                 i += 1
                             }
                         }
-
-                        if !should_continue {
-                            break
-                        }
                     }
                 }
 
@@ -183,7 +168,10 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                 let mut proxy = WorkerProxy {
                     worker: &mut deque,
                     ref_count: ref_count,
-                    queue_data: queue_data,
+                    // queue_data is kept alive in the stack frame of
+                    // WorkQueue::run until we send the
+                    // SupervisorMsg::ReturnDeque message below.
+                    queue_data: unsafe { &*queue_data },
                     worker_index: self.index as u8,
                 };
                 (work_unit.fun)(work_unit.data, &mut proxy);
@@ -207,7 +195,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
 pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
     ref_count: *mut AtomicUsize,
-    queue_data: *const QueueData,
+    queue_data: &'a QueueData,
     worker_index: u8,
 }
 
@@ -223,10 +211,8 @@ impl<'a, QueueData: 'static, WorkData: Send + 'static> WorkerProxy<'a, QueueData
 
     /// Retrieves the queue user data.
     #[inline]
-    pub fn user_data<'b>(&'b self) -> &'b QueueData {
-        unsafe {
-            mem::transmute(self.queue_data)
-        }
+    pub fn user_data(&self) -> &'a QueueData {
+        self.queue_data
     }
 
     /// Retrieves the index of the worker.
@@ -244,17 +230,14 @@ pub struct WorkQueue<QueueData: 'static, WorkData: 'static> {
     port: Receiver<SupervisorMsg<QueueData, WorkData>>,
     /// The amount of work that has been enqueued.
     work_count: usize,
-    /// Arbitrary user data.
-    pub data: QueueData,
 }
 
-impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
+impl<QueueData: Sync, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// Creates a new work queue and spawns all the threads associated with
     /// it.
     pub fn new(task_name: &'static str,
                state: task_state::TaskState,
-               thread_count: usize,
-               user_data: QueueData) -> WorkQueue<QueueData, WorkData> {
+               thread_count: usize) -> WorkQueue<QueueData, WorkData> {
         // Set up data structures.
         let (supervisor_chan, supervisor_port) = channel();
         let (mut infos, mut threads) = (vec!(), vec!());
@@ -302,7 +285,6 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
             workers: infos,
             port: supervisor_port,
             work_count: 0,
-            data: user_data,
         }
     }
 
@@ -320,13 +302,13 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     }
 
     /// Synchronously runs all the enqueued tasks and waits for them to complete.
-    pub fn run(&mut self) {
+    pub fn run(&mut self, data: &QueueData) {
         // Tell the workers to start.
         let mut work_count = AtomicUsize::new(self.work_count);
         for worker in self.workers.iter_mut() {
             worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(),
                                               &mut work_count,
-                                              &self.data)).unwrap()
+                                              data)).unwrap()
         }
 
         // Wait for the work to finish.

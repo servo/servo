@@ -1,0 +1,15 @@
+<video></video>
+<script src="../../../media-resources/media-file.js"></script>
+<script src="../../../media-resources/video-test.js"></script>
+<p>This test passes if it doesn&apos;t alert failure.</p>
+<script>
+    waitForEvent('loadedmetadata', function() {
+        alert_assert('FAIL');
+    });
+    addEventListener('load', endTestLater, false);
+    // Find a supported media file.
+    var mediaFile = findMediaFile("video", "content/test");
+    var mimeType = mimeTypeForFile(mediaFile);
+    video.src = "http://{{host}}:{{ports[http][0]}}/resources/load-and-stall.cgi?name=../../../media/" + mediaFile + "&mimeType=" + mimeType + "&stallAt=100000";
+
+</script>

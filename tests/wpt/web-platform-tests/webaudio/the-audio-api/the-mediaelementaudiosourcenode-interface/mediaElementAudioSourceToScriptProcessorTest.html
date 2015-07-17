@@ -61,15 +61,16 @@ Somewhat similiar to a test from Mozilla:
  audio.src = src;
  source = context.createMediaElementSource(audio);
 
+function processListener (e) {
+  actualBufferArrayC0 = concatTypedArray(actualBufferArrayC0, e.inputBuffer.getChannelData(0));
+  actualBufferArrayC1 = concatTypedArray(actualBufferArrayC1, e.inputBuffer.getChannelData(1));
+}
+
  // Create a processor node to copy the input to the actual buffer
  processor = context.createScriptProcessor(BUFFER_SIZE);
  source.connect(processor);
  processor.connect(context.destination);
- processor.addEventListener('audioprocess',
-                            (function (e) {
-                              actualBufferArrayC0 = concatTypedArray(actualBufferArrayC0, e.inputBuffer.getChannelData(0));
-                              actualBufferArrayC1 = concatTypedArray(actualBufferArrayC1, e.inputBuffer.getChannelData(1));
-                            }));
+ processor.addEventListener('audioprocess', processListener);
 
  // When media playback ended, save the begin to compare with expected buffer
  audio.addEventListener("ended", function(e) {
@@ -84,7 +85,7 @@ Somewhat similiar to a test from Mozilla:
    processor.disconnect();
 
    // firefox seems to process events after disconnect
-   processor.removeEventListener('audioprocess')
+   processor.removeEventListener('audioprocess', processListener)
 
    var expectedBuffer = expected[0];
 
