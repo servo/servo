@@ -684,7 +684,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
         ThreadSafeLayoutNodeChildrenIterator {
             current_node: self.first_child(),
-            parent_node: Some(self.clone()),
+            parent_node: self.clone(),
         }
     }
 
@@ -990,7 +990,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
     current_node: Option<ThreadSafeLayoutNode<'a>>,
-    parent_node: Option<ThreadSafeLayoutNode<'a>>,
+    parent_node: ThreadSafeLayoutNode<'a>,
 }
 
 impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
@@ -1004,36 +1004,26 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
                     return None
                 }
 
-                match self.parent_node {
-                    Some(ref parent_node) => {
-                        self.current_node = if parent_node.pseudo == PseudoElementType::Normal {
-                            self.current_node.clone().and_then(|node| {
-                                unsafe {
-                                    node.next_sibling()
-                                }
-                            })
-                        } else {
-                            None
-                        };
-                    }
-                    None => {}
-                }
+                self.current_node = if self.parent_node.pseudo == PseudoElementType::Normal {
+                    self.current_node.clone().and_then(|node| {
+                        unsafe {
+                            node.next_sibling()
+                        }
+                    })
+                } else {
+                    None
+                };
             }
             None => {
-                match self.parent_node {
-                    Some(ref parent_node) => {
-                        if parent_node.has_after_pseudo() {
-                            let pseudo_after_node = if parent_node.pseudo == PseudoElementType::Normal {
-                                let pseudo = PseudoElementType::After(parent_node.get_after_display());
-                                Some(parent_node.with_pseudo(pseudo))
-                            } else {
-                                None
-                            };
-                            self.current_node = pseudo_after_node;
-                            return self.current_node.clone()
-                        }
-                   }
-                   None => {}
+                if self.parent_node.has_after_pseudo() {
+                    let pseudo_after_node = if self.parent_node.pseudo == PseudoElementType::Normal {
+                        let pseudo = PseudoElementType::After(self.parent_node.get_after_display());
+                        Some(self.parent_node.with_pseudo(pseudo))
+                    } else {
+                        None
+                    };
+                    self.current_node = pseudo_after_node;
+                    return self.current_node.clone()
                 }
             }
         }
