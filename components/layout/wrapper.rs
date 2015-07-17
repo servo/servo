@@ -36,6 +36,7 @@ use css::node_style::StyledNode;
 use incremental::RestyleDamage;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
+use traversal::PostorderNodeMutTraversal;
 
 use gfx::display_list::OpaqueNode;
 use script::dom::attr::AttrValue;
@@ -1056,19 +1057,6 @@ impl<'le> ThreadSafeLayoutElement<'le> {
     }
 }
 
-/// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeMutTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune<'a>(&'a self, _node: &ThreadSafeLayoutNode<'a>) -> bool {
-        false
-    }
-}
-
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from LayoutNode.
 pub type UnsafeLayoutNode = (usize, usize);
@@ -1085,16 +1073,4 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
 pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode<'static> {
     let (node, _) = *node;
     mem::transmute(node)
-}
-
-/// A top-down traversal.
-pub trait PreorderDomTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
-}
-
-/// A bottom-up traversal, with a optional in-order pass.
-pub trait PostorderDomTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
 }
