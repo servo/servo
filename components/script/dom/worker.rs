@@ -26,7 +26,7 @@ use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 
 use util::str::DOMString;
 
-use js::jsapi::{JSContext, HandleValue, RootedValue, JS_TriggerOperationCallback};
+use js::jsapi::{JSContext, JSRuntime, HandleValue, RootedValue, JS_RequestInterruptCallback};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use url::UrlParser;
@@ -186,7 +186,7 @@ impl<'a> WorkerMethods for &'a Worker {
         assert!(!rt.is_null());
 
         unsafe {
-            JS_TriggerOperationCallback(rt.rt());
+            JS_RequestInterruptCallback(rt.rt());
         }
     }
 
@@ -198,7 +198,7 @@ pub trait WorkerHelpers {
     fn set_rt(self, rt: SharedRt);
 }
 
-impl<'a> WorkerHelpers for JSRef<'a, Worker> {
+impl<'a> WorkerHelpers for &'a Worker {
     fn get_rt(self) -> SharedRt {
         self.rt.get()
     }

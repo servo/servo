@@ -821,8 +821,6 @@ impl ScriptTask {
                 self.handle_loads_complete(id),
             ScriptMsg::CollectReports(reports_chan) =>
                 self.collect_reports(reports_chan),
-            ScriptMsg::PageFetchComplete(id, subpage, response) =>
-                self.handle_page_fetch_complete(id, subpage, response),
             _ => panic!("unexpected message"),
         }
     }

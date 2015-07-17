@@ -25,17 +25,15 @@ use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
 use script_task::StackRootTLS;
 
-use msg::constellation_msg::PipelineId;
-
 use devtools_traits::DevtoolsControlChan;
-
+use msg::constellation_msg::PipelineId;
 use net_traits::{load_whole_resource, ResourceTask};
 use profile_traits::mem::{self, Reporter, ReportsChan};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use js::jsapi::{JSContext, JS_SetOperationCallback, RootedValue, HandleValue};
+use js::jsapi::{JSContext, JS_SetInterruptCallback, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment, JS_SetRuntimePrivate};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
@@ -196,26 +194,22 @@ impl DedicatedWorkerGlobalScope {
             rt_sender.send(SharedRt::new(runtime.rt())).unwrap();
 
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, id, devtools_chan, runtime.cx.clone(), resource_task,
-                parent_sender, own_sender, receiver).root();
-
-            unsafe {
-                // Worker's global scope is stored in the JSRuntime private
-                JS_SetRuntimePrivate(runtime.rt(),
-                    global.r().reflector().get_jsobject() as *mut c_void);
-
-                // Handle interrupt requests
-                JS_SetOperationCallback(runtime.cx.ptr,
-                    Some(interrupt_callback as unsafe extern "C" fn(*mut JSContext) -> JSBool));
-            }
-
-            let global = DedicatedWorkerGlobalScope::new(
                 url, id, mem_profiler_chan.clone(), devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
             println!("reporter_name = {}", reporter_name);
+
+            unsafe {
+                // Worker's global scope is stored in the JSRuntime private
+                JS_SetRuntimePrivate(runtime.rt(),
+                    global.r().reflector().get_jsobject().get() as *mut c_void);
+
+                // Handle interrupt requests
+                JS_SetInterruptCallback(runtime.rt(),
+                    Some(interrupt_callback as unsafe extern "C" fn(*mut JSContext) -> u8));
+            }
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
@@ -244,14 +238,14 @@ impl DedicatedWorkerGlobalScope {
                 mem_profiler_chan.send(msg);
             }
 
-            'process_events : loop {
+            'process_events_ : loop {
                 // Process any pending events
                 while let Some((linked_worker, msg)) = global.r().take_event() {
                     let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                     global.r().handle_event(msg);
 
                     if global.r().is_closing() {
-                        break 'process_events
+                        break 'process_events_
                     }
                 }
 
@@ -280,11 +274,10 @@ impl DedicatedWorkerGlobalScope {
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> JSBool {
+unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> u8 {
     // get global for context
     let global = global_object_for_js_context(cx);
-    let global_root = global.root();
-    let scope = match global_root.r() {
+    let scope = match global.r() {
         GlobalRef::Worker(w) => DedicatedWorkerGlobalScopeCast::to_ref(w).unwrap(),
         _ => panic!("global for worker is not a DedicatedWorkerGlobalScope")
     };
@@ -302,7 +295,7 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> JSBool {
     }
 
     // A false response causes the script to terminate
-    !scope.is_closing() as JSBool
+    !scope.is_closing() as u8
 }
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
@@ -425,7 +418,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
 impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        if self.get_closing() {
+        if self.is_closing() {
             return Ok(());
         }
 

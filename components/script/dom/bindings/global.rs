@@ -198,7 +198,7 @@ impl GlobalField {
 
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
+pub fn global_object_for_js_global(global: *mut JSObject) -> GlobalRoot {
     unsafe {
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
@@ -218,7 +218,7 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
 
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
+pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         global_object_for_js_global(global)
@@ -227,7 +227,7 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
 
 /// Returns the global object for the given JSContext
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_context(cx: *mut JSContext) -> GlobalUnrooted {
+pub fn global_object_for_js_context(cx: *mut JSContext) -> GlobalRoot {
     unsafe {
         let rt = JS_GetRuntime(cx);
         let global = JS_GetRuntimePrivate(rt) as *mut JSObject;
