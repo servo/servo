@@ -130,7 +130,7 @@ dependencies = [
 [[package]]
 name = "clipboard"
 version = "0.0.1"
-source = "git+https://github.com/aweinstock314/rust-clipboard#d271be958151cbc90d4cea670f028afe05e75cbe"
+source = "git+https://github.com/aweinstock314/rust-clipboard#67ec94ac27b28ff4ed3a4dde212f57e302f7cc35"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1525,15 +1525,6 @@ dependencies = [
 name = "winapi-build"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "x11"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "x11"
