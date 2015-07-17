@@ -16,7 +16,9 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::CharacterDataCast;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::DocumentDerived;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
@@ -25,6 +27,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextA
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
+use dom::bindings::codegen::InheritTypes::TextCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
@@ -34,6 +37,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
+use dom::characterdata::CharacterDataHelpers;
 use dom::create::create_element;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
@@ -1449,7 +1453,7 @@ impl<'a> ElementMethods for &'a Element {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                Ok(matches(selectors, &self, &mut None))
+                Ok(matches(selectors, &Root::from_ref(self), None))
             }
         }
     }
@@ -1461,9 +1465,9 @@ impl<'a> ElementMethods for &'a Element {
             Ok(ref selectors) => {
                 let root = NodeCast::from_ref(self);
                 for element in root.inclusive_ancestors() {
-                    if let Some(element) = ElementCast::to_ref(element.r()) {
-                        if matches(selectors, &element, &mut None) {
-                            return Ok(Some(Root::from_ref(element)));
+                    if let Some(element) = ElementCast::to_root(element) {
+                        if matches(selectors, &element, None) {
+                            return Ok(Some(element));
                         }
                     }
                 }
@@ -1615,16 +1619,44 @@ impl<'a> VirtualMethods for &'a Element {
     }
 }
 
-impl<'a> ::selectors::Element for &'a Element {
-    type Node = &'a Node;
+impl<'a> ::selectors::Element for Root<Element> {
+    fn parent_element(&self) -> Option<Root<Element>> {
+        NodeCast::from_ref(&**self).GetParentElement()
+    }
 
-    fn as_node(&self) -> &'a Node {
-        NodeCast::from_ref(*self)
+    fn first_child_element(&self) -> Option<Root<Element>> {
+        self.node.child_elements().next()
+    }
+
+    fn last_child_element(&self) -> Option<Root<Element>> {
+        self.node.rev_children().filter_map(ElementCast::to_root).next()
+    }
+
+    fn prev_sibling_element(&self) -> Option<Root<Element>> {
+        self.node.preceding_siblings().filter_map(ElementCast::to_root).next()
+    }
+
+    fn next_sibling_element(&self) -> Option<Root<Element>> {
+        self.node.following_siblings().filter_map(ElementCast::to_root).next()
+    }
+
+    fn is_root(&self) -> bool {
+        match self.node.GetParentNode() {
+            None => false,
+            Some(node) => node.is_document(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.node.children().all(|node| !node.is_element() && match TextCast::to_ref(&*node) {
+            None => true,
+            Some(text) => CharacterDataCast::from_ref(text).data().is_empty()
+        })
     }
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
@@ -1647,20 +1679,20 @@ impl<'a> ::selectors::Element for &'a Element {
     }
 
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        ElementHelpers::local_name(*self)
+        ElementHelpers::local_name(&**self)
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
         self.namespace()
     }
     fn get_hover_state(&self) -> bool {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_hover_state()
     }
     fn get_focus_state(&self) -> bool {
         // TODO: Also check whether the top-level browsing context has the system focus,
         // and whether this element is a browsing context container.
         // https://html.spec.whatwg.org/multipage/#selector-focus
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_focus_state()
     }
     fn get_id(&self) -> Option<Atom> {
@@ -1672,29 +1704,29 @@ impl<'a> ::selectors::Element for &'a Element {
         })
     }
     fn get_disabled_state(&self) -> bool {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_disabled_state()
     }
     fn get_enabled_state(&self) -> bool {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_enabled_state()
     }
     fn get_checked_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(*self);
+        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(&**self);
         match input_element {
             Some(input) => input.Checked(),
             None => false,
         }
     }
     fn get_indeterminate_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(*self);
+        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(&**self);
         match input_element {
             Some(input) => input.get_indeterminate_state(),
             None => false,
         }
     }
     fn has_class(&self, name: &Atom) -> bool {
-        AttributeHandlers::has_class(*self, name)
+        AttributeHandlers::has_class(&**self, name)
     }
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
@@ -1708,7 +1740,7 @@ impl<'a> ::selectors::Element for &'a Element {
         }
     }
     fn has_servo_nonzero_border(&self) -> bool {
-        let table_element: Option<&HTMLTableElement> = HTMLTableElementCast::to_ref(*self);
+        let table_element: Option<&HTMLTableElement> = HTMLTableElementCast::to_ref(&**self);
         match table_element {
             None => false,
             Some(this) => {

@@ -413,13 +413,14 @@ impl<'a> Iterator for QuerySelectorIterator {
         let selectors = &self.selectors;
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
-        self.iterator.find(|node| {
-            if let Some(element) = ElementCast::to_ref(node.r()) {
-                matches(selectors, &element, &mut None)
-            } else {
-                false
+        self.iterator.by_ref().filter_map(|node| {
+            if let Some(element) = ElementCast::to_root(node) {
+                if matches(selectors, &element, None) {
+                    return Some(NodeCast::from_root(element))
+                }
             }
-        })
+            None
+        }).next()
     }
 }
 
@@ -891,7 +892,7 @@ impl<'a> NodeHelpers for &'a Node {
                 let root = self.ancestors().last();
                 let root = root.r().unwrap_or(self.clone());
                 Ok(root.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
-                    matches(selectors, &element.r(), &mut None)
+                    matches(selectors, element, None)
                 }))
             }
         }
@@ -2576,51 +2577,6 @@ impl<'a> VirtualMethods for &'a Node {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let eventtarget: &&EventTarget = EventTargetCast::from_borrowed_ref(self);
         Some(eventtarget as &VirtualMethods)
-    }
-}
-
-impl<'a> ::selectors::Node for &'a Node {
-    type Element = &'a Element;
-
-    fn parent_node(&self) -> Option<&'a Node> {
-        (*self).parent_node.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn first_child(&self) -> Option<&'a Node> {
-        (*self).first_child.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn last_child(&self) -> Option<&'a Node> {
-        (*self).last_child.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn prev_sibling(&self) -> Option<&'a Node> {
-        (*self).prev_sibling.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn next_sibling(&self) -> Option<&'a Node> {
-        (*self).next_sibling.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn is_document(&self) -> bool {
-        DocumentDerived::is_document(*self)
-    }
-
-    fn as_element(&self) -> Option<Self::Element> {
-        ElementCast::to_ref(*self)
-    }
-
-    fn is_element_or_non_empty_text(&self) -> bool {
-        if self.is_text() {
-            self.GetTextContent().map_or(false, |s| !s.is_empty())
-        } else {
-            self.is_element()
-        }
     }
 }
 

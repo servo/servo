@@ -67,7 +67,6 @@ use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
-use selectors::Node as SelectorsNode;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::UnsignedIntegerAttribute;
@@ -144,12 +143,6 @@ impl<'ln> LayoutNode<'ln> {
         LayoutTreeIterator::new(self)
     }
 
-    fn last_child(self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.get_jsmanaged().last_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
     /// Returns an iterator over this node's children.
     pub fn children(self) -> LayoutNodeChildrenIterator<'ln> {
         LayoutNodeChildrenIterator {
@@ -209,10 +202,10 @@ impl<'ln> LayoutNode<'ln> {
     pub fn debug_id(self) -> usize {
         self.opaque().to_untrusted_node_address().0 as usize
     }
-}
 
-impl<'ln> ::selectors::Node for LayoutNode<'ln> {
-    type Element = LayoutElement<'ln>;
+    pub fn as_element(&self) -> Option<LayoutElement<'ln>> {
+        as_element(self.node)
+    }
 
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
@@ -241,34 +234,6 @@ impl<'ln> ::selectors::Node for LayoutNode<'ln> {
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    /// If this is an element, accesses the element data.
-    #[inline]
-    fn as_element(&self) -> Option<Self::Element> {
-        ElementCast::to_layout_js(&self.node).map(|element| {
-            LayoutElement {
-                element: element,
-                chain: self.chain,
-            }
-        })
-    }
-
-    fn is_document(&self) -> bool {
-        match self.type_id() {
-            NodeTypeId::Document(..) => true,
-            _ => false
-        }
-    }
-
-    fn is_element_or_non_empty_text(&self) -> bool {
-        if let Some(text) = TextCast::to_layout_js(&self.node) {
-            unsafe {
-                !CharacterDataCast::from_layout_js(&text).data_for_layout().is_empty()
-            }
-        } else {
-            ElementCast::to_layout_js(&self.node).is_some()
         }
     }
 }
@@ -387,17 +352,77 @@ impl<'le> LayoutElement<'le> {
             &*self.element.style_attribute()
         }
     }
-}
 
-impl<'le> ::selectors::Element for LayoutElement<'le> {
-    type Node = LayoutNode<'le>;
-
-    #[inline]
-    fn as_node(&self) -> LayoutNode<'le> {
+    pub fn as_node(&self) -> LayoutNode<'le> {
         LayoutNode {
             node: NodeCast::from_layout_js(&self.element),
             chain: PhantomData,
         }
+    }
+}
+
+fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
+    ElementCast::to_layout_js(&node).map(|element| {
+        LayoutElement {
+            element: element,
+            chain: PhantomData,
+        }
+    })
+}
+
+
+impl<'le> ::selectors::Element for LayoutElement<'le> {
+    fn parent_element(&self) -> Option<LayoutElement<'le>> {
+        unsafe {
+            NodeCast::from_layout_js(&self.element).parent_node_ref().and_then(as_element)
+        }
+    }
+
+    fn first_child_element(&self) -> Option<LayoutElement<'le>> {
+        self.as_node().children().filter_map(|n| n.as_element()).next()
+    }
+
+    fn last_child_element(&self) -> Option<LayoutElement<'le>> {
+        self.as_node().rev_children().filter_map(|n| n.as_element()).next()
+    }
+
+    fn prev_sibling_element(&self) -> Option<LayoutElement<'le>> {
+        let mut node = self.as_node();
+        while let Some(sibling) = node.prev_sibling() {
+            if let Some(element) = sibling.as_element() {
+                return Some(element)
+            }
+            node = sibling;
+        }
+        None
+    }
+
+    fn next_sibling_element(&self) -> Option<LayoutElement<'le>> {
+        let mut node = self.as_node();
+        while let Some(sibling) = node.next_sibling() {
+            if let Some(element) = sibling.as_element() {
+                return Some(element)
+            }
+            node = sibling;
+        }
+        None
+    }
+
+    fn is_root(&self) -> bool {
+        match self.as_node().parent_node() {
+            None => false,
+            Some(node) => node.type_id() == NodeTypeId::Document,
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.as_node().children().all(|node| match node.type_id() {
+            NodeTypeId::Element(..) => false,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
+                CharacterDataCast::to_layout_js(&node.node).unwrap().data_for_layout().is_empty()
+            },
+            _ => true
+        })
     }
 
     #[inline]
