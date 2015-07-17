@@ -28,7 +28,7 @@ git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 features = ["texture_surface"]
 
 [dependencies]
-log = "*"
+log = "0.3"
 cssparser = "0.3.1"
 num = "0.1.24"
 gleam = "0.1"

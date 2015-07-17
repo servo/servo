@@ -57,16 +57,16 @@ git = "https://github.com/aweinstock314/rust-clipboard"
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies]
-log = "*"
+log = "0.3"
 num = "0.1.24"
 url = "0.2.36"
 time = "0.1.17"
-libc = "*"
+libc = "0.1"
 gleam = "0.1"
 euclid = "0.1"
 
 [target.x86_64-apple-darwin.dependencies]
-core-graphics = "*"
+core-graphics = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"

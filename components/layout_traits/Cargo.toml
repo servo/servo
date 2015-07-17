@@ -31,6 +31,6 @@ git = "https://github.com/pcwalton/ipc-channel"
 [dependencies]
 url = "0.2.36"
 euclid = "0.1"
-serde = "*"
-serde_macros = "*"
+serde = "0.4"
+serde_macros = "0.4"
 
