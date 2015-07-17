@@ -14,8 +14,8 @@ path = "../profile_traits"
 path = "../util"
 
 [dependencies]
-log = "*"
-libc = "*"
+log = "0.3"
+libc = "0.1"
 regex = "0.1.14"
 time = "0.1.12"
 
