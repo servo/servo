@@ -17,7 +17,6 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
-use layers;
 use canvas_traits::CanvasMsg;
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
@@ -508,7 +507,7 @@ impl WorkerThread {
             DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
         } else {
             let gl_rasterization_context =
-                layer_buffer.native_surface.gl_rasterization_context(native_display!(self), size);
+                layer_buffer.native_surface.gl_rasterization_context(native_display!(self));
             match gl_rasterization_context {
                 Some(gl_rasterization_context) => {
                     gl_rasterization_context.make_current();
@@ -609,25 +608,23 @@ impl WorkerThread {
                            tile: &mut BufferRequest,
                            scale: f32)
                            -> Box<LayerBuffer> {
-        tile.layer_buffer.take().unwrap_or_else(|| {
-            // Create an empty native surface. We mark it as not leaking
-            // in case it dies in transit to the compositor task.
-            let width = tile.screen_rect.size.width;
-            let height = tile.screen_rect.size.height;
-            let mut native_surface: NativeSurface =
-                layers::platform::surface::NativeSurface::new(native_display!(self),
-                                                              Size2D::new(width as i32, height as i32));
-            native_surface.mark_wont_leak();
+        // Create an empty native surface. We mark it as not leaking
+        // in case it dies in transit to the compositor task.
+        let width = tile.screen_rect.size.width;
+        let height = tile.screen_rect.size.height;
+        let mut native_surface = tile.native_surface.take().unwrap_or_else(|| {
+            NativeSurface::new(native_display!(self), Size2D::new(width as i32, height as i32))
+        });
+        native_surface.mark_wont_leak();
 
-            box LayerBuffer {
-                native_surface: native_surface,
-                rect: tile.page_rect,
-                screen_pos: tile.screen_rect,
-                resolution: scale,
-                painted_with_cpu: !opts::get().gpu_painting,
-                content_age: tile.content_age,
-            }
-        })
+        box LayerBuffer {
+            native_surface: native_surface,
+            rect: tile.page_rect,
+            screen_pos: tile.screen_rect,
+            resolution: scale,
+            painted_with_cpu: !opts::get().gpu_painting,
+            content_age: tile.content_age,
+        }
     }
 }
 
