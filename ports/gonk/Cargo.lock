@@ -113,10 +113,10 @@ dependencies = [
 [[package]]
 name = "clipboard"
 version = "0.0.1"
-source = "git+https://github.com/aweinstock314/rust-clipboard#61e33fb0337da4d09932f448f36bbc329ad96baa"
+source = "git+https://github.com/aweinstock314/rust-clipboard#68c2711a236cb76dce2dbf3fc7467d32072f592e"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1375,6 +1375,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "x11"
 version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "x11"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
