@@ -656,26 +656,9 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         self.node.flow_debug_id()
     }
 
-    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo != PseudoElementType::Normal {
-            return None
-        }
-
-        if self.has_before_pseudo() {
-            return Some(self.with_pseudo(PseudoElementType::Before(self.get_before_display())));
-        }
-
-        unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
     /// Returns an iterator over this node's children.
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
-        ThreadSafeLayoutNodeChildrenIterator {
-            current_node: self.first_child(),
-            parent_node: self.clone(),
-        }
+        ThreadSafeLayoutNodeChildrenIterator::new(*self)
     }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
@@ -959,6 +942,32 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
     current_node: Option<ThreadSafeLayoutNode<'a>>,
     parent_node: ThreadSafeLayoutNode<'a>,
+}
+
+impl<'a> ThreadSafeLayoutNodeChildrenIterator<'a> {
+    fn new(parent: ThreadSafeLayoutNode<'a>) -> ThreadSafeLayoutNodeChildrenIterator<'a> {
+        fn first_child<'a>(parent: ThreadSafeLayoutNode<'a>)
+                           -> Option<ThreadSafeLayoutNode<'a>> {
+            if parent.pseudo != PseudoElementType::Normal {
+                return None
+            }
+
+            if parent.has_before_pseudo() {
+                let pseudo = PseudoElementType::Before(parent.get_before_display());
+                return Some(parent.with_pseudo(pseudo));
+            }
+
+            unsafe {
+                parent.get_jsmanaged().first_child_ref()
+                      .map(|node| parent.new_with_this_lifetime(&node))
+            }
+        }
+
+        ThreadSafeLayoutNodeChildrenIterator {
+            current_node: first_child(parent),
+            parent_node: parent,
+        }
+    }
 }
 
 impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
