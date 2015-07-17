@@ -4,8 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-#![allow(unsafe_code)]
-
 use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;
@@ -15,8 +13,7 @@ use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use script::layout_interface::ReflowGoal;
 use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
-use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
-use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
+use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use selectors::bloom::BloomFilter;
 use selectors::Node;
@@ -118,6 +115,32 @@ fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
     debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
 }
 
+
+/// A top-down traversal.
+pub trait PreorderDomTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, node: LayoutNode);
+}
+
+/// A bottom-up traversal, with a optional in-order pass.
+pub trait PostorderDomTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, node: LayoutNode);
+}
+
+/// A bottom-up, parallelizable traversal.
+pub trait PostorderNodeMutTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
+
+    /// Returns true if this node should be pruned. If this returns true, we skip the operation
+    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
+    /// visited. The default implementation never prunes any nodes.
+    fn should_prune<'a>(&'a self, _node: &ThreadSafeLayoutNode<'a>) -> bool {
+        false
+    }
+}
+
 /// The recalc-style-for-node traversal, which styles each node and must run before
 /// layout computation. This computes the styles applied to each node.
 #[derive(Copy, Clone)]
@@ -127,6 +150,7 @@ pub struct RecalcStyleForNode<'a> {
 
 impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
     #[inline]
+    #[allow(unsafe_code)]
     fn process(&self, node: LayoutNode) {
         // Initialize layout data.
         //
@@ -219,6 +243,7 @@ pub struct ConstructFlows<'a> {
 
 impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
     #[inline]
+    #[allow(unsafe_code)]
     fn process(&self, node: LayoutNode) {
         // Construct flows for this node.
         {
