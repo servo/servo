@@ -476,7 +476,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 sender.send(result).unwrap();
             }
             ConstellationMsg::SetClipboardContents(s) => {
-                if let Some(ref ctx) = self.clipboard_ctx {
+                if let Some(ref mut ctx) = self.clipboard_ctx {
                     if let Err(e) = ctx.set_contents(s) {
                         debug!("Error setting clipboard contents ({})", e);
                     }

@@ -329,7 +329,6 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
             Key::C if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
-                    println!("get_selection_text(): {}", &text);
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
