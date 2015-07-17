@@ -4,8 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-#![allow(unsafe_code)]
-
 use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;
@@ -152,6 +150,7 @@ pub struct RecalcStyleForNode<'a> {
 
 impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
     #[inline]
+    #[allow(unsafe_code)]
     fn process(&self, node: LayoutNode) {
         // Initialize layout data.
         //
@@ -244,6 +243,7 @@ pub struct ConstructFlows<'a> {
 
 impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
     #[inline]
+    #[allow(unsafe_code)]
     fn process(&self, node: LayoutNode) {
         // Construct flows for this node.
         {
