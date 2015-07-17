@@ -36,7 +36,6 @@ use css::node_style::StyledNode;
 use incremental::RestyleDamage;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
-use traversal::PostorderNodeMutTraversal;
 
 use gfx::display_list::OpaqueNode;
 use script::dom::attr::AttrValue;
@@ -769,28 +768,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         self.node.mutate_layout_data()
-    }
-
-    /// Traverses the tree in postorder.
-    ///
-    /// TODO(pcwalton): Offer a parallel version with a compatible API.
-    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(&mut self, traversal: &mut T)
-                                  -> bool {
-        if traversal.should_prune(self) {
-            return true
-        }
-
-        let mut opt_kid = self.first_child();
-        while let Some(mut kid) = opt_kid {
-            if !kid.traverse_postorder_mut(traversal) {
-                return false
-            }
-            unsafe {
-                opt_kid = kid.next_sibling()
-            }
-        }
-
-        traversal.process(self)
     }
 
     pub fn is_ignorable_whitespace(&self) -> bool {
