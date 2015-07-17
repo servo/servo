@@ -670,15 +670,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
-    unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo.is_before() {
-            return self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-
-        self.get_jsmanaged().next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-    }
-
     /// Returns an iterator over this node's children.
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
         ThreadSafeLayoutNodeChildrenIterator {
@@ -975,34 +966,48 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<ThreadSafeLayoutNode<'a>> {
         let node = self.current_node.clone();
 
-        match node {
-            Some(ref node) => {
-                if node.pseudo.is_after() {
-                    return None
-                }
-
-                self.current_node = if self.parent_node.pseudo == PseudoElementType::Normal {
-                    self.current_node.clone().and_then(|node| {
-                        unsafe {
-                            node.next_sibling()
+        if let Some(ref node) = node {
+            self.current_node = match node.pseudo {
+                PseudoElementType::Before(_) => {
+                    match unsafe { self.parent_node.get_jsmanaged().first_child_ref() } {
+                        Some(first) => {
+                            Some(unsafe {
+                                self.parent_node.new_with_this_lifetime(&first)
+                            })
+                        },
+                        None => {
+                            if self.parent_node.has_after_pseudo() {
+                                let pseudo = PseudoElementType::After(
+                                    self.parent_node.get_after_display());
+                                Some(self.parent_node.with_pseudo(pseudo))
+                            } else {
+                                None
+                            }
                         }
-                    })
-                } else {
+                    }
+                },
+                PseudoElementType::Normal => {
+                    match unsafe { node.get_jsmanaged().next_sibling_ref() } {
+                        Some(next) => {
+                            Some(unsafe {
+                                self.parent_node.new_with_this_lifetime(&next)
+                            })
+                        },
+                        None => {
+                            if self.parent_node.has_after_pseudo() {
+                                let pseudo = PseudoElementType::After(
+                                    self.parent_node.get_after_display());
+                                Some(self.parent_node.with_pseudo(pseudo))
+                            } else {
+                                None
+                            }
+                        }
+                    }
+                },
+                PseudoElementType::After(_) => {
                     None
-                };
-            }
-            None => {
-                if self.parent_node.has_after_pseudo() {
-                    let pseudo_after_node = if self.parent_node.pseudo == PseudoElementType::Normal {
-                        let pseudo = PseudoElementType::After(self.parent_node.get_after_display());
-                        Some(self.parent_node.with_pseudo(pseudo))
-                    } else {
-                        None
-                    };
-                    self.current_node = pseudo_after_node;
-                    return self.current_node.clone()
-                }
-            }
+                },
+            };
         }
 
         node
