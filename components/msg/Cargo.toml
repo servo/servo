@@ -35,14 +35,14 @@ features = [ "serde_serialization" ]
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies]
-bitflags = "*"
+bitflags = "0.3"
 rustc-serialize = "0.3.4"
 euclid = "0.1"
-serde = "*"
-serde_macros = "*"
+serde = "0.4"
+serde_macros = "0.4"
 
 [target.x86_64-apple-darwin.dependencies]
-core-foundation = "*"
+core-foundation = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.io-surface]
 git = "https://github.com/servo/io-surface-rs"

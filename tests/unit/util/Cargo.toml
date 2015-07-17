@@ -16,6 +16,6 @@ path = "../../../components/util"
 path = "../../../components/plugins"
 
 [dependencies]
-libc = "*"
+libc = "0.1"
 euclid = "0.1"
 
