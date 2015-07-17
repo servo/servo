@@ -1296,6 +1296,11 @@ impl<'a> ElementMethods for &'a Element {
             rect.origin.x + rect.size.width)
     }
 
+    fn ClientTop(self) -> i32 {
+        let node = NodeCast::from_ref(self);
+        node.get_client_top()
+    }
+
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
     fn GetInnerHTML(self) -> Fallible<DOMString> {
         //XXX TODO: XML case

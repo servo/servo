@@ -95,6 +95,8 @@ pub trait LayoutRPC {
     fn content_box(&self) -> ContentBoxResponse;
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     fn content_boxes(&self) -> ContentBoxesResponse;
+    /// Requests the clientTop.
+    fn client_top(&self) -> ClientGeometryResponse;
     /// Requests the node containing the point of interest
     fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
     fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
@@ -102,6 +104,7 @@ pub trait LayoutRPC {
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
+pub struct ClientGeometryResponse(pub i32);
 pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 
@@ -120,6 +123,7 @@ pub enum ReflowQueryType {
     NoQuery,
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
+    ClientTopQuery(TrustedNodeAddress),
 }
 
 /// Information needed for a reflow.

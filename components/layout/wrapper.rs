@@ -56,6 +56,7 @@ use script::dom::node::{Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
 use script::dom::text::Text;
+use script::layout_interface::TrustedNodeAddress;
 use smallvec::VecLike;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use util::str::is_whitespace;
@@ -612,6 +613,20 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
     pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
+        ThreadSafeLayoutNode {
+            node: node.clone(),
+            pseudo: PseudoElementType::Normal,
+        }
+    }
+
+    /// Creates a new `ThreadSafeLayoutNode` from the given `TrustedNodeAddress`.
+    pub fn new_from_trusted_address<'a>(node: TrustedNodeAddress) -> ThreadSafeLayoutNode<'a> {
+        let mut node: LayoutJS<Node> = unsafe {
+            LayoutJS::from_trusted_node_address(node)
+        };
+        let node: &mut LayoutNode = unsafe {
+            mem::transmute(&mut node)
+        };
         ThreadSafeLayoutNode {
             node: node.clone(),
             pseudo: PseudoElementType::Normal,

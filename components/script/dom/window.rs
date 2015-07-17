@@ -30,7 +30,7 @@ use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
-use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ScriptReflow};
+use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ClientGeometryResponse, ScriptReflow};
 use page::Page;
 use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
 use script_task::ScriptMsg;
@@ -534,6 +534,7 @@ pub trait WindowHelpers {
     fn layout(&self) -> &LayoutRPC;
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au>;
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    fn client_top_query(self, client_top_request: TrustedNodeAddress) -> i32;
     fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn handle_resize_inactive_msg(self, new_size: WindowSizeData);
     fn set_fragment_name(self, fragment: Option<String>);
@@ -762,6 +763,14 @@ impl<'a> WindowHelpers for &'a Window {
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
+    }
+
+    fn client_top_query(self, client_top_request: TrustedNodeAddress) -> i32 {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::ClientTopQuery(client_top_request),
+                    ReflowReason::Query);
+        let ClientGeometryResponse(value) = self.layout_rpc.client_top();
+        value
     }
 
     fn handle_reflow_complete_msg(self, reflow_id: u32) {
@@ -1072,6 +1081,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::NoQuery => "\tNoQuery",
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+        ReflowQueryType::ClientTopQuery(_n) => "\tClientTopQuery",
     });
 
     debug_msg.push_str(match *reason {

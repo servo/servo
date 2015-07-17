@@ -21,7 +21,7 @@ use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
 use sequential;
-use wrapper::LayoutNode;
+use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
@@ -52,7 +52,7 @@ use net_traits::{load_bytes_iter, PendingAsyncLoad};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
-use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse};
+use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse, ClientGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
@@ -125,6 +125,9 @@ pub struct LayoutTaskData {
 
     /// A queued response for the content boxes of a node.
     pub content_boxes_response: Vec<Rect<Au>>,
+
+    /// A queued response for the client {top, left, width, height} of a node.
+    pub client_geometry_response: i32,
 
     /// The list of currently-running animations.
     pub running_animations: Vec<Animation>,
@@ -358,6 +361,7 @@ impl LayoutTask {
                     generation: 0,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
+                    client_geometry_response: 0,
                     running_animations: Vec::new(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
@@ -843,6 +847,15 @@ impl LayoutTask {
         rw_data.content_boxes_response = iterator.rects;
     }
 
+    fn process_client_top_request<'a>(&'a self,
+                                      requested_node: TrustedNodeAddress,
+                                      rw_data: &mut RWGuard<'a>) {
+        let node = ThreadSafeLayoutNode::new_from_trusted_address(requested_node);
+        let style = node.style();
+        let border_style_struct = style.get_border();
+        rw_data.client_geometry_response = border_style_struct.border_top_width.to_px();
+    }
+
     fn compute_abs_pos_and_build_display_list<'a>(&'a self,
                                                   data: &Reflow,
                                                   layout_root: &mut FlowRef,
@@ -1038,6 +1051,9 @@ impl LayoutTask {
             }
             ReflowQueryType::ContentBoxesQuery(node) => {
                 self.process_content_boxes_request(node, &mut root_flow, &mut rw_data)
+            }
+            ReflowQueryType::ClientTopQuery(node) => {
+                self.process_client_top_request(node, &mut rw_data)
             }
             ReflowQueryType::NoQuery => {}
         }
@@ -1276,6 +1292,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
+    }
+
+    fn client_top(&self) -> ClientGeometryResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        ClientGeometryResponse(rw_data.client_geometry_response)
     }
 
     /// Requests the node containing the point of interest.
