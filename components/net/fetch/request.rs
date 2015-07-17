@@ -12,8 +12,11 @@ use hyper::header::{QualityItem, qitem, q};
 use hyper::status::StatusCode;
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
 use fetch::response::{Response, ResponseType};
+use net_traits::AsyncResponseListener;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
+
+pub type FetchResult = Result<Option<Response>, Response>;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]
@@ -34,11 +37,11 @@ pub enum ContextFrameType {
     ContextNone
 }
 
-/// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
-pub enum Referer {
-    RefererNone,
+/// A [referrer](https://fetch.spec.whatwg.org/#concept-request-referrer)
+pub enum Referrer {
+    ReferrerNone,
     Client,
-    RefererUrl(Url)
+    ReferrerUrl(Url)
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
@@ -102,7 +105,7 @@ pub struct Request {
     pub origin: Option<Url>,
     pub force_origin_header: bool,
     pub same_origin_data: bool,
-    pub referer: Referer,
+    pub referrer: Referrer,
     pub authentication: bool,
     pub sync: bool,
     pub mode: RequestMode,
@@ -131,7 +134,7 @@ impl Request {
             origin: None,
             force_origin_header: false,
             same_origin_data: false,
-            referer: Referer::Client,
+            referrer: Referrer::Client,
             authentication: false,
             sync: false,
             mode: RequestMode::NoCORS,
@@ -146,7 +149,7 @@ impl Request {
     }
 
     /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-    pub fn fetch(&mut self, cors_flag: bool) -> Response {
+    pub fn fetch(&mut self, cors_flag: bool, listener: Option<Box<AsyncResponseListener + Send>>) -> FetchResult {
         // Step 1
         if self.context != Context::Fetch && !self.headers.has::<Accept>() {
             // Substep 1
@@ -189,17 +192,19 @@ impl Request {
         // TODO: Figure out what a Priority object is
         // Step 3
         // Step 4
-        self.main_fetch(cors_flag)
+        self.main_fetch(cors_flag, listener)
     }
 
     /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-    pub fn main_fetch(&mut self, _cors_flag: bool) -> Response {
+    pub fn main_fetch(&mut self, _cors_flag: bool,
+                      listener: Option<Box<AsyncResponseListener + Send>>) -> FetchResult {
         // TODO: Implement main fetch spec
-        Response::network_error()
+        Ok(None)
     }
 
     /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-    pub fn basic_fetch(&mut self) -> Response {
+    pub fn basic_fetch(&mut self,
+                       listener: Option<Box<AsyncResponseListener + Send>>) -> FetchResult {
         match &*self.url.scheme {
             "about" => match self.url.non_relative_scheme_data() {
                 Some(s) if &*s == "blank" => {
@@ -207,25 +212,26 @@ impl Request {
                     response.headers.set(ContentType(Mime(
                         TopLevel::Text, SubLevel::Html,
                         vec![(Attr::Charset, Value::Utf8)])));
-                    response
+                    Ok(Some(response))
                 },
-                _ => Response::network_error()
+                _ => Err(Response::network_error())
             },
             "http" | "https" => {
-                self.http_fetch(false, false, false)
+                self.http_fetch(false, false, false, listener)
             },
             "blob" | "data" | "file" | "ftp" => {
                 // XXXManishearth handle these
                 panic!("Unimplemented scheme for Fetch")
             },
 
-            _ => Response::network_error()
+            _ => Err(Response::network_error())
         }
     }
 
     /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
     pub fn http_fetch(&mut self, cors_flag: bool, cors_preflight_flag: bool,
-                      authentication_fetch_flag: bool) -> Response {
+                      authentication_fetch_flag: bool,
+                      listener: Option<Box<AsyncResponseListener + Send>>) -> FetchResult {
         // Step 1
         let mut response: Option<Response> = None;
         // Step 2
@@ -233,9 +239,10 @@ impl Request {
             // TODO: Substep 1 (handle fetch unimplemented)
             // Substep 2
             if let Some(ref res) = response {
-                if (res.response_type == ResponseType::Opaque && self.mode != RequestMode::NoCORS) ||
-                   res.response_type == ResponseType::Error {
-                    return Response::network_error();
+                if (res.response_type == ResponseType::Opaque
+                    && self.mode != RequestMode::NoCORS)
+                    || res.response_type == ResponseType::Error {
+                    return Err(Response::network_error());
                 }
             }
         }
@@ -266,10 +273,10 @@ impl Request {
                 }
                 if method_mismatch || header_mismatch {
                     let preflight_result = self.preflight_fetch();
-                    if preflight_result.response_type == ResponseType::Error {
-                        return Response::network_error();
+                    if preflight_result.is_err() {
+                        return preflight_result;
                     }
-                    response = Some(preflight_result);
+                    response = preflight_result.ok().unwrap();
                 }
             }
             // Substep 2
@@ -285,12 +292,19 @@ impl Request {
                 self.cache_mode = CacheMode::NoStore;
             }
             // Substep 5
-            let fetch_result = self.http_network_or_cache_fetch(credentials, authentication_fetch_flag);
+            // TODO: We may need to do this asynchronously, create a new listener for that
+            let fetch_result = self.http_network_or_cache_fetch(credentials,
+                                authentication_fetch_flag, None);
             // Substep 6
-            if cors_flag && self.cors_check(&fetch_result).is_err() {
-                return Response::network_error();
+            if let Ok(Some(result)) = fetch_result {
+                if cors_flag && self.cors_check(&result).is_err() {
+                    return Err(Response::network_error());
+                }
+                response = Some(result);
+            } else {
+                // Error response
+                return fetch_result;
             }
-            response = Some(fetch_result);
         }
         // Step 4
         let mut response = response.unwrap();
@@ -307,14 +321,14 @@ impl Request {
             StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
                 // Step 1
                 if self.redirect_mode == RedirectMode::Error {
-                    return Response::network_error();
+                    return Err(Response::network_error());
                 }
                 // Step 2-4
                 if !response.headers.has::<Location>() {
-                    return response;
+                    return Ok(Some(response));
                 }
                 let location = match response.headers.get::<Location>() {
-                    None => return Response::network_error(),
+                    None => return Err(Response::network_error()),
                     Some(location) => location,
                 };
                 // Step 5
@@ -322,11 +336,11 @@ impl Request {
                 // Step 6
                 let location_url = match location_url {
                     Ok(url) => url,
-                    Err(_) => return Response::network_error()
+                    Err(_) => return Err(Response::network_error())
                 };
                 // Step 7
                 if self.redirect_count == 20 {
-                    return Response::network_error();
+                    return Err(Response::network_error());
                 }
                 // Step 8
                 self.redirect_count += 1;
@@ -342,25 +356,26 @@ impl Request {
                     // Substep 2
                     if cors_flag && (!location_url.username().unwrap_or("").is_empty() ||
                                       location_url.password().is_some()) {
-                        return Response::network_error();
+                        return Err(Response::network_error());
                     }
                     // Substep 3
                     if response.status.unwrap() == StatusCode::MovedPermanently ||
                        response.status.unwrap() == StatusCode::SeeOther ||
-                       (response.status.unwrap() == StatusCode::Found && self.method == Method::Post) {
+                       (response.status.unwrap() == StatusCode::Found
+                        && self.method == Method::Post) {
                         self.method = Method::Get;
                     }
                     // Substep 4
                     self.url = location_url;
                     // Substep 5
-                    return self.fetch(cors_flag);
+                    return self.main_fetch(cors_flag, listener);
                 }
             }
             // Code 401
             StatusCode::Unauthorized => {
                 // Step 1
                 if !self.authentication || cors_flag {
-                    return response;
+                    return Ok(Some(response));
                 }
                 // Step 2
                 // TODO: Spec says requires testing
@@ -368,7 +383,7 @@ impl Request {
                 if !self.use_url_credentials || authentication_fetch_flag {
                     // TODO: Prompt the user for username and password
                 }
-                return self.http_fetch(cors_flag, cors_preflight_flag, true);
+                return self.http_fetch(cors_flag, cors_preflight_flag, true, listener);
             }
             // Code 407
             StatusCode::ProxyAuthenticationRequired => {
@@ -377,7 +392,8 @@ impl Request {
                 // Step 2
                 // TODO: Prompt the user for proxy authentication credentials
                 // Step 3
-                return self.http_fetch(cors_flag, cors_preflight_flag, authentication_fetch_flag);
+                return self.http_fetch(cors_flag, cors_preflight_flag,
+                                       authentication_fetch_flag, listener);
             }
             _ => { }
         }
@@ -386,21 +402,23 @@ impl Request {
             // TODO: Create authentication entry for this request
         }
         // Step 6
-        response
+        Ok(Some(response))
     }
 
     /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
     pub fn http_network_or_cache_fetch(&mut self,
                                        _credentials_flag: bool,
-                                       _authentication_fetch_flag: bool) -> Response {
+                                       _authentication_fetch_flag: bool,
+                                       listener: Option<Box<AsyncResponseListener + Send>>)
+                                       -> FetchResult {
         // TODO: Implement HTTP network or cache fetch spec
-        Response::network_error()
+        Err(Response::network_error())
     }
 
     /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-    pub fn preflight_fetch(&mut self) -> Response {
+    pub fn preflight_fetch(&mut self) -> FetchResult {
         // TODO: Implement preflight fetch spec
-        Response::network_error()
+        Err(Response::network_error())
     }
 
     /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
