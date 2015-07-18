@@ -218,10 +218,13 @@ class MachCommands(CommandBase):
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
         except urllib2.URLError, e:
-            print("Unable to download chromium HSTS preload list, are you connected to the internet?")
+            print("Unable to download chromium HSTS preload list; are you connected to the internet?")
             sys.exit(1)
 
         content_decoded = base64.b64decode(content_base64)
+
+        # The chromium "json" has single line comments in it which, of course,
+        # are non-standard/non-valid json. Simply strip them out before parsing
         content_json = re.sub(r'//.*$', '', content_decoded, flags=re.MULTILINE)
 
         try:
