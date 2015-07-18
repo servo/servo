@@ -17,11 +17,11 @@ extern crate url;
 extern crate util;
 extern crate rustc_serialize;
 extern crate uuid;
+extern crate ipc_channel;
 
 use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId, NavigationDirection,
                              WebDriverCommandMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use std::sync::mpsc::{channel, Receiver};
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
 
 use url::Url;
@@ -35,6 +35,7 @@ use webdriver::server::{self, WebDriverHandler, Session};
 use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
 use util::task::spawn_named;
 use uuid::Uuid;
+use ipc_channel::ipc::{self, IpcReceiver};
 
 use std::borrow::ToOwned;
 use rustc_serialize::json::{Json, ToJson};
@@ -133,7 +134,7 @@ impl Handler {
     }
 
     fn get_pipeline(&self, frame_id: Option<FrameId>) -> Option<PipelineId> {
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         const_chan.send(ConstellationMsg::GetPipeline(frame_id, sender)).unwrap();
 
@@ -168,7 +169,7 @@ impl Handler {
 
         let pipeline_id = try!(self.get_root_pipeline());
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
 
         let load_data = LoadData::new(url);
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -205,7 +206,7 @@ impl Handler {
     fn handle_get_title(&self) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.get_root_pipeline());
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
                                                          WebDriverScriptCommand::GetTitle(sender));
@@ -236,7 +237,7 @@ impl Handler {
                                            "Unsupported locator strategy"))
         }
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
@@ -276,7 +277,7 @@ impl Handler {
                                            "Selecting frame by id not supported"));
         }
         let pipeline_id = try!(self.get_frame_pipeline());
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
         {
             let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -286,7 +287,7 @@ impl Handler {
 
         let frame = match reciever.recv().unwrap() {
             Ok(Some((pipeline_id, subpage_id))) => {
-                let (sender, reciever) = channel();
+                let (sender, reciever) = ipc::channel().unwrap();
                 let ConstellationChan(ref const_chan) = self.constellation_chan;
                 const_chan.send(ConstellationMsg::GetFrame(pipeline_id, subpage_id, sender)).unwrap();
                 reciever.recv().unwrap()
@@ -311,7 +312,7 @@ impl Handler {
                                            "Unsupported locator strategy"))
         }
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
@@ -330,7 +331,7 @@ impl Handler {
     fn handle_get_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.get_frame_pipeline());
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
@@ -345,7 +346,7 @@ impl Handler {
     fn handle_get_active_element(&self) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.get_frame_pipeline());
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
@@ -357,7 +358,7 @@ impl Handler {
     fn handle_get_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.get_frame_pipeline());
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
@@ -382,7 +383,8 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
-    fn handle_execute_script(&self, parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
+    fn handle_execute_script(&self, parameters: &JavascriptCommandParameters)
+                             -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
         let args_string = "";
 
@@ -391,7 +393,7 @@ impl Handler {
         // it with a vec of arguments.
         let script = format!("(function() {{ {} }})({})", func_body, args_string);
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteScript(script, sender);
         self.execute_script(command, reciever)
     }
@@ -405,14 +407,15 @@ impl Handler {
             "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
             self.script_timeout, func_body, args_string);
 
-        let (sender, reciever) = channel();
+        let (sender, reciever) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
         self.execute_script(command, reciever)
     }
 
     fn execute_script(&self,
                       command: WebDriverScriptCommand,
-                      reciever: Receiver<WebDriverJSResult>) -> WebDriverResult<WebDriverResponse> {
+                      reciever: IpcReceiver<WebDriverJSResult>)
+                      -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.get_frame_pipeline());
 
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -435,7 +438,7 @@ impl Handler {
         let iterations = 30_000 / interval;
 
         for _ in 0..iterations {
-            let (sender, reciever) = channel();
+            let (sender, reciever) = ipc::channel().unwrap();
             let ConstellationChan(ref const_chan) = self.constellation_chan;
             let cmd_msg = WebDriverCommandMsg::TakeScreenshot(pipeline_id, sender);
             const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
