@@ -281,7 +281,7 @@ impl XMLHttpRequest {
             sender: action_sender,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.invoke_with_listener(message.to().unwrap());
+            listener.notify(message.to().unwrap());
         });
         resource_task.send(Load(load_data, LoadConsumer::Listener(response_target))).unwrap();
     }

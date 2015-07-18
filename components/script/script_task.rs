@@ -1619,7 +1619,7 @@ impl ScriptTask {
             script_chan: script_chan.clone(),
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.invoke_with_listener(message.to().unwrap());
+            listener.notify(message.to().unwrap());
         });
         let response_target = AsyncResponseTarget {
             sender: action_sender,

@@ -340,7 +340,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                             sender: action_sender,
                         };
                         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                            listener.invoke_with_listener(message.to().unwrap());
+                            listener.notify(message.to().unwrap());
                         });
 
                         doc.r().load_async(LoadType::Script(url), response_target);
