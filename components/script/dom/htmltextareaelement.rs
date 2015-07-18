@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
+use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -23,8 +23,8 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
-use dom::node::{document_from_node, window_from_node};
+use dom::node::{ChildrenMutation, DisabledStateHelpers, Node, NodeDamage};
+use dom::node::{NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
@@ -330,12 +330,11 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
         }
     }
 
-    fn child_inserted(&self, child: &Node) {
-        if let Some(s) = self.super_type() {
-            s.child_inserted(child);
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        if let Some(ref s) = self.super_type() {
+            s.children_changed(mutation);
         }
-
-        if child.is_text() && !self.value_changed.get() {
+        if !self.value_changed.get() {
             self.reset();
         }
     }

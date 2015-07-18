@@ -67,6 +67,7 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
+use std::slice::ref_slice;
 use std::sync::Arc;
 use uuid;
 use string_cache::{Atom, Namespace, QualName};
@@ -282,42 +283,11 @@ pub enum NodeTypeId {
 }
 
 trait PrivateNodeHelpers {
-    fn node_inserted(self);
-    fn node_removed(self, parent_in_doc: bool);
     fn add_child(self, new_child: &Node, before: Option<&Node>);
     fn remove_child(self, child: &Node);
 }
 
 impl<'a> PrivateNodeHelpers for &'a Node {
-    // https://dom.spec.whatwg.org/#node-is-inserted
-    fn node_inserted(self) {
-        assert!(self.parent_node.get().is_some());
-        let document = document_from_node(self);
-        let is_in_doc = self.is_in_doc();
-
-        for node in self.traverse_preorder() {
-            vtable_for(&node.r()).bind_to_tree(is_in_doc);
-        }
-
-        let parent = self.parent_node.get().map(Root::from_rooted);
-        parent.r().map(|parent| vtable_for(&parent).child_inserted(self));
-        document.r().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
-    }
-
-    // https://dom.spec.whatwg.org/#node-is-removed
-    fn node_removed(self, parent_in_doc: bool) {
-        assert!(self.parent_node.get().is_none());
-        for node in self.traverse_preorder() {
-            node.r().set_flag(IS_IN_DOC, false);
-            vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
-        }
-        self.layout_data.dispose(self);
-    }
-
-    //
-    // Pointer stitching
-    //
-
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
@@ -358,6 +328,14 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         }
 
         new_child.parent_node.set(Some(JS::from_ref(self)));
+
+        let parent_in_doc = self.is_in_doc();
+        for node in new_child.traverse_preorder() {
+            node.set_flag(IS_IN_DOC, parent_in_doc);
+            vtable_for(&&*node).bind_to_tree(parent_in_doc);
+        }
+        let document = new_child.owner_doc();
+        document.content_and_heritage_changed(new_child, NodeDamage::OtherNodeDamage);
     }
 
     /// Removes the given child from this node's list of children.
@@ -387,6 +365,15 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
         child.parent_node.set(None);
+
+        let parent_in_doc = self.is_in_doc();
+        for node in child.traverse_preorder() {
+            node.set_flag(IS_IN_DOC, false);
+            vtable_for(&&*node).unbind_from_tree(parent_in_doc);
+        }
+        child.layout_data.dispose(child);
+        let document = child.owner_doc();
+        document.content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -971,9 +958,8 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     fn remove_self(self) {
-        match self.parent_node.get() {
-            Some(parent) => parent.root().r().remove_child(self),
-            None => ()
+        if let Some(ref parent) = self.GetParentNode() {
+            Node::remove(self, parent.r(), SuppressObserver::Unsuppressed);
         }
     }
 
@@ -1643,110 +1629,79 @@ impl Node {
               parent: &Node,
               child: Option<&Node>,
               suppress_observers: SuppressObserver) {
-        fn do_insert(node: &Node, parent: &Node, child: Option<&Node>) {
-            parent.add_child(node, child);
-            let is_in_doc = parent.is_in_doc();
-            for kid in node.traverse_preorder() {
-                let mut flags = kid.r().flags.get();
-                if is_in_doc {
-                    flags.insert(IS_IN_DOC);
-                } else {
-                    flags.remove(IS_IN_DOC);
-                }
-                kid.r().flags.set(flags);
+        debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
+        debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
+
+        // Steps 1-2: ranges.
+        let mut new_nodes = RootedVec::new();
+        let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
+            // Step 3.
+            new_nodes.extend(node.children().map(|kid| JS::from_rooted(&kid)));
+            // Step 4: mutation observers.
+            // Step 5.
+            for kid in new_nodes.r() {
+                Node::remove(*kid, node, SuppressObserver::Suppressed);
             }
+            vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            new_nodes.r()
+        } else {
+            // Step 3.
+            ref_slice(&node)
+        };
+        // Step 6: mutation observers.
+        let previous_sibling = match suppress_observers {
+            SuppressObserver::Unsuppressed => {
+                match child {
+                    Some(child) => child.GetPreviousSibling(),
+                    None => parent.GetLastChild(),
+                }
+            },
+            SuppressObserver::Suppressed => None,
+        };
+        // Step 7.
+        for kid in new_nodes {
+            // Step 7.1.
+            parent.add_child(*kid, child);
+            // Step 7.2: insertion steps.
         }
-
-        fn fire_observer_if_necessary(node: &Node, suppress_observers: SuppressObserver) {
-            match suppress_observers {
-                SuppressObserver::Unsuppressed => node.node_inserted(),
-                SuppressObserver::Suppressed => ()
-            }
-        }
-
-        // XXX assert owner_doc
-        // Step 1-3: ranges.
-
-        match node.type_id() {
-            NodeTypeId::DocumentFragment => {
-                // Step 4.
-                // Step 5: DocumentFragment, mutation records.
-                // Step 6: DocumentFragment.
-                let kids: Vec<Root<Node>> = node.children().collect();
-                for kid in &kids {
-                    Node::remove(kid.r(), node, SuppressObserver::Suppressed);
-                }
-
-                // Step 7: mutation records.
-                // Step 8.
-                for kid in &kids {
-                    do_insert(kid.r(), parent, child);
-                }
-
-                for kid in kids {
-                    fire_observer_if_necessary(kid.r(), suppress_observers);
-                }
-            }
-            _ => {
-                // Step 4.
-                // Step 5: DocumentFragment, mutation records.
-                // Step 6: DocumentFragment.
-                // Step 7: mutation records.
-                // Step 8.
-                do_insert(node, parent, child);
-                // Step 9.
-                fire_observer_if_necessary(node, suppress_observers);
-            }
+        if let SuppressObserver::Unsuppressed = suppress_observers {
+            vtable_for(&parent).children_changed(
+                &ChildrenMutation::insert(previous_sibling.r(), new_nodes, child));
         }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(node: Option<&Node>, parent: &Node) {
         // Step 1.
-        match node {
-            Some(node) => {
-                let document = document_from_node(parent);
-                Node::adopt(node, document.r());
-            }
-            None => (),
+        if let Some(node) = node {
+            Node::adopt(node, &*parent.owner_doc());
         }
-
         // Step 2.
-        let mut removed_nodes: RootedVec<JS<Node>> = RootedVec::new();
-        for child in parent.children() {
-            removed_nodes.push(JS::from_rooted(&child));
-        }
-
+        let mut removed_nodes = RootedVec::new();
+        removed_nodes.extend(parent.children().map(|child| JS::from_rooted(&child)));
         // Step 3.
-        let added_nodes = match node {
-            None => vec!(),
-            Some(node) => match node.type_id() {
-                NodeTypeId::DocumentFragment => node.children().collect(),
-                _ => vec!(Root::from_ref(node)),
-            },
+        let mut added_nodes = RootedVec::new();
+        let added_nodes = if let Some(node) = node.as_ref() {
+            if let NodeTypeId::DocumentFragment = node.type_id() {
+                added_nodes.extend(node.children().map(|child| JS::from_rooted(&child)));
+                added_nodes.r()
+            } else {
+                ref_slice(node)
+            }
+        } else {
+            &[] as &[&Node]
         };
-
         // Step 4.
-        for child in parent.children() {
-            Node::remove(child.r(), parent, SuppressObserver::Suppressed);
+        for child in removed_nodes.r() {
+            Node::remove(*child, parent, SuppressObserver::Suppressed);
         }
-
         // Step 5.
-        match node {
-            Some(node) => Node::insert(node, parent, None, SuppressObserver::Suppressed),
-            None => (),
+        if let Some(node) = node {
+            Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
-
-        // Step 6: mutation records.
-
-        // Step 7.
-        let parent_in_doc = parent.is_in_doc();
-        for removed_node in removed_nodes.iter() {
-            removed_node.root().r().node_removed(parent_in_doc);
-        }
-        for added_node in added_nodes {
-            added_node.r().node_inserted();
-        }
+        // Step 6: mutation observers.
+        vtable_for(&parent).children_changed(
+            &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes));
     }
 
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
@@ -1766,16 +1721,22 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: &Node, parent: &Node, _suppress_observers: SuppressObserver) {
+    fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent.r() == parent));
 
         // Step 1-5: ranges.
-        // Step 6-7: mutation observers.
-        // Step 8.
-        parent.remove_child(node);
-
+        // Step 6.
+        let old_previous_sibling = node.GetPreviousSibling();
+        // Steps 7-8: mutation observers.
         // Step 9.
-        node.node_removed(parent.is_in_doc());
+        let old_next_sibling = node.GetNextSibling();
+        parent.remove_child(node);
+        if let SuppressObserver::Unsuppressed = suppress_observers {
+            vtable_for(&parent).children_changed(
+                &ChildrenMutation::replace(old_previous_sibling.r(),
+                                           &node, &[],
+                                           old_next_sibling.r()));
+        }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-clone
@@ -2280,36 +2241,31 @@ impl<'a> NodeMethods for &'a Node {
         let document = document_from_node(self);
         Node::adopt(node, document.r());
 
+        // Step 10.
+        let previous_sibling = child.GetPreviousSibling();
+
+        // Step 11.
+        Node::remove(child, self, SuppressObserver::Suppressed);
+
         // Step 12.
-        let mut nodes: RootedVec<JS<Node>> = RootedVec::new();
-        if node.type_id() == NodeTypeId::DocumentFragment {
-            // Collect fragment children before Step 11,
-            // because Node::insert removes a DocumentFragment's children,
-            // and we need them in Step 13.
-            // Issue filed against the spec:
-            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28330
-            for child_node in node.children() {
-                nodes.push(JS::from_rooted(&child_node));
-            }
+        let mut nodes = RootedVec::new();
+        let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
+            nodes.extend(node.children().map(|node| JS::from_rooted(&node)));
+            nodes.r()
         } else {
-            nodes.push(JS::from_ref(node));
-        }
+            ref_slice(&node)
+        };
 
-        {
-            // Step 10.
-            Node::remove(child, self, SuppressObserver::Suppressed);
-
-            // Step 11.
-            Node::insert(node, self, reference_child, SuppressObserver::Suppressed);
-        }
-
-        // Step 13: mutation records.
-        child.node_removed(self.is_in_doc());
-        for child_node in &*nodes {
-            child_node.root().r().node_inserted();
-        }
+        // Step 13.
+        Node::insert(node, self, reference_child, SuppressObserver::Suppressed);
 
         // Step 14.
+        vtable_for(&self).children_changed(
+            &ChildrenMutation::replace(previous_sibling.r(),
+                                       &child, nodes,
+                                       reference_child));
+
+        // Step 15.
         Ok(Root::from_ref(child))
     }
 
@@ -2327,14 +2283,14 @@ impl<'a> NodeMethods for &'a Node {
                 Some(text) => {
                     let characterdata: &CharacterData = CharacterDataCast::from_ref(text);
                     if characterdata.Length() == 0 {
-                        self.remove_child(child.r());
+                        Node::remove(&*child, self, SuppressObserver::Unsuppressed);
                     } else {
                         match prev_text {
                             Some(ref text_node) => {
                                 let prev_characterdata =
                                     CharacterDataCast::from_ref(text_node.r());
                                 prev_characterdata.append_data(&**characterdata.data());
-                                self.remove_child(child.r());
+                                Node::remove(&*child, self, SuppressObserver::Unsuppressed);
                             },
                             None => prev_text = Some(Root::from_ref(text))
                         }
@@ -2639,4 +2595,44 @@ pub enum NodeDamage {
     NodeStyleDamaged,
     /// Other parts of a node changed; attributes, text content, etc.
     OtherNodeDamage,
+}
+
+pub enum ChildrenMutation<'a> {
+    Append(&'a Node, &'a [&'a Node]),
+    Insert(&'a Node, &'a [&'a Node], &'a Node),
+    Prepend(&'a [&'a Node], &'a Node),
+    Replace(Option<&'a Node>, &'a Node, &'a [&'a Node], Option<&'a Node>),
+    ReplaceAll(&'a [&'a Node], &'a [&'a Node]),
+}
+
+impl<'a> ChildrenMutation<'a> {
+    fn insert(previous_sibling: Option<&'a Node>,
+              added_nodes: &'a [&'a Node],
+              next_sibling: Option<&'a Node>)
+              -> ChildrenMutation<'a> {
+        match (previous_sibling, next_sibling) {
+            (None, None) => ChildrenMutation::ReplaceAll(&[], added_nodes),
+            (Some(prev), None) => ChildrenMutation::Append(prev, added_nodes),
+            (None, Some(next)) => ChildrenMutation::Prepend(added_nodes, next),
+            (Some(prev), Some(next)) => ChildrenMutation::Insert(prev, added_nodes, next),
+        }
+    }
+
+    fn replace(previous_sibling: Option<&'a Node>,
+               removed_node: &'a &'a Node, added_nodes: &'a [&'a Node],
+               next_sibling: Option<&'a Node>)
+               -> ChildrenMutation<'a> {
+        if let (None, None) = (previous_sibling, next_sibling) {
+            ChildrenMutation::ReplaceAll(ref_slice(removed_node), added_nodes)
+        } else {
+            ChildrenMutation::Replace(previous_sibling,
+                                      *removed_node, added_nodes,
+                                      next_sibling)
+        }
+    }
+
+    fn replace_all(removed_nodes: &'a [&'a Node], added_nodes: &'a [&'a Node])
+                   -> ChildrenMutation<'a> {
+        ChildrenMutation::ReplaceAll(removed_nodes, added_nodes)
+    }
 }
