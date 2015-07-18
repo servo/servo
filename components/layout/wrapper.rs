@@ -683,20 +683,20 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     #[inline]
-    pub fn get_before_display(&self) -> Option<display::T> {
+    pub fn get_before_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
         let mut layout_data_ref = self.mutate_layout_data();
         let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
         node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
-            style.get_box().display
+            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
         })
     }
 
     #[inline]
-    pub fn get_after_display(&self) -> Option<display::T> {
+    pub fn get_after_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
         let mut layout_data_ref = self.mutate_layout_data();
         let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
         node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
-            style.get_box().display
+            self.with_pseudo(PseudoElementType::After(style.get_box().display))
         })
     }
 
@@ -932,9 +932,7 @@ impl<'a> ThreadSafeLayoutNodeChildrenIterator<'a> {
                 return None
             }
 
-            parent.get_before_display().map(|display| {
-                parent.with_pseudo(PseudoElementType::Before(display))
-            }).or_else(|| {
+            parent.get_before_pseudo().or_else(|| {
                 unsafe {
                     parent.get_jsmanaged().first_child_ref()
                           .map(|node| parent.new_with_this_lifetime(&node))
@@ -963,12 +961,7 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
                                 self.parent_node.new_with_this_lifetime(&first)
                             })
                         },
-                        None => {
-                            self.parent_node.get_after_display().map(|display| {
-                                self.parent_node.with_pseudo(
-                                    PseudoElementType::After(display))
-                            })
-                        }
+                        None => self.parent_node.get_after_pseudo(),
                     }
                 },
                 PseudoElementType::Normal => {
@@ -978,12 +971,7 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
                                 self.parent_node.new_with_this_lifetime(&next)
                             })
                         },
-                        None => {
-                            self.parent_node.get_after_display().map(|display| {
-                                self.parent_node.with_pseudo(
-                                    PseudoElementType::After(display))
-                            })
-                        },
+                        None => self.parent_node.get_after_pseudo(),
                     }
                 },
                 PseudoElementType::After(_) => {
