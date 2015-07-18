@@ -204,4 +204,16 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionTimingFunction;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionProperty;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDelay;
+
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexDirection;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexWrap;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString justifyContent;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignItems;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignSelf;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignContent;
+
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString order;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexGrow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexShrink;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexBasis;
 };

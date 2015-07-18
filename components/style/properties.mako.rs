@@ -281,12 +281,22 @@ pub mod longhands {
             }
 
             pub mod computed_value {
-                pub type T = Option<${type}>;
+                #[derive(Clone, PartialEq, HeapSizeOf)]
+                pub struct T(pub Option<${type}>);
+            }
+
+            impl ToCss for computed_value::T {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    match self.0 {
+                        None => dest.write_str("auto"),
+                        Some(count) => write!(dest, "{}", count),
+                    }
+                }
             }
 
             #[inline]
             pub fn get_initial_value() -> computed_value::T {
-                None
+                computed_value::T(None)
             }
 
             impl ToComputedValue for SpecifiedValue {
@@ -295,11 +305,13 @@ pub mod longhands {
                 #[inline]
                 fn to_computed_value(&self, _context: &Context) -> computed_value::T {
                     match *self {
-                        SpecifiedValue::Auto => None,
-                        SpecifiedValue::Specified(count) => Some(count)
+                        SpecifiedValue::Auto => computed_value::T(None),
+                        SpecifiedValue::Specified(count) =>
+                            computed_value::T(Some(count))
                     }
                 }
             }
+
             pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
                 if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                     Ok(SpecifiedValue::Auto)
@@ -4839,6 +4851,92 @@ pub mod longhands {
         pub use properties::longhands::transition_duration::{computed_value};
         pub use properties::longhands::transition_duration::{get_initial_single_value};
         pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
+    </%self:longhand>
+
+    // CSS Flexible Box Layout Module Level 1
+    // http://www.w3.org/TR/css3-flexbox/
+
+    ${new_style_struct("Flex", is_inherited=False)}
+
+    // Flex container properties
+    ${single_keyword("flex-direction", "row row-reverse column column-reverse")}
+    ${single_keyword("flex-wrap", "nowrap wrap wrap-reverse")}
+    ${single_keyword("justify-content", "flex-start flex-end center space-between space-around")}
+    ${single_keyword("align-items", "stretch flex-start flex-end center baseline")}
+    ${single_keyword("align-self", "auto flex-start flex-end center baseline stretch")}
+    ${single_keyword("align-content", "stretch flex-start flex-end center space-between space-around")}
+
+    // Flex item properties
+    ${integer_type_or_auto("order", "i32", "Specified(0)")}
+    ${integer_type_or_auto("flex-grow", "u32", "Specified(0)", "value >= 0")}
+    ${integer_type_or_auto("flex-shrink", "u32", "Specified(1)", "value >= 0")}
+    <%self:longhand name="flex-basis">
+        use values::computed::Context;
+        use cssparser::ToCss;
+        use std::fmt;
+        use util::geometry::Au;
+
+        #[derive(Clone, PartialEq)]
+        pub enum SpecifiedValue {
+            Content,
+            Width(specified::LengthOrPercentageOrAuto),
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self {
+                    &SpecifiedValue::Content => dest.write_str("content"),
+                    &SpecifiedValue::Width(value) => value.to_css(dest),
+                }
+            }
+        }
+
+        pub mod computed_value {
+            use values::computed;
+            #[derive(Clone, PartialEq, HeapSizeOf)]
+            pub enum T {
+                Content,
+                Width(computed::LengthOrPercentageOrAuto),
+            }
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    computed_value::T::Content => dest.write_str("content"),
+                    computed_value::T::Width(width) => width.to_css(dest),
+                }
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::Width(computed::LengthOrPercentageOrAuto::Auto)
+        }
+
+        #[inline]
+        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            if input.try(|input| input.expect_ident_matching("content")).is_ok() {
+                Ok(SpecifiedValue::Content)
+            } else {
+                let non_content =
+                    try!(specified::LengthOrPercentageOrAuto::parse_non_negative(input));
+                Ok(SpecifiedValue::Width(non_content))
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match self {
+                    &SpecifiedValue::Content => computed_value::T::Content,
+                    &SpecifiedValue::Width(specified) =>
+                        computed_value::T::Width(specified.to_computed_value(context)),
+                }
+            }
+        }
     </%self:longhand>
 }
 
