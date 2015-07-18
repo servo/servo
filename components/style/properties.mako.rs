@@ -5599,6 +5599,40 @@ pub mod shorthands {
             transition_delay: Some(transition_delay::SpecifiedValue(delays)),
         })
     </%self:shorthand>
+
+    <%self:shorthand name="flex"
+                     sub_properties="flex-grow flex-shrink flex-basis">
+        use properties::longhands::{flex_grow, flex_shrink, flex_basis};
+        use values::specified;
+
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(Longhands {
+                flex_grow: Some(flex_grow::SpecifiedValue::Specified(0)),
+                flex_shrink: Some(flex_shrink::SpecifiedValue::Specified(0)),
+                flex_basis: Some(flex_basis::SpecifiedValue::Width(specified::LengthOrPercentageOrAuto::Auto)),
+            })
+        }
+        // 'flex-basis' can be before or after 'flex-grow' (and 'flex-shrink'). However, it can't
+        // be between 'flex-grow' and 'flex-shrink'.
+        let flex_basis = flex_basis::parse(context, input);
+        let flex_grow = flex_grow::parse(context, input);
+        let flex_shrink = flex_shrink::parse(context, input);
+        let flex_basis = if flex_basis.is_ok() {
+            flex_basis
+        } else {
+            flex_basis::parse(context, input)
+        };
+
+        // Invalid iff all three fail to parse.
+        match (flex_grow.is_err(), flex_shrink.is_err(), flex_basis.is_err()) {
+            (true, true, true) => Err(()),
+            _ => Ok(Longhands {
+                flex_grow: flex_grow.ok(),
+                flex_shrink: flex_shrink.ok(),
+                flex_basis: flex_basis.ok(),
+            })
+        }
+    </%self:shorthand>
 }
 
 

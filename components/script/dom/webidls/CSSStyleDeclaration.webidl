@@ -216,4 +216,5 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexGrow;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexShrink;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexBasis;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex;
 };
