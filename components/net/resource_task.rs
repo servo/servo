@@ -200,14 +200,20 @@ pub struct HSTSEntry {
     pub timestamp: Option<u64>
 }
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum Subdomains {
+    Included,
+    NotIncluded
+}
+
 impl HSTSEntry {
-    pub fn new(host: String, include_subdomains: bool, max_age: Option<u64>) -> Option<HSTSEntry> {
+    pub fn new(host: String, subdomains: Subdomains, max_age: Option<u64>) -> Option<HSTSEntry> {
         if IPV4_REGEX.is_match(&host) || IPV6_REGEX.is_match(&host) {
             None
         } else {
             Some(HSTSEntry {
                 host: host,
-                include_subdomains: include_subdomains,
+                include_subdomains: (subdomains == Subdomains::Included),
                 max_age: max_age,
                 timestamp: Some(time::get_time().sec as u64)
             })
@@ -292,6 +298,10 @@ pub fn secure_load_data(load_data: &LoadData) -> LoadData {
         let mut secure_load_data = load_data.clone();
         let mut secure_url = load_data.url.clone();
         secure_url.scheme = "https".to_string();
+        // The Url struct parses the port for a known scheme only once.
+        // Updating the scheme doesn't update the port internally, resulting in
+        // HTTPS connections attempted on port 80. Serialising and re-parsing
+        // the Url is a hack to get around this.
         secure_load_data.url = Url::parse(&secure_url.serialize()).unwrap();
 
         secure_load_data
@@ -351,7 +361,13 @@ impl ResourceChannelManager {
                   consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
               ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
-                  if let Some(entry) = HSTSEntry::new(host, include_subdomains, max_age) {
+                  let subdomains = if include_subdomains {
+                      Subdomains::Included
+                  } else {
+                      Subdomains::NotIncluded
+                  };
+
+                  if let Some(entry) = HSTSEntry::new(host, subdomains, max_age) {
                       self.resource_manager.add_hsts_entry(entry)
                   }
               }
@@ -415,6 +431,15 @@ impl ResourceManager {
         }
     }
 
+    fn load_data_must_be_secured(&self, load_data: &LoadData) -> bool {
+        match (self.hsts_list.as_ref(), load_data.url.domain()) {
+            (Some(ref l), Some(ref h)) => {
+                l.is_host_secure(h)
+            },
+            _ => false
+        }
+    }
+
     fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
         unsafe {
             if let Some(host_table) = HOST_TABLE {
@@ -426,16 +451,9 @@ impl ResourceManager {
             load_data.preserved_headers.set(UserAgent(ua.clone()));
         });
 
-        load_data = match (self.hsts_list.as_ref(), load_data.url.domain()) {
-            (Some(ref l), Some(ref h)) => {
-                if l.is_host_secure(h) {
-                    secure_load_data(&load_data)
-                } else {
-                    load_data.clone()
-                }
-            },
-            _ => load_data.clone()
-        };
+        if self.load_data_must_be_secured(&load_data) {
+            load_data = secure_load_data(&load_data)
+        }
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
                         -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
