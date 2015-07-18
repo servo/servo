@@ -14,3 +14,4 @@ extern crate time;
 #[cfg(test)] mod data_loader;
 #[cfg(test)] mod mime_classifier;
 #[cfg(test)] mod resource_task;
+#[cfg(test)] mod hsts;

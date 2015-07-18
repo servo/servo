@@ -40,6 +40,7 @@ pub mod image_cache_task;
 pub mod net_error_list;
 pub mod pub_domains;
 pub mod resource_task;
+pub mod hsts;
 pub mod storage_task;
 pub mod mime_classifier;
 
