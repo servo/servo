@@ -72,6 +72,7 @@ pub mod construct;
 pub mod context;
 pub mod data;
 pub mod display_list_builder;
+pub mod flex;
 pub mod floats;
 pub mod flow;
 pub mod flow_list;

@@ -517,6 +517,7 @@ pub enum FlowClass {
     TableCaption,
     TableCell,
     Multicol,
+    Flex,
 }
 
 /// A top-down traversal.
@@ -1173,6 +1174,8 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
             FlowClass::Table => !child.is_proper_table_child(),
             FlowClass::TableRowGroup => !child.is_table_row(),
             FlowClass::TableRow => !child.is_table_cell(),
+            // FIXME(zentner): According to spec, anonymous flex items are only needed for text.
+            FlowClass::Flex => child.is_inline_flow(),
             _ => false
         }
     }
@@ -1209,6 +1212,12 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     SpecificFragmentInfo::TableCell);
                 let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide;
                 Arc::new(TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide))
+            },
+            FlowClass::Flex => {
+                let fragment =
+                    Fragment::new_anonymous_from_specific_info(node,
+                                                               SpecificFragmentInfo::Generic);
+                box BlockFlow::from_fragment(fragment, None) as Box<Flow>
             },
             _ => {
                 panic!("no need to generate a missing child")
