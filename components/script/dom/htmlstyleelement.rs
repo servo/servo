@@ -11,7 +11,8 @@ use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::{ElementTypeId, AttributeHandlers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{ChildrenMutation, Node, NodeHelpers, NodeTypeId};
+use dom::node::window_from_node;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
@@ -86,11 +87,10 @@ impl<'a> VirtualMethods for &'a HTMLStyleElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn child_inserted(&self, child: &Node) {
+    fn children_changed(&self, mutation: &ChildrenMutation) {
         if let Some(ref s) = self.super_type() {
-            s.child_inserted(child);
+            s.children_changed(mutation);
         }
-
         let node = NodeCast::from_ref(*self);
         if node.is_in_doc() {
             self.parse_own_css();
