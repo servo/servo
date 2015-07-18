@@ -204,4 +204,6 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionTimingFunction;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionProperty;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDelay;
+
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexDirection;
 };
