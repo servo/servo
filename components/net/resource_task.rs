@@ -17,14 +17,17 @@ use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, Respo
 use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
-use util::resource_files::read_resource_file;
 use url::Url;
+
+use hsts::HSTSList;
+use hsts::HSTSEntry;
+use hsts::Subdomains;
+use hsts::preload_hsts_domains;
+use hsts::secure_load_data;
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
-
-use rustc_serialize::json::{decode};
 
 use regex::Regex;
 use std::borrow::ToOwned;
@@ -33,10 +36,8 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::str::{from_utf8};
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use time;
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 static IPV4_REGEX: Regex = regex!(
@@ -162,14 +163,6 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
     }
 }
 
-fn preload_hsts_domains() -> Option<HSTSList> {
-    read_resource_file(&["hsts_preload.json"]).ok().and_then(|bytes| {
-        from_utf8(&bytes).ok().and_then(|hsts_preload_content| {
-            HSTSList::new_from_preload(hsts_preload_content)
-        })
-    })
-}
-
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
@@ -190,124 +183,6 @@ pub fn new_resource_task(user_agent: Option<String>,
         channel_manager.start();
     });
     setup_chan
-}
-
-#[derive(RustcDecodable, RustcEncodable, Clone)]
-pub struct HSTSEntry {
-    pub host: String,
-    pub include_subdomains: bool,
-    pub max_age: Option<u64>,
-    pub timestamp: Option<u64>
-}
-
-#[derive(PartialEq, Copy, Clone)]
-pub enum Subdomains {
-    Included,
-    NotIncluded
-}
-
-impl HSTSEntry {
-    pub fn new(host: String, subdomains: Subdomains, max_age: Option<u64>) -> Option<HSTSEntry> {
-        if IPV4_REGEX.is_match(&host) || IPV6_REGEX.is_match(&host) {
-            None
-        } else {
-            Some(HSTSEntry {
-                host: host,
-                include_subdomains: (subdomains == Subdomains::Included),
-                max_age: max_age,
-                timestamp: Some(time::get_time().sec as u64)
-            })
-        }
-    }
-
-    pub fn is_expired(&self) -> bool {
-        match (self.max_age, self.timestamp) {
-            (Some(max_age), Some(timestamp)) => {
-                (time::get_time().sec as u64) - timestamp >= max_age
-            },
-
-            _ => false
-        }
-    }
-
-    fn matches_domain(&self, host: &str) -> bool {
-        !self.is_expired() && self.host == host
-    }
-
-    fn matches_subdomain(&self, host: &str) -> bool {
-        !self.is_expired() && host.ends_with(&format!(".{}", self.host))
-    }
-}
-
-#[derive(RustcDecodable, RustcEncodable)]
-pub struct HSTSList {
-    pub entries: Vec<HSTSEntry>
-}
-
-impl HSTSList {
-    pub fn new_from_preload(preload_content: &str) -> Option<HSTSList> {
-        decode(preload_content).ok()
-    }
-
-    pub fn is_host_secure(&self, host: &str) -> bool {
-        // TODO - Should this be faster than O(n)? The HSTS list is only a few
-        // hundred or maybe thousand entries...
-        //
-        // Could optimise by searching for exact matches first (via a map or
-        // something), then checking for subdomains.
-        self.entries.iter().any(|e| {
-            if e.include_subdomains {
-                e.matches_subdomain(host) || e.matches_domain(host)
-            } else {
-                e.matches_domain(host)
-            }
-        })
-    }
-
-    fn has_domain(&self, host: &str) -> bool {
-        self.entries.iter().any(|e| {
-            e.matches_domain(&host)
-        })
-    }
-
-    fn has_subdomain(&self, host: &str) -> bool {
-        self.entries.iter().any(|e| {
-            e.matches_subdomain(host)
-        })
-    }
-
-    pub fn push(&mut self, entry: HSTSEntry) {
-        let have_domain = self.has_domain(&entry.host);
-        let have_subdomain = self.has_subdomain(&entry.host);
-
-        if !have_domain && !have_subdomain {
-            self.entries.push(entry);
-        } else if !have_subdomain {
-            for e in &mut self.entries {
-                if e.matches_domain(&entry.host) {
-                    e.include_subdomains = entry.include_subdomains;
-                    e.max_age = entry.max_age;
-                }
-            }
-        }
-    }
-}
-
-pub fn secure_load_data(load_data: &LoadData) -> LoadData {
-    if &*load_data.url.scheme == "http" {
-        let mut secure_load_data = load_data.clone();
-        let mut secure_url = load_data.url.clone();
-        secure_url.scheme = "https".to_string();
-        // The Url struct parses the port for a known scheme only once.
-        // Updating the scheme doesn't update the port internally, resulting in
-        // HTTPS connections attempted on port 80. Serialising and re-parsing
-        // the Url is a hack to get around this.
-        secure_load_data.url = Url::parse(&secure_url.serialize()).unwrap();
-
-        secure_load_data
-    } else {
-        load_data.clone()
-    }
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
