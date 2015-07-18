@@ -19,10 +19,7 @@ use util::opts;
 use util::task::spawn_named;
 use url::Url;
 
-use hsts::HSTSList;
-use hsts::HSTSEntry;
-use hsts::Subdomains;
-use hsts::preload_hsts_domains;
+use hsts::{HSTSList, HSTSEntry, Subdomains, preload_hsts_domains};
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
@@ -39,10 +36,10 @@ use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
-static IPV4_REGEX: Regex = regex!(
+pub static IPV4_REGEX: Regex = regex!(
     r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
 );
-static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
+pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
 
 pub fn global_init() {
     //TODO: handle bad file path
@@ -165,7 +162,10 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
-    let hsts_preload = preload_hsts_domains();
+    let hsts_preload = match preload_hsts_domains() {
+        Some(list) => list,
+        None => HSTSList::new()
+    };
 
     let (setup_chan, setup_port) = channel();
     let setup_chan_clone = setup_chan.clone();
@@ -260,13 +260,13 @@ pub struct ResourceManager {
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    hsts_list: Option<HSTSList>
+    hsts_list: HSTSList
 }
 
 impl ResourceManager {
     pub fn new(user_agent: Option<String>,
            resource_task: Sender<ControlMsg>,
-           hsts_list: Option<HSTSList>,
+           hsts_list: HSTSList,
            devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             user_agent: user_agent,
@@ -293,16 +293,11 @@ impl ResourceManager {
     }
 
     pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
-        if let Some(list) = self.hsts_list.as_mut() {
-            list.push(entry)
-        }
+        self.hsts_list.push(entry);
     }
 
     pub fn is_host_sts(&self, host: &str) -> bool {
-        match self.hsts_list.as_ref() {
-            Some(list) => list.is_host_secure(host),
-            None => false
-        }
+        self.hsts_list.is_host_secure(host)
     }
 
     fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {

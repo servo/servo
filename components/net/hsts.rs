@@ -2,19 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use regex::Regex;
 use rustc_serialize::json::{decode};
 use time;
 use url::Url;
+use resource_task::{IPV4_REGEX, IPV6_REGEX};
 
 use std::str::{from_utf8};
 
 use util::resource_files::read_resource_file;
-
-static IPV4_REGEX: Regex = regex!(
-    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-);
-static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
 
 #[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct HSTSEntry {
@@ -69,6 +64,12 @@ pub struct HSTSList {
 }
 
 impl HSTSList {
+    pub fn new() -> HSTSList {
+        HSTSList {
+            entries: vec![]
+        }
+    }
+
     pub fn new_from_preload(preload_content: &str) -> Option<HSTSList> {
         decode(preload_content).ok()
     }

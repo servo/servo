@@ -7,7 +7,6 @@ use net::hsts::HSTSEntry;
 use net::hsts::Subdomains;
 use net::hsts::secure_url;
 use net::resource_task::ResourceManager;
-use net_traits::LoadData;
 use std::sync::mpsc::channel;
 use url::Url;
 use time;
@@ -19,7 +18,7 @@ fn test_add_hsts_entry_to_resource_manager_adds_an_hsts_entry() {
     };
 
     let (tx, _) = channel();
-    let mut manager = ResourceManager::new(None, tx, Some(list), None);
+    let mut manager = ResourceManager::new(None, tx, list, None);
 
     let entry = HSTSEntry::new(
         "mozilla.org".to_string(), Subdomains::NotIncluded, None
@@ -134,10 +133,6 @@ fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
 
 #[test]
 fn test_push_multiple_entrie_to_hsts_list_should_add_them_all() {
-}
-
-#[test]
-fn test_push_entry_to_hsts_list_should_add_an_entry() {
     let mut list = HSTSList {
         entries: Vec::new()
     };
@@ -150,6 +145,19 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
 
     assert!(list.is_host_secure("mozilla.org"));
     assert!(list.is_host_secure("bugzilla.org"));
+}
+
+#[test]
+fn test_push_entry_to_hsts_list_should_add_an_entry() {
+    let mut list = HSTSList {
+        entries: Vec::new()
+    };
+
+    assert!(!list.is_host_secure("mozilla.org"));
+
+    list.push(HSTSEntry::new("mozilla.org".to_string(), Subdomains::Included, None).unwrap());
+
+    assert!(list.is_host_secure("mozilla.org"));
 }
 
 #[test]
