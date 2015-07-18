@@ -683,14 +683,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     #[inline]
-    pub fn get_normal_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.shared_data.style.as_ref().unwrap();
-        style.get_box().display
-    }
-
-    #[inline]
     pub fn get_before_display(&self) -> display::T {
         let mut layout_data_ref = self.mutate_layout_data();
         let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
