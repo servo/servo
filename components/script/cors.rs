@@ -144,7 +144,7 @@ impl CORSRequest {
             let mut context = listener.context.lock();
             let context = context.as_mut().unwrap();
             *context.response.borrow_mut() = Some(response);
-            listener.invoke_with_listener(ResponseAction::ResponseComplete(Ok(())));
+            listener.notify(ResponseAction::ResponseComplete(Ok(())));
         });
     }
 

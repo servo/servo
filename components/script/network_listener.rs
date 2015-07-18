@@ -14,7 +14,7 @@ pub struct NetworkListener<T: AsyncResponseListener + PreInvoke + Send + 'static
 }
 
 impl<T: AsyncResponseListener + PreInvoke + Send + 'static> NetworkListener<T> {
-    pub fn invoke_with_listener(&self, action: ResponseAction) {
+    pub fn notify(&self, action: ResponseAction) {
         self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
             context: self.context.clone(),
             action: action,
