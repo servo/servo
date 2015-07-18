@@ -478,7 +478,7 @@ pub mod longhands {
             values="inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
             table-row table-column-group table-column table-cell table-caption
-            list-item
+            list-item flex
             none">
         use values::computed::Context;
 

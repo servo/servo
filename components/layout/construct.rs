@@ -16,14 +16,15 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
+use flex::FlexFlow;
 use floats::FloatKind;
+use flow;
 use flow::{Descendants, AbsDescendants};
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{IS_ABSOLUTELY_POSITIONED};
-use flow;
 use flow_ref::FlowRef;
-use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
+use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
@@ -1266,6 +1267,14 @@ impl<'a> FlowConstructor<'a> {
         ConstructionResult::Flow(flow, Descendants::new())
     }
 
+    /// Builds a flow for a node with 'display: flex'.
+    fn build_flow_for_flex(&mut self, node: &ThreadSafeLayoutNode, float_kind: Option<FloatKind>)
+                           -> ConstructionResult {
+        let fragment = self.build_fragment_for_block(node);
+        let flow = Box::new(FlexFlow::from_fragment(fragment, float_kind));
+        self.build_flow_for_block_like(FlowRef::new(flow), node)
+    }
+
     /// Attempts to perform incremental repair to account for recent changes to this node. This
     /// can fail and return false, indicating that flows will need to be reconstructed.
     ///
@@ -1499,6 +1508,13 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // Table items contribute table flow construction results.
             (display::T::table_cell, _, _) => {
                 let construction_result = self.build_flow_for_table_cell(node);
+                self.set_flow_construction_result(node, construction_result)
+            }
+
+            // Flex items contribute flex flow construction results.
+            (display::T::flex, float_value, _) => {
+                let float_kind = FloatKind::from_property(float_value);
+                let construction_result = self.build_flow_for_flex(node, float_kind);
                 self.set_flow_construction_result(node, construction_result)
             }
 
