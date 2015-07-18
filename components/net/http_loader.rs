@@ -36,7 +36,7 @@ use std::boxed::FnBox;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               hsts_list: Option<HSTSList>)
+               hsts_list: HSTSList)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
         spawn_named("http_loader".to_owned(),
@@ -72,10 +72,10 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn request_must_be_secured(hsts_list: Option<&HSTSList>, url: &Url) -> bool {
-    match (hsts_list.as_ref(), url.domain()) {
-        (Some(ref l), Some(ref h)) => {
-            l.is_host_secure(h)
+fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
+    match url.domain() {
+        Some(ref h) => {
+            hsts_list.is_host_secure(h)
         },
         _ => false
     }
@@ -86,7 +86,7 @@ fn load(mut load_data: LoadData,
         classifier: Arc<MIMEClassifier>,
         cookies_chan: Sender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-        hsts_list: Option<HSTSList>) {
+        hsts_list: HSTSList) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -117,7 +117,7 @@ fn load(mut load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        if request_must_be_secured(hsts_list.as_ref(), &url) {
+        if request_must_be_secured(&hsts_list, &url) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
