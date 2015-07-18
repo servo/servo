@@ -5,7 +5,7 @@
 use net::hsts::HSTSList;
 use net::hsts::HSTSEntry;
 use net::hsts::Subdomains;
-use net::hsts::secure_load_data;
+use net::hsts::secure_url;
 use net::resource_task::ResourceManager;
 use net_traits::LoadData;
 use std::sync::mpsc::channel;
@@ -248,26 +248,26 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 }
 
 #[test]
-fn test_secure_load_data_does_not_change_explicit_port() {
-    let load_data = LoadData::new(Url::parse("http://mozilla.org:8080/").unwrap(), None);
-    let secure = secure_load_data(&load_data);
+fn test_secure_url_does_not_change_explicit_port() {
+    let url = Url::parse("http://mozilla.org:8080/").unwrap();
+    let secure = secure_url(&url);
 
-    assert!(secure.url.port().unwrap() == 8080u16);
+    assert!(secure.port().unwrap() == 8080u16);
 }
 
 #[test]
-fn test_secure_load_data_does_not_affect_non_http_schemas() {
-    let load_data = LoadData::new(Url::parse("file://mozilla.org").unwrap(), None);
-    let secure = secure_load_data(&load_data);
+fn test_secure_url_does_not_affect_non_http_schemas() {
+    let url = Url::parse("file://mozilla.org").unwrap();
+    let secure = secure_url(&url);
 
-    assert_eq!(&secure.url.scheme, "file");
+    assert_eq!(&secure.scheme, "file");
 }
 
 #[test]
-fn test_secure_load_data_forces_an_http_host_in_list_to_https() {
-    let load_data = LoadData::new(Url::parse("http://mozilla.org").unwrap(), None);
-    let secure = secure_load_data(&load_data);
+fn test_secure_url_forces_an_http_host_in_list_to_https() {
+    let url = Url::parse("http://mozilla.org").unwrap();
+    let secure = secure_url(&url);
 
-    assert_eq!(&secure.url.scheme, "https");
+    assert_eq!(&secure.scheme, "https");
 }
 

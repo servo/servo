@@ -9,7 +9,6 @@ use url::Url;
 
 use std::str::{from_utf8};
 
-use net_traits::LoadData;
 use util::resource_files::read_resource_file;
 
 static IPV4_REGEX: Regex = regex!(
@@ -64,7 +63,7 @@ impl HSTSEntry {
     }
 }
 
-#[derive(RustcDecodable, RustcEncodable)]
+#[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct HSTSList {
     pub entries: Vec<HSTSEntry>
 }
@@ -126,20 +125,13 @@ pub fn preload_hsts_domains() -> Option<HSTSList> {
     })
 }
 
-pub fn secure_load_data(load_data: &LoadData) -> LoadData {
-    if &*load_data.url.scheme == "http" {
-        let mut secure_load_data = load_data.clone();
-        let mut secure_url = load_data.url.clone();
+pub fn secure_url(url: &Url) -> Url {
+    if &*url.scheme == "http" {
+        let mut secure_url = url.clone();
         secure_url.scheme = "https".to_string();
-        // The Url struct parses the port for a known scheme only once.
-        // Updating the scheme doesn't update the port internally, resulting in
-        // HTTPS connections attempted on port 80. Serialising and re-parsing
-        // the Url is a hack to get around this.
-        secure_load_data.url = Url::parse(&secure_url.serialize()).unwrap();
-
-        secure_load_data
+        Url::parse(&secure_url.serialize()).unwrap()
     } else {
-        load_data.clone()
+        url.clone()
     }
 }
 

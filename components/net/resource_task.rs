@@ -23,7 +23,6 @@ use hsts::HSTSList;
 use hsts::HSTSEntry;
 use hsts::Subdomains;
 use hsts::preload_hsts_domains;
-use hsts::secure_load_data;
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
@@ -293,25 +292,16 @@ impl ResourceManager {
         }
     }
 
-    pub fn is_host_sts(&self, host: &str) -> bool {
-        match self.hsts_list.as_ref() {
-            Some(list) => list.is_host_secure(host),
-            None => false
-        }
-    }
-
     pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
         if let Some(list) = self.hsts_list.as_mut() {
             list.push(entry)
         }
     }
 
-    fn load_data_must_be_secured(&self, load_data: &LoadData) -> bool {
-        match (self.hsts_list.as_ref(), load_data.url.domain()) {
-            (Some(ref l), Some(ref h)) => {
-                l.is_host_secure(h)
-            },
-            _ => false
+    pub fn is_host_sts(&self, host: &str) -> bool {
+        match self.hsts_list.as_ref() {
+            Some(list) => list.is_host_secure(host),
+            None => false
         }
     }
 
@@ -326,10 +316,6 @@ impl ResourceManager {
             load_data.preserved_headers.set(UserAgent(ua.clone()));
         });
 
-        if self.load_data_must_be_secured(&load_data) {
-            load_data = secure_load_data(&load_data)
-        }
-
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
                         -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
             box move |load_data, senders, classifier| {
@@ -340,7 +326,7 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone()),
+                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone(), self.hsts_list.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
