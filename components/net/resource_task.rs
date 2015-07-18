@@ -163,17 +163,11 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 }
 
 fn preload_hsts_domains() -> Option<HSTSList> {
-    match read_resource_file(&["hsts_preload.json"]) {
-        Ok(bytes) => {
-            match from_utf8(&bytes) {
-                Ok(hsts_preload_content) => {
-                    HSTSList::new_from_preload(hsts_preload_content)
-                },
-                Err(_) => None
-            }
-        },
-        Err(_) => None
-    }
+    read_resource_file(&["hsts_preload.json"]).ok().and_then(|bytes| {
+        from_utf8(&bytes).ok().and_then(|hsts_preload_content| {
+            HSTSList::new_from_preload(hsts_preload_content)
+        })
+    })
 }
 
 /// Create a ResourceTask
@@ -246,10 +240,7 @@ pub struct HSTSList {
 
 impl HSTSList {
     pub fn new_from_preload(preload_content: &str) -> Option<HSTSList> {
-        match decode(preload_content) {
-            Ok(list) => Some(list),
-            Err(_) => None
-        }
+        decode(preload_content).ok()
     }
 
     pub fn is_host_secure(&self, host: &str) -> bool {
@@ -286,33 +277,26 @@ impl HSTSList {
         if !have_domain && !have_subdomain {
             self.entries.push(entry);
         } else if !have_subdomain {
-            self.entries = self.entries.iter().fold(Vec::new(), |mut m, e| {
+            for e in &mut self.entries {
                 if e.matches_domain(&entry.host) {
-                    // Update the entry if there's an exact domain match.
-                    m.push(entry.clone());
-                } else {
-                    // Ignore the new details if it's a subdomain match, or not
-                    // a match at all. Just use the existing entry
-                    m.push(e.clone());
+                    e.include_subdomains = entry.include_subdomains;
+                    e.max_age = entry.max_age;
                 }
-
-                m
-            });
+            }
         }
     }
 }
 
 pub fn secure_load_data(load_data: &LoadData) -> LoadData {
-    match &*load_data.url.scheme {
-        "http" => {
-            let mut secure_load_data = load_data.clone();
-            let mut secure_url = load_data.url.clone();
-            secure_url.scheme = "https".to_string();
-            secure_load_data.url = Url::parse(&secure_url.serialize()).unwrap();
+    if &*load_data.url.scheme == "http" {
+        let mut secure_load_data = load_data.clone();
+        let mut secure_url = load_data.url.clone();
+        secure_url.scheme = "https".to_string();
+        secure_load_data.url = Url::parse(&secure_url.serialize()).unwrap();
 
-            secure_load_data
-        },
-        _ => load_data.clone()
+        secure_load_data
+    } else {
+        load_data.clone()
     }
 }
 
@@ -367,10 +351,8 @@ impl ResourceChannelManager {
                   consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
               ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
-                  match HSTSEntry::new(host, include_subdomains, max_age) {
-                      Some(entry) => self.resource_manager.add_hsts_entry(entry),
-                      /// Invalid entries (e.g. IP's don't matter)
-                      None => ()
+                  if let Some(entry) = HSTSEntry::new(host, include_subdomains, max_age) {
+                      self.resource_manager.add_hsts_entry(entry)
                   }
               }
               ControlMsg::Exit => {
@@ -428,9 +410,8 @@ impl ResourceManager {
     }
 
     pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
-        match self.hsts_list.as_mut() {
-            Some(list) => list.push(entry),
-            None => ()
+        if let Some(list) = self.hsts_list.as_mut() {
+            list.push(entry)
         }
     }
 

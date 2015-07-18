@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::resource_task::{
-    new_resource_task, parse_hostsfile, replace_hosts, HSTSList, HSTSEntry, secure_load_data,
-    ResourceManager
-};
+use net::resource_task::new_resource_task;
+use net::resource_task::parse_hostsfile;
+use net::resource_task::replace_hosts;
+use net::resource_task::HSTSList;
+use net::resource_task::HSTSEntry;
+use net::resource_task::secure_load_data;
+use net::resource_task::ResourceManager;
 use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::ProgressMsg;
 use std::borrow::ToOwned;
@@ -83,10 +86,7 @@ fn test_hsts_entry_cant_be_created_with_ipv6_address_as_host() {
         "2001:0db8:0000:0000:0000:ff00:0042:8329".to_string(), false, None
     );
 
-    match entry {
-        Some(_) => panic!("able to create HSTSEntry with IPv6 host"),
-        None => ()
-    }
+    assert!(entry.is_none(), "able to create HSTSEntry with IPv6 host");
 }
 
 #[test]
@@ -95,10 +95,7 @@ fn test_hsts_entry_cant_be_created_with_ipv4_address_as_host() {
         "4.4.4.4".to_string(), false, None
     );
 
-    match entry {
-        Some(_) => panic!("able to create HSTSEntry with IPv6 host"),
-        None => ()
-    }
+    assert!(entry.is_none(), "able to create HSTSEntry with IPv4 host");
 }
 
 #[test]
@@ -148,34 +145,35 @@ fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
 }
 
 #[test]
+fn test_push_multiple_entrie_to_hsts_list_should_add_them_all() {
+}
+
+#[test]
 fn test_push_entry_to_hsts_list_should_add_an_entry() {
     let mut list = HSTSList {
         entries: Vec::new()
     };
 
     assert!(!list.is_host_secure("mozilla.org"));
+    assert!(!list.is_host_secure("bugzilla.org"));
 
     list.push(HSTSEntry::new("mozilla.org".to_string(), true, None).unwrap());
+    list.push(HSTSEntry::new("bugzilla.org".to_string(), true, None).unwrap());
 
     assert!(list.is_host_secure("mozilla.org"));
+    assert!(list.is_host_secure("bugzilla.org"));
 }
 
 #[test]
 fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
     let mock_preload_content = "derp";
-    match HSTSList::new_from_preload(mock_preload_content) {
-        Some(_) => assert!(false, "preload list should not have parsed"),
-        None => assert!(true)
-    }
+    assert!(HSTSList::new_from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
 }
 
 #[test]
 fn test_parse_hsts_preload_should_return_none_when_json_contains_no_entries_key() {
     let mock_preload_content = "{\"nothing\": \"to see here\"}";
-    match HSTSList::new_from_preload(mock_preload_content) {
-        Some(_) => assert!(false, "preload list should not have parsed"),
-        None => assert!(true)
-    }
+    assert!(HSTSList::new_from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
 }
 
 #[test]
@@ -189,8 +187,8 @@ fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
     let hsts_list = HSTSList::new_from_preload(mock_preload_content);
     let entries = hsts_list.unwrap().entries;
 
-    assert!(entries.get(0).unwrap().host == "mozilla.org");
-    assert!(entries.get(0).unwrap().include_subdomains == false);
+    assert!(entries[0].host == "mozilla.org");
+    assert!(entries[0].include_subdomains == false);
 }
 
 #[test]
@@ -274,7 +272,7 @@ fn test_secure_load_data_does_not_affect_non_http_schemas() {
     let load_data = LoadData::new(Url::parse("file://mozilla.org").unwrap(), None);
     let secure = secure_load_data(&load_data);
 
-    assert!(&secure.url.scheme == "file");
+    assert_eq!(&secure.url.scheme, "file");
 }
 
 #[test]
@@ -282,7 +280,7 @@ fn test_secure_load_data_forces_an_http_host_in_list_to_https() {
     let load_data = LoadData::new(Url::parse("http://mozilla.org").unwrap(), None);
     let secure = secure_load_data(&load_data);
 
-    assert!(&secure.url.scheme == "https");
+    assert_eq!(&secure.url.scheme, "https");
 }
 
 #[test]
