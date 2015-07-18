@@ -258,6 +258,63 @@ pub mod longhands {
     </%def>
 
 
+    <%def name="integer_type_or_auto(name, type, initial_value='SpecifiedValue::Auto',
+                                     condition='true', experimental='False')">
+        <%self:longhand name="${name}", experimental="${experimental}">
+            use values::computed::Context;
+            use cssparser::ToCss;
+            use std::fmt;
+
+            #[derive(Clone, Copy, PartialEq)]
+            pub enum SpecifiedValue {
+                Auto,
+                Specified(${type}),
+            }
+
+            impl ToCss for SpecifiedValue {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    match *self {
+                        SpecifiedValue::Auto => dest.write_str("auto"),
+                        SpecifiedValue::Specified(count) => write!(dest, "{}", count),
+                    }
+                }
+            }
+
+            pub mod computed_value {
+                pub type T = Option<${type}>;
+            }
+
+            #[inline]
+            pub fn get_initial_value() -> computed_value::T {
+                None
+            }
+
+            impl ToComputedValue for SpecifiedValue {
+                type ComputedValue = computed_value::T;
+
+                #[inline]
+                fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                    match *self {
+                        SpecifiedValue::Auto => None,
+                        SpecifiedValue::Specified(count) => Some(count)
+                    }
+                }
+            }
+            pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+                if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+                    Ok(SpecifiedValue::Auto)
+                } else {
+                    let value = try!(input.expect_integer());
+                    if !(${condition}) {
+                        return Err(())
+                    }
+                    Ok(SpecifiedValue::Specified(value as ${type}))
+                }
+            }
+        </%self:longhand>
+    </%def>
+
+
     // CSS 2.1, Section 8 - Box model
 
     ${new_style_struct("Margin", is_inherited=False)}
