@@ -63,6 +63,12 @@
   background-color: green;
   display: inline-block;
 }
+#display-none {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: none;
+}
 </style>
 </head>
 <body>
@@ -78,6 +84,7 @@
     </div>
     <div id='rotated'>rotated</div>
     <div id='inline-block'>inline-block</div>
+    <div id='display-none'>display-none</div>
     <script>
     test_rect = function(name, left, top, height, width) {
       var div = document.getElementById(name);
@@ -99,6 +106,7 @@
         test_rect('abs3', 0, 0, 40, 48);
         test_rect('span1', 0, 0, 0, 0);
         test_rect('inline-block', 0, 0, 100, 100);
+        test_rect('display-none', 0, 0, 0, 0);
     });
     </script>
 </body>
