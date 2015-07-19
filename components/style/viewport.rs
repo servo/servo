@@ -305,7 +305,7 @@ impl<'a, I> ViewportDescriptorDeclarationCascade for I
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct ViewportConstraints {
     pub size: TypedSize2D<ViewportPx, f32>,
 

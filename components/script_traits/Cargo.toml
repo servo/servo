@@ -26,7 +26,7 @@ path = "../devtools_traits"
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies]
-url = "0.2.35"
+url = "0.2.36"
 libc = "*"
 euclid = "0.1"
 serde = "*"

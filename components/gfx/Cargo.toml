@@ -47,7 +47,7 @@ path = "../script_traits"
 [dependencies]
 log = "*"
 fnv = "1.0"
-url = "0.2.35"
+url = "0.2.36"
 time = "0.1.12"
 bitflags = "*"
 rustc-serialize = "0.3"

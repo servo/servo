@@ -53,6 +53,7 @@ extern crate net_traits;
 extern crate num;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
+extern crate serde;
 extern crate time;
 extern crate canvas;
 extern crate canvas_traits;

@@ -19,7 +19,7 @@ use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
 use euclid::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use libc;
 use msg::compositor_msg::{Epoch, LayerId};
@@ -44,7 +44,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{Receiver, channel};
 use style::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
@@ -191,7 +191,7 @@ pub struct SendableFrameTree {
 }
 
 struct WebDriverData {
-    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadStatus>)>
+    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>
 }
 
 impl WebDriverData {
@@ -849,7 +849,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
-                           resp_chan: Sender<Option<PipelineId>>) {
+                           resp_chan: IpcSender<Option<PipelineId>>) {
         let current_pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
             let frame = self.frames.get(&frame_id).unwrap();
             frame.current
@@ -863,7 +863,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_get_frame(&mut self,
                         containing_pipeline_id: PipelineId,
                         subpage_id: SubpageId,
-                        resp_chan: Sender<Option<FrameId>>) {
+                        resp_chan: IpcSender<Option<FrameId>>) {
         let frame_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).and_then(
             |x| self.pipeline_to_frame_map.get(&x)).map(|x| *x);
         resp_chan.send(frame_id).unwrap();

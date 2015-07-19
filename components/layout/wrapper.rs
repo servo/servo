@@ -683,7 +683,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
         ThreadSafeLayoutNodeChildrenIterator {
             current_node: self.first_child(),
-            parent_node: Some(self.clone()),
+            parent_node: self.clone(),
         }
     }
 
@@ -768,28 +768,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         self.node.mutate_layout_data()
-    }
-
-    /// Traverses the tree in postorder.
-    ///
-    /// TODO(pcwalton): Offer a parallel version with a compatible API.
-    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(&mut self, traversal: &mut T)
-                                  -> bool {
-        if traversal.should_prune(self) {
-            return true
-        }
-
-        let mut opt_kid = self.first_child();
-        while let Some(mut kid) = opt_kid {
-            if !kid.traverse_postorder_mut(traversal) {
-                return false
-            }
-            unsafe {
-                opt_kid = kid.next_sibling()
-            }
-        }
-
-        traversal.process(self)
     }
 
     pub fn is_ignorable_whitespace(&self) -> bool {
@@ -989,7 +967,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
     current_node: Option<ThreadSafeLayoutNode<'a>>,
-    parent_node: Option<ThreadSafeLayoutNode<'a>>,
+    parent_node: ThreadSafeLayoutNode<'a>,
 }
 
 impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
@@ -1003,36 +981,26 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
                     return None
                 }
 
-                match self.parent_node {
-                    Some(ref parent_node) => {
-                        self.current_node = if parent_node.pseudo == PseudoElementType::Normal {
-                            self.current_node.clone().and_then(|node| {
-                                unsafe {
-                                    node.next_sibling()
-                                }
-                            })
-                        } else {
-                            None
-                        };
-                    }
-                    None => {}
-                }
+                self.current_node = if self.parent_node.pseudo == PseudoElementType::Normal {
+                    self.current_node.clone().and_then(|node| {
+                        unsafe {
+                            node.next_sibling()
+                        }
+                    })
+                } else {
+                    None
+                };
             }
             None => {
-                match self.parent_node {
-                    Some(ref parent_node) => {
-                        if parent_node.has_after_pseudo() {
-                            let pseudo_after_node = if parent_node.pseudo == PseudoElementType::Normal {
-                                let pseudo = PseudoElementType::After(parent_node.get_after_display());
-                                Some(parent_node.with_pseudo(pseudo))
-                            } else {
-                                None
-                            };
-                            self.current_node = pseudo_after_node;
-                            return self.current_node.clone()
-                        }
-                   }
-                   None => {}
+                if self.parent_node.has_after_pseudo() {
+                    let pseudo_after_node = if self.parent_node.pseudo == PseudoElementType::Normal {
+                        let pseudo = PseudoElementType::After(self.parent_node.get_after_display());
+                        Some(self.parent_node.with_pseudo(pseudo))
+                    } else {
+                        None
+                    };
+                    self.current_node = pseudo_after_node;
+                    return self.current_node.clone()
                 }
             }
         }
@@ -1056,19 +1024,6 @@ impl<'le> ThreadSafeLayoutElement<'le> {
     }
 }
 
-/// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeMutTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune<'a>(&'a self, _node: &ThreadSafeLayoutNode<'a>) -> bool {
-        false
-    }
-}
-
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from LayoutNode.
 pub type UnsafeLayoutNode = (usize, usize);
@@ -1085,16 +1040,4 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
 pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode<'static> {
     let (node, _) = *node;
     mem::transmute(node)
-}
-
-/// A top-down traversal.
-pub trait PreorderDomTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
-}
-
-/// A bottom-up traversal, with a optional in-order pass.
-pub trait PostorderDomTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
 }
