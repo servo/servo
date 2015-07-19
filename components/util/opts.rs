@@ -163,6 +163,9 @@ pub struct Opts {
 
     /// Whether to run absolute position calculation and display list construction in parallel.
     pub parallel_display_list_building: bool,
+
+    /// True to exit after the page load (`-x`).
+    pub exit_after_load: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -261,6 +264,7 @@ pub fn default_opts() -> Opts {
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
+        exit_after_load: false,
     }
 }
 
@@ -437,6 +441,7 @@ pub fn from_cmdline_args(args: &[String]) {
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
         parallel_display_list_building: debug_options.contains(&"parallel-display-list-building"),
+        exit_after_load: opt_match.opt_present("x"),
     };
 
     set(opts);

@@ -257,9 +257,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // display list. This is only here because we don't have that logic in the painter yet.
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
-        let composite_target = match opts::get().output_file {
-            Some(_) => CompositeTarget::PngFile,
-            None => CompositeTarget::Window
+        let opts = opts::get();
+        let composite_target = match (opts.output_file.is_some(), opts.exit_after_load) {
+            (true, false) => CompositeTarget::PngFile,
+            _ => CompositeTarget::Window
         };
         let native_display = window.native_display();
         IOCompositor {
@@ -412,7 +413,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.got_load_complete_message = true;
 
                 // If we're painting in headless mode, schedule a recomposite.
-                if opts::get().output_file.is_some() {
+                if opts::get().output_file.is_some() || opts::get().exit_after_load {
                     self.composite_if_necessary(CompositingReason::Headless);
                 }
 
@@ -1376,8 +1377,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 if !self.is_ready_to_paint_image_output() {
                     return None
                 }
-            },
-            _ => {}
+            }
+            CompositeTarget::Window => {
+                if opts::get().exit_after_load && !self.is_ready_to_paint_image_output() {
+                    return None
+                }
+            }
         }
 
         let (framebuffer_ids, texture_ids) = match target {
@@ -1414,14 +1419,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let path = opts::get().output_file.as_ref().unwrap();
                 let res = png::store_png(&mut img, &path);
                 assert!(res.is_ok());
-
-                debug!("shutting down the constellation after generating an output file");
-                let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ConstellationMsg::Exit).unwrap();
-                self.shutdown_state = ShutdownState::ShuttingDown;
                 None
             }
         };
+
+        if opts::get().output_file.is_some() || opts::get().exit_after_load {
+            debug!("shutting down the constellation (after generating an output file or exit flag specified)");
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ConstellationMsg::Exit).unwrap();
+            self.shutdown_state = ShutdownState::ShuttingDown;
+        }
 
         // Perform the page flip. This will likely block for a while.
         self.window.present();
