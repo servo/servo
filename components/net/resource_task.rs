@@ -33,6 +33,7 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
@@ -260,7 +261,7 @@ pub struct ResourceManager {
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    hsts_list: HSTSList
+    hsts_list: Arc<Mutex<HSTSList>>
 }
 
 impl ResourceManager {
@@ -274,7 +275,7 @@ impl ResourceManager {
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
-            hsts_list: hsts_list
+            hsts_list: Arc::new(Mutex::new(hsts_list))
         }
     }
 }
@@ -293,11 +294,11 @@ impl ResourceManager {
     }
 
     pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
-        self.hsts_list.push(entry);
+        self.hsts_list.lock().unwrap().push(entry);
     }
 
     pub fn is_host_sts(&self, host: &str) -> bool {
-        self.hsts_list.is_host_secure(host)
+        self.hsts_list.lock().unwrap().is_host_secure(host)
     }
 
     fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
