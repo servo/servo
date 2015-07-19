@@ -873,6 +873,8 @@ impl ScriptTask {
                 webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetFrameId(frame_id, reply) =>
                 webdriver_handlers::handle_get_frame_id(&page, pipeline_id, frame_id, reply),
+            WebDriverScriptCommand::GetUrl(reply) =>
+                webdriver_handlers::handle_get_url(&page, pipeline_id, reply),
             WebDriverScriptCommand::GetTitle(reply) =>
                 webdriver_handlers::handle_get_title(&page, pipeline_id, reply),
             WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>

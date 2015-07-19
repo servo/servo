@@ -914,10 +914,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, reply) => {
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
             },
-            WebDriverCommandMsg::GetUrl(pipeline_id, reply) => {
-                let pipeline = self.pipeline(pipeline_id);
-                reply.send(pipeline.url.clone()).unwrap();
-            },
             WebDriverCommandMsg::Refresh(pipeline_id, reply) => {
                 let load_data = {
                     let pipeline = self.pipeline(pipeline_id);

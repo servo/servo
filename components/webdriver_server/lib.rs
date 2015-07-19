@@ -206,10 +206,10 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        let cmd_msg = WebDriverCommandMsg::GetUrl(pipeline_id, sender);
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::GetUrl(sender));
         const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
-        //Wait to get a load event
         let url = receiver.recv().unwrap();
 
         Ok(WebDriverResponse::Generic(ValueResponse::new(url.serialize().to_json())))
