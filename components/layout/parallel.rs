@@ -12,12 +12,13 @@ use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
+use traversal::{PreorderDomTraversal, PostorderDomTraversal};
+use traversal::PostorderNodeMutTraversal;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
 use traversal::{RecalcStyleForNode, ConstructFlows};
 use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
-use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
-use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
+use wrapper::UnsafeLayoutNode;
 
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use std::mem;
@@ -241,41 +242,43 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                     mut unsafe_flow: UnsafeFlow,
                     _: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
         loop {
-            unsafe {
-                // Get a real flow.
-                let flow: &mut FlowRef = mem::transmute(&mut unsafe_flow);
+            // Get a real flow.
+            let flow: &mut FlowRef = unsafe {
+                mem::transmute(&mut unsafe_flow)
+            };
 
-                // Perform the appropriate traversal.
-                if self.should_process(&mut **flow) {
-                    self.process(&mut **flow);
-                }
+            // Perform the appropriate traversal.
+            if self.should_process(&mut **flow) {
+                self.process(&mut **flow);
+            }
 
 
-                let base = flow::mut_base(&mut **flow);
+            let base = flow::mut_base(&mut **flow);
 
-                // Reset the count of children for the next layout traversal.
-                base.parallel.children_count.store(base.children.len() as isize,
-                                                   Ordering::Relaxed);
+            // Reset the count of children for the next layout traversal.
+            base.parallel.children_count.store(base.children.len() as isize,
+                                               Ordering::Relaxed);
 
-                // Possibly enqueue the parent.
-                let mut unsafe_parent = base.parallel.parent;
-                if unsafe_parent == null_unsafe_flow() {
-                    // We're done!
-                    break
-                }
+            // Possibly enqueue the parent.
+            let mut unsafe_parent = base.parallel.parent;
+            if unsafe_parent == null_unsafe_flow() {
+                // We're done!
+                break
+            }
 
-                // No, we're not at the root yet. Then are we the last child
-                // of our parent to finish processing? If so, we can continue
-                // on with our parent; otherwise, we've gotta wait.
-                let parent: &mut FlowRef = mem::transmute(&mut unsafe_parent);
-                let parent_base = flow::mut_base(&mut **parent);
-                if parent_base.parallel.children_count.fetch_sub(1, Ordering::Relaxed) == 1 {
-                    // We were the last child of our parent. Reflow our parent.
-                    unsafe_flow = unsafe_parent
-                } else {
-                    // Stop.
-                    break
-                }
+            // No, we're not at the root yet. Then are we the last child
+            // of our parent to finish processing? If so, we can continue
+            // on with our parent; otherwise, we've gotta wait.
+            let parent: &mut FlowRef = unsafe {
+                mem::transmute(&mut unsafe_parent)
+            };
+            let parent_base = flow::mut_base(&mut **parent);
+            if parent_base.parallel.children_count.fetch_sub(1, Ordering::Relaxed) == 1 {
+                // We were the last child of our parent. Reflow our parent.
+                unsafe_flow = unsafe_parent
+            } else {
+                // Stop.
+                break
             }
         }
     }

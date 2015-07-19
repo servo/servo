@@ -11,6 +11,7 @@
 #![feature(plugin)]
 #![feature(vec_push_all)]
 
+#![plugin(serde_macros)]
 #![plugin(string_cache_plugin)]
 #![plugin(serde_macros)]
 #![plugin(plugins)]

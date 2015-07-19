@@ -156,8 +156,10 @@ class MachCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
+        env = self.build_env()
+        env['RUSTDOC'] = '../../etc/rustdoc-with-private'
         return subprocess.call(["cargo", "doc"] + params,
-                               env=self.build_env(), cwd=self.servo_crate())
+                               env=env, cwd=self.servo_crate())
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

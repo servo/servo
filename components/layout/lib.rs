@@ -5,6 +5,7 @@
 #![feature(append)]
 #![feature(arc_unique)]
 #![feature(box_syntax)]
+#![feature(cell_extras)]
 #![feature(custom_derive)]
 #![feature(filling_drop)]
 #![feature(hashmap_hasher)]
