@@ -19,7 +19,7 @@ use util::opts;
 use util::task::spawn_named;
 use url::Url;
 
-use hsts::{HSTSList, HSTSEntry, Subdomains, preload_hsts_domains};
+use hsts::{HSTSList, HSTSEntry, preload_hsts_domains};
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
@@ -236,13 +236,7 @@ impl ResourceChannelManager {
                   consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
               ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
-                  let subdomains = if include_subdomains {
-                      Subdomains::Included
-                  } else {
-                      Subdomains::NotIncluded
-                  };
-
-                  if let Some(entry) = HSTSEntry::new(host, subdomains, max_age) {
+                  if let Some(entry) = HSTSEntry::new(host, include_subdomains, max_age) {
                       self.resource_manager.add_hsts_entry(entry)
                   }
               }
