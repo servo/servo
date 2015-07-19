@@ -59,6 +59,11 @@ interface Element : Node {
 partial interface Element {
   DOMRectList getClientRects();
   DOMRect getBoundingClientRect();
+
+  readonly attribute long clientTop;
+  readonly attribute long clientLeft;
+  readonly attribute long clientWidth;
+  readonly attribute long clientHeight;
 };
 
 // https://domparsing.spec.whatwg.org/#extensions-to-the-element-interface

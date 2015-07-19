@@ -1,0 +1,105 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: 'ahem';
+    src: url(../css/fonts/ahem/ahem.ttf);
+}
+#no-border {
+    width: 100px;
+    height: 100px;
+}
+#with-border {
+    border: 10px solid black;
+    width: 100px;
+    height: 100px;
+}
+#with-border-and-padding {
+    border: 10px solid black;
+    padding: 10px;
+    width: 100px;
+    height: 100px;
+}
+#abs1 {
+    position: absolute;
+    background-color: red;
+    top: 45px;
+    left: 155px;
+    width: 100px;
+    height: 120px;
+}
+#abs2 {
+    position: absolute;
+    background-color: green;
+    top: 5px;
+    left: 5px;
+    width: 80px;
+    height: 80px;
+}
+#abs3 {
+    position: absolute;
+    background-color: blue;
+    top: 12px;
+    left: 14px;
+    width: 48px;
+    height: 40px;
+}
+#span1 {
+    font-family: 'ahem';
+    font-size: 20px;
+    line-height: 1;
+}
+#rotated {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  transform: rotate(45deg);
+}
+#inline-block {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: inline-block;
+}
+</style>
+</head>
+<body>
+    <div id="no-border">my div</div>
+    <div id="with-border">my div</div>
+    <div id="with-border-and-padding">my div</div>
+    <div id="abs1">
+        <div id="abs2">
+            <div id="abs3">
+                <span id="span1">X</span>
+            </div>
+        </div>
+    </div>
+    <div id='rotated'>rotated</div>
+    <div id='inline-block'>inline-block</div>
+    <script>
+    test_rect = function(name, left, top, height, width) {
+      var div = document.getElementById(name);
+      var rect = div.getBoundingClientRect();
+
+      assert_equals(div.clientLeft, left);
+      assert_equals(div.clientTop, top);
+      assert_equals(div.clientHeight, height);
+      assert_equals(div.clientWidth, width);
+    }
+
+    test(function() {
+        test_rect('no-border', 0, 0, 100, 100);
+        test_rect('with-border', 10, 10, 100, 100);
+        test_rect('with-border-and-padding', 10, 10, 120, 120);
+        test_rect('abs1', 0, 0, 120, 100);
+        test_rect('rotated', 0, 0, 100, 100);
+        test_rect('abs2', 0, 0, 80, 80);
+        test_rect('abs3', 0, 0, 40, 48);
+        test_rect('span1', 0, 0, 0, 0);
+        test_rect('inline-block', 0, 0, 100, 100);
+    });
+    </script>
+</body>
+</html>
