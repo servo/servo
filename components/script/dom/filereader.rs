@@ -111,8 +111,9 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId) {
+        let fr = filereader.root();
         // Step 6
-        fr.thread_dispatch_progress_event(gen_id, "loadstart".to_owned(), 0, None);
+        fr.dispatch_progress_event(gen_id, "loadstart".to_owned(), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -130,56 +131,8 @@ impl FileReader {
         if fr.ready_state.get() as u16 != FileReaderReadyState::Loading as u16 {
             fr.dispatch_progress_event(gen_id, "loadend".to_owned(), 0, None);
         }
-        // Step 9 ?
-    }
-
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn handle_read(filereader: TrustedFileReader, gen_id: GenerationId, read_data: ReadData) {
-        // Step 4
-        FileReader::process_read(filereader.clone(),gen_id);
-        println!("{}", "test2");
-
-        FileReader::process_read_data(filereader.clone(), gen_id, DOMString::new());
-        println!("{}", "test3");
-        let encoding = match read_data.label {
-            Some(e) => encoding_from_whatwg_label(&e),
-            None => Some(UTF_8 as EncodingRef)
-        };
-        println!("{}", "test4");
-
-        let enc = match encoding {
-            Some(code) => code,
-            None => {
-                FileReader::process_read_error(filereader.clone(), gen_id, Error::NotSupported);
-                return;
-            }
-        };
-        let bytes = match read_data.bytes.recv() {
-            Ok(data) => data,
-            Err(_) => {
-                FileReader::process_read_error(filereader.clone(), gen_id, Error::NotFound);
-                return;
-            }
-        };
-        let input = match bytes {
-            Some(bytes) => bytes,
-            None => {
-                FileReader::process_read_eof(filereader.clone(), gen_id, DOMString::new());
-                return;
-            }
-        };
-        println!("{}", "test5");
-        // Step 5
-        FileReader::process_read_data(filereader.clone(), gen_id, DOMString::new());
-        let (_, convert) = input.split_at(0);
-
-        let output = enc.decode(convert, DecoderTrap::Strict);
-        match output {
-            Ok(s) => {
-                FileReader::process_read_eof(filereader.clone(), gen_id, s.clone());
-            },
-            Err(_) => FileReader::process_read_error(filereader.clone(), gen_id, Error::InvalidCharacter)
-        };
+        // Step 9
+        fr.terminate_ongoing_reading();
     }
 }
 
@@ -195,7 +148,7 @@ impl<'a> FileReaderMethods for &'a FileReader {
     //TODO https://w3c.github.io/FileAPI/#dfn-readAsDataURL
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(self,blob: &Blob,label:Option<DOMString>) -> ErrorResult {
+    fn ReadAsText(self, blob: &Blob, label:Option<DOMString>) -> ErrorResult {
         let global = self.global.root();
         // Step 1
         if self.ready_state.get() == FileReaderReadyState::Loading {
@@ -262,7 +215,7 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
                                                type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
-        
+
         let target = EventTargetCast::from_ref(self);
         let event = EventCast::from_ref(progressevent.r());
         event.fire(target);
@@ -278,7 +231,7 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         let fr = Trusted::new(global.get_cx(), self, global.script_chan());
         let gen_id = self.generation_id.get();
 
-        let task = box FileReaderHandler::new(gen_id, read_data, fr);
+        let task = box FileReaderHandler::new(gen_id, read_data, fr, global.script_chan());
 
         let (setup_chan, setup_port) = channel();
 
@@ -309,18 +262,74 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
     }
 }
 
+#[derive(Clone)]
+pub enum Process {
+    ProcessRead(TrustedFileReader, GenerationId),
+    ProcessReadData(TrustedFileReader, GenerationId, DOMString),
+    ProcessReadError(TrustedFileReader, GenerationId, Error),
+    ProcessReadEOF(TrustedFileReader, GenerationId, DOMString)
+}
+
+impl Process {
+
+    fn call(self, chan: Box<ScriptChan + Send>) {
+        let task = box FileReaderEvent::new(self);
+        chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
+    }
+
+    pub fn handle(process: Process) {
+        match process {
+            Process::ProcessRead(filereader, gen_id) => {
+                FileReader::process_read(filereader, gen_id);
+            },
+            Process::ProcessReadData(filereader, gen_id, string) => {
+                FileReader::process_read_data(filereader, gen_id, string);
+            },
+            Process::ProcessReadError(filereader, gen_id, error) => {
+                FileReader::process_read_error(filereader, gen_id, error);
+            },
+            Process::ProcessReadEOF(filereader, gen_id, string) => {
+                FileReader::process_read_eof(filereader, gen_id, string);
+            }
+        }
+    }
+}
+
+pub struct FileReaderEvent {
+    process: Process,
+}
+
+impl FileReaderEvent {
+    pub fn new(process: Process) -> FileReaderEvent {
+        FileReaderEvent {
+            process: process,
+        }
+    }
+
+}
+
+impl Runnable for FileReaderEvent {
+    fn handler(self: Box<FileReaderEvent>) {
+        let this = *self;
+        Process::handle(this.process);
+    }
+}
+
 pub struct FileReaderHandler {
     gen_id: GenerationId,
     read_data: ReadData,
     filereader: TrustedFileReader,
+    chan: Box<ScriptChan + Send>
 }
 
 impl FileReaderHandler {
-    pub fn new(gen_id: GenerationId, read_data: ReadData, filereader: TrustedFileReader) -> FileReaderHandler {
+    pub fn new(gen_id: GenerationId, read_data: ReadData,
+        filereader: TrustedFileReader, chan: Box<ScriptChan + Send>) -> FileReaderHandler {
         FileReaderHandler {
             gen_id: gen_id,
             read_data: read_data,
             filereader: filereader,
+            chan: chan
         }
     }
 
@@ -329,6 +338,62 @@ impl FileReaderHandler {
 impl Runnable for FileReaderHandler {
     fn handler(self: Box<FileReaderHandler>) {
         let this = *self;
-        FileReader::handle_read(this.filereader, this.gen_id, this.read_data);
+        this.handle_read();
+    }
+}
+
+trait ReadHandle {
+    fn handle_read(self);
+}
+impl ReadHandle for FileReaderHandler {
+    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    fn handle_read(self) {
+        // Step 4
+        Process::ProcessRead(self.filereader.clone(),
+            self.gen_id).call(self.chan.clone());
+
+        Process::ProcessReadData(self.filereader.clone(),
+            self.gen_id, DOMString::new()).call(self.chan.clone());
+        let encoding = match self.read_data.label {
+            Some(e) => encoding_from_whatwg_label(&e),
+            None => Some(UTF_8 as EncodingRef)
+        };
+
+        let enc = match encoding {
+            Some(code) => code,
+            None => {
+                Process::ProcessReadError(self.filereader.clone(),
+                    self.gen_id, Error::NotSupported).call(self.chan.clone());
+                return;
+            }
+        };
+        let bytes = match self.read_data.bytes.recv() {
+            Ok(data) => data,
+            Err(_) => {
+                Process::ProcessReadError(self.filereader.clone(),
+                    self.gen_id, Error::NotFound).call(self.chan.clone());
+                return;
+            }
+        };
+        let input = match bytes {
+            Some(bytes) => bytes,
+            None => {
+                Process::ProcessReadEOF(self.filereader.clone(),
+                    self.gen_id, DOMString::new()).call(self.chan.clone());
+                return;
+            }
+        };
+        // Step 5
+        Process::ProcessReadData(self.filereader.clone(),
+            self.gen_id, DOMString::new()).call(self.chan.clone());
+        let (_, convert) = input.split_at(0);
+
+        let output = enc.decode(convert, DecoderTrap::Strict);
+        match output {
+            Ok(s) => Process::ProcessReadEOF(self.filereader.clone(),
+                self.gen_id, s).call(self.chan.clone()),
+            Err(_) => Process::ProcessReadError(self.filereader.clone(),
+                self.gen_id, Error::InvalidCharacter).call(self.chan.clone())
+        };
     }
 }
