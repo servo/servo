@@ -24,6 +24,7 @@ use std::error::Error;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use std::io::{self, Read, Write};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
@@ -36,7 +37,7 @@ use std::boxed::FnBox;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               hsts_list: HSTSList)
+               hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
         spawn_named("http_loader".to_owned(),
@@ -86,7 +87,7 @@ fn load(mut load_data: LoadData,
         classifier: Arc<MIMEClassifier>,
         cookies_chan: Sender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-        hsts_list: HSTSList) {
+        hsts_list: Arc<Mutex<HSTSList>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -117,7 +118,7 @@ fn load(mut load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        if request_must_be_secured(&hsts_list, &url) {
+        if request_must_be_secured(&hsts_list.lock().unwrap(), &url) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
