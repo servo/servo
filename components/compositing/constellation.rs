@@ -948,7 +948,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn load_url_for_webdriver(&mut self,
                               pipeline_id: PipelineId,
                               load_data:LoadData,
-                              reply: Sender<webdriver_msg::LoadStatus>) {
+                              reply: IpcSender<webdriver_msg::LoadStatus>) {
         let new_pipeline_id = self.load_url(pipeline_id, load_data);
         if let Some(id) = new_pipeline_id {
             self.webdriver.load_channel = Some((id, reply));
