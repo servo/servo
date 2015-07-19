@@ -5,6 +5,7 @@
 use rustc_serialize::json::{decode};
 use time;
 use url::Url;
+use net_traits::IncludeSubdomains;
 use resource_task::{IPV4_REGEX, IPV6_REGEX};
 
 use std::str::{from_utf8};
@@ -19,20 +20,14 @@ pub struct HSTSEntry {
     pub timestamp: Option<u64>
 }
 
-#[derive(PartialEq, Copy, Clone)]
-pub enum Subdomains {
-    Included,
-    NotIncluded
-}
-
 impl HSTSEntry {
-    pub fn new(host: String, subdomains: Subdomains, max_age: Option<u64>) -> Option<HSTSEntry> {
+    pub fn new(host: String, subdomains: IncludeSubdomains, max_age: Option<u64>) -> Option<HSTSEntry> {
         if IPV4_REGEX.is_match(&host) || IPV6_REGEX.is_match(&host) {
             None
         } else {
             Some(HSTSEntry {
                 host: host,
-                include_subdomains: (subdomains == Subdomains::Included),
+                include_subdomains: (subdomains == IncludeSubdomains::Included),
                 max_age: max_age,
                 timestamp: Some(time::get_time().sec as u64)
             })
