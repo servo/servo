@@ -6,6 +6,7 @@ use constellation_msg::{PipelineId, SubpageId};
 
 use ipc_channel::ipc::IpcSender;
 use rustc_serialize::json::{Json, ToJson};
+use url::Url;
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
@@ -17,6 +18,7 @@ pub enum WebDriverScriptCommand {
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
     GetFrameId(WebDriverFrameId, IpcSender<Result<Option<(PipelineId, SubpageId)>, ()>>),
+    GetUrl(IpcSender<Url>),
     GetTitle(IpcSender<String>)
 }
 

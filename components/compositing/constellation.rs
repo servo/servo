@@ -912,11 +912,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // and pass the event to that script task.
         match msg {
             WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, reply) => {
-                let new_pipeline_id = self.load_url(pipeline_id, load_data);
-                if let Some(id) = new_pipeline_id {
-                    self.webdriver.load_channel = Some((id, reply));
-                }
+                self.load_url_for_webdriver(pipeline_id, load_data, reply);
             },
+            WebDriverCommandMsg::Refresh(pipeline_id, reply) => {
+                let load_data = {
+                    let pipeline = self.pipeline(pipeline_id);
+                    LoadData::new(pipeline.url.clone())
+                };
+                self.load_url_for_webdriver(pipeline_id, load_data, reply);
+            }
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
                 let pipeline = self.pipeline(pipeline_id);
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
@@ -934,6 +938,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     reply.send(None).unwrap();
                 }
             },
+        }
+    }
+
+    fn load_url_for_webdriver(&mut self,
+                              pipeline_id: PipelineId,
+                              load_data:LoadData,
+                              reply: IpcSender<webdriver_msg::LoadStatus>) {
+        let new_pipeline_id = self.load_url(pipeline_id, load_data);
+        if let Some(id) = new_pipeline_id {
+            self.webdriver.load_channel = Some((id, reply));
         }
     }
 

@@ -24,6 +24,7 @@ use js::jsval::UndefinedValue;
 
 use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;
+use url::Url;
 
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
@@ -178,4 +179,11 @@ pub fn handle_get_name(page: &Rc<Page>,
         },
         None => Err(())
     }).unwrap();
+}
+
+pub fn handle_get_url(page: &Rc<Page>,
+                      _pipeline: PipelineId,
+                      reply: IpcSender<Url>) {
+    let url = page.document().r().url();
+    reply.send(url).unwrap();
 }
