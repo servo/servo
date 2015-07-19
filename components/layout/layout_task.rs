@@ -126,7 +126,7 @@ pub struct LayoutTaskData {
     /// A queued response for the content boxes of a node.
     pub content_boxes_response: Vec<Rect<Au>>,
 
-    /// A queued response for the client {top, left, width, height} of a node in pixels.
+    /// A queued response for the client {top, left, width, height} of a node.
     pub client_rect_response: Rect<i32>,
 
     /// The list of currently-running animations.
@@ -1441,13 +1441,11 @@ impl FragmentLocatingFragmentIterator {
 
 impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
     fn process(&mut self, fragment: &Fragment, border_box: &Rect<Au>) {
-        let style_structs::Border {
-            border_top_width: top_width,
-            border_right_width: right_width,
-            border_bottom_width: bottom_width,
-            border_left_width: left_width,
-            ..
-        } = *fragment.style.get_border();
+        let border_style_struct = fragment.style.get_border();
+        let top_width = border_style_struct.border_top_width;
+        let right_width = border_style_struct.border_right_width;
+        let bottom_width = border_style_struct.border_bottom_width;
+        let left_width = border_style_struct.border_left_width;
         self.client_rect.origin.y = top_width.to_px();
         self.client_rect.origin.x = left_width.to_px();
         self.client_rect.size.width = (border_box.size.width - left_width - right_width).to_px();

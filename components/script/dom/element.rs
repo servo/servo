@@ -1317,25 +1317,21 @@ impl<'a> ElementMethods for &'a Element {
             rect.origin.x + rect.size.width)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
     fn ClientTop(self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().origin.y
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
     fn ClientLeft(self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().origin.x
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
     fn ClientWidth(self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().size.width
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().size.height
