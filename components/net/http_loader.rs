@@ -118,7 +118,7 @@ fn load(mut load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        if request_must_be_secured(&hsts_list.lock().unwrap(), &url) {
+        if &*url.scheme != "https" && request_must_be_secured(&hsts_list.lock().unwrap(), &url) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
