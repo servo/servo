@@ -690,7 +690,7 @@ unsafe extern fn wrap(cx: *mut JSContext,
                       -> *mut JSObject {
     // FIXME terrible idea. need security wrappers
     // https://github.com/servo/servo/issues/2382
-    WrapperNew(cx, obj, GetCrossCompartmentWrapper())
+    WrapperNew(cx, obj, GetCrossCompartmentWrapper(), ptr::null(), false)
 }
 
 unsafe extern fn pre_wrap(cx: *mut JSContext, _existing: HandleObject,

@@ -68,7 +68,7 @@ use libc;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref, RefMut, RefCell};
+use std::cell::{Cell, RefMut, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
@@ -122,7 +122,7 @@ pub struct Window {
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
     compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
-    browsing_context: DOMRefCell<Option<BrowsingContext>>,
+    browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -223,7 +223,7 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            *self.browsing_context.borrow_for_script_deallocation() = None;
+            self.browsing_context.set(None);
             self.current_state.set(WindowState::Zombie);
         }
     }
@@ -277,8 +277,8 @@ impl Window {
         self.compositor.borrow_mut()
     }
 
-    pub fn browsing_context<'a>(&'a self) -> Ref<'a, Option<BrowsingContext>> {
-        self.browsing_context.borrow()
+    pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
+        self.browsing_context.get_rooted()
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
@@ -380,7 +380,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-0
     fn Document(self) -> Root<Document> {
-        self.browsing_context().as_ref().unwrap().active_document()
+        self.browsing_context().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
@@ -410,7 +410,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://html.spec.whatwg.org/#dom-frameelement
     fn GetFrameElement(self) -> Option<Root<Element>> {
-        self.browsing_context().as_ref().unwrap().frame_element()
+        self.browsing_context().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
@@ -696,7 +696,7 @@ impl<'a> WindowHelpers for &'a Window {
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-        *self.browsing_context.borrow_mut() = None;
+        self.browsing_context.set(None);
     }
 
     /// Reflows the page unconditionally. This method will wait for the layout thread to complete
@@ -885,9 +885,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>) {
-        let mut browsing_context = self.browsing_context.borrow_mut();
-        *browsing_context = Some(BrowsingContext::new(doc, frame_element));
-        (*browsing_context).as_mut().unwrap().create_window_proxy();
+        self.browsing_context.set(Some(JS::from_ref(&BrowsingContext::new(doc, frame_element))));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -1054,15 +1052,14 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn parent(self) -> Option<Root<Window>> {
-        let browsing_context = self.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
+        let browsing_context = self.browsing_context().unwrap();
 
         browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element.r());
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
             let context = r.browsing_context();
-            context.as_ref().unwrap().active_window()
+            context.unwrap().active_window()
         })
     }
 }
@@ -1105,7 +1102,7 @@ impl Window {
             image_cache_task: image_cache_task,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
-            browsing_context: DOMRefCell::new(None),
+            browsing_context: Default::default(),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_ns() as f64,

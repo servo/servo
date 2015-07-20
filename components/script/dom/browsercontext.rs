@@ -6,7 +6,8 @@ use dom::bindings::conversions::native_from_handleobject;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::proxyhandler::{get_property_descriptor, fill_property_descriptor};
-use dom::bindings::utils::{Reflectable, WindowProxyHandler};
+use dom::bindings::trace::RootedTraceable;
+use dom::bindings::utils::{Reflector, Reflectable, WindowProxyHandler};
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
@@ -17,34 +18,61 @@ use js::jsapi::{JSContext, JSObject, JSPropertyDescriptor, JSErrNum};
 use js::jsapi::{HandleObject, HandleId, MutableHandle, MutableHandleValue};
 use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_DefinePropertyById6};
-use js::jsapi::{JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue, Handle, HandleValue, Heap};
-use js::jsapi::{JSAutoRequest, JSAutoCompartment};
-use js::jsval::{ObjectValue, UndefinedValue};
-use js::glue::{GetProxyPrivate};
+use js::jsapi::{JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue, Handle, HandleValue};
+use js::jsapi::{JSAutoRequest, JSAutoCompartment, JS_GetClass};
+use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
+use js::glue::{GetProxyPrivate, SetProxyExtra};
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
-use js::{JSTrue, JSFalse};
+use js::{JSTrue, JSFalse, JSCLASS_IS_GLOBAL};
 
 use std::ptr;
-use std::default::Default;
 
-#[derive(JSTraceable, HeapSizeOf)]
-#[privatize]
+#[derive(HeapSizeOf)]
+#[dom_struct]
 #[allow(raw_pointer_derive)]
-#[must_root]
 pub struct BrowsingContext {
+    reflector: Reflector,
     history: Vec<SessionHistoryEntry>,
     active_index: usize,
-    window_proxy: Heap<*mut JSObject>,
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowsingContext {
-    pub fn new(document: &Document, frame_element: Option<&Element>) -> BrowsingContext {
+    pub fn new_inherited(document: &Document, frame_element: Option<&Element>) -> BrowsingContext {
         BrowsingContext {
+            reflector: Reflector::new(),
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Heap::default(),
             frame_element: frame_element.map(JS::from_ref),
+        }
+    }
+
+    #[allow(unsafe_code, unrooted_must_root)]
+    pub fn new(document: &Document, frame_element: Option<&Element>) -> Root<BrowsingContext> {
+        unsafe {
+            let window = document.window();
+
+            let WindowProxyHandler(handler) = window.windowproxy_handler();
+            assert!(!handler.is_null());
+
+            let cx = window.get_cx();
+            let _ar = JSAutoRequest::new(cx);
+            let parent = window.reflector().get_jsobject();
+            assert!(!parent.get().is_null());
+            assert!(((*JS_GetClass(parent.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+            let _ac = JSAutoCompartment::new(cx, parent.get());
+            let window_proxy = RootedObject::new(cx, WrapperNew(cx, parent, handler, ptr::null() /*XXX*/, true));
+            assert!(!window_proxy.ptr.is_null());
+
+            let object = box BrowsingContext::new_inherited(document, frame_element);
+
+            let raw = Box::into_raw(object);
+            let _rt = RootedTraceable::new(&*raw); // XXX unrooted_must_root
+            SetProxyExtra(window_proxy.ptr, 0, PrivateValue(raw as *const _));
+
+            (*raw).init_reflector(window_proxy.ptr);
+
+            Root::from_ref(&*raw)
         }
     }
 
@@ -62,25 +90,9 @@ impl BrowsingContext {
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(!self.window_proxy.get().is_null());
-        self.window_proxy.get()
-    }
-
-    #[allow(unsafe_code)]
-    pub fn create_window_proxy(&mut self) {
-        let win = self.active_window();
-        let win = win.r();
-
-        let WindowProxyHandler(handler) = win.windowproxy_handler();
-        assert!(!handler.is_null());
-
-        let cx = win.get_cx();
-        let _ar = JSAutoRequest::new(cx);
-        let parent = win.reflector().get_jsobject();
-        let _ac = JSAutoCompartment::new(cx, parent.get());
-        let wrapper = unsafe { WrapperNew(cx, parent, handler) };
-        assert!(!wrapper.is_null());
-        self.window_proxy.set(wrapper);
+        let window_proxy = self.reflector.get_jsobject();
+        assert!(!window_proxy.get().is_null());
+        window_proxy.get()
     }
 }
 
@@ -91,7 +103,7 @@ impl BrowsingContext {
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
-    children: Vec<BrowsingContext>
+    children: Vec<JS<BrowsingContext>>
 }
 
 impl SessionHistoryEntry {
