@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::FileReaderBinding;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::InvalidState;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{Root, JS, MutNullableHeap};
@@ -16,7 +16,7 @@ use dom::event::EventHelpers;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::blob::Blob;
 use dom::blob::BlobHelpers;
-use dom::domexception::DOMException;
+use dom::domexception::{DOMException, DOMErrorName};
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
 use encoding::types::{EncodingRef, DecoderTrap};
@@ -91,13 +91,27 @@ impl FileReader {
     //https://w3c.github.io/FileAPI/#dfn-error-steps
     pub fn process_read_error(filereader: TrustedFileReader, gen_id: GenerationId) {
         let fr = filereader.root();
+
+        macro_rules! return_on_abort(
+            () => (
+                if gen_id != fr.generation_id.get() {
+                    return
+                }
+            );
+        );
+
+        return_on_abort!();
         // Step 1
         fr.change_ready_state(FileReaderReadyState::Done);
         *fr.result.borrow_mut() = None;
+        return_on_abort!();
+
         //FIXME set error attribute
-        fr.dispatch_progress_event(gen_id, "error".to_owned(), 0, None);
+        fr.dispatch_progress_event("error".to_owned(), 0, None);
+        return_on_abort!();
         // Step 3
-        fr.dispatch_progress_event(gen_id, "loadend".to_owned(), 0, None);
+        fr.dispatch_progress_event("loadend".to_owned(), 0, None);
+        return_on_abort!();
         // Step 4
         fr.terminate_ongoing_reading();
     }
@@ -105,31 +119,60 @@ impl FileReader {
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId) {
         let fr = filereader.root();
-        // Step 7
-        fr.dispatch_progress_event(gen_id, "progress".to_owned(), 0, None);
+
+        macro_rules! return_on_abort(
+            () => (
+                if gen_id != fr.generation_id.get() {
+                    return
+                }
+            );
+        );
+        return_on_abort!();
+        //FIXME Step 7 send current progress
+        fr.dispatch_progress_event("progress".to_owned(), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId) {
         let fr = filereader.root();
+
+        macro_rules! return_on_abort(
+            () => (
+                if gen_id != fr.generation_id.get() {
+                    return
+                }
+            );
+        );
+        return_on_abort!();
         // Step 6
-        fr.dispatch_progress_event(gen_id, "loadstart".to_owned(), 0, None);
+        fr.dispatch_progress_event("loadstart".to_owned(), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId, data: DOMString) {
         let fr = filereader.root();
 
-        fr.dispatch_progress_event(gen_id, "progress".to_owned(), 0, None);
+        macro_rules! return_on_abort(
+            () => (
+                if gen_id != fr.generation_id.get() {
+                    return
+                }
+            );
+        );
+
+        return_on_abort!();
         // Step 8.1
         fr.change_ready_state(FileReaderReadyState::Done);
+        return_on_abort!();
         // Step 8.2
         *fr.result.borrow_mut() = Some(data);
+        return_on_abort!();
         // Step 8.3
-        fr.dispatch_progress_event(gen_id, "load".to_owned(), 0, None);
+        fr.dispatch_progress_event("load".to_owned(), 0, None);
+        return_on_abort!();
         // Step 8.4
-        if fr.ready_state.get() as u16 != FileReaderReadyState::Loading as u16 {
-            fr.dispatch_progress_event(gen_id, "loadend".to_owned(), 0, None);
+        if fr.ready_state.get() != FileReaderReadyState::Loading {
+            fr.dispatch_progress_event("loadend".to_owned(), 0, None);
         }
         // Step 9
         fr.terminate_ongoing_reading();
@@ -176,15 +219,15 @@ impl<'a> FileReaderMethods for &'a FileReader {
         }
         // Steps 1 & 3
         *self.result.borrow_mut() = None;
+        //FIXME set error
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
-        self.dispatch_progress_event(self.generation_id.get(), "abort".to_owned(), 0, None);
-        self.dispatch_progress_event(self.generation_id.get(), "loadend".to_owned(), 0, None);
+        self.dispatch_progress_event("abort".to_owned(), 0, None);
+        self.dispatch_progress_event("loadend".to_owned(), 0, None);
     }
 
     fn GetError(self) -> Option<Root<DOMException>> {
-        //FIXME Return the current error state
         self.error.get().map(|error| error.root())
     }
 
@@ -198,17 +241,14 @@ impl<'a> FileReaderMethods for &'a FileReader {
 }
 
 trait PrivateFileReaderHelpers {
-    fn dispatch_progress_event(self, gen_id: GenerationId, type_: DOMString, loaded: u64, total: Option<u64>);
+    fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>);
     fn terminate_ongoing_reading(self);
     fn read(self, read_data: ReadData,  global: GlobalRef) -> ErrorResult;
     fn change_ready_state(self, state: FileReaderReadyState);
 }
 
 impl<'a> PrivateFileReaderHelpers for &'a FileReader {
-
-    fn dispatch_progress_event(self, gen_id: GenerationId, type_: DOMString, loaded: u64, total: Option<u64>) {
-        //let GenerationId(cur_id) = self.generation_id.get();
-        //let GenerationId(thread_id) = gen_id;
+    fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>) {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
@@ -231,7 +271,8 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         let fr = Trusted::new(global.get_cx(), self, global.script_chan());
         let gen_id = self.generation_id.get();
 
-        let task = box FileReaderHandler::new(gen_id, read_data, fr, global.script_chan());
+        let script_chan = global.script_chan();
+        let task = box FileReaderHandler::new(gen_id, read_data, fr, script_chan);
 
         let (setup_chan, setup_port) = channel();
 
@@ -266,7 +307,7 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
 pub enum Process {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId, DOMString),
-    ProcessReadError(TrustedFileReader, GenerationId, Error),
+    ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, DOMString)
 }
 
@@ -363,7 +404,7 @@ impl ReadHandle for FileReaderHandler {
             Some(code) => code,
             None => {
                 Process::ProcessReadError(self.filereader,
-                    self.gen_id, Error::NotSupported).call(self.chan);
+                    self.gen_id, DOMErrorName::NotSupportedError).call(self.chan);
                 return;
             }
         };
@@ -371,7 +412,7 @@ impl ReadHandle for FileReaderHandler {
             Ok(data) => data,
             Err(_) => {
                 Process::ProcessReadError(self.filereader,
-                    self.gen_id, Error::NotFound).call(self.chan);
+                    self.gen_id, DOMErrorName::NotFoundError).call(self.chan);
                 return;
             }
         };
@@ -393,7 +434,7 @@ impl ReadHandle for FileReaderHandler {
             Ok(s) => Process::ProcessReadEOF(self.filereader,
                 self.gen_id, s).call(self.chan),
             Err(_) => Process::ProcessReadError(self.filereader,
-                self.gen_id, Error::InvalidCharacter).call(self.chan)
+                self.gen_id, DOMErrorName::InvalidCharacterError).call(self.chan)
         };
     }
 }
