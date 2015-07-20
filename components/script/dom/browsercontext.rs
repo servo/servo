@@ -30,16 +30,16 @@ use std::default::Default;
 #[derive(JSTraceable)]
 #[privatize]
 #[allow(raw_pointer_derive)]
-pub struct BrowserContext {
+pub struct BrowsingContext {
     history: Vec<SessionHistoryEntry>,
     active_index: usize,
     window_proxy: Heap<*mut JSObject>,
     frame_element: Option<JS<Element>>,
 }
 
-impl BrowserContext {
-    pub fn new(document: &Document, frame_element: Option<&Element>) -> BrowserContext {
-        BrowserContext {
+impl BrowsingContext {
+    pub fn new(document: &Document, frame_element: Option<&Element>) -> BrowsingContext {
+        BrowsingContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
             window_proxy: Heap::default(),
@@ -90,7 +90,7 @@ impl BrowserContext {
 #[derive(JSTraceable)]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
-    children: Vec<BrowserContext>
+    children: Vec<BrowsingContext>
 }
 
 impl SessionHistoryEntry {

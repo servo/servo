@@ -17,7 +17,7 @@ use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
-use dom::browsercontext::BrowserContext;
+use dom::browsercontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::document::{Document, DocumentHelpers};
@@ -108,7 +108,7 @@ pub struct Window {
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
     compositor: DOMRefCell<ScriptListener>,
-    browser_context: DOMRefCell<Option<BrowserContext>>,
+    browser_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -250,7 +250,7 @@ impl Window {
         self.compositor.borrow_mut()
     }
 
-    pub fn browser_context<'a>(&'a self) -> Ref<'a, Option<BrowserContext>> {
+    pub fn browser_context<'a>(&'a self) -> Ref<'a, Option<BrowsingContext>> {
         self.browser_context.borrow()
     }
 
@@ -778,7 +778,7 @@ impl<'a> WindowHelpers for &'a Window {
 
     fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>) {
         let mut browser_context = self.browser_context.borrow_mut();
-        *browser_context = Some(BrowserContext::new(doc, frame_element));
+        *browser_context = Some(BrowsingContext::new(doc, frame_element));
         (*browser_context).as_mut().unwrap().create_window_proxy();
     }
 
