@@ -73,12 +73,16 @@ impl DocumentLoader {
         }
     }
 
+    pub fn add_blocking_load(&mut self, load: LoadType) {
+        self.blocking_loads.push(load);
+    }
+
     /// Create a new pending network request, which can be initiated at some point in
     /// the future.
     pub fn prepare_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
         let context = load.to_load_context();
         let url = load.url().clone();
-        self.blocking_loads.push(load);
+        self.add_blocking_load(load);
         PendingAsyncLoad::new(context, (*self.resource_thread).clone(), url, self.pipeline)
     }
 
