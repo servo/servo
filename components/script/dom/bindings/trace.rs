@@ -63,7 +63,6 @@ use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
-use serde::Serialize;
 use util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -341,13 +340,6 @@ impl JSTraceable for ScriptListener {
 }
 
 impl JSTraceable for Box<LayoutRPC+'static> {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> JSTraceable for IpcSender<T> where T: Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

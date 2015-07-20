@@ -65,10 +65,6 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.6"
 features = [ "serde-serialization" ]
 
-[dependencies.url]
-version = "0.2"
-features = [ "query_encoding", "serde_serialization" ]
-
 [dependencies]
 log = "*"
 encoding = "0.2"

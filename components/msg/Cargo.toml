@@ -41,14 +41,6 @@ euclid = "0.1"
 serde = "*"
 serde_macros = "*"
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "*"
 

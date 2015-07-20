@@ -26,7 +26,3 @@ bitflags = "*"
 version = "0.2"
 features = [ "serde_serialization" ]
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-

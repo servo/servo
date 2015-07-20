@@ -106,7 +106,6 @@ features = [ "serde_serialization" ]
 
 [dependencies]
 env_logger = "*"
-url = "0.2.36"
 time = "0.1.12"
 bitflags = "*"
 libc = "*"

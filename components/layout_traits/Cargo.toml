@@ -33,7 +33,6 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
-url = "0.2.36"
 euclid = "0.1"
 serde = "*"
 serde_macros = "*"
