@@ -1394,7 +1394,7 @@ impl ScriptTask {
                                      loader);
 
         let frame_element = frame_element.r().map(|elem| ElementCast::from_ref(elem));
-        window.r().init_browser_context(document.r(), frame_element);
+        window.r().init_browsing_context(document.r(), frame_element);
 
         // Create the root frame
         page.set_frame(Some(Frame {

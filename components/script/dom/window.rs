@@ -17,7 +17,7 @@ use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
-use dom::browsercontext::BrowserContext;
+use dom::browsercontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::document::{Document, DocumentHelpers};
@@ -108,7 +108,7 @@ pub struct Window {
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
     compositor: DOMRefCell<ScriptListener>,
-    browser_context: DOMRefCell<Option<BrowserContext>>,
+    browsing_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -197,7 +197,7 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            *self.browser_context.borrow_for_script_deallocation() = None;
+            *self.browsing_context.borrow_for_script_deallocation() = None;
             self.current_state.set(WindowState::Zombie);
         }
     }
@@ -250,8 +250,8 @@ impl Window {
         self.compositor.borrow_mut()
     }
 
-    pub fn browser_context<'a>(&'a self) -> Ref<'a, Option<BrowserContext>> {
-        self.browser_context.borrow()
+    pub fn browsing_context<'a>(&'a self) -> Ref<'a, Option<BrowsingContext>> {
+        self.browsing_context.borrow()
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
@@ -343,7 +343,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     fn Document(self) -> Root<Document> {
-        self.browser_context().as_ref().unwrap().active_document()
+        self.browsing_context().as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
@@ -371,7 +371,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://html.spec.whatwg.org/#dom-frameelement
     fn GetFrameElement(self) -> Option<Root<Element>> {
-        self.browser_context().as_ref().unwrap().frame_element()
+        self.browsing_context().as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
@@ -526,7 +526,7 @@ impl<'a> WindowMethods for &'a Window {
 
 pub trait WindowHelpers {
     fn clear_js_runtime(self);
-    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>);
+    fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
@@ -623,7 +623,7 @@ impl<'a> WindowHelpers for &'a Window {
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-        *self.browser_context.borrow_mut() = None;
+        *self.browsing_context.borrow_mut() = None;
     }
 
     /// Reflows the page unconditionally. This method will wait for the layout thread to complete
@@ -776,10 +776,10 @@ impl<'a> WindowHelpers for &'a Window {
         self.window_size.set(Some(new_size));
     }
 
-    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>) {
-        let mut browser_context = self.browser_context.borrow_mut();
-        *browser_context = Some(BrowserContext::new(doc, frame_element));
-        (*browser_context).as_mut().unwrap().create_window_proxy();
+    fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>) {
+        let mut browsing_context = self.browsing_context.borrow_mut();
+        *browsing_context = Some(BrowsingContext::new(doc, frame_element));
+        (*browsing_context).as_mut().unwrap().create_window_proxy();
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -955,14 +955,14 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn parent(self) -> Option<Root<Window>> {
-        let browser_context = self.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
+        let browsing_context = self.browsing_context();
+        let browsing_context = browsing_context.as_ref().unwrap();
 
-        browser_context.frame_element().map(|frame_element| {
+        browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element.r());
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
-            let context = r.browser_context();
+            let context = r.browsing_context();
             context.as_ref().unwrap().active_window()
         })
     }
@@ -1006,7 +1006,7 @@ impl Window {
             image_cache_task: image_cache_task,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
-            browser_context: DOMRefCell::new(None),
+            browsing_context: DOMRefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_ns() as f64,

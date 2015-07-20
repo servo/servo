@@ -702,7 +702,7 @@ pub unsafe extern fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> 
     let win: Root<window::Window> = native_from_handleobject(obj).unwrap();
     // FIXME(https://github.com/rust-lang/rust/issues/23338)
     let win = win.r();
-    let context = win.browser_context();
+    let context = win.browsing_context();
     context.as_ref().unwrap().window_proxy()
 }
 
