@@ -502,7 +502,7 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.26"
-source = "git+https://github.com/servo/glutin?branch=servo#4cf15370a18d6327d159fb4f9950061bf1b715f6"
+source = "git+https://github.com/servo/glutin?branch=servo#c6d08b017703abcb00221462fb8ebbfad3495374"
 dependencies = [
  "android_glue 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cocoa 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -183,7 +183,8 @@ impl<'a> LayoutContext<'a> {
             Err(state) => {
                 // If we are emitting an output file, then we need to block on
                 // image load or we risk emitting an output file missing the image.
-                let is_sync = opts::get().output_file.is_some();
+                let is_sync = opts::get().output_file.is_some() ||
+                              opts::get().exit_after_load;
 
                 match (state, is_sync) {
                     // Image failed to load, so just return nothing
