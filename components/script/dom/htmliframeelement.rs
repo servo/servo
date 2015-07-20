@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::LoadType;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
@@ -20,7 +21,7 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, UnbindContext, window_from_node};
+use dom::node::{Node, UnbindContext, window_from_node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -96,6 +97,15 @@ impl HTMLIFrameElement {
         } else {
             IFrameUnsandboxed
         };
+
+        let document = document_from_node(self);
+        let document = document.r();
+        //TODO: Deal with the case where an iframe is being reloaded so url is None.
+        //      The iframe should always have access to the nested context's active
+        //      document URL through the browsing context.
+        if let Some(ref url) = url {
+            document.add_blocking_load(LoadType::Subframe(url.clone()));
+        }
 
         let window = window_from_node(self);
         let window = window.r();

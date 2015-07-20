@@ -1220,6 +1220,11 @@ impl Document {
                            ReflowReason::RequestAnimationFrame);
     }
 
+    pub fn add_blocking_load(&self, load: LoadType) {
+        let mut loader = self.loader.borrow_mut();
+        loader.add_blocking_load(load)
+    }
+
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
         loader.prepare_async_load(load)
@@ -2509,6 +2514,9 @@ impl DocumentProgressHandler {
         let wintarget = window.upcast::<EventTarget>();
         event.set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
+
+        let ConstellationChan(ref chan) = window.constellation_chan();
+        chan.send(ConstellationMsg::SubframeLoaded(window.pipeline())).unwrap();
 
         document.notify_constellation_load();
 

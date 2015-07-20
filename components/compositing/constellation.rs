@@ -583,6 +583,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("handling script failure message from pipeline {:?}, {:?}", pipeline_id, parent_info);
                 self.handle_failure_msg(pipeline_id, parent_info);
             }
+            Request::Script(FromScriptMsg::SubframeLoaded(pipeline_id)) => {
+                debug!("constellation got subframe loaded message {:?}", pipeline_id);
+                self.handle_subframe_loaded(pipeline_id);
+            }
             Request::Script(FromScriptMsg::ScriptLoadedURLInIFrame(load_info)) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.containing_pipeline_id,
@@ -818,7 +822,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let parent_pipeline = self.pipeline(subframe_parent.0);
         let msg = ConstellationControlMsg::DispatchFrameLoadEvent {
             target: pipeline_id,
-            parent: subframe_parent.0
+            parent: subframe_parent.0,
+            url: subframe_pipeline.url.clone(),
         };
         parent_pipeline.script_chan.send(msg).unwrap();
     }

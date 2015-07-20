@@ -76,6 +76,8 @@ pub enum ScriptMsg {
     RemoveIFrame(PipelineId),
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfo),
+    /// Trigger a `load` event on the frame context element for the given pipeline.
+    SubframeLoaded(PipelineId),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
     /// Mark a new document as active
