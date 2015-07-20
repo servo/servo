@@ -20,7 +20,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
-use std::cell::Ref;
+use std::cell::{Ref, RefMut};
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
@@ -159,12 +159,17 @@ pub enum CharacterDataTypeId {
 
 pub trait CharacterDataHelpers<'a> {
     fn data(self) -> Ref<'a, DOMString>;
+    fn data_mut(self) -> RefMut<'a, DOMString>;
 }
 
 impl<'a> CharacterDataHelpers<'a> for &'a CharacterData {
     #[inline]
     fn data(self) -> Ref<'a, DOMString> {
         self.data.borrow()
+    }
+    #[inline]
+    fn data_mut(self) -> RefMut<'a, DOMString> {
+        self.data.borrow_mut()
     }
 }
 
