@@ -224,6 +224,8 @@ pub enum Msg {
     FrameRect(PipelineId, SubpageId, Rect<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
+    /// Trigger a `load` event on the frame context element for the given pipeline.
+    SubframeLoaded(PipelineId),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     PainterReady(PipelineId),
     ResizedWindow(WindowSizeData),

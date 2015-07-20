@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::LoadType;
 use dom::attr::{Attr, AttrHelpersForLayout, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -20,7 +21,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId, self};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -107,6 +108,10 @@ impl HTMLIFrameElement {
         } else {
             IFrameUnsandboxed
         };
+
+        let document = document_from_node(self);
+        let document = document.r();
+        document.add_blocking_load(LoadType::Subframe(url.clone()));
 
         let window = window_from_node(self);
         let window = window.r();

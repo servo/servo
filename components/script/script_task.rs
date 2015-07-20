@@ -1001,6 +1001,8 @@ impl ScriptTask {
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
                 self.handle_tick_all_animations(pipeline_id),
+            ConstellationControlMsg::DispatchFrameLoadEvent(pipeline_id, subpage, url) =>
+                self.handle_frame_load_event(pipeline_id, subpage, url),
             ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
                 responder.respond();
                 self.handle_resource_loaded(id, LoadType::Stylesheet(url));
@@ -1530,6 +1532,13 @@ impl ScriptTask {
         let page = get_page(&self.root_page(), id);
         let document = page.document();
         document.r().run_the_animation_frame_callbacks();
+    }
+
+    /// Notify the containing document of a child frame that has completed loading.
+    fn handle_frame_load_event(&self, id: PipelineId, frame: SubpageId, url: Url) {
+        let page = get_page(&self.root_page(), id);
+        let document = page.document();
+        document.r().iframe_load_event(frame, url);
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document

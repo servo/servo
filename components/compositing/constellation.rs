@@ -388,6 +388,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got frame rect message");
                 self.handle_frame_rect_msg(pipeline_id, subpage_id, Rect::from_untyped(&rect));
             }
+            ConstellationMsg::SubframeLoaded(pipeline_id) => {
+                debug!("constellation got subframe loaded message {:?}", pipeline_id);
+                self.handle_subframe_loaded(pipeline_id);
+            }
             ConstellationMsg::ScriptLoadedURLInIFrame(url,
                                                       source_pipeline_id,
                                                       new_subpage_id,
@@ -620,6 +624,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 LayerId::null(),
                 rect.to_untyped()));
         }
+    }
+
+    fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
+        let subframe_pipeline = self.pipeline(pipeline_id);
+        let subframe_parent = match subframe_pipeline.parent_info {
+            Some(ref parent) => parent,
+            None => return,
+        };
+        let parent_pipeline = self.pipeline(subframe_parent.0);
+        let msg = ConstellationControlMsg::DispatchFrameLoadEvent(parent_pipeline.id,
+                                                                  subframe_parent.1,
+                                                                  subframe_pipeline.url.clone());
+        parent_pipeline.script_chan.send(msg).unwrap();
     }
 
     // The script task associated with pipeline_id has loaded a URL in an iframe via script. This
