@@ -319,9 +319,9 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     fn is_fully_active(self) -> bool {
         let window = self.window.root();
         let window = window.r();
-        let browser_context = window.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
-        let active_document = browser_context.active_document();
+        let browsing_context = window.browsing_context();
+        let browsing_context = browsing_context.as_ref().unwrap();
+        let active_document = browsing_context.active_document();
 
         if self != active_document.r() {
             return false;
@@ -1879,10 +1879,10 @@ impl DocumentProgressHandler {
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
         let window_ref = window.r();
-        let browser_context = window_ref.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
+        let browsing_context = window_ref.browsing_context();
+        let browsing_context = browsing_context.as_ref().unwrap();
 
-        browser_context.frame_element().map(|frame_element| {
+        browsing_context.frame_element().map(|frame_element| {
             let frame_window = window_from_node(frame_element.r());
             let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
                                    EventBubbles::DoesNotBubble,
