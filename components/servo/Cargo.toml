@@ -101,8 +101,8 @@ path = "../../support/android-rs-glue/glue"
 optional = true
 
 [dependencies]
-env_logger = "*"
+env_logger = "0.3"
 url = "0.2.36"
 time = "0.1.12"
-bitflags = "*"
-libc = "*"
+bitflags = "0.3"
+libc = "0.1"

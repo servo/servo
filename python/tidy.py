@@ -12,9 +12,10 @@ import fnmatch
 import itertools
 import re
 import sys
+import toml
 from licenseck import licenses
 
-filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
+filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
 python_dependencies = [
@@ -145,14 +146,25 @@ def check_flake8(file_paths):
     return num_errors
 
 
+def check_toml(contents):
+    contents = contents.splitlines(True)
+    for idx, line in enumerate(contents):
+        if line.find("*") != -1:
+            yield (idx + 1, "found asterisk instead of minimum version number")
+
+
 def collect_errors_for_files(files_to_check, checking_functions):
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
             contents = fp.read()
-            for check in checking_functions:
-                for error in check(contents):
-                    # filename, line, message
+            if file_name.endswith(".toml"):
+                for error in check_toml(contents):
                     yield (file_name, error[0], error[1])
+            else:
+                for check in checking_functions:
+                    for error in check(contents):
+                        # filename, line, message
+                        yield (file_name, error[0], error[1])
 
 
 def check_reftest_order(files_to_check):
