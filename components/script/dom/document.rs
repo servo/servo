@@ -905,6 +905,11 @@ impl Document {
                           ReflowReason::RequestAnimationFrame);
     }
 
+    pub fn add_blocking_load(&self, load: LoadType) {
+        let mut loader = self.loader.borrow_mut();
+        loader.add_blocking_load(load)
+    }
+
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
         loader.prepare_async_load(load)
@@ -946,6 +951,35 @@ impl Document {
         NodeCast::from_ref(self).traverse_preorder()
             .filter_map(HTMLIFrameElementCast::to_root)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+    pub fn iframe_load_event(&self, subpage_id: SubpageId, url: Url) {
+        // Step 1
+        let node = NodeCast::from_ref(self);
+        let child = node.traverse_preorder()
+                        .filter_map(HTMLIFrameElementCast::to_root)
+                        .find(|node| node.r().subpage_id() == Some(subpage_id));
+        let child = match child {
+            Some(child) => child,
+            None => return,
+        };
+
+        // TODO Step 2 - check child iframe mute event
+        // TODO Step 3 - set child iframe mute event
+
+        // Step 4
+        let window = window_from_node(child.r());
+        let event = Event::new(GlobalRef::Window(window.r()),
+                               "load".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        let target = EventTargetCast::from_ref(child.r());
+        event.r().fire(target);
+
+        self.finish_load(LoadType::Subframe(url));
+
+        // TODO Step 5 - unset child iframe mute event
     }
 }
 
@@ -1873,17 +1907,8 @@ impl DocumentProgressHandler {
         event.r().set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
-        let browsing_context = window.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
-
-        if let Some(frame_element) = browsing_context.frame_element() {
-            let frame_window = window_from_node(frame_element);
-            let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::NotCancelable);
-            let target = EventTargetCast::from_ref(frame_element);
-            event.r().fire(target);
-        };
+        let ConstellationChan(ref chan) = window.constellation_chan();
+        chan.send(ConstellationMsg::SubframeLoaded(window.pipeline())).unwrap();
 
         document.r().notify_constellation_load();
 

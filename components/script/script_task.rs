@@ -947,6 +947,8 @@ impl ScriptTask {
                 self.handle_tick_all_animations(pipeline_id),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
+            ConstellationControlMsg::DispatchFrameLoadEvent(pipeline_id, subpage, url) =>
+                self.handle_frame_load_event(pipeline_id, subpage, url),
             ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
                 responder.respond();
                 self.handle_resource_loaded(id, LoadType::Stylesheet(url));
@@ -1490,6 +1492,13 @@ impl ScriptTask {
                 self.rebuild_and_force_reflow(&*page, ReflowReason::WebFontLoaded);
             }
         }
+    }
+
+    /// Notify the containing document of a child frame that has completed loading.
+    fn handle_frame_load_event(&self, id: PipelineId, frame: SubpageId, url: Url) {
+        let page = get_page(&self.root_page(), id);
+        let document = page.document();
+        document.iframe_load_event(frame, url);
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document

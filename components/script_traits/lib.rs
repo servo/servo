@@ -144,6 +144,8 @@ pub enum ConstellationControlMsg {
     StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder + Send>),
     /// Get the current state of the script task for a given pipeline.
     GetCurrentState(Sender<ScriptState>, PipelineId),
+    /// Cause a `load` event to be dispatched at the appropriate frame element.
+    DispatchFrameLoadEvent(PipelineId, SubpageId, Url),
 }
 
 /// The mouse button involved in the event.

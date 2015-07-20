@@ -71,11 +71,15 @@ impl DocumentLoader {
         }
     }
 
+    pub fn add_blocking_load(&mut self, load: LoadType) {
+        self.blocking_loads.push(load);
+    }
+
     /// Create a new pending network request, which can be initiated at some point in
     /// the future.
     pub fn prepare_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
         let url = load.url().clone();
-        self.blocking_loads.push(load);
+        self.add_blocking_load(load);
         let pipeline = self.notifier_data.as_ref().map(|data| data.pipeline);
         PendingAsyncLoad::new((*self.resource_task).clone(), url, pipeline)
     }
@@ -88,7 +92,7 @@ impl DocumentLoader {
 
     /// Create, initiate, and await the response for a new network request.
     pub fn load_sync(&mut self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
-        self.blocking_loads.push(load.clone());
+        self.add_blocking_load(load.clone());
         let result = load_whole_resource(&self.resource_task, load.url().clone());
         self.finish_load(load);
         result

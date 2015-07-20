@@ -241,6 +241,8 @@ pub enum Msg {
     FrameSize(PipelineId, Size2D<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(IframeLoadInfo),
+    /// Trigger a `load` event on the frame context element for the given pipeline.
+    SubframeLoaded(PipelineId),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     PainterReady(PipelineId),
     ResizedWindow(WindowSizeData),

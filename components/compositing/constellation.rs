@@ -407,6 +407,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got frame size message");
                 self.handle_frame_size_msg(pipeline_id, &Size2D::from_untyped(&size));
             }
+            ConstellationMsg::SubframeLoaded(pipeline_id) => {
+                debug!("constellation got subframe loaded message {:?}", pipeline_id);
+                self.handle_subframe_loaded(pipeline_id);
+            }
             ConstellationMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.containing_pipeline_id,
@@ -627,6 +631,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             initial_viewport: *size * ScaleFactor::new(1.0),
             device_pixel_ratio: self.window_size.device_pixel_ratio,
         })).unwrap();
+    }
+
+    fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
+        let subframe_pipeline = self.pipeline(pipeline_id);
+        let subframe_parent = match subframe_pipeline.parent_info {
+            Some(ref parent) => parent,
+            None => return,
+        };
+        let parent_pipeline = self.pipeline(subframe_parent.0);
+        let msg = ConstellationControlMsg::DispatchFrameLoadEvent(parent_pipeline.id,
+                                                                  subframe_parent.1,
+                                                                  subframe_pipeline.url.clone());
+        parent_pipeline.script_chan.send(msg).unwrap();
     }
 
     // The script task associated with pipeline_id has loaded a URL in an iframe via script. This
