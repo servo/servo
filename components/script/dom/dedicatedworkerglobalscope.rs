@@ -188,7 +188,6 @@ impl DedicatedWorkerGlobalScope {
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
-            println!("reporter_name = {}", reporter_name);
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
