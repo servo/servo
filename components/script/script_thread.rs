@@ -1662,7 +1662,7 @@ impl ScriptThread {
         let page = get_page(&self.root_page(), containing_pipeline);
         let document = page.document();
         if let Some(iframe) = document.find_iframe_by_pipeline(id) {
-            iframe.iframe_load_event_steps();
+            iframe.iframe_load_event_steps(id);
         }
     }
 

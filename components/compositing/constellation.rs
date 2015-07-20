@@ -832,7 +832,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let parent_pipeline = self.pipeline(subframe_parent.0);
         let msg = ConstellationControlMsg::DispatchFrameLoadEvent {
             target: pipeline_id,
-            parent: subframe_parent.0
+            parent: subframe_parent.0,
         };
         parent_pipeline.script_chan.send(msg).unwrap();
     }

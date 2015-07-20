@@ -1224,6 +1224,11 @@ impl Document {
                            ReflowReason::RequestAnimationFrame);
     }
 
+    pub fn add_blocking_load(&self, load: LoadType) {
+        let mut loader = self.loader.borrow_mut();
+        loader.add_blocking_load(load)
+    }
+
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
         loader.prepare_async_load(load)
