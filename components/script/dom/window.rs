@@ -47,7 +47,7 @@ use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
 use profile_traits::mem;
 use util::geometry::{self, Au, MAX_RECT};
-use util::opts;
+use util::{breakpoint, opts};
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
@@ -480,6 +480,10 @@ impl<'a> WindowMethods for &'a Window {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
         }
+    }
+
+    fn Trap(self) {
+        breakpoint();
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
