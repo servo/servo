@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
+use dom::bindings::error::Error::NotSupported;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
@@ -14,6 +15,7 @@ use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use util::opts;
 use util::str::DOMString;
 use std::cell::Cell;
 use std::default::Default;
@@ -152,6 +154,18 @@ impl<'a> MouseEventMethods for &'a MouseEvent {
 
     fn GetRelatedTarget(self) -> Option<Root<EventTarget>> {
         self.related_target.get().map(Root::from_rooted)
+    }
+
+    // See discussion at:
+    //  - https://github.com/servo/servo/issues/6643
+    //  - https://bugzilla.mozilla.org/show_bug.cgi?id=1186125
+    // This returns the same result as current gecko.
+    fn GetWhich(self) -> Fallible<i32> {
+        if opts::experimental_enabled() {
+            Ok((self.button.get() + 1) as i32)
+        } else {
+            Err(NotSupported)
+        }
     }
 
     fn InitMouseEvent(self,
