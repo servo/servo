@@ -17,6 +17,9 @@ path = "../../../components/net_traits"
 [dependencies.util]
 path = "../../../components/util"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 cookie = "0.1"
 hyper = "0.6"
