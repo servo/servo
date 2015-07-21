@@ -413,8 +413,7 @@ pub fn reflect_dom_object<T: Reflectable>
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-// Allowing unused_attribute because the lint sometimes doesn't run in order
-#[allow(raw_pointer_derive, unrooted_must_root, unused_attributes)]
+#[allow(raw_pointer_derive, unrooted_must_root)]
 #[must_root]
 #[servo_lang = "reflector"]
 // If you're renaming or moving this field, update the path in plugins::reflector as well

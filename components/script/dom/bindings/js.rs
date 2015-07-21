@@ -382,6 +382,7 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
 /// are additive, so this object's destruction will not invalidate other roots
 /// for the same JS value. `Root`s cannot outlive the associated
 /// `RootCollection` object.
+#[allow_unrooted_interior]
 pub struct Root<T: Reflectable> {
     /// Reference to rooted value that must not outlive this container
     ptr: NonZero<*const T>,

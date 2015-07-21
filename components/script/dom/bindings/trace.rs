@@ -455,6 +455,7 @@ impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
 #[allow(unrooted_must_root)]
 #[no_move]
 #[derive(JSTraceable)]
+#[allow_unrooted_interior]
 pub struct RootedVec<T: JSTraceable + Reflectable> {
     v: Vec<T>
 }

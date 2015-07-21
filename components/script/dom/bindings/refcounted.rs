@@ -57,6 +57,7 @@ unsafe impl Send for TrustedReference {}
 /// shared among tasks for use in asynchronous operations. The underlying
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
+#[allow_unrooted_interior]
 pub struct Trusted<T: Reflectable> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between tasks, regardless of T's sendability.

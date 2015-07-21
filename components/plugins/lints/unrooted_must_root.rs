@@ -7,7 +7,7 @@ use syntax::attr::AttrMetaMethods;
 use rustc::ast_map;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::{ty, def};
-use utils::unsafe_context;
+use utils::{match_def_path, unsafe_context};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects");
@@ -25,8 +25,17 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
 ///
 /// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a
 /// GC pass.
-pub struct UnrootedPass;
+pub struct UnrootedPass {
+    in_new_function: bool
+}
 
+impl UnrootedPass {
+    pub fn new() -> UnrootedPass {
+        UnrootedPass {
+            in_new_function: true
+        }
+    }
+}
 // Checks if a type has the #[must_root] annotation.
 // Unwraps pointers as well
 // TODO (#3874, sort of): unwrap other types like Vec/Option/HashMap/etc
@@ -90,7 +99,10 @@ impl LintPass for UnrootedPass {
                 block: &ast::Block, _span: codemap::Span, id: ast::NodeId) {
         match kind {
             visit::FkItemFn(i, _, _, _, _, _) |
-            visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
+            visit::FkMethod(i, _, _) if i.as_str() == "new"
+                                        || i.as_str() == "new_inherited"
+                                        || i.as_str() == "new_initialized" => {
+                self.in_new_function = true;
                 return;
             },
             visit::FkItemFn(_, _, style, _, _, _) => match style {
@@ -99,6 +111,7 @@ impl LintPass for UnrootedPass {
             },
             _ => ()
         }
+        self.in_new_function = false;
 
         if unsafe_context(&cx.tcx.map, id) {
             return;
@@ -120,7 +133,6 @@ impl LintPass for UnrootedPass {
     // Expressions which return out of blocks eventually end up in a `let` or assignment
     // statement or a function return (which will be caught when it is used elsewhere)
     fn check_stmt(&mut self, cx: &Context, s: &ast::Stmt) {
-
         match s.node {
             ast::StmtDecl(_, id) |
             ast::StmtExpr(_, id) |
@@ -155,16 +167,32 @@ impl LintPass for UnrootedPass {
             _ => return
         };
 
-        let t = cx.tcx.expr_ty(&*expr);
-        match t.sty {
-            ty::TyStruct(did, _) |
-            ty::TyEnum(did, _) => {
-                if cx.tcx.has_attr(did, "must_root") {
-                    cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
-                                 &format!("Expression of type {:?} must be rooted", t));
-                }
+        let ty = cx.tcx.expr_ty(&*expr);
+        ty.maybe_walk(|t| {
+            match t.sty {
+                ty::TyStruct(did, _) |
+                ty::TyEnum(did, _) => {
+                    if cx.tcx.has_attr(did, "must_root") {
+                        cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
+                                     &format!("Expression of type {:?}  in type {:?} must be rooted", t, ty));
+                        false
+                    } else if cx.tcx.has_attr(did, "allow_unrooted_interior") {
+                        false
+                    } else if match_def_path(cx, did, &["core", "cell", "Ref"])
+                            || match_def_path(cx, did, &["core", "cell", "RefMut"]) {
+                            // Ref and RefMut are borrowed pointers, okay to hold unrooted stuff
+                            // since it will be rooted elsewhere
+                        false
+                    } else {
+                        true
+                    }
+                },
+                ty::TyBox(..) if self.in_new_function => false, // box in new() is okay
+                ty::TyRef(..) => false, // don't recurse down &ptrs
+                ty::TyRawPtr(..) => false, // don't recurse down *ptrs
+                _ => true
             }
-            _ => {}
-        }
+        })
+
     }
 }
