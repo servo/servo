@@ -172,14 +172,17 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     event_handler!(close, GetOnclose, SetOnclose);
     event_handler!(error, GetOnerror, SetOnerror);
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-url
     fn Url(self) -> DOMString {
         self.url.serialize()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(self, data: Option<USVString>) -> Fallible<()> {
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
@@ -206,6 +209,7 @@ impl<'a> WebSocketMethods for &'a WebSocket {
         return Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-close
     fn Close(self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
         fn send_close(this: &WebSocket) {
             this.ready_state.set(WebSocketRequestState::Closing);

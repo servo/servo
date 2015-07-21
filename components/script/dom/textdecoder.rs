@@ -73,15 +73,18 @@ impl TextDecoder {
 
 
 impl<'a> TextDecoderMethods for &'a TextDecoder {
+    // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
     fn Encoding(self) -> DOMString {
         self.encoding.whatwg_name().unwrap().to_owned()
     }
 
+    // https://encoding.spec.whatwg.org/#dom-textdecoder-fatal
     fn Fatal(self) -> bool {
         self.fatal
     }
 
     #[allow(unsafe_code)]
+    // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
     fn Decode(self, _cx: *mut JSContext, input: Option<*mut JSObject>)
               -> Fallible<USVString> {
         let input = match input {
@@ -108,5 +111,4 @@ impl<'a> TextDecoderMethods for &'a TextDecoder {
             Err(_) => Err(Error::Type("Decoding failed".to_owned())),
         }
     }
-
 }

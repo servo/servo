@@ -75,8 +75,8 @@ impl<'a> TextEncoderMethods for &'a TextEncoder {
         self.encoding.clone()
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textencoder-encode
     #[allow(unsafe_code)]
+    // https://encoding.spec.whatwg.org/#dom-textencoder-encode
     fn Encode(self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
         unsafe {
             let encoded = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();

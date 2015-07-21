@@ -59,12 +59,14 @@ impl HTMLSelectElement {
 }
 
 impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
     fn Validity(self) -> Root<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(window.r())
     }
 
     // Note: this function currently only exists for test_union.html.
+    // https://html.spec.whatwg.org/multipage/#dom-select-add
     fn Add(self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
 

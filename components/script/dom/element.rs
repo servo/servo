@@ -1286,7 +1286,7 @@ impl<'a> ElementMethods for &'a Element {
         HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
     }
 
-    // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
+    // https://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
     fn GetClientRects(self) -> Root<DOMRectList> {
         let win = window_from_node(self);
         let node = NodeCast::from_ref(self);
@@ -1299,7 +1299,7 @@ impl<'a> ElementMethods for &'a Element {
         DOMRectList::new(win.r(), rects)
     }
 
-    // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
+    // https://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(self) -> Root<DOMRect> {
         let win = window_from_node(self);
         let node = NodeCast::from_ref(self);
