@@ -13,7 +13,7 @@ use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, Immutab
 use flow::{InorderFlowTraversal};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
-use smallvec::SmallVec8;
+use smallvec::SmallVec;
 use text::TextRunScanner;
 
 use gfx::display_list::OpaqueNode;
@@ -522,7 +522,7 @@ pub fn static_representation(list_style_type: list_style_type::T) -> char {
 /// Pushes the string that represents the value rendered using the given *alphabetic system* onto
 /// the accumulator per CSS-COUNTER-STYLES § 3.1.4.
 fn push_alphabetic_representation(mut value: i32, system: &[char], accumulator: &mut String) {
-    let mut string = SmallVec8::new();
+    let mut string: SmallVec<[char; 8]> = SmallVec::new();
     while value != 0 {
         // Step 1.
         value = value - 1;
@@ -545,7 +545,7 @@ fn push_numeric_representation(mut value: i32, system: &[char], accumulator: &mu
     }
 
     // Step 2.
-    let mut string = SmallVec8::new();
+    let mut string: SmallVec<[char; 8]> = SmallVec::new();
     while value != 0 {
         // Step 2.1.
         string.push(system[(value as usize) % system.len()]);

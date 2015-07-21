@@ -18,7 +18,7 @@ use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use font_face::{FontFaceRule, parse_font_face_block};
-use smallvec::SmallVec2;
+use smallvec::SmallVec;
 use viewport::ViewportRule;
 
 
@@ -161,13 +161,13 @@ impl Stylesheet {
 /// conditional group rule will come before its nested rules.
 pub struct Rules<'a> {
     // 2 because normal case is likely to be just one level of nesting (@media)
-    stack: SmallVec2<slice::Iter<'a, CSSRule>>,
+    stack: SmallVec<[slice::Iter<'a, CSSRule>; 2]>,
     device: Option<&'a Device>
 }
 
 impl<'a> Rules<'a> {
     fn new(iter: slice::Iter<'a, CSSRule>, device: Option<&'a Device>) -> Rules<'a> {
-        let mut stack = SmallVec2::new();
+        let mut stack: SmallVec<[slice::Iter<'a, CSSRule>; 2]> = SmallVec::new();
         stack.push(iter);
 
         Rules { stack: stack, device: device }

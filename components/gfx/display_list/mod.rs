@@ -32,7 +32,7 @@ use libc::uintptr_t;
 use msg::compositor_msg::{LayerId, LayerKind};
 use net_traits::image::base::Image;
 use paint_task::PaintLayer;
-use smallvec::SmallVec8;
+use smallvec::SmallVec;
 use std::collections::linked_list::{self, LinkedList};
 use std::fmt;
 use std::slice::Iter;
@@ -313,7 +313,7 @@ impl StackingContext {
             }
 
             // Sort positioned children according to z-index.
-            let mut positioned_children = SmallVec8::new();
+            let mut positioned_children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
             for kid in display_list.children.iter() {
                 positioned_children.push((*kid).clone());
             }
