@@ -116,12 +116,6 @@ pub struct PaintTask<C> {
     /// A channel to the time profiler.
     time_profiler_chan: time::ProfilerChan,
 
-    /// A channel to the memory profiler.
-    mem_profiler_chan: mem::ProfilerChan,
-
-    /// The name used for the task's memory reporter.
-    pub reporter_name: String,
-
     /// The root stacking context sent to us by the layout thread.
     root_stacking_context: Option<Arc<StackingContext>>,
 
@@ -170,12 +164,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
 
-                // Register this thread as a memory reporter, via its own channel.
-                let reporter = box chan.clone();
-                let reporter_name = format!("paint-reporter-{}", id.0);
-                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(),
-                                                                          reporter));
-
                 // FIXME: rust/#5967
                 let mut paint_task = PaintTask {
                     id: id,
@@ -184,8 +172,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     compositor: compositor,
                     constellation_chan: constellation_chan,
                     time_profiler_chan: time_profiler_chan,
-                    mem_profiler_chan: mem_profiler_chan,
-                    reporter_name: reporter_name,
                     root_stacking_context: None,
                     paint_permission: false,
                     current_epoch: None,
@@ -193,7 +179,16 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     canvas_map: HashMap::new()
                 };
 
+                // Register this thread as a memory reporter, via its own channel.
+                let reporter = box chan.clone();
+                let reporter_name = format!("paint-reporter-{}", id.0);
+                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
+                mem_profiler_chan.send(msg);
+
                 paint_task.start();
+
+                let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
+                mem_profiler_chan.send(msg);
 
                 // Tell all the worker threads to shut down.
                 for worker_thread in paint_task.worker_threads.iter_mut() {
@@ -270,9 +265,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // FIXME(njn): should eventually measure the paint task.
                 }
                 Msg::Exit(response_channel, _) => {
-                    let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
-                    self.mem_profiler_chan.send(msg);
-
                     // Ask the compositor to remove any layers it is holding for this paint task.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
                     self.compositor.notify_paint_task_exiting(self.id);

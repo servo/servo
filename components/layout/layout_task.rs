@@ -185,9 +185,6 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the memory profiler.
     pub mem_profiler_chan: mem::ProfilerChan,
 
-    /// The name used for the task's memory reporter.
-    pub reporter_name: String,
-
     /// The channel on which messages can be sent to the image cache.
     pub image_cache_task: ImageCacheTask,
 
@@ -224,17 +221,18 @@ impl LayoutTaskFactory for LayoutTask {
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
-              memory_profiler_chan: mem::ProfilerChan,
+              mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id), task_state::LAYOUT, move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
+                let layout_chan = LayoutChan(sender);
                 let layout = LayoutTask::new(id,
                                              url,
                                              is_iframe,
                                              chan.receiver(),
-                                             LayoutChan(sender),
+                                             layout_chan.clone(),
                                              pipeline_port,
                                              constellation_chan,
                                              script_chan,
@@ -242,8 +240,18 @@ impl LayoutTaskFactory for LayoutTask {
                                              image_cache_task,
                                              font_cache_task,
                                              time_profiler_chan,
-                                             memory_profiler_chan);
+                                             mem_profiler_chan.clone());
+
+                // Register this thread as a memory reporter, via its own channel.
+                let reporter = box layout_chan.clone();
+                let reporter_name = format!("layout-reporter-{}", id.0);
+                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
+                mem_profiler_chan.send(msg);
+
                 layout.start();
+
+                let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
+                mem_profiler_chan.send(msg);
             }
             shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), con_chan);
@@ -307,11 +315,6 @@ impl LayoutTask {
             None
         };
 
-        // Register this thread as a memory reporter, via its own channel.
-        let reporter = box chan.clone();
-        let reporter_name = format!("layout-reporter-{}", id.0);
-        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
-
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
         let (image_cache_sender, image_cache_receiver) = channel();
@@ -337,7 +340,6 @@ impl LayoutTask {
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            reporter_name: reporter_name,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
@@ -672,9 +674,6 @@ impl LayoutTask {
             }
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
-
-        let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
-        self.mem_profiler_chan.send(msg);
 
         self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv().unwrap()
