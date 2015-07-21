@@ -287,6 +287,8 @@ impl Drop for StackRootTLS {
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 #[derive(JSTraceable)]
+// ScriptTask instances are rooted on creation, so this is okay
+#[allow(unrooted_must_root)]
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
     page: DOMRefCell<Option<Rc<Page>>>,

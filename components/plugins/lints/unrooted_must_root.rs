@@ -57,6 +57,35 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     };
 }
 
+fn is_unrooted_ty(cx: &Context, ty: &ty::TyS, in_new_function: bool) -> bool {
+    let mut ret = false;
+    ty.maybe_walk(|t| {
+        match t.sty {
+            ty::TyStruct(did, _) |
+            ty::TyEnum(did, _) => {
+                if cx.tcx.has_attr(did, "must_root") {
+                    ret = true;
+                    false
+                } else if cx.tcx.has_attr(did, "allow_unrooted_interior") {
+                    false
+                } else if match_def_path(cx, did, &["core", "cell", "Ref"])
+                        || match_def_path(cx, did, &["core", "cell", "RefMut"]) {
+                        // Ref and RefMut are borrowed pointers, okay to hold unrooted stuff
+                        // since it will be rooted elsewhere
+                    false
+                } else {
+                    true
+                }
+            },
+            ty::TyBox(..) if in_new_function => false, // box in new() is okay
+            ty::TyRef(..) => false, // don't recurse down &ptrs
+            ty::TyRawPtr(..) => false, // don't recurse down *ptrs
+            _ => true
+        }
+    });
+    ret
+}
+
 impl LintPass for UnrootedPass {
     fn get_lints(&self) -> LintArray {
         lint_array!(UNROOTED_MUST_ROOT)
@@ -74,8 +103,9 @@ impl LintPass for UnrootedPass {
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields.iter() {
-                lint_unrooted_ty(cx, &*field.node.ty,
-                                 "Type must be rooted, use #[must_root] on the struct definition to propagate");
+                if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.node.id), false) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, field.span, "Type must be rooted, use #[must_root] on the struct definition to propagate")
+                }
             }
         }
     }
@@ -168,31 +198,9 @@ impl LintPass for UnrootedPass {
         };
 
         let ty = cx.tcx.expr_ty(&*expr);
-        ty.maybe_walk(|t| {
-            match t.sty {
-                ty::TyStruct(did, _) |
-                ty::TyEnum(did, _) => {
-                    if cx.tcx.has_attr(did, "must_root") {
-                        cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
-                                     &format!("Expression of type {:?}  in type {:?} must be rooted", t, ty));
-                        false
-                    } else if cx.tcx.has_attr(did, "allow_unrooted_interior") {
-                        false
-                    } else if match_def_path(cx, did, &["core", "cell", "Ref"])
-                            || match_def_path(cx, did, &["core", "cell", "RefMut"]) {
-                            // Ref and RefMut are borrowed pointers, okay to hold unrooted stuff
-                            // since it will be rooted elsewhere
-                        false
-                    } else {
-                        true
-                    }
-                },
-                ty::TyBox(..) if self.in_new_function => false, // box in new() is okay
-                ty::TyRef(..) => false, // don't recurse down &ptrs
-                ty::TyRawPtr(..) => false, // don't recurse down *ptrs
-                _ => true
-            }
-        })
-
+        if is_unrooted_ty(cx, ty, self.in_new_function) {
+            cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
+                                     &format!("Expression of type {:?} must be rooted", ty))
+        }
     }
 }
