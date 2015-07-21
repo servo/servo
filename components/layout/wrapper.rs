@@ -683,41 +683,21 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     #[inline]
-    pub fn get_normal_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.shared_data.style.as_ref().unwrap();
-        style.get_box().display
+    pub fn get_before_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
+        })
     }
 
     #[inline]
-    pub fn get_before_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
-        style.get_box().display
-    }
-
-    #[inline]
-    pub fn get_after_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
-        style.get_box().display
-    }
-
-    #[inline]
-    pub fn has_before_pseudo(&self) -> bool {
-        let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
-        layout_data_wrapper_ref.data.before_style.is_some()
-    }
-
-    #[inline]
-    pub fn has_after_pseudo(&self) -> bool {
-        let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
-        layout_data_wrapper_ref.data.after_style.is_some()
+    pub fn get_after_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::After(style.get_box().display))
+        })
     }
 
     /// Borrows the layout data without checking.
@@ -952,15 +932,12 @@ impl<'a> ThreadSafeLayoutNodeChildrenIterator<'a> {
                 return None
             }
 
-            if parent.has_before_pseudo() {
-                let pseudo = PseudoElementType::Before(parent.get_before_display());
-                return Some(parent.with_pseudo(pseudo));
-            }
-
-            unsafe {
-                parent.get_jsmanaged().first_child_ref()
-                      .map(|node| parent.new_with_this_lifetime(&node))
-            }
+            parent.get_before_pseudo().or_else(|| {
+                unsafe {
+                    parent.get_jsmanaged().first_child_ref()
+                          .map(|node| parent.new_with_this_lifetime(&node))
+                }
+            })
         }
 
         ThreadSafeLayoutNodeChildrenIterator {
@@ -984,15 +961,7 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
                                 self.parent_node.new_with_this_lifetime(&first)
                             })
                         },
-                        None => {
-                            if self.parent_node.has_after_pseudo() {
-                                let pseudo = PseudoElementType::After(
-                                    self.parent_node.get_after_display());
-                                Some(self.parent_node.with_pseudo(pseudo))
-                            } else {
-                                None
-                            }
-                        }
+                        None => self.parent_node.get_after_pseudo(),
                     }
                 },
                 PseudoElementType::Normal => {
@@ -1002,15 +971,7 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
                                 self.parent_node.new_with_this_lifetime(&next)
                             })
                         },
-                        None => {
-                            if self.parent_node.has_after_pseudo() {
-                                let pseudo = PseudoElementType::After(
-                                    self.parent_node.get_after_display());
-                                Some(self.parent_node.with_pseudo(pseudo))
-                            } else {
-                                None
-                            }
-                        }
+                        None => self.parent_node.get_after_pseudo(),
                     }
                 },
                 PseudoElementType::After(_) => {
