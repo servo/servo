@@ -464,9 +464,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 sender.send(result).unwrap();
             }
             ConstellationMsg::SetClipboardContents(s) => {
-                self.clipboard_ctx.as_ref().map(|c| c.set_contents(s).map_err(|e| {
-                    debug!("Error setting clipboard contents ({})", e);
-                }));
+                if let Some(ref ctx) = self.clipboard_ctx {
+                    if let Err(e) = ctx.set_contents(s) {
+                        debug!("Error setting clipboard contents ({})", e);
+                    }
+                }
             }
             ConstellationMsg::WebDriverCommand(command) => {
                 debug!("constellation got webdriver command message");
