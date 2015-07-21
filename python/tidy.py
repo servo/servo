@@ -153,7 +153,31 @@ def check_toml(contents):
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
+def check_spec(contents, file_name):
+    patt = re.compile("^\s*\/\/.+")
+    pattern = "impl<'a> %sMethods for &'a %s {" % (file_name, file_name)
+    contents = contents.splitlines(True)
+    brace_count = 0
+    in_impl = False
+    for idx, line in enumerate(contents):
+        if "// check-tidy: no specs after this line" in line:
+            break
+        if not patt.match(line):
+            if pattern.lower() in line.lower():
+                in_impl = True
+            if "fn " in line and brace_count == 1:
+                if not ("// https://" in contents[idx - 1] or "// https://" in contents[idx - 2]):
+                    yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
+            if '{' in line and in_impl:
+                brace_count += 1
+            if '}' in line and in_impl:
+                if brace_count == 1:
+                    break
+                brace_count -= 1
+
+
 def collect_errors_for_files(files_to_check, checking_functions):
+    base_path = "components/script/dom/"
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
             contents = fp.read()
@@ -164,6 +188,10 @@ def collect_errors_for_files(files_to_check, checking_functions):
                 for check in checking_functions:
                     for error in check(contents):
                         # filename, line, message
+                        yield (file_name, error[0], error[1])
+                if base_path in file_name:
+                    stripped_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
+                    for error in check_spec(contents, stripped_name):
                         yield (file_name, error[0], error[1])
 
 
@@ -208,8 +236,8 @@ def scan():
 
     if errors or num_flake8_errors:
         for error in errors:
-            print("{}:{}: {}".format(*error))
+            print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
         return 1
     else:
-        print("tidy reported no errors.")
+        print "\033[92mtidy reported no errors.\033[0m"
         return 0
