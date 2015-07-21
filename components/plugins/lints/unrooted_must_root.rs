@@ -6,7 +6,8 @@ use syntax::{ast, codemap, visit};
 use syntax::attr::AttrMetaMethods;
 use rustc::ast_map;
 use rustc::lint::{Context, LintPass, LintArray};
-use rustc::middle::{ty, def};
+use rustc::middle::ty;
+use rustc::middle::astconv_util::ast_ty_to_prim_ty;
 use utils::{match_def_path, unsafe_context};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
@@ -36,27 +37,8 @@ impl UnrootedPass {
         }
     }
 }
-// Checks if a type has the #[must_root] annotation.
-// Unwraps pointers as well
-// TODO (#3874, sort of): unwrap other types like Vec/Option/HashMap/etc
-fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
-    match ty.node {
-        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) =>
-            lint_unrooted_ty(cx, &**t, warning),
-        ast::TyPath(..) => {
-                match cx.tcx.def_map.borrow()[&ty.id] {
-                    def::PathResolution{ base_def: def::DefTy(def_id, _), .. } => {
-                        if cx.tcx.has_attr(def_id, "must_root") {
-                            cx.span_lint(UNROOTED_MUST_ROOT, ty.span, warning);
-                        }
-                    }
-                    _ => (),
-                }
-            }
-        _ => (),
-    };
-}
 
+/// Checks if a type is unrooted or contains any owned unrooted types
 fn is_unrooted_ty(cx: &Context, ty: &ty::TyS, in_new_function: bool) -> bool {
     let mut ret = false;
     ty.maybe_walk(|t| {
@@ -104,7 +86,8 @@ impl LintPass for UnrootedPass {
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields.iter() {
                 if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.node.id), false) {
-                    cx.span_lint(UNROOTED_MUST_ROOT, field.span, "Type must be rooted, use #[must_root] on the struct definition to propagate")
+                    cx.span_lint(UNROOTED_MUST_ROOT, field.span,
+                                 "Type must be rooted, use #[must_root] on the struct definition to propagate")
                 }
             }
         }
@@ -116,8 +99,13 @@ impl LintPass for UnrootedPass {
             match var.node.kind {
                 ast::TupleVariantKind(ref vec) => {
                     for ty in vec.iter() {
-                        lint_unrooted_ty(cx, &*ty.ty,
-                                         "Type must be rooted, use #[must_root] on the enum definition to propagate")
+                        ast_ty_to_prim_ty(cx.tcx, &*ty.ty).map(|t| {
+                            if is_unrooted_ty(cx, t, false) {
+                                cx.span_lint(UNROOTED_MUST_ROOT, ty.ty.span,
+                                             "Type must be rooted, use #[must_root] on \
+                                              the enum definition to propagate")
+                            }
+                        });
                     }
                 }
                 _ => () // Struct variants already caught by check_struct_def
@@ -150,8 +138,11 @@ impl LintPass for UnrootedPass {
         match block.rules {
             ast::DefaultBlock => {
                 for arg in decl.inputs.iter() {
-                    lint_unrooted_ty(cx, &*arg.ty,
-                                     "Type must be rooted")
+                    ast_ty_to_prim_ty(cx.tcx, &*arg.ty).map(|t| {
+                        if is_unrooted_ty(cx, t, false) {
+                            cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
+                        }
+                    });
                 }
             }
             _ => () // fn is `unsafe`
