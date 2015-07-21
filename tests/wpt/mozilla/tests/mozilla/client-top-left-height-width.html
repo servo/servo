@@ -76,17 +76,13 @@
     <div id="with-border">my div</div>
     <div id="with-border-and-padding">my div</div>
     <div id="abs1">
-        <div id="abs2">
-            <div id="abs3">
-                <span id="span1">X</span>
-            </div>
-        </div>
+        <span id="span1">X</span>
     </div>
     <div id='rotated'>rotated</div>
     <div id='inline-block'>inline-block</div>
     <div id='display-none'>display-none</div>
     <script>
-    test_rect = function(name, left, top, height, width) {
+    function test_rect(name, left, top, height, width) {
       var div = document.getElementById(name);
       var rect = div.getBoundingClientRect();
 
@@ -96,18 +92,14 @@
       assert_equals(div.clientWidth, width);
     }
 
-    test(function() {
-        test_rect('no-border', 0, 0, 100, 100);
-        test_rect('with-border', 10, 10, 100, 100);
-        test_rect('with-border-and-padding', 10, 10, 120, 120);
-        test_rect('abs1', 0, 0, 120, 100);
-        test_rect('rotated', 0, 0, 100, 100);
-        test_rect('abs2', 0, 0, 80, 80);
-        test_rect('abs3', 0, 0, 40, 48);
-        test_rect('span1', 0, 0, 0, 0);
-        test_rect('inline-block', 0, 0, 100, 100);
-        test_rect('display-none', 0, 0, 0, 0);
-    });
+    test(function() { test_rect('no-border', 0, 0, 100, 100); }, 'Block without border');
+    test(function() { test_rect('with-border', 10, 10, 100, 100); }, 'Block with border');
+    test(function() { test_rect('with-border-and-padding', 10, 10, 120, 120); }, 'Block without border and padding');
+    test(function() { test_rect('abs1', 0, 0, 120, 100); }, 'Absolutely positioned block');
+    test(function() { test_rect('rotated', 0, 0, 100, 100); }, 'Rotated block');
+    test(function() { test_rect('span1', 0, 0, 0, 0); }, 'Span');
+    test(function() { test_rect('inline-block', 0, 0, 100, 100); }, 'Inline block');
+    test(function() { test_rect('display-none', 0, 0, 0, 0); }, 'display: none');
     </script>
 </body>
 </html>
