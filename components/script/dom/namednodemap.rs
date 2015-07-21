@@ -91,6 +91,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
         owner.remove_attribute(&ns, &Atom::from_slice(&local_name)).ok_or(Error::NotFound)
     }
 
+    // check-tidy: no spec
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();

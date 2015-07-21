@@ -59,12 +59,17 @@ impl ProgressEvent {
 }
 
 impl<'a> ProgressEventMethods for &'a ProgressEvent {
+    // https://www.w3.org/TR/progress-events/#dom-progressevent-lengthcomputable
     fn LengthComputable(self) -> bool {
         self.length_computable
     }
+
+    // https://www.w3.org/TR/progress-events/#dom-progressevent-loaded
     fn Loaded(self) -> u64{
         self.loaded
     }
+
+    // https://www.w3.org/TR/progress-events/#dom-progressevent-lengthcomputable
     fn Total(self) -> u64 {
         self.total
     }

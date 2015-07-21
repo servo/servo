@@ -49,6 +49,7 @@ impl HTMLDataListElement {
 }
 
 impl<'a> HTMLDataListElementMethods for &'a HTMLDataListElement {
+    // https://html.spec.whatwg.org/multipage/#dom-datalist-options
     fn Options(self) -> Root<HTMLCollection> {
         #[derive(JSTraceable)]
         struct HTMLDataListOptionsFilter;

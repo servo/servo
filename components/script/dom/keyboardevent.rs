@@ -761,6 +761,7 @@ impl KeyEventProperties {
 }
 
 impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-initKeyboardEvent
     fn InitKeyboardEvent(self,
                          typeArg: DOMString,
                          canBubbleArg: bool,
@@ -783,38 +784,47 @@ impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
         self.repeat.set(repeat);
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-key
     fn Key(self) -> DOMString {
         self.key_string.borrow().clone()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-code
     fn Code(self) -> DOMString {
         self.code.borrow().clone()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-location
     fn Location(self) -> u32 {
         self.location.get()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-ctrlKey
     fn CtrlKey(self) -> bool {
         self.ctrl.get()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-shiftKey
     fn ShiftKey(self) -> bool {
         self.shift.get()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-altKey
     fn AltKey(self) -> bool {
         self.alt.get()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-metaKey
     fn MetaKey(self) -> bool {
         self.meta.get()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-repeat
     fn Repeat(self) -> bool {
         self.repeat.get()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-isComposing
     fn IsComposing(self) -> bool {
         self.is_composing.get()
     }
@@ -832,14 +842,17 @@ impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
         }
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-charCode
     fn CharCode(self) -> u32 {
         self.char_code.get().unwrap_or(0)
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-keyCode
     fn KeyCode(self) -> u32 {
         self.key_code.get()
     }
 
+    // https://www.w3.org/TR/DOM-Level-3-Events/#widl-KeyboardEvent-which
     fn Which(self) -> u32 {
         self.char_code.get().unwrap_or(self.KeyCode())
     }

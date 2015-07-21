@@ -131,6 +131,7 @@ impl<'a> PrivateHTMLElementHelpers for &'a HTMLElement {
 }
 
 impl<'a> HTMLElementMethods for &'a HTMLElement {
+    // https://html.spec.whatwg.org/multipage/#the-style-attribute
     fn Style(self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
@@ -155,6 +156,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }
 
+    // https://www.w3.org/TR/html5/webappapis.html#handler-onload
     fn GetOnload(self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);
@@ -165,6 +167,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
         }
     }
 
+    // https://www.w3.org/TR/html5/webappapis.html#handler-onload
     fn SetOnload(self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);

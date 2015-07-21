@@ -254,26 +254,31 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
 }
 
 impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn Src(self) -> DOMString {
         let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("src"))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn SetSrc(self, src: DOMString) {
         let element = ElementCast::from_ref(self);
         element.set_url_attribute(&atom!("src"), src)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(self) -> DOMString {
         let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("sandbox"))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn SetSandbox(self, sandbox: DOMString) {
         let element = ElementCast::from_ref(self);
         element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(self) -> Option<Root<Window>> {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
@@ -286,6 +291,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(self) -> Option<Root<Document>> {
         self.GetContentWindow().and_then(|window| {
             let self_url = match self.get_url() {
@@ -319,6 +325,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn SetMozbrowser(self, value: bool) -> ErrorResult {
         if opts::experimental_enabled() {
             let element = ElementCast::from_ref(self);

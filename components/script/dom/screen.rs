@@ -29,10 +29,12 @@ impl Screen {
 }
 
 impl<'a> ScreenMethods for &'a Screen {
+    // https://www.w3.org/TR/cssom-view/#dom-screen-colordepth
     fn ColorDepth(self) -> u32 {
         24
     }
 
+    // https://www.w3.org/TR/cssom-view/#dom-screen-pixeldepth
     fn PixelDepth(self) -> u32 {
         24
     }

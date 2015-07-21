@@ -229,6 +229,7 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         }
     }
 
+    // check-tidy: no spec
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Element>> {
         let maybe_elem = self.Item(index);
         *found = maybe_elem.is_some();
