@@ -942,7 +942,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         let global = self.global.root();
         let upload_target = self.upload.root();
         let progressevent = ProgressEvent::new(global.r(),
-                                               type_, false, false,
+                                               type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
         let target = if upload {
