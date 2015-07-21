@@ -166,7 +166,7 @@ def check_toml(file_name, contents):
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
-def check_webidl_spec(file_name, contents):
+def check_webidl_spec(contents):
     # Sorted by this function (in pseudo-Rust). The idea is to group the same
     # organization together.
     # fn sort_standards(a: &Url, b: &Url) -> Ordering {
@@ -185,15 +185,16 @@ def check_webidl_spec(file_name, contents):
     #     }
     #     a_domain.path().cmp(b_domain.path())
     # }
-    if not file_name.endswith(".webidl"):
-        raise StopIteration
     standards = [
+        "//w3c.github.io",
         "//www.khronos.org/registry/webgl/specs",
+        "//developer.mozilla.org/en-US/docs/Mozilla/Tech/XUL/browser",
         "//developer.mozilla.org/en-US/docs/Web/API",
         "//dev.w3.org/2006/webapi",
         "//dev.w3.org/csswg",
         "//dev.w3.org/fxtf",
         "//dvcs.w3.org/hg",
+        "//www.w3.org/TR",
         "//dom.spec.whatwg.org",
         "//domparsing.spec.whatwg.org",
         "//encoding.spec.whatwg.org",
@@ -208,35 +209,8 @@ def check_webidl_spec(file_name, contents):
     ]
     for i in standards:
         if contents.find(i) != -1:
-            raise StopIteration
-    yield 0, "No specification link found."
-
-
-def check_spec(file_name, contents):
-    base_path = "components/script/dom/"
-    if base_path not in file_name:
-        raise StopIteration
-    file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
-    patt = re.compile("^\s*\/\/.+")
-    pattern = "impl<'a> %sMethods for &'a %s {" % (file_name, file_name)
-    contents = contents.splitlines(True)
-    brace_count = 0
-    in_impl = False
-    for idx, line in enumerate(contents):
-        if "// check-tidy: no specs after this line" in line:
-            break
-        if not patt.match(line):
-            if pattern.lower() in line.lower():
-                in_impl = True
-            if "fn " in line and brace_count == 1:
-                if "// https://" not in contents[idx - 1] and "// https://" not in contents[idx - 2]:
-                    yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
-            if '{' in line and in_impl:
-                brace_count += 1
-            if '}' in line and in_impl:
-                if brace_count == 1:
-                    break
-                brace_count -= 1
+            return True
+    return False
 
 
 def collect_errors_for_files(files_to_check, checking_functions):
@@ -248,6 +222,14 @@ def collect_errors_for_files(files_to_check, checking_functions):
                 for error in check(file_name, contents):
                     # filename, line, message
                     yield (file_name, error[0], error[1])
+            elif file_name.endswith(".webidl"):
+                if not check_webidl_spec(contents):
+                    yield (file_name, 0, "No specification link found.")
+            else:
+                for check in checking_functions:
+                    for error in check(contents):
+                        # filename, line, message
+                        yield (file_name, error[0], error[1])
 
 
 def check_reftest_order(files_to_check):
