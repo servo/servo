@@ -287,6 +287,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
 }
 
 impl<'a> EventTargetMethods for &'a EventTarget {
+    // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
     fn AddEventListener(self,
                         ty: DOMString,
                         listener: Option<Rc<EventListener>>,
@@ -312,6 +313,7 @@ impl<'a> EventTargetMethods for &'a EventTarget {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
     fn RemoveEventListener(self,
                            ty: DOMString,
                            listener: Option<Rc<EventListener>>,
@@ -335,6 +337,7 @@ impl<'a> EventTargetMethods for &'a EventTarget {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
     fn DispatchEvent(self, event: &Event) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
             return Err(InvalidState);

@@ -59,12 +59,17 @@ impl ProgressEvent {
 }
 
 impl<'a> ProgressEventMethods for &'a ProgressEvent {
+    // https://dom.spec.whatwg.org/#dom-nodelist-item
     fn LengthComputable(self) -> bool {
         self.length_computable
     }
+
+    // https://xhr.spec.whatwg.org/#dom-progressevent-loaded
     fn Loaded(self) -> u64{
         self.loaded
     }
+
+    // https://xhr.spec.whatwg.org/#dom-progressevent-total
     fn Total(self) -> u64 {
         self.total
     }

@@ -41,27 +41,33 @@ impl DOMRect {
 }
 
 impl<'a> DOMRectMethods for &'a DOMRect {
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-top
     fn Top(self) -> Finite<f32> {
         Finite::wrap(self.top)
     }
 
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-bottom
     fn Bottom(self) -> Finite<f32> {
         Finite::wrap(self.bottom)
     }
 
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-left
     fn Left(self) -> Finite<f32> {
         Finite::wrap(self.left)
     }
 
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-right
     fn Right(self) -> Finite<f32> {
         Finite::wrap(self.right)
     }
 
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-width
     fn Width(self) -> Finite<f32> {
         let result = (self.right - self.left).abs();
         Finite::wrap(result)
     }
 
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-height
     fn Height(self) -> Finite<f32> {
         let result = (self.bottom - self.top).abs();
         Finite::wrap(result)
