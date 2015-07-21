@@ -272,7 +272,7 @@ class CGThing():
 
     def define(self):
         """Produce code for a Rust file."""
-        assert(False)  # Override me!
+        raise NotImplementedError  # Override me!
 
 
 class CGNativePropertyHooks(CGThing):
@@ -2134,7 +2134,7 @@ class CGAbstractMethod(CGThing):
         return "\n}\n"
 
     def definition_body(self):
-        assert(False)  # Override me!
+        raise NotImplementedError  # Override me!
 
 
 def CreateBindingJSObject(descriptor, parent=None):
@@ -2843,7 +2843,7 @@ let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
         return CGList([preamble, self.generate_code()])
 
     def generate_code(self):
-        assert False  # Override me
+        raise NotImplementedError  # Override me!
 
 
 class CGSpecializedMethod(CGAbstractExternMethod):
@@ -4538,8 +4538,7 @@ let this: *const %s = native_from_reflector::<%s>(obj);
         ])
 
     def generate_code(self):
-        # Override me
-        assert(False)
+        raise NotImplementedError  # Override me!
 
 
 def finalizeHook(descriptor, hookName, context):
