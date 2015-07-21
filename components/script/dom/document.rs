@@ -650,7 +650,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(window.r()),
-                                    0i32,
+                                    1i32,
                                     x, y, x, y,
                                     false, false, false, false,
                                     0i16,
