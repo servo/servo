@@ -112,7 +112,7 @@ pub struct Document {
     node: Node,
     window: JS<Window>,
     idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
-    console_timers: DOMRefCell<HashMap<Atom, u64>>,
+    console_timers: DOMRefCell<HashMap<DOMString, u64>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -462,19 +462,15 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    fn add_console_timer(self,
-                         name: &DOMString) {
-        let name = atom!(name);
+    fn add_console_timer(self, name: &DOMString) {
         let mut console_timers = self.console_timers.borrow_mut();
         let startTime = time::precise_time_ns();
-        console_timers.insert(name, startTime);
+        console_timers.insert(name.clone(), startTime);
     }
 
-    fn remove_console_timer(self,
-                            name: &DOMString) -> Option<u64> {
-        let name = &atom!(name);
+    fn remove_console_timer(self, name: &DOMString) -> Option<u64> {
         let mut console_timers = self.console_timers.borrow_mut();
-        console_timers.remove(name)
+        console_timers.remove(&*name)
     }
 
     fn load_anchor_href(self, href: DOMString) {

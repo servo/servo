@@ -92,8 +92,6 @@ impl<'a> ConsoleMethods for &'a Console {
             Some(name) => name,
             _ => return
         };
-        let msg = format!("{}: timer started", name);
-        println!("{}", msg);
         let global = self.global.root();
         match global.r() {
             GlobalRef::Window(window_ref) => {
@@ -105,6 +103,8 @@ impl<'a> ConsoleMethods for &'a Console {
                 return
             }
         }
+        let msg = format!("{}: timer started", name);
+        println!("{}", msg);
         propagate_console_msg(&self, prepare_message(LogLevel::Log, msg.to_owned()));
     }
 
