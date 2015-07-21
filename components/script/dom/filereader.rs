@@ -23,7 +23,7 @@ use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
 use std::cell::{Cell, RefCell};
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::Receiver;
 use util::str::DOMString;
 use util::task::spawn_named;
 
@@ -89,7 +89,7 @@ impl FileReader {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps
-    pub fn process_read_error(filereader: TrustedFileReader, gen_id: GenerationId) {
+    pub fn process_read_error(filereader: TrustedFileReader, gen_id: GenerationId, error: DOMErrorName) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -107,6 +107,11 @@ impl FileReader {
         return_on_abort!();
 
         //FIXME set error attribute
+        let global = fr.global.root();
+        let exception = DOMException::new(global.r(), error);
+        fr.error.set(Some(JS::from_rooted(&exception)));
+        return_on_abort!();
+
         fr.dispatch_progress_event("error".to_owned(), 0, None);
         return_on_abort!();
         // Step 3
@@ -220,6 +225,9 @@ impl<'a> FileReaderMethods for &'a FileReader {
         // Steps 1 & 3
         *self.result.borrow_mut() = None;
         //FIXME set error
+        let global = self.global.root();
+        let exception = DOMException::new(global.r(), DOMErrorName::AbortError);
+        self.error.set(Some(JS::from_rooted(&exception)));
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
@@ -272,29 +280,10 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         let gen_id = self.generation_id.get();
 
         let script_chan = global.script_chan();
-        let task = box FileReaderHandler::new(gen_id, read_data, fr, script_chan);
 
-        let (setup_chan, setup_port) = channel();
-
-        spawn_named("FileReaderHandler".to_owned(), move || {
-            loop {
-                match setup_port.recv() {
-                    Ok(s) => {
-                        match s {
-                            ScriptMsg::RunnableMsg(task) =>{
-                                task.handler();
-                                break
-                            },
-                            _ => {
-                                panic!("Unexpected message");
-                            }
-                        }
-                    },
-                    Err(_) => {}
-                }
-            }
+        spawn_named("file reader async operation".to_owned(), move || {
+            perform_annotated_read_operation(gen_id, read_data, fr, script_chan)
         });
-        setup_chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
         Ok(())
     }
 
@@ -312,7 +301,6 @@ pub enum Process {
 }
 
 impl Process {
-
     fn call(self, chan: Box<ScriptChan + Send>) {
         let task = box FileReaderEvent::new(self);
         chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
@@ -326,8 +314,8 @@ impl Process {
             Process::ProcessReadData(filereader, gen_id, _) => {
                 FileReader::process_read_data(filereader, gen_id);
             },
-            Process::ProcessReadError(filereader, gen_id, _) => {
-                FileReader::process_read_error(filereader, gen_id);
+            Process::ProcessReadError(filereader, gen_id, error) => {
+                FileReader::process_read_error(filereader, gen_id, error);
             },
             Process::ProcessReadEOF(filereader, gen_id, string) => {
                 FileReader::process_read_eof(filereader, gen_id, string);
@@ -356,85 +344,53 @@ impl Runnable for FileReaderEvent {
     }
 }
 
-pub struct FileReaderHandler {
-    gen_id: GenerationId,
-    read_data: ReadData,
-    filereader: TrustedFileReader,
-    chan: Box<ScriptChan + Send>
-}
+fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
+    filereader: TrustedFileReader, chan: Box<ScriptChan + Send>) {
+    // Step 4
+    Process::ProcessRead(filereader.clone(),
+        gen_id).call(chan.clone());
 
-impl FileReaderHandler {
-    pub fn new(gen_id: GenerationId, read_data: ReadData,
-        filereader: TrustedFileReader, chan: Box<ScriptChan + Send>) -> FileReaderHandler {
-        FileReaderHandler {
-            gen_id: gen_id,
-            read_data: read_data,
-            filereader: filereader,
-            chan: chan
+    Process::ProcessReadData(filereader.clone(),
+        gen_id, DOMString::new()).call(chan.clone());
+    let encoding = match read_data.label {
+        Some(e) => encoding_from_whatwg_label(&e),
+        None => Some(UTF_8 as EncodingRef)
+    };
+
+    let enc = match encoding {
+        Some(code) => code,
+        None => {
+            Process::ProcessReadError(filereader,
+                gen_id, DOMErrorName::NotSupportedError).call(chan);
+            return;
         }
-    }
+    };
+    let bytes = match read_data.bytes.recv() {
+        Ok(data) => data,
+        Err(_) => {
+            Process::ProcessReadError(filereader,
+                gen_id, DOMErrorName::NotFoundError).call(chan);
+            return;
+        }
+    };
+    let input = match bytes {
+        Some(bytes) => bytes,
+        None => {
+            Process::ProcessReadEOF(filereader,
+                gen_id, DOMString::new()).call(chan);
+            return;
+        }
+    };
+    // Step 5
+    Process::ProcessReadData(filereader.clone(),
+        gen_id, DOMString::new()).call(chan.clone());
+    let (_, convert) = input.split_at(0);
 
-}
-
-impl Runnable for FileReaderHandler {
-    fn handler(self: Box<FileReaderHandler>) {
-        let this = *self;
-        this.handle_read();
-    }
-}
-
-trait ReadHandle {
-    fn handle_read(self);
-}
-impl ReadHandle for FileReaderHandler {
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn handle_read(self) {
-        // Step 4
-        Process::ProcessRead(self.filereader.clone(),
-            self.gen_id).call(self.chan.clone());
-
-        Process::ProcessReadData(self.filereader.clone(),
-            self.gen_id, DOMString::new()).call(self.chan.clone());
-        let encoding = match self.read_data.label {
-            Some(e) => encoding_from_whatwg_label(&e),
-            None => Some(UTF_8 as EncodingRef)
-        };
-
-        let enc = match encoding {
-            Some(code) => code,
-            None => {
-                Process::ProcessReadError(self.filereader,
-                    self.gen_id, DOMErrorName::NotSupportedError).call(self.chan);
-                return;
-            }
-        };
-        let bytes = match self.read_data.bytes.recv() {
-            Ok(data) => data,
-            Err(_) => {
-                Process::ProcessReadError(self.filereader,
-                    self.gen_id, DOMErrorName::NotFoundError).call(self.chan);
-                return;
-            }
-        };
-        let input = match bytes {
-            Some(bytes) => bytes,
-            None => {
-                Process::ProcessReadEOF(self.filereader,
-                    self.gen_id, DOMString::new()).call(self.chan);
-                return;
-            }
-        };
-        // Step 5
-        Process::ProcessReadData(self.filereader.clone(),
-            self.gen_id, DOMString::new()).call(self.chan.clone());
-        let (_, convert) = input.split_at(0);
-
-        let output = enc.decode(convert, DecoderTrap::Strict);
-        match output {
-            Ok(s) => Process::ProcessReadEOF(self.filereader,
-                self.gen_id, s).call(self.chan),
-            Err(_) => Process::ProcessReadError(self.filereader,
-                self.gen_id, DOMErrorName::InvalidCharacterError).call(self.chan)
-        };
-    }
+    let output = enc.decode(convert, DecoderTrap::Strict);
+    match output {
+        Ok(s) => Process::ProcessReadEOF(filereader,
+            gen_id, s).call(chan),
+        Err(_) => Process::ProcessReadError(filereader,
+            gen_id, DOMErrorName::InvalidCharacterError).call(chan)
+    };
 }
