@@ -16,6 +16,9 @@
 #![plugin(plugins)]
 #![plugin(serde_macros)]
 
+#![feature(std_misc)]
+#![feature(mpsc_select)]
+
 #[macro_use]
 extern crate log;
 extern crate serde;

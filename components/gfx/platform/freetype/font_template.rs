@@ -5,16 +5,7 @@
 use std::fs::File;
 use std::io::Read;
 use string_cache::Atom;
-
-/// Platform specific font representation for Linux.
-/// The identifier is an absolute path, and the bytes
-/// field is the loaded data that can be passed to
-/// freetype and azure directly.
-#[derive(Deserialize, Serialize)]
-pub struct FontTemplateData {
-    pub bytes: Vec<u8>,
-    pub identifier: Atom,
-}
+use gfx_traits::platform::font_template::freetype::FontTemplateData;
 
 impl FontTemplateData {
     pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {

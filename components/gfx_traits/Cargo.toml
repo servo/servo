@@ -9,3 +9,28 @@ path = "lib.rs"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.profile_traits]
+path = "../profile_traits"
+
+[dependencies.style]
+path = "../style"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies]
+euclid = "0.1"
+fnv = "1.0"
+libc = "*"
+serde = "*"
+string_cache = "0.1"
+
+[target.x86_64-apple-darwin.dependencies.core-text]
+git = "https://github.com/servo/core-text-rs"

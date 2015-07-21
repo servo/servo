@@ -11,8 +11,9 @@ use compositor_task;
 use devtools_traits::DevtoolsControlChan;
 use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
-use gfx::paint_task::Msg as PaintMsg;
-use gfx::paint_task::{PaintChan, PaintTask};
+use gfx_traits::paint_task::CompositorPaintMsg as PaintMsg;
+use gfx_traits::paint_task::CompositorPaintChan;
+use gfx::paint_task::PaintTask;
 use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcReceiver};
 use layers::geometry::DevicePixel;
@@ -355,4 +356,3 @@ impl PipelineContent {
 
     }
 }
-

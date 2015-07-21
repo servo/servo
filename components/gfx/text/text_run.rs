@@ -4,6 +4,7 @@
 
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
+use gfx_traits::text::text_run::*;
 use platform::font_template::FontTemplateData;
 use util::geometry::Au;
 use util::range::Range;
@@ -12,27 +13,6 @@ use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
-
-/// A single "paragraph" of text in one font size and style.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct TextRun {
-    /// The UTF-8 string represented by this text run.
-    pub text: Arc<String>,
-    pub font_template: Arc<FontTemplateData>,
-    pub actual_pt_size: Au,
-    pub font_metrics: FontMetrics,
-    /// The glyph runs that make up this text run.
-    pub glyphs: Arc<Vec<GlyphRun>>,
-}
-
-/// A single series of glyphs within a text run.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct GlyphRun {
-    /// The glyphs.
-    pub glyph_store: Arc<GlyphStore>,
-    /// The range of characters in the containing run.
-    pub range: Range<CharIndex>,
-}
 
 pub struct NaturalWordSliceIterator<'a> {
     glyph_iter: Iter<'a, GlyphRun>,

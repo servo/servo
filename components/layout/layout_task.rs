@@ -34,10 +34,10 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use gfx_traits::color;
+use gfx_traits::paint_task::LayoutPaintMsg as PaintMsg;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
 use ipc_channel::ipc::IpcReceiver;
 use layout_traits::LayoutTaskFactory;
@@ -1424,4 +1424,3 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
-
