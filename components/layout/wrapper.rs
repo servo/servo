@@ -684,8 +684,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     #[inline]
     pub fn get_before_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
         node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
             self.with_pseudo(PseudoElementType::Before(style.get_box().display))
         })
@@ -693,8 +693,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     #[inline]
     pub fn get_after_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
         node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
             self.with_pseudo(PseudoElementType::After(style.get_box().display))
         })
