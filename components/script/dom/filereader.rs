@@ -280,7 +280,7 @@ impl<'a> FileReaderMethods for &'a FileReader {
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     //TODO https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
-    //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn ReadAsDataURL(self, blob: &Blob) -> ErrorResult {
         let global = self.global.root();
         // Step 1
@@ -340,14 +340,17 @@ impl<'a> FileReaderMethods for &'a FileReader {
         self.dispatch_progress_event("loadend".to_owned(), 0, None);
     }
 
+    // https://w3c.github.io/FileAPI/#dfn-error
     fn GetError(self) -> Option<Root<DOMException>> {
         self.error.get().map(|error| error.root())
     }
 
+    // https://w3c.github.io/FileAPI/#dfn-result
     fn GetResult(self) -> Option<DOMString> {
         self.result.borrow().clone()
     }
 
+    // https://w3c.github.io/FileAPI/#dfn-readyState
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
     }

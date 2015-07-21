@@ -92,7 +92,7 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
 }
 
 impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(self) -> u32 {
         let owner = self.owner.root();
         let elem = ElementCast::from_ref(owner.r());
@@ -103,7 +103,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         len as u32
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
     fn Item(self, index: u32) -> DOMString {
         let index = index as usize;
         let owner = self.owner.root();
@@ -124,7 +124,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         result.unwrap_or("".to_owned())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
@@ -159,7 +159,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(self, property: DOMString) -> DOMString {
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
@@ -183,7 +183,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         "".to_owned()
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
     fn SetProperty(self, property: DOMString, value: DOMString,
                    priority: DOMString) -> ErrorResult {
         // Step 1
@@ -244,7 +244,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         Ok(())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
     fn SetPropertyPriority(self, property: DOMString, priority: DOMString) -> ErrorResult {
         // Step 1
         if self.readonly {
@@ -287,12 +287,12 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         Ok(())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
         self.SetProperty(property, value, "".to_owned())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
     fn RemoveProperty(self, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
@@ -326,17 +326,17 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         Ok(value)
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(self) -> DOMString {
         self.GetPropertyValue("float".to_owned())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(self, value: DOMString) -> ErrorResult {
         self.SetPropertyValue("float".to_owned(), value)
     }
 
-    // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
+    // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
         let rval = self.Item(index);
         *found = index < self.Length();

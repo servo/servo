@@ -91,12 +91,14 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
         owner.remove_attribute(&ns, &Atom::from_slice(&local_name)).ok_or(Error::NotFound)
     }
 
+    // https://dom.spec.whatwg.org/#dom-namednodemap-item
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item
     }
 
+    // check-tidy: no specs after this line
     fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Root<Attr>> {
         let item = self.GetNamedItem(name);
         *found = item.is_some();

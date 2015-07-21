@@ -95,22 +95,22 @@ impl<'a> RangeHelpers<'a> for &'a Range {
 }
 
 impl<'a> RangeMethods for &'a Range {
-    // http://dom.spec.whatwg.org/#dom-range-startcontainer
+    // https://dom.spec.whatwg.org/#dom-range-startcontainer
     fn StartContainer(self) -> Root<Node> {
         self.inner().borrow().start.node()
     }
 
-    /// http://dom.spec.whatwg.org/#dom-range-startoffset
+    // https://dom.spec.whatwg.org/#dom-range-startoffset
     fn StartOffset(self) -> u32 {
         self.inner().borrow().start.offset
     }
 
-    /// http://dom.spec.whatwg.org/#dom-range-endcontainer
+    // https://dom.spec.whatwg.org/#dom-range-endcontainer
     fn EndContainer(self) -> Root<Node> {
         self.inner().borrow().end.node()
     }
 
-    /// http://dom.spec.whatwg.org/#dom-range-endoffset
+    // https://dom.spec.whatwg.org/#dom-range-endoffset
     fn EndOffset(self) -> u32 {
         self.inner().borrow().end.offset
     }
@@ -448,7 +448,7 @@ impl<'a> RangeMethods for &'a Range {
         Ok(fragment)
     }
 
-    // http://dom.spec.whatwg.org/#dom-range-detach
+    // https://dom.spec.whatwg.org/#dom-range-detach
     fn Detach(self) {
         // This method intentionally left blank.
     }
