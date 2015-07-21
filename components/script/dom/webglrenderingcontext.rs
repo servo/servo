@@ -276,8 +276,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
         let data = match data {
             Some(data) => data,
@@ -345,9 +345,9 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         WebGLProgram::maybe_new(self.global.root().r(), self.ipc_renderer.clone())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     // TODO(ecoal95): Check if constants are cross-platform or if we must make a translation
     // between WebGL constants and native ones.
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateShader(self, shader_type: u32) -> Option<Root<WebGLShader>> {
         WebGLShader::maybe_new(self.global.root().r(), self.ipc_renderer.clone(), shader_type)
     }
@@ -474,8 +474,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4fv(self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,

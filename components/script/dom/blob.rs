@@ -98,7 +98,7 @@ impl<'a> BlobHelpers for &'a Blob {
 }
 
 impl<'a> BlobMethods for &'a Blob {
-    // http://dev.w3.org/2006/webapi/FileAPI/#dfn-size
+    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-size
     fn Size(self) -> u64{
         match self.bytes {
             None => 0,
@@ -106,12 +106,12 @@ impl<'a> BlobMethods for &'a Blob {
         }
     }
 
-    // http://dev.w3.org/2006/webapi/FileAPI/#dfn-type
+    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-type
     fn Type(self) -> DOMString {
         self.typeString.clone()
     }
 
-    // http://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo
+    // https://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo
     fn Slice(self, start: Option<i64>, end: Option<i64>,
              contentType: Option<DOMString>) -> Root<Blob> {
         let size: i64 = self.Size().to_i64().unwrap();

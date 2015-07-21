@@ -41,22 +41,22 @@ impl DOMPointReadOnly {
 }
 
 impl<'a> DOMPointReadOnlyMethods for &'a DOMPointReadOnly {
-    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(self) -> f64 {
         self.x.get()
     }
 
-    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
     fn Y(self) -> f64 {
         self.y.get()
     }
 
-    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
     fn Z(self) -> f64 {
         self.z.get()
     }
 
-    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
     fn W(self) -> f64 {
         self.w.get()
     }

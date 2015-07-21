@@ -1738,10 +1738,12 @@ impl<'a> DocumentMethods for &'a Document {
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
     fn BgColor(self) -> DOMString {
         self.get_body_attribute(&atom!("bgcolor"))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
     fn SetBgColor(self, value: DOMString) {
         self.set_body_attribute(&atom!("bgcolor"), value)
     }

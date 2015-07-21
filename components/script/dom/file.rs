@@ -40,6 +40,7 @@ impl File {
 }
 
 impl<'a> FileMethods for &'a File {
+    // https://w3c.github.io/FileAPI/#dfn-name
     fn Name(self) -> DOMString {
         self.name.clone()
     }

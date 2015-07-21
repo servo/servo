@@ -88,24 +88,28 @@ impl StorageEvent {
 }
 
 impl<'a> StorageEventMethods for &'a StorageEvent {
+    // https://html.spec.whatwg.org/multipage/#dom-storageevent-key
     fn GetKey(self) -> Option<DOMString> {
         self.key.borrow().clone()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storageevent-oldvalue
     fn GetOldValue(self) -> Option<DOMString> {
         self.oldValue.borrow().clone()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storageevent-newvalue
     fn GetNewValue(self) -> Option<DOMString> {
         self.newValue.borrow().clone()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storageevent-url
     fn Url(self) -> DOMString {
         self.url.borrow().clone()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
     fn GetStorageArea(self) -> Option<Root<Storage>> {
         self.storageArea.get().map(Root::from_rooted)
     }
-
 }
