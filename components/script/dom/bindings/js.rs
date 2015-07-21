@@ -270,6 +270,12 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
         self.ptr.get().map(|js| js.to_layout())
     }
+
+    /// Get a rooted value out of this object
+    // FIXME(#6684)
+    pub fn get_rooted(&self) -> Option<Root<T>> {
+        self.get().map(|o| o.root())
+    }
 }
 
 impl<T: HeapGCValue+Copy> Default for MutNullableHeap<T> {
