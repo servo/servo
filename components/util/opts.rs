@@ -15,10 +15,8 @@ use std::cmp;
 use std::env;
 use std::io::{self, Write};
 use std::fs::PathExt;
-use std::mem;
 use std::path::Path;
 use std::process;
-use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
@@ -444,7 +442,7 @@ pub fn from_cmdline_args(args: &[String]) {
         exit_after_load: opt_match.opt_present("x"),
     };
 
-    set(opts);
+    set_defaults(opts);
 }
 
 static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
@@ -463,27 +461,36 @@ pub fn experimental_enabled() -> bool {
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-static mut OPTIONS: *mut Opts = 0 as *mut Opts;
+static mut DEFAULT_OPTIONS: *mut Opts = 0 as *mut Opts;
+const INVALID_OPTIONS: *mut Opts = 0x01 as *mut Opts;
 
-pub fn set(opts: Opts) {
-    unsafe {
-        assert!(OPTIONS.is_null());
+lazy_static! {
+    static ref OPTIONS: Opts = {
+        let opts = unsafe {
+            let initial = if !DEFAULT_OPTIONS.is_null() {
+                let opts = Box::from_raw(DEFAULT_OPTIONS);
+                *opts
+            } else {
+                default_opts()
+            };
+            DEFAULT_OPTIONS = INVALID_OPTIONS;
+            initial
+        };
         set_experimental_enabled(opts.enable_experimental);
+        opts
+    };
+}
+
+pub fn set_defaults(opts: Opts) {
+    unsafe {
+        assert!(DEFAULT_OPTIONS.is_null());
+        assert!(DEFAULT_OPTIONS != INVALID_OPTIONS);
         let box_opts = box opts;
-        OPTIONS = mem::transmute(box_opts);
+        DEFAULT_OPTIONS = Box::into_raw(box_opts);
     }
 }
 
 #[inline]
-pub fn get<'a>() -> &'a Opts {
-    unsafe {
-        // If code attempts to retrieve the options and they haven't
-        // been set by the platform init code, just return a default
-        // set of options. This is mostly useful for unit tests that
-        // run through a code path which queries the cmd line options.
-        if OPTIONS == ptr::null_mut() {
-            set(default_opts());
-        }
-        mem::transmute(OPTIONS)
-    }
+pub fn get() -> &'static Opts {
+    &OPTIONS
 }

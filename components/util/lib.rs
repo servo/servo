@@ -4,6 +4,7 @@
 
 #![feature(alloc)]
 #![feature(box_syntax)]
+#![feature(box_raw)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![feature(fnbox)]
@@ -22,6 +23,7 @@
 #![plugin(serde_macros)]
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate lazy_static;
 
 extern crate azure;
 extern crate alloc;
