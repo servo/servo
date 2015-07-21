@@ -15,10 +15,8 @@ use std::cmp;
 use std::env;
 use std::io::{self, Write};
 use std::fs::PathExt;
-use std::mem;
 use std::path::Path;
 use std::process;
-use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
@@ -163,6 +161,9 @@ pub struct Opts {
 
     /// Whether to run absolute position calculation and display list construction in parallel.
     pub parallel_display_list_building: bool,
+
+    /// True to exit after the page load (`-x`).
+    pub exit_after_load: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -261,6 +262,7 @@ pub fn default_opts() -> Opts {
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
+        exit_after_load: false,
     }
 }
 
@@ -437,9 +439,10 @@ pub fn from_cmdline_args(args: &[String]) {
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
         parallel_display_list_building: debug_options.contains(&"parallel-display-list-building"),
+        exit_after_load: opt_match.opt_present("x"),
     };
 
-    set(opts);
+    set_defaults(opts);
 }
 
 static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
@@ -458,27 +461,36 @@ pub fn experimental_enabled() -> bool {
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-static mut OPTIONS: *mut Opts = 0 as *mut Opts;
+static mut DEFAULT_OPTIONS: *mut Opts = 0 as *mut Opts;
+const INVALID_OPTIONS: *mut Opts = 0x01 as *mut Opts;
 
-pub fn set(opts: Opts) {
-    unsafe {
-        assert!(OPTIONS.is_null());
+lazy_static! {
+    static ref OPTIONS: Opts = {
+        let opts = unsafe {
+            let initial = if !DEFAULT_OPTIONS.is_null() {
+                let opts = Box::from_raw(DEFAULT_OPTIONS);
+                *opts
+            } else {
+                default_opts()
+            };
+            DEFAULT_OPTIONS = INVALID_OPTIONS;
+            initial
+        };
         set_experimental_enabled(opts.enable_experimental);
+        opts
+    };
+}
+
+pub fn set_defaults(opts: Opts) {
+    unsafe {
+        assert!(DEFAULT_OPTIONS.is_null());
+        assert!(DEFAULT_OPTIONS != INVALID_OPTIONS);
         let box_opts = box opts;
-        OPTIONS = mem::transmute(box_opts);
+        DEFAULT_OPTIONS = Box::into_raw(box_opts);
     }
 }
 
 #[inline]
-pub fn get<'a>() -> &'a Opts {
-    unsafe {
-        // If code attempts to retrieve the options and they haven't
-        // been set by the platform init code, just return a default
-        // set of options. This is mostly useful for unit tests that
-        // run through a code path which queries the cmd line options.
-        if OPTIONS == ptr::null_mut() {
-            set(default_opts());
-        }
-        mem::transmute(OPTIONS)
-    }
+pub fn get() -> &'static Opts {
+    &OPTIONS
 }
