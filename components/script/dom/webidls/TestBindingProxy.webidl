@@ -9,6 +9,9 @@
  *
  */
 
+// This interface is entirely internal to Servo, and should not be accessible to
+// web pages.
+
 interface TestBindingProxy : TestBinding {
 
   getter DOMString getNamedItem(DOMString name);
