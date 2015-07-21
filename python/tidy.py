@@ -153,7 +153,30 @@ def check_toml(contents):
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
+def check_spec(contents, file_name):
+    patt = re.compile("^\s*\/\/.+")
+    contents = contents.splitlines(True)
+    brace_count = 0
+    in_impl = False
+    for idx, line in enumerate(contents):
+        if line.find("// check-tidy: no spec") != -1:
+            break
+        if not patt.match(line):
+            if line.lower().find(("impl<'a> %sMethods for &'a %s {" % (file_name, file_name)).lower()) != -1:
+                in_impl = True
+            if line.find("fn ") != -1 and brace_count == 1:
+                if contents[idx - 1].find("// https://") == -1 and contents[idx - 2].find("// https://") == -1:
+                    yield (idx + 1, "no spec link was found for the respective function")
+            if line.find("{") != -1 and in_impl:
+                brace_count += 1
+            if line.find("}") != -1 and in_impl:
+                if brace_count == 1:
+                    break
+                brace_count -= 1
+
+
 def collect_errors_for_files(files_to_check, checking_functions):
+    patt = re.compile("components/script/dom/.+\.rs")
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
             contents = fp.read()
@@ -164,6 +187,9 @@ def collect_errors_for_files(files_to_check, checking_functions):
                 for check in checking_functions:
                     for error in check(contents):
                         # filename, line, message
+                        yield (file_name, error[0], error[1])
+                if patt.match(file_name):
+                    for error in check_spec(contents, file_name[22:-3]):
                         yield (file_name, error[0], error[1])
 
 
@@ -208,8 +234,8 @@ def scan():
 
     if errors or num_flake8_errors:
         for error in errors:
-            print("{}:{}: {}".format(*error))
+            print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
         return 1
     else:
-        print("tidy reported no errors.")
+        print "\033[92mtidy reported no errors.\033[0m"
         return 0
