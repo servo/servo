@@ -21,6 +21,7 @@ use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
 use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
+use hyper::mime::{Mime, Attr};
 use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
 use std::cell::{Cell, RefCell};
 use std::sync::mpsc::Receiver;
@@ -47,6 +48,26 @@ impl ReadData {
     pub fn new(bytes: Receiver<Option<Vec<u8>>>, blobtype: DOMString,
                label: Option<DOMString>, function: FileReaderFunction) -> ReadData {
         ReadData {
+            bytes: bytes,
+            blobtype: blobtype,
+            label: label,
+            function: function,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct BlobBody {
+    pub bytes: Vec<u8>,
+    pub blobtype: DOMString,
+    pub label: Option<DOMString>,
+    pub function: FileReaderFunction
+}
+
+impl BlobBody {
+    pub fn new(bytes: Vec<u8>, blobtype: DOMString,
+               label: Option<DOMString>, function: FileReaderFunction) -> BlobBody {
+        BlobBody {
             bytes: bytes,
             blobtype: blobtype,
             label: label,
@@ -160,7 +181,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId, data: DOMString) {
+    pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId, data: Option<BlobBody>) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -174,10 +195,22 @@ impl FileReader {
         return_on_abort!();
         // Step 8.1
         fr.change_ready_state(FileReaderReadyState::Done);
-        return_on_abort!();
         // Step 8.2
-        *fr.result.borrow_mut() = Some(data);
-        return_on_abort!();
+        let error = match data {
+            Some(blob_body) => {
+                match blob_body.function {
+                    FileReaderFunction::ReadAsDataUrl => FileReader::perform_readasdataurl(filereader, blob_body),
+                    FileReaderFunction::ReadAsText => FileReader::perform_readastext(filereader, gen_id, blob_body),
+                }
+            },
+            None => {
+                *fr.result.borrow_mut() = None;
+                false
+            }
+        };
+        if error {
+            return;
+        }
         // Step 8.3
         fr.dispatch_progress_event("load".to_owned(), 0, None);
         return_on_abort!();
@@ -185,9 +218,86 @@ impl FileReader {
         if fr.ready_state.get() != FileReaderReadyState::Loading {
             fr.dispatch_progress_event("loadend".to_owned(), 0, None);
         }
+        return_on_abort!();
         // Step 9
         fr.terminate_ongoing_reading();
     }
+
+    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    fn perform_readastext(filereader: TrustedFileReader,
+        gen_id: GenerationId, blob_body: BlobBody) -> bool {
+
+        //https://w3c.github.io/FileAPI/#encoding-determination
+        // Steps 1 & 2 & 3
+        let mut encoding = match blob_body.label {
+            Some(e) => encoding_from_whatwg_label(&e),
+            None => None
+        };
+
+        // Step 4 & 5
+        encoding = match encoding {
+            Some(e) => Some(e),
+            None => {
+                let resultmime = blob_body.blobtype.parse::<Mime>();
+                match resultmime {
+                    Ok(mime) => {
+                        let &Mime(_, _, ref parameters) = &mime;
+                        for &(ref k, ref v) in parameters.iter() {
+                            if &Attr::Charset == k {
+                                encoding_from_whatwg_label(&v.to_string());
+                            }
+                        }
+                        None
+                    },
+                    Err(_) => None
+                }
+            }
+        };
+
+        // Step 6
+        let enc = match encoding {
+            Some(code) => code,
+            None => UTF_8 as EncodingRef
+        };
+
+        // Step 7
+        let convert = &blob_body.bytes[..];
+        let output = enc.decode(convert, DecoderTrap::Strict);
+        match output {
+            Ok(s) => {
+                let fr = filereader.root();
+                *fr.result.borrow_mut() = Some(s);
+                false
+            },
+            Err(_) => {
+                //FIXME Error NotReadableError
+                FileReader::process_read_error(filereader, gen_id, DOMErrorName::NotFoundError);
+                true
+            }
+        }
+    }
+
+    //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    fn perform_readasdataurl(filereader: TrustedFileReader, blob_body: BlobBody)  -> bool {
+        let config = Config {
+            char_set: CharacterSet::UrlSafe,
+            newline: Newline::LF,
+            pad: true,
+            line_length: None
+        };
+        let base64 = blob_body.bytes.to_base64(config);
+
+        let output = if blob_body.blobtype.is_empty() {
+            format!("data:base64,{}", base64)
+        } else {
+            format!("data:{};base64,{}", blob_body.blobtype, base64)
+        };
+
+        let fr = filereader.root();
+        *fr.result.borrow_mut() = Some(output);
+        false
+    }
+
 }
 
 impl<'a> FileReaderMethods for &'a FileReader {
@@ -321,7 +431,7 @@ pub enum Process {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId, DOMString),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
-    ProcessReadEOF(TrustedFileReader, GenerationId, DOMString)
+    ProcessReadEOF(TrustedFileReader, GenerationId, Option<BlobBody>)
 }
 
 impl Process {
@@ -341,8 +451,8 @@ impl Process {
             Process::ProcessReadError(filereader, gen_id, error) => {
                 FileReader::process_read_error(filereader, gen_id, error);
             },
-            Process::ProcessReadEOF(filereader, gen_id, string) => {
-                FileReader::process_read_eof(filereader, gen_id, string);
+            Process::ProcessReadEOF(filereader, gen_id, blob_body) => {
+                FileReader::process_read_eof(filereader, gen_id, blob_body);
             }
         }
     }
@@ -368,71 +478,8 @@ impl Runnable for FileReaderEvent {
     }
 }
 
+//https://w3c.github.io/FileAPI/#task-read-operation
 fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
-    filereader: TrustedFileReader, chan: Box<ScriptChan + Send>) {
-    match read_data.function {
-        FileReaderFunction::ReadAsDataUrl => perform_read_dataurl(gen_id,
-            read_data, filereader, chan),
-        FileReaderFunction::ReadAsText => perform_read_text(gen_id,
-            read_data, filereader, chan),
-    }
-}
-
-// https://w3c.github.io/FileAPI/#dfn-readAsText
-fn perform_read_text(gen_id: GenerationId, read_data: ReadData,
-    filereader: TrustedFileReader, script_chan: Box<ScriptChan + Send>) {
-    let chan = &script_chan;
-    // Step 4
-    Process::ProcessRead(filereader.clone(),
-        gen_id).call(chan);
-
-    Process::ProcessReadData(filereader.clone(),
-        gen_id, DOMString::new()).call(chan);
-    let encoding = match read_data.label {
-        Some(e) => encoding_from_whatwg_label(&e),
-        None => Some(UTF_8 as EncodingRef)
-    };
-
-    let enc = match encoding {
-        Some(code) => code,
-        None => {
-            Process::ProcessReadError(filereader,
-                gen_id, DOMErrorName::NotSupportedError).call(chan);
-            return;
-        }
-    };
-    let bytes = match read_data.bytes.recv() {
-        Ok(data) => data,
-        Err(_) => {
-            Process::ProcessReadError(filereader,
-                gen_id, DOMErrorName::NotFoundError).call(chan);
-            return;
-        }
-    };
-    let input = match bytes {
-        Some(bytes) => bytes,
-        None => {
-            Process::ProcessReadEOF(filereader,
-                gen_id, DOMString::new()).call(chan);
-            return;
-        }
-    };
-    // Step 5
-    Process::ProcessReadData(filereader.clone(),
-        gen_id, DOMString::new()).call(chan);
-    let (_, convert) = input.split_at(0);
-
-    let output = enc.decode(convert, DecoderTrap::Strict);
-    match output {
-        Ok(s) => Process::ProcessReadEOF(filereader,
-            gen_id, s).call(chan),
-        Err(_) => Process::ProcessReadError(filereader,
-            gen_id, DOMErrorName::InvalidCharacterError).call(chan)
-    };
-}
-
-//https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-fn perform_read_dataurl(gen_id: GenerationId, read_data: ReadData,
     filereader: TrustedFileReader, script_chan: Box<ScriptChan + Send>) {
     let chan = &script_chan;
     // Step 4
@@ -442,40 +489,21 @@ fn perform_read_dataurl(gen_id: GenerationId, read_data: ReadData,
     Process::ProcessReadData(filereader.clone(),
         gen_id, DOMString::new()).call(chan);
 
-    let bytes = match read_data.bytes.recv() {
-        Ok(data) => data,
+    let output = match read_data.bytes.recv() {
+        Ok(bytes) => bytes,
         Err(_) => {
             Process::ProcessReadError(filereader,
                 gen_id, DOMErrorName::NotFoundError).call(chan);
             return;
         }
     };
-    let config = Config {
-        char_set: CharacterSet::UrlSafe,
-        newline: Newline::LF,
-        pad: true,
-        line_length: None
-    };
-    let base64 = match bytes {
-        Some(bytes) => bytes.to_base64(config),
-        None => {
-            Process::ProcessReadEOF(filereader,
-                gen_id, DOMString::new()).call(chan);
-            return;
-        }
-    };
-    // Step 5
-    Process::ProcessReadData(filereader.clone(),
-        gen_id, DOMString::new()).call(chan);
 
-    //dom/base/nsDOMFileReader.cpp
-    let type_ = if read_data.blobtype.is_empty() {
-        DOMString::from("application/octet-stream")
-    } else {
-        read_data.blobtype
-    };
+    let blobtype = read_data.blobtype.clone();
+    let label = read_data.label.clone();
 
-    let output = format!("data:{};base64,{}", type_, base64);
+    let blob_body = output.map(|bytes| {
+        BlobBody::new(bytes, blobtype, label, read_data.function)
+    });
 
-    Process::ProcessReadEOF(filereader, gen_id, output).call(chan);
+    Process::ProcessReadEOF(filereader, gen_id, blob_body).call(chan);
 }
