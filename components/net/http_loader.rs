@@ -7,6 +7,7 @@ use net_traits::ProgressMsg::{Payload, Done};
 use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use hsts::{HSTSList, secure_url};
 
 use log;
 use std::collections::HashSet;
@@ -23,6 +24,7 @@ use std::error::Error;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use std::io::{self, Read, Write};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
@@ -33,11 +35,13 @@ use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>)
+pub fn factory(cookies_chan: Sender<ControlMsg>,
+               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+               hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
         spawn_named("http_loader".to_owned(),
-                    move || load(load_data, senders, classifier, cookies_chan, devtools_chan))
+                    move || load(load_data, senders, classifier, cookies_chan, devtools_chan, hsts_list))
     }
 }
 
@@ -69,8 +73,21 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>,
-        cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
+    match url.domain() {
+        Some(ref h) => {
+            hsts_list.is_host_secure(h)
+        },
+        _ => false
+    }
+}
+
+fn load(mut load_data: LoadData,
+        start_chan: LoadConsumer,
+        classifier: Arc<MIMEClassifier>,
+        cookies_chan: Sender<ControlMsg>,
+        devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+        hsts_list: Arc<Mutex<HSTSList>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -100,6 +117,11 @@ fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
     // Loop to handle redirects.
     loop {
         iters = iters + 1;
+
+        if &*url.scheme != "https" && request_must_be_secured(&hsts_list.lock().unwrap(), &url) {
+            info!("{} is in the strict transport security list, requesting secure host", url);
+            url = secure_url(&url);
+        }
 
         if iters > max_redirects {
             send_error(url, "too many redirects".to_string(), start_chan);

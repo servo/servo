@@ -13,15 +13,19 @@ use cookie;
 use mime_classifier::MIMEClassifier;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer};
-use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
+use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction, CookieSource};
 use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
+use url::Url;
+
+use hsts::{HSTSList, HSTSEntry, preload_hsts_domains};
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
+use regex::Regex;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashMap;
@@ -29,10 +33,14 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
+pub static IPV4_REGEX: Regex = regex!(
+    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+);
+pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
 
 pub fn global_init() {
     //TODO: handle bad file path
@@ -155,25 +163,36 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
+    let hsts_preload = match preload_hsts_domains() {
+        Some(list) => list,
+        None => HSTSList::new()
+    };
+
     let (setup_chan, setup_port) = channel();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
-        ResourceManager::new(setup_port, user_agent, setup_chan_clone, devtools_chan).start();
+        let resource_manager = ResourceManager::new(
+            user_agent, setup_chan_clone, hsts_preload, devtools_chan
+        );
+
+        let mut channel_manager = ResourceChannelManager {
+            from_client: setup_port,
+            resource_manager: resource_manager
+        };
+
+        channel_manager.start();
     });
     setup_chan
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
-    let ipv4_regex = regex!(
-        r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-    let ipv6_regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
     let mut host_table = HashMap::new();
     let lines: Vec<&str> = hostsfile_content.split('\n').collect();
 
     for line in lines.iter() {
         let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
         if ip_host.len() > 1 {
-            if !ipv4_regex.is_match(ip_host[0]) && !ipv6_regex.is_match(ip_host[0]) { continue; }
+            if !IPV4_REGEX.is_match(ip_host[0]) && !IPV6_REGEX.is_match(ip_host[0]) { continue; }
             let address = ip_host[0].to_owned();
 
             for token in ip_host.iter().skip(1) {
@@ -198,57 +217,82 @@ pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, S
     return load_data;
 }
 
-struct ResourceManager {
+struct ResourceChannelManager {
     from_client: Receiver<ControlMsg>,
+    resource_manager: ResourceManager
+}
+
+impl ResourceChannelManager {
+    fn start(&mut self) {
+        loop {
+            match self.from_client.recv().unwrap() {
+              ControlMsg::Load(load_data, consumer) => {
+                  self.resource_manager.load(load_data, consumer)
+              }
+              ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
+                  self.resource_manager.set_cookies_for_url(request, cookie_list, source)
+              }
+              ControlMsg::GetCookiesForUrl(url, consumer, source) => {
+                  consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
+              }
+              ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
+                  if let Some(entry) = HSTSEntry::new(host, include_subdomains, max_age) {
+                      self.resource_manager.add_hsts_entry(entry)
+                  }
+              }
+              ControlMsg::Exit => {
+                  break
+              }
+            }
+        }
+    }
+}
+
+pub struct ResourceManager {
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
+    // TODO: Can this be de-coupled?
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    hsts_list: Arc<Mutex<HSTSList>>
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>,
-           user_agent: Option<String>,
+    pub fn new(user_agent: Option<String>,
            resource_task: Sender<ControlMsg>,
+           hsts_list: HSTSList,
            devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
-            from_client: from_client,
             user_agent: user_agent,
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
-            devtools_chan: devtools_channel
+            devtools_chan: devtools_channel,
+            hsts_list: Arc::new(Mutex::new(hsts_list))
         }
     }
 }
 
 
 impl ResourceManager {
-    fn start(&mut self) {
-        loop {
-            match self.from_client.recv().unwrap() {
-              ControlMsg::Load(load_data, consumer) => {
-                self.load(load_data, consumer)
-              }
-              ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
-                let header = Header::parse_header(&[cookie_list.into_bytes()]);
-                if let Ok(SetCookie(cookies)) = header {
-                  for bare_cookie in cookies.into_iter() {
-                    if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
-                      self.cookie_storage.push(cookie, source);
-                    }
-                  }
+    fn set_cookies_for_url(&mut self, request: Url, cookie_list: String, source: CookieSource) {
+        let header = Header::parse_header(&[cookie_list.into_bytes()]);
+        if let Ok(SetCookie(cookies)) = header {
+            for bare_cookie in cookies.into_iter() {
+                if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
+                    self.cookie_storage.push(cookie, source);
                 }
-              }
-              ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                consumer.send(self.cookie_storage.cookies_for_url(&url, source)).unwrap();
-              }
-              ControlMsg::Exit => {
-                break
-              }
             }
         }
+    }
+
+    pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
+        self.hsts_list.lock().unwrap().push(entry);
+    }
+
+    pub fn is_host_sts(&self, host: &str) -> bool {
+        self.hsts_list.lock().unwrap().is_host_secure(host)
     }
 
     fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
@@ -272,7 +316,7 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone()),
+                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone(), self.hsts_list.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
