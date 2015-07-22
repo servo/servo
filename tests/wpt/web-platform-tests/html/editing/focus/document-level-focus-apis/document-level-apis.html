@@ -30,5 +30,9 @@ test(function () {
   assert_false(doc.hasFocus(), "The hasFocus() method should return false.");
 }, "The hasFocus() method must return false if the Document has no browsing context");
 
+test(function () {
+  assert_true(document.hasFocus(), "The hasFocus() method should return true.");
+}, "The document must have a focus if it's active.");
+
 </script>
 <iframe id="fr" src="test.html" onload="frame_load()"></iframe>
