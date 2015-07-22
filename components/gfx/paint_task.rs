@@ -28,6 +28,7 @@ use msg::constellation_msg::PipelineExitType;
 use profile_traits::mem::{self, Reporter, ReporterRequest, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
+use skia::gl_context::GLContext;
 use std::borrow::ToOwned;
 use std::mem as std_mem;
 use std::sync::Arc;
@@ -467,6 +468,24 @@ struct WorkerThread {
     native_display: Option<NativeDisplay>,
     font_context: Box<FontContext>,
     time_profiler_sender: time::ProfilerChan,
+    gl_context: Option<Arc<GLContext>>,
+}
+
+fn create_gl_context(native_display: Option<NativeDisplay>) -> Option<Arc<GLContext>> {
+    if !opts::get().gpu_painting {
+        return None;
+    }
+
+    match native_display {
+        Some(display) => {
+            let tile_size = opts::get().tile_size as i32;
+            GLContext::new(display.platform_display_data(), Size2D::new(tile_size, tile_size))
+        }
+        None => {
+            warn!("Could not create GLContext, falling back to CPU rasterization");
+            None
+        }
+    }
 }
 
 impl WorkerThread {
@@ -476,14 +495,14 @@ impl WorkerThread {
            font_cache_task: FontCacheTask,
            time_profiler_sender: time::ProfilerChan)
            -> WorkerThread {
+        let gl_context = create_gl_context(native_display);
         WorkerThread {
             sender: sender,
             receiver: receiver,
-            native_display: native_display.map(|display| {
-                display
-            }),
+            native_display: native_display,
             font_context: box FontContext::new(font_cache_task.clone()),
             time_profiler_sender: time_profiler_sender,
+            gl_context: gl_context,
         }
     }
 
@@ -507,18 +526,19 @@ impl WorkerThread {
                                            size: Size2D<i32>,
                                            layer_buffer: &mut Box<LayerBuffer>)
                                            -> DrawTarget {
-        if !opts::get().gpu_painting {
-            DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
-        } else {
-            let gl_rasterization_context =
-                layer_buffer.native_surface.gl_rasterization_context(native_display!(self));
-            match gl_rasterization_context {
-                Some(gl_rasterization_context) => {
-                    gl_rasterization_context.make_current();
-                    DrawTarget::new_with_gl_rasterization_context(gl_rasterization_context,
-                                                                  SurfaceFormat::B8G8R8A8)
+        match self.gl_context {
+            Some(ref gl_context) => {
+                match layer_buffer.native_surface.gl_rasterization_context(gl_context.clone()) {
+                    Some(rasterization_context) => {
+                        DrawTarget::new_with_gl_rasterization_context(rasterization_context,
+                                                                      SurfaceFormat::B8G8R8A8)
+                    }
+                    None => panic!("Could not create GLRasterizationContext for LayerBuffer"),
                 }
-                None => panic!("Could not create GPU rasterization context for LayerBuffer"),
+            },
+            None => {
+                // A missing GLContext means we want CPU rasterization.
+                DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
             }
         }
    }
@@ -596,7 +616,7 @@ impl WorkerThread {
 
         // Extract the texture from the draw target and place it into its slot in the buffer. If
         // using CPU painting, upload it first.
-        if !opts::get().gpu_painting {
+        if self.gl_context.is_none() {
             draw_target.snapshot().get_data_surface().with_data(|data| {
                 buffer.native_surface.upload(native_display!(self), data);
                 debug!("painting worker thread uploading to native surface {}",
@@ -626,7 +646,7 @@ impl WorkerThread {
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
             resolution: scale,
-            painted_with_cpu: !opts::get().gpu_painting,
+            painted_with_cpu: self.gl_context.is_none(),
             content_age: tile.content_age,
         }
     }
