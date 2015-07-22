@@ -12,7 +12,7 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{Root, JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{reflect_dom_object, Reflectable};
-use dom::event::EventHelpers;
+use dom::event::{EventHelpers, EventCancelable, EventBubbles};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::blob::Blob;
 use dom::blob::BlobHelpers;
@@ -394,9 +394,8 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-                                               type_, false, false,
-                                               total.is_some(), loaded,
-                                               total.unwrap_or(0));
+            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+            total.is_some(), loaded, total.unwrap_or(0));
 
         let target = EventTargetCast::from_ref(self);
         let event = EventCast::from_ref(progressevent.r());
