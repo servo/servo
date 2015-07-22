@@ -46,14 +46,18 @@ fn parse_declaration_value(input: &mut Parser, references: &mut HashSet<Atom>) -
             }
 
             Token::Function(ref name) if name == "var" => {
-                try!(parse_var_function(input, references));
+                try!(input.parse_nested_block(|input| {
+                    parse_var_function(input, references)
+                }));
             }
 
             Token::Function(_) |
             Token::ParenthesisBlock |
             Token::CurlyBracketBlock |
             Token::SquareBracketBlock => {
-                try!(parse_declaration_value_block(input, references))
+                try!(input.parse_nested_block(|input| {
+                    parse_declaration_value_block(input, references)
+                }));
             }
 
             _ => {}
@@ -77,14 +81,18 @@ fn parse_declaration_value_block(input: &mut Parser, references: &mut HashSet<At
             }
 
             Token::Function(ref name) if name == "var" => {
-                try!(parse_var_function(input, references));
+                try!(input.parse_nested_block(|input| {
+                    parse_var_function(input, references)
+                }));
             }
 
             Token::Function(_) |
             Token::ParenthesisBlock |
             Token::CurlyBracketBlock |
             Token::SquareBracketBlock => {
-                try!(parse_declaration_value_block(input, references))
+                try!(input.parse_nested_block(|input| {
+                    parse_declaration_value_block(input, references)
+                }));
             }
 
             _ => {}
