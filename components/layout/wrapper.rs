@@ -402,17 +402,12 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a Atom {
-        unsafe {
-            (*self.element.unsafe_get()).local_name()
-        }
+        self.element.local_name()
     }
 
     #[inline]
     fn get_namespace<'a>(&'a self) -> &'a Namespace {
-        use script::dom::element::ElementHelpers;
-        unsafe {
-            (*self.element.unsafe_get()).namespace()
-        }
+        self.element.namespace()
     }
 
     fn is_link(&self) -> bool {
