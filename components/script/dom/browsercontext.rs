@@ -30,6 +30,7 @@ use std::default::Default;
 #[derive(JSTraceable)]
 #[privatize]
 #[allow(raw_pointer_derive)]
+#[must_root]
 pub struct BrowsingContext {
     history: Vec<SessionHistoryEntry>,
     active_index: usize,

@@ -328,14 +328,14 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         match before {
             Some(ref before) => {
                 assert!(before.parent_node.get().map(Root::from_rooted).r() == Some(self));
-                match before.prev_sibling.get() {
+                let prev_sibling = before.GetPreviousSibling();
+                match prev_sibling {
                     None => {
                         assert!(Some(*before) == self.first_child.get().map(Root::from_rooted).r());
                         self.first_child.set(Some(JS::from_ref(new_child)));
                     },
                     Some(ref prev_sibling) => {
-                        let prev_sibling = prev_sibling.root();
-                        prev_sibling.r().next_sibling.set(Some(JS::from_ref(new_child)));
+                        prev_sibling.next_sibling.set(Some(JS::from_ref(new_child)));
                         new_child.prev_sibling.set(Some(JS::from_ref(prev_sibling.r())));
                     },
                 }
@@ -343,11 +343,11 @@ impl<'a> PrivateNodeHelpers for &'a Node {
                 new_child.next_sibling.set(Some(JS::from_ref(before)));
             },
             None => {
-                match self.last_child.get() {
+                let last_child = self.GetLastChild();
+                match last_child {
                     None => self.first_child.set(Some(JS::from_ref(new_child))),
                     Some(ref last_child) => {
-                        let last_child = last_child.root();
-                        assert!(last_child.r().next_sibling.get().is_none());
+                        assert!(last_child.next_sibling.get().is_none());
                         last_child.r().next_sibling.set(Some(JS::from_ref(new_child)));
                         new_child.prev_sibling.set(Some(JS::from_rooted(&last_child)));
                     }
@@ -365,22 +365,22 @@ impl<'a> PrivateNodeHelpers for &'a Node {
     /// Fails unless `child` is a child of this node.
     fn remove_child(self, child: &Node) {
         assert!(child.parent_node.get().map(Root::from_rooted).r() == Some(self));
-
-        match child.prev_sibling.get() {
+        let prev_sibling = child.GetPreviousSibling();
+        match prev_sibling {
             None => {
                 self.first_child.set(child.next_sibling.get());
             }
             Some(ref prev_sibling) => {
-                prev_sibling.root().r().next_sibling.set(child.next_sibling.get());
+                prev_sibling.next_sibling.set(child.next_sibling.get());
             }
         }
-
-        match child.next_sibling.get() {
+        let next_sibling = child.GetNextSibling();
+        match next_sibling {
             None => {
                 self.last_child.set(child.prev_sibling.get());
             }
             Some(ref next_sibling) => {
-                next_sibling.root().r().prev_sibling.set(child.prev_sibling.get());
+                next_sibling.prev_sibling.set(child.prev_sibling.get());
             }
         }
 
@@ -1476,9 +1476,10 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &Node, document: &Document) {
         // Step 1.
-        match node.parent_node.get() {
+        let parent_node = node.GetParentNode();
+        match parent_node {
             Some(ref parent) => {
-                Node::remove(node, parent.root().r(), SuppressObserver::Unsuppressed);
+                Node::remove(node, parent, SuppressObserver::Unsuppressed);
             }
             None => (),
         }
