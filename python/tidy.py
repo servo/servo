@@ -179,7 +179,6 @@ def check_webidl_spec(contents):
         "//dev.w3.org/csswg",
         "//dev.w3.org/fxtf",
         "//dvcs.w3.org/hg",
-        "//www.w3.org/TR",
         "//dom.spec.whatwg.org",
         "//domparsing.spec.whatwg.org",
         "//encoding.spec.whatwg.org",
