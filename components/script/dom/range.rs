@@ -20,7 +20,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::characterdata::CharacterDataTypeId;
 use dom::document::{Document, DocumentHelpers};
 use dom::documentfragment::DocumentFragment;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId, SuppressObserver};
 
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
@@ -679,7 +679,10 @@ impl<'a> RangeMethods for &'a Range {
         };
 
         // Step 9.
-        node.remove_self();
+        match node.GetParentNode() {
+            Some(parent) => Node::remove(node, parent.r(), SuppressObserver::Unsuppressed),
+            _ => ()
+        }
 
         // Step 10.
         let new_offset =
