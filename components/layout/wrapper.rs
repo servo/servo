@@ -412,8 +412,8 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node = NodeCast::from_layout_js(&self.element);
-        match unsafe { (*node.unsafe_get()).type_id_for_layout() } {
+        let node = self.as_node();
+        match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
