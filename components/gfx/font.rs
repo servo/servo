@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::{Point2D, Rect, Size2D};
-use smallvec::SmallVec8;
+use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::mem;
 use std::slice;
@@ -204,11 +204,11 @@ impl Font {
 }
 
 pub struct FontGroup {
-    pub fonts: SmallVec8<Rc<RefCell<Font>>>,
+    pub fonts: SmallVec<[Rc<RefCell<Font>>; 8]>,
 }
 
 impl FontGroup {
-    pub fn new(fonts: SmallVec8<Rc<RefCell<Font>>>) -> FontGroup {
+    pub fn new(fonts: SmallVec<[Rc<RefCell<Font>>; 8]>) -> FontGroup {
         FontGroup {
             fonts: fonts,
         }

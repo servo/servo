@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId};
+use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use util::str::DOMString;
 
 #[dom_struct]
@@ -37,14 +37,14 @@ impl ProgressEvent {
         }
     }
     pub fn new(global: GlobalRef, type_: DOMString,
-               can_bubble: bool, cancelable: bool,
+               can_bubble: EventBubbles, cancelable: EventCancelable,
                length_computable: bool, loaded: u64, total: u64) -> Root<ProgressEvent> {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
                                     global,
                                     ProgressEventBinding::Wrap);
         {
             let event = EventCast::from_ref(ev.r());
-            event.InitEvent(type_, can_bubble, cancelable);
+            event.InitEvent(type_, can_bubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         }
         ev
     }
@@ -52,7 +52,10 @@ impl ProgressEvent {
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Root<ProgressEvent>> {
-        let ev = ProgressEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
+        let bubbles = if init.parent.bubbles {EventBubbles::Bubbles} else {EventBubbles::DoesNotBubble};
+        let cancelable = if init.parent.cancelable {EventCancelable::Cancelable}
+                         else {EventCancelable::NotCancelable};
+        let ev = ProgressEvent::new(global, type_, bubbles, cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }

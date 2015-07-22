@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
@@ -49,6 +49,7 @@ use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::location::Location;
 use dom::mouseevent::MouseEvent;
@@ -69,7 +70,7 @@ use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent};
+use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent, SubpageId};
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
@@ -287,6 +288,7 @@ pub trait DocumentHelpers<'a> {
     fn finish_load(self, load: LoadType);
     fn set_current_parser(self, script: Option<&ServoHTMLParser>);
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>>;
+    fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>>;
 }
 
 impl<'a> DocumentHelpers<'a> for &'a Document {
@@ -988,6 +990,13 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>> {
         self.current_parser.get().map(Root::from_rooted)
+    }
+
+    /// Find an iframe element in the document.
+    fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
+        NodeCast::from_ref(self).traverse_preorder()
+            .filter_map(HTMLIFrameElementCast::to_root)
+            .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
 }
 

@@ -61,7 +61,7 @@ Servo's build system automatically downloads a snapshot Rust compiler to build i
 This is normally a specific revision of Rust upstream, but sometimes has a
 backported patch or two.
 If you'd like to know the snapshot revision of Rust which we use, see
-`./rust-snapshot-hash`.
+`rust-snapshot-hash`.
 
 ## Building
 
