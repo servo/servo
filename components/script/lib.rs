@@ -4,6 +4,7 @@
 
 #![feature(append)]
 #![feature(arc_unique)]
+#![feature(as_slice)]
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
 #![feature(box_raw)]

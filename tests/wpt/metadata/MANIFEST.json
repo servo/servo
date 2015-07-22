@@ -28859,7 +28859,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "websockets/Close-clamp.htm": [
+          {
+            "path": "websockets/Close-clamp.htm",
+            "url": "/websockets/Close-clamp.htm"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
