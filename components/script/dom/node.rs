@@ -328,7 +328,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         match before {
             Some(ref before) => {
                 assert!(before.parent_node.get().map(Root::from_rooted).r() == Some(self));
-                let prev_sibling = before.prev_sibling.get_rooted();
+                let prev_sibling = before.GetPreviousSibling();
                 match prev_sibling {
                     None => {
                         assert!(Some(*before) == self.first_child.get().map(Root::from_rooted).r());
@@ -343,7 +343,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
                 new_child.next_sibling.set(Some(JS::from_ref(before)));
             },
             None => {
-                let last_child = self.last_child.get_rooted();
+                let last_child = self.GetLastChild();
                 match last_child {
                     None => self.first_child.set(Some(JS::from_ref(new_child))),
                     Some(ref last_child) => {
@@ -365,7 +365,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
     /// Fails unless `child` is a child of this node.
     fn remove_child(self, child: &Node) {
         assert!(child.parent_node.get().map(Root::from_rooted).r() == Some(self));
-        let prev_sibling = child.prev_sibling.get_rooted();
+        let prev_sibling = child.GetPreviousSibling();
         match prev_sibling {
             None => {
                 self.first_child.set(child.next_sibling.get());
@@ -374,7 +374,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
                 prev_sibling.next_sibling.set(child.next_sibling.get());
             }
         }
-        let next_sibling = child.next_sibling.get_rooted();
+        let next_sibling = child.GetNextSibling();
         match next_sibling {
             None => {
                 self.last_child.set(child.prev_sibling.get());
@@ -1476,7 +1476,7 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &Node, document: &Document) {
         // Step 1.
-        let parent_node = node.parent_node.get_rooted();
+        let parent_node = node.GetParentNode();
         match parent_node {
             Some(ref parent) => {
                 Node::remove(node, parent, SuppressObserver::Unsuppressed);
