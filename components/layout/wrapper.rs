@@ -211,7 +211,9 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
+impl<'ln> ::selectors::Node for LayoutNode<'ln> {
+    type Element = LayoutElement<'ln>;
+
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -244,7 +246,7 @@ impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
 
     /// If this is an element, accesses the element data.
     #[inline]
-    fn as_element(&self) -> Option<LayoutElement<'ln>> {
+    fn as_element(&self) -> Option<Self::Element> {
         ElementCast::to_layout_js(&self.node).map(|element| {
             LayoutElement {
                 element: element,
@@ -257,6 +259,16 @@ impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
         match self.type_id() {
             NodeTypeId::Document(..) => true,
             _ => false
+        }
+    }
+
+    fn is_element_or_non_empty_text(&self) -> bool {
+        if let Some(text) = TextCast::to_layout_js(&self.node) {
+            unsafe {
+                !CharacterDataCast::from_layout_js(&text).data_for_layout().is_empty()
+            }
+        } else {
+            ElementCast::to_layout_js(&self.node).is_some()
         }
     }
 }
@@ -656,35 +668,9 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         self.node.flow_debug_id()
     }
 
-    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo != PseudoElementType::Normal {
-            return None
-        }
-
-        if self.has_before_pseudo() {
-            return Some(self.with_pseudo(PseudoElementType::Before(self.get_before_display())));
-        }
-
-        unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
-    unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo.is_before() {
-            return self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-
-        self.get_jsmanaged().next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-    }
-
     /// Returns an iterator over this node's children.
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
-        ThreadSafeLayoutNodeChildrenIterator {
-            current_node: self.first_child(),
-            parent_node: self.clone(),
-        }
+        ThreadSafeLayoutNodeChildrenIterator::new(*self)
     }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
@@ -709,41 +695,21 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     #[inline]
-    pub fn get_normal_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.shared_data.style.as_ref().unwrap();
-        style.get_box().display
+    pub fn get_before_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
+        })
     }
 
     #[inline]
-    pub fn get_before_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
-        style.get_box().display
-    }
-
-    #[inline]
-    pub fn get_after_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
-        style.get_box().display
-    }
-
-    #[inline]
-    pub fn has_before_pseudo(&self) -> bool {
-        let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
-        layout_data_wrapper_ref.data.before_style.is_some()
-    }
-
-    #[inline]
-    pub fn has_after_pseudo(&self) -> bool {
-        let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
-        layout_data_wrapper_ref.data.after_style.is_some()
+    pub fn get_after_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::After(style.get_box().display))
+        })
     }
 
     /// Borrows the layout data without checking.
@@ -970,39 +936,60 @@ pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
     parent_node: ThreadSafeLayoutNode<'a>,
 }
 
+impl<'a> ThreadSafeLayoutNodeChildrenIterator<'a> {
+    fn new(parent: ThreadSafeLayoutNode<'a>) -> ThreadSafeLayoutNodeChildrenIterator<'a> {
+        fn first_child<'a>(parent: ThreadSafeLayoutNode<'a>)
+                           -> Option<ThreadSafeLayoutNode<'a>> {
+            if parent.pseudo != PseudoElementType::Normal {
+                return None
+            }
+
+            parent.get_before_pseudo().or_else(|| {
+                unsafe {
+                    parent.get_jsmanaged().first_child_ref()
+                          .map(|node| parent.new_with_this_lifetime(&node))
+                }
+            })
+        }
+
+        ThreadSafeLayoutNodeChildrenIterator {
+            current_node: first_child(parent),
+            parent_node: parent,
+        }
+    }
+}
+
 impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
     type Item = ThreadSafeLayoutNode<'a>;
     fn next(&mut self) -> Option<ThreadSafeLayoutNode<'a>> {
         let node = self.current_node.clone();
 
-        match node {
-            Some(ref node) => {
-                if node.pseudo.is_after() {
-                    return None
-                }
-
-                self.current_node = if self.parent_node.pseudo == PseudoElementType::Normal {
-                    self.current_node.clone().and_then(|node| {
-                        unsafe {
-                            node.next_sibling()
-                        }
-                    })
-                } else {
+        if let Some(ref node) = node {
+            self.current_node = match node.pseudo {
+                PseudoElementType::Before(_) => {
+                    match unsafe { self.parent_node.get_jsmanaged().first_child_ref() } {
+                        Some(first) => {
+                            Some(unsafe {
+                                self.parent_node.new_with_this_lifetime(&first)
+                            })
+                        },
+                        None => self.parent_node.get_after_pseudo(),
+                    }
+                },
+                PseudoElementType::Normal => {
+                    match unsafe { node.get_jsmanaged().next_sibling_ref() } {
+                        Some(next) => {
+                            Some(unsafe {
+                                self.parent_node.new_with_this_lifetime(&next)
+                            })
+                        },
+                        None => self.parent_node.get_after_pseudo(),
+                    }
+                },
+                PseudoElementType::After(_) => {
                     None
-                };
-            }
-            None => {
-                if self.parent_node.has_after_pseudo() {
-                    let pseudo_after_node = if self.parent_node.pseudo == PseudoElementType::Normal {
-                        let pseudo = PseudoElementType::After(self.parent_node.get_after_display());
-                        Some(self.parent_node.with_pseudo(pseudo))
-                    } else {
-                        None
-                    };
-                    self.current_node = pseudo_after_node;
-                    return self.current_node.clone()
-                }
-            }
+                },
+            };
         }
 
         node

@@ -14,6 +14,7 @@ use std::rc::Rc;
 
 /// Encapsulates a handle to a frame in a frame tree.
 #[derive(JSTraceable)]
+#[allow(unrooted_must_root)] // FIXME(#6687) this is wrong
 pub struct Page {
     /// Pipeline id associated with this page.
     id: PipelineId,

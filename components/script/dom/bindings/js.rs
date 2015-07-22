@@ -81,6 +81,7 @@ impl<T: Reflectable> JS<T> {
 
 /// An unrooted reference to a DOM object for use in layout. `Layout*Helpers`
 /// traits must be implemented on this.
+#[allow_unrooted_interior]
 pub struct LayoutJS<T> {
     ptr: NonZero<*const T>
 }
@@ -270,6 +271,12 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
         self.ptr.get().map(|js| js.to_layout())
     }
+
+    /// Get a rooted value out of this object
+    // FIXME(#6684)
+    pub fn get_rooted(&self) -> Option<Root<T>> {
+        self.get().map(|o| o.root())
+    }
 }
 
 impl<T: HeapGCValue+Copy> Default for MutNullableHeap<T> {
@@ -382,6 +389,7 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
 /// are additive, so this object's destruction will not invalidate other roots
 /// for the same JS value. `Root`s cannot outlive the associated
 /// `RootCollection` object.
+#[allow_unrooted_interior]
 pub struct Root<T: Reflectable> {
     /// Reference to rooted value that must not outlive this container
     ptr: NonZero<*const T>,

@@ -49,7 +49,11 @@ pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
         _ => return false,
     };
 
-    cx.tcx.get_attrs(def_id).iter().any(|attr| {
+    match_lang_did(cx, def_id, value)
+}
+
+pub fn match_lang_did(cx: &Context, did: ast::DefId, value: &str) -> bool {
+    cx.tcx.get_attrs(did).iter().any(|attr| {
         match attr.node.value.node {
             ast::MetaNameValue(ref name, ref val) if &**name == "servo_lang" => {
                 match val.node {
@@ -87,4 +91,12 @@ pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
         _ => false // There are probably a couple of other unsafe cases we don't care to lint, those will need
                    // to be added.
     }
+}
+
+/// check if a DefId's path matches the given absolute type path
+/// usage e.g. with
+/// `match_def_path(cx, id, &["core", "option", "Option"])`
+pub fn match_def_path(cx: &Context, def_id: ast::DefId, path: &[&str]) -> bool {
+    cx.tcx.with_path(def_id, |iter| iter.map(|elem| elem.name())
+        .zip(path.iter()).all(|(nm, p)| &nm.as_str() == p))
 }
