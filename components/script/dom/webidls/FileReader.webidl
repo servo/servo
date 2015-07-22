@@ -17,8 +17,8 @@ interface FileReader: EventTarget {
   //void readAsArrayBuffer(Blob blob);
   [Throws]
   void readAsText(Blob blob, optional DOMString label);
-  //[Throws]
-  //void readAsDataURL(Blob blob);
+  [Throws]
+  void readAsDataURL(Blob blob);
 
   void abort();
 

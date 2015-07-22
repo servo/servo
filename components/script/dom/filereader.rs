@@ -26,22 +26,31 @@ use std::cell::{Cell, RefCell};
 use std::sync::mpsc::Receiver;
 use util::str::DOMString;
 use util::task::spawn_named;
+use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
+
+#[derive(PartialEq, Clone, Copy, JSTraceable)]
+pub enum FileReaderFunction {
+    ReadAsText,
+    ReadAsDataUrl,
+}
 
 pub type TrustedFileReader = Trusted<FileReader>;
 
 pub struct ReadData {
     pub bytes: Receiver<Option<Vec<u8>>>,
     pub blobtype: DOMString,
-    pub label: Option<DOMString>
+    pub label: Option<DOMString>,
+    pub function: FileReaderFunction
 }
 
 impl ReadData {
     pub fn new(bytes: Receiver<Option<Vec<u8>>>, blobtype: DOMString,
-               label: Option<DOMString>) -> ReadData {
+               label: Option<DOMString>, function: FileReaderFunction) -> ReadData {
         ReadData {
             bytes: bytes,
             blobtype: blobtype,
-            label: label
+            label: label,
+            function: function,
         }
     }
 }
@@ -193,7 +202,25 @@ impl<'a> FileReaderMethods for &'a FileReader {
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     //TODO https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
-    //TODO https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    fn ReadAsDataURL(self, blob: &Blob) -> ErrorResult {
+        let global = self.global.root();
+        // Step 1
+        if self.ready_state.get() == FileReaderReadyState::Loading {
+            return Err(InvalidState);
+        }
+        //TODO STEP 2 if isClosed implemented in Blob
+
+        // Step 3
+        self.change_ready_state(FileReaderReadyState::Loading);
+
+        let bytes = blob.read_out_buffer();
+        let type_ = blob.read_out_type();
+
+        let load_data = ReadData::new(bytes, type_, None, FileReaderFunction::ReadAsDataUrl);
+
+        self.read(load_data, global.r())
+    }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     fn ReadAsText(self, blob: &Blob, label:Option<DOMString>) -> ErrorResult {
@@ -210,7 +237,7 @@ impl<'a> FileReaderMethods for &'a FileReader {
         let bytes = blob.read_out_buffer();
         let type_ = blob.read_out_type();
 
-        let load_data = ReadData::new(bytes, type_, label);
+        let load_data = ReadData::new(bytes, type_, label, FileReaderFunction::ReadAsText);
 
         self.read(load_data, global.r())
     }
@@ -346,6 +373,17 @@ impl Runnable for FileReaderEvent {
 
 fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
     filereader: TrustedFileReader, chan: Box<ScriptChan + Send>) {
+    match read_data.function {
+        FileReaderFunction::ReadAsDataUrl => perform_read_dataurl(gen_id,
+            read_data, filereader, chan),
+        FileReaderFunction::ReadAsText => perform_read_text(gen_id,
+            read_data, filereader, chan),
+    }
+}
+
+// https://w3c.github.io/FileAPI/#dfn-readAsText
+fn perform_read_text(gen_id: GenerationId, read_data: ReadData,
+    filereader: TrustedFileReader, chan: Box<ScriptChan + Send>) {
     // Step 4
     Process::ProcessRead(filereader.clone(),
         gen_id).call(chan.clone());
@@ -393,4 +431,52 @@ fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
         Err(_) => Process::ProcessReadError(filereader,
             gen_id, DOMErrorName::InvalidCharacterError).call(chan)
     };
+}
+
+//https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+fn perform_read_dataurl(gen_id: GenerationId, read_data: ReadData,
+    filereader: TrustedFileReader, chan: Box<ScriptChan + Send>) {
+    // Step 4
+    Process::ProcessRead(filereader.clone(),
+        gen_id).call(chan.clone());
+
+    Process::ProcessReadData(filereader.clone(),
+        gen_id, DOMString::new()).call(chan.clone());
+
+    let bytes = match read_data.bytes.recv() {
+        Ok(data) => data,
+        Err(_) => {
+            Process::ProcessReadError(filereader,
+                gen_id, DOMErrorName::NotFoundError).call(chan);
+            return;
+        }
+    };
+    let config = Config {
+        char_set: CharacterSet::UrlSafe,
+        newline: Newline::LF,
+        pad: true,
+        line_length: None
+    };
+    let base64 = match bytes {
+        Some(bytes) => bytes.to_base64(config),
+        None => {
+            Process::ProcessReadEOF(filereader,
+                gen_id, DOMString::new()).call(chan);
+            return;
+        }
+    };
+    // Step 5
+    Process::ProcessReadData(filereader.clone(),
+        gen_id, DOMString::new()).call(chan.clone());
+
+    //dom/base/nsDOMFileReader.cpp
+    let type_ = if read_data.blobtype.is_empty() {
+        DOMString::from("application/octet-stream")
+    } else {
+        read_data.blobtype
+    };
+
+    let output = format!("data:{};base64,{}", type_, base64);
+
+    Process::ProcessReadEOF(filereader, gen_id, output).call(chan);
 }
