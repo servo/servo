@@ -21,6 +21,7 @@ use style::properties::PropertyDeclaration;
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::cell::Ref;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -50,7 +51,7 @@ macro_rules! css_properties(
     );
 );
 
-fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
+fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
     list.iter().fold(String::new(), |accum, ref declaration| {
         accum + &declaration.value() + " "
     })
@@ -78,25 +79,24 @@ impl CSSStyleDeclaration {
 }
 
 trait PrivateCSSStyleDeclarationHelpers {
-    fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
-    fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
-    fn get_computed_style(self, property: &Atom) -> Option<DOMString>;
+    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
+    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
 }
 
-impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
-    fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let owner = self.owner.root();
-        let element = ElementCast::from_ref(owner.r());
-        element.get_inline_style_declaration(property).map(|decl| decl.clone())
+impl PrivateCSSStyleDeclarationHelpers for HTMLElement {
+    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
+        let element = ElementCast::from_ref(self);
+        element.get_inline_style_declaration(property)
     }
 
-    fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let owner = self.owner.root();
-        let element = ElementCast::from_ref(owner.r());
-        element.get_important_inline_style_declaration(property).map(|decl| decl.clone())
+    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
+        let element = ElementCast::from_ref(self);
+        element.get_important_inline_style_declaration(property)
     }
+}
 
-    fn get_computed_style(self, property: &Atom) -> Option<DOMString> {
+impl CSSStyleDeclaration {
+    fn get_computed_style(&self, property: &Atom) -> Option<DOMString> {
         let owner = self.owner.root();
         let node = NodeCast::from_ref(owner.r());
         if !node.is_in_doc() {
@@ -144,6 +144,8 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
+        let owner = self.owner.root();
+
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
 
@@ -161,7 +163,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
             // Step 2.2
             for longhand in longhand_properties.iter() {
                 // Step 2.2.1
-                let declaration = self.get_declaration(&Atom::from_slice(&longhand));
+                let declaration = owner.get_declaration(&Atom::from_slice(&longhand));
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
@@ -175,11 +177,12 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
 
         // Step 3 & 4
-        if let Some(ref declaration) = self.get_declaration(&property) {
-            declaration.value()
-        } else {
-            "".to_owned()
-        }
+        // FIXME: redundant let binding https://github.com/rust-lang/rust/issues/22252
+        let result = match owner.get_declaration(&property) {
+            Some(declaration) => declaration.value(),
+            None => "".to_owned(),
+        };
+        result
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
@@ -198,8 +201,12 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
                 return "important".to_owned();
             }
         // Step 3
-        } else if self.get_important_declaration(&property).is_some() {
-            return "important".to_owned();
+        } else {
+            // FIXME: extra let binding https://github.com/rust-lang/rust/issues/22323
+            let owner = self.owner.root();
+            if owner.get_important_declaration(&property).is_some() {
+                return "important".to_owned();
+            }
         }
 
         // Step 4

@@ -5583,9 +5583,9 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
         match declaration {
             Ok((results, important)) => {
                 if important {
-                    important_declarations.push_all(&results);
+                    important_declarations.extend(results);
                 } else {
-                    normal_declarations.push_all(&results);
+                    normal_declarations.extend(results);
                 }
             }
             Err(range) => {
@@ -5669,7 +5669,7 @@ impl<T: ToCss> DeclaredValue<T> {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
