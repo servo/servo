@@ -96,10 +96,33 @@ impl WebSocket {
 
     }
 
-    pub fn new(global: GlobalRef, url: DOMString) -> Fallible<Root<WebSocket>> {
+    pub fn new(global: GlobalRef,
+               url: DOMString,
+               protocols: Option<DOMString>)
+               -> Fallible<Root<WebSocket>> {
         // Step 1.
         let parsed_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
         let url = try!(parse_url(&parsed_url).map_err(|_| Error::Syntax));
+
+        // Step 4.
+        let protocols = protocols.as_slice();
+
+        // Step 5.
+        for (i, protocol) in protocols.iter().enumerate() {
+            // https://tools.ietf.org/html/rfc6455#section-4.1
+            // Handshake requirements, step 10
+            if protocol.is_empty() {
+                return Err(Syntax);
+            }
+
+            if protocols[i+1..].iter().any(|p| p == protocol) {
+                return Err(Syntax);
+            }
+
+            if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {
+                return Err(Syntax);
+            }
+        }
 
         /*TODO: This constructor is only a prototype, it does not accomplish the specs
           defined here:
@@ -150,8 +173,11 @@ impl WebSocket {
         Ok(ws)
     }
 
-    pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Root<WebSocket>> {
-        WebSocket::new(global, url)
+    pub fn Constructor(global: GlobalRef,
+                       url: DOMString,
+                       protocols: Option<DOMString>)
+                       -> Fallible<Root<WebSocket>> {
+        WebSocket::new(global, url, protocols)
     }
 }
 
