@@ -571,8 +571,8 @@ pub trait ElementHelpers<'a> {
     fn remove_inline_style_property(self, property: &str);
     fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority);
     fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority);
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
     fn get_root_element(self) -> Root<Element>;
     fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString>;
@@ -647,7 +647,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                Arc::make_unique(&mut declarations.normal).remove(index);
+                declarations.normal.remove(index);
                 return;
             }
 
@@ -655,7 +655,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                Arc::make_unique(&mut declarations.important).remove(index);
+                declarations.important.remove(index);
                 return;
             }
         }
@@ -665,9 +665,9 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
-                Arc::make_unique(&mut declarations.important)
+                &mut declarations.important
             } else {
-                Arc::make_unique(&mut declarations.normal)
+                &mut declarations.normal
             };
 
             for declaration in existing_declarations.iter_mut() {
@@ -687,8 +687,8 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         };
 
         *inline_declarations = Some(PropertyDeclarationBlock {
-            important: Arc::new(important),
-            normal: Arc::new(normal),
+            important: important,
+            normal: normal,
         });
     }
 
@@ -715,24 +715,24 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let inline_declarations = self.style_attribute.borrow();
-        inline_declarations.as_ref().and_then(|declarations| {
-            declarations.normal
-                        .iter()
-                        .chain(declarations.important.iter())
-                        .find(|decl| decl.matches(&property))
-                        .map(|decl| decl.clone())
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
+            inline_declarations.as_ref().and_then(|declarations| {
+                declarations.normal
+                            .iter()
+                            .chain(declarations.important.iter())
+                            .find(|decl| decl.matches(&property))
+            })
         })
     }
 
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let inline_declarations = self.style_attribute.borrow();
-        inline_declarations.as_ref().and_then(|declarations| {
-            declarations.important
-                        .iter()
-                        .find(|decl| decl.matches(&property))
-                        .map(|decl| decl.clone())
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
+            inline_declarations.as_ref().and_then(|declarations| {
+                declarations.important
+                            .iter()
+                            .find(|decl| decl.matches(&property))
+            })
         })
     }
 
