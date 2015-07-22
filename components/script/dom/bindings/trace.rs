@@ -57,7 +57,7 @@ use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
 use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
-use smallvec::SmallVec1;
+use smallvec::SmallVec;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
@@ -219,7 +219,7 @@ impl<T: JSTraceable> JSTraceable for Vec<T> {
 
 // XXXManishearth Check if the following three are optimized to no-ops
 // if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
-impl<T: JSTraceable + 'static> JSTraceable for SmallVec1<T> {
+impl<T: JSTraceable + 'static> JSTraceable for SmallVec<[T; 1]> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
         for e in self.iter() {

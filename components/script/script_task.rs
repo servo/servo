@@ -22,7 +22,7 @@
 use document_loader::{LoadType, DocumentLoader, NotifierData};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
@@ -35,7 +35,7 @@ use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressH
                     DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{EventHelpers, EventBubbles, EventCancelable};
-use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
+use dom::htmliframeelement::HTMLIFrameElementHelpers;
 use dom::uievent::UIEvent;
 use dom::node::{Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
@@ -1105,7 +1105,7 @@ impl ScriptTask {
         let page = borrowed_page.find(parent_pipeline_id).unwrap();
 
         let doc = page.document();
-        let frame_element = self.find_iframe(doc.r(), subpage_id);
+        let frame_element = doc.find_iframe(subpage_id);
 
         if let Some(ref frame_element) = frame_element {
             let element = ElementCast::from_ref(frame_element.r());
@@ -1125,7 +1125,7 @@ impl ScriptTask {
 
         let frame_element = borrowed_page.find(parent_pipeline_id).and_then(|page| {
             let doc = page.document();
-            self.find_iframe(doc.r(), subpage_id)
+            doc.find_iframe(subpage_id)
         });
 
         if let Some(ref frame_element) = frame_element {
@@ -1141,7 +1141,7 @@ impl ScriptTask {
 
         let frame_element = borrowed_page.find(containing_pipeline_id).and_then(|page| {
             let doc = page.document();
-            self.find_iframe(doc.r(), old_subpage_id)
+            doc.find_iframe(old_subpage_id)
         });
 
         frame_element.r().unwrap().update_subpage_id(new_subpage_id);
@@ -1292,7 +1292,7 @@ impl ScriptTask {
             borrowed_page.as_ref().and_then(|borrowed_page| {
                 borrowed_page.find(parent_id).and_then(|page| {
                     let doc = page.document();
-                    self.find_iframe(doc.r(), subpage_id)
+                    doc.find_iframe(subpage_id)
                 })
             })
         });
@@ -1459,16 +1459,6 @@ impl ScriptTask {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
     }
 
-    /// Find an iframe element in a provided document.
-    fn find_iframe(&self, doc: &Document, subpage_id: SubpageId)
-                   -> Option<Root<HTMLIFrameElement>> {
-        let doc = NodeCast::from_ref(doc);
-
-        doc.traverse_preorder()
-            .filter_map(HTMLIFrameElementCast::to_root)
-            .find(|node| node.r().subpage_id() == Some(subpage_id))
-    }
-
     /// This is the main entry point for receiving and dispatching DOM events.
     ///
     /// TODO: Actually perform DOM event dispatch.
@@ -1547,7 +1537,7 @@ impl ScriptTask {
                 let borrowed_page = self.root_page();
                 let iframe = borrowed_page.find(pipeline_id).and_then(|page| {
                     let doc = page.document();
-                    self.find_iframe(doc.r(), subpage_id)
+                    doc.find_iframe(subpage_id)
                 });
                 if let Some(iframe) = iframe.r() {
                     iframe.navigate_child_browsing_context(load_data.url);

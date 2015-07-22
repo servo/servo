@@ -11,7 +11,7 @@ use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
-use smallvec::SmallVec16;
+use smallvec::SmallVec;
 use wrapper::{LayoutElement, LayoutNode};
 
 use script::dom::characterdata::CharacterDataTypeId;
@@ -38,7 +38,7 @@ use util::opts;
 use util::vec::ForgetfulSink;
 
 pub struct ApplicableDeclarations {
-    pub normal: SmallVec16<DeclarationBlock>,
+    pub normal: SmallVec<[DeclarationBlock; 16]>,
     pub before: Vec<DeclarationBlock>,
     pub after: Vec<DeclarationBlock>,
 
@@ -49,7 +49,7 @@ pub struct ApplicableDeclarations {
 impl ApplicableDeclarations {
     pub fn new() -> ApplicableDeclarations {
         ApplicableDeclarations {
-            normal: SmallVec16::new(),
+            normal: SmallVec::new(),
             before: Vec::new(),
             after: Vec::new(),
             normal_shareable: false,
@@ -57,7 +57,7 @@ impl ApplicableDeclarations {
     }
 
     pub fn clear(&mut self) {
-        self.normal = SmallVec16::new();
+        self.normal = SmallVec::new();
         self.before = Vec::new();
         self.after = Vec::new();
         self.normal_shareable = false;

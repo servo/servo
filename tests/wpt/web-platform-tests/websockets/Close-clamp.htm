@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>WebSocket#close(2**16+1000)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="websocket.js?pipe=sub"></script>
+<div id="log"></div>
+<script>
+test(function() {
+    var ws = CreateWebSocket(false, false, false);
+    assert_throws("InvalidAccessError", function () {
+        ws.close(0x10000 + 1000);
+    });
+});
+</script>

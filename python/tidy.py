@@ -15,7 +15,7 @@ import sys
 import toml
 from licenseck import licenses
 
-filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml"]
+filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml", ".webidl"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
 python_dependencies = [
@@ -153,6 +153,50 @@ def check_toml(contents):
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
+def check_webidl_spec(contents):
+    # Sorted by this function (in pseudo-Rust). The idea is to group the same
+    # organization together.
+    # fn sort_standards(a: &Url, b: &Url) -> Ordering {
+    #     let a_domain = a.domain().split(".");
+    #     a_domain.pop();
+    #     a_domain.reverse();
+    #     let b_domain = b.domain().split(".");
+    #     b_domain.pop();
+    #     b_domain.reverse();
+    #     for i in a_domain.into_iter().zip(b_domain.into_iter()) {
+    #         match i.0.cmp(b.0) {
+    #             Less => return Less,
+    #             Greater => return Greater,
+    #             _ => (),
+    #         }
+    #     }
+    #     a_domain.path().cmp(b_domain.path())
+    # }
+    standards = [
+        "//www.khronos.org/registry/webgl/specs",
+        "//developer.mozilla.org/en-US/docs/Web/API",
+        "//dev.w3.org/2006/webapi",
+        "//dev.w3.org/csswg",
+        "//dev.w3.org/fxtf",
+        "//dvcs.w3.org/hg",
+        "//dom.spec.whatwg.org",
+        "//domparsing.spec.whatwg.org",
+        "//encoding.spec.whatwg.org",
+        "//html.spec.whatwg.org",
+        "//url.spec.whatwg.org",
+        "//xhr.spec.whatwg.org",
+        "//www.whatwg.org/html",
+        "//www.whatwg.org/specs",
+        # Not a URL
+        "// This interface is entirely internal to Servo, and should not be" +
+        " accessible to\n// web pages."
+    ]
+    for i in standards:
+        if contents.find(i) != -1:
+            return True
+    return False
+
+
 def collect_errors_for_files(files_to_check, checking_functions):
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
@@ -160,6 +204,9 @@ def collect_errors_for_files(files_to_check, checking_functions):
             if file_name.endswith(".toml"):
                 for error in check_toml(contents):
                     yield (file_name, error[0], error[1])
+            elif file_name.endswith(".webidl"):
+                if not check_webidl_spec(contents):
+                    yield (file_name, 0, "No specification link found.")
             else:
                 for check in checking_functions:
                     for error in check(contents):

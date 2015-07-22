@@ -112,6 +112,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::NewFavicon(..) => {}
             Msg::HeadParsed => {}
             Msg::ReturnUnusedLayerBuffers(..) => {}
+            Msg::CollectMemoryReports(..) => {}
         }
         true
     }

@@ -13,7 +13,7 @@ use font_template::FontTemplateDescriptor;
 use fnv::FnvHasher;
 use platform::font::FontHandle;
 use platform::font_template::FontTemplateData;
-use smallvec::SmallVec8;
+use smallvec::SmallVec;
 use string_cache::Atom;
 use util::cache::HashCache;
 use util::geometry::Au;
@@ -159,7 +159,7 @@ impl FontContext {
                                                style.font_style == font_style::T::italic ||
                                                 style.font_style == font_style::T::oblique);
 
-        let mut fonts = SmallVec8::new();
+        let mut fonts: SmallVec<[Rc<RefCell<Font>>; 8]> = SmallVec::new();
 
         for family in style.font_family.0.iter() {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().

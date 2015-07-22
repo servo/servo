@@ -4,9 +4,9 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-//typedef (DOMString or ArrayBuffer) FileReaderResult;
+ // http://dev.w3.org/2006/webapi/FileAPI/#APIASynch
 
-//https://w3c.github.io/FileAPI/#APIASynch
+//typedef (DOMString or ArrayBuffer) FileReaderResult;
 [Constructor, Exposed=Window/*,Worker*/]
 interface FileReader: EventTarget {
 
