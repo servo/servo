@@ -2,30 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods, Wrap};
+use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointMethods, Wrap};
+use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
-use std::cell::Cell;
+use dom::bindings::utils::reflect_dom_object;
+use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 
+// http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
 pub struct DOMPoint {
-    reflector_: Reflector,
-    x: Cell<f64>,
-    y: Cell<f64>,
-    z: Cell<f64>,
-    w: Cell<f64>,
+    point: DOMPointReadOnly
 }
 
 impl DOMPoint {
     fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPoint {
         DOMPoint {
-            x: Cell::new(x),
-            y: Cell::new(y),
-            z: Cell::new(z),
-            w: Cell::new(w),
-            reflector_: Reflector::new(),
+            point: DOMPointReadOnly::new_inherited(x, y, z, w),
         }
     }
 
@@ -33,43 +27,43 @@ impl DOMPoint {
         reflect_dom_object(box DOMPoint::new_inherited(x, y, z, w), global, Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, init: &DOMPointInit) -> Fallible<Root<DOMPoint>> {
-        Ok(DOMPoint::new(global, init.x, init.y, init.z, init.w))
-    }
-
-    pub fn Constructor_(global: GlobalRef,
-                       x: f64, y: f64, z: f64, w: f64) -> Fallible<Root<DOMPoint>> {
+    pub fn Constructor(global: GlobalRef,
+                        x: f64, y: f64, z: f64, w: f64) -> Fallible<Root<DOMPoint>> {
         Ok(DOMPoint::new(global, x, y, z, w))
     }
 }
 
 impl<'a> DOMPointMethods for &'a DOMPoint {
+    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(self) -> f64 {
-        self.x.get()
+        self.point.X()
     }
-    fn SetX(self, value: f64) -> () {
-        self.x.set(value);
+    fn SetX(self, value: f64) {
+        self.point.SetX(value);
     }
 
+    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
     fn Y(self) -> f64 {
-        self.y.get()
+        self.point.Y()
     }
-    fn SetY(self, value: f64) -> () {
-        self.y.set(value);
+    fn SetY(self, value: f64) {
+        self.point.SetY(value);
     }
 
+    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
     fn Z(self) -> f64 {
-        self.z.get()
+        self.point.Z()
     }
-    fn SetZ(self, value: f64) -> () {
-        self.z.set(value);
+    fn SetZ(self, value: f64) {
+        self.point.SetZ(value);
     }
 
+    // http://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
     fn W(self) -> f64 {
-        self.w.get()
+        self.point.W()
     }
-    fn SetW(self, value: f64) -> () {
-        self.w.set(value);
+    fn SetW(self, value: f64) {
+        self.point.SetW(value);
     }
 }
 

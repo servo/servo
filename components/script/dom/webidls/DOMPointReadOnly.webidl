@@ -10,10 +10,20 @@
  * liability, trademark and document use rules apply.
  */
 
-[Pref="layout.css.DOMPoint.enabled"]
+// http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
+[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+             optional unrestricted double z = 0, optional unrestricted double w = 1),
+ /*Exposed=(Window,Worker)*/]
 interface DOMPointReadOnly {
     readonly attribute unrestricted double x;
     readonly attribute unrestricted double y;
     readonly attribute unrestricted double z;
     readonly attribute unrestricted double w;
+};
+
+dictionary DOMPointInit {
+    unrestricted double x = 0;
+    unrestricted double y = 0;
+    unrestricted double z = 0;
+    unrestricted double w = 1;
 };
