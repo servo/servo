@@ -11,8 +11,9 @@ use compositor_task;
 use devtools_traits::DevtoolsControlChan;
 use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
-use gfx::paint_task::Msg as PaintMsg;
-use gfx::paint_task::{PaintChan, PaintTask};
+use gfx_traits::paint_task::CompositorPaintMsg as PaintMsg;
+use gfx_traits::paint_task::CompositorPaintChan;
+use gfx::paint_task::PaintTask;
 use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcReceiver};
 use layers::geometry::DevicePixel;
@@ -39,7 +40,7 @@ pub struct Pipeline {
     pub script_chan: ScriptControlChan,
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: LayoutControlChan,
-    pub paint_chan: PaintChan,
+    pub paint_chan: CompositorPaintChan,
     pub layout_shutdown_port: Receiver<()>,
     pub paint_shutdown_port: Receiver<()>,
     /// URL corresponding to the most recently-loaded page.
@@ -59,7 +60,7 @@ pub struct CompositionPipeline {
     pub id: PipelineId,
     pub script_chan: ScriptControlChan,
     pub layout_chan: LayoutControlChan,
-    pub paint_chan: PaintChan,
+    pub paint_chan: CompositorPaintChan,
 }
 
 impl Pipeline {
@@ -83,7 +84,7 @@ impl Pipeline {
                            device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
                            -> (Pipeline, PipelineContent)
                            where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
-        let (paint_port, paint_chan) = PaintChan::new();
+        let (paint_port, paint_chan) = CompositorPaintChan::new();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
         let (pipeline_chan, pipeline_port) = ipc::channel().unwrap();
@@ -169,7 +170,7 @@ impl Pipeline {
                parent_info: Option<(PipelineId, SubpageId)>,
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
-               paint_chan: PaintChan,
+               paint_chan: CompositorPaintChan,
                layout_shutdown_port: Receiver<()>,
                paint_shutdown_port: Receiver<()>,
                url: Url,
@@ -284,7 +285,7 @@ pub struct PipelineContent {
     load_data: LoadData,
     failure: Failure,
     script_port: Option<Receiver<ConstellationControlMsg>>,
-    paint_chan: PaintChan,
+    paint_chan: CompositorPaintChan,
     paint_port: Option<Receiver<PaintMsg>>,
     paint_shutdown_chan: Sender<()>,
     pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
@@ -355,4 +356,3 @@ impl PipelineContent {
 
     }
 }
-

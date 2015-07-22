@@ -9,3 +9,12 @@ path = "lib.rs"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies]
+serde = "0.4"

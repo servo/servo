@@ -4,6 +4,14 @@
 
 #![crate_name = "gfx_traits"]
 #![crate_type = "rlib"]
+
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
+
 extern crate azure;
+extern crate layers;
+extern crate msg;
+extern crate serde;
 
 pub mod color;
+pub mod paint_task;
