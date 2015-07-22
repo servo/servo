@@ -39,60 +39,34 @@ use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::task::spawn_named;
 
-/// Information about a hardware graphics layer that layout sends to the painting task.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct PaintLayer {
-    /// A per-pipeline ID describing this layer that should be stable across reflows.
-    pub id: LayerId,
-    /// The color of the background in this layer. Used for unpainted content.
-    pub background_color: Color,
-    /// The scrolling policy of this layer.
-    pub scroll_policy: ScrollPolicy,
-}
+use gfx_traits::paint_task::{CompositorPaintMsg, PaintRequest};
 
-impl PaintLayer {
-    /// Creates a new `PaintLayer`.
-    pub fn new(id: LayerId, background_color: Color, scroll_policy: ScrollPolicy) -> PaintLayer {
-        PaintLayer {
-            id: id,
-            background_color: background_color,
-            scroll_policy: scroll_policy,
-        }
-    }
-}
-
-pub struct PaintRequest {
-    pub buffer_requests: Vec<BufferRequest>,
-    pub scale: f32,
-    pub layer_id: LayerId,
-    pub epoch: Epoch,
-    pub layer_kind: LayerKind,
-}
-
-pub enum Msg {
+pub enum LayoutPaintMsg {
     PaintInit(Epoch, Arc<StackingContext>),
     CanvasLayer(LayerId, Arc<Mutex<Sender<CanvasMsg>>>),
-    Paint(Vec<PaintRequest>, FrameTreeId),
-    PaintPermissionGranted,
-    PaintPermissionRevoked,
     CollectReports(ReportsChan),
     Exit(Option<Sender<()>>, PipelineExitType),
 }
 
+enum Msg {
+    Compositor(CompositorPaintMsg),
+    Layout(LayoutPaintMsg),
+}
+
 #[derive(Clone)]
-pub struct PaintChan(Sender<Msg>);
+pub struct PaintChan(Sender<LayoutPaintMsg>);
 
 impl PaintChan {
-    pub fn new() -> (Receiver<Msg>, PaintChan) {
+    pub fn new() -> (Receiver<LayoutPaintMsg>, PaintChan) {
         let (chan, port) = channel();
         (port, PaintChan(chan))
     }
 
-    pub fn send(&self, msg: Msg) {
+    pub fn send(&self, msg: LayoutPaintMsg) {
         assert!(self.send_opt(msg).is_ok(), "PaintChan.send: paint port closed")
     }
 
-    pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
+    pub fn send_opt(&self, msg: LayoutPaintMsg) -> Result<(), LayoutPaintMsg> {
         let &PaintChan(ref chan) = self;
         chan.send(msg).map_err(|e| e.0)
     }
@@ -102,14 +76,14 @@ impl Reporter for PaintChan {
     // Just injects an appropriate event into the paint task's queue.
     fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
         let PaintChan(ref c) = *self;
-        c.send(Msg::CollectReports(reports_chan)).is_ok()
+        c.send(LayoutPaintMsg::CollectReports(reports_chan)).is_ok()
     }
 }
 
 pub struct PaintTask<C> {
     id: PipelineId,
     _url: Url,
-    port: Receiver<Msg>,
+    port: Receiver<LayoutPaintMsg>,
     compositor: C,
     constellation_chan: ConstellationChan,
 
@@ -144,7 +118,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
     pub fn create(id: PipelineId,
                   url: Url,
                   chan: PaintChan,
-                  port: Receiver<Msg>,
+                  port: Receiver<LayoutPaintMsg>,
                   compositor: C,
                   constellation_chan: ConstellationChan,
                   font_cache_task: FontCacheTask,
@@ -201,78 +175,99 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         }, ConstellationMsg::Failure(failure_msg), c);
     }
 
+    fn msg_process(&mut self, msg: Msg) -> bool {
+        match msg {
+            Msg::Layout(LayoutPaintMsg::PaintInit(epoch, stacking_context)) => {
+                self.current_epoch = Some(epoch);
+                self.root_stacking_context = Some(stacking_context.clone());
+
+                if !self.paint_permission {
+                    debug!("PaintTask: paint ready msg");
+                    let ConstellationChan(ref mut c) = self.constellation_chan;
+                    c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
+                    return true;
+                }
+
+                self.initialize_layers();
+            }
+
+            // Inserts a new canvas renderer to the layer map
+            Msg::Layout(LayoutPaintMsg::CanvasLayer(layer_id, canvas_renderer)) => {
+                debug!("Renderer received for canvas with layer {:?}", layer_id);
+                self.canvas_map.insert(layer_id, canvas_renderer);
+            }
+
+            Msg::Compositor(CompositorPaintMsg::Paint(requests, frame_tree_id)) => {
+                if !self.paint_permission {
+                    debug!("PaintTask: paint ready msg");
+                    let ConstellationChan(ref mut c) = self.constellation_chan;
+                    c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
+                    return true;
+                }
+
+                let mut replies = Vec::new();
+                for PaintRequest { buffer_requests, scale, layer_id, epoch, layer_kind }
+                      in requests.into_iter() {
+                    if self.current_epoch == Some(epoch) {
+                        self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
+                    } else {
+                        debug!("PaintTask: Ignoring requests with epoch mismatch: {:?} != {:?}",
+                               self.current_epoch,
+                               epoch);
+                        self.compositor.ignore_buffer_requests(buffer_requests);
+                    }
+                }
+
+                debug!("PaintTask: returning surfaces");
+                self.compositor.assign_painted_buffers(self.id,
+                                                       self.current_epoch.unwrap(),
+                                                       replies,
+                                                       frame_tree_id);
+            }
+
+            Msg::Compositor(CompositorPaintMsg::PaintPermissionGranted) => {
+                self.paint_permission = true;
+
+                if self.root_stacking_context.is_some() {
+                    self.initialize_layers();
+                }
+            }
+
+            Msg::Compositor(CompositorPaintMsg::PaintPermissionRevoked) => {
+                self.paint_permission = false;
+            }
+
+            Msg::Layout(LayoutPaintMsg::CollectReports(_)) => {
+                // FIXME(njn): should eventually measure the paint task.
+            }
+
+            Msg::Layout(LayoutPaintMsg::Exit(response_channel, _)) => {
+                let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
+                self.mem_profiler_chan.send(msg);
+
+                // Ask the compositor to remove any layers it is holding for this paint task.
+                // FIXME(mrobinson): This can probably move back to the constellation now.
+                self.compositor.notify_paint_task_exiting(self.id);
+
+                debug!("PaintTask: Exiting.");
+                response_channel.map(|channel| channel.send(()));
+                return false;
+            }
+
+        } true
+    }
+
     fn start(&mut self) {
         debug!("PaintTask: beginning painting loop");
 
         loop {
-            match self.port.recv().unwrap() {
-                Msg::PaintInit(epoch, stacking_context) => {
-                    self.current_epoch = Some(epoch);
-                    self.root_stacking_context = Some(stacking_context.clone());
+            let msg = select! {
+                msg = self.port.recv().unwrap() => Msg::Layout(msg),
+                msg = self.port.recv().unwrap() => Msg::Compositor(msg),
+            };
 
-                    if !self.paint_permission {
-                        debug!("PaintTask: paint ready msg");
-                        let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
-                        continue;
-                    }
-
-                    self.initialize_layers();
-                }
-                // Inserts a new canvas renderer to the layer map
-                Msg::CanvasLayer(layer_id, canvas_renderer) => {
-                    debug!("Renderer received for canvas with layer {:?}", layer_id);
-                    self.canvas_map.insert(layer_id, canvas_renderer);
-                }
-                Msg::Paint(requests, frame_tree_id) => {
-                    if !self.paint_permission {
-                        debug!("PaintTask: paint ready msg");
-                        let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
-                        continue;
-                    }
-
-                    let mut replies = Vec::new();
-                    for PaintRequest { buffer_requests, scale, layer_id, epoch, layer_kind }
-                          in requests.into_iter() {
-                        if self.current_epoch == Some(epoch) {
-                            self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
-                        } else {
-                            debug!("PaintTask: Ignoring requests with epoch mismatch: {:?} != {:?}",
-                                   self.current_epoch,
-                                   epoch);
-                            self.compositor.ignore_buffer_requests(buffer_requests);
-                        }
-                    }
-
-                    debug!("PaintTask: returning surfaces");
-                    self.compositor.assign_painted_buffers(self.id,
-                                                           self.current_epoch.unwrap(),
-                                                           replies,
-                                                           frame_tree_id);
-                }
-                Msg::PaintPermissionGranted => {
-                    self.paint_permission = true;
-
-                    if self.root_stacking_context.is_some() {
-                        self.initialize_layers();
-                    }
-                }
-                Msg::PaintPermissionRevoked => {
-                    self.paint_permission = false;
-                }
-                Msg::CollectReports(_) => {
-                    // FIXME(njn): should eventually measure the paint task.
-                }
-                Msg::Exit(response_channel, _) => {
-                    // Ask the compositor to remove any layers it is holding for this paint task.
-                    // FIXME(mrobinson): This can probably move back to the constellation now.
-                    self.compositor.notify_paint_task_exiting(self.id);
-
-                    debug!("PaintTask: Exiting.");
-                    response_channel.map(|channel| channel.send(()));
-                    break;
-                }
+            if !self.msg_process(msg) {
+                break;
             }
         }
     }
