@@ -156,7 +156,7 @@ pub mod longhands {
                     }
                     seen.set_${property.ident}();
                     let computed_value = match *declared_value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => {
+                        DeclaredValue::Value(ref specified_value) => {
                             specified_value.to_computed_value(&context)
                         }
                         DeclaredValue::Initial => get_initial_value(),
@@ -209,7 +209,7 @@ pub mod longhands {
             % if derived_from is None:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                    parse(context, input).map(DeclaredValue::SpecifiedValue)
+                    parse(context, input).map(DeclaredValue::Value)
                 }
             % endif
         </%self:raw_longhand>
@@ -1653,7 +1653,7 @@ pub mod longhands {
                 Color::RGBA(rgba) => rgba,
                 Color::CurrentColor => return Ok(DeclaredValue::Inherit)
             };
-            Ok(DeclaredValue::SpecifiedValue(CSSRGBA {
+            Ok(DeclaredValue::Value(CSSRGBA {
                 parsed: rgba,
                 authored: value.authored,
             }))
@@ -5661,7 +5661,7 @@ impl CSSWideKeyword {
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 pub enum DeclaredValue<T> {
-    SpecifiedValue(T),
+    Value(T),
     Initial,
     Inherit,
     // There is no Unset variant here.
@@ -5672,7 +5672,7 @@ pub enum DeclaredValue<T> {
 impl<T: ToCss> DeclaredValue<T> {
     pub fn specified_value(&self) -> String {
         match self {
-            &DeclaredValue::SpecifiedValue(ref inner) => inner.to_css_string(),
+            &DeclaredValue::Value(ref inner) => inner.to_css_string(),
             &DeclaredValue::Initial => "initial".to_owned(),
             &DeclaredValue::Inherit => "inherit".to_owned(),
         }
@@ -5742,7 +5742,7 @@ impl PropertyDeclaration {
                 Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
                 Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
                 Err(()) => match ::custom_properties::parse(input) {
-                    Ok(value) => DeclaredValue::SpecifiedValue(value),
+                    Ok(value) => DeclaredValue::Value(value),
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
             };
@@ -5808,7 +5808,7 @@ impl PropertyDeclaration {
                                 % for sub_property in shorthand.sub_properties:
                                     result_list.push(PropertyDeclaration::${sub_property.camel_case}(
                                         match result.${sub_property.ident} {
-                                            Some(value) => DeclaredValue::SpecifiedValue(value),
+                                            Some(value) => DeclaredValue::Value(value),
                                             None => DeclaredValue::Initial,
                                         }
                                     ));
@@ -6122,7 +6122,7 @@ fn cascade_with_cached_declarations(
                                     }
                                     seen.set_${property.ident}();
                                     let computed_value = match *declared_value {
-                                        DeclaredValue::SpecifiedValue(ref specified_value)
+                                        DeclaredValue::Value(ref specified_value)
                                         => specified_value.to_computed_value(context),
                                         DeclaredValue::Initial
                                         => longhands::${property.ident}::get_initial_value(),
@@ -6277,7 +6277,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     macro_rules! get_specified(
         ($style_struct_getter: ident, $property: ident, $declared_value: expr) => {
             match *$declared_value {
-                DeclaredValue::SpecifiedValue(specified_value) => specified_value,
+                DeclaredValue::Value(specified_value) => specified_value,
                 DeclaredValue::Initial => longhands::$property::get_initial_value(),
                 DeclaredValue::Inherit => inherited_style.$style_struct_getter().$property.clone(),
             }
@@ -6292,7 +6292,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
             match *declaration {
                 PropertyDeclaration::FontSize(ref value) => {
                     context.font_size = match *value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => {
+                        DeclaredValue::Value(ref specified_value) => {
                             match specified_value.0 {
                                 Length::FontRelative(value) => {
                                     value.to_computed_value(context.inherited_font_size,
@@ -6310,7 +6310,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                 }
                 PropertyDeclaration::Color(ref value) => {
                     context.color = match *value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => {
+                        DeclaredValue::Value(ref specified_value) => {
                             specified_value.parsed
                         }
                         DeclaredValue::Initial => longhands::color::get_initial_value(),
