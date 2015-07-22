@@ -79,7 +79,7 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(self, data: DOMString) {
-        self.data.borrow_mut().push_str(&data);
+        self.append_data(&*data);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data
@@ -159,12 +159,17 @@ pub enum CharacterDataTypeId {
 
 pub trait CharacterDataHelpers<'a> {
     fn data(self) -> Ref<'a, DOMString>;
+    fn append_data(self, data: &str);
 }
 
 impl<'a> CharacterDataHelpers<'a> for &'a CharacterData {
     #[inline]
     fn data(self) -> Ref<'a, DOMString> {
         self.data.borrow()
+    }
+    #[inline]
+    fn append_data(self, data: &str) {
+        self.data.borrow_mut().push_str(data)
     }
 }
 
