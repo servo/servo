@@ -173,9 +173,7 @@ def check_webidl_spec(contents):
     #     a_domain.path().cmp(b_domain.path())
     # }
     standards = [
-        "//w3c.github.io",
         "//www.khronos.org/registry/webgl/specs",
-        "//developer.mozilla.org/en-US/docs/Mozilla/Tech/XUL/browser",
         "//developer.mozilla.org/en-US/docs/Web/API",
         "//dev.w3.org/2006/webapi",
         "//dev.w3.org/csswg",

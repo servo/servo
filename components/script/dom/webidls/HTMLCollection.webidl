@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.w3.org/TR/DOM-Level-2-HTML/html.html#ID-75708506
+// https://dom.spec.whatwg.org/#interface-htmlcollection
 
 interface HTMLCollection {
   readonly attribute unsigned long length;
