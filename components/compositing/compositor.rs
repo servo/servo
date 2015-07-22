@@ -243,6 +243,10 @@ fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>, Vec<gl::GLui
     (framebuffer_ids, texture_ids)
 }
 
+pub fn reporter_name() -> String {
+    "compositor-reporter".to_string()
+}
+
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>,
            sender: Box<CompositorProxy+Send>,
@@ -251,10 +255,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> IOCompositor<Window> {
-        // Create an initial layer tree.
-        //
-        // TODO: There should be no initial layer tree until the painter creates one from the
-        // display list. This is only here because we don't have that logic in the painter yet.
+
+        // Register this thread as a memory reporter, via its own channel.
+        let reporter = box CompositorMemoryReporter(sender.clone_compositor_proxy());
+        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
+
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
         let composite_target = match opts::get().output_file {
@@ -333,6 +338,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
                 con_chan.send(ConstellationMsg::Exit).unwrap();
                 chan.send(()).unwrap();
+
+                self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
+
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
 
@@ -480,6 +488,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::HeadParsed, ShutdownState::NotShuttingDown) => {
                 self.window.head_parsed();
+            }
+
+            (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
+                let mut reports = vec![];
+                let name = "compositor-task";
+                reports.push(mem::Report {
+                    path: path![name, "buffer-map"], size: self.buffer_map.mem(),
+                });
+                reports.push(mem::Report {
+                    path: path![name, "layer-tree"], size: self.scene.get_memory_usage(),
+                });
+                reports_chan.send(reports);
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -1701,4 +1721,21 @@ pub enum CompositingReason {
     NewPaintedBuffers,
     /// The window has been zoomed.
     Zoom,
+}
+
+struct CompositorMemoryReporter(Box<CompositorProxy+'static+Send>);
+
+impl CompositorMemoryReporter {
+    pub fn send(&self, message: Msg) {
+        let CompositorMemoryReporter(ref proxy) = *self;
+        proxy.send(message);
+    }
+}
+
+impl mem::Reporter for CompositorMemoryReporter {
+    fn collect_reports(&self, reports_chan: mem::ReportsChan) -> bool {
+        // FIXME(mrobinson): The port should probably return the success of the message here.
+        self.send(Msg::CollectMemoryReports(reports_chan));
+        true
+    }
 }
