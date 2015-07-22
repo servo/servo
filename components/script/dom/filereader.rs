@@ -199,17 +199,22 @@ impl FileReader {
         let error = match data {
             Some(blob_body) => {
                 match blob_body.function {
-                    FileReaderFunction::ReadAsDataUrl => FileReader::perform_readasdataurl(filereader, blob_body),
-                    FileReaderFunction::ReadAsText => FileReader::perform_readastext(filereader, gen_id, blob_body),
+                    FileReaderFunction::ReadAsDataUrl =>
+                        FileReader::perform_readasdataurl(filereader.clone(), blob_body),
+                    FileReaderFunction::ReadAsText =>
+                        FileReader::perform_readastext(filereader.clone(), blob_body),
                 }
             },
             None => {
                 *fr.result.borrow_mut() = None;
-                false
+                Ok(())
             }
         };
-        if error {
-            return;
+        match error {
+            Ok(_) => (),
+            Err(error) => {
+                FileReader::process_read_error(filereader, gen_id, error);
+            }
         }
         // Step 8.3
         fr.dispatch_progress_event("load".to_owned(), 0, None);
@@ -225,7 +230,7 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     fn perform_readastext(filereader: TrustedFileReader,
-        gen_id: GenerationId, blob_body: BlobBody) -> bool {
+        blob_body: BlobBody) -> Result<(), DOMErrorName> {
 
         //https://w3c.github.io/FileAPI/#encoding-determination
         // Steps 1 & 2 & 3
@@ -239,16 +244,17 @@ impl FileReader {
             Some(e) => Some(e),
             None => {
                 let resultmime = blob_body.blobtype.parse::<Mime>();
-                match resultmime {
-                    Ok(mime) => {
-                        let &Mime(_, _, ref parameters) = &mime;
-                        for &(ref k, ref v) in parameters.iter() {
-                            if &Attr::Charset == k {
-                                encoding_from_whatwg_label(&v.to_string());
-                            }
-                        }
-                        None
-                    },
+                let result = resultmime.and_then(|Mime(_, _, ref parameters)| {
+                    let cast = parameters.iter()
+                        .find(|&&(ref k, _)| &Attr::Charset == k)
+                        .and_then(|&(_, ref v)| encoding_from_whatwg_label(&v.to_string()));
+                    match cast {
+                        Some(e) => Ok(e),
+                        None => Err(())
+                    }
+                });
+                match result {
+                    Ok(e) => Some(e),
                     Err(_) => None
                 }
             }
@@ -260,25 +266,25 @@ impl FileReader {
             None => UTF_8 as EncodingRef
         };
 
-        // Step 7
         let convert = &blob_body.bytes[..];
+        // Step 7
         let output = enc.decode(convert, DecoderTrap::Strict);
         match output {
             Ok(s) => {
                 let fr = filereader.root();
                 *fr.result.borrow_mut() = Some(s);
-                false
+                Ok(())
             },
             Err(_) => {
                 //FIXME Error NotReadableError
-                FileReader::process_read_error(filereader, gen_id, DOMErrorName::NotFoundError);
-                true
+                Err(DOMErrorName::NotFoundError)
             }
         }
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn perform_readasdataurl(filereader: TrustedFileReader, blob_body: BlobBody)  -> bool {
+    fn perform_readasdataurl(filereader: TrustedFileReader,
+        blob_body: BlobBody) -> Result<(), DOMErrorName> {
         let config = Config {
             char_set: CharacterSet::UrlSafe,
             newline: Newline::LF,
@@ -295,7 +301,7 @@ impl FileReader {
 
         let fr = filereader.root();
         *fr.result.borrow_mut() = Some(output);
-        false
+        Ok(())
     }
 
 }
