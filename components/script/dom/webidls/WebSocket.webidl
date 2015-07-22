@@ -4,7 +4,7 @@
 
 enum BinaryType { "blob", "arraybuffer" };
 
-[Constructor(DOMString url)]
+[Constructor(DOMString url, optional /*(*/DOMString /*or DOMString[])*/ protocols)]
 interface WebSocket : EventTarget {
     readonly attribute DOMString url;
     //ready state
