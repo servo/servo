@@ -12,7 +12,7 @@ pub struct Value {
     /// In CSS syntax
     pub value: String,
 
-    /// Custom property names in var() functions
+    /// Custom property names in var() functions. Do not include the `--` prefix.
     pub references: HashSet<Atom>,
 }
 
@@ -109,6 +109,8 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut HashS
     Ok(())
 }
 
+/// Add one custom property declaration to a map,
+/// unless another with the same name was already there.
 pub fn cascade(custom_properties: &mut Option<Map>, inherited_custom_properties: &Option<Arc<Map>>,
                name: &Atom, value: &Value) {
     let map = match *custom_properties {
@@ -122,4 +124,55 @@ pub fn cascade(custom_properties: &mut Option<Map>, inherited_custom_properties:
         }
     };
     map.entry(name.clone()).or_insert(value.clone());
+}
+
+/// If any custom property declarations where found for this element (`custom_properties.is_some()`)
+/// remove cycles and move the map into an `Arc`.
+/// Otherwise, default to the inherited map.
+pub fn finish_cascade(custom_properties: Option<Map>,
+                      inherited_custom_properties: &Option<Arc<Map>>)
+                      -> Option<Arc<Map>> {
+    if let Some(mut map) = custom_properties {
+        remove_cycles(&mut map);
+        Some(Arc::new(map))
+    } else {
+        inherited_custom_properties.clone()
+    }
+}
+
+/// https://drafts.csswg.org/css-variables/#cycles
+fn remove_cycles(map: &mut Map) {
+    let mut to_remove = HashSet::new();
+    {
+        let mut visited = HashSet::new();
+        let mut stack = Vec::new();
+        for name in map.keys() {
+            walk(map, name, &mut stack, &mut visited, &mut to_remove);
+
+            fn walk<'a>(map: &'a Map, name: &'a Atom, stack: &mut Vec<&'a Atom>,
+                        visited: &mut HashSet<&'a Atom>, to_remove: &mut HashSet<Atom>) {
+                let was_not_already_present = visited.insert(name);
+                if !was_not_already_present {
+                    return
+                }
+                if let Some(value) = map.get(name) {
+                    stack.push(name);
+                    for next in &value.references {
+                        if let Some(position) = stack.position_elem(&next) {
+                            // Found a cycle
+                            for in_cycle in &stack[position..] {
+                                to_remove.insert((**in_cycle).clone());
+                            }
+                        } else {
+                            walk(map, next, stack, visited, to_remove);
+                        }
+                    }
+                    stack.pop();
+                }
+            }
+        }
+    }
+    for name in &to_remove {
+        map.remove(name);
+    }
 }

@@ -6174,8 +6174,8 @@ fn cascade_with_cached_declarations(
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: style_${style_struct.ident},
         % endfor
-        custom_properties: custom_properties
-            .map(Arc::new).or_else(|| parent_style.custom_properties.clone()),
+        custom_properties: ::custom_properties::finish_cascade(
+            custom_properties, &parent_style.custom_properties),
         shareable: shareable,
         root_font_size: parent_style.root_font_size,
     }
@@ -6451,8 +6451,8 @@ pub fn cascade(viewport_size: Size2D<Au>,
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: style.${style_struct.ident},
         % endfor
-        custom_properties: custom_properties
-            .map(Arc::new).or_else(|| inherited_style.custom_properties.clone()),
+        custom_properties: ::custom_properties::finish_cascade(
+            custom_properties, &inherited_style.custom_properties),
         shareable: shareable,
         root_font_size: context.root_font_size,
     }, cacheable)
