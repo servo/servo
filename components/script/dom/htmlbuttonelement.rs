@@ -9,23 +9,27 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLButtonElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::ActivationElementHelpers;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElementHelpers};
+use dom::htmlformelement::{FormSubmitter, FormControl};
+use dom::htmlformelement::{HTMLFormElement, HTMLFormElementHelpers};
 use dom::htmlformelement::{SubmittedFrom};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
+use util::str::DOMString;
+use string_cache::Atom;
+
 use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
-use util::str::DOMString;
 use std::cell::Cell;
+use std::default::Default;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
@@ -39,7 +43,8 @@ enum ButtonType {
 #[dom_struct]
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
-    button_type: Cell<ButtonType>
+    button_type: Cell<ButtonType>,
+    form_owner: MutNullableHeap<JS<HTMLFormElement>>
 }
 
 impl HTMLButtonElementDerived for EventTarget {
@@ -58,7 +63,8 @@ impl HTMLButtonElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
             //TODO: implement button_type in after_set_attr
-            button_type: Cell::new(ButtonType::ButtonSubmit)
+            button_type: Cell::new(ButtonType::ButtonSubmit),
+            form_owner: Default::default(),
         }
     }
 
@@ -96,6 +102,11 @@ impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 
     // https://html.spec.whatwg.org/multipage/#htmlbuttonelement
     make_url_or_base_getter!(FormAction);
@@ -145,6 +156,9 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
+            &atom!("form") => {
+                self.after_set_form_attr();
+            }
             _ => ()
         }
     }
@@ -161,6 +175,22 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
             },
+            &atom!("form") => {
+                self.before_remove_form_attr();
+            }
+            _ => ()
+        }
+    }
+
+    fn after_remove_attr(&self, attr: &Atom) {
+        if let Some(ref s) = self.super_type() {
+            s.after_remove_attr(attr);
+        }
+
+        match attr {
+            &atom!("form") => {
+                self.after_remove_form_attr();
+            }
             _ => ()
         }
     }
@@ -169,6 +199,8 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
+
+        self.bind_form_control_to_tree();
 
         let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
@@ -179,6 +211,8 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
+        self.unbind_form_control_from_tree();
+
         let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
@@ -188,9 +222,17 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLButtonElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
+impl<'a> FormControl for &'a HTMLButtonElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get().map(Root::from_rooted)
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form.map(JS::from_ref));
+    }
+
+    fn to_element<'b>(&'b self) -> &'b Element {
+        ElementCast::from_ref(*self)
     }
 }
 

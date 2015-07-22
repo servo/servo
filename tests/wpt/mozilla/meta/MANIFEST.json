@@ -521,6 +521,24 @@
             "url": "/_mozilla/mozilla/focus_blur.html"
           }
         ],
+        "mozilla/form_attribute.html": [
+          {
+            "path": "mozilla/form_attribute.html",
+            "url": "/_mozilla/mozilla/form_attribute.html"
+          }
+        ],
+        "mozilla/form_owner_and_table.html": [
+          {
+            "path": "mozilla/form_owner_and_table.html",
+            "url": "/_mozilla/mozilla/form_owner_and_table.html"
+          }
+        ],
+        "mozilla/form_owner_and_table_2.html": [
+          {
+            "path": "mozilla/form_owner_and_table_2.html",
+            "url": "/_mozilla/mozilla/form_owner_and_table_2.html"
+          }
+        ],
         "mozilla/getBoundingClientRect.html": [
           {
             "path": "mozilla/getBoundingClientRect.html",

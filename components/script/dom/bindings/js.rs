@@ -35,6 +35,7 @@ use script_task::STACK_ROOTS;
 use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 
 /// A traced reference to a DOM object. Must only be used as a field in other
@@ -100,6 +101,14 @@ impl<T> Copy for LayoutJS<T> {}
 impl<T> PartialEq for JS<T> {
     fn eq(&self, other: &JS<T>) -> bool {
         self.ptr == other.ptr
+    }
+}
+
+impl<T> Eq for JS<T> { }
+
+impl<T> Hash for JS<T> {
+    fn hash<H>(&self, state: &mut H) where H: Hasher {
+        self.ptr.hash(state);
     }
 }
 

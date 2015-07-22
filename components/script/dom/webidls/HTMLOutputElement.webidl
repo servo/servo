@@ -6,7 +6,7 @@
 // https://www.whatwg.org/html/#htmloutputelement
 interface HTMLOutputElement : HTMLElement {
   //[PutForwards=value] readonly attribute DOMSettableTokenList htmlFor;
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
   //         attribute DOMString name;
 
   //readonly attribute DOMString type;

@@ -19,7 +19,9 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLLabelElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLOutputElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementCast;
@@ -177,12 +179,20 @@ pub fn vtable_for<'a>(node: &'a &'a Node) -> &'a (VirtualMethods + 'a) {
             let element = HTMLInputElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
         }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
+            let element = HTMLLabelElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a (VirtualMethods + 'a)
+        }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
             let element = HTMLLinkElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
             let element = HTMLObjectElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a (VirtualMethods + 'a)
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
+            let element = HTMLOutputElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) => {
