@@ -2,23 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, SourcePosition};
 use properties::DeclaredValue;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use string_cache::Atom;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Value {
     /// In CSS syntax
-    pub value: String,
+    value: String,
 
     /// Custom property names in var() functions. Do not include the `--` prefix.
-    pub references: HashSet<Atom>,
+    references: HashSet<Atom>,
 }
 
-/// Names (atoms) do not include the `--` prefix.
-pub type Map = HashMap<Atom, Value>;
+pub struct BorrowedValue<'a> {
+    value: &'a str,
+    references: Option<&'a HashSet<Atom>>,
+}
 
 pub fn parse(input: &mut Parser) -> Result<Value, ()> {
     let start = input.position();
@@ -120,51 +122,53 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut HashS
 
 /// Add one custom property declaration to a map,
 /// unless another with the same name was already there.
-pub fn cascade<'a>(custom_properties: &mut Option<Map>,
-                   inherited_custom_properties: &Option<Arc<Map>>,
+pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Atom, BorrowedValue<'a>>>,
+                   inherited_custom_properties: &'a Option<Arc<HashMap<Atom, String>>>,
                    seen: &mut HashSet<&'a Atom>,
                    name: &'a Atom,
-                   value: &DeclaredValue<Value>) {
+                   value: &'a DeclaredValue<Value>) {
     let was_not_already_present = seen.insert(name);
     if was_not_already_present {
         let map = match *custom_properties {
             Some(ref mut map) => map,
             None => {
                 *custom_properties = Some(match *inherited_custom_properties {
-                    Some(ref arc) => (**arc).clone(),
+                    Some(ref inherited) => inherited.iter().map(|(key, value)| {
+                        (key, BorrowedValue { value: &value, references: None })
+                    }).collect(),
                     None => HashMap::new(),
                 });
                 custom_properties.as_mut().unwrap()
             }
         };
         match *value {
-            DeclaredValue::SpecifiedValue(ref value) => {
-                map.insert(name.clone(), value.clone());
+            DeclaredValue::Value(ref value) => {
+                map.insert(name, BorrowedValue {
+                    value: &value.value,
+                    references: Some(&value.references),
+                });
             }
             DeclaredValue::Initial => {
-                map.remove(name);
+                map.remove(&name);
             }
             DeclaredValue::Inherit => {}  // The inherited value is what we already have.
         }
     }
 }
 
-/// If any custom property declarations where found for this element (`custom_properties.is_some()`)
-/// remove cycles and move the map into an `Arc`.
-/// Otherwise, default to the inherited map.
-pub fn finish_cascade(custom_properties: Option<Map>,
-                      inherited_custom_properties: &Option<Arc<Map>>)
-                      -> Option<Arc<Map>> {
+pub fn finish_cascade(custom_properties: Option<HashMap<&Atom, BorrowedValue>>,
+                      inherited_custom_properties: &Option<Arc<HashMap<Atom, String>>>)
+                      -> Option<Arc<HashMap<Atom, String>>> {
     if let Some(mut map) = custom_properties {
         remove_cycles(&mut map);
-        Some(Arc::new(map))
+        Some(Arc::new(substitute_all(map)))
     } else {
         inherited_custom_properties.clone()
     }
 }
 
 /// https://drafts.csswg.org/css-variables/#cycles
-fn remove_cycles(map: &mut Map) {
+fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
     let mut to_remove = HashSet::new();
     {
         let mut visited = HashSet::new();
@@ -172,25 +176,30 @@ fn remove_cycles(map: &mut Map) {
         for name in map.keys() {
             walk(map, name, &mut stack, &mut visited, &mut to_remove);
 
-            fn walk<'a>(map: &'a Map, name: &'a Atom, stack: &mut Vec<&'a Atom>,
-                        visited: &mut HashSet<&'a Atom>, to_remove: &mut HashSet<Atom>) {
+            fn walk<'a>(map: &HashMap<&'a Atom, BorrowedValue<'a>>,
+                        name: &'a Atom,
+                        stack: &mut Vec<&'a Atom>,
+                        visited: &mut HashSet<&'a Atom>,
+                        to_remove: &mut HashSet<Atom>) {
                 let was_not_already_present = visited.insert(name);
                 if !was_not_already_present {
                     return
                 }
                 if let Some(value) = map.get(name) {
-                    stack.push(name);
-                    for next in &value.references {
-                        if let Some(position) = stack.position_elem(&next) {
-                            // Found a cycle
-                            for in_cycle in &stack[position..] {
-                                to_remove.insert((**in_cycle).clone());
+                    if let Some(references) = value.references {
+                        stack.push(name);
+                        for next in references {
+                            if let Some(position) = stack.position_elem(&next) {
+                                // Found a cycle
+                                for in_cycle in &stack[position..] {
+                                    to_remove.insert((**in_cycle).clone());
+                                }
+                            } else {
+                                walk(map, next, stack, visited, to_remove);
                             }
-                        } else {
-                            walk(map, next, stack, visited, to_remove);
                         }
+                        stack.pop();
                     }
-                    stack.pop();
                 }
             }
         }
@@ -198,4 +207,73 @@ fn remove_cycles(map: &mut Map) {
     for name in &to_remove {
         map.remove(name);
     }
+}
+
+fn substitute_all(custom_properties: HashMap<&Atom, BorrowedValue>) -> HashMap<Atom, String> {
+    custom_properties.iter().filter_map(|(&name, value)| {
+        let mut substituted = String::new();
+        if substitute_one(value, &mut substituted, &custom_properties).is_ok() {
+            Some((name.clone(), substituted))
+        } else {
+            None
+        }
+    }).collect()
+}
+
+fn substitute_one(value: &BorrowedValue,
+                  substituted: &mut String,
+                  custom_properties: &HashMap<&Atom, BorrowedValue>)
+                  -> Result<(), ()> {
+    if let Some(references) = value.references {
+        if !references.is_empty() {
+            let mut input = Parser::new(&value.value);
+            let mut start = input.position();
+            try!(substitute_block(&mut input, &mut start, substituted, &custom_properties));
+            substituted.push_str(input.slice_from(start));
+            return Ok(())
+        }
+    }
+    substituted.push_str(value.value);
+    Ok(())
+}
+
+fn substitute_block(input: &mut Parser,
+                    start: &mut SourcePosition,
+                    substituted: &mut String,
+                    custom_properties: &HashMap<&Atom, BorrowedValue>)
+                    -> Result<(), ()> {
+    while let Ok(token) = input.next() {
+        match token {
+            Token::Function(ref name) if name == "var" => {
+                substituted.push_str(input.slice_from(*start));
+                try!(input.parse_nested_block(|input| {
+                    let name = input.expect_ident().unwrap();
+                    debug_assert!(name.starts_with("--"));
+                    let name = Atom::from_slice(&name[2..]);
+
+                    if let Some(value) = custom_properties.get(&name) {
+                        return substitute_one(value, substituted, custom_properties)
+                    }
+                    try!(input.expect_comma());
+                    let mut start = input.position();
+                    try!(substitute_block(input, &mut start, substituted, custom_properties));
+                    substituted.push_str(input.slice_from(start));
+                    Ok(())
+                }));
+                *start = input.position();
+            }
+
+            Token::Function(_) |
+            Token::ParenthesisBlock |
+            Token::CurlyBracketBlock |
+            Token::SquareBracketBlock => {
+                try!(input.parse_nested_block(|input| {
+                    substitute_block(input, start, substituted, custom_properties)
+                }));
+            }
+
+            _ => {}
+        }
+    }
+    Ok(())
 }

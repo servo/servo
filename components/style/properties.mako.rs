@@ -6,7 +6,7 @@
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::default::Default;
 use std::fmt;
 use std::fmt::Debug;
@@ -5857,7 +5857,8 @@ pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-    custom_properties: Option<Arc<::custom_properties::Map>>,
+    /// Names (atoms) do not include the `--` prefix.
+    custom_properties: Option<Arc<HashMap<Atom, String>>>,
     shareable: bool,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
