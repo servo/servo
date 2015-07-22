@@ -2330,10 +2330,9 @@ impl<'a> NodeMethods for &'a Node {
                     } else {
                         match prev_text {
                             Some(ref text_node) => {
-                                let text_node = text_node.clone();
                                 let prev_characterdata =
                                     CharacterDataCast::from_ref(text_node.r());
-                                let _ = prev_characterdata.AppendData(characterdata.Data());
+                                prev_characterdata.append_data(&**characterdata.data());
                                 self.remove_child(child.r());
                             },
                             None => prev_text = Some(Root::from_ref(text))
