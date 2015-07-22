@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, Token};
+use properties::DeclaredValue;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use string_cache::Atom;
@@ -111,19 +112,33 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut HashS
 
 /// Add one custom property declaration to a map,
 /// unless another with the same name was already there.
-pub fn cascade(custom_properties: &mut Option<Map>, inherited_custom_properties: &Option<Arc<Map>>,
-               name: &Atom, value: &Value) {
-    let map = match *custom_properties {
-        Some(ref mut map) => map,
-        None => {
-            *custom_properties = Some(match *inherited_custom_properties {
-                Some(ref arc) => (**arc).clone(),
-                None => HashMap::new(),
-            });
-            custom_properties.as_mut().unwrap()
+pub fn cascade<'a>(custom_properties: &mut Option<Map>,
+                   inherited_custom_properties: &Option<Arc<Map>>,
+                   seen: &mut HashSet<&'a Atom>,
+                   name: &'a Atom,
+                   value: &DeclaredValue<Value>) {
+    let was_not_already_present = seen.insert(name);
+    if was_not_already_present {
+        let map = match *custom_properties {
+            Some(ref mut map) => map,
+            None => {
+                *custom_properties = Some(match *inherited_custom_properties {
+                    Some(ref arc) => (**arc).clone(),
+                    None => HashMap::new(),
+                });
+                custom_properties.as_mut().unwrap()
+            }
+        };
+        match *value {
+            DeclaredValue::SpecifiedValue(ref value) => {
+                map.insert(name.clone(), value.clone());
+            }
+            DeclaredValue::Initial => {
+                map.remove(name);
+            }
+            DeclaredValue::Inherit => {}  // The inherited value is what we already have.
         }
-    };
-    map.entry(name.clone()).or_insert(value.clone());
+    }
 }
 
 /// If any custom property declarations where found for this element (`custom_properties.is_some()`)

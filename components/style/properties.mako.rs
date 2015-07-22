@@ -6,6 +6,7 @@
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::collections::HashSet;
 use std::default::Default;
 use std::fmt;
 use std::fmt::Debug;
@@ -5684,7 +5685,7 @@ pub enum PropertyDeclaration {
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
     /// Name (atom) does not include the `--` prefix.
-    Custom(Atom, ::custom_properties::Value),
+    Custom(Atom, DeclaredValue<::custom_properties::Value>),
 }
 
 
@@ -5736,13 +5737,18 @@ impl PropertyDeclaration {
     pub fn parse(name: &str, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<PropertyDeclaration>) -> PropertyDeclarationParseResult {
         if name.starts_with("--") {
-            if let Ok(value) = ::custom_properties::parse(input) {
-                let name = Atom::from_slice(&name[2..]);
-                result_list.push(PropertyDeclaration::Custom(name, value));
-                return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
-            } else {
-                return PropertyDeclarationParseResult::InvalidValue;
-            }
+            let value = match input.try(CSSWideKeyword::parse) {
+                Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
+                Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
+                Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
+                Err(()) => match ::custom_properties::parse(input) {
+                    Ok(value) => DeclaredValue::SpecifiedValue(value),
+                    Err(()) => return PropertyDeclarationParseResult::InvalidValue,
+                }
+            };
+            let name = Atom::from_slice(&name[2..]);
+            result_list.push(PropertyDeclaration::Custom(name, value));
+            return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
         }
         match_ignore_ascii_case! { name,
             % for property in LONGHANDS:
@@ -6097,6 +6103,7 @@ fn cascade_with_cached_declarations(
     let mut custom_properties = None;
 
     let mut seen = PropertyBitField::new();
+    let mut seen_custom = HashSet::new();
     // Declaration blocks are stored in increasing precedence order,
     // we want them in decreasing order here.
     for sub_list in applicable_declarations.iter().rev() {
@@ -6158,7 +6165,8 @@ fn cascade_with_cached_declarations(
                 % endfor
                 PropertyDeclaration::Custom(ref name, ref value) => {
                     ::custom_properties::cascade(
-                        &mut custom_properties, &parent_style.custom_properties, name, value)
+                        &mut custom_properties, &parent_style.custom_properties,
+                        &mut seen_custom, name, value)
                 }
             }
         }
@@ -6390,13 +6398,15 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // of compiled code! To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
     CASCADE_PROPERTY.with(|cascade_property| {
+        let mut seen_custom = HashSet::new();
         for sub_list in applicable_declarations.iter().rev() {
             // Declarations are already stored in reverse order.
             for declaration in sub_list.declarations.iter() {
                 match *declaration {
                     PropertyDeclaration::Custom(ref name, ref value) => {
                         ::custom_properties::cascade(
-                            &mut custom_properties, &inherited_style.custom_properties, name, value)
+                            &mut custom_properties, &inherited_style.custom_properties,
+                            &mut seen_custom, name, value)
                     }
                     _ => {
                         let discriminant = unsafe {
