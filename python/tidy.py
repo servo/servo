@@ -202,6 +202,7 @@ def check_webidl_spec(file_name, contents):
         "//xhr.spec.whatwg.org",
         "//www.whatwg.org/html",
         "//www.whatwg.org/specs",
+        "//w3c.github.io",
         # Not a URL
         "// This interface is entirely internal to Servo, and should not be" +
         " accessible to\n// web pages."

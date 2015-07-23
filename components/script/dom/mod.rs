@@ -215,6 +215,7 @@ pub mod event;
 pub mod eventdispatcher;
 pub mod eventtarget;
 pub mod file;
+pub mod filelist;
 pub mod filereader;
 pub mod formdata;
 pub mod htmlanchorelement;
