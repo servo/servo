@@ -34,6 +34,10 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     rv = base_executor_kwargs(test_type, server_config,
                               cache_manager, **kwargs)
     rv["pause_after_test"] = kwargs["pause_after_test"]
+    # Currently we always run Servo in debug mode. Like Firefox and B2G, we increase the timeout
+    # threefold in order to compensate for that.
+    if kwargs["timeout_multiplier"] is None:
+        rv["timeout_multiplier"] = 3
     return rv
 
 def env_options():
