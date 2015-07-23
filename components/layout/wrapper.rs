@@ -53,7 +53,7 @@ use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
 use script::dom::node::{Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
+use script::dom::node::{LayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
 use script::dom::text::Text;
 use smallvec::VecLike;
@@ -464,17 +464,13 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_hover_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_hover_state_for_layout()
-        }
+        node.get_hover_state_for_layout()
     }
 
     #[inline]
     fn get_focus_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_focus_state_for_layout()
-        }
+        node.get_focus_state_for_layout()
     }
 
     #[inline]
@@ -487,31 +483,23 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_disabled_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_disabled_state_for_layout()
-        }
+        node.get_disabled_state_for_layout()
     }
 
     #[inline]
     fn get_enabled_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_enabled_state_for_layout()
-        }
+        node.get_enabled_state_for_layout()
     }
 
     #[inline]
     fn get_checked_state(&self) -> bool {
-        unsafe {
-            (*self.element.unsafe_get()).get_checked_state_for_layout()
-        }
+        self.element.get_checked_state_for_layout()
     }
 
     #[inline]
     fn get_indeterminate_state(&self) -> bool {
-        unsafe {
-            (*self.element.unsafe_get()).get_indeterminate_state_for_layout()
-        }
+        self.element.get_indeterminate_state_for_layout()
     }
 
     #[inline]

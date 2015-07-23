@@ -1086,6 +1086,11 @@ pub trait LayoutNodeHelpers {
     unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>>;
     #[allow(unsafe_code)]
     unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData>;
+
+    fn get_hover_state_for_layout(&self) -> bool;
+    fn get_focus_state_for_layout(&self) -> bool;
+    fn get_disabled_state_for_layout(&self) -> bool;
+    fn get_enabled_state_for_layout(&self) -> bool;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1175,44 +1180,34 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
         (*self.unsafe_get()).layout_data.borrow_unchecked()
     }
-}
 
-pub trait RawLayoutNodeHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn get_hover_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_focus_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_disabled_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_enabled_state_for_layout(&self) -> bool;
-    fn type_id_for_layout(&self) -> NodeTypeId;
-}
-
-impl RawLayoutNodeHelpers for Node {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_hover_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_HOVER_STATE)
+    fn get_hover_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_HOVER_STATE)
+        }
     }
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_focus_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_FOCUS_STATE)
+    fn get_focus_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_FOCUS_STATE)
+        }
     }
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_disabled_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_DISABLED_STATE)
+    fn get_disabled_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_DISABLED_STATE)
+        }
     }
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_enabled_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_ENABLED_STATE)
-    }
-    #[inline]
-    fn type_id_for_layout(&self) -> NodeTypeId {
-        self.type_id
+    fn get_enabled_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_ENABLED_STATE)
+        }
     }
 }
 

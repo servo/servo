@@ -181,8 +181,6 @@ pub trait RawLayoutElementHelpers {
 
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    unsafe fn get_checked_state_for_layout(&self) -> bool;
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
 }
@@ -461,29 +459,6 @@ impl RawLayoutElementHelpers for Element {
         }
     }
 
-    #[inline]
-    #[allow(unrooted_must_root)]
-    unsafe fn get_checked_state_for_layout(&self) -> bool {
-        // TODO option and menuitem can also have a checked state.
-        if !self.is_htmlinputelement() {
-            return false
-        }
-        let this: &HTMLInputElement = mem::transmute(self);
-        this.get_checked_state_for_layout()
-    }
-
-    #[inline]
-    #[allow(unrooted_must_root)]
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
-        // TODO progress elements can also be matched with :indeterminate
-        if !self.is_htmlinputelement() {
-            return false
-        }
-        let this: &HTMLInputElement = mem::transmute(self);
-        this.get_indeterminate_state_for_layout()
-    }
-
-
     unsafe fn get_unsigned_integer_attribute_for_layout(&self,
                                                         attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32> {
@@ -510,6 +485,8 @@ pub trait LayoutElementHelpers {
     fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
+    fn get_checked_state_for_layout(&self) -> bool;
+    fn get_indeterminate_state_for_layout(&self) -> bool;
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -546,6 +523,30 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn namespace<'a>(&'a self) -> &'a Namespace {
         unsafe {
             &(*self.unsafe_get()).namespace
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn get_checked_state_for_layout(&self) -> bool {
+        // TODO option and menuitem can also have a checked state.
+        match HTMLInputElementCast::to_layout_js(self) {
+            Some(input) => unsafe {
+                (*input.unsafe_get()).get_checked_state_for_layout()
+            },
+            None => false,
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn get_indeterminate_state_for_layout(&self) -> bool {
+        // TODO progress elements can also be matched with :indeterminate
+        match HTMLInputElementCast::to_layout_js(self) {
+            Some(input) => unsafe {
+                (*input.unsafe_get()).get_indeterminate_state_for_layout()
+            },
+            None => false,
         }
     }
 }
