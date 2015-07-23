@@ -19,6 +19,9 @@ git = "https://github.com/servo/rust-layers"
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
 cssparser = "0.3.1"
 euclid = "0.1"

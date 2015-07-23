@@ -13,6 +13,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use layers::platform::surface::NativeSurface;
 use gfx_traits::color;
+use ipc_channel::ipc::IpcSharedMemory;
 use num::ToPrimitive;
 use util::opts;
 use util::task::spawn_named;
@@ -515,9 +516,9 @@ impl<'a> CanvasPaintTask<'a> {
         self.drawtarget = CanvasPaintTask::create(size);
     }
 
-    fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
+    fn send_pixel_contents(&mut self, chan: Sender<IpcSharedMemory>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            chan.send(element.to_vec()).unwrap();
+            chan.send(IpcSharedMemory::from_bytes(element)).unwrap();
         })
     }
 

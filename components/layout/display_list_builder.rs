@@ -32,6 +32,7 @@ use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
+use ipc_channel::ipc::IpcSharedMemory;
 use msg::compositor_msg::{ScrollPolicy, LayerId};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -1098,14 +1099,14 @@ impl FragmentDisplayListBuilding for Fragment {
                     .computed_inline_size.map_or(0, |w| w.to_px() as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
-                let (sender, receiver) = channel::<Vec<u8>>();
+                let (sender, receiver) = channel::<IpcSharedMemory>();
                 let canvas_data = match canvas_fragment_info.renderer {
                     Some(ref renderer) =>  {
                         renderer.lock().unwrap().send(CanvasMsg::Common(
                                 CanvasCommonMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
-                    None => vec![0xFFu8; width * height * 4],
+                    None => IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
                 };
                 display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
                     base: BaseDisplayItem::new(stacking_relative_content_box,

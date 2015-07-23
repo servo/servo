@@ -16,6 +16,7 @@ use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::{GLContext, GLContextAttributes, ColorAttachmentType};
+use ipc_channel::ipc::IpcSharedMemory;
 
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
@@ -440,9 +441,11 @@ impl WebGLPaintTask {
         gl::viewport(x, y, width, height);
     }
 
-    fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
+    fn send_pixel_contents(&mut self, chan: Sender<IpcSharedMemory>) {
         // FIXME(#5652, dmarcos) Instead of a readback strategy we have
-        // to layerize the canvas
+        // to layerize the canvas.
+        // TODO(pcwalton): We'd save a copy if we had an `IpcSharedMemoryBuilder` abstraction that
+        // allowed you to mutate in-place before freezing the object for sending.
         let width = self.size.width as usize;
         let height = self.size.height as usize;
         let mut pixels = gl::read_pixels(0, 0,
@@ -461,7 +464,7 @@ impl WebGLPaintTask {
 
         // rgba -> bgra
         byte_swap(&mut pixels);
-        chan.send(pixels).unwrap();
+        chan.send(IpcSharedMemory::from_bytes(&pixels[..])).unwrap();
     }
 
     fn send_native_surface(&self, _: Sender<NativeSurface>) {

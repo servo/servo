@@ -18,6 +18,7 @@ extern crate gleam;
 extern crate num;
 extern crate layers;
 extern crate offscreen_gl_context;
+extern crate ipc_channel;
 
 #[macro_use]
 extern crate log;
