@@ -1185,7 +1185,6 @@ pub trait RawLayoutNodeHelpers {
     unsafe fn get_disabled_state_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn get_enabled_state_for_layout(&self) -> bool;
-    fn type_id_for_layout(&self) -> NodeTypeId;
 }
 
 impl RawLayoutNodeHelpers for Node {
@@ -1208,10 +1207,6 @@ impl RawLayoutNodeHelpers for Node {
     #[allow(unsafe_code)]
     unsafe fn get_enabled_state_for_layout(&self) -> bool {
         self.flags.get().contains(IN_ENABLED_STATE)
-    }
-    #[inline]
-    fn type_id_for_layout(&self) -> NodeTypeId {
-        self.type_id
     }
 }
 
