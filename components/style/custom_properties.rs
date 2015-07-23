@@ -210,37 +210,67 @@ fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
 }
 
 fn substitute_all(custom_properties: HashMap<&Atom, BorrowedValue>) -> HashMap<Atom, String> {
-    custom_properties.iter().filter_map(|(&name, value)| {
-        let mut substituted = String::new();
-        if substitute_one(value, &mut substituted, &custom_properties).is_ok() {
-            Some((name.clone(), substituted))
-        } else {
-            None
-        }
-    }).collect()
+    let mut substituted_map = HashMap::new();
+    let mut invalid = HashSet::new();
+    for (&name, value) in &custom_properties {
+        // If this value is invalid at computed time it won’t be inserted in substituted_map.
+        // Nothing else to do.
+        let _ = substitute_one(
+            name, value, &custom_properties, None, &mut substituted_map, &mut invalid);
+    }
+    substituted_map
 }
 
-fn substitute_one(value: &BorrowedValue,
-                  substituted: &mut String,
-                  custom_properties: &HashMap<&Atom, BorrowedValue>)
+fn substitute_one(name: &Atom,
+                  value: &BorrowedValue,
+                  custom_properties: &HashMap<&Atom, BorrowedValue>,
+                  substituted: Option<&mut String>,
+                  substituted_map: &mut HashMap<Atom, String>,
+                  invalid: &mut HashSet<Atom>)
                   -> Result<(), ()> {
-    if let Some(references) = value.references {
+    if let Some(value) = substituted_map.get(name) {
+        if let Some(substituted) = substituted {
+            substituted.push_str(value)
+        }
+        return Ok(())
+    }
+
+    if invalid.contains(name) {
+        return Err(());
+    }
+    let value = if let Some(references) = value.references {
         if !references.is_empty() {
+            let mut substituted = String::new();
             let mut input = Parser::new(&value.value);
             let mut start = input.position();
-            try!(substitute_block(&mut input, &mut start, substituted, &custom_properties));
+            if substitute_block(
+                custom_properties, &mut input, &mut start, &mut substituted,
+                substituted_map, invalid,
+            ).is_err() {
+                invalid.insert(name.clone());
+                return Err(())
+            }
             substituted.push_str(input.slice_from(start));
-            return Ok(())
+            substituted
+        } else {
+            value.value.to_owned()
         }
+    } else {
+        value.value.to_owned()
+    };
+    if let Some(substituted) = substituted {
+        substituted.push_str(&value)
     }
-    substituted.push_str(value.value);
+    substituted_map.insert(name.clone(), value);
     Ok(())
 }
 
-fn substitute_block(input: &mut Parser,
+fn substitute_block(custom_properties: &HashMap<&Atom, BorrowedValue>,
+                    input: &mut Parser,
                     start: &mut SourcePosition,
                     substituted: &mut String,
-                    custom_properties: &HashMap<&Atom, BorrowedValue>)
+                    substituted_map: &mut HashMap<Atom, String>,
+                    invalid: &mut HashSet<Atom>)
                     -> Result<(), ()> {
     while let Ok(token) = input.next() {
         match token {
@@ -252,12 +282,21 @@ fn substitute_block(input: &mut Parser,
                     let name = Atom::from_slice(&name[2..]);
 
                     if let Some(value) = custom_properties.get(&name) {
-                        return substitute_one(value, substituted, custom_properties)
+                        try!(substitute_one(
+                            &name, value, custom_properties,
+                            Some(substituted), substituted_map, invalid));
+                        // Skip over the fallback, as `parse_nested_block` would return `Err`
+                        // if we don’t consume all of `input`.
+                        // FIXME: Add a specialized method to cssparser to do this with less work.
+                        while let Ok(_) = input.next() {}
+                    } else {
+                        try!(input.expect_comma());
+                        let mut start = input.position();
+                        try!(substitute_block(
+                            custom_properties, input, &mut start, substituted,
+                            substituted_map, invalid));
+                        substituted.push_str(input.slice_from(start));
                     }
-                    try!(input.expect_comma());
-                    let mut start = input.position();
-                    try!(substitute_block(input, &mut start, substituted, custom_properties));
-                    substituted.push_str(input.slice_from(start));
                     Ok(())
                 }));
                 *start = input.position();
@@ -267,9 +306,8 @@ fn substitute_block(input: &mut Parser,
             Token::ParenthesisBlock |
             Token::CurlyBracketBlock |
             Token::SquareBracketBlock => {
-                try!(input.parse_nested_block(|input| {
-                    substitute_block(input, start, substituted, custom_properties)
-                }));
+                try!(input.parse_nested_block(|input| substitute_block(
+                    custom_properties, input, start, substituted, substituted_map, invalid)));
             }
 
             _ => {}
