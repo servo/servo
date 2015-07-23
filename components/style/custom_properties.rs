@@ -34,6 +34,10 @@ pub fn parse(input: &mut Parser) -> Result<Value, ()> {
 
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
 fn parse_declaration_value(input: &mut Parser, references: &mut HashSet<Atom>) -> Result<(), ()> {
+    if input.is_exhausted() {
+        // Need at least one token
+        return Err(())
+    }
     while let Ok(token) = input.next() {
         match token {
             Token::BadUrl |
