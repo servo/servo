@@ -25,6 +25,8 @@ pub struct BorrowedValue<'a> {
 pub fn parse(input: &mut Parser) -> Result<Value, ()> {
     let start = input.position();
     let mut references = HashSet::new();
+    // FIXME: don’t consume a top-level `!` as that would prevent parsing `!important`.
+    // Maybe using Parser::parse_until_before?
     try!(parse_declaration_value(input, &mut references));
     Ok(Value {
         value: input.slice_from(start).to_owned(),
@@ -127,7 +129,7 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut HashS
 /// Add one custom property declaration to a map,
 /// unless another with the same name was already there.
 pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Atom, BorrowedValue<'a>>>,
-                   inherited_custom_properties: &'a Option<Arc<HashMap<Atom, String>>>,
+                   inherited: &'a Option<Arc<HashMap<Atom, String>>>,
                    seen: &mut HashSet<&'a Atom>,
                    name: &'a Atom,
                    value: &'a DeclaredValue<Value>) {
@@ -136,7 +138,7 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Atom, BorrowedValu
         let map = match *custom_properties {
             Some(ref mut map) => map,
             None => {
-                *custom_properties = Some(match *inherited_custom_properties {
+                *custom_properties = Some(match *inherited {
                     Some(ref inherited) => inherited.iter().map(|(key, value)| {
                         (key, BorrowedValue { value: &value, references: None })
                     }).collect(),
@@ -161,17 +163,18 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Atom, BorrowedValu
 }
 
 pub fn finish_cascade(custom_properties: Option<HashMap<&Atom, BorrowedValue>>,
-                      inherited_custom_properties: &Option<Arc<HashMap<Atom, String>>>)
+                      inherited: &Option<Arc<HashMap<Atom, String>>>)
                       -> Option<Arc<HashMap<Atom, String>>> {
     if let Some(mut map) = custom_properties {
         remove_cycles(&mut map);
-        Some(Arc::new(substitute_all(map)))
+        Some(Arc::new(substitute_all(map, inherited)))
     } else {
-        inherited_custom_properties.clone()
+        inherited.clone()
     }
 }
 
 /// https://drafts.csswg.org/css-variables/#cycles
+/// The initial value of a custom property is represented by this property not being in the map.
 fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
     let mut to_remove = HashSet::new();
     {
@@ -195,8 +198,8 @@ fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
                         for next in references {
                             if let Some(position) = stack.position_elem(&next) {
                                 // Found a cycle
-                                for in_cycle in &stack[position..] {
-                                    to_remove.insert((**in_cycle).clone());
+                                for &in_cycle in &stack[position..] {
+                                    to_remove.insert(in_cycle.clone());
                                 }
                             } else {
                                 walk(map, next, stack, visited, to_remove);
@@ -213,14 +216,16 @@ fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
     }
 }
 
-fn substitute_all(custom_properties: HashMap<&Atom, BorrowedValue>) -> HashMap<Atom, String> {
+fn substitute_all(custom_properties: HashMap<&Atom, BorrowedValue>,
+                  inherited: &Option<Arc<HashMap<Atom, String>>>)
+                  -> HashMap<Atom, String> {
     let mut substituted_map = HashMap::new();
     let mut invalid = HashSet::new();
     for (&name, value) in &custom_properties {
-        // If this value is invalid at computed time it won’t be inserted in substituted_map.
+        // If this value is invalid at computed-time it won’t be inserted in substituted_map.
         // Nothing else to do.
         let _ = substitute_one(
-            name, value, &custom_properties, None, &mut substituted_map, &mut invalid);
+            name, value, &custom_properties, inherited, None, &mut substituted_map, &mut invalid);
     }
     substituted_map
 }
@@ -228,6 +233,7 @@ fn substitute_all(custom_properties: HashMap<&Atom, BorrowedValue>) -> HashMap<A
 fn substitute_one(name: &Atom,
                   value: &BorrowedValue,
                   custom_properties: &HashMap<&Atom, BorrowedValue>,
+                  inherited: &Option<Arc<HashMap<Atom, String>>>,
                   substituted: Option<&mut String>,
                   substituted_map: &mut HashMap<Atom, String>,
                   invalid: &mut HashSet<Atom>)
@@ -242,22 +248,26 @@ fn substitute_one(name: &Atom,
     if invalid.contains(name) {
         return Err(());
     }
-    let value = if let Some(references) = value.references {
-        if !references.is_empty() {
-            let mut substituted = String::new();
-            let mut input = Parser::new(&value.value);
-            let mut start = input.position();
-            if substitute_block(
-                custom_properties, &mut input, &mut start, &mut substituted,
-                substituted_map, invalid,
-            ).is_err() {
-                invalid.insert(name.clone());
-                return Err(())
-            }
+    let value = if value.references.map(|set| set.is_empty()) == Some(false) {
+        let mut substituted = String::new();
+        let mut input = Parser::new(&value.value);
+        let mut start = input.position();
+        if substitute_block(
+            custom_properties, inherited, &mut input, &mut start, &mut substituted,
+            substituted_map, invalid,
+        ).is_ok() {
             substituted.push_str(input.slice_from(start));
             substituted
         } else {
-            value.value.to_owned()
+            // Invalid at computed-value time. Use the inherited value.
+            // FIXME: Should it be the inital value instead?
+            // See https://lists.w3.org/Archives/Public/www-style/2015Jul/0354.html
+            if let Some(value) = inherited.as_ref().and_then(|i| i.get(name)) {
+                value.clone()
+            } else {
+                invalid.insert(name.clone());
+                return Err(())
+            }
         }
     } else {
         value.value.to_owned()
@@ -270,6 +280,7 @@ fn substitute_one(name: &Atom,
 }
 
 fn substitute_block(custom_properties: &HashMap<&Atom, BorrowedValue>,
+                    inherited: &Option<Arc<HashMap<Atom, String>>>,
                     input: &mut Parser,
                     start: &mut SourcePosition,
                     substituted: &mut String,
@@ -287,7 +298,7 @@ fn substitute_block(custom_properties: &HashMap<&Atom, BorrowedValue>,
 
                     if let Some(value) = custom_properties.get(&name) {
                         try!(substitute_one(
-                            &name, value, custom_properties,
+                            &name, value, custom_properties, inherited,
                             Some(substituted), substituted_map, invalid));
                         // Skip over the fallback, as `parse_nested_block` would return `Err`
                         // if we don’t consume all of `input`.
@@ -297,8 +308,8 @@ fn substitute_block(custom_properties: &HashMap<&Atom, BorrowedValue>,
                         try!(input.expect_comma());
                         let mut start = input.position();
                         try!(substitute_block(
-                            custom_properties, input, &mut start, substituted,
-                            substituted_map, invalid));
+                            custom_properties, inherited, input,
+                            &mut start, substituted, substituted_map, invalid));
                         substituted.push_str(input.slice_from(start));
                     }
                     Ok(())
@@ -311,7 +322,8 @@ fn substitute_block(custom_properties: &HashMap<&Atom, BorrowedValue>,
             Token::CurlyBracketBlock |
             Token::SquareBracketBlock => {
                 try!(input.parse_nested_block(|input| substitute_block(
-                    custom_properties, input, start, substituted, substituted_map, invalid)));
+                    custom_properties, inherited, input,
+                    start, substituted, substituted_map, invalid)));
             }
 
             _ => {}
