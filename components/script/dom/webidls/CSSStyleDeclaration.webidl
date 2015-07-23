@@ -99,6 +99,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString backfaceVisibility;
 
   [TreatNullAs=EmptyString] attribute DOMString direction;
+  [TreatNullAs=EmptyString] attribute DOMString unicodeBidi;
 
   [TreatNullAs=EmptyString] attribute DOMString filter;
 

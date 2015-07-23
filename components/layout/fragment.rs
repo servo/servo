@@ -1612,7 +1612,7 @@ impl Fragment {
         }
         match self.specific {
             SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
-                util::str::is_whitespace(&text_fragment_info.text)
+                is_whitespace(&text_fragment_info.text)
             }
             _ => false,
         }

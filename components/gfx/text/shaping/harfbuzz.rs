@@ -9,7 +9,7 @@ use font::{IGNORE_LIGATURES_SHAPING_FLAG, RTL_FLAG, ShapingOptions};
 use platform::font::FontTable;
 use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
-use text::util::{float_to_fixed, fixed_to_float};
+use text::util::{float_to_fixed, fixed_to_float, is_bidi_control};
 
 use euclid::Point2D;
 use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, HB_DIRECTION_RTL};
@@ -279,7 +279,11 @@ impl Shaper {
 
         // GlyphStore records are indexed by character, not byte offset.
         // so, we must be careful to increment this when saving glyph entries.
-        let mut char_idx = CharIndex(0);
+        let (mut char_idx, char_step) = if options.flags.contains(RTL_FLAG) {
+            (CharIndex(char_max as isize - 1), CharIndex(-1))
+        } else {
+            (CharIndex(0), CharIndex(1))
+        };
 
         debug!("Shaped text[char count={}], got back {} glyph info records.",
                char_max,
@@ -318,10 +322,10 @@ impl Shaper {
             debug!("{} -> {}", i, loc);
         }
 
-        debug!("text: {}", text);
+        debug!("text: {:?}", text);
         debug!("(char idx): char->(glyph index):");
         for (i, ch) in text.char_indices() {
-            debug!("{}: {} --> {}", i, ch, byte_to_glyph[i]);
+            debug!("{}: {:?} --> {}", i, ch, byte_to_glyph[i]);
         }
 
         // some helpers
@@ -453,16 +457,20 @@ impl Shaper {
                 //
                 // NB: When we acquire the ability to handle ligatures that cross word boundaries,
                 // we'll need to do something special to handle `word-spacing` properly.
-                let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
                 let character = text.char_at(char_byte_span.begin());
-                let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
-                let data = GlyphData::new(shape.codepoint,
-                                          advance,
-                                          shape.offset,
-                                          false,
-                                          true,
-                                          true);
-                glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
+                if is_bidi_control(character) {
+                    glyphs.add_nonglyph_for_char_index(char_idx, false, false);
+                } else {
+                    let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
+                    let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
+                    let data = GlyphData::new(shape.codepoint,
+                                              advance,
+                                              shape.offset,
+                                              false,
+                                              true,
+                                              true);
+                    glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
+                }
             } else {
                 // collect all glyphs to be assigned to the first character.
                 let mut datas = vec!();
@@ -488,7 +496,7 @@ impl Shaper {
                     drop(range.ch);
                     i = range.next;
                     if i >= covered_byte_span.end() { break; }
-                    char_idx = char_idx + CharIndex(1);
+                    char_idx = char_idx + char_step;
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
                 }
             }
@@ -498,7 +506,7 @@ impl Shaper {
             glyph_span.reset(end, 0);
             let end = char_byte_span.end();; // FIXME: borrow checker workaround
             char_byte_span.reset(end, 0);
-            char_idx = char_idx + CharIndex(1);
+            char_idx = char_idx + char_step;
         }
 
         // this must be called after adding all glyph data; it sorts the
