@@ -333,8 +333,6 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     }
 }
 
-impl<'a> ParallelPostorderFlowTraversal for BubbleISizes<'a> {}
-
 impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     fn run_parallel(&self,
                     unsafe_flows: UnsafeFlowList,
