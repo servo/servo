@@ -647,12 +647,13 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
         let x = point.x as i32;
         let y = point.y as i32;
+        let clickCount = 1;
         let event = MouseEvent::new(window.r(),
                                     mouse_event_type_string,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(window.r()),
-                                    0i32,
+                                    clickCount,
                                     x, y, x, y,
                                     false, false, false, false,
                                     0i16,

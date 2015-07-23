@@ -383,11 +383,9 @@ pub struct LayoutElement<'le> {
 
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
-        use script::dom::element::ElementHelpers;
-        let style: &Option<PropertyDeclarationBlock> = unsafe {
-            &*(*self.element.unsafe_get()).style_attribute().borrow_for_layout()
-        };
-        style
+        unsafe {
+            &*self.element.style_attribute()
+        }
     }
 }
 
@@ -404,23 +402,18 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a Atom {
-        unsafe {
-            (*self.element.unsafe_get()).local_name()
-        }
+        self.element.local_name()
     }
 
     #[inline]
     fn get_namespace<'a>(&'a self) -> &'a Namespace {
-        use script::dom::element::ElementHelpers;
-        unsafe {
-            (*self.element.unsafe_get()).namespace()
-        }
+        self.element.namespace()
     }
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node = NodeCast::from_layout_js(&self.element);
-        match unsafe { (*node.unsafe_get()).type_id_for_layout() } {
+        let node = self.as_node();
+        match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |

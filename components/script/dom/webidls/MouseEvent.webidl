@@ -19,6 +19,9 @@ interface MouseEvent : UIEvent {
     // Introduced in DOM Level 3
     //readonly    attribute unsigned short buttons;
     //boolean getModifierState (DOMString keyArg);
+
+    [Throws]
+    readonly    attribute long           which;
 };
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-def-MouseEventInit
