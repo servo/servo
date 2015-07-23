@@ -82,6 +82,47 @@ impl Range {
         inner.start.node().inclusive_ancestors().any(|n| n.r() == node) !=
             inner.end.node().inclusive_ancestors().any(|n| n.r() == node)
     }
+
+    // https://dom.spec.whatwg.org/#concept-range-clone
+    fn contained_children(&self) -> Fallible<(Option<Root<Node>>,
+                                              Option<Root<Node>>,
+                                              Vec<Root<Node>>)> {
+        let start_node = self.StartContainer();
+        let end_node = self.EndContainer();
+        // Steps 5-6.
+        let common_ancestor = self.CommonAncestorContainer();
+
+        let first_contained_child =
+            if start_node.is_inclusive_ancestor_of(end_node.r()) {
+                // Step 7.
+                None
+            } else {
+                // Step 8.
+                common_ancestor.children()
+                               .find(|node| Range::partially_contains(self, node))
+            };
+
+        let last_contained_child =
+            if end_node.is_inclusive_ancestor_of(start_node.r()) {
+                // Step 9.
+                None
+            } else {
+                // Step 10.
+                common_ancestor.rev_children()
+                               .find(|node| Range::partially_contains(self, node))
+            };
+
+        // Step 11.
+        let contained_children : Vec<Root<Node>> =
+            common_ancestor.children().filter(|n| Range::contains(self, n)).collect();
+
+        // Step 12.
+        if contained_children.iter().any(|n| n.is_doctype()) {
+            return Err(HierarchyRequest);
+        }
+
+        return Ok((first_contained_child, last_contained_child, contained_children));
+    }
 }
 
 pub trait RangeHelpers<'a> {
@@ -344,39 +385,9 @@ impl<'a> RangeMethods for &'a Range {
             }
         }
 
-        // Steps 5-6.
-        let common_ancestor = self.CommonAncestorContainer();
-
-        let first_contained_child =
-            if start_node.is_inclusive_ancestor_of(end_node.r()) {
-                // Step 7.
-                None
-            } else {
-                // Step 8.
-                common_ancestor.children()
-                               .find(|node| Range::partially_contains(self, node))
-            };
-
-        let last_contained_child =
-            if end_node.is_inclusive_ancestor_of(start_node.r()) {
-                // Step 9.
-                None
-            } else {
-                // Step 10.
-                common_ancestor.rev_children()
-                               .find(|node| Range::partially_contains(self, node))
-            };
-
-        // Step 11.
-        let contained_children =
-            common_ancestor.children().filter(|n| Range::contains(self, n));
-
-        // Step 12.
-        if common_ancestor.children()
-                          .filter(|n| Range::contains(self, n))
-                          .any(|n| n.is_doctype()) {
-            return Err(HierarchyRequest);
-        }
+        // Steps 5-12.
+        let (first_contained_child, last_contained_child, contained_children) =
+            try!(self.contained_children());
 
         if let Some(child) = first_contained_child {
             // Step 13.
@@ -486,39 +497,9 @@ impl<'a> RangeMethods for &'a Range {
             }
         }
 
-        // Steps 5-6.
-        let common_ancestor = self.CommonAncestorContainer();
-
-        let first_contained_child =
-            if start_node.is_inclusive_ancestor_of(end_node.r()) {
-                // Step 7.
-                None
-            } else {
-                // Step 8.
-                common_ancestor.children()
-                               .find(|node| Range::partially_contains(self, node))
-            };
-
-        let last_contained_child =
-            if end_node.is_inclusive_ancestor_of(start_node.r()) {
-                // Step 9.
-                None
-            } else {
-                // Step 10.
-                common_ancestor.rev_children()
-                               .find(|node| Range::partially_contains(self, node))
-            };
-
-        // Step 11.
-        let contained_children =
-            common_ancestor.children().filter(|n| Range::contains(self, n));
-
-        // Step 12.
-        if common_ancestor.children()
-                          .filter(|n| Range::contains(self, n))
-                          .any(|n| n.is_doctype()) {
-            return Err(HierarchyRequest);
-        }
+        // Steps 5-12.
+        let (first_contained_child, last_contained_child, contained_children) =
+            try!(self.contained_children());
 
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(end_node.r()) {
             // Step 13.
