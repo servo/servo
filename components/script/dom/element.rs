@@ -17,7 +17,7 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
+use dom::bindings::codegen::InheritTypes::HTMLBodyElementDerived;
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
@@ -44,7 +44,6 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
-use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementHelpers};
 use dom::htmliframeelement::{HTMLIFrameElement, RawHTMLIFrameElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
@@ -65,7 +64,7 @@ use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_sty
 use style::properties::DeclaredValue::SpecifiedValue;
 use style::properties::longhands::{self, border_spacing, height};
 use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA};
+use style::values::specified::{self, CSSColor};
 use util::geometry::Au;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
@@ -251,6 +250,13 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
+        for attribute in self.attrs.borrow_for_layout().iter() {
+            let attribute = attribute.to_layout();
+            for hint in attribute.presentational_hints() {
+                hints.push(from_declaration(hint.clone()));
+            }
+        }
+
         let bgcolor = if self.is_htmlbodyelement() {
             let this: &HTMLBodyElement = mem::transmute(self);
             this.get_background_color()
@@ -274,21 +280,6 @@ impl RawLayoutElementHelpers for Element {
             hints.push(from_declaration(
                 PropertyDeclaration::BackgroundColor(SpecifiedValue(
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
-        }
-
-        let color = if self.is_htmlfontelement() {
-            let this: &HTMLFontElement = mem::transmute(self);
-            this.get_color()
-        } else {
-            None
-        };
-
-        if let Some(color) = color {
-            hints.push(from_declaration(
-                PropertyDeclaration::Color(SpecifiedValue(CSSRGBA {
-                    parsed: color,
-                    authored: None,
-                }))));
         }
 
         let cellspacing = if self.is_htmltableelement() {

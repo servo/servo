@@ -75,7 +75,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
-use style::properties::PropertyDeclarationBlock;
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
 
 
@@ -281,6 +281,7 @@ no_jsmanaged_fields!(Arc<T>);
 no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask, ScriptControlChan);
 no_jsmanaged_fields!(Atom, Namespace);
 no_jsmanaged_fields!(Trusted<T>);
+no_jsmanaged_fields!(PropertyDeclaration);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data

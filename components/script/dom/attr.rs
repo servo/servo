@@ -17,6 +17,7 @@ use devtools_traits::AttrInfo;
 use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
 
 use string_cache::{Atom, Namespace};
+use style::properties::PropertyDeclaration;
 
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -120,6 +121,8 @@ pub struct Attr {
 
     /// the element that owns this attribute.
     owner: MutNullableHeap<JS<Element>>,
+
+    presentational_hints: DOMRefCell<Vec<PropertyDeclaration>>,
 }
 
 impl Attr {
@@ -133,6 +136,7 @@ impl Attr {
             namespace: namespace,
             prefix: prefix,
             owner: MutNullableHeap::new(owner.map(JS::from_ref)),
+            presentational_hints: DOMRefCell::new(Vec::new()),
         }
     }
 
@@ -258,6 +262,7 @@ impl<'a> AttrHelpers<'a> for &'a Attr {
         *self.value.borrow_mut() = value;
 
         if namespace_is_null {
+            *self.presentational_hints.borrow_mut() = vtable_for(&node).presentational_hints(self);
             vtable_for(&node).after_set_attr(self)
         }
     }
@@ -310,6 +315,7 @@ pub trait AttrHelpersForLayout {
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
     unsafe fn local_name_atom_forever(&self) -> Atom;
     unsafe fn value_for_layout(&self) -> &AttrValue;
+    fn presentational_hints(&self) -> &[PropertyDeclaration];
 }
 
 #[allow(unsafe_code)]
@@ -351,5 +357,12 @@ impl AttrHelpersForLayout for LayoutJS<Attr> {
     #[inline]
     unsafe fn value_for_layout(&self) -> &AttrValue {
         (*self.unsafe_get()).value.borrow_for_layout()
+    }
+
+    #[inline]
+    fn presentational_hints(&self) -> &[PropertyDeclaration] {
+        unsafe {
+            (*self.unsafe_get()).presentational_hints.borrow_for_layout()
+        }
     }
 }

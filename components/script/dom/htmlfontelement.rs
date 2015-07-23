@@ -13,15 +13,15 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
-use util::str::{self, DOMString};
 
-use cssparser::RGBA;
-use std::cell::Cell;
+use style::properties::DeclaredValue::SpecifiedValue;
+use style::properties::PropertyDeclaration;
+use style::values::specified::CSSRGBA;
+use util::str::{self, DOMString};
 
 #[dom_struct]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
-    color: Cell<Option<RGBA>>,
 }
 
 impl HTMLFontElementDerived for EventTarget {
@@ -36,7 +36,6 @@ impl HTMLFontElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFontElement, localName, prefix, document),
-            color: Cell::new(None),
         }
     }
 
@@ -60,38 +59,21 @@ impl<'a> VirtualMethods for &'a HTMLFontElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
+    fn presentational_hints(&self, attribute: &Attr) -> Vec<PropertyDeclaration> {
+        let mut hints = self.super_type().unwrap().presentational_hints(attribute);
 
-        match attr.local_name() {
+        match attribute.local_name() {
             &atom!("color") => {
-                self.color.set(str::parse_legacy_color(&attr.value()).ok())
-            }
-            _ => {}
+                if let Ok(color) = str::parse_legacy_color(&attribute.value()) {
+                    hints.push(PropertyDeclaration::Color(SpecifiedValue(CSSRGBA {
+                        parsed: color,
+                        authored: None,
+                    })));
+                }
+            },
+            _ => (),
         }
-    }
 
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("color") => self.color.set(None),
-            _ => ()
-        }
+        hints
     }
 }
-
-pub trait HTMLFontElementHelpers {
-    fn get_color(&self) -> Option<RGBA>;
-}
-
-impl HTMLFontElementHelpers for HTMLFontElement {
-    fn get_color(&self) -> Option<RGBA> {
-        self.color.get()
-    }
-}
-
