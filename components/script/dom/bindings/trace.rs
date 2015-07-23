@@ -70,6 +70,7 @@ use std::collections::hash_state::HashState;
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -479,6 +480,13 @@ impl<T: JSTraceable + Reflectable> RootedVec<T> {
             RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
         }
         RootedVec::<T> { v: vec!() }
+    }
+}
+
+impl<T: JSTraceable + Reflectable> RootedVec<JS<T>> {
+    /// Obtain a safe slice of references that can't outlive that RootedVec.
+    pub fn r(&self) -> &[&T] {
+        unsafe { mem::transmute(&*self.v) }
     }
 }
 
