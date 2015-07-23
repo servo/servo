@@ -77,7 +77,7 @@ fn establish_a_websocket_connection(url: (Host, String, bool), origin: String)
 
 
 impl WebSocket {
-    pub fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
+    fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url,
@@ -94,10 +94,15 @@ impl WebSocket {
 
     }
 
-    pub fn new(global: GlobalRef,
-               url: DOMString,
-               protocols: Option<DOMString>)
-               -> Fallible<Root<WebSocket>> {
+    fn new(global: GlobalRef, url: Url) -> Root<WebSocket> {
+        reflect_dom_object(box WebSocket::new_inherited(global, url),
+                           global, WebSocketBinding::Wrap)
+    }
+
+    pub fn Constructor(global: GlobalRef,
+                       url: DOMString,
+                       protocols: Option<DOMString>)
+                       -> Fallible<Root<WebSocket>> {
         // Step 1.
         let parsed_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
         let url = try!(parse_url(&parsed_url).map_err(|_| Error::Syntax));
@@ -128,9 +133,7 @@ impl WebSocket {
         // Step 6: Origin.
 
         // Step 7.
-        let ws = reflect_dom_object(box WebSocket::new_inherited(global, parsed_url),
-                                    global,
-                                    WebSocketBinding::Wrap);
+        let ws = WebSocket::new(global, parsed_url);
         let address = Trusted::new(global.get_cx(), ws.r(), global.script_chan());
 
         let origin = global.get_url().serialize();
@@ -161,13 +164,6 @@ impl WebSocket {
 
         // Step 7.
         Ok(ws)
-    }
-
-    pub fn Constructor(global: GlobalRef,
-                       url: DOMString,
-                       protocols: Option<DOMString>)
-                       -> Fallible<Root<WebSocket>> {
-        WebSocket::new(global, url, protocols)
     }
 }
 
