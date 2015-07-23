@@ -1491,7 +1491,7 @@ class MethodDefiner(PropertyDefiner):
             '        selfHostedName: %s\n'
             '    }',
             '    JSFunctionSpec {\n'
-            '        name: 0 as *const i8,\n'
+            '        name: 0 as *const libc::c_char,\n'
             '        call: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo },\n'
             '        nargs: 0,\n'
             '        flags: 0,\n'
@@ -1565,7 +1565,7 @@ class AttrDefiner(PropertyDefiner):
             '        setter: %s\n'
             '    }',
             '    JSPropertySpec {\n'
-            '        name: 0 as *const i8,\n'
+            '        name: 0 as *const libc::c_char,\n'
             '        flags: 0,\n'
             '        getter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo },\n'
             '        setter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }\n'
@@ -3019,7 +3019,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in forwardToAttrName)
         return CGGeneric("""\
 let mut v = RootedValue::new(cx, UndefinedValue());
-if JS_GetProperty(cx, obj, %s as *const u8 as *const i8, v.handle_mut()) == 0 {
+if JS_GetProperty(cx, obj, %s as *const u8 as *const libc::c_char, v.handle_mut()) == 0 {
     return JSFalse;
 }
 if !v.ptr.is_object() {
@@ -3027,7 +3027,7 @@ if !v.ptr.is_object() {
     return JSFalse;
 }
 let target_obj = RootedObject::new(cx, v.ptr.to_object());
-JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const i8, args.get(0))
+JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, args.get(0))
 """ % (str_to_const_array(attrName), attrName, str_to_const_array(forwardToAttrName)))
 
 
