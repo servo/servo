@@ -3,8 +3,9 @@
   <head>
     <title>:only-of-type test</title>
     <style type="text/css">
-      /* should not match according to Selectors 3 because html has no parent element */
-      html:only-of-type { background: red; }
+      html { background: red; }
+      /* Should match according to Selectors Level 4 (changed from Level 3) */
+      html:only-of-type { background: white; }
 
       div > p,
       div > div,
