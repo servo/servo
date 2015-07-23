@@ -16,7 +16,6 @@ use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use selectors::bloom::BloomFilter;
-use selectors::Node;
 use util::opts;
 use util::tid::tid;
 
@@ -162,10 +161,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         let parent_opt = node.layout_parent_node(self.layout_context.shared);
 
         // Get the style bloom filter.
-        let bf = take_task_local_bloom_filter(parent_opt, self.layout_context);
-
-        // Just needs to be wrapped in an option for `match_node`.
-        let some_bf = Some(bf);
+        let mut bf = take_task_local_bloom_filter(parent_opt, self.layout_context);
 
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout || node.is_dirty() {
@@ -192,7 +188,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                         // Perform the CSS selector matching.
                         let stylist = unsafe { &*self.layout_context.shared.stylist };
                         node.match_node(stylist,
-                                        &some_bf,
+                                        Some(&*bf),
                                         &mut applicable_declarations,
                                         &mut shareable);
                     } else if node.has_changed() {
@@ -211,7 +207,9 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 
                     // Add ourselves to the LRU cache.
                     if shareable {
-                        style_sharing_candidate_cache.insert_if_possible(&node);
+                        if let Some(element) = node.as_element() {
+                            style_sharing_candidate_cache.insert_if_possible(&element);
+                        }
                     }
                 }
                 StyleSharingResult::StyleWasShared(index, damage) => {
@@ -220,8 +218,6 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                 }
             }
         }
-
-        let mut bf = some_bf.unwrap();
 
         let unsafe_layout_node = layout_node_to_unsafe_layout_node(&node);
 

@@ -190,6 +190,8 @@ pub mod canvasrenderingcontext2d;
 pub mod characterdata;
 pub mod css;
 pub mod cssstyledeclaration;
+pub mod dompoint;
+pub mod dompointreadonly;
 pub mod domrect;
 pub mod domrectlist;
 pub mod domstringmap;
