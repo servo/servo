@@ -469,16 +469,12 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_checked_state(&self) -> bool {
-        unsafe {
-            (*self.element.unsafe_get()).get_checked_state_for_layout()
-        }
+        self.element.get_checked_state_for_layout()
     }
 
     #[inline]
     fn get_indeterminate_state(&self) -> bool {
-        unsafe {
-            (*self.element.unsafe_get()).get_indeterminate_state_for_layout()
-        }
+        self.element.get_indeterminate_state_for_layout()
     }
 
     #[inline]
