@@ -9,6 +9,8 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use std::sync::mpsc;
+use std::sync::mpsc::Receiver;
 
 use util::str::DOMString;
 
@@ -76,6 +78,22 @@ impl Blob {
             ""
         };
         Ok(Blob::new(global, bytes, &typeString.to_ascii_lowercase()))
+    }
+}
+
+pub trait BlobHelpers {
+    fn read_out_buffer(self) -> Receiver<Option<Vec<u8>>> ;
+    fn read_out_type(self) -> DOMString;
+}
+
+impl<'a> BlobHelpers for &'a Blob {
+    fn read_out_buffer(self) -> Receiver<Option<Vec<u8>>> {
+        let (send, recv) = mpsc::channel();
+        send.send(self.bytes.clone()).unwrap();
+        recv
+    }
+    fn read_out_type(self) -> DOMString {
+        self.typeString.clone()
     }
 }
 
