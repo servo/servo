@@ -48,6 +48,7 @@ pub enum EventTargetTypeId {
     WebSocket,
     Window,
     Worker,
+    FileReader,
     WorkerGlobalScope(WorkerGlobalScopeTypeId),
     XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
 }
