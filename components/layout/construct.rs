@@ -194,6 +194,12 @@ struct InlineFragmentsAccumulator {
     /// Whether we've created a range to enclose all the fragments. This will be Some() if the
     /// outer node is an inline and None otherwise.
     enclosing_node: Option<InlineFragmentNodeInfo>,
+
+    /// Restyle damage to use for fragments created in this node.
+    restyle_damage: RestyleDamage,
+
+    /// Bidi control characters to insert before and after these fragments.
+    bidi_control_chars: Option<(&'static str, &'static str)>,
 }
 
 impl InlineFragmentsAccumulator {
@@ -201,6 +207,8 @@ impl InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
             fragments: IntermediateInlineFragments::new(),
             enclosing_node: None,
+            bidi_control_chars: None,
+            restyle_damage: RestyleDamage::empty(),
         }
     }
 
@@ -211,6 +219,8 @@ impl InlineFragmentsAccumulator {
                 address: node.opaque(),
                 style: node.style().clone(),
             }),
+            bidi_control_chars: None,
+            restyle_damage: node.restyle_damage(),
         }
     }
 
@@ -227,6 +237,8 @@ impl InlineFragmentsAccumulator {
         let InlineFragmentsAccumulator {
             mut fragments,
             enclosing_node,
+            bidi_control_chars,
+            restyle_damage,
         } = self;
         if let Some(enclosing_node) = enclosing_node {
             let frag_len = fragments.fragments.len();
@@ -238,6 +250,15 @@ impl InlineFragmentsAccumulator {
                 let is_last = idx == frag_len - 1;
 
                 frag.add_inline_context_style(enclosing_node.clone(), is_first, is_last);
+            }
+
+            // Control characters are later discarded in transform_text, so they don't affect the
+            // is_first/is_last styles above.
+            if let Some((start, end)) = bidi_control_chars {
+                fragments.fragments.push_front(
+                    control_chars_to_fragment(&enclosing_node, start, restyle_damage));
+                fragments.fragments.push_back(
+                    control_chars_to_fragment(&enclosing_node, end, restyle_damage));
             }
         }
         fragments
@@ -744,6 +765,8 @@ impl<'a> FlowConstructor<'a> {
                                                       -> ConstructionResult {
         let mut opt_inline_block_splits: LinkedList<InlineBlockSplit> = LinkedList::new();
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
+        fragment_accumulator.bidi_control_chars = bidi_control_chars(&*node.style());
+
         let mut abs_descendants = Descendants::new();
 
         // Concatenate all the fragments of our kids, creating {ib} splits as necessary.
@@ -1630,4 +1653,38 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
         debug!("stripping ignorable whitespace from end");
         drop(this.pop_back());
     }
+}
+
+/// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
+/// to inject before and after the text content of the element.
+fn bidi_control_chars(style: &Arc<ComputedValues>) -> Option<(&'static str, &'static str)> {
+    use style::computed_values::unicode_bidi::T::*;
+    use style::computed_values::direction::T::*;
+
+    let unicode_bidi = style.get_text().unicode_bidi;
+    let direction = style.get_inheritedbox().direction;
+
+    // See the table in http://dev.w3.org/csswg/css-writing-modes/#unicode-bidi
+    match (unicode_bidi, direction) {
+        (normal, _)             => None,
+        (embed, ltr)            => Some(("\u{202A}", "\u{202C}")),
+        (embed, rtl)            => Some(("\u{202B}", "\u{202C}")),
+        (isolate, ltr)          => Some(("\u{2066}", "\u{2069}")),
+        (isolate, rtl)          => Some(("\u{2067}", "\u{2069}")),
+        (bidi_override, ltr)    => Some(("\u{202D}", "\u{202C}")),
+        (bidi_override, rtl)    => Some(("\u{202E}", "\u{202C}")),
+        (isolate_override, ltr) => Some(("\u{2068}\u{202D}", "\u{202C}\u{2069}")),
+        (isolate_override, rtl) => Some(("\u{2068}\u{202E}", "\u{202C}\u{2069}")),
+        (plaintext, _)          => Some(("\u{2068}", "\u{2069}")),
+    }
+}
+
+fn control_chars_to_fragment(node: &InlineFragmentNodeInfo, text: &str,
+                             restyle_damage: RestyleDamage) -> Fragment {
+    let info = SpecificFragmentInfo::UnscannedText(
+        UnscannedTextFragmentInfo::from_text(String::from(text)));
+    Fragment::from_opaque_node_and_style(node.address,
+                                         node.style.clone(),
+                                         restyle_damage,
+                                         info)
 }
