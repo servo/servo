@@ -317,5 +317,11 @@ fn substitute_block(custom_properties: &HashMap<&Atom, BorrowedValue>,
             _ => {}
         }
     }
+    // FIXME: deal with things being implicitly closed at the end of the input. E.g.
+    // ```html
+    // <div style="--color: rgb(0,0,0">
+    // <p style="background: var(--color) var(--image) top left; --image: url('a.png"></p>
+    // </div>
+    // ```
     Ok(())
 }
