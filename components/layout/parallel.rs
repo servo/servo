@@ -238,9 +238,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     ///
     /// The only communication between siblings is that they both
     /// fetch-and-subtract the parent's children count.
-    fn run_parallel(&self,
-                    mut unsafe_flow: UnsafeFlow,
-                    _: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
+    fn run_parallel(&self, mut unsafe_flow: UnsafeFlow) {
         loop {
             // Get a real flow.
             let flow: &mut FlowRef = unsafe {
@@ -420,7 +418,7 @@ fn assign_block_sizes_and_store_overflow(
     let assign_block_sizes_traversal = AssignBSizesAndStoreOverflow {
         layout_context: &layout_context,
     };
-    assign_block_sizes_traversal.run_parallel(unsafe_flow, proxy)
+    assign_block_sizes_traversal.run_parallel(unsafe_flow)
 }
 
 fn compute_absolute_positions(
@@ -443,7 +441,7 @@ fn build_display_list(unsafe_flow: UnsafeFlow,
         layout_context: &layout_context,
     };
 
-    build_display_list_traversal.run_parallel(unsafe_flow, proxy);
+    build_display_list_traversal.run_parallel(unsafe_flow);
 }
 
 fn run_queue_with_custom_work_data_type<To,F>(
