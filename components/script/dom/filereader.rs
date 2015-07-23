@@ -196,26 +196,23 @@ impl FileReader {
         // Step 8.1
         fr.change_ready_state(FileReaderReadyState::Done);
         // Step 8.2
-        let error = match data {
+        let output = match data {
             Some(blob_body) => {
                 match blob_body.function {
                     FileReaderFunction::ReadAsDataUrl =>
-                        FileReader::perform_readasdataurl(filereader.clone(), blob_body),
+                        FileReader::perform_readasdataurl(blob_body),
                     FileReaderFunction::ReadAsText =>
-                        FileReader::perform_readastext(filereader.clone(), blob_body),
+                        FileReader::perform_readastext(blob_body),
                 }
             },
             None => {
-                *fr.result.borrow_mut() = None;
-                Ok(())
+                Ok(None)
             }
         };
-        match error {
-            Ok(_) => (),
-            Err(error) => {
-                FileReader::process_read_error(filereader, gen_id, error);
-            }
-        }
+
+        //FIXME handle error if error is possible
+        *fr.result.borrow_mut() = output.unwrap();
+
         // Step 8.3
         fr.dispatch_progress_event("load".to_owned(), 0, None);
         return_on_abort!();
@@ -229,8 +226,8 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn perform_readastext(filereader: TrustedFileReader,
-        blob_body: BlobBody) -> Result<(), DOMErrorName> {
+    fn perform_readastext(blob_body: BlobBody)
+        -> Result<Option<DOMString>, DOMErrorName> {
 
         //https://w3c.github.io/FileAPI/#encoding-determination
         // Steps 1 & 2 & 3
@@ -243,20 +240,12 @@ impl FileReader {
         encoding = match encoding {
             Some(e) => Some(e),
             None => {
-                let resultmime = blob_body.blobtype.parse::<Mime>();
-                let result = resultmime.and_then(|Mime(_, _, ref parameters)| {
-                    let cast = parameters.iter()
+                let resultmime = blob_body.blobtype.parse::<Mime>().ok();
+                resultmime.and_then(|Mime(_, _, ref parameters)| {
+                    parameters.iter()
                         .find(|&&(ref k, _)| &Attr::Charset == k)
-                        .and_then(|&(_, ref v)| encoding_from_whatwg_label(&v.to_string()));
-                    match cast {
-                        Some(e) => Ok(e),
-                        None => Err(())
-                    }
-                });
-                match result {
-                    Ok(e) => Some(e),
-                    Err(_) => None
-                }
+                        .and_then(|&(_, ref v)| encoding_from_whatwg_label(&v.to_string()))
+                })
             }
         };
 
@@ -268,23 +257,13 @@ impl FileReader {
 
         let convert = &blob_body.bytes[..];
         // Step 7
-        let output = enc.decode(convert, DecoderTrap::Strict);
-        match output {
-            Ok(s) => {
-                let fr = filereader.root();
-                *fr.result.borrow_mut() = Some(s);
-                Ok(())
-            },
-            Err(_) => {
-                //FIXME Error NotReadableError
-                Err(DOMErrorName::NotFoundError)
-            }
-        }
+        let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
+        Ok(Some(output))
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn perform_readasdataurl(filereader: TrustedFileReader,
-        blob_body: BlobBody) -> Result<(), DOMErrorName> {
+    fn perform_readasdataurl(blob_body: BlobBody)
+        -> Result<Option<DOMString>, DOMErrorName> {
         let config = Config {
             char_set: CharacterSet::UrlSafe,
             newline: Newline::LF,
@@ -299,9 +278,7 @@ impl FileReader {
             format!("data:{};base64,{}", blob_body.blobtype, base64)
         };
 
-        let fr = filereader.root();
-        *fr.result.borrow_mut() = Some(output);
-        Ok(())
+        Ok(Some(output))
     }
 
 }
