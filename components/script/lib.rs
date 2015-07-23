@@ -94,9 +94,31 @@ mod devtools;
 mod horribly_inefficient_timers;
 mod webdriver_handlers;
 
+#[cfg(any(target_os="linux", target_os="android"))]
+#[allow(unsafe_code)]
+fn perform_platform_specific_initialization() {
+    use std::mem;
+    const RLIMIT_NOFILE: libc::c_int = 7;
+
+    // Bump up our number of file descriptors to save us from impending doom caused by an onslaught
+    // of iframes.
+    unsafe {
+        let mut rlim = mem::uninitialized();
+        assert!(libc::getrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
+        rlim.rlim_cur = rlim.rlim_max;
+        assert!(libc::setrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
+    }
+}
+
+#[cfg(not(any(target_os="linux", target_os="android")))]
+fn perform_platform_specific_initialization() {}
+
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
         assert_eq!(js::jsapi::JS_Init(), 1);
     }
+
+    perform_platform_specific_initialization();
 }
+
