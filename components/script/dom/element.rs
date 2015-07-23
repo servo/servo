@@ -181,8 +181,6 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
-
-    fn local_name<'a>(&'a self) -> &'a Atom;
 }
 
 #[inline]
@@ -498,12 +496,6 @@ impl RawLayoutElementHelpers for Element {
             }
         }
     }
-
-    // Getters used in components/layout/wrapper.rs
-
-    fn local_name<'a>(&'a self) -> &'a Atom {
-        &self.local_name
-    }
 }
 
 pub trait LayoutElementHelpers {
@@ -511,6 +503,9 @@ pub trait LayoutElementHelpers {
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
+    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
+    fn local_name<'a>(&'a self) -> &'a Atom;
+    fn namespace<'a>(&'a self) -> &'a Namespace;
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -527,6 +522,27 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
+    }
+
+    #[allow(unsafe_code)]
+    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock> {
+        unsafe {
+            (*self.unsafe_get()).style_attribute.borrow_for_layout()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn local_name<'a>(&'a self) -> &'a Atom {
+        unsafe {
+            &(*self.unsafe_get()).local_name
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn namespace<'a>(&'a self) -> &'a Namespace {
+        unsafe {
+            &(*self.unsafe_get()).namespace
+        }
     }
 }
 
