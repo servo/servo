@@ -38,7 +38,7 @@ pub enum Origin {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
@@ -47,7 +47,7 @@ pub struct Stylesheet {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum CSSRule {
     Charset(String),
     Namespace(Option<String>, Namespace),
@@ -57,7 +57,7 @@ pub enum CSSRule {
     Viewport(ViewportRule),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: MediaQueryList,
     pub rules: Vec<CSSRule>,
@@ -70,7 +70,7 @@ impl MediaRule {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct StyleRule {
     pub selectors: Vec<Selector>,
     pub declarations: PropertyDeclarationBlock,
