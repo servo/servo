@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use net_traits::ProgressMsg::{Payload, Done};
 use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
@@ -14,7 +14,16 @@ use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
+use hyper::header::StrictTransportSecurity;
+use hyper::header::AcceptEncoding;
+use hyper::header::Accept;
+use hyper::header::ContentLength;
+use hyper::header::ContentType;
+use hyper::header::Host;
+use hyper::header::Location;
+use hyper::header::qitem;
+use hyper::header::Quality;
+use hyper::header::QualityItem;
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -35,13 +44,13 @@ use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>,
+pub fn factory(resource_mgr_chan: Sender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
         spawn_named("http_loader".to_owned(),
-                    move || load(load_data, senders, classifier, cookies_chan, devtools_chan, hsts_list))
+                    move || load(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
     }
 }
 
@@ -85,7 +94,7 @@ fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
 fn load(mut load_data: LoadData,
         start_chan: LoadConsumer,
         classifier: Arc<MIMEClassifier>,
-        cookies_chan: Sender<ControlMsg>,
+        resource_mgr_chan: Sender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
@@ -201,7 +210,7 @@ reason: \"certificate verify failed\" }]))";
         }
 
         let (tx, rx) = channel();
-        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP)).unwrap();
+        resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP)).unwrap();
         if let Some(cookie_list) = rx.recv().unwrap() {
             let mut v = Vec::new();
             v.push(cookie_list.into_bytes());
@@ -284,12 +293,33 @@ reason: \"certificate verify failed\" }]))";
         if let Some(cookies) = response.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                    cookies_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
-                                                                   cookies,
-                                                                   CookieSource::HTTP)).unwrap();
+                    resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
+                                                                        cookies,
+                                                                        CookieSource::HTTP)).unwrap();
                 }
             }
         }
+
+        if let Some(header) = response.headers.get::<StrictTransportSecurity>() {
+            if let Some(host) = url.domain() {
+                info!("adding host {} to the strict transport security list", host);
+                info!("- max-age {}", header.max_age);
+
+                let include_subdomains = if header.include_subdomains {
+                    info!("- includeSubdomains");
+                    IncludeSubdomains::Included
+                } else {
+                    IncludeSubdomains::NotIncluded
+                };
+
+                resource_mgr_chan.send(
+                    ControlMsg::SetHSTSEntryForHost(
+                        host.to_string(), include_subdomains, header.max_age
+                    )
+                ).unwrap();
+            }
+        }
+
 
         if response.status.class() == StatusClass::Redirection {
             match response.headers.get::<Location>() {

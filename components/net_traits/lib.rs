@@ -133,7 +133,7 @@ pub enum ControlMsg {
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, Sender<Option<String>>, CookieSource),
     /// Store a domain's STS information
-    SetHSTSEntryForHost(String, IncludeSubdomains, Option<u64>),
+    SetHSTSEntryForHost(String, IncludeSubdomains, u64),
     Exit
 }
 
