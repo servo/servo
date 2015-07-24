@@ -46,7 +46,7 @@ pub use constellation::Constellation;
 
 pub mod compositor_task;
 
-mod buffer_map;
+mod surface_map;
 mod compositor_layer;
 mod compositor;
 mod headless;

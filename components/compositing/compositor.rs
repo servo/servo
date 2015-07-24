@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use buffer_map::BufferMap;
+use surface_map::SurfaceMap;
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
 use compositor_task::Msg;
@@ -158,8 +158,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
 
-    /// A data structure to store unused LayerBuffers.
-    buffer_map: BufferMap,
+    /// A data structure to cache unused NativeSurfaces.
+    surface_map: SurfaceMap,
 }
 
 pub struct ScrollEvent {
@@ -301,7 +301,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             last_composite_time: 0,
             has_seen_quit_event: false,
             ready_to_save_state: ReadyState::Unknown,
-            buffer_map: BufferMap::new(BUFFER_MAP_SIZE),
+            surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
         }
     }
 
@@ -402,9 +402,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            (Msg::ReturnUnusedLayerBuffers(layer_buffers),
+            (Msg::ReturnUnusedNativeSurfaces(native_surfaces),
              ShutdownState::NotShuttingDown) => {
-                self.cache_unused_buffers(layer_buffers);
+                self.surface_map.insert_surfaces(&self.native_display, native_surfaces);
             }
 
             (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point),
@@ -494,7 +494,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let mut reports = vec![];
                 let name = "compositor-task";
                 reports.push(mem::Report {
-                    path: path![name, "buffer-map"], size: self.buffer_map.mem(),
+                    path: path![name, "surface-map"], size: self.surface_map.mem(),
                 });
                 reports.push(mem::Report {
                     path: path![name, "layer-tree"], size: self.scene.get_memory_usage(),
@@ -1176,18 +1176,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
         for buffer_request in paint_request.buffer_requests.iter_mut() {
-            if self.buffer_map.mem() == 0 {
+            if self.surface_map.mem() == 0 {
                 return;
             }
 
-            if let Some(mut buffer) = self.buffer_map.find(buffer_request.screen_rect.size) {
-                buffer.rect = buffer_request.page_rect;
-                buffer.screen_pos = buffer_request.screen_rect;
-                buffer.resolution = paint_request.scale;
-                buffer.native_surface.mark_wont_leak();
-                buffer.painted_with_cpu = !opts::get().gpu_painting;
-                buffer.content_age = buffer_request.content_age;
-                buffer_request.layer_buffer = Some(buffer);
+            let size = Size2D::new(buffer_request.screen_rect.size.width as i32,
+                                   buffer_request.screen_rect.size.height as i32);
+            if let Some(mut native_surface) = self.surface_map.find(size) {
+                native_surface.mark_wont_leak();
+                buffer_request.native_surface = Some(native_surface);
             }
         }
     }
@@ -1579,7 +1576,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn cache_unused_buffers(&mut self, buffers: Vec<Box<LayerBuffer>>) {
         if !buffers.is_empty() {
-            self.buffer_map.insert_buffers(&self.native_display, buffers);
+            let surfaces = buffers.into_iter().map(|buffer| {
+                buffer.native_surface
+            }).collect();
+            self.surface_map.insert_surfaces(&self.native_display, surfaces);
         }
     }
 }
