@@ -5,14 +5,14 @@
 extern crate harfbuzz;
 
 use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontHandleMethods, FontTableMethods, FontTableTag};
-use font::{IGNORE_LIGATURES_SHAPING_FLAG, ShapingOptions};
+use font::{IGNORE_LIGATURES_SHAPING_FLAG, RTL_FLAG, ShapingOptions};
 use platform::font::FontTable;
 use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
 use text::util::{float_to_fixed, fixed_to_float};
 
 use euclid::Point2D;
-use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
+use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, HB_DIRECTION_RTL};
 use harfbuzz::{RUST_hb_blob_create, RUST_hb_face_create_for_tables};
 use harfbuzz::{hb_blob_t};
 use harfbuzz::{hb_bool_t};
@@ -229,7 +229,11 @@ impl ShaperMethods for Shaper {
     fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = RUST_hb_buffer_create();
-            RUST_hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
+            RUST_hb_buffer_set_direction(hb_buffer, if options.flags.contains(RTL_FLAG) {
+                HB_DIRECTION_RTL
+            } else {
+                HB_DIRECTION_LTR
+            });
 
             RUST_hb_buffer_add_utf8(hb_buffer,
                                     text.as_ptr() as *const c_char,

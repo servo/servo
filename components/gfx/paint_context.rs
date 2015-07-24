@@ -1294,7 +1294,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let mut azglyphs = vec!();
         azglyphs.reserve(range.length().to_usize());
 
-        for slice in run.natural_word_slices_in_range(range) {
+        for slice in run.natural_word_slices_in_visual_order(range) {
             for (_i, glyph) in slice.glyphs.iter_glyphs_for_char_range(&slice.range) {
                 let glyph_advance = glyph.advance();
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
