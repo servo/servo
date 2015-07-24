@@ -5534,6 +5534,15 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
+pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url)
+                             -> Result<Vec<PropertyDeclaration>, ()> {
+    let context = ParserContext::new(Origin::Author, base_url);
+    let mut results = vec![];
+    match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results) {
+        PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
+        _ => Err(())
+    }
+}
 
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,

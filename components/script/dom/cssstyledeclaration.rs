@@ -16,7 +16,7 @@ use dom::window::{Window, WindowHelpers};
 use util::str::DOMString;
 use selectors::parser::PseudoElement;
 use string_cache::Atom;
-use style::properties::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
+use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
 use style::properties::PropertyDeclaration;
 
 use std::ascii::AsciiExt;
@@ -223,37 +223,31 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
 
         // Step 5
-        let priority = priority.to_ascii_lowercase();
-        if priority != "!important" && !priority.is_empty() {
-            return Ok(());
-        }
+        let priority = match &*priority {
+            "" => StylePriority::Normal,
+            p if p.eq_ignore_ascii_case("important") => StylePriority::Important,
+            _ => return Ok(()),
+        };
 
         // Step 6
-        let mut synthesized_declaration = property;
-        synthesized_declaration.push_str(": ");
-        synthesized_declaration.push_str(&value);
-
         let owner = self.owner.root();
         let window = window_from_node(owner.r());
-        let decl_block = parse_style_attribute(&synthesized_declaration, &window.r().get_url());
+        let declarations = parse_one_declaration(&property, &value, &window.r().get_url());
 
         // Step 7
-        if decl_block.normal.len() == 0 {
+        let declarations = if let Ok(declarations) = declarations {
+            declarations
+        } else {
             return Ok(());
-        }
+        };
 
         let owner = self.owner.root();
         let element = ElementCast::from_ref(owner.r());
 
         // Step 8
-        for decl in decl_block.normal.iter() {
+        for decl in declarations {
             // Step 9
-            let style_priority = if priority.is_empty() {
-                StylePriority::Normal
-            } else {
-                StylePriority::Important
-            };
-            element.update_inline_style(decl.clone(), style_priority);
+            element.update_inline_style(decl, priority);
         }
 
         let document = document_from_node(element);
