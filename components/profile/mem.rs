@@ -313,14 +313,15 @@ impl ReportsForest {
 
     // Insert the path and size into the forest, adding any trees and nodes as necessary.
     fn insert(&mut self, path: &[String], size: usize) {
+        let (head, tail) = path.split_first().unwrap();
         // Get the right tree, creating it if necessary.
-        if !self.trees.contains_key(&path[0]) {
-            self.trees.insert(path[0].clone(), ReportsTree::new(path[0].clone()));
+        if !self.trees.contains_key(head) {
+            self.trees.insert(head.clone(), ReportsTree::new(head.clone()));
         }
-        let t = self.trees.get_mut(&path[0]).unwrap();
+        let t = self.trees.get_mut(head).unwrap();
 
-        // Use tail() because the 0th path segment was used to find the right tree in the forest.
-        t.insert(path.tail(), size);
+        // Use tail because the 0th path segment was used to find the right tree in the forest.
+        t.insert(tail, size);
     }
 
     fn print(&mut self) {

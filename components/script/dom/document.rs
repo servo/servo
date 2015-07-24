@@ -1430,7 +1430,7 @@ impl<'a> DocumentMethods for &'a Document {
             Some(ref title) => {
                 // Steps 3-4.
                 let value = Node::collect_text_contents(title.r().children());
-                split_html_space_chars(&value).collect::<Vec<_>>().connect(" ")
+                split_html_space_chars(&value).collect::<Vec<_>>().join(" ")
             },
         }
     }
