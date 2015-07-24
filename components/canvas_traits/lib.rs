@@ -11,6 +11,7 @@ extern crate azure;
 extern crate euclid;
 extern crate cssparser;
 extern crate gfx_traits;
+extern crate ipc_channel;
 extern crate layers;
 extern crate offscreen_gl_context;
 
@@ -29,6 +30,7 @@ use std::sync::mpsc::{Sender};
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
 use core::nonzero::NonZero;
+use ipc_channel::ipc::IpcSharedMemory;
 
 #[derive(Clone)]
 pub enum CanvasMsg {
@@ -41,7 +43,7 @@ pub enum CanvasMsg {
 pub enum CanvasCommonMsg {
     Close,
     Recreate(Size2D<i32>),
-    SendPixelContents(Sender<Vec<u8>>),
+    SendPixelContents(Sender<IpcSharedMemory>),
     SendNativeSurface(Sender<NativeSurface>),
 }
 
