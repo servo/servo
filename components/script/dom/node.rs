@@ -40,7 +40,7 @@ use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
 use dom::element::ElementHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElementTypeId;
-use dom::nodelist::NodeList;
+use dom::nodelist::{NodeList, NodeListHelpers};
 use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -2553,6 +2553,9 @@ impl<'a> VirtualMethods for &'a Node {
             ChildrenMutation::ReplaceAll { added, .. } => {
                 self.children_count.set(added.len() as u32);
             },
+        }
+        if let Some(list) = self.child_list.get().map(|list| list.root()) {
+            list.as_children_list().children_changed(mutation);
         }
     }
 }
