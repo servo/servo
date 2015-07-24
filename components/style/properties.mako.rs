@@ -5522,7 +5522,7 @@ mod property_bit_field {
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct PropertyDeclarationBlock {
     pub important: Arc<Vec<PropertyDeclaration>>,
     pub normal: Arc<Vec<PropertyDeclaration>>,
@@ -5669,7 +5669,6 @@ impl<T: ToCss> DeclaredValue<T> {
     }
 }
 
-#[derive(PartialEq)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
