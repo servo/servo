@@ -242,6 +242,8 @@ class MachCommands(CommandBase):
 
         os.environ["hosts_file_path"] = hosts_file_path
 
+        kwargs["debug"] = not kwargs["release"]
+
         run_file = path.abspath(path.join("tests", "wpt", "run_wpt.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
