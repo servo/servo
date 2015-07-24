@@ -192,7 +192,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         if let Some(longhand_properties) = longhand_properties {
             // Step 2.1 & 2.2 & 2.3
             if longhand_properties.iter()
-                                  .map(|longhand| self.GetPropertyPriority(longhand.clone()))
+                                  .map(|&longhand| self.GetPropertyPriority(longhand.to_owned()))
                                   .all(|priority| priority == "important") {
 
                 return "important".to_owned();
@@ -274,34 +274,25 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        // Step 2
-        let property = property.to_ascii_lowercase();
-
-        // Step 3
+        // Step 2 & 3
         if !is_supported_property(&property) {
             return Ok(());
         }
 
         // Step 4
-        let priority = priority.to_ascii_lowercase();
-        if priority != "important" && !priority.is_empty() {
-            return Ok(());
-        }
+        let priority = match &*priority {
+            "" => StylePriority::Normal,
+            p if p.eq_ignore_ascii_case("important") => StylePriority::Important,
+            _ => return Ok(()),
+        };
 
         let owner = self.owner.root();
-        let window = window_from_node(owner.r());
-        let decl_block = parse_style_attribute(&property, &window.r().get_url());
         let element = ElementCast::from_ref(owner.r());
 
-        // Step 5
-        for decl in decl_block.normal.iter() {
-            // Step 6
-            let style_priority = if priority.is_empty() {
-                StylePriority::Normal
-            } else {
-                StylePriority::Important
-            };
-            element.update_inline_style(decl.clone(), style_priority);
+        // Step 5 & 6
+        match longhands_from_shorthand(&property) {
+            Some(properties) => element.set_inline_style_property_priority(properties, priority),
+            None => element.set_inline_style_property_priority(&[&*property], priority)
         }
 
         let document = document_from_node(element);
@@ -328,21 +319,18 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         // Step 3
         let value = self.GetPropertyValue(property.clone());
 
-        let longhand_properties = longhands_from_shorthand(&property);
-        match longhand_properties {
+        let owner = self.owner.root();
+        let elem = ElementCast::from_ref(owner.r());
+
+        match longhands_from_shorthand(&property) {
+            // Step 4
             Some(longhands) => {
-                // Step 4
                 for longhand in longhands.iter() {
-                    try!(self.RemoveProperty(longhand.clone()));
+                    elem.remove_inline_style_property(longhand)
                 }
             }
-
-            None => {
-                // Step 5
-                let owner = self.owner.root();
-                let elem = ElementCast::from_ref(owner.r());
-                elem.remove_inline_style_property(property)
-            }
+            // Step 5
+            None => elem.remove_inline_style_property(&property)
         }
 
         // Step 6

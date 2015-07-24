@@ -28,7 +28,7 @@ import sys
 from mako.template import Template
 from mako import exceptions
 try:
-    print(Template(filename=os.environ['TEMPLATE']).render())
+    print(Template(filename=os.environ['TEMPLATE'], input_encoding='utf8').render().encode('utf8'))
 except:
     sys.stderr.write(exceptions.text_error_template().render().encode('utf8'))
     sys.exit(1)
