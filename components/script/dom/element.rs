@@ -564,7 +564,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum StylePriority {
     Important,
     Normal,
