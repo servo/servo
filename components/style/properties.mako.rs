@@ -5148,6 +5148,15 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
+pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url)
+                             -> Result<Vec<PropertyDeclaration>, ()> {
+    let context = ParserContext::new(Origin::Author, base_url);
+    let mut results = vec![];
+    match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results) {
+        PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
+        _ => Err(())
+    }
+}
 
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
@@ -5188,9 +5197,9 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
         match declaration {
             Ok((results, important)) => {
                 if important {
-                    important_declarations.extend(results);
+                    important_declarations.push_all(&results);
                 } else {
-                    normal_declarations.extend(results);
+                    normal_declarations.push_all(&results);
                 }
             }
             Err(range) => {
@@ -5274,7 +5283,7 @@ impl<T: ToCss> DeclaredValue<T> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
