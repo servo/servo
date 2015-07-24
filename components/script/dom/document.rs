@@ -14,9 +14,10 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast, HTMLIFrameElementCast};
-use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast, HTMLTitleElementCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
@@ -51,6 +52,7 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmltitleelement::HTMLTitleElement;
 use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
@@ -150,6 +152,8 @@ pub struct Document {
     current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
+    /// The current title element for this document.
+    current_title_element: MutNullableHeap<JS<HTMLTitleElement>>,
 }
 
 impl PartialEq for Document {
@@ -289,6 +293,7 @@ pub trait DocumentHelpers<'a> {
     fn set_current_parser(self, script: Option<&ServoHTMLParser>);
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>>;
     fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>>;
+    fn update_title_element(self);
 }
 
 impl<'a> DocumentHelpers<'a> for &'a Document {
@@ -997,6 +1002,27 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             .filter_map(HTMLIFrameElementCast::to_root)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
+
+    /// Find and cache the first title element in the document.
+    fn update_title_element(self) {
+        let title = self.GetDocumentElement().and_then(|root| {
+            if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
+                // Step 1.
+                NodeCast::from_ref(root.r()).child_elements().find(|node| {
+                    node.r().namespace() == &ns!(SVG) &&
+                    node.r().local_name() == &atom!("title")
+                }).map(NodeCast::from_root)
+            } else {
+                // Step 2.
+                NodeCast::from_ref(root.r())
+                         .traverse_preorder()
+                         .find(|node| node.r().is_htmltitleelement())
+            }
+        });
+
+        self.current_title_element.set(
+            title.r().and_then(HTMLTitleElementCast::to_ref).map(JS::from_ref));
+    }
 }
 
 pub enum MouseEventType {
@@ -1081,6 +1107,7 @@ impl Document {
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
+            current_title_element: Default::default(),
         }
     }
 
@@ -1410,29 +1437,14 @@ impl<'a> DocumentMethods for &'a Document {
 
     // https://html.spec.whatwg.org/#document.title
     fn Title(self) -> DOMString {
-        let title = self.GetDocumentElement().and_then(|root| {
-            if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
-                // Step 1.
-                NodeCast::from_ref(root.r()).child_elements().find(|node| {
-                    node.r().namespace() == &ns!(SVG) &&
-                    node.r().local_name() == &atom!("title")
-                }).map(NodeCast::from_root)
-            } else {
-                // Step 2.
-                NodeCast::from_ref(root.r())
-                         .traverse_preorder()
-                         .find(|node| node.r().is_htmltitleelement())
-            }
-        });
+        let title =
+            match self.current_title_element.get() {
+                None => return DOMString::new(),
+                Some(title) => title,
+            }.root();
 
-        match title {
-            None => DOMString::new(),
-            Some(ref title) => {
-                // Steps 3-4.
-                let value = Node::collect_text_contents(title.r().children());
-                split_html_space_chars(&value).collect::<Vec<_>>().connect(" ")
-            },
-        }
+        let value = title.Text();
+        split_html_space_chars(&value).collect::<Vec<_>>().connect(" ")
     }
 
     // https://html.spec.whatwg.org/#document.title

@@ -6,15 +6,12 @@ use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextCast};
 use dom::bindings::js::Root;
-use dom::characterdata::CharacterDataHelpers;
 use dom::document::{Document, DocumentHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{ChildrenMutation, Node, NodeHelpers, NodeTypeId};
-use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
@@ -51,15 +48,7 @@ impl<'a> HTMLTitleElementMethods for &'a HTMLTitleElement {
     // https://www.whatwg.org/html/#dom-title-text
     fn Text(self) -> DOMString {
         let node = NodeCast::from_ref(self);
-        let mut content = String::new();
-        for child in node.children() {
-            let text: Option<&Text> = TextCast::to_ref(child.r());
-            match text {
-                Some(text) => content.push_str(&CharacterDataCast::from_ref(text).data()),
-                None => (),
-            }
-        }
-        content
+        Node::collect_text_contents(node.children())
     }
 
     // https://www.whatwg.org/html/#dom-title-text
@@ -89,6 +78,16 @@ impl<'a> VirtualMethods for &'a HTMLTitleElement {
         let node = NodeCast::from_ref(*self);
         if is_in_doc {
             let document = node.owner_doc();
+            document.r().update_title_element();
+            document.r().title_changed();
+        }
+    }
+
+    fn unbind_from_tree(&self, tree_in_doc: bool) {
+        let node = NodeCast::from_ref(*self);
+        if tree_in_doc {
+            let document = node.owner_doc();
+            document.r().update_title_element();
             document.r().title_changed();
         }
     }
