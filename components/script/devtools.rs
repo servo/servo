@@ -25,7 +25,12 @@ use std::sync::mpsc::Sender;
 use std::rc::Rc;
 
 
-pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<EvaluateJSReply>){
+pub fn handle_evaluate_js(
+        page: &Rc<Page>,
+        pipeline: PipelineId,
+        eval: String,
+        reply: Sender<EvaluateJSReply>
+    ) {
     let page = get_page(&*page, pipeline);
     let window = page.window();
     let cx = window.r().get_cx();
@@ -36,8 +41,10 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
         EvaluateJSReply::VoidValue
     } else if rval.ptr.is_boolean() {
         EvaluateJSReply::BooleanValue(rval.ptr.to_boolean())
-    } else if rval.ptr.is_double() {
-        EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap())
+    } else if rval.ptr.is_double() || rval.ptr.is_int32() {
+        EvaluateJSReply::NumberValue(
+            FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap()
+        )
     } else if rval.ptr.is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
         EvaluateJSReply::StringValue(
