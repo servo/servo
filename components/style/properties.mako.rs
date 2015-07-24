@@ -6146,11 +6146,12 @@ pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
 }
 
 pub fn is_supported_property(property: &str) -> bool {
-    match property {
-        % for property in SHORTHANDS + LONGHANDS:
+    match_ignore_ascii_case! { property,
+        % for property in SHORTHANDS + LONGHANDS[:-1]:
             "${property.name}" => true,
         % endfor
-        _ => false,
+        "${LONGHANDS[-1].name}" => true
+        _ => false
     }
 }
 
@@ -6182,16 +6183,22 @@ macro_rules! longhand_properties_idents {
     }
 }
 
-pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
-    match shorthand {
-        % for property in SHORTHANDS:
-            "${property.name}" => Some(vec!(
+pub fn longhands_from_shorthand(shorthand: &str) -> Option< &'static [&'static str]> {
+    % for property in SHORTHANDS:
+        static ${property.ident.upper()}: &'static [&'static str] = &[
             % for sub in property.sub_properties:
-                "${sub.name}".to_owned(),
+                "${sub.name}",
             % endfor
-            )),
+        ];
+    % endfor
+    match_ignore_ascii_case!{ shorthand,
+        % for property in SHORTHANDS[:-1]:
+            "${property.name}" => Some(${property.ident.upper()}),
         % endfor
-        _ => None,
+        % for property in SHORTHANDS[-1:]:
+            "${property.name}" => Some(${property.ident.upper()})
+        % endfor
+        _ => None
     }
 }
 

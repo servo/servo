@@ -568,8 +568,9 @@ pub trait ElementHelpers<'a> {
     fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
-    fn remove_inline_style_property(self, property: DOMString);
+    fn remove_inline_style_property(self, property: &str);
     fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority);
+    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority);
     fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
@@ -639,7 +640,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn remove_inline_style_property(self, property: DOMString) {
+    fn remove_inline_style_property(self, property: &str) {
         let mut inline_declarations = self.style_attribute.borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
@@ -689,6 +690,29 @@ impl<'a> ElementHelpers<'a> for &'a Element {
             important: Arc::new(important),
             normal: Arc::new(normal),
         });
+    }
+
+    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority) {
+        let mut inline_declarations = self.style_attribute().borrow_mut();
+        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+            // Declarations of of the *other* priority
+            let (from, to) = if style_priority == StylePriority::Important {
+                (&mut declarations.normal, &mut declarations.important)
+            } else {
+                (&mut declarations.normal, &mut declarations.important)
+            };
+            let from = Arc::make_unique(from);
+            let to = Arc::make_unique(to);
+            let mut new_from = Vec::new();
+            for declaration in from.drain(..) {
+                if properties.contains(&declaration.name()) {
+                    to.push(declaration)
+                } else {
+                    new_from.push(declaration)
+                }
+            }
+            mem::replace(from, new_from);
+        }
     }
 
     fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {

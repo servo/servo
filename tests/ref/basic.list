@@ -277,6 +277,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == rtl_table_a.html rtl_table_ref.html
 == servo_center_a.html servo_center_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
+== setpropertypriority.html setpropertypriority_ref.html 
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
 == table_auto_width.html table_auto_width_ref.html
