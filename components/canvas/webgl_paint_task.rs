@@ -48,34 +48,68 @@ impl WebGLPaintTask {
         })
     }
 
+    /// In this function the gl commands are called.
+    /// Those messages that just involve a gl call have the call inlined,
+    /// processing of messages that require extra work are moved to functions
+    ///
+    /// NB: Not gl-related validations (names, lengths, accepted parameters...) are
+    /// done in the corresponding DOM interfaces
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
         match message {
             CanvasWebGLMsg::GetContextAttributes(sender) =>
                 self.get_context_attributes(sender),
             CanvasWebGLMsg::ActiveTexture(target) =>
-                self.active_texture(target),
+                gl::active_texture(target),
             CanvasWebGLMsg::BlendColor(r, g, b, a) =>
-                self.blend_color(r, g, b, a),
+                gl::blend_color(r, g, b, a),
             CanvasWebGLMsg::BlendEquation(mode) =>
-                self.blend_equation(mode),
+                gl::blend_equation(mode),
             CanvasWebGLMsg::BlendEquationSeparate(mode_rgb, mode_alpha) =>
-                self.blend_equation_separate(mode_rgb, mode_alpha),
+                gl::blend_equation_separate(mode_rgb, mode_alpha),
             CanvasWebGLMsg::BlendFunc(src, dest) =>
-                self.blend_func(src, dest),
+                gl::blend_func(src, dest),
             CanvasWebGLMsg::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha) =>
-                self.blend_func_separate(src_rgb, dest_rgb, src_alpha, dest_alpha),
+                gl::blend_func_separate(src_rgb, dest_rgb, src_alpha, dest_alpha),
             CanvasWebGLMsg::AttachShader(program_id, shader_id) =>
-                self.attach_shader(program_id, shader_id),
+                gl::attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) =>
-                self.buffer_data(buffer_type, data, usage),
+                gl::buffer_data(buffer_type, &data, usage),
             CanvasWebGLMsg::Clear(mask) =>
-                self.clear(mask),
+                gl::clear(mask),
             CanvasWebGLMsg::ClearColor(r, g, b, a) =>
-                self.clear_color(r, g, b, a),
+                gl::clear_color(r, g, b, a),
+            CanvasWebGLMsg::ClearDepth(depth) =>
+                gl::clear_depth(depth),
+            CanvasWebGLMsg::ClearStencil(stencil) =>
+                gl::clear_stencil(stencil),
+            CanvasWebGLMsg::ColorMask(r, g, b, a) =>
+                gl::color_mask(r, g, b, a),
+            CanvasWebGLMsg::CullFace(mode) =>
+                gl::cull_face(mode),
+            CanvasWebGLMsg::DepthFunc(func) =>
+                gl::depth_func(func),
+            CanvasWebGLMsg::DepthMask(flag) =>
+                gl::depth_mask(flag),
+            CanvasWebGLMsg::DepthRange(near, far) =>
+                gl::depth_range(near, far),
+            CanvasWebGLMsg::Disable(cap) =>
+                gl::disable(cap),
+            CanvasWebGLMsg::Enable(cap) =>
+                gl::enable(cap),
+            CanvasWebGLMsg::FrontFace(mode) =>
+                gl::front_face(mode),
             CanvasWebGLMsg::DrawArrays(mode, first, count) =>
-                self.draw_arrays(mode, first, count),
+                gl::draw_arrays(mode, first, count),
+            CanvasWebGLMsg::Hint(name, val) =>
+                gl::hint(name, val),
+            CanvasWebGLMsg::LineWidth(width) =>
+                gl::line_width(width),
+            CanvasWebGLMsg::PixelStorei(name, val) =>
+                gl::pixel_store_i(name, val),
+            CanvasWebGLMsg::PolygonOffset(factor, units) =>
+                gl::polygon_offset(factor, units),
             CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) =>
-                self.enable_vertex_attrib_array(attrib_id),
+                gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
                 self.get_attrib_location(program_id, name, chan),
             CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) =>
@@ -99,37 +133,43 @@ impl WebGLPaintTask {
             CanvasWebGLMsg::CreateShader(shader_type, chan) =>
                 self.create_shader(shader_type, chan),
             CanvasWebGLMsg::DeleteBuffer(id) =>
-                self.delete_buffer(id),
+                gl::delete_buffers(&[id]),
             CanvasWebGLMsg::DeleteFramebuffer(id) =>
-                self.delete_framebuffer(id),
+                gl::delete_framebuffers(&[id]),
             CanvasWebGLMsg::DeleteRenderbuffer(id) =>
-                self.delete_renderbuffer(id),
+                gl::delete_renderbuffers(&[id]),
             CanvasWebGLMsg::DeleteTexture(id) =>
-                self.delete_texture(id),
+                gl::delete_textures(&[id]),
             CanvasWebGLMsg::DeleteProgram(id) =>
-                self.delete_program(id),
+                gl::delete_program(id),
             CanvasWebGLMsg::DeleteShader(id) =>
-                self.delete_shader(id),
+                gl::delete_shader(id),
             CanvasWebGLMsg::BindBuffer(target, id) =>
-                self.bind_buffer(target, id),
+                gl::bind_buffer(target, id),
             CanvasWebGLMsg::BindFramebuffer(target, request) =>
                 self.bind_framebuffer(target, request),
             CanvasWebGLMsg::BindRenderbuffer(target, id) =>
-                self.bind_renderbuffer(target, id),
+                gl::bind_renderbuffer(target, id),
             CanvasWebGLMsg::BindTexture(target, id) =>
-                self.bind_texture(target, id),
+                gl::bind_texture(target, id),
             CanvasWebGLMsg::LinkProgram(program_id) =>
-                self.link_program(program_id),
+                gl::link_program(program_id),
             CanvasWebGLMsg::ShaderSource(shader_id, source) =>
-                self.shader_source(shader_id, source),
+                gl::shader_source(shader_id, &[source.as_bytes()]),
             CanvasWebGLMsg::Uniform4fv(uniform_id, data) =>
-                self.uniform_4fv(uniform_id, data),
+                gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]),
             CanvasWebGLMsg::UseProgram(program_id) =>
-                self.use_program(program_id),
+                gl::use_program(program_id),
             CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) =>
-                self.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset),
+                gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32),
             CanvasWebGLMsg::Viewport(x, y, width, height) =>
-                self.viewport(x, y, width, height),
+                gl::viewport(x, y, width, height),
+            CanvasWebGLMsg::TexImage2D(target, level, internal, width, height, format, data_type, data) =>
+                gl::tex_image_2d(target, level, internal, width, height, /*border*/0, format, data_type, Some(&data)),
+            CanvasWebGLMsg::TexParameteri(target, name, value) =>
+                gl::tex_parameter_i(target, name, value),
+            CanvasWebGLMsg::TexParameterf(target, name, value) =>
+                gl::tex_parameter_f(target, name, value),
             CanvasWebGLMsg::DrawingBufferWidth(sender) =>
                 self.send_drawing_buffer_width(sender),
             CanvasWebGLMsg::DrawingBufferHeight(sender) =>
@@ -190,63 +230,6 @@ impl WebGLPaintTask {
     #[inline]
     fn send_drawing_buffer_height(&self, sender: IpcSender<i32>) {
         sender.send(self.size.height).unwrap()
-    }
-
-    #[inline]
-    fn active_texture(&self, texture: u32) {
-        gl::active_texture(texture);
-    }
-
-    #[inline]
-    fn blend_color(&self, r: f32, g: f32, b: f32, a: f32) {
-        gl::blend_color(r, g, b, a);
-    }
-
-    #[inline]
-    fn blend_equation(&self, mode: u32) {
-        gl::blend_equation(mode);
-    }
-
-    #[inline]
-    fn blend_equation_separate(&self, mode_rgb: u32, mode_alpha: u32) {
-        gl::blend_equation_separate(mode_rgb, mode_alpha);
-    }
-
-    #[inline]
-    fn blend_func(&self, src_factor: u32, dest_factor: u32) {
-        gl::blend_func(src_factor, dest_factor);
-    }
-
-    #[inline]
-    fn blend_func_separate(&self,
-                           src_rgb_factor: u32,
-                           dest_rgb_factor: u32,
-                           src_alpha_factor: u32,
-                           dest_alpha_factor: u32) {
-        gl::blend_func_separate(src_rgb_factor,
-                                dest_rgb_factor,
-                                src_alpha_factor,
-                                dest_alpha_factor);
-    }
-
-    #[inline]
-    fn attach_shader(&self, program_id: u32, shader_id: u32) {
-        gl::attach_shader(program_id, shader_id);
-    }
-
-    #[inline]
-    fn buffer_data(&self, buffer_type: u32, data: Vec<f32>, usage: u32) {
-        gl::buffer_data(buffer_type, &data, usage);
-    }
-
-    #[inline]
-    fn clear(&self, mask: u32) {
-        gl::clear(mask);
-    }
-
-    #[inline]
-    fn clear_color(&self, r: f32, g: f32, b: f32, a: f32) {
-        gl::clear_color(r, g, b, a);
     }
 
     fn create_buffer(&self, chan: IpcSender<Option<NonZero<u32>>>) {
@@ -310,41 +293,6 @@ impl WebGLPaintTask {
     }
 
     #[inline]
-    fn delete_buffer(&self, id: u32) {
-        gl::delete_buffers(&[id]);
-    }
-
-    #[inline]
-    fn delete_renderbuffer(&self, id: u32) {
-        gl::delete_renderbuffers(&[id]);
-    }
-
-    #[inline]
-    fn delete_framebuffer(&self, id: u32) {
-        gl::delete_framebuffers(&[id]);
-    }
-
-    #[inline]
-    fn delete_texture(&self, id: u32) {
-        gl::delete_textures(&[id]);
-    }
-
-    #[inline]
-    fn delete_program(&self, id: u32) {
-        gl::delete_program(id);
-    }
-
-    #[inline]
-    fn delete_shader(&self, id: u32) {
-        gl::delete_shader(id);
-    }
-
-    #[inline]
-    fn bind_buffer(&self, target: u32, id: u32) {
-        gl::bind_buffer(target, id);
-    }
-
-    #[inline]
     fn bind_framebuffer(&self, target: u32, request: WebGLFramebufferBindingRequest) {
         let id = match request {
             WebGLFramebufferBindingRequest::Explicit(id) => id,
@@ -355,32 +303,12 @@ impl WebGLPaintTask {
         gl::bind_framebuffer(target, id);
     }
 
-    #[inline]
-    fn bind_renderbuffer(&self, target: u32, id: u32) {
-        gl::bind_renderbuffer(target, id);
-    }
-
-    #[inline]
-    fn bind_texture(&self, target: u32, id: u32) {
-        gl::bind_texture(target, id);
-    }
-
     // TODO(ecoal95): This is not spec-compliant, we must check
     // the version of GLSL used. This functionality should probably
     // be in the WebGLShader object
     #[inline]
     fn compile_shader(&self, shader_id: u32) {
         gl::compile_shader(shader_id);
-    }
-
-    #[inline]
-    fn draw_arrays(&self, mode: u32, first: i32, count: i32) {
-        gl::draw_arrays(mode, first, count);
-    }
-
-    #[inline]
-    fn enable_vertex_attrib_array(&self, attrib_id: u32) {
-        gl::enable_vertex_attrib_array(attrib_id);
     }
 
     fn get_attrib_location(&self, program_id: u32, name: String, chan: IpcSender<Option<i32>> ) {
@@ -428,37 +356,6 @@ impl WebGLPaintTask {
         chan.send(location).unwrap();
     }
 
-    #[inline]
-    fn link_program(&self, program_id: u32) {
-        gl::link_program(program_id);
-    }
-
-    #[inline]
-    fn shader_source(&self, shader_id: u32, source: String) {
-        gl::shader_source(shader_id, &[source.as_bytes()]);
-    }
-
-    #[inline]
-    fn uniform_4fv(&self, uniform_id: i32, data: Vec<f32>) {
-        gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]);
-    }
-
-    #[inline]
-    fn use_program(&self, program_id: u32) {
-        gl::use_program(program_id);
-    }
-
-    #[inline]
-    fn vertex_attrib_pointer_f32(&self, attrib_id: u32, size: i32,
-                              normalized: bool, stride: i32, offset: i64) {
-        gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32);
-    }
-
-    #[inline]
-    fn viewport(&self, x: i32, y: i32, width: i32, height: i32) {
-        gl::viewport(x, y, width, height);
-    }
-
     fn send_pixel_contents(&mut self, chan: IpcSender<IpcSharedMemory>) {
         // FIXME(#5652, dmarcos) Instead of a readback strategy we have
         // to layerize the canvas.
@@ -466,6 +363,7 @@ impl WebGLPaintTask {
         // allowed you to mutate in-place before freezing the object for sending.
         let width = self.size.width as usize;
         let height = self.size.height as usize;
+
         let mut pixels = gl::read_pixels(0, 0,
                                          self.size.width as gl::GLsizei,
                                          self.size.height as gl::GLsizei,

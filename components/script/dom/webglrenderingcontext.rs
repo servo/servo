@@ -8,12 +8,18 @@ use canvas_traits::
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::
             {self, WebGLContextAttributes, WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::htmlcanvaselement::{HTMLCanvasElement};
+use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmlcanvaselement::utils as canvas_utils;
+use dom::htmlimageelement::HTMLImageElementHelpers;
+use dom::imagedata::ImageDataHelpers;
+use dom::node::{window_from_node, NodeHelpers, NodeDamage};
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
 use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
 use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
@@ -26,14 +32,21 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
+
 use msg::constellation_msg::Msg as ConstellationMsg;
-use offscreen_gl_context::GLContextAttributes;
+use net_traits::image::base::PixelFormat;
+use net_traits::image_cache_task::ImageResponse;
+
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::slice;
 use std::sync::mpsc::channel;
+use util::mem::HeapSizeOf;
 use util::str::DOMString;
+use util::vec::byte_swap;
+
+use offscreen_gl_context::GLContextAttributes;
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
@@ -49,6 +62,30 @@ macro_rules! handle_potential_webgl_error {
     }
 }
 
+macro_rules! webgl_error {
+    ($ctx: ident, $variant: ident) => {
+        $ctx.handle_webgl_error(WebGLError::$variant)
+    }
+}
+
+/// Set of bitflags for texture unpacking (texImage2d, etc...)
+bitflags! {
+    flags TextureUnpacking: u8 {
+        const FLIP_Y_AXIS = 0x01,
+        const PREMULTIPLY_ALPHA = 0x02,
+        const CONVERT_COLORSPACE = 0x04,
+    }
+}
+
+impl HeapSizeOf for TextureUnpacking {
+    #[inline]
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}
+
+no_jsmanaged_fields!(TextureUnpacking);
+
 #[dom_struct]
 #[derive(HeapSizeOf)]
 pub struct WebGLRenderingContext {
@@ -59,6 +96,9 @@ pub struct WebGLRenderingContext {
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
     last_error: Cell<Option<WebGLError>>,
+    texture_unpacking_settings: Cell<TextureUnpacking>,
+    bound_texture_2d: Cell<Option<JS<WebGLTexture>>>,
+    bound_texture_cube_map: Cell<Option<JS<WebGLTexture>>>,
 }
 
 impl WebGLRenderingContext {
@@ -80,8 +120,11 @@ impl WebGLRenderingContext {
                 global: GlobalField::from_rooted(&global),
                 renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
-                last_error: Cell::new(None),
                 canvas: JS::from_ref(canvas),
+                last_error: Cell::new(None),
+                texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
+                bound_texture_2d: Cell::new(None),
+                bound_texture_cube_map: Cell::new(None),
             }
         })
     }
@@ -100,6 +143,13 @@ impl WebGLRenderingContext {
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+    }
+
+    #[inline]
+    fn mark_as_dirty(&self) {
+        let canvas = self.canvas.root();
+        let node = NodeCast::from_ref(canvas.r());
+        node.dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -241,8 +291,15 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BindBuffer(self, target: u32, buffer: Option<&WebGLBuffer>) {
+        match target {
+            constants::ARRAY_BUFFER |
+            constants::ELEMENT_ARRAY_BUFFER => (),
+
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+
         if let Some(buffer) = buffer {
-            buffer.bind(target)
+            handle_potential_webgl_error!(self, buffer.bind(target), ())
         } else {
             // Unbind the current buffer
             self.ipc_renderer
@@ -253,6 +310,10 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn BindFramebuffer(self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
+        if target != constants::FRAMEBUFFER {
+            return webgl_error!(self, InvalidOperation);
+        }
+
         if let Some(framebuffer) = framebuffer {
             framebuffer.bind(target)
         } else {
@@ -264,6 +325,10 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn BindRenderbuffer(self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
+        if target != constants::RENDERBUFFER {
+            return webgl_error!(self, InvalidEnum);
+        }
+
         if let Some(renderbuffer) = renderbuffer {
             renderbuffer.bind(target)
         } else {
@@ -276,8 +341,23 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn BindTexture(self, target: u32, texture: Option<&WebGLTexture>) {
+        let slot = match target {
+            constants::TEXTURE_2D => &self.bound_texture_2d,
+            constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
+
+            _ => return webgl_error!(self, InvalidEnum),
+        };
+
         if let Some(texture) = texture {
-            texture.bind(target)
+            match texture.bind(target) {
+                Ok(_) => slot.set(Some(JS::from_ref(texture))),
+                Err(err) => self.handle_webgl_error(err),
+            }
+        } else {
+            // Unbind the currently bound texture
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BindTexture(target, 0)))
+                .unwrap()
         }
     }
 
@@ -306,7 +386,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(self, mask: u32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap()
+        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap();
+        self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -314,6 +395,102 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearColor(red, green, blue, alpha)))
             .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn ClearDepth(self, depth: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearDepth(depth as f64)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn ClearStencil(self, stencil: i32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearStencil(stencil)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn ColorMask(self, r: bool, g: bool, b: bool, a: bool) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ColorMask(r, g, b, a)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn CullFace(self, mode: u32) {
+        match mode {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::CullFace(mode)))
+                    .unwrap(),
+            _ => webgl_error!(self, InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn FrontFace(self, mode: u32) {
+        match mode {
+            constants::CW | constants::CCW =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::FrontFace(mode)))
+                    .unwrap(),
+            _ => webgl_error!(self, InvalidEnum),
+        }
+    }
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn DepthFunc(self, func: u32) {
+        match func {
+            constants::NEVER | constants::LESS |
+            constants::EQUAL | constants::LEQUAL |
+            constants::GREATER | constants::NOTEQUAL |
+            constants::GEQUAL | constants::ALWAYS =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthFunc(func)))
+                    .unwrap(),
+            _ => webgl_error!(self, InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn DepthMask(self, flag: bool) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthMask(flag)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn DepthRange(self, near: f32, far: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthRange(near as f64, far as f64)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn Enable(self, cap: u32) {
+        match cap {
+            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
+            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
+            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::Enable(cap)))
+                    .unwrap(),
+            _ => webgl_error!(self, InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn Disable(self, cap: u32) {
+        match cap {
+            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
+            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
+            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::Disable(cap)))
+                    .unwrap(),
+            _ => webgl_error!(self, InvalidEnum),
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -401,9 +578,24 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(self, mode: u32, first: i32, count: i32) {
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawArrays(mode, first, count)))
-            .unwrap()
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {
+                // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
+                // null generate an InvalidOperation error
+                if first < 0 || count < 0 {
+                    webgl_error!(self, InvalidValue);
+                } else {
+                    self.ipc_renderer
+                        .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawArrays(mode, first, count)))
+                        .unwrap();
+                    self.mark_as_dirty();
+                }
+            },
+            _ => webgl_error!(self, InvalidEnum),
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -454,6 +646,98 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         } else {
             None
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn Hint(self, target: u32, mode: u32) {
+        if target != constants::GENERATE_MIPMAP_HINT {
+            return webgl_error!(self, InvalidEnum);
+        }
+
+        match mode {
+            constants::FASTEST |
+            constants::NICEST |
+            constants::DONT_CARE => (),
+
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Hint(target, mode)))
+            .unwrap()
+    }
+
+    // TODO(ecoal95): If width is NaN  we should generate an
+    // INVALID_VALUE error
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn LineWidth(self, width: f32) {
+        if width <= 0f32 {
+            return webgl_error!(self, InvalidValue);
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::LineWidth(width)))
+            .unwrap()
+    }
+
+    // NOTE: Usage of this function could affect rendering while we keep using
+    //   readback to render to the page.
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn PixelStorei(self, param_name: u32, param_value: i32) {
+        let mut texture_settings = self.texture_unpacking_settings.get();
+        match param_name {
+            constants::UNPACK_FLIP_Y_WEBGL => {
+               if param_value != 0 {
+                    texture_settings.insert(FLIP_Y_AXIS)
+                } else {
+                    texture_settings.remove(FLIP_Y_AXIS)
+                }
+
+                self.texture_unpacking_settings.set(texture_settings);
+                return;
+            },
+            constants::UNPACK_PREMULTIPLY_ALPHA_WEBGL => {
+                if param_value != 0 {
+                    texture_settings.insert(PREMULTIPLY_ALPHA)
+                } else {
+                    texture_settings.remove(PREMULTIPLY_ALPHA)
+                }
+
+                self.texture_unpacking_settings.set(texture_settings);
+                return;
+            },
+            constants::UNPACK_COLORSPACE_CONVERSION_WEBGL => {
+                match param_value as u32 {
+                    constants::BROWSER_DEFAULT_WEBGL
+                        => texture_settings.insert(CONVERT_COLORSPACE),
+                    constants::NONE
+                        => texture_settings.remove(CONVERT_COLORSPACE),
+                    _ => return webgl_error!(self, InvalidEnum),
+                }
+
+                self.texture_unpacking_settings.set(texture_settings);
+                return;
+            },
+            constants::UNPACK_ALIGNMENT |
+            constants::PACK_ALIGNMENT => {
+                match param_value {
+                    1 | 2 | 4 | 8 => (),
+                    _ => return webgl_error!(self, InvalidValue),
+                }
+            },
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::PixelStorei(param_name, param_value)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn PolygonOffset(self, factor: f32, units: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::PolygonOffset(factor, units)))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -529,10 +813,115 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::Viewport(x, y, width, height)))
             .unwrap()
     }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexImage2D(self,
+                  target: u32,
+                  level: i32,
+                  internal_format: u32,
+                  format: u32,
+                  data_type: u32,
+                  source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement >) {
+        // TODO(ecoal95): Check for bound WebGLTexture, and validate more parameters
+        match target {
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => (),
+
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+
+        let source = match source {
+            Some(s) => s,
+            None => return,
+        };
+
+        let (pixels, size) = match source {
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eImageData(image_data)
+                => (image_data.get_data_array(&self.global.root().r()), image_data.get_size()),
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLImageElement(image) => {
+                let img_url = match image.r().get_url() {
+                    Some(url) => url,
+                    None => return,
+                };
+
+                let img = match canvas_utils::request_image_from_cache(
+                          window_from_node(self.canvas.root().r()).r(),
+                          img_url) {
+                    ImageResponse::Loaded(img) => img,
+                    ImageResponse::PlaceholderLoaded(_) | ImageResponse::None
+                        => return,
+                };
+
+                let size = Size2D::new(img.width as i32, img.height as i32);
+                // TODO(ecoal95): Validate that the format argument is coherent with the image.
+                // RGB8 should be easy to support too
+                let mut data = match img.format {
+                    PixelFormat::RGBA8 => img.bytes.to_vec(),
+                    _ => unimplemented!(),
+                };
+
+                byte_swap(&mut data);
+
+                (data, size)
+            },
+            // TODO(ecoal95): Getting canvas data is implemented in CanvasRenderingContext2D, but
+            // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLCanvasElement(_rooted_canvas)
+                => unimplemented!(),
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLVideoElement(_rooted_video)
+                => unimplemented!(),
+        };
+
+        // TODO(ecoal95): Invert axis, convert colorspace, premultiply alpha if requested
+        let msg = CanvasWebGLMsg::TexImage2D(target, level, internal_format as i32,
+                                             size.width, size.height,
+                                             format, data_type, pixels);
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(msg))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexParameterf(self, target: u32, name: u32, value: f32) {
+        match target {
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => {
+                if let Some(texture) = self.bound_texture_for(target) {
+                    let texture = texture.root();
+                    handle_potential_webgl_error!(self,
+                                                  texture.r().tex_parameter(target, name, None, Some(value)), ())
+                } else {
+                    return webgl_error!(self, InvalidOperation);
+                }
+            },
+
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexParameteri(self, target: u32, name: u32, value: i32) {
+        match target {
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => {
+                if let Some(texture) = self.bound_texture_for(target) {
+                    let texture = texture.root();
+                    handle_potential_webgl_error!(self,
+                                                  texture.r().tex_parameter(target, name, Some(value), None), ())
+                } else {
+                    return webgl_error!(self, InvalidOperation);
+                }
+            },
+
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+    }
 }
 
 pub trait WebGLRenderingContextHelpers {
     fn handle_webgl_error(&self, err: WebGLError);
+    fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>>;
 }
 
 impl<'a> WebGLRenderingContextHelpers for &'a WebGLRenderingContext {
@@ -541,6 +930,16 @@ impl<'a> WebGLRenderingContextHelpers for &'a WebGLRenderingContext {
         // recorded until `getError` has been called
         if self.last_error.get().is_none() {
             self.last_error.set(Some(err));
+        }
+    }
+
+    #[inline]
+    fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
+        match target {
+            constants::TEXTURE_2D => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
+
+            _ => unreachable!(),
         }
     }
 }

@@ -159,6 +159,7 @@ pub trait HTMLCanvasElementHelpers {
     fn get_or_init_webgl_context(self,
                                  cx: *mut JSContext,
                                  attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>>;
+
     fn is_valid(self) -> bool;
 }
 
@@ -322,6 +323,21 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
             premultiplied_alpha: attrs.premultipliedAlpha,
             preserve_drawing_buffer: attrs.preserveDrawingBuffer,
         }
+    }
+}
+
+pub mod utils {
+    use dom::window::Window;
+    use ipc_channel::ipc;
+    use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
+    use url::Url;
+
+    pub fn request_image_from_cache(window: &Window, url: Url) -> ImageResponse {
+        let image_cache = window.image_cache_task();
+        let (response_chan, response_port) = ipc::channel().unwrap();
+        image_cache.request_image(url, ImageCacheChan(response_chan), None);
+        let result = response_port.recv().unwrap();
+        result.image_response
     }
 }
 
