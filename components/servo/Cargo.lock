@@ -131,7 +131,7 @@ dependencies = [
 [[package]]
 name = "clipboard"
 version = "0.0.1"
-source = "git+https://github.com/aweinstock314/rust-clipboard#68c2711a236cb76dce2dbf3fc7467d32072f592e"
+source = "git+https://github.com/aweinstock314/rust-clipboard#d271be958151cbc90d4cea670f028afe05e75cbe"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
