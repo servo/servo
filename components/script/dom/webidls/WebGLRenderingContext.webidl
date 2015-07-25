@@ -24,6 +24,11 @@ typedef unsigned long  GLuint;
 typedef unrestricted float GLfloat;
 typedef unrestricted float GLclampf;
 
+typedef (ImageData or
+         HTMLImageElement or
+         HTMLCanvasElement or
+         HTMLVideoElement) TexImageSource;
+
 
 dictionary WebGLContextAttributes {
     GLboolean alpha = true;
@@ -495,9 +500,9 @@ interface WebGLRenderingContextBase
     //[WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
     void clearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-    //void clearDepth(GLclampf depth);
-    //void clearStencil(GLint s);
-    //void colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
+    void clearDepth(GLclampf depth);
+    void clearStencil(GLint s);
+    void colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     void compileShader(WebGLShader? shader);
 
     //void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
@@ -521,7 +526,7 @@ interface WebGLRenderingContextBase
     WebGLShader? createShader(GLenum type);
     WebGLTexture? createTexture();
 
-    //void cullFace(GLenum mode);
+    void cullFace(GLenum mode);
 
     void deleteBuffer(WebGLBuffer? buffer);
     void deleteFramebuffer(WebGLFramebuffer? framebuffer);
@@ -530,16 +535,16 @@ interface WebGLRenderingContextBase
     void deleteShader(WebGLShader? shader);
     void deleteTexture(WebGLTexture? texture);
 
-    //void depthFunc(GLenum func);
-    //void depthMask(GLboolean flag);
-    //void depthRange(GLclampf zNear, GLclampf zFar);
+    void depthFunc(GLenum func);
+    void depthMask(GLboolean flag);
+    void depthRange(GLclampf zNear, GLclampf zFar);
     //void detachShader(WebGLProgram? program, WebGLShader? shader);
-    //void disable(GLenum cap);
+    void disable(GLenum cap);
     //void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
     //void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
 
-    //void enable(GLenum cap);
+    void enable(GLenum cap);
     void enableVertexAttribArray(GLuint index);
     //void finish();
     //void flush();
@@ -548,7 +553,7 @@ interface WebGLRenderingContextBase
     //                             WebGLRenderbuffer? renderbuffer);
     //void framebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
     //                          WebGLTexture? texture, GLint level);
-    //void frontFace(GLenum mode);
+    void frontFace(GLenum mode);
 
     //void generateMipmap(GLenum target);
 
@@ -584,7 +589,7 @@ interface WebGLRenderingContextBase
 
     //[WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
 
-    //void hint(GLenum target, GLenum mode);
+    void hint(GLenum target, GLenum mode);
     //[WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
     //[WebGLHandlesContextLoss] GLboolean isEnabled(GLenum cap);
     //[WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
@@ -592,10 +597,10 @@ interface WebGLRenderingContextBase
     //[WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
     //[WebGLHandlesContextLoss] GLboolean isShader(WebGLShader? shader);
     //[WebGLHandlesContextLoss] GLboolean isTexture(WebGLTexture? texture);
-    //void lineWidth(GLfloat width);
+    void lineWidth(GLfloat width);
     void linkProgram(WebGLProgram? program);
-    //void pixelStorei(GLenum pname, GLint param);
-    //void polygonOffset(GLfloat factor, GLfloat units);
+    void pixelStorei(GLenum pname, GLint param);
+    void polygonOffset(GLfloat factor, GLfloat units);
 
     //void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
     //                GLenum format, GLenum type, ArrayBufferView? pixels);
@@ -614,18 +619,14 @@ interface WebGLRenderingContextBase
     //void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
     //void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 
-    //typedef (ImageData or
-    //         HTMLImageElement or
-    //         HTMLCanvasElement or
-    //        HTMLVideoElement) TexImageSource;
     //void texImage2D(GLenum target, GLint level, GLenum internalformat,
     //                GLsizei width, GLsizei height, GLint border, GLenum format,
     //                GLenum type, ArrayBufferView? pixels);
-    //void texImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
+    void texImage2D(GLenum target, GLint level, GLenum internalformat,
+                    GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
 
-    //void texParameterf(GLenum target, GLenum pname, GLfloat param);
-    //void texParameteri(GLenum target, GLenum pname, GLint param);
+    void texParameterf(GLenum target, GLenum pname, GLfloat param);
+    void texParameteri(GLenum target, GLenum pname, GLint param);
 
     //void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     //                   GLsizei width, GLsizei height,
