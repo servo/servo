@@ -30,7 +30,9 @@ interface KeyboardEvent : UIEvent {
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-interface-KeyboardEvent-initializers
 partial interface KeyboardEvent {
     // Originally introduced (and deprecated) in DOM Level 3
-    void initKeyboardEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg, DOMString keyArg, unsigned long locationArg, DOMString modifiersListArg, boolean repeat, DOMString locale);
+    void initKeyboardEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg,
+                            DOMString keyArg, unsigned long locationArg, DOMString modifiersListArg,
+                            boolean repeat, DOMString locale);
 };
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#KeyboardEvent-supplemental-interface

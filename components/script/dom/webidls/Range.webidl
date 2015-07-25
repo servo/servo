@@ -71,7 +71,7 @@ interface Range {
 partial interface Range {
   // [NewObject, Throws]
   // DocumentFragment createContextualFragment(DOMString fragment);
-};// 
+};//
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-range-interface
 partial interface Range {
