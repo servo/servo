@@ -20,13 +20,14 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource, ScriptPort, ScriptMsg};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use profile_traits::mem;
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSContext, HandleValue};
 use js::rust::Runtime;
 use url::{Url, UrlParser};
@@ -54,7 +55,7 @@ pub struct WorkerGlobalScope {
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
     mem_profiler_chan: mem::ProfilerChan,
-    devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     constellation_chan: ConstellationChan,
 }
 
@@ -64,8 +65,9 @@ impl WorkerGlobalScope {
                          runtime: Rc<Runtime>,
                          resource_task: ResourceTask,
                          mem_profiler_chan: mem::ProfilerChan,
-                         devtools_chan: Option<DevtoolsControlChan>,
-                         constellation_chan: ConstellationChan) -> WorkerGlobalScope {
+                         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+                         constellation_chan: ConstellationChan)
+                         -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -87,7 +89,7 @@ impl WorkerGlobalScope {
         self.mem_profiler_chan.clone()
     }
 
-    pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
+    pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
     }
 

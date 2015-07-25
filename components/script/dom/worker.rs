@@ -22,10 +22,11 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
 
-use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 
 use util::str::DOMString;
 
+use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue, RootedValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
@@ -78,16 +79,16 @@ impl Worker {
 
         if let Some(ref chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline();
-            let (devtools_sender, _) = channel();
+            let (devtools_sender, _) = ipc::channel().unwrap();
             let title = format!("Worker for {}", worker_url);
             let page_info = DevtoolsPageInfo {
                 title: title,
                 url: worker_url.clone(),
             };
             let worker_id = global.get_next_worker_id();
-            chan.send(
-                DevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)), devtools_sender.clone(), page_info)
-            ).unwrap();
+            chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
+                                                            devtools_sender.clone(),
+                                                            page_info)).unwrap();
         }
 
         DedicatedWorkerGlobalScope::run_worker_scope(

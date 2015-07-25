@@ -50,9 +50,9 @@ use timers::TimerId;
 use devtools;
 use webdriver_handlers;
 
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
-use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
-use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
+use devtools_traits::{DevtoolsControlPort, DevtoolsPageInfo, DevtoolScriptControlMsg};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{TracingMetadata};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
@@ -79,7 +79,7 @@ use util::task_state;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
@@ -320,15 +320,15 @@ pub struct ScriptTask {
     mem_profiler_chan: mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
-    devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For receiving commands from an optional devtools server. Will be ignored if
     /// no such server exists.
     devtools_port: DevtoolsControlPort,
-    devtools_sender: Sender<DevtoolScriptControlMsg>,
+    devtools_sender: IpcSender<DevtoolScriptControlMsg>,
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
-    devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
+    devtools_marker_sender: RefCell<Option<IpcSender<TimelineMarker>>>,
 
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
@@ -400,7 +400,7 @@ impl ScriptTaskFactory for ScriptTask {
               storage_task: StorageTask,
               image_cache_task: ImageCacheTask,
               mem_profiler_chan: mem::ProfilerChan,
-              devtools_chan: Option<DevtoolsControlChan>,
+              devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
               window_size: Option<WindowSizeData>,
               load_data: LoadData) {
         let ConstellationChan(const_chan) = constellation_chan.clone();
@@ -507,7 +507,7 @@ impl ScriptTask {
                storage_task: StorageTask,
                image_cache_task: ImageCacheTask,
                mem_profiler_chan: mem::ProfilerChan,
-               devtools_chan: Option<DevtoolsControlChan>)
+               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>)
                -> ScriptTask {
         let runtime = ScriptTask::new_rt_and_cx();
 
@@ -516,7 +516,9 @@ impl ScriptTask {
                                       &WRAP_CALLBACKS);
         }
 
-        let (devtools_sender, devtools_receiver) = channel();
+        // Ask the router to proxy IPC messages from the devtools to us.
+        let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
+        let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
 
         // Ask the router to proxy IPC messages from the image cache task to us.
         let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
@@ -543,8 +545,8 @@ impl ScriptTask {
             mem_profiler_chan: mem_profiler_chan,
 
             devtools_chan: devtools_chan,
-            devtools_port: devtools_receiver,
-            devtools_sender: devtools_sender,
+            devtools_port: devtools_port,
+            devtools_sender: ipc_devtools_sender,
             devtools_markers: RefCell::new(HashSet::new()),
             devtools_marker_sender: RefCell::new(None),
 
@@ -1435,9 +1437,10 @@ impl ScriptTask {
                     title: title,
                     url: url,
                 };
-                chan.send(DevtoolsControlMsg::NewGlobal(ids,
-                                                        self.devtools_sender.clone(),
-                                                        page_info)).unwrap();
+                chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                            ids,
+                            self.devtools_sender.clone(),
+                            page_info)).unwrap();
             }
         }
     }
@@ -1637,7 +1640,9 @@ impl ScriptTask {
         sender.send(marker).unwrap();
     }
 
-    pub fn set_devtools_timeline_marker(&self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
+    pub fn set_devtools_timeline_marker(&self,
+                                        marker: TimelineMarkerType,
+                                        reply: IpcSender<TimelineMarker>) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
         self.devtools_markers.borrow_mut().insert(marker);
     }

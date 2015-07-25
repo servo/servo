@@ -16,7 +16,7 @@ use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::CanvasMsg;
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlChan, DevtoolsControlMsg};
 use euclid::point::Point2D;
 use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
@@ -518,7 +518,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.image_cache_task.exit();
         self.resource_task.send(net_traits::ControlMsg::Exit).unwrap();
         self.devtools_chan.as_ref().map(|chan| {
-            chan.send(DevtoolsControlMsg::ServerExitMsg).unwrap();
+            chan.send(DevtoolsControlMsg::FromChrome(
+                    ChromeToDevtoolsControlMsg::ServerExitMsg)).unwrap();
         });
         self.storage_task.send(StorageTaskMsg::Exit).unwrap();
         self.font_cache_task.exit();

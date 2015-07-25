@@ -8,13 +8,14 @@ use script_traits::{LayoutControlMsg, ScriptControlChan, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use compositor_task;
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
-use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
@@ -102,6 +103,17 @@ impl Pipeline {
             }
         });
 
+        // Route messages coming from content to devtools as appropriate.
+        let script_to_devtools_chan = devtools_chan.as_ref().map(|devtools_chan| {
+            let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel().unwrap();
+            let devtools_chan = (*devtools_chan).clone();
+            ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
+                let message: ScriptToDevtoolsControlMsg = message.to().unwrap();
+                devtools_chan.send(DevtoolsControlMsg::FromScript(message)).unwrap()
+            });
+            script_to_devtools_chan
+        });
+
         let (script_chan, script_port) = match script_chan {
             Some(script_chan) => {
                 let (containing_pipeline_id, subpage_id) =
@@ -143,7 +155,7 @@ impl Pipeline {
             parent_info: parent_info,
             constellation_chan: constellation_chan,
             compositor_proxy: compositor_proxy,
-            devtools_chan: devtools_chan,
+            devtools_chan: script_to_devtools_chan,
             image_cache_task: image_cache_task,
             font_cache_task: font_cache_task,
             resource_task: resource_task,
@@ -272,7 +284,7 @@ pub struct PipelineContent {
     parent_info: Option<(PipelineId, SubpageId)>,
     constellation_chan: ConstellationChan,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
-    devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     image_cache_task: ImageCacheTask,
     font_cache_task: FontCacheTask,
     resource_task: ResourceTask,
