@@ -20,7 +20,6 @@ interface MouseEvent : UIEvent {
     //readonly    attribute unsigned short buttons;
     //boolean getModifierState (DOMString keyArg);
 
-    [Throws]
     readonly    attribute long           which;
 };
 
