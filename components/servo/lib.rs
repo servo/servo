@@ -17,6 +17,8 @@
 // The `Browser` is fed events from a generic type that implements the
 // `WindowMethods` trait.
 
+extern crate gaol;
+
 #[macro_use]
 extern crate util as _util;
 
@@ -29,6 +31,7 @@ mod export {
     extern crate euclid;
     extern crate gfx;
     extern crate gleam;
+    extern crate ipc_channel;
     extern crate layers;
     extern crate layout;
     extern crate msg;
@@ -58,10 +61,14 @@ fn webdriver(_port: u16, _constellation: msg::constellation_msg::ConstellationCh
 use compositing::CompositorEventListener;
 use compositing::compositor_task::InitialCompositorState;
 use compositing::constellation::InitialConstellationState;
+use compositing::pipeline::UnprivilegedPipelineContent;
+use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
+use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_task::FontCacheTask;
+use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::new_image_cache_task;
@@ -86,6 +93,7 @@ pub use export::devtools_traits;
 pub use export::euclid;
 pub use export::gfx;
 pub use export::gleam::gl;
+pub use export::ipc_channel;
 pub use export::layers;
 pub use export::layout;
 pub use export::msg;
@@ -226,3 +234,26 @@ fn create_constellation(opts: opts::Opts,
 
     constellation_chan
 }
+
+/// Content process entry point.
+pub fn run_content_process(token: String) {
+    let (unprivileged_content_sender, unprivileged_content_receiver) =
+        ipc::channel::<UnprivilegedPipelineContent>().unwrap();
+    let connection_bootstrap: IpcSender<IpcSender<UnprivilegedPipelineContent>> =
+        IpcSender::connect(token).unwrap();
+    connection_bootstrap.send(unprivileged_content_sender).unwrap();
+
+    let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
+    opts::set_defaults(unprivileged_content.opts());
+
+    // Enter the sandbox if necessary.
+    if opts::get().sandbox {
+        ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
+    }
+
+    script::init();
+
+    unprivileged_content.start_all::<layout::layout_task::LayoutTask,
+                                     script::script_task::ScriptTask>(true);
+}
+

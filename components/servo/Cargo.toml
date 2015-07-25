@@ -121,6 +121,12 @@ features = [ "serde_serialization" ]
 [dependencies.euclid]
 version = "0.2"
 
+[dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 

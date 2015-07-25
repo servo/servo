@@ -30,6 +30,8 @@ use style::media_queries::MediaQueryList;
 use style::stylesheets::Stylesheet;
 use style::viewport::ViewportRule;
 use url::Url;
+use util::ipc::OptionalOpaqueIpcSender;
+
 pub use dom::node::TrustedNodeAddress;
 
 /// Asynchronous messages that script can send to layout.
@@ -176,7 +178,7 @@ pub struct ScriptReflow {
     /// The document node.
     pub document_root: TrustedNodeAddress,
     /// The channel through which messages can be sent back to the script task.
-    pub script_chan: Sender<ConstellationControlMsg>,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.
@@ -255,8 +257,9 @@ pub struct NewLayoutTaskInfo {
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: ConstellationChan,
     pub failure: Failure,
-    pub script_chan: Sender<ConstellationControlMsg>,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_task: ImageCacheTask,
-    pub paint_chan: Box<Any + Send>,
-    pub layout_shutdown_chan: Sender<()>,
+    pub paint_chan: OptionalOpaqueIpcSender,
+    pub layout_shutdown_chan: IpcSender<()>,
+    pub content_process_shutdown_chan: IpcSender<()>,
 }

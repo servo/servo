@@ -40,8 +40,8 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem;
 use std::any::Any;
-use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
+use util::ipc::OptionalOpaqueIpcSender;
 use util::mem::HeapSizeOf;
 
 /// The address of a node. Layout sends these back. They must be validated via
@@ -68,6 +68,7 @@ pub enum LayoutControlMsg {
 }
 
 /// The initial data associated with a newly-created framed pipeline.
+#[derive(Deserialize, Serialize)]
 pub struct NewLayoutInfo {
     /// Id of the parent of this new pipeline.
     pub containing_pipeline_id: PipelineId,
@@ -77,17 +78,17 @@ pub struct NewLayoutInfo {
     pub subpage_id: SubpageId,
     /// Network request data which will be initiated by the script task.
     pub load_data: LoadData,
-    /// The paint channel, cast to `Box<Any>`.
-    ///
-    /// TODO(pcwalton): When we convert this to use IPC, this will need to become an
-    /// `IpcAnySender`.
-    pub paint_chan: Box<Any + Send>,
+    /// The paint channel, cast to `OptionalOpaqueIpcSender`. This is really an
+    /// `Sender<LayoutToPaintMsg>`.
+    pub paint_chan: OptionalOpaqueIpcSender,
     /// Information on what to do on task failure.
     pub failure: Failure,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A shutdown channel so that layout can notify others when it's done.
-    pub layout_shutdown_chan: Sender<()>,
+    pub layout_shutdown_chan: IpcSender<()>,
+    /// A shutdown channel so that layout can tell the content process to shut down when it's done.
+    pub content_process_shutdown_chan: IpcSender<()>,
 }
 
 /// `StylesheetLoadResponder` is used to notify a responder that a style sheet
@@ -98,7 +99,7 @@ pub trait StylesheetLoadResponder {
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub enum ScriptState {
     /// The document has been loaded.
     DocumentLoaded,
@@ -107,6 +108,7 @@ pub enum ScriptState {
 }
 
 /// Messages sent from the constellation or layout to the script task.
+#[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
@@ -142,13 +144,13 @@ pub enum ConstellationControlMsg {
     /// reflowed.
     WebFontLoaded(PipelineId),
     /// Notifies script that a stylesheet has finished loading.
-    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder + Send>),
+    StylesheetLoadComplete(PipelineId, Url, IpcSender<()>),
     /// Get the current state of the script task for a given pipeline.
-    GetCurrentState(Sender<ScriptState>, PipelineId),
+    GetCurrentState(IpcSender<ScriptState>, PipelineId),
 }
 
 /// The mouse button involved in the event.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum MouseButton {
     /// The left mouse button.
     Left,
@@ -159,6 +161,7 @@ pub enum MouseButton {
 }
 
 /// Events from the compositor that the script task needs to know about
+#[derive(Deserialize, Serialize)]
 pub enum CompositorEvent {
     /// The window was resized.
     ResizeEvent(WindowSizeData),
@@ -244,9 +247,9 @@ pub struct InitialScriptState {
     /// The compositor.
     pub compositor: IpcSender<ScriptToCompositorMsg>,
     /// A channel with which messages can be sent to us (the script task).
-    pub control_chan: Sender<ConstellationControlMsg>,
+    pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub control_port: Receiver<ConstellationControlMsg>,
+    pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: ConstellationChan,
     /// A channel to schedule timer events.
@@ -269,7 +272,13 @@ pub struct InitialScriptState {
     pub window_size: Option<WindowSizeData>,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
+    /// A ping will be sent on this channel once the script thread shuts down.
+    pub content_process_shutdown_chan: IpcSender<()>,
 }
+
+/// Encapsulates external communication with the script task.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ScriptControlChan(pub IpcSender<ConstellationControlMsg>);
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`
 /// crate.

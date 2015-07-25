@@ -101,7 +101,7 @@ use time::{Tm, now};
 use url::{Url, UrlParser};
 use util::opts;
 use util::str::DOMString;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 use webdriver_handlers;
 
@@ -198,8 +198,9 @@ pub enum ScriptTaskEventCategory {
     Resize,
     ScriptEvent,
     TimerEvent,
-    UpdateReplacedElement,
     SetViewport,
+    StylesheetLoad,
+    UpdateReplacedElement,
     WebSocketEvent,
     WorkerEvent,
     XhrEvent,
@@ -363,7 +364,7 @@ pub struct ScriptTask {
     chan: MainThreadScriptChan,
 
     /// A channel to hand out to tasks that need to respond to a message from the script task.
-    control_chan: Sender<ConstellationControlMsg>,
+    control_chan: IpcSender<ConstellationControlMsg>,
 
     /// The port on which the constellation and layout tasks can communicate with the
     /// script task.
@@ -451,7 +452,8 @@ impl ScriptTaskFactory for ScriptTask {
         ScriptLayoutChan::new(chan, port)
     }
 
-    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel) -> Box<Any + Send> {
+    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel)
+                            -> Box<Any + Send> {
         box pair.sender() as Box<Any + Send>
     }
 
@@ -463,9 +465,10 @@ impl ScriptTaskFactory for ScriptTask {
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         let failure_info = state.failure_info;
-        spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id), task_state::SCRIPT, move || {
+        task::spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id),
+                                               task_state::SCRIPT,
+                                               move || {
             PipelineNamespace::install(state.pipeline_namespace_id);
-
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = MainThreadScriptChan(script_chan);
@@ -474,6 +477,7 @@ impl ScriptTaskFactory for ScriptTask {
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
+            let content_process_shutdown_chan = state.content_process_shutdown_chan.clone();
             let script_task = ScriptTask::new(state,
                                               script_port,
                                               chan);
@@ -492,6 +496,8 @@ impl ScriptTaskFactory for ScriptTask {
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_task.start();
             }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
+
+            content_process_shutdown_chan.send(()).unwrap();
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
@@ -603,6 +609,9 @@ impl ScriptTask {
 
         let (timer_event_chan, timer_event_port) = channel();
 
+        // Ask the router to proxy IPC messages from the control port to us.
+        let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
+
         ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
@@ -617,7 +626,7 @@ impl ScriptTask {
             port: port,
             chan: chan,
             control_chan: state.control_chan,
-            control_port: state.control_port,
+            control_port: control_port,
             constellation_chan: state.constellation_chan,
             compositor: DOMRefCell::new(state.compositor),
             time_profiler_chan: state.time_profiler_chan,
@@ -901,7 +910,10 @@ impl ScriptTask {
                 ScriptTaskEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
                 ScriptTaskEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptTaskEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
-                ScriptTaskEventCategory::UpdateReplacedElement => ProfilerCategory::ScriptUpdateReplacedElement,
+                ScriptTaskEventCategory::UpdateReplacedElement => {
+                    ProfilerCategory::ScriptUpdateReplacedElement
+                }
+                ScriptTaskEventCategory::StylesheetLoad => ProfilerCategory::ScriptStylesheetLoad,
                 ScriptTaskEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
                 ScriptTaskEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptTaskEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
@@ -955,7 +967,7 @@ impl ScriptTask {
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
             ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
-                responder.respond();
+                responder.send(()).unwrap();
                 self.handle_resource_loaded(id, LoadType::Stylesheet(url));
             }
             ConstellationControlMsg::GetCurrentState(sender, pipeline_id) => {
@@ -1154,6 +1166,7 @@ impl ScriptTask {
             failure,
             pipeline_port,
             layout_shutdown_chan,
+            content_process_shutdown_chan,
         } = new_layout_info;
 
         let layout_pair = ScriptTask::create_layout_channel(None::<&mut ScriptTask>);
@@ -1173,6 +1186,7 @@ impl ScriptTask {
             script_chan: self.control_chan.clone(),
             image_cache_task: self.image_cache_task.clone(),
             layout_shutdown_chan: layout_shutdown_chan,
+            content_process_shutdown_chan: content_process_shutdown_chan,
         };
 
         let page = self.root_page();
