@@ -316,6 +316,102 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             .unwrap()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn ClearDepth(self, depth: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearDepth(depth as f64)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn ClearStencil(self, stencil: i32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearStencil(stencil)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn ColorMask(self, r: bool, g: bool, b: bool, a: bool) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ColorMask(r, g, b, a)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn CullFace(self, mode: u32) {
+        match mode {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::CullFace(mode)))
+                    .unwrap(),
+            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn FrontFace(self, mode: u32) {
+        match mode {
+            constants::CW | constants::CCW =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::FrontFace(mode)))
+                    .unwrap(),
+            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+        }
+    }
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn DepthFunc(self, func: u32) {
+        match func {
+            constants::NEVER | constants::LESS |
+            constants::EQUAL | constants::LEQUAL |
+            constants::GREATER | constants::NOTEQUAL |
+            constants::GEQUAL | constants::ALWAYS =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthFunc(func)))
+                    .unwrap(),
+            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn DepthMask(self, flag: bool) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthMask(flag)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn DepthRange(self, near: f32, far: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthRange(near as f64, far as f64)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn Enable(self, cap: u32) {
+        match cap {
+            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
+            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
+            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::Enable(cap)))
+                    .unwrap(),
+            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn Disable(self, cap: u32) {
+        match cap {
+            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
+            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
+            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::Disable(cap)))
+                    .unwrap(),
+            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
@@ -401,9 +497,23 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(self, mode: u32, first: i32, count: i32) {
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawArrays(mode, first, count)))
-            .unwrap()
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {
+                // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
+                // null generate an InvalidOperation error
+                if first < 0 || count < 0 {
+                    self.handle_webgl_error(WebGLError::InvalidValue);
+                } else {
+                    self.ipc_renderer
+                        .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawArrays(mode, first, count)))
+                        .unwrap()
+                }
+            },
+            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
