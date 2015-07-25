@@ -42,16 +42,16 @@ git = "https://github.com/servo/glutin"
 branch = "servo"
 
 [target.i686-unknown-linux-gnu.dependencies]
-x11 = "1.1"
+x11 = "2.0.0"
 
 [target.x86_64-unknown-linux-gnu.dependencies]
-x11 = "1.1"
+x11 = "2.0.0"
 
 [target.arm-unknown-linux-gnueabihf.dependencies]
-x11 = "1.1"
+x11 = "2.0.0"
 
 [target.aarch64-unknown-linux-gnu.dependencies]
-x11 = "1.1"
+x11 = "2.0.0"
 
 [target.x86_64-apple-darwin.dependencies]
 cgl = "0.1"
