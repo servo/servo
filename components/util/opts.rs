@@ -21,7 +21,7 @@ use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Opts {
     /// The initial URL to load.
     pub url: Option<Url>,
@@ -132,8 +132,8 @@ pub struct Opts {
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: Option<String>,
 
-    /// Whether to run in multiprocess mode.
-    pub multiprocess: bool,
+    /// Whether we're running inside the sandbox.
+    pub sandbox: bool,
 
     /// Dumps the flow tree after a layout.
     pub dump_flow_tree: bool,
@@ -223,6 +223,13 @@ static FORCE_CPU_PAINTING: bool = true;
 #[cfg(not(target_os="android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
+static MULTIPROCESS: AtomicBool = ATOMIC_BOOL_INIT;
+
+#[inline]
+pub fn multiprocess() -> bool {
+    MULTIPROCESS.load(Ordering::Relaxed)
+}
+
 pub fn default_opts() -> Opts {
     Opts {
         url: Some(Url::parse("about:blank").unwrap()),
@@ -254,7 +261,7 @@ pub fn default_opts() -> Opts {
         webdriver_port: None,
         initial_window_size: Size2D::typed(800, 600),
         user_agent: None,
-        multiprocess: false,
+        sandbox: false,
         dump_flow_tree: false,
         dump_display_list: false,
         dump_display_list_json: false,
@@ -270,7 +277,7 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) {
+pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
     let opts = vec!(
@@ -296,6 +303,8 @@ pub fn from_cmdline_args(args: &[String]) {
         getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
         getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
         getopts::optflag("M", "multiprocess", "Run in multiprocess mode"),
+        getopts::optflag("S", "sandbox", "Run in a sandbox if multiprocess"),
+        getopts::optopt("", "content-process", "Run as the content process", ""),
         getopts::optopt("Z", "debug",
                         "A comma-separated string of debug options. Pass help to show available options.", ""),
         getopts::optflag("h", "help", "Print this message"),
@@ -303,7 +312,7 @@ pub fn from_cmdline_args(args: &[String]) {
         getopts::optflag("", "sniff-mime-types" , "Enable MIME sniffing"),
     );
 
-    let opt_match = match getopts::getopts(args, &opts) {
+    let opt_match = match getopts::getopts(&args[..], &opts) {
         Ok(m) => m,
         Err(f) => args_fail(&f.to_string()),
     };
@@ -312,6 +321,13 @@ pub fn from_cmdline_args(args: &[String]) {
         print_usage(app_name, &opts);
         process::exit(0);
     };
+
+    // If this is the content process, we'll receive the real options over IPC. So just fill in
+    // some dummy options for now.
+    if let Some(content_process) = opt_match.opt_str("content-process") {
+        MULTIPROCESS.store(true, Ordering::SeqCst);
+        return ArgumentParsingResult::ContentProcess(content_process);
+    }
 
     let debug_string = match opt_match.opt_str("Z") {
         Some(string) => string,
@@ -402,6 +418,10 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
+    if opt_match.opt_present("M") {
+        MULTIPROCESS.store(true, Ordering::SeqCst)
+    }
+
     let opts = Opts {
         url: Some(url),
         paint_threads: paint_threads,
@@ -426,7 +446,7 @@ pub fn from_cmdline_args(args: &[String]) {
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
         user_agent: opt_match.opt_str("u"),
-        multiprocess: opt_match.opt_present("M"),
+        sandbox: opt_match.opt_present("S"),
         show_debug_borders: debug_options.contains(&"show-compositor-borders"),
         show_debug_fragment_borders: debug_options.contains(&"show-fragment-borders"),
         show_debug_parallel_paint: debug_options.contains(&"show-parallel-paint"),
@@ -448,6 +468,12 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     set_defaults(opts);
+    ArgumentParsingResult::ChromeProcess
+}
+
+pub enum ArgumentParsingResult {
+    ChromeProcess,
+    ContentProcess(String),
 }
 
 static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;

@@ -104,6 +104,12 @@ optional = true
 version = "0.2"
 features = [ "serde_serialization" ]
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
 [dependencies]
 env_logger = "0.3"
 time = "0.1.12"

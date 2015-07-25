@@ -16,7 +16,7 @@ use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
-use msg::compositor_msg::ScriptListener;
+use msg::compositor_msg::{ScriptListener, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
 use profile_traits::mem as profile_mem;
@@ -24,7 +24,6 @@ use profile_traits::time;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
-use std::any::Any;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
@@ -32,7 +31,7 @@ use url::Url;
 use util;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
-use util::opts;
+use util::opts::{self, Opts};
 
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
@@ -42,8 +41,8 @@ pub struct Pipeline {
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: LayoutControlChan,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    pub layout_shutdown_port: Receiver<()>,
-    pub paint_shutdown_port: Receiver<()>,
+    pub layout_shutdown_port: IpcReceiver<()>,
+    pub paint_shutdown_port: IpcReceiver<()>,
     /// URL corresponding to the most recently-loaded page.
     pub url: Url,
     /// The title of the most recently-loaded page.
@@ -83,13 +82,14 @@ impl Pipeline {
                            script_chan: Option<ScriptControlChan>,
                            load_data: LoadData,
                            device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
-                           -> (Pipeline, PipelineContent)
+                           -> (Pipeline, UnprivilegedPipelineContent, PrivilegedPipelineContent)
                            where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
-        let (paint_shutdown_chan, paint_shutdown_port) = channel();
-        let (layout_shutdown_chan, layout_shutdown_port) = channel();
+        let (paint_shutdown_chan, paint_shutdown_port) = ipc::channel().unwrap();
+        let (layout_shutdown_chan, layout_shutdown_port) = ipc::channel().unwrap();
         let (pipeline_chan, pipeline_port) = ipc::channel().unwrap();
+        let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel().unwrap();
         let mut pipeline_port = Some(pipeline_port);
 
         let failure = Failure {
@@ -125,7 +125,7 @@ impl Pipeline {
                     new_pipeline_id: id,
                     subpage_id: subpage_id,
                     load_data: load_data.clone(),
-                    paint_chan: box layout_to_paint_chan.clone() as Box<Any + Send>,
+                    paint_chan: layout_to_paint_chan.clone().to_opaque(),
                     failure: failure,
                     pipeline_port: mem::replace(&mut pipeline_port, None).unwrap(),
                     layout_shutdown_chan: layout_shutdown_chan.clone(),
@@ -137,7 +137,7 @@ impl Pipeline {
                 (script_chan, None)
             }
             None => {
-                let (script_chan, script_port) = channel();
+                let (script_chan, script_port) = ipc::channel().unwrap();
                 (ScriptControlChan(script_chan), Some(script_port))
             }
         };
@@ -152,33 +152,47 @@ impl Pipeline {
                                      load_data.url.clone(),
                                      window_rect);
 
-        let pipeline_content = PipelineContent {
+        let unprivileged_pipeline_content = UnprivilegedPipelineContent {
             id: id,
             parent_info: parent_info,
-            constellation_chan: constellation_chan,
-            compositor_proxy: compositor_proxy,
+            constellation_chan: constellation_chan.clone(),
             devtools_chan: script_to_devtools_chan,
             image_cache_task: image_cache_task,
-            font_cache_task: font_cache_task,
+            font_cache_task: font_cache_task.clone(),
             resource_task: resource_task,
             storage_task: storage_task,
-            time_profiler_chan: time_profiler_chan,
-            mem_profiler_chan: mem_profiler_chan,
+            time_profiler_chan: time_profiler_chan.clone(),
+            mem_profiler_chan: mem_profiler_chan.clone(),
             window_size: window_size,
             script_chan: script_chan,
-            load_data: load_data,
+            load_data: load_data.clone(),
             failure: failure,
             script_port: script_port,
+            opts: (*opts::get()).clone(),
             layout_to_paint_chan: layout_to_paint_chan,
-            chrome_to_paint_chan: chrome_to_paint_chan,
-            layout_to_paint_port: Some(layout_to_paint_port),
-            chrome_to_paint_port: Some(chrome_to_paint_port),
             pipeline_port: pipeline_port,
-            paint_shutdown_chan: paint_shutdown_chan,
             layout_shutdown_chan: layout_shutdown_chan,
+            paint_shutdown_chan: paint_shutdown_chan.clone(),
+            script_to_compositor_chan: ScriptListener::new(script_to_compositor_chan),
         };
 
-        (pipeline, pipeline_content)
+        let privileged_pipeline_content = PrivilegedPipelineContent {
+            id: id,
+            constellation_chan: constellation_chan,
+            compositor_proxy: compositor_proxy,
+            font_cache_task: font_cache_task,
+            time_profiler_chan: time_profiler_chan,
+            mem_profiler_chan: mem_profiler_chan,
+            load_data: load_data,
+            failure: failure,
+            layout_to_paint_port: Some(layout_to_paint_port),
+            chrome_to_paint_chan: chrome_to_paint_chan,
+            chrome_to_paint_port: Some(chrome_to_paint_port),
+            paint_shutdown_chan: paint_shutdown_chan,
+            script_to_compositor_port: Some(script_to_compositor_port),
+        };
+
+        (pipeline, unprivileged_pipeline_content, privileged_pipeline_content)
     }
 
     pub fn new(id: PipelineId,
@@ -186,8 +200,8 @@ impl Pipeline {
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
                chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-               layout_shutdown_port: Receiver<()>,
-               paint_shutdown_port: Receiver<()>,
+               layout_shutdown_port: IpcReceiver<()>,
+               paint_shutdown_port: IpcReceiver<()>,
                url: Url,
                rect: Option<TypedRect<PagePx, f32>>)
                -> Pipeline {
@@ -285,12 +299,13 @@ impl Pipeline {
     }
 }
 
-pub struct PipelineContent {
+#[derive(Deserialize, Serialize)]
+pub struct UnprivilegedPipelineContent {
     id: PipelineId,
     parent_info: Option<(PipelineId, SubpageId)>,
     constellation_chan: ConstellationChan,
-    compositor_proxy: Box<CompositorProxy + Send + 'static>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    script_to_compositor_chan: ScriptListener,
     image_cache_task: ImageCacheTask,
     font_cache_task: FontCacheTask,
     resource_task: ResourceTask,
@@ -301,35 +316,22 @@ pub struct PipelineContent {
     script_chan: ScriptControlChan,
     load_data: LoadData,
     failure: Failure,
-    script_port: Option<Receiver<ConstellationControlMsg>>,
+    script_port: Option<IpcReceiver<ConstellationControlMsg>>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
-    chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    layout_to_paint_port: Option<Receiver<LayoutToPaintMsg>>,
-    chrome_to_paint_port: Option<Receiver<ChromeToPaintMsg>>,
-    paint_shutdown_chan: Sender<()>,
+    opts: Opts,
+    paint_shutdown_chan: IpcSender<()>,
     pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
-    layout_shutdown_chan: Sender<()>,
+    layout_shutdown_chan: IpcSender<()>,
 }
 
-impl PipelineContent {
+impl UnprivilegedPipelineContent {
     pub fn start_all<LTF,STF>(mut self) where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
-        let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel().unwrap();
-
-        self.start_paint_task();
-
-        let compositor_proxy_for_script_listener_thread =
-            self.compositor_proxy.clone_compositor_proxy();
-        thread::spawn(move || {
-            compositor_task::run_script_listener_thread(
-                compositor_proxy_for_script_listener_thread,
-                script_to_compositor_port)
-        });
 
         ScriptTaskFactory::create(None::<&mut STF>,
                                   self.id,
                                   self.parent_info,
-                                  ScriptListener::new(script_to_compositor_chan),
+                                  self.script_to_compositor_chan,
                                   &layout_pair,
                                   self.script_chan.clone(),
                                   mem::replace(&mut self.script_port, None).unwrap(),
@@ -358,6 +360,42 @@ impl PipelineContent {
                                   self.time_profiler_chan,
                                   self.mem_profiler_chan,
                                   self.layout_shutdown_chan);
+    }
+
+    pub fn opts(&self) -> Opts {
+        self.opts.clone()
+    }
+}
+
+pub struct PrivilegedPipelineContent {
+    id: PipelineId,
+    constellation_chan: ConstellationChan,
+    compositor_proxy: Box<CompositorProxy + Send + 'static>,
+    script_to_compositor_port: Option<IpcReceiver<ScriptToCompositorMsg>>,
+    font_cache_task: FontCacheTask,
+    time_profiler_chan: time::ProfilerChan,
+    mem_profiler_chan: profile_mem::ProfilerChan,
+    load_data: LoadData,
+    failure: Failure,
+    layout_to_paint_port: Option<Receiver<LayoutToPaintMsg>>,
+    chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
+    chrome_to_paint_port: Option<Receiver<ChromeToPaintMsg>>,
+    paint_shutdown_chan: IpcSender<()>,
+}
+
+impl PrivilegedPipelineContent {
+    pub fn start_all(&mut self) {
+        self.start_paint_task();
+
+        let compositor_proxy_for_script_listener_thread =
+            self.compositor_proxy.clone_compositor_proxy();
+        let script_to_compositor_port =
+            mem::replace(&mut self.script_to_compositor_port, None).unwrap();
+        thread::spawn(move || {
+            compositor_task::run_script_listener_thread(
+                compositor_proxy_for_script_listener_thread,
+                script_to_compositor_port)
+        });
     }
 
     pub fn start_paint_task(&mut self) {

@@ -35,9 +35,9 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem;
 use std::any::Any;
-use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
 use util::geometry::Au;
+use util::ipc::OptionalOpaqueIpcSender;
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -63,6 +63,7 @@ pub enum LayoutControlMsg {
 }
 
 /// The initial data associated with a newly-created framed pipeline.
+#[derive(Deserialize, Serialize)]
 pub struct NewLayoutInfo {
     /// Id of the parent of this new pipeline.
     pub containing_pipeline_id: PipelineId,
@@ -72,17 +73,15 @@ pub struct NewLayoutInfo {
     pub subpage_id: SubpageId,
     /// Network request data which will be initiated by the script task.
     pub load_data: LoadData,
-    /// The paint channel, cast to `Box<Any>`.
-    ///
-    /// TODO(pcwalton): When we convert this to use IPC, this will need to become an
-    /// `IpcAnySender`.
-    pub paint_chan: Box<Any + Send>,
+    /// The paint channel, cast to `OptionalOpaqueIpcSender`. This is really an
+    /// `Sender<LayoutToPaintMsg>`.
+    pub paint_chan: OptionalOpaqueIpcSender,
     /// Information on what to do on task failure.
     pub failure: Failure,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A shutdown channel so that layout can notify others when it's done.
-    pub layout_shutdown_chan: Sender<()>,
+    pub layout_shutdown_chan: IpcSender<()>,
 }
 
 /// `StylesheetLoadResponder` is used to notify a responder that a style sheet
@@ -93,7 +92,7 @@ pub trait StylesheetLoadResponder {
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub enum ScriptState {
     /// The document has been loaded.
     DocumentLoaded,
@@ -102,6 +101,7 @@ pub enum ScriptState {
 }
 
 /// Messages sent from the constellation to the script task
+#[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
@@ -136,13 +136,13 @@ pub enum ConstellationControlMsg {
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
     /// Notifies script that a stylesheet has finished loading.
-    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder+Send>),
+    StylesheetLoadComplete(PipelineId, Url, IpcSender<()>),
     /// Get the current state of the script task for a given pipeline.
-    GetCurrentState(Sender<ScriptState>, PipelineId),
+    GetCurrentState(IpcSender<ScriptState>, PipelineId),
 }
 
 /// The mouse button involved in the event.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum MouseButton {
     /// The left mouse button.
     Left,
@@ -153,6 +153,7 @@ pub enum MouseButton {
 }
 
 /// Events from the compositor that the script task needs to know about
+#[derive(Deserialize, Serialize)]
 pub enum CompositorEvent {
     /// The window was resized.
     ResizeEvent(WindowSizeData),
@@ -173,8 +174,8 @@ pub enum CompositorEvent {
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
 
 /// Encapsulates external communication with the script task.
-#[derive(Clone)]
-pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ScriptControlChan(pub IpcSender<ConstellationControlMsg>);
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`
 /// crate.
@@ -186,7 +187,7 @@ pub trait ScriptTaskFactory {
               compositor: ScriptListener,
               layout_chan: &OpaqueScriptLayoutChannel,
               control_chan: ScriptControlChan,
-              control_port: Receiver<ConstellationControlMsg>,
+              control_port: IpcReceiver<ConstellationControlMsg>,
               constellation_msg: ConstellationChan,
               failure_msg: Failure,
               resource_task: ResourceTask,

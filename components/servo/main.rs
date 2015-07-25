@@ -35,7 +35,7 @@ extern crate env_logger;
 extern crate android_glue;
 
 use std::rc::Rc;
-use util::opts;
+use util::opts::{self, ArgumentParsingResult};
 use net::resource_task;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
@@ -47,12 +47,16 @@ fn main() {
     env_logger::init().unwrap();
 
     // Parse the command line options and store them globally
-    opts::from_cmdline_args(&*get_args());
+    let opts_result = opts::from_cmdline_args(&*get_args());
 
     setup_logging();
 
     // Possibly interpret the `HOST_FILE` environment variable
     resource_task::global_init();
+
+    if let ArgumentParsingResult::ContentProcess(token) = opts_result {
+        return servo::run_content_process(token)
+    }
 
     let window = if opts::get().headless {
         None

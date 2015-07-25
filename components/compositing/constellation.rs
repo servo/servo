@@ -9,7 +9,8 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptTask`,
 //! `LayoutTask`, and `PaintTask`.
 
-use pipeline::{Pipeline, CompositionPipeline};
+use pipeline::{Pipeline, CompositionPipeline, UnprivilegedPipelineContent};
+use sandboxing;
 
 use canvas::canvas_paint_task::CanvasPaintTask;
 use canvas::webgl_paint_task::WebGLPaintTask;
@@ -21,8 +22,10 @@ use euclid::point::Point2D;
 use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
 use euclid::scale_factor::ScaleFactor;
+use gaol::sandbox::{self, Sandbox, SandboxMethods};
+use gaol;
 use gfx::font_cache_task::FontCacheTask;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use libc;
 use msg::compositor_msg::{Epoch, LayerId};
@@ -45,10 +48,12 @@ use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{ScriptControlChan, ScriptState, ScriptTaskFactory};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::env;
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::process;
+use std::sync::mpsc::{Sender, channel};
 use style::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
@@ -68,7 +73,7 @@ pub struct Constellation<LTF, STF> {
     pub chan: ConstellationChan,
 
     /// Receives messages.
-    pub request_port: Receiver<ConstellationMsg>,
+    pub request_port: IpcReceiver<ConstellationMsg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
@@ -137,6 +142,9 @@ pub struct Constellation<LTF, STF> {
 
     /// A list of in-process senders to `WebGLPaintTask`s.
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
+
+    /// A list of child content processes.
+    child_processes: Vec<ChildProcess>,
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
@@ -218,6 +226,11 @@ enum ExitPipelineMode {
     Force,
 }
 
+enum ChildProcess {
+    Sandboxed(gaol::platform::process::Process),
+    Unsandboxed(process::Child),
+}
+
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     pub fn start(compositor_proxy: Box<CompositorProxy+Send>,
                  resource_task: ResourceTask,
@@ -268,6 +281,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webdriver: WebDriverData::new(),
                 canvas_paint_tasks: Vec::new(),
                 webgl_paint_tasks: Vec::new(),
+                child_processes: Vec::new(),
             };
             constellation.run();
         });
@@ -295,7 +309,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         *i += 1;
 
         let spawning_paint_only = script_channel.is_some();
-        let (pipeline, mut pipeline_content) =
+        let (pipeline, unprivileged_pipeline_content, mut privileged_pipeline_content) =
             Pipeline::create::<LTF, STF>(pipeline_id,
                                          parent_info,
                                          self.chan.clone(),
@@ -312,12 +326,39 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                          load_data,
                                          self.window_size.device_pixel_ratio);
 
-        // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
-        // the content process and call this over there.
         if spawning_paint_only {
-            pipeline_content.start_paint_task();
+            privileged_pipeline_content.start_paint_task();
         } else {
-            pipeline_content.start_all::<LTF, STF>();
+            privileged_pipeline_content.start_all();
+
+            // Spawn the child process.
+            //
+            // Yes, that's all there is to it!
+            if opts::multiprocess() {
+                let (server, token) =
+                    IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new().unwrap();
+
+                // If there is a sandbox, use the `gaol` API to create the child process.
+                let child_process = if opts::get().sandbox {
+                    let mut command = sandbox::Command::me().unwrap();
+                    command.arg("--content-process").arg(token);
+                    let profile = sandboxing::content_process_sandbox_profile();
+                    ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command).expect(
+                        "Failed to start sandboxed child process!"))
+                } else {
+                    let path_to_self = env::current_exe().unwrap();
+                    let mut child_process = process::Command::new(path_to_self);
+                    child_process.arg("--content-process");
+                    child_process.arg(token);
+                    ChildProcess::Unsandboxed(child_process.spawn().unwrap())
+                };
+                self.child_processes.push(child_process);
+
+                let (_receiver, sender) = server.accept().unwrap();
+                sender.send(unprivileged_pipeline_content).unwrap();
+            } else {
+                unprivileged_pipeline_content.start_all::<LTF, STF>();
+            }
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
@@ -1185,7 +1226,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // Synchronously query the script task for this pipeline
             // to see if it is idle.
             let ScriptControlChan(ref script_chan) = pipeline.script_chan;
-            let (sender, receiver) = channel();
+            let (sender, receiver) = ipc::channel().unwrap();
             let msg = ConstellationControlMsg::GetCurrentState(sender, frame.current);
             script_chan.send(msg).unwrap();
             if receiver.recv().unwrap() == ScriptState::DocumentLoading {
@@ -1343,7 +1384,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         if let Some(root_frame_id) = self.root_frame_id {
             let frame_tree = self.frame_to_sendable(root_frame_id);
 
-            let (chan, port) = channel();
+            let (chan, port) = ipc::channel().unwrap();
             self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree,
                                                                    chan,
                                                                    self.chan.clone()));

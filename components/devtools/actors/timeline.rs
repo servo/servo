@@ -202,7 +202,9 @@ impl TimelineActor {
 
                 // Creating queues by marker.name
                 loop {
-                    match receiver.try_recv() {
+                    // FIXME(pcwalton): This should be `.try_recv()` but `ipc-channel` doesn't
+                    // support that yet.
+                    match receiver.recv() {
                         Ok(marker) => {
                             if let Some(list) = queues.get_mut(&marker.name) {
                                 list.push_back(marker);

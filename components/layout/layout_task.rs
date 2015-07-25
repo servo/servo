@@ -60,8 +60,9 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayou
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
 use selectors::parser::PseudoElement;
 use serde::json;
+use std;
 use std::borrow::ToOwned;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
@@ -82,7 +83,7 @@ use util::ipc::OptionalIpcSender;
 use util::logical_geometry::{LogicalPoint, WritingMode};
 use util::mem::HeapSizeOf;
 use util::opts;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 use util::workqueue::WorkQueue;
 use wrapper::ThreadSafeLayoutNode;
@@ -233,9 +234,11 @@ impl LayoutTaskFactory for LayoutTask {
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
-              shutdown_chan: Sender<()>) {
+              shutdown_chan: IpcSender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id), task_state::LAYOUT, move || {
+        task::spawn_named_with_send_to_ipc_channel_on_failure(format!("LayoutTask {:?}", id),
+                                                              task_state::LAYOUT,
+                                                              move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout_chan = LayoutChan(sender);
@@ -647,9 +650,7 @@ impl LayoutTask {
                                   info.constellation_chan,
                                   info.failure,
                                   ScriptControlChan(info.script_chan.clone()),
-                                  *info.paint_chan
-                                       .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
-                                       .unwrap(),
+                                  info.paint_chan.to::<LayoutToPaintMsg>(),
                                   self.image_cache_task.clone(),
                                   self.font_cache_task.clone(),
                                   self.time_profiler_chan.clone(),
@@ -727,8 +728,17 @@ impl LayoutTask {
                                                 Origin::Author);
 
         //TODO: mark critical subresources as blocking load as well (#5974)
+        let (ipc_stylesheet_load_responder_chan, ipc_stylesheet_load_responder_port) =
+            ipc::channel().unwrap();
+        let responder = RefCell::new(Some(responder));
+        ROUTER.add_route(ipc_stylesheet_load_responder_port.to_opaque(), box move |_| {
+            std::mem::replace(&mut *responder.borrow_mut(), None).unwrap().respond();
+        });
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
+        chan.send(ConstellationControlMsg::StylesheetLoadComplete(
+                self.id,
+                url,
+                ipc_stylesheet_load_responder_chan)).unwrap();
 
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }

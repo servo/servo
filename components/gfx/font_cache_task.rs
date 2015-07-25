@@ -9,12 +9,13 @@ use platform::font_list::get_last_resort_font_families;
 use platform::font_context::FontContextHandle;
 
 use font_template::{FontTemplate, FontTemplateDescriptor};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::{ResourceTask, load_whole_resource};
 use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::channel;
 use string_cache::Atom;
 use style::font_face::Source;
 use util::str::LowercaseString;
@@ -74,16 +75,18 @@ impl FontFamily {
 }
 
 /// Commands that the FontContext sends to the font cache task.
+#[derive(Deserialize, Serialize)]
 pub enum Command {
-    GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
-    GetLastResortFontTemplate(FontTemplateDescriptor, Sender<Reply>),
-    AddWebFont(Atom, Source, Sender<()>),
-    Exit(Sender<()>),
+    GetFontTemplate(String, FontTemplateDescriptor, IpcSender<Reply>),
+    GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
+    AddWebFont(Atom, Source, IpcSender<()>),
+    Exit(IpcSender<()>),
 }
 
 unsafe impl Send for Command {}
 
 /// Reply messages sent from the font cache task to the FontContext caller.
+#[derive(Deserialize, Serialize)]
 pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
@@ -93,7 +96,7 @@ unsafe impl Send for Reply {}
 /// The font cache task itself. It maintains a list of reference counted
 /// font templates that are currently in use.
 struct FontCache {
-    port: Receiver<Command>,
+    port: IpcReceiver<Command>,
     generic_fonts: HashMap<LowercaseString, LowercaseString>,
     local_families: HashMap<LowercaseString, FontFamily>,
     web_families: HashMap<LowercaseString, FontFamily>,
@@ -249,14 +252,14 @@ impl FontCache {
 
 /// The public interface to the font cache task, used exclusively by
 /// the per-thread/task FontContext structures.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct FontCacheTask {
-    chan: Sender<Command>,
+    chan: IpcSender<Command>,
 }
 
 impl FontCacheTask {
     pub fn new(resource_task: ResourceTask) -> FontCacheTask {
-        let (chan, port) = channel();
+        let (chan, port) = ipc::channel().unwrap();
 
         spawn_named("FontCacheTask".to_owned(), move || {
             // TODO: Allow users to specify these.
@@ -288,7 +291,7 @@ impl FontCacheTask {
     pub fn get_font_template(&self, family: String, desc: FontTemplateDescriptor)
                                                 -> Option<Arc<FontTemplateData>> {
 
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::GetFontTemplate(family, desc, response_chan)).unwrap();
 
         let reply = response_port.recv().unwrap();
@@ -303,7 +306,7 @@ impl FontCacheTask {
     pub fn get_last_resort_font_template(&self, desc: FontTemplateDescriptor)
                                                 -> Arc<FontTemplateData> {
 
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan)).unwrap();
 
         let reply = response_port.recv().unwrap();
@@ -316,13 +319,13 @@ impl FontCacheTask {
     }
 
     pub fn add_web_font(&self, family: Atom, src: Source) {
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::AddWebFont(family, src, response_chan)).unwrap();
         response_port.recv().unwrap();
     }
 
     pub fn exit(&self) {
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::Exit(response_chan)).unwrap();
         response_port.recv().unwrap();
     }

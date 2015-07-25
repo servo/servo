@@ -29,7 +29,6 @@ use profile_traits::mem;
 use profile_traits::time;
 use net_traits::image_cache_task::ImageCacheTask;
 use script_traits::{LayoutControlMsg, ScriptControlChan, OpaqueScriptLayoutChannel};
-use std::sync::mpsc::Sender;
 use url::Url;
 use util::ipc::OptionalIpcSender;
 
@@ -55,5 +54,5 @@ pub trait LayoutTaskFactory {
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
-              shutdown_chan: Sender<()>);
+              shutdown_chan: IpcSender<()>);
 }

@@ -3,9 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
+#![feature(custom_derive)]
 #![feature(iter_cmp)]
+#![feature(plugin)]
+#![feature(result_expect)]
 #![feature(slice_bytes)]
 #![feature(vec_push_all)]
+#![plugin(serde_macros)]
 
 #[macro_use]
 extern crate log;
@@ -15,6 +19,7 @@ extern crate canvas;
 extern crate canvas_traits;
 extern crate devtools_traits;
 extern crate euclid;
+extern crate gaol;
 extern crate gfx;
 extern crate ipc_channel;
 extern crate layers;
@@ -22,6 +27,7 @@ extern crate layout_traits;
 extern crate offscreen_gl_context;
 extern crate png;
 extern crate script_traits;
+extern crate serde;
 extern crate msg;
 extern crate net;
 extern crate num;
@@ -57,5 +63,6 @@ mod scrolling;
 
 pub mod pipeline;
 pub mod constellation;
+pub mod sandboxing;
 pub mod windowing;
 

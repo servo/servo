@@ -37,7 +37,7 @@ use std::collections::HashMap;
 use url::Url;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 use util::task::spawn_named;
 
@@ -138,9 +138,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                   failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
-                  shutdown_chan: Sender<()>) {
+                  shutdown_chan: IpcSender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("PaintTask {:?}", id), task_state::PAINT, move || {
+        task::spawn_named_with_send_to_ipc_channel_on_failure(format!("PaintTask {:?}", id),
+                                                              task_state::PAINT,
+                                                              move || {
             {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.

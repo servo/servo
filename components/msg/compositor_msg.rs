@@ -126,7 +126,7 @@ pub enum ScriptToCompositorMsg {
 
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ScriptListener(IpcSender<ScriptToCompositorMsg>);
 
 impl ScriptListener {

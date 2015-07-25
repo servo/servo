@@ -17,9 +17,13 @@
 // The `Browser` is fed events from a generic type that implements the
 // `WindowMethods` trait.
 
+#![feature(duration, thread_sleep)]
+
 extern crate compositing;
 extern crate devtools;
 extern crate devtools_traits;
+extern crate gaol;
+extern crate ipc_channel;
 extern crate net;
 extern crate net_traits;
 extern crate msg;
@@ -34,6 +38,8 @@ extern crate libc;
 extern crate webdriver_server;
 
 use compositing::CompositorEventListener;
+use compositing::pipeline::UnprivilegedPipelineContent;
+use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 
 use compositing::windowing::WindowMethods;
@@ -56,12 +62,26 @@ use profile_traits::mem;
 use profile_traits::time;
 use util::opts;
 
+use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
+use ipc_channel::ipc::{self, IpcSender};
+
 use std::borrow::Borrow;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::thread;
+use std::time::Duration;
 
 pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,
+}
+
+/// NB: Must call this to avoid an immediate null dereference in SpiderMonkey!
+fn initialize_script() {
+    script::init();
+
+    // Create the global vtables used by the (generated) DOM
+    // bindings to implement JS proxies.
+    RegisterBindings::RegisterProxyHandlers();
 }
 
 /// The in-process interface to Servo.
@@ -80,11 +100,7 @@ impl Browser {
                        where Window: WindowMethods + 'static {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
-
-        script::init();
-        // Create the global vtables used by the (generated) DOM
-        // bindings to implement JS proxies.
-        RegisterBindings::RegisterProxyHandlers();
+        initialize_script();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -189,3 +205,34 @@ fn create_constellation(opts: opts::Opts,
 
     constellation_chan
 }
+
+/// Content process entry point.
+pub fn run_content_process(token: String) {
+    let (unprivileged_content_sender, unprivileged_content_receiver) =
+        ipc::channel::<UnprivilegedPipelineContent>().unwrap();
+    let connection_bootstrap: IpcSender<IpcSender<UnprivilegedPipelineContent>> =
+        IpcSender::connect(token).unwrap();
+    connection_bootstrap.send(unprivileged_content_sender).unwrap();
+
+    let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
+    opts::set_defaults(unprivileged_content.opts());
+
+    // Enter the sandbox if necessary.
+    //
+    // NB: Do not move this above the following lines, or you will never enter the sandbox!
+    if opts::get().sandbox {
+        ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
+    }
+
+    initialize_script();
+
+    unprivileged_content.start_all::<layout::layout_task::LayoutTask,
+                                     script::script_task::ScriptTask>();
+
+    // FIXME(pcwalton): This is silly. We should wait until both layout and script tasks have shut
+    // down and then shut down ourselves.
+    loop {
+        thread::sleep(Duration::new(10, 0));
+    }
+}
+

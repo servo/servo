@@ -74,13 +74,13 @@ use net_traits::storage_task::StorageTask;
 use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
 use string_cache::Atom;
 use util::str::DOMString;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
@@ -395,7 +395,7 @@ impl ScriptTaskFactory for ScriptTask {
               compositor: ScriptListener,
               layout_chan: &OpaqueScriptLayoutChannel,
               control_chan: ScriptControlChan,
-              control_port: Receiver<ConstellationControlMsg>,
+              control_port: IpcReceiver<ConstellationControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               resource_task: ResourceTask,
@@ -408,7 +408,9 @@ impl ScriptTaskFactory for ScriptTask {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        spawn_named_with_send_on_failure(format!("ScriptTask {:?}", id), task_state::SCRIPT, move || {
+        task::spawn_named_with_send_to_ipc_channel_on_failure(format!("ScriptTask {:?}", id),
+                                                              task_state::SCRIPT,
+                                                              move || {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = NonWorkerScriptChan(script_chan);
@@ -503,7 +505,7 @@ impl ScriptTask {
                port: Receiver<ScriptMsg>,
                chan: NonWorkerScriptChan,
                control_chan: ScriptControlChan,
-               control_port: Receiver<ConstellationControlMsg>,
+               ipc_control_port: IpcReceiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
                resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
@@ -526,6 +528,9 @@ impl ScriptTask {
         let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
         let image_cache_port =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_port);
+
+        // Ask the router to proxy IPC messages from the control port to us.
+        let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_control_port);
 
         ScriptTask {
             page: DOMRefCell::new(None),
@@ -803,7 +808,7 @@ impl ScriptTask {
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
                 self.handle_tick_all_animations(pipeline_id),
             ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
-                responder.respond();
+                responder.send(()).unwrap();
                 self.handle_resource_loaded(id, LoadType::Stylesheet(url));
             }
             ConstellationControlMsg::GetCurrentState(sender, pipeline_id) => {
