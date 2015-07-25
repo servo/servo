@@ -6,15 +6,15 @@
 
 #![deny(missing_docs)]
 
-use std::sync::mpsc::Sender;
+use ipc_channel::ipc::IpcSender;
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
 #[derive(Clone)]
-pub struct ProfilerChan(pub Sender<ProfilerMsg>);
+pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
-    /// Send `msg` on this `Sender`.
+    /// Send `msg` on this `IpcSender`.
     ///
     /// Panics if the send fails.
     pub fn send(&self, msg: ProfilerMsg) {
@@ -24,6 +24,7 @@ impl ProfilerChan {
 }
 
 /// A single memory-related measurement.
+#[derive(Deserialize, Serialize)]
 pub struct Report {
     /// The identifying path for this report.
     pub path: Vec<String>,
@@ -33,11 +34,11 @@ pub struct Report {
 }
 
 /// A channel through which memory reports can be sent.
-#[derive(Clone)]
-pub struct ReportsChan(pub Sender<Vec<Report>>);
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ReportsChan(pub IpcSender<Vec<Report>>);
 
 impl ReportsChan {
-    /// Send `report` on this `Sender`.
+    /// Send `report` on this `IpcSender`.
     ///
     /// Panics if the send fails.
     pub fn send(&self, report: Vec<Report>) {
@@ -46,13 +47,30 @@ impl ReportsChan {
     }
 }
 
-/// A memory reporter is capable of measuring some data structure of interest. Because it needs to
-/// be passed to and registered with the Profiler, it's typically a "small" (i.e. easily cloneable)
-/// value that provides access to a "large" data structure, e.g. a channel that can inject a
-/// request for measurements into the event queue associated with the "large" data structure.
-pub trait Reporter {
+/// The protocol used to send reporter requests.
+#[derive(Deserialize, Serialize)]
+pub struct ReporterRequest {
+    /// The channel on which reports are to be sent.
+    pub reports_channel: ReportsChan,
+}
+
+/// A memory reporter is capable of measuring some data structure of interest. It's structured as
+/// an IPC sender that a `ReporterRequest` in transmitted over. `ReporterRequest` objects in turn
+/// encapsulate the channel on which the memory profiling information is to be sent.
+///
+/// In many cases, clients construct `Reporter` objects by creating an IPC sender/receiver pair and
+/// registering the receiving end with the router so that messages from the memory profiler end up
+/// injected into the client's event loop.
+#[derive(Deserialize, Serialize)]
+pub struct Reporter(pub IpcSender<ReporterRequest>);
+
+impl Reporter {
     /// Collect one or more memory reports. Returns true on success, and false on failure.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool;
+    pub fn collect_reports(&self, reports_chan: ReportsChan) {
+        self.0.send(ReporterRequest {
+            reports_channel: reports_chan,
+        }).unwrap()
+    }
 }
 
 /// An easy way to build a path for a report.
@@ -65,11 +83,12 @@ macro_rules! path {
 }
 
 /// Messages that can be sent to the memory profiler thread.
+#[derive(Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Register a Reporter with the memory profiler. The String is only used to identify the
     /// reporter so it can be unregistered later. The String must be distinct from that used by any
     /// other registered reporter otherwise a panic will occur.
-    RegisterReporter(String, Box<Reporter + Send>),
+    RegisterReporter(String, Reporter),
 
     /// Unregister a Reporter with the memory profiler. The String must match the name given when
     /// the reporter was registered. If the String does not match the name of a registered reporter
@@ -82,3 +101,4 @@ pub enum ProfilerMsg {
     /// Tells the memory profiler to shut down.
     Exit,
 }
+

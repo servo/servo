@@ -29,11 +29,13 @@ use msg::constellation_msg::PipelineId;
 use devtools_traits::DevtoolsControlChan;
 
 use net_traits::{load_whole_resource, ResourceTask};
-use profile_traits::mem::{self, Reporter, ReportsChan};
+use profile_traits::mem::{self, Reporter, ReporterRequest};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
@@ -63,13 +65,6 @@ impl ScriptChan for SendableWorkerScriptChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
         }
-    }
-}
-
-impl Reporter for SendableWorkerScriptChan {
-    // Just injects an appropriate event into the worker task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        self.send(ScriptMsg::CollectReports(reports_chan)).is_ok()
     }
 }
 
@@ -182,6 +177,7 @@ impl DedicatedWorkerGlobalScope {
 
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let serialized_url = url.serialize();
+            let parent_sender_for_reporter = parent_sender.clone();
             let global = DedicatedWorkerGlobalScope::new(
                 url, id, mem_profiler_chan.clone(), devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver);
@@ -206,9 +202,16 @@ impl DedicatedWorkerGlobalScope {
 
                 // Register this task as a memory reporter. This needs to be done within the
                 // scope of `_ar` otherwise script_chan_as_reporter() will panic.
-                let reporter = global.script_chan_as_reporter();
-                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
-                mem_profiler_chan.send(msg);
+                let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
+                    // Just injects an appropriate event into the worker task's queue.
+                    let reporter_request: ReporterRequest = reporter_request.to().unwrap();
+                    parent_sender_for_reporter.send(ScriptMsg::CollectReports(
+                            reporter_request.reports_channel)).unwrap()
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
             }
 
             loop {
@@ -230,7 +233,6 @@ impl DedicatedWorkerGlobalScope {
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
     fn script_chan(self) -> Box<ScriptChan+Send>;
-    fn script_chan_as_reporter(self) -> Box<Reporter+Send>;
     fn pipeline(self) -> PipelineId;
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
     fn process_event(self, msg: ScriptMsg);
@@ -243,14 +245,6 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
             worker: self.worker.borrow().as_ref().unwrap().clone(),
         }
     }
-
-    fn script_chan_as_reporter(self) -> Box<Reporter+Send> {
-        box SendableWorkerScriptChan {
-            sender: self.own_sender.clone(),
-            worker: self.worker.borrow().as_ref().unwrap().clone(),
-        }
-    }
-
 
     fn pipeline(self) -> PipelineId {
         self.id

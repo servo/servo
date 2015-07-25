@@ -415,6 +415,7 @@ dependencies = [
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gfx_traits 0.0.1",
  "harfbuzz 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -938,6 +939,7 @@ source = "git+https://github.com/servo/rust-png#3c3105672622c76fbb079a96384f78e4
 name = "profile"
 version = "0.0.1"
 dependencies = [
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
@@ -951,6 +953,9 @@ dependencies = [
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
+ "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1102,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "serde_codegen"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "aster 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1115,7 +1120,7 @@ name = "serde_macros"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde_codegen 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_codegen 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

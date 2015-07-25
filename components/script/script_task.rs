@@ -70,7 +70,7 @@ use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
-use profile_traits::mem::{self, Report, Reporter, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportsChan};
 use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
@@ -79,6 +79,8 @@ use util::task_state;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
@@ -252,18 +254,6 @@ impl NonWorkerScriptChan {
         let (chan, port) = channel();
         (port, box NonWorkerScriptChan(chan))
     }
-
-    fn clone_as_reporter(&self) -> Box<Reporter+Send> {
-        let NonWorkerScriptChan(ref chan) = *self;
-        box NonWorkerScriptChan((*chan).clone())
-    }
-}
-
-impl Reporter for NonWorkerScriptChan {
-    // Just injects an appropriate event into the script task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        self.send(ScriptMsg::CollectReports(reports_chan)).is_ok()
-    }
 }
 
 pub struct StackRootTLS;
@@ -420,7 +410,7 @@ impl ScriptTaskFactory for ScriptTask {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = NonWorkerScriptChan(script_chan);
-            let reporter = chan.clone_as_reporter();
+            let channel_for_reporter = chan.clone();
             let script_task = ScriptTask::new(compositor,
                                               script_port,
                                               chan,
@@ -445,6 +435,14 @@ impl ScriptTaskFactory for ScriptTask {
 
             // Register this task as a memory reporter.
             let reporter_name = format!("script-reporter-{}", id.0);
+            let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+            ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
+                // Just injects an appropriate event into the worker task's queue.
+                let reporter_request: ReporterRequest = reporter_request.to().unwrap();
+                channel_for_reporter.send(ScriptMsg::CollectReports(
+                        reporter_request.reports_channel)).unwrap()
+            });
+            let reporter = Reporter(reporter_sender);
             let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
             mem_profiler_chan.send(msg);
 

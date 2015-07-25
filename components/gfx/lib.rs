@@ -24,6 +24,7 @@ extern crate azure;
 #[macro_use] extern crate bitflags;
 extern crate fnv;
 extern crate euclid;
+extern crate ipc_channel;
 extern crate layers;
 extern crate libc;
 #[macro_use]
