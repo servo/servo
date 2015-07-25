@@ -18,10 +18,11 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
+use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Opts {
     pub is_running_problem_test: bool,
 
@@ -143,8 +144,11 @@ pub struct Opts {
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: String,
 
-    /// Whether to run in multiprocess mode.
+    /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
+
+    /// Whether we're running inside the sandbox.
+    pub sandbox: bool,
 
     /// Dumps the flow tree after a layout.
     pub dump_flow_tree: bool,
@@ -375,6 +379,13 @@ static FORCE_CPU_PAINTING: bool = true;
 #[cfg(not(target_os = "android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
+static MULTIPROCESS: AtomicBool = ATOMIC_BOOL_INIT;
+
+#[inline]
+pub fn multiprocess() -> bool {
+    MULTIPROCESS.load(Ordering::Relaxed)
+}
+
 enum UserAgent {
     Desktop,
     Android,
@@ -460,6 +471,7 @@ pub fn default_opts() -> Opts {
         initial_window_size: Size2D::typed(800, 600),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
         multiprocess: false,
+        sandbox: false,
         dump_flow_tree: false,
         dump_display_list: false,
         dump_display_list_json: false,
@@ -479,7 +491,7 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) {
+pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
@@ -509,11 +521,14 @@ pub fn from_cmdline_args(args: &[String]) {
                 "Set custom user agent string (or android / gonk / desktop for platform default)",
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+    opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
     opts.optopt("Z", "debug",
                 "A comma-separated string of debug options. Pass help to show available options.", "");
     opts.optflag("h", "help", "Print this message");
     opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
     opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
+    opts.optopt("", "content-process" , "Run as a content process and connect to the given pipe",
+                "servo-ipc-channel.abcdefg");
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
@@ -529,6 +544,13 @@ pub fn from_cmdline_args(args: &[String]) {
         print_usage(app_name, &opts);
         process::exit(0);
     };
+
+    // If this is the content process, we'll receive the real options over IPC. So just fill in
+    // some dummy options for now.
+    if let Some(content_process) = opt_match.opt_str("content-process") {
+        MULTIPROCESS.store(true, Ordering::SeqCst);
+        return ArgumentParsingResult::ContentProcess(content_process);
+    }
 
     let debug_string = match opt_match.opt_str("Z") {
         Some(string) => string,
@@ -627,6 +649,10 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
+    if opt_match.opt_present("M") {
+        MULTIPROCESS.store(true, Ordering::SeqCst)
+    }
+
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
         Some(ref ua) if ua == "gonk" => default_user_agent_string(UserAgent::Gonk),
@@ -675,6 +701,7 @@ pub fn from_cmdline_args(args: &[String]) {
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
+        sandbox: opt_match.opt_present("S"),
         show_debug_borders: debug_options.show_compositor_borders,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_paint: debug_options.show_parallel_paint,
@@ -704,6 +731,22 @@ pub fn from_cmdline_args(args: &[String]) {
     for pref in opt_match.opt_strs("pref").iter() {
         prefs::set_pref(pref, PrefValue::Boolean(true));
     }
+
+    ArgumentParsingResult::ChromeProcess
+}
+
+pub enum ArgumentParsingResult {
+    ChromeProcess,
+    ContentProcess(String),
+}
+
+static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
+
+/// Turn on experimental features globally. Normally this is done
+/// during initialization by `set` or `from_cmdline_args`, but
+/// tests that require experimental features will also set it.
+pub fn set_experimental_enabled(new_value: bool) {
+    EXPERIMENTAL_ENABLED.store(new_value, Ordering::SeqCst);
 }
 
 // Make Opts available globally. This saves having to clone and pass

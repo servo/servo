@@ -29,7 +29,6 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::ImageCacheTask;
 use profile_traits::{mem, time};
 use script_traits::{LayoutControlMsg, ConstellationControlMsg, OpaqueScriptLayoutChannel};
-use std::sync::mpsc::Sender;
 use url::Url;
 use util::ipc::OptionalIpcSender;
 
@@ -49,11 +48,12 @@ pub trait LayoutTaskFactory {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan<ConstellationMsg>,
               failure_msg: Failure,
-              script_chan: Sender<ConstellationControlMsg>,
+              script_chan: IpcSender<ConstellationControlMsg>,
               layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
-              shutdown_chan: Sender<()>);
+              shutdown_chan: IpcSender<()>,
+              content_process_shutdown_chan: IpcSender<()>);
 }

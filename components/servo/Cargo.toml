@@ -129,6 +129,12 @@ features = [ "serde_serialization" ]
 version = "0.3"
 features = ["plugins"]
 
+[dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 features = ["plugins"]

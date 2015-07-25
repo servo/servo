@@ -36,8 +36,7 @@ use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
 use util::geometry::{ExpandToPixelBoundaries, ZERO_POINT};
 use util::opts;
-use util::task::spawn_named;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -255,9 +254,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                   failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
-                  shutdown_chan: Sender<()>) {
+                  shutdown_chan: IpcSender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("PaintTask {:?}", id), task_state::PAINT, move || {
+        task::spawn_named_with_send_on_failure(format!("PaintTask {:?}", id),
+                                               task_state::PAINT,
+                                               move || {
             {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
@@ -572,7 +573,7 @@ impl WorkerThreadProxy {
             let (to_worker_sender, to_worker_receiver) = channel();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            spawn_named("PaintWorker".to_owned(), move || {
+            task::spawn_named("PaintWorker".to_owned(), move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_display,

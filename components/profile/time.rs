@@ -100,6 +100,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
             ProfilerCategory::ScriptSetViewport => "Script Set Viewport",
             ProfilerCategory::ScriptTimerEvent => "Script Timer Event",
+            ProfilerCategory::ScriptStylesheetLoad => "Script Stylesheet Load",
             ProfilerCategory::ScriptWebSocketEvent => "Script Web Socket Event",
             ProfilerCategory::ScriptWorkerEvent => "Script Worker Event",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",

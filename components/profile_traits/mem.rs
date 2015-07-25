@@ -25,7 +25,7 @@ impl<T> OpaqueSender<T> for Sender<T> {
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {

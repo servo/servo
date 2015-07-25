@@ -17,7 +17,7 @@ use gfx_traits::color;
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
@@ -30,7 +30,7 @@ use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
 use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::{AnimationState, Image, PixelFormat};
-use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
@@ -168,7 +168,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     frame_tree_id: FrameTreeId,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: Sender<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -385,8 +385,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
-        let ConstellationChan(ref constellation_channel) = self.constellation_chan;
-        constellation_channel.send(ConstellationMsg::Exit).unwrap();
+        self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
 
         self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
 
@@ -702,8 +701,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn set_frame_tree(&mut self,
                       frame_tree: &SendableFrameTree,
-                      response_chan: Sender<()>,
-                      new_constellation_chan: ConstellationChan<ConstellationMsg>) {
+                      response_chan: IpcSender<()>,
+                      new_constellation_chan: Sender<ConstellationMsg>) {
         response_chan.send(()).unwrap();
 
         // There are now no more pending iframes.
@@ -943,8 +942,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let initial_viewport = self.window_size.as_f32() / dppx;
         let visible_viewport = initial_viewport / self.viewport_zoom;
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
+        self.constellation_chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
@@ -959,9 +957,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => return,
         };
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::FrameSize(*subpage_pipeline_id,
-                                              layer_properties.rect.size)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::FrameSize(
+            *subpage_pipeline_id,
+            layer_properties.rect.size)).unwrap();
     }
 
     pub fn move_layer(&self,
@@ -1168,8 +1166,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => ConstellationMsg::InitLoadUrl(url)
         };
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(msg).unwrap()
+        self.constellation_chan.send(msg).unwrap()
     }
 
     fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
@@ -1446,7 +1443,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn tick_animations_for_pipeline(&self, pipeline_id: PipelineId) {
-        self.constellation_chan.0.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
     }
 
     fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
@@ -1538,13 +1535,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward,
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::KeyEvent(key, state, modifiers)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::KeyEvent(key, state, modifiers)).unwrap()
     }
 
     fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
@@ -1744,8 +1739,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                 // Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
-                let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ConstellationMsg::IsReadyToSaveImage(pipeline_epochs)).unwrap();
+                self.constellation_chan.send(ConstellationMsg::IsReadyToSaveImage(pipeline_epochs)).unwrap();
                 self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
                 Err(NotReadyToPaint::JustNotifiedConstellation)
             }
@@ -2167,8 +2161,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             None => return,
             Some(ref root_pipeline) => root_pipeline.id,
         };
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
     }
 }
 
