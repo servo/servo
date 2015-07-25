@@ -25,31 +25,29 @@ use std::sync::mpsc::Sender;
 use std::rc::Rc;
 
 
-// pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<EvaluateJSReply>){
-//     let page = get_page(&*page, pipeline);
-//     let window = page.window();
-//     let cx = window.r().get_cx();
-//     let mut rval = RootedValue::new(cx, UndefinedValue());
-//     window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<EvaluateJSReply>){
+    let page = get_page(&*page, pipeline);
+    let window = page.window();
+    let cx = window.r().get_cx();
+    let mut rval = RootedValue::new(cx, UndefinedValue());
+    window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
-//     reply.send(if rval.ptr.is_undefined() {
-//         EvaluateJSReply::VoidValue
-//     } else if rval.ptr.is_boolean() {
-//         EvaluateJSReply::BooleanValue(rval.ptr.to_boolean())
-//     } else if rval.ptr.is_double() {
-//         EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap())
-//     } else if rval.ptr.is_string() {
-//         //FIXME: use jsstring_to_str when jsval grows to_jsstring
-//         EvaluateJSReply::StringValue(
-//             FromJSValConvertible::from_jsval(cx, rval.handle(), StringificationBehavior::Default).unwrap())
-//     } else if rval.ptr.is_null() {
-//         EvaluateJSReply::NullValue
-//     } else {
-//         //FIXME: jsvals don't have an is_int32/is_number yet
-//         assert!(rval.ptr.is_object());
-//         panic!("object values unimplemented")
-//     }).unwrap();
-// }
+    reply.send(if rval.ptr.is_undefined() {
+        EvaluateJSReply::VoidValue
+    } else if rval.ptr.is_boolean() {
+        EvaluateJSReply::BooleanValue(rval.ptr.to_boolean())
+    } else if rval.ptr.is_double() {
+        EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap())
+    } else if rval.ptr.is_string() {
+        EvaluateJSReply::StringValue(
+            FromJSValConvertible::from_jsval(cx, rval.handle(), StringificationBehavior::Default).unwrap())
+    } else if rval.ptr.is_null() {
+        EvaluateJSReply::NullValue
+    } else {
+        assert!(rval.ptr.is_object());
+        panic!("object values unimplemented")
+    }).unwrap();
+}
 
 pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: Sender<NodeInfo>) {
     let page = get_page(&*page, pipeline);
