@@ -7,10 +7,12 @@
 
 extern crate azure;
 #[macro_use] extern crate bitflags;
+extern crate canvas_traits;
 extern crate euclid;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate layers;
+extern crate offscreen_gl_context;
 extern crate png;
 extern crate rustc_serialize;
 extern crate serde;

@@ -21,6 +21,7 @@ use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
 use table_cell::CollapsedBordersForCell;
 
+use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
 use euclid::Matrix4;
 use gfx_traits::color;
@@ -32,7 +33,7 @@ use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
-use ipc_channel::ipc::IpcSharedMemory;
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::compositor_msg::{ScrollPolicy, LayerId};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -41,6 +42,7 @@ use net_traits::image::base::{Image, PixelFormat};
 use std::cmp;
 use std::default::Default;
 use std::sync::Arc;
+use std::sync::mpsc::channel;
 use std::f32;
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin,
@@ -59,9 +61,6 @@ use util::cursor::Cursor;
 use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
-
-use canvas_traits::{CanvasMsg, CanvasCommonMsg};
-use std::sync::mpsc::channel;
 
 /// A possible `PaintLayer` for an stacking context
 pub enum StackingContextLayer {
@@ -1099,11 +1098,11 @@ impl FragmentDisplayListBuilding for Fragment {
                     .computed_inline_size.map_or(0, |w| w.to_px() as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
-                let (sender, receiver) = channel::<IpcSharedMemory>();
-                let canvas_data = match canvas_fragment_info.renderer {
-                    Some(ref renderer) =>  {
-                        renderer.lock().unwrap().send(CanvasMsg::Common(
-                                CanvasCommonMsg::SendPixelContents(sender))).unwrap();
+                let (sender, receiver) = ipc::channel::<IpcSharedMemory>().unwrap();
+                let canvas_data = match canvas_fragment_info.ipc_renderer {
+                    Some(ref ipc_renderer) =>  {
+                        ipc_renderer.lock().unwrap().send(CanvasMsg::FromLayout(
+                                FromLayoutMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
                     None => IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
@@ -1248,8 +1247,11 @@ impl FragmentDisplayListBuilding for Fragment {
         // task
         if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
             let layer_id = layer.as_ref().unwrap().id;
-            layout_context.shared.canvas_layers_sender
-                .send((layer_id, fragment_info.renderer.clone())).unwrap();
+            if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
+                layout_context.shared
+                              .canvas_layers_sender
+                              .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
+            }
         }
 
         let transform_style = self.style().get_used_transform_style();

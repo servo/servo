@@ -13,6 +13,9 @@ path = "../style"
 [dependencies.util]
 path = "../util"
 
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
@@ -33,6 +36,10 @@ features = [ "serde_serialization" ]
 
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+features = ["texture_surface"]
 
 [dependencies]
 bitflags = "0.3"
