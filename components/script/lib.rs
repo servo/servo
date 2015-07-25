@@ -20,6 +20,7 @@
 #![feature(owned_ascii_ext)]
 #![feature(plugin)]
 #![feature(rc_unique)]
+#![feature(rc_weak)]
 #![feature(slice_chars)]
 #![feature(str_utf16)]
 #![feature(unicode)]
