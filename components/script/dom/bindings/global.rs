@@ -14,13 +14,14 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::DocumentHelpers;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers};
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use script_task::{ScriptChan, ScriptPort, ScriptMsg, ScriptTask};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
 
+use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject};
@@ -99,9 +100,9 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get a `DevtoolsControlChan` to send messages to Devtools
+    /// Get an `IpcSender<ScriptToDevtoolsControlMsg>` to send messages to Devtools
     /// task when available.
-    pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
+    pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         match *self {
             GlobalRef::Window(window) => window.devtools_chan(),
             GlobalRef::Worker(worker) => worker.devtools_chan(),

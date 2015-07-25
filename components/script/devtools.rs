@@ -16,12 +16,12 @@ use dom::node::{Node, NodeHelpers};
 use dom::window::{WindowHelpers, ScriptHelpers};
 use dom::document::DocumentHelpers;
 use page::{IterablePage, Page};
+use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_task::{get_page, ScriptTask};
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 
-use std::sync::mpsc::Sender;
 use std::rc::Rc;
 
 
@@ -29,7 +29,7 @@ pub fn handle_evaluate_js(
         page: &Rc<Page>,
         pipeline: PipelineId,
         eval: String,
-        reply: Sender<EvaluateJSReply>
+        reply: IpcSender<EvaluateJSReply>
     ) {
     let page = get_page(&*page, pipeline);
     let window = page.window();
@@ -58,7 +58,7 @@ pub fn handle_evaluate_js(
     }).unwrap();
 }
 
-pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: Sender<NodeInfo>) {
+pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
     let page = get_page(&*page, pipeline);
     let document = page.document();
 
@@ -66,7 +66,7 @@ pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: Sender
     reply.send(node.summarize()).unwrap();
 }
 
-pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply: Sender<NodeInfo>) {
+pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
     let page = get_page(&*page, pipeline);
     let document = page.document();
     let document_element = document.r().GetDocumentElement().unwrap();
@@ -89,7 +89,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     panic!("couldn't find node with unique id {}", node_id)
 }
 
-pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
+pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: IpcSender<Vec<NodeInfo>>) {
     let parent = find_node_by_unique_id(&*page, pipeline, node_id);
     let children = parent.r().children().map(|child| {
         child.r().summarize()
@@ -97,7 +97,7 @@ pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: Strin
     reply.send(children).unwrap();
 }
 
-pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
+pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: IpcSender<(f32, f32)>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
     let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
@@ -108,7 +108,7 @@ pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String,
 
 pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
                                   message_types: CachedConsoleMessageTypes,
-                                  reply: Sender<Vec<CachedConsoleMessage>>) {
+                                  reply: IpcSender<Vec<CachedConsoleMessage>>) {
     //TODO: check the messageTypes against a global Cache for console messages and page exceptions
     let mut messages = Vec::new();
     if message_types.contains(PAGE_ERROR) {
@@ -174,7 +174,7 @@ pub fn handle_wants_live_notifications(page: &Rc<Page>, pipeline_id: PipelineId,
 pub fn handle_set_timeline_markers(page: &Rc<Page>,
                                    script_task: &ScriptTask,
                                    marker_types: Vec<TimelineMarkerType>,
-                                   reply: Sender<TimelineMarker>) {
+                                   reply: IpcSender<TimelineMarker>) {
     for marker_type in &marker_types {
         match *marker_type {
             TimelineMarkerType::Reflow => {
@@ -204,8 +204,10 @@ pub fn handle_drop_timeline_markers(page: &Rc<Page>,
     }
 }
 
-pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, callback: Box<Fn(f64, )>) {
+pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, callback: IpcSender<f64>) {
     let page = page.find(id).expect("There is no such page");
     let doc = page.document();
-    doc.r().request_animation_frame(callback);
+    doc.r().request_animation_frame(box move |time| {
+        callback.send(time).unwrap()
+    });
 }

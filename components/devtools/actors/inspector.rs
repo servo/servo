@@ -12,19 +12,20 @@ use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
 
+use ipc_channel::ipc::{self, IpcSender};
 use std::collections::BTreeMap;
 use msg::constellation_msg::PipelineId;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::net::TcpStream;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::channel;
 
 pub struct InspectorActor {
     pub name: String,
     pub walker: RefCell<Option<String>>,
     pub pageStyle: RefCell<Option<String>>,
     pub highlighter: RefCell<Option<String>>,
-    pub script_chan: Sender<DevtoolScriptControlMsg>,
+    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
 }
 
@@ -45,7 +46,7 @@ struct HighlighterActor {
 
 pub struct NodeActor {
     pub name: String,
-    script_chan: Sender<DevtoolScriptControlMsg>,
+    script_chan: IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
 }
 
@@ -181,7 +182,7 @@ trait NodeInfoToProtocol {
     fn encode(self,
               actors: &ActorRegistry,
               display: bool,
-              script_chan: Sender<DevtoolScriptControlMsg>,
+              script_chan: IpcSender<DevtoolScriptControlMsg>,
               pipeline: PipelineId) -> NodeActorMsg;
 }
 
@@ -189,7 +190,7 @@ impl NodeInfoToProtocol for NodeInfo {
     fn encode(self,
               actors: &ActorRegistry,
               display: bool,
-              script_chan: Sender<DevtoolScriptControlMsg>,
+              script_chan: IpcSender<DevtoolScriptControlMsg>,
               pipeline: PipelineId) -> NodeActorMsg {
         let actor_name = if !actors.script_actor_registered(self.uniqueId.clone()) {
             let name = actors.new_name("node");
@@ -242,7 +243,7 @@ impl NodeInfoToProtocol for NodeInfo {
 
 struct WalkerActor {
     name: String,
-    script_chan: Sender<DevtoolScriptControlMsg>,
+    script_chan: IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
 }
 
@@ -290,7 +291,7 @@ impl Actor for WalkerActor {
             }
 
             "documentElement" => {
-                let (tx, rx) = channel();
+                let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetDocumentElement(self.pipeline, tx)).unwrap();
                 let doc_elem_info = rx.recv().unwrap();
                 let node = doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
@@ -313,7 +314,7 @@ impl Actor for WalkerActor {
 
             "children" => {
                 let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
-                let (tx, rx) = channel();
+                let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetChildren(self.pipeline,
                                                   registry.actor_to_script(target.to_string()),
                                                   tx))
@@ -350,7 +351,7 @@ struct PageStyleMsg {
 
 struct PageStyleActor {
     name: String,
-    script_chan: Sender<DevtoolScriptControlMsg>,
+    script_chan: IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
 }
 
@@ -452,7 +453,7 @@ impl Actor for PageStyleActor {
             //TODO: query script for box layout properties of node (msg.node)
             "getLayout" => {
                 let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
-                let (tx, rx) = channel();
+                let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetLayout(self.pipeline,
                                       registry.actor_to_script(target.to_string()),
                                       tx))
@@ -514,7 +515,7 @@ impl Actor for InspectorActor {
                     registry.register_later(box walker);
                 }
 
-                let (tx, rx) = channel();
+                let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetRootNode(self.pipeline, tx)).unwrap();
                 let root_info = rx.recv().unwrap();
 

@@ -38,7 +38,8 @@ use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
-use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, TracingMetadata};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{TracingMetadata};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
@@ -68,7 +69,7 @@ use std::default::Default;
 use std::ffi::CString;
 use std::mem as std_mem;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
@@ -124,11 +125,11 @@ pub struct Window {
     mem_profiler_chan: mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
-    devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
-    devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
+    devtools_marker_sender: RefCell<Option<IpcSender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
@@ -547,7 +548,7 @@ pub trait WindowHelpers {
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
     fn mem_profiler_chan(self) -> mem::ProfilerChan;
-    fn devtools_chan(self) -> Option<DevtoolsControlChan>;
+    fn devtools_chan(self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>>;
     fn layout_chan(self) -> LayoutChan;
     fn constellation_chan(self) -> ConstellationChan;
     fn windowproxy_handler(self) -> WindowProxyHandler;
@@ -564,7 +565,9 @@ pub trait WindowHelpers {
     fn freeze(self);
     fn need_emit_timeline_marker(self, timeline_type: TimelineMarkerType) -> bool;
     fn emit_timeline_marker(self, marker: TimelineMarker);
-    fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
+    fn set_devtools_timeline_marker(self,
+                                    marker: TimelineMarkerType,
+                                    reply: IpcSender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
     fn set_webdriver_script_chan(self, chan: Option<IpcSender<WebDriverJSResult>>);
     fn is_alive(self) -> bool;
@@ -832,7 +835,7 @@ impl<'a> WindowHelpers for &'a Window {
         self.mem_profiler_chan.clone()
     }
 
-    fn devtools_chan(self) -> Option<DevtoolsControlChan> {
+    fn devtools_chan(self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
     }
 
@@ -935,7 +938,9 @@ impl<'a> WindowHelpers for &'a Window {
         sender.send(marker).unwrap();
     }
 
-    fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
+    fn set_devtools_timeline_marker(self,
+                                    marker: TimelineMarkerType,
+                                    reply: IpcSender<TimelineMarker>) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
         self.devtools_markers.borrow_mut().insert(marker);
     }
@@ -978,7 +983,7 @@ impl Window {
                resource_task: ResourceTask,
                storage_task: StorageTask,
                mem_profiler_chan: mem::ProfilerChan,
-               devtools_chan: Option<DevtoolsControlChan>,
+               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan,
                layout_chan: LayoutChan,
                id: PipelineId,
