@@ -5,9 +5,10 @@
 //! Communication with the compositor task.
 
 use compositor;
-use euclid::{Point2D, Size2D};
+use euclid::point::Point2D;
+use euclid::size::Size2D;
 use headless;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerProperties};
@@ -63,11 +64,11 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
                                   receiver: IpcReceiver<ScriptToCompositorMsg>) {
     while let Ok(msg) = receiver.recv() {
         match msg {
-            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth) => {
+            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, smooth) => {
                 compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id,
                                                                layer_id,
                                                                point,
-                                                               _smooth));
+                                                               smooth));
             }
 
             ScriptToCompositorMsg::GetClientWindow(send) => {
@@ -83,7 +84,7 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
             }
 
             ScriptToCompositorMsg::Exit => {
-                let (chan, port) = channel();
+                let (chan, port) = ipc::channel().unwrap();
                 compositor_proxy.send(Msg::Exit(chan));
                 port.recv().unwrap();
             }
@@ -151,7 +152,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
 /// Messages from the painting task and the constellation task to the compositor task.
 pub enum Msg {
     /// Requests that the compositor shut down.
-    Exit(Sender<()>),
+    Exit(IpcSender<()>),
 
     /// Informs the compositor that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
@@ -179,7 +180,7 @@ pub enum Msg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
+    SetFrameTree(SendableFrameTree, IpcSender<()>, ConstellationChan),
     /// The load of a page has begun: (can go back, can go forward).
     LoadStart(bool, bool),
     /// The load of a page has completed: (can go back, can go forward).

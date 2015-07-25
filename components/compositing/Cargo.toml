@@ -25,6 +25,9 @@ path = "../script_traits"
 [dependencies.style_traits]
 path = "../style_traits"
 
+[dependencies.style]
+path = "../style"
+
 [dependencies.msg]
 path = "../msg"
 
@@ -73,12 +76,18 @@ features = ["texture_surface"]
 version = "0.2"
 features = [ "serde_serialization" ]
 
+[dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
 [dependencies]
+libc = "0.1"
 log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
 gleam = "0.1"
 euclid = "0.2"
+serde = "0.6"
+serde_macros = "0.5"
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.1"

@@ -112,7 +112,7 @@ pub struct Window {
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
     #[ignore_heap_size_of = "channels are hard"]
-    control_chan: Sender<ConstellationControlMsg>,
+    control_chan: IpcSender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -1260,7 +1260,7 @@ impl Window {
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
-               control_chan: Sender<ConstellationControlMsg>,
+               control_chan: IpcSender<ConstellationControlMsg>,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,

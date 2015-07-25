@@ -11,12 +11,12 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
 use png::Image;
 use std::collections::HashMap;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::channel;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
@@ -24,12 +24,12 @@ use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
-#[derive(Clone)]
-pub struct ConstellationChan(pub Sender<Msg>);
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ConstellationChan(pub IpcSender<Msg>);
 
 impl ConstellationChan {
-    pub fn new() -> (Receiver<Msg>, ConstellationChan) {
-        let (chan, port) = channel();
+    pub fn new() -> (IpcReceiver<Msg>, ConstellationChan) {
+        let (chan, port) = ipc::channel().unwrap();
         (port, ConstellationChan(chan))
     }
 }

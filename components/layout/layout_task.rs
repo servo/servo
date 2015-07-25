@@ -58,13 +58,14 @@ use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::StylesheetLoadResponder;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
+use script_traits::{StylesheetLoadResponder};
 use selectors::parser::PseudoElement;
 use sequential;
 use serde_json;
+use std;
 use std::borrow::ToOwned;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
@@ -86,7 +87,7 @@ use util::ipc::OptionalIpcSender;
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
 use util::opts;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 use util::workqueue::WorkQueue;
 use wrapper::LayoutNode;
@@ -198,7 +199,7 @@ pub struct LayoutTask {
     font_cache_receiver: Receiver<()>,
 
     /// The channel on which the font cache can send messages to us.
-    font_cache_sender: Sender<()>,
+    font_cache_sender: IpcSender<()>,
 
     /// The channel on which we or others can send messages to ourselves.
     pub chan: LayoutChan,
@@ -207,7 +208,7 @@ pub struct LayoutTask {
     pub constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the script task.
-    pub script_chan: Sender<ConstellationControlMsg>,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
 
     /// The channel on which messages can be sent to the painting task.
     pub paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
@@ -249,17 +250,18 @@ impl LayoutTaskFactory for LayoutTask {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
-              script_chan: Sender<ConstellationControlMsg>,
+              script_chan: IpcSender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
-              shutdown_chan: Sender<()>) {
+              shutdown_chan: IpcSender<()>,
+              content_process_shutdown_chan: IpcSender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id),
-                                         task_state::LAYOUT,
-                                         move || {
+        task::spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id),
+                                               task_state::LAYOUT,
+                                               move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout_chan = LayoutChan(sender);
@@ -283,6 +285,7 @@ impl LayoutTaskFactory for LayoutTask {
                 }, reporter_name, layout_chan.0, Msg::CollectReports);
             }
             shutdown_chan.send(()).unwrap();
+            content_process_shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), con_chan);
     }
 }
@@ -320,7 +323,7 @@ impl<'a> DerefMut for RWGuard<'a> {
 fn add_font_face_rules(stylesheet: &Stylesheet,
                        device: &Device,
                        font_cache_task: &FontCacheTask,
-                       font_cache_sender: &Sender<()>,
+                       font_cache_sender: &IpcSender<()>,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
@@ -342,7 +345,7 @@ impl LayoutTask {
            chan: LayoutChan,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
-           script_chan: Sender<ConstellationControlMsg>,
+           script_chan: IpcSender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
@@ -372,7 +375,10 @@ impl LayoutTask {
         let image_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
-        let (font_cache_sender, font_cache_receiver) = channel();
+        // Ask the router to proxy IPC messages from the font cache task to the layout thread.
+        let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
+        let font_cache_receiver =
+            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
         let stylist = box Stylist::new(device);
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
@@ -380,7 +386,7 @@ impl LayoutTask {
             add_font_face_rules(user_or_user_agent_stylesheet,
                                 &stylist.device,
                                 &font_cache_task,
-                                &font_cache_sender,
+                                &ipc_font_cache_sender,
                                 &outstanding_web_fonts_counter);
         }
 
@@ -402,7 +408,7 @@ impl LayoutTask {
             image_cache_receiver: image_cache_receiver,
             image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             font_cache_receiver: font_cache_receiver,
-            font_cache_sender: font_cache_sender,
+            font_cache_sender: ipc_font_cache_sender,
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(
@@ -716,14 +722,13 @@ impl LayoutTask {
                                   info.constellation_chan,
                                   info.failure,
                                   info.script_chan.clone(),
-                                  *info.paint_chan
-                                       .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
-                                       .unwrap(),
+                                  info.paint_chan.to::<LayoutToPaintMsg>(),
                                   self.image_cache_task.clone(),
                                   self.font_cache_task.clone(),
                                   self.time_profiler_chan.clone(),
                                   self.mem_profiler_chan.clone(),
-                                  info.layout_shutdown_chan);
+                                  info.layout_shutdown_chan,
+                                  info.content_process_shutdown_chan);
     }
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
@@ -794,10 +799,19 @@ impl LayoutTask {
                                                 Some(environment_encoding),
                                                 Origin::Author);
 
-        //TODO: mark critical subresources as blocking load as well (#5974)
-        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id,
-                                                                              url,
-                                                                              responder)).unwrap();
+        // TODO: mark critical subresources as blocking load as well (#5974)
+        // TODO(ipc-channel#9, pcwalton): Make an API on the router for this. This option dance is
+        // pretty ugly.
+        let (ipc_stylesheet_load_responder_chan, ipc_stylesheet_load_responder_port) =
+            ipc::channel().unwrap();
+        let responder = RefCell::new(Some(responder));
+        ROUTER.add_route(ipc_stylesheet_load_responder_port.to_opaque(), box move |_| {
+            std::mem::replace(&mut *responder.borrow_mut(), None).unwrap().respond();
+        });
+        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(
+                self.id,
+                url,
+                ipc_stylesheet_load_responder_chan)).unwrap();
 
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }

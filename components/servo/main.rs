@@ -27,10 +27,14 @@ extern crate env_logger;
 extern crate servo;
 extern crate time;
 
+#[cfg(target_os = "android")]
+#[macro_use]
+extern crate android_glue;
+
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::net_traits::hosts;
-use servo::util::opts;
+use servo::util::opts::{self, ArgumentParsingResult};
 #[cfg(target_os = "android")]
 use std::borrow::ToOwned;
 use std::rc::Rc;
@@ -39,12 +43,16 @@ fn main() {
     env_logger::init().unwrap();
 
     // Parse the command line options and store them globally
-    opts::from_cmdline_args(&*args());
+    let opts_result = opts::from_cmdline_args(&*args());
 
     setup_logging();
 
     // Possibly interpret the `HOST_FILE` environment variable
     hosts::global_init();
+
+    if let ArgumentParsingResult::ContentProcess(token) = opts_result {
+        return servo::run_content_process(token)
+    }
 
     let window = if opts::get().headless {
         None

@@ -16,7 +16,7 @@ use gfx::paint_task::{ChromeToPaintMsg, PaintRequest};
 use gfx_traits::color;
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
@@ -42,7 +42,6 @@ use std::collections::{HashMap, HashSet};
 use std::mem as std_mem;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
-use std::sync::mpsc::Sender;
 use style_traits::viewport::ViewportConstraints;
 use surface_map::SurfaceMap;
 use time::{precise_time_ns, precise_time_s};
@@ -621,7 +620,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn set_frame_tree(&mut self,
                       frame_tree: &SendableFrameTree,
-                      response_chan: Sender<()>,
+                      response_chan: IpcSender<()>,
                       new_constellation_chan: ConstellationChan) {
         response_chan.send(()).unwrap();
 

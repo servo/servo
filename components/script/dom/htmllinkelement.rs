@@ -25,6 +25,7 @@ use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
+use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptTaskEventCategory};
 use script_traits::StylesheetLoadResponder;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -175,8 +176,11 @@ impl HTMLLinkElement {
                 let media = parse_media_query_list(&mut css_parser);
 
                 let doc = window.Document();
-                let link_element = Trusted::new(window.get_cx(), self, window.script_chan().clone());
-                let load_dispatcher = StylesheetLoadDispatcher::new(link_element);
+                let link_element = Trusted::new(window.get_cx(),
+                                                self,
+                                                window.script_chan().clone());
+                let load_dispatcher =
+                    StylesheetLoadDispatcher::new(link_element, window.script_chan().clone());
 
                 let pending = doc.r().prepare_async_load(LoadType::Stylesheet(url.clone()));
                 let LayoutChan(ref layout_chan) = window.layout_chan();
@@ -259,18 +263,31 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
 pub struct StylesheetLoadDispatcher {
     elem: Trusted<HTMLLinkElement>,
+    script_chan: Box<ScriptChan + Send>,
 }
 
 impl StylesheetLoadDispatcher {
-    pub fn new(elem: Trusted<HTMLLinkElement>) -> StylesheetLoadDispatcher {
+    pub fn new(elem: Trusted<HTMLLinkElement>, script_chan: Box<ScriptChan + Send>)
+               -> StylesheetLoadDispatcher {
         StylesheetLoadDispatcher {
             elem: elem,
+            script_chan: script_chan,
         }
     }
 }
 
 impl StylesheetLoadResponder for StylesheetLoadDispatcher {
     fn respond(self: Box<StylesheetLoadDispatcher>) {
+        // Need to clone the script chan so it doesn't take out a borrow on self.
+        self.script_chan
+            .clone()
+            .send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::StylesheetLoad, self))
+            .unwrap();
+    }
+}
+
+impl Runnable for StylesheetLoadDispatcher {
+    fn handler(self: Box<StylesheetLoadDispatcher>) {
         let elem = self.elem.root();
         let window = window_from_node(elem.r());
         let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
@@ -280,3 +297,4 @@ impl StylesheetLoadResponder for StylesheetLoadDispatcher {
         event.r().fire(target);
     }
 }
+
