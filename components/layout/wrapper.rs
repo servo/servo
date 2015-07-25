@@ -237,6 +237,10 @@ impl<'ln> LayoutNode<'ln> {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
+
+    pub fn children_count(&self) -> u32 {
+        unsafe { self.node.children_count() }
+    }
 }
 
 impl<'ln> LayoutNode<'ln> {
