@@ -158,7 +158,6 @@ pub trait RawLayoutHTMLInputElementHelpers {
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
         #[allow(unsafe_code)]
