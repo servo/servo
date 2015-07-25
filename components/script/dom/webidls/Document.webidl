@@ -59,9 +59,11 @@ interface Document : Node {
 
   // NodeFilter.SHOW_ALL = 0xFFFFFFFF
   [NewObject]
-  NodeIterator createNodeIterator(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
+  NodeIterator createNodeIterator(Node root, optional unsigned long whatToShow = 0xFFFFFFFF,
+                                  optional NodeFilter? filter = null);
   [NewObject]
-  TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
+  TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF,
+                              optional NodeFilter? filter = null);
 };
 Document implements ParentNode;
 

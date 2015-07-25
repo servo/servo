@@ -5,7 +5,8 @@
 
 // http://dev.w3.org/2006/webapi/FileAPI/#dfn-Blob
 //[Exposed=Window,Worker][Constructor,
-// Constructor(sequence<(ArrayBuffer or ArrayBufferView or Blob or DOMString)> blobParts, optional BlobPropertyBag options)]
+// Constructor(sequence<(ArrayBuffer or ArrayBufferView or Blob or DOMString)> blobParts,
+//             optional BlobPropertyBag options)]
 [Constructor,
  Constructor(DOMString blobParts, optional BlobPropertyBag options)]
 interface Blob {

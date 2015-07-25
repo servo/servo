@@ -44,7 +44,9 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   [Throws]
   void open(ByteString method, /* [EnsureUTF16] */ DOMString url);
   [Throws]
-  void open(ByteString method, /* [EnsureUTF16] */ DOMString url, boolean async, optional /* [EnsureUTF16] */ DOMString? username = null, optional /* [EnsureUTF16] */ DOMString? password = null);
+  void open(ByteString method, /* [EnsureUTF16] */ DOMString url, boolean async,
+            optional /* [EnsureUTF16] */ DOMString? username = null,
+            optional /* [EnsureUTF16] */ DOMString? password = null);
 
   [Throws]
   void setRequestHeader(ByteString name, ByteString value);

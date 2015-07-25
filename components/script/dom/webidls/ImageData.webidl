@@ -14,10 +14,10 @@
 //Constructor(Uint8ClampedArray data, unsigned long sw, optional unsigned long sh),
 //Exposed=(Window,Worker)]
 interface ImageData {
-	//[Constant]
-	readonly attribute unsigned long width;
-	//[Constant]
-	readonly attribute unsigned long height;
-	//[Constant, StoreInSlot]
-	readonly attribute Uint8ClampedArray data;
+  //[Constant]
+  readonly attribute unsigned long width;
+  //[Constant]
+  readonly attribute unsigned long height;
+  //[Constant, StoreInSlot]
+  readonly attribute Uint8ClampedArray data;
 };
