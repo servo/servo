@@ -45,7 +45,7 @@ pub fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSRe
         Ok(WebDriverJSValue::Undefined)
     } else if val.get().is_boolean() {
         Ok(WebDriverJSValue::Boolean(val.get().to_boolean()))
-    } else if val.get().is_double() {
+    } else if val.get().is_double() || val.get().is_int32() {
         Ok(WebDriverJSValue::Number(FromJSValConvertible::from_jsval(cx, val, ()).unwrap()))
     } else if val.get().is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
