@@ -733,15 +733,13 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // Set hover state for any elements in the current mouse over list.
         // Check if any of them changed state to determine whether to
         // force a reflow below.
-        for target in mouse_over_targets.iter() {
-            let target = target.root();
-            let target_ref = target.r();
-            if !target_ref.get_hover_state() {
-                target_ref.set_hover_state(true);
+        for target in mouse_over_targets.r() {
+            if !target.get_hover_state() {
+                target.set_hover_state(true);
 
-                let target = EventTargetCast::from_ref(target_ref);
+                let target = EventTargetCast::from_ref(*target);
 
-                self.fire_mouse_event(point, &target, "mouseover".to_owned());
+                self.fire_mouse_event(point, target, "mouseover".to_owned());
 
             }
         }
