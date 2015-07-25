@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::FileReaderBinding;
-use dom::bindings::codegen::Bindings::FileReaderBinding::{FileReaderConstants, FileReaderMethods};
+use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::{ErrorResult, Fallible};
@@ -14,8 +13,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{reflect_dom_object, Reflectable};
 use dom::event::{EventHelpers, EventCancelable, EventBubbles};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
-use dom::blob::Blob;
-use dom::blob::BlobHelpers;
+use dom::blob::{Blob, BlobHelpers};
 use dom::domexception::{DOMException, DOMErrorName};
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
@@ -409,73 +407,51 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
 }
 
 #[derive(Clone)]
-pub enum Process {
+pub enum FileReaderEvent {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId, DOMString),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, Option<BlobBody>)
 }
 
-impl Process {
-    fn call(self, chan: &Box<ScriptChan + Send>) {
-        let task = box FileReaderEvent::new(self);
-        chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
-    }
-
-    pub fn handle(process: Process) {
-        match process {
-            Process::ProcessRead(filereader, gen_id) => {
+impl Runnable for FileReaderEvent {
+    fn handler(self: Box<FileReaderEvent>) {
+        let file_reader_event = *self;
+        match file_reader_event {
+            FileReaderEvent::ProcessRead(filereader, gen_id) => {
                 FileReader::process_read(filereader, gen_id);
             },
-            Process::ProcessReadData(filereader, gen_id, _) => {
+            FileReaderEvent::ProcessReadData(filereader, gen_id, _) => {
                 FileReader::process_read_data(filereader, gen_id);
             },
-            Process::ProcessReadError(filereader, gen_id, error) => {
+            FileReaderEvent::ProcessReadError(filereader, gen_id, error) => {
                 FileReader::process_read_error(filereader, gen_id, error);
             },
-            Process::ProcessReadEOF(filereader, gen_id, blob_body) => {
+            FileReaderEvent::ProcessReadEOF(filereader, gen_id, blob_body) => {
                 FileReader::process_read_eof(filereader, gen_id, blob_body);
             }
         }
     }
 }
 
-pub struct FileReaderEvent {
-    process: Process,
-}
-
-impl FileReaderEvent {
-    pub fn new(process: Process) -> FileReaderEvent {
-        FileReaderEvent {
-            process: process,
-        }
-    }
-
-}
-
-impl Runnable for FileReaderEvent {
-    fn handler(self: Box<FileReaderEvent>) {
-        let this = *self;
-        Process::handle(this.process);
-    }
-}
-
-//https://w3c.github.io/FileAPI/#task-read-operation
+// https://w3c.github.io/FileAPI/#task-read-operation
 fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
     filereader: TrustedFileReader, script_chan: Box<ScriptChan + Send>) {
     let chan = &script_chan;
     // Step 4
-    Process::ProcessRead(filereader.clone(),
-        gen_id).call(chan);
+    let task = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
+    chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
 
-    Process::ProcessReadData(filereader.clone(),
-        gen_id, DOMString::new()).call(chan);
+    let task = box FileReaderEvent::ProcessReadData(filereader.clone(),
+        gen_id, DOMString::new());
+    chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
 
     let output = match read_data.bytes.recv() {
         Ok(bytes) => bytes,
         Err(_) => {
-            Process::ProcessReadError(filereader,
-                gen_id, DOMErrorName::NotFoundError).call(chan);
+            let task = box FileReaderEvent::ProcessReadError(filereader,
+                gen_id, DOMErrorName::NotFoundError);
+            chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
             return;
         }
     };
@@ -487,5 +463,6 @@ fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
         BlobBody::new(bytes, blobtype, label, read_data.function)
     });
 
-    Process::ProcessReadEOF(filereader, gen_id, blob_body).call(chan);
+    let task = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, blob_body);
+    chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
 }
