@@ -12,7 +12,6 @@ import fnmatch
 import itertools
 import re
 import sys
-import toml
 from licenseck import licenses
 
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml", ".webidl"]
