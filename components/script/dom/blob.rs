@@ -82,14 +82,14 @@ impl Blob {
 }
 
 pub trait BlobHelpers {
-    fn read_out_buffer(self) -> Receiver<Option<Vec<u8>>> ;
+    fn read_out_buffer(self) -> Receiver<Vec<u8>>;
     fn read_out_type(self) -> DOMString;
 }
 
 impl<'a> BlobHelpers for &'a Blob {
-    fn read_out_buffer(self) -> Receiver<Option<Vec<u8>>> {
+    fn read_out_buffer(self) -> Receiver<Vec<u8>> {
         let (send, recv) = mpsc::channel();
-        send.send(self.bytes.clone()).unwrap();
+        send.send(self.bytes.clone().unwrap_or(vec![])).unwrap();
         recv
     }
     fn read_out_type(self) -> DOMString {
