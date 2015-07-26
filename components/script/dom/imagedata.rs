@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::typedarray::Uint8ClampedArray;
+use dom::bindings::typedarray::{Uint8ClampedArray, TypedArrayRooter};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use euclid::size::Size2D;
 use js::jsapi::{JSContext, JSObject, Heap};
@@ -49,7 +49,8 @@ pub trait ImageDataHelpers {
 
 impl<'a> ImageDataHelpers for &'a ImageData {
     fn get_data_array(self, _global: &GlobalRef) -> Vec<u8> {
-        let mut typed_array = Uint8ClampedArray::new();
+        let mut rooter = TypedArrayRooter::new();
+        let mut typed_array = Uint8ClampedArray::new(&mut rooter);
         if typed_array.init(self.data.get()).is_err() {
             return vec!();
         }

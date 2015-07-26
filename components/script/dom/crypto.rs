@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::typedarray::{ArrayBufferView};
+use dom::bindings::typedarray::{ArrayBufferView, TypedArrayRooter};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::cell::DOMRefCell;
 
@@ -41,7 +41,8 @@ impl<'a> CryptoMethods for &'a Crypto {
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
     fn GetRandomValues(self, _cx: *mut JSContext, input: *mut JSObject)
                        -> Fallible<*mut JSObject> {
-        let mut array_buffer_view = ArrayBufferView::new();
+        let mut rooter = TypedArrayRooter::new();
+        let mut array_buffer_view = ArrayBufferView::new(&mut rooter);
         if array_buffer_view.init(input).is_err() {
             return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView".to_owned()));
         }

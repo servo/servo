@@ -13,7 +13,7 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::typedarray::{ArrayBufferView, Float32Array};
+use dom::bindings::typedarray::{ArrayBufferView, Float32Array, TypedArrayRooter};
 use dom::htmlcanvaselement::{HTMLCanvasElement};
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
 use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
@@ -280,7 +280,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             None => return,
         };
 
-        let mut array_buffer_view = ArrayBufferView::new();
+        let mut rooter = TypedArrayRooter::new();
+        let mut array_buffer_view = ArrayBufferView::new(&mut rooter);
         if array_buffer_view.init(data).is_err() {
             return;
         }
@@ -484,7 +485,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             None => return,
         };
 
-        let mut typed_array = Float32Array::new();
+        let mut rooter = TypedArrayRooter::new();
+        let mut typed_array = Float32Array::new(&mut rooter);
         if typed_array.init(data).is_err() {
             return;
         }
