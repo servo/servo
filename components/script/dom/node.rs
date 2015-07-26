@@ -1816,10 +1816,9 @@ impl Node {
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             NodeTypeId::Element(..) => {
-                let node_elem: &Element = ElementCast::to_ref(node).unwrap();
-                let copy_elem: &Element = ElementCast::to_ref(copy.r()).unwrap();
+                let node_elem = ElementCast::to_ref(node).unwrap();
+                let copy_elem = ElementCast::to_ref(copy.r()).unwrap();
 
-                // FIXME: https://github.com/mozilla/servo/issues/1737
                 let window = document.r().window();
                 for ref attr in node_elem.attrs().iter() {
                     let attr = attr.root();
