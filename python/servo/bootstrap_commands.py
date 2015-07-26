@@ -217,7 +217,7 @@ class MachCommands(CommandBase):
 
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
-        except urllib2.URLError, e:
+        except urllib2.URLError:
             print("Unable to download chromium HSTS preload list; are you connected to the internet?")
             sys.exit(1)
 
