@@ -4,16 +4,14 @@
 
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::bindings::typedarray::Uint8ClampedArray;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use euclid::size::Size2D;
 use js::jsapi::{JSContext, JSObject, Heap};
-use js::jsapi::{JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData};
-use libc::uint8_t;
 use std::vec::Vec;
-use std::slice;
-use std::ptr;
 use std::default::Default;
 
 #[dom_struct]
@@ -26,8 +24,8 @@ pub struct ImageData {
 }
 
 impl ImageData {
-    #[allow(unsafe_code)]
-    pub fn new(global: GlobalRef, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
+    pub fn new(global: GlobalRef, width: u32, height: u32, data: Option<&[u8]>)
+               -> Fallible<Root<ImageData>> {
         let mut imagedata = box ImageData {
             reflector_: Reflector::new(),
             width: width,
@@ -35,19 +33,12 @@ impl ImageData {
             data: Heap::default(),
         };
 
-        unsafe {
-            let cx = global.get_cx();
-            let js_object: *mut JSObject = JS_NewUint8ClampedArray(cx, width * height * 4);
-
-            if let Some(vec) = data {
-                let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, ptr::null());
-                ptr::copy_nonoverlapping(vec.as_ptr(), js_object_data, vec.len())
-            }
-            (*imagedata).data.set(js_object);
+        match Uint8ClampedArray::create(global.get_cx(), width * height * 4, data) {
+            Some(js_object) => imagedata.data.set(*js_object),
+            None => return Err(Error::JSFailed)
         }
 
-        reflect_dom_object(imagedata,
-                           global, ImageDataBinding::Wrap)
+        Ok(reflect_dom_object(imagedata, global, ImageDataBinding::Wrap))
     }
 }
 
@@ -57,14 +48,13 @@ pub trait ImageDataHelpers {
 }
 
 impl<'a> ImageDataHelpers for &'a ImageData {
-    #[allow(unsafe_code)]
-    fn get_data_array(self, global: &GlobalRef) -> Vec<u8> {
-        unsafe {
-            let cx = global.get_cx();
-            let data: *const uint8_t = JS_GetUint8ClampedArrayData(self.Data(cx), ptr::null()) as *const uint8_t;
-            let len = self.Width() * self.Height() * 4;
-            slice::from_raw_parts(data, len as usize).to_vec()
+    fn get_data_array(self, _global: &GlobalRef) -> Vec<u8> {
+        let mut typed_array = Uint8ClampedArray::new();
+        if typed_array.init(self.data.get()).is_err() {
+            return vec!();
         }
+        typed_array.compute_length_and_data();
+        typed_array.as_slice().to_vec()
     }
 
     fn get_size(self) -> Size2D<i32> {
