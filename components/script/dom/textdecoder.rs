@@ -9,6 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
+use dom::bindings::typedarray::{ArrayBufferView, ArrayBuffer};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use util::str::DOMString;
@@ -17,11 +18,8 @@ use encoding::Encoding;
 use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::JS_GetObjectAsArrayBufferView;
 
 use std::borrow::ToOwned;
-use std::ptr;
-use std::slice;
 
 #[dom_struct]
 pub struct TextDecoder {
@@ -89,24 +87,33 @@ impl<'a> TextDecoderMethods for &'a TextDecoder {
             None => return Ok(USVString("".to_owned())),
         };
 
-        let mut length = 0;
-        let mut data = ptr::null_mut();
-        if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
-            return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
+        let mut array_buffer_view = ArrayBufferView::new();
+        if array_buffer_view.init(input).is_err() {
+            let mut array_buffer = ArrayBuffer::new();
+            if array_buffer.init(input).is_err() {
+                return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView \
+                                        or ArrayBuffer".to_owned()));
+            }
+            array_buffer.compute_length_and_data();
+            let buffer = array_buffer.as_slice();
+            return decode_from_slice(buffer, self.fatal, &self.encoding);
         }
-
-        let buffer = unsafe {
-            slice::from_raw_parts(data as *const _, length as usize)
-        };
-        let trap = if self.fatal {
-            DecoderTrap::Strict
-        } else {
-            DecoderTrap::Replace
-        };
-        match self.encoding.decode(buffer, trap) {
-            Ok(s) => Ok(USVString(s)),
-            Err(_) => Err(Error::Type("Decoding failed".to_owned())),
-        }
+        array_buffer_view.compute_length_and_data();
+        let buffer = array_buffer_view.as_untyped_slice();
+        return decode_from_slice(buffer, self.fatal, &self.encoding);
     }
 
 }
+
+fn decode_from_slice(buffer: &[u8], fatal: bool, encoding: &EncodingRef) -> Result<USVString, Error> {
+    let trap = if fatal {
+        DecoderTrap::Strict
+    } else {
+        DecoderTrap::Replace
+    };
+    match encoding.decode(buffer, trap) {
+        Ok(s) => Ok(USVString(s)),
+        Err(_) => Err(Error::Type("Decoding failed".to_owned())),
+    }
+}
+
