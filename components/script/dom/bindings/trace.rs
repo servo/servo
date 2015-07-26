@@ -391,7 +391,8 @@ impl RootedTraceableSet {
         }
     }
 
-    fn remove<T: JSTraceable>(traceable: &T) {
+    /// Remove a previously-registered JSTraceable pointer from the set.
+    pub fn remove<T: JSTraceable>(traceable: &T) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             let mut traceables = traceables.borrow_mut();
             let idx =
@@ -404,7 +405,8 @@ impl RootedTraceableSet {
         });
     }
 
-    fn add<T: JSTraceable>(traceable: &T) {
+    /// Remove a JSTraceable pointer to the set of known traceable objects.
+    pub fn add<T: JSTraceable>(traceable: &T) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             fn trace<T: JSTraceable>(obj: *const libc::c_void, tracer: *mut JSTracer) {
                 let obj: &T = unsafe { &*(obj as *const T) };

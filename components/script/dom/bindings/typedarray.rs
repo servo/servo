@@ -6,12 +6,14 @@
 //! typed arrays or wrapping existing JS reflectors, and prevents reinterpreting
 //! existing buffers as different types except in well-defined cases.
 
+use dom::bindings::trace::{JSTraceable, RootedTraceableSet};
+
 use js::jsapi::{JS_NewUint8Array, JS_NewUint16Array, JS_NewUint32Array, JS_NewInt8Array};
 use js::jsapi::{JS_NewInt16Array, JS_NewInt32Array, JS_NewFloat32Array, JS_NewFloat64Array};
 use js::jsapi::{JS_NewUint8ClampedArray, JS_GetUint8ArrayData, JS_GetUint16ArrayData};
 use js::jsapi::{JS_GetUint32ArrayData, JS_GetInt8ArrayData, JS_GetInt16ArrayData, JSObject};
 use js::jsapi::{JS_GetInt32ArrayData, JS_GetUint8ClampedArrayData, JS_GetFloat32ArrayData};
-use js::jsapi::{JS_GetFloat64ArrayData, JSContext, Type};
+use js::jsapi::{JS_GetFloat64ArrayData, JSContext, Type, JSTracer, JS_CallUnbarrieredObjectTracer};
 use js::jsapi::{UnwrapInt8Array, UnwrapInt16Array, UnwrapInt32Array, UnwrapUint8ClampedArray};
 use js::jsapi::{UnwrapUint8Array, UnwrapUint16Array, UnwrapUint32Array, UnwrapArrayBufferView};
 use js::jsapi::{UnwrapFloat32Array, UnwrapFloat64Array, GetUint8ArrayLengthAndData};
@@ -28,6 +30,8 @@ use std::ops::{Deref, DerefMut};
 use std::slice;
 use std::ptr;
 
+#[derive(Debug)]
+#[allow(raw_pointer_derive)]
 struct TypedArrayObjectStorage {
     typed_obj: *mut JSObject,
     wrapped_obj: *mut JSObject,
@@ -103,7 +107,7 @@ typed_array_element!(ArrayBufferU8, u8, UnwrapArrayBuffer, GetArrayBufferLengthA
 typed_array_element!(ArrayBufferViewU8, u8, UnwrapArrayBufferView, GetArrayBufferViewLengthAndData);
 
 /// The base representation for all typed arrays.
-pub struct TypedArrayBase<T: TypedArrayElement> {
+pub struct TypedArrayBase<'a, T: 'a + TypedArrayElement> {
     /// The JS wrapper storage.
     storage: TypedArrayObjectStorage,
     /// The underlying memory buffer.
@@ -114,16 +118,18 @@ pub struct TypedArrayBase<T: TypedArrayElement> {
     /// Any attempt to interact with the underlying buffer must compute it first,
     /// to minimize the window of potential GC hazards.
     computed: bool,
+    rooter: &'a mut TypedArrayRooter,
 }
 
-impl<T: TypedArrayElement> TypedArrayBase<T> {
+impl<'a, T: TypedArrayElement> TypedArrayBase<'a, T> {
     /// Create an uninitialized typed array representation.
-    pub fn new() -> TypedArrayBase<T> {
+    pub fn new(rooter: &'a mut TypedArrayRooter) -> TypedArrayBase<'a, T> {
         TypedArrayBase {
             storage: TypedArrayObjectStorage::new(),
             data: ptr::null_mut(),
             length: 0,
             computed: false,
+            rooter: rooter,
         }
     }
 
@@ -136,6 +142,7 @@ impl<T: TypedArrayElement> TypedArrayBase<T> {
     /// that does not match the expected typed array details.
     pub fn init(&mut self, obj: *mut JSObject) -> Result<(), ()> {
         assert!(!self.inited());
+        self.rooter.init(&mut self.storage);
         self.storage.typed_obj = T::unwrap_array(obj);
         self.storage.wrapped_obj = self.storage.typed_obj;
         if self.inited() {
@@ -176,7 +183,16 @@ impl<T: TypedArrayElement> TypedArrayBase<T> {
     }
 }
 
-impl TypedArrayBase<ArrayBufferViewU8> {
+impl<'a, T: TypedArrayElement> Drop for TypedArrayBase<'a, T> {
+    fn drop(&mut self) {
+        // Ensure this typed array wrapper wasn't moved during its lifetime.
+        let storage = &mut self.storage as *mut _;
+        let original = self.rooter.typed_array;
+        assert_eq!(storage, original);
+    }
+}
+
+impl<'a> TypedArrayBase<'a, ArrayBufferViewU8> {
     unsafe fn as_slice_transmute<T>(&self) -> &[T] {
         assert!(self.computed);
         slice::from_raw_parts(self.data as *mut T, self.length as usize / mem::size_of::<T>())
@@ -219,28 +235,28 @@ typed_array_element_creator!(ArrayBufferU8, JS_NewArrayBuffer, JS_GetArrayBuffer
 
 /// A wrapper that can be used to create a new typed array from scratch, or
 /// initialized from an existing JS reflector as necessary.
-pub struct TypedArray<T: TypedArrayElement> {
-    base: TypedArrayBase<T>,
+pub struct TypedArray<'a, T: 'a + TypedArrayElement> {
+    base: TypedArrayBase<'a, T>,
 }
 
-impl<T: TypedArrayElement> Deref for TypedArray<T> {
-    type Target = TypedArrayBase<T>;
-    fn deref<'a>(&'a self) -> &'a TypedArrayBase<T> {
+impl<'a, T: TypedArrayElement> Deref for TypedArray<'a, T> {
+    type Target = TypedArrayBase<'a, T>;
+    fn deref<'b>(&'b self) -> &'b TypedArrayBase<'a, T> {
         &self.base
     }
 }
 
-impl<T: TypedArrayElement> DerefMut for TypedArray<T> {
-    fn deref_mut<'a>(&'a mut self) -> &'a mut TypedArrayBase<T> {
+impl<'a, T: TypedArrayElement> DerefMut for TypedArray<'a, T> {
+    fn deref_mut<'b>(&'b mut self) -> &'b mut TypedArrayBase<'a, T> {
         &mut self.base
     }
 }
 
-impl<T: TypedArrayElementCreator + TypedArrayElement> TypedArray<T> {
+impl<'a, T: TypedArrayElementCreator + TypedArrayElement> TypedArray<'a, T> {
     /// Create an uninitialized wrapper around a future typed array.
-    pub fn new() -> TypedArray<T> {
+    pub fn new(rooter: &'a mut TypedArrayRooter) -> TypedArray<'a, T> {
         TypedArray {
-            base: TypedArrayBase::new(),
+            base: TypedArrayBase::new(rooter),
         }
     }
 
@@ -268,8 +284,8 @@ impl<T: TypedArrayElementCreator + TypedArrayElement> TypedArray<T> {
 }
 
 /// A wrapper around a JS ArrayBufferView object.
-pub struct ArrayBufferViewBase<T: TypedArrayElement> {
-    typed_array: TypedArrayBase<T>,
+pub struct ArrayBufferViewBase<'a, T: 'a + TypedArrayElement> {
+    typed_array: TypedArrayBase<'a, T>,
     type_: Option<Type>,
 }
 
@@ -316,11 +332,11 @@ array_buffer_view_output!(f32, Float32);
 array_buffer_view_output!(f64, Float64);
 array_buffer_view_output!(ClampedU8, Uint8Clamped);
 
-impl<T: TypedArrayElement + ArrayBufferViewType> ArrayBufferViewBase<T> {
+impl<'a, T: TypedArrayElement + ArrayBufferViewType> ArrayBufferViewBase<'a, T> {
     /// Create an uninitilized ArrayBufferView wrapper.
-    pub fn new() -> ArrayBufferViewBase<T> {
+    pub fn new(rooter: &'a mut TypedArrayRooter) -> ArrayBufferViewBase<'a, T> {
         ArrayBufferViewBase {
-            typed_array: TypedArrayBase::new(),
+            typed_array: TypedArrayBase::new(rooter),
             type_: None,
         }
     }
@@ -365,7 +381,7 @@ impl<T: TypedArrayElement + ArrayBufferViewType> ArrayBufferViewBase<T> {
     }
 }
 
-impl ArrayBufferViewBase<ArrayBufferViewU8> {
+impl<'a> ArrayBufferViewBase<'a, ArrayBufferViewU8> {
     /// Return a slice of the underlying buffer reinterpreted as a different element type.
     /// Length and data must be computed first.
     pub fn as_slice<U: ArrayBufferViewOutput>(&mut self) -> Result<&[U], ()> {
@@ -383,19 +399,63 @@ impl ArrayBufferViewBase<ArrayBufferViewU8> {
 #[allow(missing_docs)]
 mod typedefs {
     use super::{TypedArray, ArrayBufferViewBase, ClampedU8, ArrayBufferViewU8, ArrayBufferU8};
-    pub type Uint8ClampedArray = TypedArray<ClampedU8>;
-    pub type Uint8Array = TypedArray<u8>;
-    pub type Int8Array = TypedArray<i8>;
-    pub type Uint16Array = TypedArray<u16>;
-    pub type Int16Array = TypedArray<i16>;
-    pub type Uint32Array = TypedArray<u32>;
-    pub type Int32Array = TypedArray<i32>;
-    pub type Float32Array = TypedArray<f32>;
-    pub type Float64Array = TypedArray<f64>;
-    pub type ArrayBufferView = ArrayBufferViewBase<ArrayBufferViewU8>;
-    pub type ArrayBuffer = TypedArray<ArrayBufferU8>;
+    pub type Uint8ClampedArray<'a> = TypedArray<'a, ClampedU8>;
+    pub type Uint8Array<'a> = TypedArray<'a, u8>;
+    pub type Int8Array<'a> = TypedArray<'a, i8>;
+    pub type Uint16Array<'a> = TypedArray<'a, u16>;
+    pub type Int16Array<'a> = TypedArray<'a, i16>;
+    pub type Uint32Array<'a> = TypedArray<'a, u32>;
+    pub type Int32Array<'a> = TypedArray<'a, i32>;
+    pub type Float32Array<'a> = TypedArray<'a, f32>;
+    pub type Float64Array<'a> = TypedArray<'a, f64>;
+    pub type ArrayBufferView<'a> = ArrayBufferViewBase<'a, ArrayBufferViewU8>;
+    pub type ArrayBuffer<'a> = TypedArray<'a, ArrayBufferU8>;
 }
 
 pub use self::typedefs::{Uint8ClampedArray, Uint8Array, Uint16Array, Uint32Array};
 pub use self::typedefs::{Int8Array, Int16Array, Int32Array, Float64Array, Float32Array};
 pub use self::typedefs::{ArrayBuffer, ArrayBufferView};
+
+/// A GC root for a typed array wrapper.
+pub struct TypedArrayRooter {
+    typed_array: *mut TypedArrayObjectStorage,
+}
+
+impl TypedArrayRooter {
+    /// Create a new GC root for a forthcoming typed array wrapper.
+    pub fn new() -> TypedArrayRooter {
+        TypedArrayRooter {
+            typed_array: ptr::null_mut(),
+        }
+    }
+
+    fn init(&mut self, array: &mut TypedArrayObjectStorage) {
+        assert!(self.typed_array.is_null());
+        self.typed_array = array;
+        RootedTraceableSet::add(self);
+    }
+}
+
+impl JSTraceable for TypedArrayRooter {
+    fn trace(&self, trc: *mut JSTracer) {
+        unsafe {
+            let storage = &mut (*self.typed_array);
+            if !storage.wrapped_obj.is_null() {
+                JS_CallUnbarrieredObjectTracer(trc,
+                                               &mut storage.wrapped_obj,
+                                               b"TypedArray.wrapped_obj\0".as_ptr() as *const _);
+            }
+            if !storage.typed_obj.is_null() {
+                JS_CallUnbarrieredObjectTracer(trc,
+                                               &mut storage.typed_obj,
+                                               b"TypedArray.typed_obj\0".as_ptr() as *const _);
+            }
+        }
+    }
+}
+
+impl Drop for TypedArrayRooter {
+    fn drop(&mut self) {
+        RootedTraceableSet::remove(self);
+    }
+}

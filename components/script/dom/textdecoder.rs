@@ -9,7 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::typedarray::{ArrayBufferView, ArrayBuffer};
+use dom::bindings::typedarray::{ArrayBufferView, ArrayBuffer, TypedArrayRooter};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use util::str::DOMString;
@@ -90,9 +90,11 @@ impl<'a> TextDecoderMethods for &'a TextDecoder {
             None => return Ok(USVString("".to_owned())),
         };
 
-        let mut array_buffer_view = ArrayBufferView::new();
+        let mut rooter = TypedArrayRooter::new();
+        let mut array_buffer_view = ArrayBufferView::new(&mut rooter);
         if array_buffer_view.init(input).is_err() {
-            let mut array_buffer = ArrayBuffer::new();
+            let mut rooter = TypedArrayRooter::new();
+            let mut array_buffer = ArrayBuffer::new(&mut rooter);
             if array_buffer.init(input).is_err() {
                 return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView \
                                         or ArrayBuffer".to_owned()));
