@@ -165,7 +165,7 @@ impl<'a> BlobMethods for &'a Blob {
     fn Close(self) {
         // Step 1
         if self.isClosed_.get() {
-
+            return;
         }
 
         // Step 2
