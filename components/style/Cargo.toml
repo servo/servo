@@ -15,9 +15,12 @@ path = "../plugins"
 [dependencies.util]
 path = "../util"
 
-
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
+
+[dependencies.cssparser]
+version = "0.3"
+features = [ "serde-serialization" ]
 
 [dependencies]
 log = "0.3"
@@ -27,7 +30,6 @@ rustc-serialize = "0.3"
 matches = "0.1"
 url = "0.2.36"
 bitflags = "0.3"
-cssparser = "0.3.2"
 num = "0.1.24"
 lazy_static = "0.1.10"
 smallvec = "0.1"

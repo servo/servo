@@ -24,16 +24,18 @@ use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
 use script_task::StackRootTLS;
 
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{ConstellationChan, PipelineId};
 
 use devtools_traits::DevtoolsControlChan;
 
 use net_traits::{load_whole_resource, ResourceTask};
-use profile_traits::mem::{self, Reporter, ReportsChan};
+use profile_traits::mem::{self, Reporter, ReporterRequest};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
@@ -63,13 +65,6 @@ impl ScriptChan for SendableWorkerScriptChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
         }
-    }
-}
-
-impl Reporter for SendableWorkerScriptChan {
-    // Just injects an appropriate event into the worker task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        self.send(ScriptMsg::CollectReports(reports_chan)).is_ok()
     }
 }
 
@@ -118,6 +113,7 @@ impl DedicatedWorkerGlobalScope {
                      devtools_chan: Option<DevtoolsControlChan>,
                      runtime: Rc<Runtime>,
                      resource_task: ResourceTask,
+                     constellation_chan: ConstellationChan,
                      parent_sender: Box<ScriptChan+Send>,
                      own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                      receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
@@ -125,7 +121,7 @@ impl DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url,
-                runtime, resource_task, mem_profiler_chan, devtools_chan),
+                runtime, resource_task, mem_profiler_chan, devtools_chan, constellation_chan),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -140,13 +136,14 @@ impl DedicatedWorkerGlobalScope {
                devtools_chan: Option<DevtoolsControlChan>,
                runtime: Rc<Runtime>,
                resource_task: ResourceTask,
+               constellation_chan: ConstellationChan,
                parent_sender: Box<ScriptChan+Send>,
                own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             worker_url, id, mem_profiler_chan, devtools_chan, runtime.clone(), resource_task,
-            parent_sender, own_sender, receiver);
+            constellation_chan, parent_sender, own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 }
@@ -158,6 +155,7 @@ impl DedicatedWorkerGlobalScope {
                             devtools_chan: Option<DevtoolsControlChan>,
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
+                            constellation_chan: ConstellationChan,
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
@@ -182,9 +180,10 @@ impl DedicatedWorkerGlobalScope {
 
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let serialized_url = url.serialize();
+            let parent_sender_for_reporter = parent_sender.clone();
             let global = DedicatedWorkerGlobalScope::new(
                 url, id, mem_profiler_chan.clone(), devtools_chan, runtime.clone(), resource_task,
-                parent_sender, own_sender, receiver);
+                constellation_chan, parent_sender, own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
@@ -206,9 +205,16 @@ impl DedicatedWorkerGlobalScope {
 
                 // Register this task as a memory reporter. This needs to be done within the
                 // scope of `_ar` otherwise script_chan_as_reporter() will panic.
-                let reporter = global.script_chan_as_reporter();
-                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
-                mem_profiler_chan.send(msg);
+                let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
+                    // Just injects an appropriate event into the worker task's queue.
+                    let reporter_request: ReporterRequest = reporter_request.to().unwrap();
+                    parent_sender_for_reporter.send(ScriptMsg::CollectReports(
+                            reporter_request.reports_channel)).unwrap()
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
             }
 
             loop {
@@ -230,7 +236,6 @@ impl DedicatedWorkerGlobalScope {
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
     fn script_chan(self) -> Box<ScriptChan+Send>;
-    fn script_chan_as_reporter(self) -> Box<Reporter+Send>;
     fn pipeline(self) -> PipelineId;
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
     fn process_event(self, msg: ScriptMsg);
@@ -243,14 +248,6 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
             worker: self.worker.borrow().as_ref().unwrap().clone(),
         }
     }
-
-    fn script_chan_as_reporter(self) -> Box<Reporter+Send> {
-        box SendableWorkerScriptChan {
-            sender: self.own_sender.clone(),
-            worker: self.worker.borrow().as_ref().unwrap().clone(),
-        }
-    }
-
 
     fn pipeline(self) -> PipelineId {
         self.id

@@ -38,6 +38,7 @@ use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
+use ipc_channel::ipc::IpcSender;
 use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
@@ -63,7 +64,6 @@ use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
 use std::mem;
-use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
@@ -904,10 +904,17 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn renderer(&self) -> Option<Sender<CanvasMsg>> {
+    pub fn canvas_renderer_id(&self) -> Option<usize> {
         unsafe {
             let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.and_then(|elem| elem.get_renderer())
+            canvas_element.and_then(|elem| elem.get_renderer_id())
+        }
+    }
+
+    pub fn canvas_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.and_then(|elem| elem.get_ipc_renderer())
         }
     }
 

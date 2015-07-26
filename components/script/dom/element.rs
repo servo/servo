@@ -866,9 +866,9 @@ impl<'a> AttributeHandlers for &'a Element {
     fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
         let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
-        attributes.iter()
-                  .map(|attr| attr.root())
-                  .find(|attr| attr.r().namespace() == namespace)
+        attributes.r().iter()
+                  .find(|attr| attr.namespace() == namespace)
+                  .map(|attr| Root::from_ref(*attr))
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name

@@ -40,6 +40,12 @@ path = "../util"
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
+[dependencies.canvas]
+path = "../canvas"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
@@ -55,6 +61,10 @@ git = "https://github.com/aweinstock314/rust-clipboard"
 
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+features = ["texture_surface"]
 
 [dependencies]
 log = "0.3"

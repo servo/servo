@@ -7,7 +7,12 @@ authors = ["The Servo Project Developers"]
 name = "profile_traits"
 path = "lib.rs"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
+serde = "0.4"
+serde_macros = "0.4"
 time = "0.1.12"
 url = "0.2.36"
 

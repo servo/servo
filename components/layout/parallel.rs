@@ -98,8 +98,7 @@ pub type DomTraversalFunction =
 pub type ChunkedFlowTraversalFunction =
     extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>);
 
-pub type FlowTraversalFunction =
-    extern "Rust" fn(UnsafeFlow, &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>);
+pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
 
 /// A parallel top-down DOM traversal.
 pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
@@ -238,9 +237,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     ///
     /// The only communication between siblings is that they both
     /// fetch-and-subtract the parent's children count.
-    fn run_parallel(&self,
-                    mut unsafe_flow: UnsafeFlow,
-                    _: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
+    fn run_parallel(&self, mut unsafe_flow: UnsafeFlow) {
         loop {
             // Get a real flow.
             let flow: &mut FlowRef = unsafe {
@@ -323,7 +320,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
             // If there were no more children, start assigning block-sizes.
             if !had_children {
-                bottom_up_func(unsafe_flow, proxy)
+                bottom_up_func(unsafe_flow, proxy.user_data())
             }
         }
 
@@ -335,8 +332,6 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
         }
     }
 }
-
-impl<'a> ParallelPostorderFlowTraversal for BubbleISizes<'a> {}
 
 impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     fn run_parallel(&self,
@@ -414,13 +409,12 @@ fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
 
 fn assign_block_sizes_and_store_overflow(
         unsafe_flow: UnsafeFlow,
-        proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
-    let shared_layout_context = proxy.user_data();
+        shared_layout_context: &SharedLayoutContext) {
     let layout_context = LayoutContext::new(shared_layout_context);
     let assign_block_sizes_traversal = AssignBSizesAndStoreOverflow {
         layout_context: &layout_context,
     };
-    assign_block_sizes_traversal.run_parallel(unsafe_flow, proxy)
+    assign_block_sizes_traversal.run_parallel(unsafe_flow)
 }
 
 fn compute_absolute_positions(
@@ -435,15 +429,14 @@ fn compute_absolute_positions(
 }
 
 fn build_display_list(unsafe_flow: UnsafeFlow,
-                      proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
-    let shared_layout_context = proxy.user_data();
+                      shared_layout_context: &SharedLayoutContext) {
     let layout_context = LayoutContext::new(shared_layout_context);
 
     let build_display_list_traversal = BuildDisplayList {
         layout_context: &layout_context,
     };
 
-    build_display_list_traversal.run_parallel(unsafe_flow, proxy);
+    build_display_list_traversal.run_parallel(unsafe_flow);
 }
 
 fn run_queue_with_custom_work_data_type<To,F>(

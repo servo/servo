@@ -15,6 +15,7 @@ use euclid::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
+use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
@@ -24,7 +25,7 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
@@ -120,7 +121,7 @@ pub struct SharedLayoutContext {
     pub new_animations_sender: Sender<Animation>,
 
     /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
-    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,

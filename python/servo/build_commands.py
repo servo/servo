@@ -142,8 +142,6 @@ class MachCommands(CommandBase):
                      help="Command-line arguments to be passed through to Cargo")
     def build(self, target=None, release=False, dev=False, jobs=None,
               android=None, verbose=False, debug_mozjs=False, params=None):
-        self.ensure_bootstrapped()
-
         if android is None:
             android = self.config["build"]["android"]
 
@@ -174,6 +172,8 @@ class MachCommands(CommandBase):
         if release and dev:
             print("Please specify either --dev or --release.")
             sys.exit(1)
+
+        self.ensure_bootstrapped()
 
         if release:
             opts += ["--release"]

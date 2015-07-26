@@ -39,13 +39,14 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use profile_traits::mem::{self, Report, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportsChan};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use net_traits::{load_bytes_iter, PendingAsyncLoad};
@@ -196,8 +197,8 @@ pub struct LayoutTask {
 
     /// To receive a canvas renderer associated to a layer, this message is propagated
     /// to the paint chan
-    pub canvas_layers_receiver: Receiver<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
-    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+    pub canvas_layers_receiver: Receiver<(LayerId, IpcSender<CanvasMsg>)>,
+    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -242,11 +243,20 @@ impl LayoutTaskFactory for LayoutTask {
                                              time_profiler_chan,
                                              mem_profiler_chan.clone());
 
-                // Register this thread as a memory reporter, via its own channel.
-                let reporter = box layout_chan.clone();
+                // Create a memory reporter thread.
                 let reporter_name = format!("layout-reporter-{}", id.0);
-                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
-                mem_profiler_chan.send(msg);
+                let (reporter_sender, reporter_receiver) =
+                    ipc::channel::<ReporterRequest>().unwrap();
+                let layout_chan_for_reporter = layout_chan.clone();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
+                    // Just injects an appropriate event into the layout task's queue.
+                    let request: ReporterRequest = message.to().unwrap();
+                    layout_chan_for_reporter.0.send(Msg::CollectReports(request.reports_channel))
+                                              .unwrap();
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
 
                 layout.start();
 
@@ -1020,9 +1030,7 @@ impl LayoutTask {
         // Send new canvas renderers to the paint task
         while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
             // Just send if there's an actual renderer
-            if let Some(renderer) = renderer {
-                self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
-            }
+            self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
         }
 
         // Perform post-style recalculation layout passes.

@@ -62,14 +62,15 @@ use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
-use serde::Serialize;
 use util::str::{LengthOrPercentageOrAuto};
+use serde::{Deserialize, Serialize};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -332,6 +333,13 @@ impl<A,B> JSTraceable for fn(A) -> B {
     }
 }
 
+impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
 impl JSTraceable for ScriptListener {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
@@ -340,13 +348,6 @@ impl JSTraceable for ScriptListener {
 }
 
 impl JSTraceable for Box<LayoutRPC+'static> {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> JSTraceable for IpcSender<T> where T: Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -479,6 +480,13 @@ impl<T: JSTraceable + Reflectable> RootedVec<T> {
             RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
         }
         RootedVec::<T> { v: vec!() }
+    }
+}
+
+impl<T: JSTraceable + Reflectable> RootedVec<JS<T>> {
+    /// Obtain a safe slice of references that can't outlive that RootedVec.
+    pub fn r(&self) -> &[&T] {
+        unsafe { mem::transmute(&*self.v) }
     }
 }
 

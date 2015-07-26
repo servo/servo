@@ -10,7 +10,7 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg};
-use std::sync::mpsc::{channel, Sender};
+use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -18,11 +18,11 @@ pub struct WebGLRenderbuffer {
     webgl_object: WebGLObject,
     id: u32,
     is_deleted: Cell<bool>,
-    renderer: Sender<CanvasMsg>,
+    renderer: IpcSender<CanvasMsg>,
 }
 
 impl WebGLRenderbuffer {
-    fn new_inherited(renderer: Sender<CanvasMsg>, id: u32) -> WebGLRenderbuffer {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLRenderbuffer {
         WebGLRenderbuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -31,15 +31,17 @@ impl WebGLRenderbuffer {
         }
     }
 
-    pub fn maybe_new(global: GlobalRef, renderer: Sender<CanvasMsg>) -> Option<Root<WebGLRenderbuffer>> {
-        let (sender, receiver) = channel();
+    pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
+                     -> Option<Root<WebGLRenderbuffer>> {
+        let (sender, receiver) = ipc::channel().unwrap();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateRenderbuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|renderbuffer_id| WebGLRenderbuffer::new(global, renderer, *renderbuffer_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: Sender<CanvasMsg>, id: u32) -> Root<WebGLRenderbuffer> {
+    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32)
+               -> Root<WebGLRenderbuffer> {
         reflect_dom_object(box WebGLRenderbuffer::new_inherited(renderer, id), global, WebGLRenderbufferBinding::Wrap)
     }
 }

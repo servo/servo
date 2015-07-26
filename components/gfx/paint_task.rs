@@ -11,25 +11,26 @@ use paint_context::PaintContext;
 
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
+use canvas_traits::CanvasMsg;
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
-use layers;
-use canvas_traits::CanvasMsg;
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
-use profile_traits::mem::{self, Reporter, ReportsChan};
+use profile_traits::mem::{self, Reporter, ReporterRequest, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::mem as std_mem;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::collections::HashMap;
 use url::Url;
@@ -71,7 +72,7 @@ pub struct PaintRequest {
 
 pub enum Msg {
     PaintInit(Epoch, Arc<StackingContext>),
-    CanvasLayer(LayerId, Arc<Mutex<Sender<CanvasMsg>>>),
+    CanvasLayer(LayerId, IpcSender<CanvasMsg>),
     Paint(Vec<PaintRequest>, FrameTreeId),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -98,14 +99,6 @@ impl PaintChan {
     }
 }
 
-impl Reporter for PaintChan {
-    // Just injects an appropriate event into the paint task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        let PaintChan(ref c) = *self;
-        c.send(Msg::CollectReports(reports_chan)).is_ok()
-    }
-}
-
 pub struct PaintTask<C> {
     id: PipelineId,
     _url: Url,
@@ -129,7 +122,7 @@ pub struct PaintTask<C> {
     worker_threads: Vec<WorkerThreadProxy>,
 
     /// A map to track the canvas specific layers
-    canvas_map: HashMap<LayerId, Arc<Mutex<Sender<CanvasMsg>>>>,
+    canvas_map: HashMap<LayerId, IpcSender<CanvasMsg>>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -179,11 +172,20 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     canvas_map: HashMap::new()
                 };
 
-                // Register this thread as a memory reporter, via its own channel.
-                let reporter = box chan.clone();
+                // Register the memory reporter.
                 let reporter_name = format!("paint-reporter-{}", id.0);
-                let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
-                mem_profiler_chan.send(msg);
+                let (reporter_sender, reporter_receiver) =
+                    ipc::channel::<ReporterRequest>().unwrap();
+                let paint_chan_for_reporter = chan.clone();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
+                    // Just injects an appropriate event into the paint task's queue.
+                    let request: ReporterRequest = message.to().unwrap();
+                    paint_chan_for_reporter.0.send(Msg::CollectReports(request.reports_channel))
+                                             .unwrap();
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
 
                 paint_task.start();
 
@@ -261,8 +263,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
-                Msg::CollectReports(_) => {
+                Msg::CollectReports(ref channel) => {
                     // FIXME(njn): should eventually measure the paint task.
+                    channel.send(Vec::new())
                 }
                 Msg::Exit(response_channel, _) => {
                     // Ask the compositor to remove any layers it is holding for this paint task.
@@ -508,7 +511,7 @@ impl WorkerThread {
             DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
         } else {
             let gl_rasterization_context =
-                layer_buffer.native_surface.gl_rasterization_context(native_display!(self), size);
+                layer_buffer.native_surface.gl_rasterization_context(native_display!(self));
             match gl_rasterization_context {
                 Some(gl_rasterization_context) => {
                     gl_rasterization_context.make_current();
@@ -609,25 +612,23 @@ impl WorkerThread {
                            tile: &mut BufferRequest,
                            scale: f32)
                            -> Box<LayerBuffer> {
-        tile.layer_buffer.take().unwrap_or_else(|| {
-            // Create an empty native surface. We mark it as not leaking
-            // in case it dies in transit to the compositor task.
-            let width = tile.screen_rect.size.width;
-            let height = tile.screen_rect.size.height;
-            let mut native_surface: NativeSurface =
-                layers::platform::surface::NativeSurface::new(native_display!(self),
-                                                              Size2D::new(width as i32, height as i32));
-            native_surface.mark_wont_leak();
+        // Create an empty native surface. We mark it as not leaking
+        // in case it dies in transit to the compositor task.
+        let width = tile.screen_rect.size.width;
+        let height = tile.screen_rect.size.height;
+        let mut native_surface = tile.native_surface.take().unwrap_or_else(|| {
+            NativeSurface::new(native_display!(self), Size2D::new(width as i32, height as i32))
+        });
+        native_surface.mark_wont_leak();
 
-            box LayerBuffer {
-                native_surface: native_surface,
-                rect: tile.page_rect,
-                screen_pos: tile.screen_rect,
-                resolution: scale,
-                painted_with_cpu: !opts::get().gpu_painting,
-                content_age: tile.content_age,
-            }
-        })
+        box LayerBuffer {
+            native_surface: native_surface,
+            rect: tile.page_rect,
+            screen_pos: tile.screen_rect,
+            resolution: scale,
+            painted_with_cpu: !opts::get().gpu_painting,
+            content_age: tile.content_age,
+        }
     }
 }
 

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc::IpcSharedMemory;
 use png;
 use stb_image::image as stb_image2;
 use std::mem;
@@ -23,7 +24,7 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    pub bytes: Vec<u8>,
+    pub bytes: IpcSharedMemory,
 }
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
@@ -66,7 +67,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 };
 
                 let bytes = mem::replace(bytes, Vec::new());
-
+                let bytes = IpcSharedMemory::from_bytes(&bytes[..]);
                 let image = Image {
                     width: png_image.width,
                     height: png_image.height,
@@ -96,7 +97,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     width: image.width as u32,
                     height: image.height as u32,
                     format: PixelFormat::RGBA8,
-                    bytes: image.data,
+                    bytes: IpcSharedMemory::from_bytes(&image.data[..]),
                 })
             }
             stb_image2::LoadResult::ImageF32(_image) => {

@@ -18,7 +18,7 @@ use msg::constellation_msg::{WindowSizeData};
 use msg::compositor_msg::Epoch;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::PendingAsyncLoad;
-use profile_traits::mem::{Reporter, ReportsChan};
+use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
 use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
 use std::any::Any;
@@ -156,14 +156,6 @@ impl LayoutChan {
     pub fn new() -> (Receiver<Msg>, LayoutChan) {
         let (chan, port) = channel();
         (port, LayoutChan(chan))
-    }
-}
-
-impl Reporter for LayoutChan {
-    // Just injects an appropriate event into the layout task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        let LayoutChan(ref c) = *self;
-        c.send(Msg::CollectReports(reports_chan)).is_ok()
     }
 }
 
