@@ -227,33 +227,30 @@ impl FileReader {
     fn perform_readastext(blob_body: BlobBody)
         -> Result<Option<DOMString>, DOMErrorName> {
 
+        let blob_label = &blob_body.label;
+        let blob_type = &blob_body.blobtype;
+        let blob_bytes = &blob_body.bytes[..];
+
         //https://w3c.github.io/FileAPI/#encoding-determination
         // Steps 1 & 2 & 3
-        let mut encoding = match blob_body.label {
-            Some(e) => encoding_from_whatwg_label(&e),
-            None => None
-        };
+        let mut encoding = blob_label.as_ref()
+            .map(|string| &**string)
+            .and_then(encoding_from_whatwg_label);
 
         // Step 4 & 5
-        encoding = match encoding {
-            Some(e) => Some(e),
-            None => {
-                let resultmime = blob_body.blobtype.parse::<Mime>().ok();
-                resultmime.and_then(|Mime(_, _, ref parameters)| {
-                    parameters.iter()
-                        .find(|&&(ref k, _)| &Attr::Charset == k)
-                        .and_then(|&(_, ref v)| encoding_from_whatwg_label(&v.to_string()))
-                })
-            }
-        };
+        encoding = encoding.or_else(|| {
+            let resultmime = blob_type.parse::<Mime>().ok();
+            resultmime.and_then(|Mime(_, _, ref parameters)| {
+                parameters.iter()
+                    .find(|&&(ref k, _)| &Attr::Charset == k)
+                    .and_then(|&(_, ref v)| encoding_from_whatwg_label(&v.to_string()))
+            })
+        });
 
         // Step 6
-        let enc = match encoding {
-            Some(code) => code,
-            None => UTF_8 as EncodingRef
-        };
+        let enc = encoding.unwrap_or(UTF_8 as EncodingRef);
 
-        let convert = &blob_body.bytes[..];
+        let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
         Ok(Some(output))
