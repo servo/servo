@@ -7,14 +7,11 @@ use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::bindings::typedarray::{ArrayBufferView};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::cell::DOMRefCell;
 
-use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType, Type};
-
-use std::ptr;
-use std::slice;
+use js::jsapi::{JSContext, JSObject, Type};
 
 use rand::{Rng, OsRng};
 
@@ -42,34 +39,32 @@ impl Crypto {
 
 impl<'a> CryptoMethods for &'a Crypto {
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
-    #[allow(unsafe_code)]
     fn GetRandomValues(self, _cx: *mut JSContext, input: *mut JSObject)
                        -> Fallible<*mut JSObject> {
-        let mut length = 0;
-        let mut data = ptr::null_mut();
-        if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
+        let mut array_buffer_view = ArrayBufferView::new();
+        if array_buffer_view.init(input).is_err() {
             return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView".to_owned()));
         }
-        if !is_integer_buffer(input) {
+
+        if !is_integer_buffer(&array_buffer_view) {
             return Err(Error::TypeMismatch);
         }
-        if length > 65536 {
+
+        array_buffer_view.compute_length_and_data();
+        let mut buffer = array_buffer_view.as_mut_untyped_slice();
+
+        if buffer.len() > 65536 {
             return Err(Error::QuotaExceeded);
         }
 
-        let mut buffer = unsafe {
-            slice::from_raw_parts_mut(data, length as usize)
-        };
-
-        self.rng.borrow_mut().fill_bytes(&mut buffer);
+        self.rng.borrow_mut().fill_bytes(buffer);
 
         Ok(input)
     }
 }
 
-#[allow(unsafe_code)]
-fn is_integer_buffer(input: *mut JSObject) -> bool {
-    match unsafe { JS_GetArrayBufferViewType(input) } {
+fn is_integer_buffer(input: &ArrayBufferView) -> bool {
+    match input.element_type() {
         Type::Uint8 |
         Type::Uint8Clamped |
         Type::Int8 |
