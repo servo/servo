@@ -34,6 +34,19 @@ impl<T> OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
     }
 }
 
+impl<T> Clone for OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
+    fn clone(&self) -> OptionalIpcSender<T> {
+        match *self {
+            OptionalIpcSender::OutOfProcess(ref ipc_sender) => {
+                OptionalIpcSender::OutOfProcess((*ipc_sender).clone())
+            }
+            OptionalIpcSender::InProcess(ref sender) => {
+                OptionalIpcSender::InProcess((*sender).clone())
+            }
+        }
+    }
+}
+
 impl<T> Deserialize for OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
     fn deserialize<D>(deserializer: &mut D)
                       -> Result<OptionalIpcSender<T>,D::Error> where D: Deserializer {

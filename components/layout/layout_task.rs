@@ -74,6 +74,7 @@ use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{Au, MAX_RECT};
+use util::ipc::OptionalIpcSender;
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
 use util::opts;
@@ -176,7 +177,7 @@ pub struct LayoutTask {
     pub script_chan: ScriptControlChan,
 
     /// The channel on which messages can be sent to the painting task.
-    pub paint_chan: Sender<LayoutToPaintMsg>,
+    pub paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
     pub time_profiler_chan: time::ProfilerChan,
@@ -216,7 +217,7 @@ impl LayoutTaskFactory for LayoutTask {
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,
-              paint_chan: Sender<LayoutToPaintMsg>,
+              paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
@@ -306,7 +307,7 @@ impl LayoutTask {
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
            script_chan: ScriptControlChan,
-           paint_chan: Sender<LayoutToPaintMsg>,
+           paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
            time_profiler_chan: time::ProfilerChan,
@@ -631,7 +632,7 @@ impl LayoutTask {
                                   info.failure,
                                   ScriptControlChan(info.script_chan.clone()),
                                   *info.paint_chan
-                                       .downcast::<Sender<LayoutToPaintMsg>>()
+                                       .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
                                        .unwrap(),
                                   self.image_cache_task.clone(),
                                   self.font_cache_task.clone(),

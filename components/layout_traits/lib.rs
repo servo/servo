@@ -31,6 +31,7 @@ use net_traits::image_cache_task::ImageCacheTask;
 use script_traits::{LayoutControlMsg, ScriptControlChan, OpaqueScriptLayoutChannel};
 use std::sync::mpsc::Sender;
 use url::Url;
+use util::ipc::OptionalIpcSender;
 
 /// A channel wrapper for constellation messages
 #[derive(Clone, Deserialize, Serialize)]
@@ -49,7 +50,7 @@ pub trait LayoutTaskFactory {
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,
-              layout_to_paint_chan: Sender<LayoutToPaintMsg>,
+              layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
