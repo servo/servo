@@ -106,7 +106,7 @@ function test_after(child, nodeName, innerHTML) {
         parent.appendChild(document.createTextNode('1'));
         parent.appendChild(y);
         child.after(x, '2');
-        var expected = innerHTML + '<x></x>12<y></y>';
+        var expected = innerHTML + '<x></x>21<y></y>';
         assert_equals(parent.innerHTML, expected);
     }, nodeName + '.after() with one sibling of child and text as arguments.');
 

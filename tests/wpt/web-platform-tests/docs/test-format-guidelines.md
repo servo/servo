@@ -111,7 +111,7 @@ between attributes will be collapsed to a single space, duplicate
 attributes will be removed, optional closing tags will be inserted,
 and invalid markup will be normalized.  If these changes should make
 the test inoperable, for example if the test is testing markup error
-recovery, add the [flag][requirement-flags] 'asis' to prevent
+recovery, add the [flag][requirement-flags] `asis` to prevent
 re-serialization. This flag will also prevent format conversions so it
 may be necessary to provide alternate versions of the test in other
 formats (XHTML, HTML, etc.)
@@ -262,7 +262,7 @@ the `location` dictionary, which has entries matching the
     {{location[host]}}
 {% endraw %}
 
-is replaced by hostname:port for the current request.
+is replaced by `hostname:port` for the current request.
 
 ### Tests Requiring Special Headers
 

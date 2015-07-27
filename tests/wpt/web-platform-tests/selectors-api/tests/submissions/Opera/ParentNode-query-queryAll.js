@@ -17,7 +17,7 @@ function interfaceCheckQuery(type, obj) {
  * Verify that the NodeList returned by queryAll is static and and that a new list is created after
  * each call. A static list should not be affected by subsequent changes to the DOM.
  */
-function verifyStaticList(type, root) {
+function verifyStaticList(type, doc, root) {
   var pre, post, preLength;
 
   test(function() {

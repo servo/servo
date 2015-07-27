@@ -196,14 +196,14 @@ red to denote failure._
 
 #### Overlapped text
 
-Tests of the 'line-height', 'font-size' and similar properties can
+Tests of the `line-height`, `font-size` and similar properties can
 sometimes be devised in such a way that a failure will result in the
 text overlapping.
 
 #### The word "FAIL"
 
 Some properties lend themselves well to this kind of test, for
-example 'quotes' and 'content'. The idea is that if the word "FAIL"
+example `quotes` and `content`. The idea is that if the word "FAIL"
 appears anywhere, something must have gone wrong.
 
 [Example][fail-example]
@@ -219,7 +219,7 @@ shapes. This font is especially useful for testing font and text
 properties. Without this font it would be very hard to use the
 overlapping technique with text.
 
-The font's em-square is exactly square. It's ascent and descent is
+The font's em-square is exactly square. Its ascent and descent is
 exactly the size of the em square. This means that the font's extent
 is exactly the same as its line-height, meaning that it can be
 exactly aligned with padding, borders, margins, and so forth.
@@ -263,9 +263,9 @@ E.g. Good:
 ```
 
 __If the test uses the Ahem font, make sure the line-height on block
-elements is specified; avoid 'line-height: normal'__. Also, for
+elements is specified; avoid `line-height: normal`__. Also, for
 absolute reliability, the difference between computed line-height
-and computed font-size should be dividable by 2.
+and computed font-size should be divisible by 2.
 
 E.g. Bad:
 
@@ -273,14 +273,14 @@ E.g. Bad:
 {font: 1.25em Ahem;} /* computed line-height value is 'normal' */
 {font: 20px Ahem;} /* computed line-height value is 'normal' */
 {font-size: 25px; line-height: 50px;} /* the difference between
-computed line-height and computed font-size is not dividable by 2. */
+computed line-height and computed font-size is not divisible by 2. */
 ```
 
 E.g. Good:
 
 ``` css
 {font-size: 25px; line-height: 51px;} /* the difference between
-computed line-height and computed font-size is dividable by 2. */
+computed line-height and computed font-size is divisible by 2. */
 ```
 
 [Example test using Ahem][ahem-example]
@@ -347,11 +347,9 @@ In practice, the important thing to decide is when to be methodical
 and when to simply test, in an ad hoc fashion, a cross section of
 the possibilities.
 
-This example is a methodical test of the :not() pseudo-class with
-each attribute selector in turn, first for long values and then for
-short values:
-
-http://www.hixie.ch/tests/adhoc/css/selectors/not/010.xml
+This is an [example][methodical-test] of a methodical test of the
+`:not()` pseudo-class with each attribute selector in turn, first
+for long values and then for short values.
 
 ### Overlapping
 
@@ -399,7 +397,7 @@ As mentioned many times in this document, red indicates a bug, so
 nothing should ever be red in a test.
 
 There is one important exception to this rule... the test for the
-'red' value for the color properties!
+`red` value for the color properties!
 
 ### Unobvious tests
 
@@ -436,3 +434,4 @@ The last [subtest on this page][unobvious-test] shows this problem.
 [download-ahem]: http://www.w3.org/Style/CSS/Test/Fonts/Ahem/AHEM____.TTF
 [long-test]: http://www.hixie.ch/tests/evil/mixed/lineheight3.html
 [unobvious-test]: http://www.w3.org/Style/CSS/Test/CSS1/current/sec525.htm
+[methodical-test]: http://www.hixie.ch/tests/adhoc/css/selectors/not/010.xml
