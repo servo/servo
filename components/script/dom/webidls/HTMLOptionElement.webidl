@@ -4,7 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.whatwg.org/html/#htmloptionelement
-//[NamedConstructor=Option(optional DOMString text = "", optional DOMString value, optional boolean defaultSelected = false, optional boolean selected = false)]
+//[NamedConstructor=Option(optional DOMString text = "", optional DOMString value,
+//                         optional boolean defaultSelected = false,
+//                         optional boolean selected = false)]
 interface HTMLOptionElement : HTMLElement {
              attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;

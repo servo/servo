@@ -64,7 +64,8 @@ interface HTMLInputElement : HTMLElement {
   //         attribute unsigned long selectionEnd;
   //         attribute DOMString selectionDirection;
   //void setRangeText(DOMString replacement);
-  //void setRangeText(DOMString replacement, unsigned long start, unsigned long end, optional SelectionMode selectionMode = "preserve");
+  //void setRangeText(DOMString replacement, unsigned long start, unsigned long end,
+  //                  optional SelectionMode selectionMode = "preserve");
   //void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
   // also has obsolete members
