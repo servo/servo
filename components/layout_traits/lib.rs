@@ -22,7 +22,7 @@ extern crate util;
 //   that these modules won't have to depend on layout.
 
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::PaintChan;
+use gfx::paint_task::LayoutToPaintMsg;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use profile_traits::mem;
@@ -49,7 +49,7 @@ pub trait LayoutTaskFactory {
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,
-              paint_chan: PaintChan,
+              layout_to_paint_chan: Sender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
