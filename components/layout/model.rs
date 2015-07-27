@@ -13,7 +13,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
 use style::properties::ComputedValues;
-use style::values::computed::{LengthAndPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::LengthOrPercentageOrAuto;
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use util::geometry::Au;
 use util::logical_geometry::LogicalMargin;
@@ -439,15 +439,3 @@ impl ToGfxMatrix for ComputedMatrix {
         }
     }
 }
-
-pub trait ToAu {
-    fn to_au(&self, containing_size: Au) -> Au;
-}
-
-impl ToAu for LengthAndPercentage {
-    #[inline]
-    fn to_au(&self, containing_size: Au) -> Au {
-        self.length + Au::from_f32_px(self.percentage * containing_size.to_f32_px())
-    }
-}
-

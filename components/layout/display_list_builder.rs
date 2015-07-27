@@ -18,7 +18,7 @@ use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
-use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
+use model::{self, MaybeAuto, ToGfxMatrix};
 use table_cell::CollapsedBordersForCell;
 
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
@@ -1176,8 +1176,8 @@ impl FragmentDisplayListBuilding for Fragment {
                         Matrix4::create_scale(sx, sy, sz)
                     }
                     &transform::ComputedOperation::Translate(tx, ty, tz) => {
-                        let tx = tx.to_au(border_box.size.width).to_f32_px();
-                        let ty = ty.to_au(border_box.size.height).to_f32_px();
+                        let tx = model::specified(tx, border_box.size.width).to_f32_px();
+                        let ty = model::specified(ty, border_box.size.height).to_f32_px();
                         let tz = tz.to_f32_px();
                         Matrix4::create_translation(tx, ty, tz)
                     }
