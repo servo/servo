@@ -21,7 +21,8 @@ test(function() {
     });
 
     reader.onerror = t.step_func(function(e) {
-      assert_equals(t.result, undefined);
+      assert_equals(reader.result, null);
+      assert_equals(reader.error.code, 11);
       t.done();
     });
 
