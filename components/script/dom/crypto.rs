@@ -38,21 +38,26 @@ impl Crypto {
 }
 
 impl<'a> CryptoMethods for &'a Crypto {
+    #[allow(unsafe_code)]
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
     fn GetRandomValues(self, _cx: *mut JSContext, input: *mut JSObject)
                        -> Fallible<*mut JSObject> {
         let mut rooter = TypedArrayRooter::new();
-        let mut array_buffer_view = ArrayBufferView::new(&mut rooter);
-        if array_buffer_view.init(input).is_err() {
-            return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView".to_owned()));
-        }
-
+        let mut array_buffer_view = match ArrayBufferView::from(input, &mut rooter) {
+            Ok(view) => view,
+            Err(_) =>
+                return Err(Error::Type("Argument to Crypto.getRandomValues is not an \
+                                        ArrayBufferView".to_owned())),
+        };
+        array_buffer_view.init();
         if !is_integer_buffer(&array_buffer_view) {
             return Err(Error::TypeMismatch);
         }
 
         array_buffer_view.compute_length_and_data();
-        let mut buffer = array_buffer_view.as_mut_untyped_slice();
+        let mut buffer = unsafe {
+            array_buffer_view.as_mut_untyped_slice()
+        };
 
         if buffer.len() > 65536 {
             return Err(Error::QuotaExceeded);

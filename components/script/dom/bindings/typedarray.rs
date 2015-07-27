@@ -19,12 +19,12 @@ use js::jsapi::{UnwrapUint8Array, UnwrapUint16Array, UnwrapUint32Array, UnwrapAr
 use js::jsapi::{UnwrapFloat32Array, UnwrapFloat64Array, GetUint8ArrayLengthAndData};
 use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData, JS_GetArrayBufferViewType};
 use js::jsapi::{UnwrapArrayBuffer, GetArrayBufferLengthAndData, GetArrayBufferViewLengthAndData};
+use js::jsapi::MutableHandleObject;
 use js::glue::{GetUint8ClampedArrayLengthAndData, GetFloat32ArrayLengthAndData};
 use js::glue::{GetUint16ArrayLengthAndData, GetUint32ArrayLengthAndData};
 use js::glue::{GetInt8ArrayLengthAndData, GetFloat64ArrayLengthAndData};
 use js::glue::{GetInt16ArrayLengthAndData, GetInt32ArrayLengthAndData};
 
-use core::nonzero::NonZero;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::slice;
@@ -34,16 +34,6 @@ use std::ptr;
 #[allow(raw_pointer_derive)]
 struct TypedArrayObjectStorage {
     typed_obj: *mut JSObject,
-    wrapped_obj: *mut JSObject,
-}
-
-impl TypedArrayObjectStorage {
-    fn new() -> TypedArrayObjectStorage {
-        TypedArrayObjectStorage {
-            typed_obj: ptr::null_mut(),
-            wrapped_obj: ptr::null_mut(),
-        }
-    }
 }
 
 /// Internal trait used to associate an element type with an underlying representation
@@ -122,34 +112,35 @@ pub struct TypedArrayBase<'a, T: 'a + TypedArrayElement> {
 }
 
 impl<'a, T: TypedArrayElement> TypedArrayBase<'a, T> {
-    /// Create an uninitialized typed array representation.
-    pub fn new(rooter: &'a mut TypedArrayRooter) -> TypedArrayBase<'a, T> {
-        TypedArrayBase {
-            storage: TypedArrayObjectStorage::new(),
+    /// Create a typed array representation that wraps an existing JS reflector.
+    /// This operation will fail if attempted on a JS object that does not match
+    /// the expected typed array details.
+    pub fn from(obj: *mut JSObject, rooter: &'a mut TypedArrayRooter)
+                -> Result<TypedArrayBase<'a, T>, ()> {
+        let typed_obj = T::unwrap_array(obj);
+        if typed_obj.is_null() {
+            return Err(());
+        }
+
+        Ok(TypedArrayBase {
+            storage: TypedArrayObjectStorage {
+                typed_obj: obj,
+            },
             data: ptr::null_mut(),
             length: 0,
             computed: false,
             rooter: rooter,
-        }
+        })
     }
 
     fn inited(&self) -> bool {
-        !self.storage.typed_obj.is_null()
+        self.rooter.inited()
     }
 
-    /// Initialize this typed array representaiton from an existing JS reflector
-    /// for a typed array. This operation will fail if attempted on a JS object
-    /// that does not match the expected typed array details.
-    pub fn init(&mut self, obj: *mut JSObject) -> Result<(), ()> {
+    /// Initialize the rooting for this wrapper.
+    pub fn init(&mut self) {
         assert!(!self.inited());
         self.rooter.init(&mut self.storage);
-        self.storage.typed_obj = T::unwrap_array(obj);
-        self.storage.wrapped_obj = self.storage.typed_obj;
-        if self.inited() {
-            Ok(())
-        } else {
-            Err(())
-        }
     }
 
     /// Return the underlying buffer as a slice of the element type.
@@ -163,11 +154,11 @@ impl<'a, T: TypedArrayElement> TypedArrayBase<'a, T> {
 
     /// Return the underlying buffer as a mutable slice of the element type.
     /// Length and data must be computed first.
-    pub fn as_mut_slice(&mut self) -> &mut [T::FundamentalType] {
+    /// Creating multiple mutable slices of the same buffer simultaneously
+    /// will result in undefined behaviour.
+    pub unsafe fn as_mut_slice(&mut self) -> &mut [T::FundamentalType] {
         assert!(self.computed);
-        unsafe {
-            slice::from_raw_parts_mut(self.data, self.length as usize)
-        }
+        slice::from_raw_parts_mut(self.data, self.length as usize)
     }
 
     /// Compute the length and data of this typed array.
@@ -181,6 +172,16 @@ impl<'a, T: TypedArrayElement> TypedArrayBase<'a, T> {
         self.data = data;
         self.computed = true;
     }
+
+    fn data(&self) -> *mut T::FundamentalType {
+        assert!(self.computed);
+        self.data
+    }
+
+    fn length(&self) -> u32 {
+        assert!(self.computed);
+        self.length
+    }
 }
 
 impl<'a, T: TypedArrayElement> Drop for TypedArrayBase<'a, T> {
@@ -193,7 +194,7 @@ impl<'a, T: TypedArrayElement> Drop for TypedArrayBase<'a, T> {
 }
 
 impl<'a> TypedArrayBase<'a, ArrayBufferViewU8> {
-    unsafe fn as_slice_transmute<T>(&self) -> &[T] {
+    unsafe fn as_slice_transmute<T: TypedArrayElement>(&self) -> &[T] {
         assert!(self.computed);
         slice::from_raw_parts(self.data as *mut T, self.length as usize / mem::size_of::<T>())
     }
@@ -254,39 +255,41 @@ impl<'a, T: TypedArrayElement> DerefMut for TypedArray<'a, T> {
 
 impl<'a, T: TypedArrayElementCreator + TypedArrayElement> TypedArray<'a, T> {
     /// Create an uninitialized wrapper around a future typed array.
-    pub fn new(rooter: &'a mut TypedArrayRooter) -> TypedArray<'a, T> {
-        TypedArray {
-            base: TypedArrayBase::new(rooter),
-        }
+    pub fn from(obj: *mut JSObject, rooter: &'a mut TypedArrayRooter)
+                -> Result<TypedArray<'a, T>, ()> {
+        Ok(TypedArray {
+            base: try!(TypedArrayBase::from(obj, rooter)),
+        })
     }
 
     /// Create a new JS typed array, optionally providing initial data that will
     /// be copied into the newly-allocated buffer. Returns the new JS reflector.
-    pub fn create(cx: *mut JSContext, length: u32, data: Option<&[T::FundamentalType]>)
-                  -> Option<NonZero<*mut JSObject>> {
-        let obj = T::create_new(cx, length);
-        if obj.is_null() {
-            return None;
+    pub fn create(cx: *mut JSContext,
+                  length: u32,
+                  data: Option<&[T::FundamentalType]>,
+                  result: MutableHandleObject)
+                  -> Result<(), ()> {
+        result.set(T::create_new(cx, length));
+        if result.get().is_null() {
+            return Err(());
         }
 
         if let Some(data) = data {
             assert!(data.len() <= length as usize);
-            let buf = T::get_data(obj);
+            let buf = T::get_data(result.get());
             unsafe {
                 ptr::copy_nonoverlapping(data.as_ptr(), buf, data.len());
             }
         }
 
-        unsafe {
-            Some(NonZero::new(obj))
-        }
+        Ok(())
     }
 }
 
 /// A wrapper around a JS ArrayBufferView object.
 pub struct ArrayBufferViewBase<'a, T: 'a + TypedArrayElement> {
     typed_array: TypedArrayBase<'a, T>,
-    type_: Option<Type>,
+    type_: Type,
 }
 
 trait ArrayBufferViewType {
@@ -333,26 +336,27 @@ array_buffer_view_output!(f64, Float64);
 array_buffer_view_output!(ClampedU8, Uint8Clamped);
 
 impl<'a, T: TypedArrayElement + ArrayBufferViewType> ArrayBufferViewBase<'a, T> {
-    /// Create an uninitilized ArrayBufferView wrapper.
-    pub fn new(rooter: &'a mut TypedArrayRooter) -> ArrayBufferViewBase<'a, T> {
-        ArrayBufferViewBase {
-            typed_array: TypedArrayBase::new(rooter),
-            type_: None,
+    /// Create an ArrayBufferView wrapper for a JS reflector.
+    /// Fails if the JS reflector is not an ArrayBufferView, or if it is not
+    /// one of the primitive numeric types (ie. SharedArrayBufferView, SIMD, etc.).
+    pub fn from(obj: *mut JSObject, rooter: &'a mut TypedArrayRooter)
+                -> Result<ArrayBufferViewBase<'a, T>, ()> {
+        let typed_array_base = try!(TypedArrayBase::from(obj, rooter));
+
+        let scalar_type = T::get_view_type(obj);
+        if (scalar_type as u32) >= Type::MaxTypedArrayViewType as u32 {
+            return Err(());
         }
+
+        Ok(ArrayBufferViewBase {
+            typed_array: typed_array_base,
+            type_: scalar_type,
+        })
     }
 
-    /// Initialize this wrapper with a JS ArrayBufferView reflector. Fails
-    /// if the JS reflector is not an ArrayBufferView, or if it is not
-    /// one of the primitive numeric types (ie. SharedArrayBufferView, SIMD, etc.).
-    pub fn init(&mut self, obj: *mut JSObject) -> Result<(), ()> {
-        try!(self.typed_array.init(obj));
-        let scalar_type = T::get_view_type(obj);
-        if (scalar_type as u32) < Type::MaxTypedArrayViewType as u32 {
-            self.type_ = Some(scalar_type);
-            Ok(())
-        } else {
-            Err(())
-        }
+    /// Initialize this wrapper.
+    pub fn init(&mut self) {
+        self.typed_array.init();
     }
 
     /// Compute the length and data of this typed array.
@@ -364,29 +368,34 @@ impl<'a, T: TypedArrayElement + ArrayBufferViewType> ArrayBufferViewBase<'a, T> 
 
     /// Return the element type of the wrapped ArrayBufferView.
     pub fn element_type(&self) -> Type {
-        assert!(self.type_.is_some());
-        self.type_.unwrap()
+        self.type_
     }
 
     /// Return a slice of the bytes of the underlying buffer.
     /// Length and data must be computed first.
     pub fn as_untyped_slice(&self) -> &[u8] {
-        unsafe { &*(self.typed_array.as_slice() as *const [T::FundamentalType] as *const [u8]) }
+        unsafe {
+            let num_bytes = self.typed_array.length() as usize * mem::size_of::<T::FundamentalType>();
+            slice::from_raw_parts(self.typed_array.data() as *const _ as *const u8, num_bytes)
+        }
     }
 
     /// Return a mutable slice of the bytes of the underlying buffer.
     /// Length and data must be computed first.
-    pub fn as_mut_untyped_slice(&mut self) -> &mut [u8] {
-        unsafe { &mut *(self.typed_array.as_mut_slice() as *mut [T::FundamentalType] as *mut [u8]) }
+    /// Creating multiple mutable slices of the same buffer simultaneously
+    /// will result in undefined behaviour.
+    pub unsafe fn as_mut_untyped_slice(&mut self) -> &mut [u8] {
+        let num_bytes = self.typed_array.length() as usize * mem::size_of::<T::FundamentalType>();
+        slice::from_raw_parts_mut(self.typed_array.data() as *mut u8, num_bytes)
     }
 }
 
 impl<'a> ArrayBufferViewBase<'a, ArrayBufferViewU8> {
     /// Return a slice of the underlying buffer reinterpreted as a different element type.
     /// Length and data must be computed first.
-    pub fn as_slice<U: ArrayBufferViewOutput>(&mut self) -> Result<&[U], ()> {
-        assert!(self.type_.is_some());
-        if U::get_view_type() as u32 == self.type_.unwrap() as u32 {
+    pub fn as_slice<U>(&mut self) -> Result<&[U], ()>
+                                  where U: ArrayBufferViewOutput + TypedArrayElement {
+        if U::get_view_type() as u32 == self.type_ as u32 {
             unsafe {
                 Ok(self.typed_array.as_slice_transmute())
             }
@@ -429,6 +438,10 @@ impl TypedArrayRooter {
         }
     }
 
+    fn inited(&self) -> bool {
+        !self.typed_array.is_null()
+    }
+
     fn init(&mut self, array: &mut TypedArrayObjectStorage) {
         assert!(self.typed_array.is_null());
         self.typed_array = array;
@@ -440,11 +453,6 @@ impl JSTraceable for TypedArrayRooter {
     fn trace(&self, trc: *mut JSTracer) {
         unsafe {
             let storage = &mut (*self.typed_array);
-            if !storage.wrapped_obj.is_null() {
-                JS_CallUnbarrieredObjectTracer(trc,
-                                               &mut storage.wrapped_obj,
-                                               b"TypedArray.wrapped_obj\0".as_ptr() as *const _);
-            }
             if !storage.typed_obj.is_null() {
                 JS_CallUnbarrieredObjectTracer(trc,
                                                &mut storage.typed_obj,

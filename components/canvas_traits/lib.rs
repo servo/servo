@@ -123,7 +123,7 @@ pub enum CanvasWebGLMsg {
     BlendFunc(u32, u32),
     BlendFuncSeparate(u32, u32, u32, u32),
     AttachShader(u32, u32),
-    BufferData(u32, Vec<f32>, u32), //TODO: add variants for all possible buffer types
+    BufferData(u32, Vec<f32>, u32), //TODO: allow non-f32 values (#6791)
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     CompileShader(u32),
