@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::channel;
 use url::Url;
 
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
@@ -19,7 +20,7 @@ pub trait StorageTaskFactory {
 impl StorageTaskFactory for StorageTask {
     /// Create a StorageTask
     fn new() -> StorageTask {
-        let (chan, port) = channel();
+        let (chan, port) = ipc::channel().unwrap();
         spawn_named("StorageManager".to_owned(), move || {
             StorageManager::new(port).start();
         });
@@ -28,13 +29,13 @@ impl StorageTaskFactory for StorageTask {
 }
 
 struct StorageManager {
-    port: Receiver<StorageTaskMsg>,
+    port: IpcReceiver<StorageTaskMsg>,
     session_data: HashMap<String, BTreeMap<DOMString, DOMString>>,
     local_data: HashMap<String, BTreeMap<DOMString, DOMString>>,
 }
 
 impl StorageManager {
-    fn new(port: Receiver<StorageTaskMsg>) -> StorageManager {
+    fn new(port: IpcReceiver<StorageTaskMsg>) -> StorageManager {
         StorageManager {
             port: port,
             session_data: HashMap::new(),
@@ -72,27 +73,33 @@ impl StorageManager {
         }
     }
 
-    fn select_data(& self, storage_type: StorageType) -> &HashMap<String, BTreeMap<DOMString, DOMString>> {
+    fn select_data(&self, storage_type: StorageType)
+                   -> &HashMap<String, BTreeMap<DOMString, DOMString>> {
         match storage_type {
             StorageType::Session => &self.session_data,
             StorageType::Local => &self.local_data
         }
     }
 
-    fn select_data_mut(&mut self, storage_type: StorageType) -> &mut HashMap<String, BTreeMap<DOMString, DOMString>> {
+    fn select_data_mut(&mut self, storage_type: StorageType)
+                       -> &mut HashMap<String, BTreeMap<DOMString, DOMString>> {
         match storage_type {
             StorageType::Session => &mut self.session_data,
             StorageType::Local => &mut self.local_data
         }
     }
 
-    fn length(&self, sender: Sender<usize>, url: Url, storage_type: StorageType) {
+    fn length(&self, sender: IpcSender<usize>, url: Url, storage_type: StorageType) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin).map_or(0, |entry| entry.len())).unwrap();
     }
 
-    fn key(&self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType, index: u32) {
+    fn key(&self,
+           sender: IpcSender<Option<DOMString>>,
+           url: Url,
+           storage_type: StorageType,
+           index: u32) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
@@ -102,8 +109,12 @@ impl StorageManager {
 
     /// Sends Some(old_value) in case there was a previous value with the same key name but with different
     /// value name, otherwise sends None
-    fn set_item(&mut self, sender: Sender<(bool, Option<DOMString>)>, url: Url, storage_type: StorageType,
-                name: DOMString, value: DOMString) {
+    fn set_item(&mut self,
+                sender: IpcSender<(bool, Option<DOMString>)>,
+                url: Url,
+                storage_type: StorageType,
+                name: DOMString,
+                value: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         if !data.contains_key(&origin) {
@@ -122,7 +133,11 @@ impl StorageManager {
         sender.send((changed, old_value)).unwrap();
     }
 
-    fn get_item(&self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType, name: DOMString) {
+    fn get_item(&self,
+                sender: IpcSender<Option<DOMString>>,
+                url: Url,
+                storage_type: StorageType,
+                name: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
@@ -131,7 +146,10 @@ impl StorageManager {
     }
 
     /// Sends Some(old_value) in case there was a previous value with the key name, otherwise sends None
-    fn remove_item(&mut self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType,
+    fn remove_item(&mut self,
+                   sender: IpcSender<Option<DOMString>>,
+                   url: Url,
+                   storage_type: StorageType,
                    name: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
@@ -141,7 +159,7 @@ impl StorageManager {
         sender.send(old_value).unwrap();
     }
 
-    fn clear(&mut self, sender: Sender<bool>, url: Url, storage_type: StorageType) {
+    fn clear(&mut self, sender: IpcSender<bool>, url: Url, storage_type: StorageType) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         sender.send(data.get_mut(&origin)

@@ -13,6 +13,7 @@ use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use dom::window::WindowHelpers;
+use ipc_channel::ipc;
 use util::str::DOMString;
 use page::IterablePage;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
@@ -58,21 +59,21 @@ impl Storage {
 
 impl<'a> StorageMethods for &'a Storage {
     fn Length(self) -> u32 {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url(), self.storage_type)).unwrap();
         receiver.recv().unwrap() as u32
     }
 
     fn Key(self, index: u32) -> Option<DOMString> {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), self.storage_type, index)).unwrap();
         receiver.recv().unwrap()
     }
 
     fn GetItem(self, name: DOMString) -> Option<DOMString> {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         let msg = StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name);
         self.get_storage_task().send(msg).unwrap();
@@ -86,7 +87,7 @@ impl<'a> StorageMethods for &'a Storage {
     }
 
     fn SetItem(self, name: DOMString, value: DOMString) {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
         self.get_storage_task().send(msg).unwrap();
@@ -105,7 +106,7 @@ impl<'a> StorageMethods for &'a Storage {
     }
 
     fn RemoveItem(self, name: DOMString) {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         let msg = StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
         self.get_storage_task().send(msg).unwrap();
@@ -119,7 +120,7 @@ impl<'a> StorageMethods for &'a Storage {
     }
 
     fn Clear(self) {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url(), self.storage_type)).unwrap();
         if receiver.recv().unwrap() {
