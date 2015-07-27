@@ -4,7 +4,7 @@
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
-use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 use hsts::{HSTSList, secure_url};
@@ -14,7 +14,8 @@ use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem};
+use hyper::header::{Quality, QualityItem};
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -262,7 +263,9 @@ reason: \"certificate verify failed\" }]))";
                                                       load_data.method.clone(),
                                                       load_data.headers.clone(),
                                                       load_data.data.clone());
-            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event)).unwrap();
+            chan.send(DevtoolsControlMsg::FromChrome(
+                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
+                                                                    net_event))).unwrap();
         }
 
         let mut response = match writer.send() {
@@ -368,9 +371,13 @@ reason: \"certificate verify failed\" }]))";
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         if let Some(ref chan) = devtools_chan {
-            let net_event_response = NetworkEvent::HttpResponse(
-                metadata.headers.clone(), metadata.status.clone(), None);
-            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)).unwrap();
+            let net_event_response =
+                NetworkEvent::HttpResponse(metadata.headers.clone(),
+                                           metadata.status.clone(),
+                                           None);
+            chan.send(DevtoolsControlMsg::FromChrome(
+                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id,
+                                                                    net_event_response))).unwrap();
         }
 
         match encoding_str {

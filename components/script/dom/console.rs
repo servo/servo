@@ -8,7 +8,7 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::WindowHelpers;
-use devtools_traits::{DevtoolsControlMsg, ConsoleMessage, LogLevel};
+use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
 use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
@@ -101,7 +101,7 @@ fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
         GlobalRef::Window(window_ref) => {
             let pipelineId = window_ref.pipeline();
             console.global.root().r().as_window().devtools_chan().as_ref().map(|chan| {
-                chan.send(DevtoolsControlMsg::SendConsoleMessage(
+                chan.send(ScriptToDevtoolsControlMsg::SendConsoleMessage(
                     pipelineId, console_message.clone())).unwrap();
             });
         },

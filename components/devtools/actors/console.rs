@@ -18,9 +18,10 @@ use msg::constellation_msg::PipelineId;
 
 use std::collections::BTreeMap;
 use core::cell::RefCell;
+use ipc_channel::ipc::{self, IpcSender};
 use rustc_serialize::json::{self, Json, ToJson};
 use std::net::TcpStream;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::channel;
 
 trait EncodableConsoleMessage {
     fn encode(&self) -> json::EncodeResult<String>;
@@ -81,7 +82,7 @@ struct EvaluateJSReply {
 pub struct ConsoleActor {
     pub name: String,
     pub pipeline: PipelineId,
-    pub script_chan: Sender<DevtoolScriptControlMsg>,
+    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<Vec<TcpStream>>,
 }
 
@@ -108,7 +109,7 @@ impl Actor for ConsoleActor {
                         s => println!("unrecognized message type requested: \"{}\"", s),
                     };
                 };
-                let (chan, port) = channel();
+                let (chan, port) = ipc::channel().unwrap();
                 self.script_chan.send(DevtoolScriptControlMsg::GetCachedMessages(
                     self.pipeline, message_types, chan)).unwrap();
                 let messages = try!(port.recv().map_err(|_| ())).into_iter().map(|message| {
@@ -170,7 +171,7 @@ impl Actor for ConsoleActor {
 
             "evaluateJS" => {
                 let input = msg.get(&"text".to_string()).unwrap().as_string().unwrap().to_string();
-                let (chan, port) = channel();
+                let (chan, port) = ipc::channel().unwrap();
                 self.script_chan.send(DevtoolScriptControlMsg::EvaluateJS(
                     self.pipeline, input.clone(), chan)).unwrap();
 

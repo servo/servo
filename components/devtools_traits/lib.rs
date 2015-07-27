@@ -10,12 +10,16 @@
 #![crate_type = "rlib"]
 
 #![allow(non_snake_case)]
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
 
 #[macro_use]
 extern crate bitflags;
 
+extern crate ipc_channel;
 extern crate msg;
 extern crate rustc_serialize;
+extern crate serde;
 extern crate url;
 extern crate hyper;
 extern crate util;
@@ -29,15 +33,18 @@ use url::Url;
 use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
+use ipc_channel::ipc::IpcSender;
+use time::Duration;
 
 use std::net::TcpStream;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
 pub type DevtoolsControlPort = Receiver<DevtoolScriptControlMsg>;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
+#[derive(Deserialize, Serialize)]
 pub struct DevtoolsPageInfo {
     pub title: DOMString,
     pub url: Url
@@ -46,16 +53,28 @@ pub struct DevtoolsPageInfo {
 /// Messages to the instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
+    FromChrome(ChromeToDevtoolsControlMsg),
+    FromScript(ScriptToDevtoolsControlMsg),
+}
+
+pub enum ChromeToDevtoolsControlMsg {
     AddClient(TcpStream),
     FramerateTick(String, f64),
-    NewGlobal((PipelineId, Option<WorkerId>), Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
-    SendConsoleMessage(PipelineId, ConsoleMessage),
     ServerExitMsg,
     NetworkEventMessage(String, NetworkEvent),
 }
 
+#[derive(Deserialize, Serialize)]
+pub enum ScriptToDevtoolsControlMsg {
+    NewGlobal((PipelineId, Option<WorkerId>),
+              IpcSender<DevtoolScriptControlMsg>,
+              DevtoolsPageInfo),
+    SendConsoleMessage(PipelineId, ConsoleMessage),
+}
+
 /// Serialized JS return values
 /// TODO: generalize this beyond the EvaluateJS message?
+#[derive(Deserialize, Serialize)]
 pub enum EvaluateJSReply {
     VoidValue,
     NullValue,
@@ -65,12 +84,14 @@ pub enum EvaluateJSReply {
     ActorValue(String),
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct AttrInfo {
     pub namespace: String,
     pub name: String,
     pub value: String,
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct NodeInfo {
     pub uniqueId: String,
     pub baseURI: String,
@@ -92,7 +113,7 @@ pub struct NodeInfo {
     pub incompleteValue: bool,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Deserialize, Serialize)]
 pub enum TracingMetadata {
     Default,
     IntervalStart,
@@ -101,36 +122,38 @@ pub enum TracingMetadata {
     EventBacktrace,
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct TimelineMarker {
     pub name: String,
     pub metadata: TracingMetadata,
-    pub time: time::PreciseTime,
+    pub time: PreciseTime,
     pub stack: Option<Vec<()>>,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Deserialize, Serialize)]
 pub enum TimelineMarkerType {
     Reflow,
     DOMEvent,
 }
 
 /// Messages to process in a particular script task, as instructed by a devtools client.
+#[derive(Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
-    EvaluateJS(PipelineId, String, Sender<EvaluateJSReply>),
-    GetRootNode(PipelineId, Sender<NodeInfo>),
-    GetDocumentElement(PipelineId, Sender<NodeInfo>),
-    GetChildren(PipelineId, String, Sender<Vec<NodeInfo>>),
-    GetLayout(PipelineId, String, Sender<(f32, f32)>),
-    GetCachedMessages(PipelineId, CachedConsoleMessageTypes, Sender<Vec<CachedConsoleMessage>>),
+    EvaluateJS(PipelineId, String, IpcSender<EvaluateJSReply>),
+    GetRootNode(PipelineId, IpcSender<NodeInfo>),
+    GetDocumentElement(PipelineId, IpcSender<NodeInfo>),
+    GetChildren(PipelineId, String, IpcSender<Vec<NodeInfo>>),
+    GetLayout(PipelineId, String, IpcSender<(f32, f32)>),
+    GetCachedMessages(PipelineId, CachedConsoleMessageTypes, IpcSender<Vec<CachedConsoleMessage>>),
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     WantsLiveNotifications(PipelineId, bool),
-    SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, Sender<TimelineMarker>),
+    SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<TimelineMarker>),
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
-    RequestAnimationFrame(PipelineId, Box<Fn(f64, ) + Send>),
+    RequestAnimationFrame(PipelineId, IpcSender<f64>),
 }
 
-#[derive(RustcEncodable)]
-pub struct Modification{
+#[derive(RustcEncodable, Deserialize, Serialize)]
+pub struct Modification {
     pub attributeName: String,
     pub newValue: Option<String>,
 }
@@ -149,7 +172,7 @@ impl Decodable for Modification {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum LogLevel {
     Log,
     Debug,
@@ -158,7 +181,7 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ConsoleMessage {
     pub message: String,
     pub logLevel: LogLevel,
@@ -168,13 +191,14 @@ pub struct ConsoleMessage {
 }
 
 bitflags! {
+    #[derive(Deserialize, Serialize)]
     flags CachedConsoleMessageTypes: u8 {
         const PAGE_ERROR  = 1 << 0,
         const CONSOLE_API = 1 << 1,
     }
 }
 
-#[derive(RustcEncodable)]
+#[derive(RustcEncodable, Deserialize, Serialize)]
 pub struct PageError {
     pub _type: String,
     pub errorMessage: String,
@@ -191,7 +215,7 @@ pub struct PageError {
     pub private: bool,
 }
 
-#[derive(RustcEncodable)]
+#[derive(RustcEncodable, Deserialize, Serialize)]
 pub struct ConsoleAPI {
     pub _type: String,
     pub level: String,
@@ -203,6 +227,7 @@ pub struct ConsoleAPI {
     pub arguments: Vec<String>,
 }
 
+#[derive(Deserialize, Serialize)]
 pub enum CachedConsoleMessage {
     PageError(PageError),
     ConsoleAPI(ConsoleAPI),
@@ -219,8 +244,28 @@ impl TimelineMarker {
         TimelineMarker {
             name: name,
             metadata: metadata,
-            time: time::PreciseTime::now(),
+            time: PreciseTime::now(),
             stack: None,
         }
     }
 }
+
+/// A replacement for `time::PreciseTime` that isn't opaque, so we can serialize it.
+///
+/// The reason why this doesn't go upstream is that `time` is slated to be part of Rust's standard
+/// library, which definitely can't have any dependencies on `serde`. But `serde` can't implement
+/// `Deserialize` and `Serialize` itself, because `time::PreciseTime` is opaque! A Catch-22. So I'm
+/// duplicating the definition here.
+#[derive(Copy, Clone, Deserialize, Serialize)]
+pub struct PreciseTime(u64);
+
+impl PreciseTime {
+    pub fn now() -> PreciseTime {
+        PreciseTime(time::precise_time_ns())
+    }
+
+    pub fn to(&self, later: PreciseTime) -> Duration {
+        Duration::nanoseconds((later.0 - self.0) as i64)
+    }
+}
+

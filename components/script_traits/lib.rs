@@ -21,7 +21,7 @@ extern crate serde;
 extern crate util;
 extern crate url;
 
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId};
@@ -35,7 +35,7 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem;
 use std::any::Any;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
 use util::geometry::Au;
 
@@ -193,7 +193,7 @@ pub trait ScriptTaskFactory {
               storage_task: StorageTask,
               image_cache_task: ImageCacheTask,
               mem_profiler_chan: mem::ProfilerChan,
-              devtools_chan: Option<DevtoolsControlChan>,
+              devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
               window_size: Option<WindowSizeData>,
               load_data: LoadData);
     /// Create a script -> layout channel (`Sender`, `Receiver` pair).

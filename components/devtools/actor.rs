@@ -4,6 +4,7 @@
 
 /// General actor system infrastructure.
 
+use devtools_traits::PreciseTime;
 use rustc_serialize::json;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -13,7 +14,6 @@ use std::mem::{replace, transmute};
 use std::net::TcpStream;
 use std::raw::TraitObject;
 use std::sync::{Arc, Mutex};
-use time::PreciseTime;
 
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.

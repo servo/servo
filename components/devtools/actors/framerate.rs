@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use rustc_serialize::json;
 use std::mem;
 use std::net::TcpStream;
@@ -12,12 +14,12 @@ use time::precise_time_ns;
 use msg::constellation_msg::PipelineId;
 use actor::{Actor, ActorRegistry};
 use actors::timeline::HighResolutionStamp;
-use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolScriptControlMsg};
 
 pub struct FramerateActor {
     name: String,
     pipeline: PipelineId,
-    script_sender: Sender<DevtoolScriptControlMsg>,
+    script_sender: IpcSender<DevtoolScriptControlMsg>,
     devtools_sender: Sender<DevtoolsControlMsg>,
     start_time: Option<u64>,
     is_recording: Arc<Mutex<bool>>,
@@ -43,7 +45,7 @@ impl FramerateActor {
     /// return name of actor
     pub fn create(registry: &ActorRegistry,
                   pipeline_id: PipelineId,
-                  script_sender: Sender<DevtoolScriptControlMsg>,
+                  script_sender: IpcSender<DevtoolScriptControlMsg>,
                   devtools_sender: Sender<DevtoolsControlMsg>) -> String {
         let actor_name = registry.new_name("framerate");
         let mut actor = FramerateActor {
@@ -86,12 +88,13 @@ impl FramerateActor {
         fn get_closure(is_recording: Arc<Mutex<bool>>,
                        name: String,
                        pipeline: PipelineId,
-                       script_sender: Sender<DevtoolScriptControlMsg>,
+                       script_sender: IpcSender<DevtoolScriptControlMsg>,
                        devtools_sender: Sender<DevtoolsControlMsg>)
                           -> Box<Fn(f64, ) + Send> {
 
             let closure = move |now: f64| {
-                let msg = DevtoolsControlMsg::FramerateTick(name.clone(), now);
+                let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::FramerateTick(
+                        name.clone(), now));
                 devtools_sender.send(msg).unwrap();
 
                 if !*is_recording.lock().unwrap() {
@@ -103,7 +106,15 @@ impl FramerateActor {
                                           pipeline.clone(),
                                           script_sender.clone(),
                                           devtools_sender.clone());
-                let msg = DevtoolScriptControlMsg::RequestAnimationFrame(pipeline, closure);
+                let (request_animation_frame_sender, request_animation_frame_receiver) =
+                    ipc::channel().unwrap();
+                ROUTER.add_route(request_animation_frame_receiver.to_opaque(), box move |message| {
+                    let value: f64 = message.to().unwrap();
+                    closure(value);
+                });
+                let msg = DevtoolScriptControlMsg::RequestAnimationFrame(
+                    pipeline,
+                    request_animation_frame_sender);
                 script_sender.send(msg).unwrap();
             };
             Box::new(closure)
@@ -114,7 +125,14 @@ impl FramerateActor {
                                   self.pipeline.clone(),
                                   self.script_sender.clone(),
                                   self.devtools_sender.clone());
-        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, closure);
+        let (request_animation_frame_sender, request_animation_frame_receiver) =
+            ipc::channel().unwrap();
+        ROUTER.add_route(request_animation_frame_receiver.to_opaque(), box move |message| {
+            let value: f64 = message.to().unwrap();
+            closure(value);
+        });
+        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline,
+                                                                 request_animation_frame_sender);
         self.script_sender.send(msg).unwrap();
     }
 
