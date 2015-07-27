@@ -18,8 +18,6 @@ pub trait StyledNode {
     /// Returns the style results for the given node. If CSS selector matching has not yet been
     /// performed, fails.
     fn style<'a>(&'a self) -> Ref<'a, Arc<ComputedValues>>;
-    /// Does this node have a computed style yet?
-    fn has_style(&self) -> bool;
     /// Removes the style from this node.
     fn unstyle(self);
 }
@@ -40,11 +38,6 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
             let layout_data = layout_data_ref.as_ref().expect("no layout data");
             self.get_style(layout_data)
         })
-    }
-
-    fn has_style(&self) -> bool {
-        let layout_data_ref = self.borrow_layout_data();
-        layout_data_ref.as_ref().unwrap().shared_data.style.is_some()
     }
 
     fn unstyle(self) {
