@@ -37,7 +37,7 @@ test(unit(function (ctx) {
 	range.setStart(span.firstChild, 0);
 	range.setEnd(span.firstChild, 3);
 
-	var selection = window.getSelection();
+	var selection = s.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
 

@@ -46,6 +46,10 @@
           <label for="path" class="col-sm-3 control-label">Run tests under path</label>
           <div class="col-sm-9">
             <input value="/" id='path' class='path form-control' disabled>
+            <label>
+              <input type=checkbox id='use_regex'>
+              Use regular expression
+            </label>
           </div>
         </div>
 
@@ -85,6 +89,7 @@
       To run a set of
       <a href="https://github.com/w3c/web-platform-tests/blob/master/README.md">web-platform-tests</a>
       tests, specify a path value in the <b>Run tests under path</b> field above. Example paths:
+    </p>
     <ul>
       <li><code>/</code> - runs all of the tests from the root down</li>
       <li><code>/websockets</code> - runs all of the
@@ -95,11 +100,24 @@
           <a href="http://w3c-test.org/html/syntax/parsing/">html/syntax/parsing</a> tests</li>
     </ul>
     <p>
+      Multiple test paths can be specified by separating them with comma or whitespace. For example,
+      <code>/js, /html</code> will run the <a href="http://w3c-test.org/js/">js</a> <em>and</em> <a href="http://w3c-test.org/html/">html</a>
+      tests.
+    </p>
+    <p>
+      <a href="http://www.w3schools.com/jsref/jsref_obj_regexp.asp" target="_blank">Javascript regular expressions</a> are also supported for filtering. When the option is checked,
+      only a test path matching the regex pattern will run. For example, you can specify <code>^/js/|^/html/</code>
+      to run the <a href="http://w3c-test.org/js/">js</a> <em>and</em> <a href="http://w3c-test.org/html/">html</a>
+      tests.
+    </p>
+    <p>
       If the test runner is run online, the set of tests available to run can be found in the
       <a href="http://w3c-test.org/">w3c-test.org</a> test repository.
+    </p>
     <p>
       Tests will run in a new window. For reftests and manual tests it’s best
       to put that window side-by-side with this one.
+    </p>
   </div>
 
   <div id="output">
@@ -117,20 +135,34 @@
       <table class='table'>
         <thead>
           <tr>
-            <th>Passed
-            <th>Failed
-            <th>Timeouts
-            <th>Errors
+            <th></th>
+            <th>Passed</th>
+            <th>Failed</th>
+            <th>Timeouts</th>
+            <th>Errors</th>
             <th>Not Run</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class='PASS'>0
-            <td class='FAIL'>0
-            <td class='TIMEOUT'>0
-            <td class='ERROR'>0
-            <td class='NOTRUN'>0
+            <td></td>
+            <td class='PASS'>0</td>
+            <td class='FAIL'>0</td>
+            <td class='TIMEOUT'>0</td>
+            <td class='ERROR'>0</td>
+            <td class='NOTRUN'>0</td>
+          </tr>
+           <tr>
+            <td>
+              <label>
+                Display:
+              </label>
+              </td>
+            <td><input type=checkbox class="result-display-filter" value="PASS" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="FAIL" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="TIMEOUT" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="ERROR" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="NOTRUN" checked></td>
           </tr>
         </tbody>
       </table>

@@ -1,6 +1,6 @@
 // The SanityChecker is used in debug mode to identify problems with the
-// structure of the testsuite. In release mode it is mocked out to do nothing.
-
+// structure of the testsuite and to force early test failures.
+// In release mode it is mocked out to do nothing.
 function SanityChecker()  {}
 
 SanityChecker.prototype.checkScenario = function(scenario, resourceInvoker) {
@@ -35,4 +35,19 @@ SanityChecker.prototype.checkScenario = function(scenario, resourceInvoker) {
                         "Subresource should be supported");
 
   }, "[MixedContentTestCase] The test scenario should be valid.");
+}
+
+// For easier debugging runs, we can fail a test earlier.
+SanityChecker.prototype.setFailTimeout = function(test, timeout) {
+  // Due to missing implementations, tests time out, so we fail them early.
+  // TODO(kristijanburnik): Once WPT rolled in:
+  //   https://github.com/w3c/testharness.js/pull/127
+  // Refactor to make use of step_timeout.
+  setTimeout(function() {
+    test.step(function() {
+      assert_equals(test.phase, test.phases.COMPLETE,
+                    "Expected test to complete.");
+      test.done();
+    })
+  }, timeout || 1000);
 }

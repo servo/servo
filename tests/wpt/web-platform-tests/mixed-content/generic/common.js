@@ -354,7 +354,33 @@ function requestViaObject(url) {
   return createRequestViaElement("object", {"data": url}, document.body);
 }
 
+/**
+ * Creates a new WebSocket pointing to {@code url} and sends a message string
+ * "echo". The {@code message} and {@code error} events are triggering the
+ * returned promise resolve/reject events.
+ * @param {string} url The URL for WebSocket to connect to.
+ * @return {Promise} The promise for success/error events.
+ */
+function requestViaWebSocket(url) {
+  return new Promise(function(resolve, reject) {
+    var websocket = new WebSocket(url);
+
+    websocket.addEventListener("message", function(e) {
+      resolve(JSON.parse(e.data));
+    });
+
+    websocket.addEventListener("open", function(e) {
+      websocket.send("echo");
+    });
+
+    websocket.addEventListener("error", function(e) {
+      reject(e)
+    });
+  });
+}
+
 // SanityChecker does nothing in release mode. See sanity-checker.js for debug
 // mode.
 function SanityChecker() {}
 SanityChecker.prototype.checkScenario = function() {};
+SanityChecker.prototype.setFailTimeout = function(test, timeout) {};

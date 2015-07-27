@@ -373,8 +373,8 @@ The assertion should not be:
 The test assertion is **optional**. It helps the reviewer understand
 the goal of the test so that he or she can make sure it is being
 tested correctly. Also, in case a problem is found with the test
-later, the testing method (e.g. using 'color' to determine pass/fail)
-can be changed (e.g. to using 'background-color') while preserving
+later, the testing method (e.g. using `color` to determine pass/fail)
+can be changed (e.g. to using `background-color`) while preserving
 the intent of the test (e.g. testing support for ID selectors).
 
 Examples of good test assertions:

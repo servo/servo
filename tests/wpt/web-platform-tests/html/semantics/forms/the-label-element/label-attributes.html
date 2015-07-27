@@ -121,4 +121,8 @@
                   "The 'form' property for a label without a form owner should return null.");
   }, "Check that the labels property of a form control with no label returns a zero-length NodeList.");
 
+  // htmlFor attribute
+  test(function () {
+    assert_equals(document.getElementById("lbl2").htmlFor, "testx");
+  }, "A label's htmlFor attribute must reflect the for content attribute");
 </script>

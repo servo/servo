@@ -52,7 +52,7 @@ sheet is applied.</p>
 Within the test case it is recommended that the case itself indicate
 the necessary user style sheet that is required.
 
-Examples: (code for the cascade.css file)
+Examples: (code for the [`cascade.css`][cascade-css] file)
 
 ``` css
 #cascade /* ID name should match user style sheet file name */
@@ -66,7 +66,7 @@ The rule ```#cascade``` in the example above is used by the test
 page to hide the prerequisite text. The rule name should match the
 user style sheet CSS file name in order to keep this orderly.
 
-Examples: (code for the cascade-### XHTML files)
+Examples: (code for [the `cascade-###.xht` files][cascade-xht])
 
 ``` html
 <p id="cascade">
@@ -83,3 +83,6 @@ sheet is properly applied.
 Please flag test that require user style sheets with the userstyle
 flag so people running the tests know that a user style sheet is
 required.
+
+[cascade-css]: https://github.com/w3c/csswg-test/blob/master/css21/cascade/support/cascade.css
+[cascade-xht]: https://github.com/w3c/csswg-test/blob/master/css21/cascade/cascade-001.xht
