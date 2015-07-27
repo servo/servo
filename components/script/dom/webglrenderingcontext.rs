@@ -284,10 +284,11 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         };
 
         let mut rooter = TypedArrayRooter::new();
-        let mut array_buffer_view = ArrayBufferView::new(&mut rooter);
-        if array_buffer_view.init(data).is_err() {
-            return;
-        }
+        let mut array_buffer_view = match ArrayBufferView::from(data, &mut rooter) {
+            Ok(view) => view,
+            Err(_) => return,
+        };
+        array_buffer_view.init();
         array_buffer_view.compute_length_and_data();
         let data_vec = match array_buffer_view.as_slice() {
             Ok(data) => data.to_vec(),
@@ -489,10 +490,11 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         };
 
         let mut rooter = TypedArrayRooter::new();
-        let mut typed_array = Float32Array::new(&mut rooter);
-        if typed_array.init(data).is_err() {
-            return;
-        }
+        let mut typed_array = match Float32Array::from(data, &mut rooter) {
+            Ok(array) => array,
+            Err(_) => return,
+        };
+        typed_array.init();
         typed_array.compute_length_and_data();
         let data_vec = typed_array.as_slice().iter().cloned().take(4).collect();
 

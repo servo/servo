@@ -91,21 +91,26 @@ impl<'a> TextDecoderMethods for &'a TextDecoder {
         };
 
         let mut rooter = TypedArrayRooter::new();
-        let mut array_buffer_view = ArrayBufferView::new(&mut rooter);
-        if array_buffer_view.init(input).is_err() {
-            let mut rooter = TypedArrayRooter::new();
-            let mut array_buffer = ArrayBuffer::new(&mut rooter);
-            if array_buffer.init(input).is_err() {
-                return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView \
-                                        or ArrayBuffer".to_owned()));
+        let mut array_buffer_view = match ArrayBufferView::from(input, &mut rooter) {
+            Ok(array_buffer_view) => array_buffer_view,
+            Err(_) => {
+                let mut rooter = TypedArrayRooter::new();
+                let mut array_buffer = match ArrayBuffer::from(input, &mut rooter) {
+                    Ok(buffer) => buffer,
+                    Err(_) =>
+                        return Err(Error::Type("Argument to TextDecoder.decode is not an \
+                                                ArrayBufferView or ArrayBuffer".to_owned())),
+                };
+                array_buffer.init();
+                array_buffer.compute_length_and_data();
+                let buffer = array_buffer.as_slice();
+                return decode_from_slice(buffer, self.fatal, &self.encoding);
             }
-            array_buffer.compute_length_and_data();
-            let buffer = array_buffer.as_slice();
-            return decode_from_slice(buffer, self.fatal, &self.encoding);
-        }
+        };
+        array_buffer_view.init();
         array_buffer_view.compute_length_and_data();
         let buffer = array_buffer_view.as_untyped_slice();
-        return decode_from_slice(buffer, self.fatal, &self.encoding);
+        decode_from_slice(buffer, self.fatal, &self.encoding)
     }
 }
 

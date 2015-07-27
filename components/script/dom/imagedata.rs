@@ -10,7 +10,8 @@ use dom::bindings::js::Root;
 use dom::bindings::typedarray::{Uint8ClampedArray, TypedArrayRooter};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use euclid::size::Size2D;
-use js::jsapi::{JSContext, JSObject, Heap};
+use js::jsapi::{JSContext, JSObject, Heap, RootedObject};
+use std::ptr;
 use std::vec::Vec;
 use std::default::Default;
 
@@ -33,9 +34,14 @@ impl ImageData {
             data: Heap::default(),
         };
 
-        match Uint8ClampedArray::create(global.get_cx(), width * height * 4, data) {
-            Some(js_object) => imagedata.data.set(*js_object),
-            None => return Err(Error::JSFailed)
+        let mut array_ptr = RootedObject::new(global.get_cx(), ptr::null_mut());
+        let array = Uint8ClampedArray::create(global.get_cx(),
+                                              width * height * 4,
+                                              data,
+                                              array_ptr.handle_mut());
+        match array {
+            Ok(()) => imagedata.data.set(*array_ptr.handle()),
+            Err(_) => return Err(Error::JSFailed)
         }
 
         Ok(reflect_dom_object(imagedata, global, ImageDataBinding::Wrap))
@@ -48,12 +54,13 @@ pub trait ImageDataHelpers {
 }
 
 impl<'a> ImageDataHelpers for &'a ImageData {
-    fn get_data_array(self, _global: &GlobalRef) -> Vec<u8> {
+    fn get_data_array(self, global: &GlobalRef) -> Vec<u8> {
         let mut rooter = TypedArrayRooter::new();
-        let mut typed_array = Uint8ClampedArray::new(&mut rooter);
-        if typed_array.init(self.data.get()).is_err() {
-            return vec!();
-        }
+        let mut typed_array = match Uint8ClampedArray::from(self.Data(global.get_cx()), &mut rooter) {
+            Ok(typed_array) => typed_array,
+            Err(_) => return vec![],
+        };
+        typed_array.init();
         typed_array.compute_length_and_data();
         typed_array.as_slice().to_vec()
     }
