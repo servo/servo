@@ -5,19 +5,19 @@
 extern crate time as std_time;
 extern crate url;
 
+use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
 use self::url::Url;
-use std::sync::mpsc::Sender;
 
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize)]
 pub struct TimerMetadata {
     pub url:         String,
     pub iframe:      bool,
     pub incremental: bool,
 }
 
-#[derive(Clone)]
-pub struct ProfilerChan(pub Sender<ProfilerMsg>);
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
@@ -26,7 +26,7 @@ impl ProfilerChan {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
     Time((ProfilerCategory, Option<TimerMetadata>), f64),
@@ -37,7 +37,7 @@ pub enum ProfilerMsg {
 }
 
 #[repr(u32)]
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize)]
 pub enum ProfilerCategory {
     Compositing,
     LayoutPerform,

@@ -7,6 +7,10 @@ authors = ["The Servo Project Developers"]
 name = "devtools_traits"
 path = "lib.rs"
 
+[dependencies.hyper]
+version = "0.6"
+features = [ "serde-serialization" ]
+
 [dependencies.msg]
 path = "../msg"
 
@@ -14,8 +18,7 @@ path = "../msg"
 path = "../util"
 
 [dependencies]
-time = "*"
+time = "0.1"
 rustc-serialize = "0.3"
-url = "*"
-hyper = "0.5"
-bitflags = "*"
+url = "0.2"
+bitflags = "0.3"

@@ -10,15 +10,17 @@ use dom::node::LayoutData;
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::uintptr_t;
 use msg::compositor_msg::LayerId;
-use msg::constellation_msg::{PipelineExitType, WindowSizeData};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{WindowSizeData};
 use msg::compositor_msg::Epoch;
+use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::PendingAsyncLoad;
-use profile_traits::mem::{Reporter, ReportsChan};
-use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
-use script_traits::StylesheetLoadResponder;
+use profile_traits::mem::ReportsChan;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
+use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use style::animation::PropertyAnimation;
@@ -72,7 +74,12 @@ pub enum Msg {
     ExitNow(PipelineExitType),
 
     /// Get the last epoch counter for this layout task.
-    GetCurrentEpoch(IpcSender<Epoch>)
+    GetCurrentEpoch(IpcSender<Epoch>),
+
+    /// Creates a new layout task.
+    ///
+    /// This basically exists to keep the script-layout dependency one-way.
+    CreateLayoutTask(NewLayoutTaskInfo),
 }
 
 /// Synchronous messages that script can send to layout.
@@ -152,14 +159,6 @@ impl LayoutChan {
     }
 }
 
-impl Reporter for LayoutChan {
-    // Just injects an appropriate event into the layout task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        let LayoutChan(ref c) = *self;
-        c.send(Msg::CollectReports(reports_chan)).is_ok()
-    }
-}
-
 /// A trait to manage opaque references to script<->layout channels without needing
 /// to expose the message type to crates that don't need to know about them.
 pub trait ScriptLayoutChan {
@@ -207,5 +206,19 @@ impl Animation {
     pub fn duration(&self) -> f32 {
         self.end_time - self.start_time
     }
+}
+
+pub struct NewLayoutTaskInfo {
+    pub id: PipelineId,
+    pub url: Url,
+    pub is_parent: bool,
+    pub layout_pair: OpaqueScriptLayoutChannel,
+    pub pipeline_port: IpcReceiver<LayoutControlMsg>,
+    pub constellation_chan: ConstellationChan,
+    pub failure: Failure,
+    pub script_chan: Sender<ConstellationControlMsg>,
+    pub image_cache_task: ImageCacheTask,
+    pub paint_chan: Box<Any + Send>,
+    pub layout_shutdown_chan: Sender<()>,
 }
 

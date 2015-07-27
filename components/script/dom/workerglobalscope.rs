@@ -22,7 +22,8 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use devtools_traits::DevtoolsControlChan;
 
-use msg::constellation_msg::{PipelineId, WorkerId};
+use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use profile_traits::mem;
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
@@ -52,7 +53,9 @@ pub struct WorkerGlobalScope {
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
+    mem_profiler_chan: mem::ProfilerChan,
     devtools_chan: Option<DevtoolsControlChan>,
+    constellation_chan: ConstellationChan,
 }
 
 impl WorkerGlobalScope {
@@ -60,7 +63,9 @@ impl WorkerGlobalScope {
                          worker_url: Url,
                          runtime: Rc<Runtime>,
                          resource_task: ResourceTask,
-                         devtools_chan: Option<DevtoolsControlChan>) -> WorkerGlobalScope {
+                         mem_profiler_chan: mem::ProfilerChan,
+                         devtools_chan: Option<DevtoolsControlChan>,
+                         constellation_chan: ConstellationChan) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -72,12 +77,22 @@ impl WorkerGlobalScope {
             console: Default::default(),
             crypto: Default::default(),
             timers: TimerManager::new(),
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
+            constellation_chan: constellation_chan,
         }
+    }
+
+    pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
     }
 
     pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
         self.devtools_chan.clone()
+    }
+
+    pub fn constellation_chan(&self) -> ConstellationChan {
+        self.constellation_chan.clone()
     }
 
     #[inline]

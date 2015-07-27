@@ -11,6 +11,9 @@
 
 use pipeline::{Pipeline, CompositionPipeline};
 
+use canvas::canvas_paint_task::CanvasPaintTask;
+use canvas::webgl_paint_task::WebGLPaintTask;
+use canvas_traits::CanvasMsg;
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
@@ -19,8 +22,8 @@ use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
 use euclid::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use ipc_channel::ipc;
-use layout_traits::{LayoutControlChan, LayoutControlMsg, LayoutTaskFactory};
+use ipc_channel::ipc::{self, IpcSender};
+use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use libc;
 use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::AnimationState;
@@ -35,16 +38,17 @@ use msg::webdriver_msg;
 use net_traits::{self, ResourceTask};
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
+use offscreen_gl_context::GLContextAttributes;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{ScriptControlChan, ScriptState, ScriptTaskFactory};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use style::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
@@ -126,7 +130,13 @@ pub struct Constellation<LTF, STF> {
     clipboard_ctx: Option<ClipboardContext>,
 
     /// Bits of state used to interact with the webdriver implementation
-    webdriver: WebDriverData
+    webdriver: WebDriverData,
+
+    /// A list of in-process senders to `CanvasPaintTask`s.
+    canvas_paint_tasks: Vec<Sender<CanvasMsg>>,
+
+    /// A list of in-process senders to `WebGLPaintTask`s.
+    webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
@@ -191,7 +201,7 @@ pub struct SendableFrameTree {
 }
 
 struct WebDriverData {
-    load_channel: Option<(PipelineId, Sender<webdriver_msg::LoadStatus>)>
+    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>
 }
 
 impl WebDriverData {
@@ -255,7 +265,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 } else {
                     None
                 },
-                webdriver: WebDriverData::new()
+                webdriver: WebDriverData::new(),
+                canvas_paint_tasks: Vec::new(),
+                webgl_paint_tasks: Vec::new(),
             };
             constellation.run();
         });
@@ -282,21 +294,31 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let PipelineId(ref mut i) = self.next_pipeline_id;
         *i += 1;
 
-        let pipeline = Pipeline::create::<LTF, STF>(pipeline_id,
-                                                    parent_info,
-                                                    self.chan.clone(),
-                                                    self.compositor_proxy.clone_compositor_proxy(),
-                                                    self.devtools_chan.clone(),
-                                                    self.image_cache_task.clone(),
-                                                    self.font_cache_task.clone(),
-                                                    self.resource_task.clone(),
-                                                    self.storage_task.clone(),
-                                                    self.time_profiler_chan.clone(),
-                                                    self.mem_profiler_chan.clone(),
-                                                    initial_window_rect,
-                                                    script_channel,
-                                                    load_data,
-                                                    self.window_size.device_pixel_ratio);
+        let spawning_paint_only = script_channel.is_some();
+        let (pipeline, mut pipeline_content) =
+            Pipeline::create::<LTF, STF>(pipeline_id,
+                                         parent_info,
+                                         self.chan.clone(),
+                                         self.compositor_proxy.clone_compositor_proxy(),
+                                         self.devtools_chan.clone(),
+                                         self.image_cache_task.clone(),
+                                         self.font_cache_task.clone(),
+                                         self.resource_task.clone(),
+                                         self.storage_task.clone(),
+                                         self.time_profiler_chan.clone(),
+                                         self.mem_profiler_chan.clone(),
+                                         initial_window_rect,
+                                         script_channel,
+                                         load_data,
+                                         self.window_size.device_pixel_ratio);
+
+        // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
+        // the content process and call this over there.
+        if spawning_paint_only {
+            pipeline_content.start_paint_task();
+        } else {
+            pipeline_content.start_all::<LTF, STF>();
+        }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
@@ -476,6 +498,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             ConstellationMsg::HeadParsed => {
                 debug!("constellation got head parsed message");
                 self.compositor_proxy.send(CompositorMsg::HeadParsed);
+            }
+            ConstellationMsg::CreateCanvasPaintTask(size, sender) => {
+                debug!("constellation got create-canvas-paint-task message");
+                self.handle_create_canvas_paint_task_msg(&size, sender)
+            }
+            ConstellationMsg::CreateWebGLPaintTask(size, attributes, sender) => {
+                debug!("constellation got create-WebGL-paint-task message");
+                self.handle_create_webgl_paint_task_msg(&size, attributes, sender)
             }
         }
         true
@@ -839,7 +869,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
-                           resp_chan: Sender<Option<PipelineId>>) {
+                           resp_chan: IpcSender<Option<PipelineId>>) {
         let current_pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
             let frame = self.frames.get(&frame_id).unwrap();
             frame.current
@@ -853,7 +883,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_get_frame(&mut self,
                         containing_pipeline_id: PipelineId,
                         subpage_id: SubpageId,
-                        resp_chan: Sender<Option<FrameId>>) {
+                        resp_chan: IpcSender<Option<FrameId>>) {
         let frame_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).and_then(
             |x| self.pipeline_to_frame_map.get(&x)).map(|x| *x);
         resp_chan.send(frame_id).unwrap();
@@ -897,16 +927,42 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
+    fn handle_create_canvas_paint_task_msg(
+            &mut self,
+            size: &Size2D<i32>,
+            response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
+        let id = self.canvas_paint_tasks.len();
+        let (out_of_process_sender, in_process_sender) = CanvasPaintTask::start(*size);
+        self.canvas_paint_tasks.push(in_process_sender);
+        response_sender.send((out_of_process_sender, id)).unwrap()
+    }
+
+    fn handle_create_webgl_paint_task_msg(
+            &mut self,
+            size: &Size2D<i32>,
+            attributes: GLContextAttributes,
+            response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
+        let id = self.webgl_paint_tasks.len();
+        let (out_of_process_sender, in_process_sender) =
+            WebGLPaintTask::start(*size, attributes).unwrap();
+        self.webgl_paint_tasks.push(in_process_sender);
+        response_sender.send((out_of_process_sender, id)).unwrap()
+    }
+
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script task.
         match msg {
             WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, reply) => {
-                let new_pipeline_id = self.load_url(pipeline_id, load_data);
-                if let Some(id) = new_pipeline_id {
-                    self.webdriver.load_channel = Some((id, reply));
-                }
+                self.load_url_for_webdriver(pipeline_id, load_data, reply);
             },
+            WebDriverCommandMsg::Refresh(pipeline_id, reply) => {
+                let load_data = {
+                    let pipeline = self.pipeline(pipeline_id);
+                    LoadData::new(pipeline.url.clone())
+                };
+                self.load_url_for_webdriver(pipeline_id, load_data, reply);
+            }
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
                 let pipeline = self.pipeline(pipeline_id);
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
@@ -924,6 +980,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     reply.send(None).unwrap();
                 }
             },
+        }
+    }
+
+    fn load_url_for_webdriver(&mut self,
+                              pipeline_id: PipelineId,
+                              load_data:LoadData,
+                              reply: IpcSender<webdriver_msg::LoadStatus>) {
+        let new_pipeline_id = self.load_url(pipeline_id, load_data);
+        if let Some(id) = new_pipeline_id {
+            self.webdriver.load_channel = Some((id, reply));
         }
     }
 

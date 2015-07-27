@@ -272,7 +272,7 @@ class CGThing():
 
     def define(self):
         """Produce code for a Rust file."""
-        assert(False)  # Override me!
+        raise NotImplementedError  # Override me!
 
 
 class CGNativePropertyHooks(CGThing):
@@ -832,7 +832,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if treatNullAs not in treatAs:
             raise TypeError("We don't support [TreatNullAs=%s]" % treatNullAs)
         if type.nullable():
-            nullBehavior = "()"
+            # Note: the actual behavior passed here doesn't matter for nullable
+            # strings.
+            nullBehavior = "StringificationBehavior::Default"
         else:
             nullBehavior = treatAs[treatNullAs]
 
@@ -1046,7 +1048,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
 
-    assert not isEnforceRange and not isClamp
+    if type.isInteger():
+        if isEnforceRange:
+            conversionBehavior = "ConversionBehavior::EnforceRange"
+        elif isClamp:
+            conversionBehavior = "ConversionBehavior::Clamp"
+        else:
+            conversionBehavior = "ConversionBehavior::Default"
+    else:
+        assert not isEnforceRange and not isClamp
+        conversionBehavior = "()"
 
     if failureCode is None:
         failureCode = 'return 0'
@@ -1055,12 +1066,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.nullable():
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    # XXXjdm support conversionBehavior here
     template = (
-        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
         "    Ok(v) => v,\n"
         "    Err(_) => { %s }\n"
-        "}" % exceptionCode)
+        "}" % (conversionBehavior, exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -1481,7 +1491,7 @@ class MethodDefiner(PropertyDefiner):
             '        selfHostedName: %s\n'
             '    }',
             '    JSFunctionSpec {\n'
-            '        name: 0 as *const i8,\n'
+            '        name: 0 as *const libc::c_char,\n'
             '        call: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo },\n'
             '        nargs: 0,\n'
             '        flags: 0,\n'
@@ -1555,7 +1565,7 @@ class AttrDefiner(PropertyDefiner):
             '        setter: %s\n'
             '    }',
             '    JSPropertySpec {\n'
-            '        name: 0 as *const i8,\n'
+            '        name: 0 as *const libc::c_char,\n'
             '        flags: 0,\n'
             '        getter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo },\n'
             '        setter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }\n'
@@ -2002,6 +2012,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
+        'dom::bindings::conversions::ConversionBehavior',
         'dom::bindings::conversions::native_from_handlevalue',
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::error::throw_not_in_union',
@@ -2134,7 +2145,7 @@ class CGAbstractMethod(CGThing):
         return "\n}\n"
 
     def definition_body(self):
-        assert(False)  # Override me!
+        raise NotImplementedError  # Override me!
 
 
 def CreateBindingJSObject(descriptor, parent=None):
@@ -2843,7 +2854,7 @@ let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
         return CGList([preamble, self.generate_code()])
 
     def generate_code(self):
-        assert False  # Override me
+        raise NotImplementedError  # Override me!
 
 
 class CGSpecializedMethod(CGAbstractExternMethod):
@@ -3008,7 +3019,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in forwardToAttrName)
         return CGGeneric("""\
 let mut v = RootedValue::new(cx, UndefinedValue());
-if JS_GetProperty(cx, obj, %s as *const u8 as *const i8, v.handle_mut()) == 0 {
+if JS_GetProperty(cx, obj, %s as *const u8 as *const libc::c_char, v.handle_mut()) == 0 {
     return JSFalse;
 }
 if !v.ptr.is_object() {
@@ -3016,7 +3027,7 @@ if !v.ptr.is_object() {
     return JSFalse;
 }
 let target_obj = RootedObject::new(cx, v.ptr.to_object());
-JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const i8, args.get(0))
+JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, args.get(0))
 """ % (str_to_const_array(attrName), attrName, str_to_const_array(forwardToAttrName)))
 
 
@@ -4538,8 +4549,7 @@ let this: *const %s = native_from_reflector::<%s>(obj);
         ])
 
     def generate_code(self):
-        # Override me
-        assert(False)
+        raise NotImplementedError  # Override me!
 
 
 def finalizeHook(descriptor, hookName, context):
@@ -5210,7 +5220,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::wrap_call_this_object',
-            'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+            'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionBehavior}',
             'dom::bindings::conversions::{native_from_reflector, native_from_handlevalue, native_from_handleobject}',
             'dom::bindings::conversions::DOM_OBJECT_SLOT',
             'dom::bindings::conversions::IDLInterface',

@@ -45,6 +45,7 @@ use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
 use js::jsval::JSVal;
@@ -56,17 +57,20 @@ use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
 use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
-use smallvec::SmallVec1;
+use smallvec::SmallVec;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
+use profile_traits::mem::ProfilerChan;
 use util::str::{LengthOrPercentageOrAuto};
+use serde::{Deserialize, Serialize};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -216,7 +220,7 @@ impl<T: JSTraceable> JSTraceable for Vec<T> {
 
 // XXXManishearth Check if the following three are optimized to no-ops
 // if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
-impl<T: JSTraceable + 'static> JSTraceable for SmallVec1<T> {
+impl<T: JSTraceable + 'static> JSTraceable for SmallVec<[T; 1]> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
         for e in self.iter() {
@@ -299,6 +303,7 @@ no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyl
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 no_jsmanaged_fields!(RepetitionStyle);
 no_jsmanaged_fields!(WebGLError);
+no_jsmanaged_fields!(ProfilerChan);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]
@@ -322,6 +327,13 @@ impl<'a> JSTraceable for &'a str {
 }
 
 impl<A,B> JSTraceable for fn(A) -> B {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -359,9 +371,16 @@ pub struct RootedTraceableSet {
     set: Vec<TraceableInfo>
 }
 
-/// TLV Holds a set of JSTraceables that need to be rooted
-thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
-              Rc::new(RefCell::new(RootedTraceableSet::new())));
+#[allow(missing_docs)]  // FIXME
+mod dummy {  // Attributes don’t apply through the macro.
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use super::RootedTraceableSet;
+    /// TLV Holds a set of JSTraceables that need to be rooted
+    thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
+                  Rc::new(RefCell::new(RootedTraceableSet::new())));
+}
+pub use self::dummy::ROOTED_TRACEABLES;
 
 impl RootedTraceableSet {
     fn new() -> RootedTraceableSet {
@@ -437,6 +456,7 @@ impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
 #[allow(unrooted_must_root)]
 #[no_move]
 #[derive(JSTraceable)]
+#[allow_unrooted_interior]
 pub struct RootedVec<T: JSTraceable + Reflectable> {
     v: Vec<T>
 }
@@ -460,6 +480,13 @@ impl<T: JSTraceable + Reflectable> RootedVec<T> {
             RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
         }
         RootedVec::<T> { v: vec!() }
+    }
+}
+
+impl<T: JSTraceable + Reflectable> RootedVec<JS<T>> {
+    /// Obtain a safe slice of references that can't outlive that RootedVec.
+    pub fn r(&self) -> &[&T] {
+        unsafe { mem::transmute(&*self.v) }
     }
 }
 

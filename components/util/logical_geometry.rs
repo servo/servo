@@ -85,6 +85,14 @@ impl WritingMode {
             (true, false) => PhysicalSide::Left,
         }
     }
+
+    #[inline]
+    /// The default bidirectional embedding level for this writing mode.
+    ///
+    /// Returns 0 if the mode is LTR, or 1 otherwise.
+    pub fn to_bidi_level(&self) -> u8 {
+        !self.is_bidi_ltr() as u8
+    }
 }
 
 impl fmt::Display for WritingMode {

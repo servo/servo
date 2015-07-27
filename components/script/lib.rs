@@ -4,6 +4,7 @@
 
 #![feature(append)]
 #![feature(arc_unique)]
+#![feature(as_slice)]
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
 #![feature(box_raw)]
@@ -18,6 +19,7 @@
 #![feature(nonzero)]
 #![feature(owned_ascii_ext)]
 #![feature(plugin)]
+#![feature(ref_slice)]
 #![feature(rc_unique)]
 #![feature(slice_chars)]
 #![feature(str_utf16)]
@@ -46,16 +48,19 @@ extern crate fnv;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate js;
+extern crate layout_traits;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
+extern crate serde;
 extern crate time;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate rand;
+#[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
@@ -90,9 +95,31 @@ mod devtools;
 mod horribly_inefficient_timers;
 mod webdriver_handlers;
 
+#[cfg(any(target_os="linux", target_os="android"))]
+#[allow(unsafe_code)]
+fn perform_platform_specific_initialization() {
+    use std::mem;
+    const RLIMIT_NOFILE: libc::c_int = 7;
+
+    // Bump up our number of file descriptors to save us from impending doom caused by an onslaught
+    // of iframes.
+    unsafe {
+        let mut rlim = mem::uninitialized();
+        assert!(libc::getrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
+        rlim.rlim_cur = rlim.rlim_max;
+        assert!(libc::setrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
+    }
+}
+
+#[cfg(not(any(target_os="linux", target_os="android")))]
+fn perform_platform_specific_initialization() {}
+
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
         assert_eq!(js::jsapi::JS_Init(), 1);
     }
+
+    perform_platform_specific_initialization();
 }
+

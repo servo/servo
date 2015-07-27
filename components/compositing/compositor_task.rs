@@ -13,9 +13,9 @@ use windowing::{WindowEvent, WindowMethods};
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use ipc_channel::ipc::IpcReceiver;
-use layers::platform::surface::NativeDisplay;
-use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use layers::platform::surface::{NativeDisplay, NativeSurface};
+use layers::layers::{BufferRequest, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, FrameTreeId};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
@@ -35,7 +35,7 @@ use util::cursor::Cursor;
 /// process, and so forth.
 pub trait CompositorProxy : 'static + Send {
     /// Sends a message to the compositor.
-    fn send(&mut self, msg: Msg);
+    fn send(&self, msg: Msg);
     /// Clones the compositor proxy.
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+'static+Send>;
 }
@@ -62,7 +62,7 @@ impl CompositorReceiver for Receiver<Msg> {
     }
 }
 
-pub fn run_script_listener_thread(mut compositor_proxy: Box<CompositorProxy + 'static + Send>,
+pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'static + Send>,
                                   receiver: IpcReceiver<ScriptToCompositorMsg>) {
     while let Ok(msg) = receiver.recv() {
         match msg {
@@ -110,14 +110,14 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
     }
 
     fn ignore_buffer_requests(&mut self, buffer_requests: Vec<BufferRequest>) {
-        let mut layer_buffers = Vec::new();
+        let mut native_surfaces = Vec::new();
         for request in buffer_requests.into_iter() {
-            if let Some(layer_buffer) = request.layer_buffer {
-                layer_buffers.push(layer_buffer);
+            if let Some(native_surface) = request.native_surface {
+                native_surfaces.push(native_surface);
             }
         }
-        if !layer_buffers.is_empty() {
-            self.send(Msg::ReturnUnusedLayerBuffers(layer_buffers));
+        if !native_surfaces.is_empty() {
+            self.send(Msg::ReturnUnusedNativeSurfaces(native_surfaces));
         }
     }
 
@@ -183,7 +183,7 @@ pub enum Msg {
     /// Changes the cursor.
     SetCursor(Cursor),
     /// Composite to a PNG file and return the Image over a passed channel.
-    CreatePng(Sender<Option<png::Image>>),
+    CreatePng(IpcSender<Option<png::Image>>),
     /// Informs the compositor that the paint task for the given pipeline has exited.
     PaintTaskExited(PipelineId),
     /// Alerts the compositor that the viewport has been constrained in some manner
@@ -195,8 +195,10 @@ pub enum Msg {
     /// <head> tag finished parsing
     HeadParsed,
     /// Signal that the paint task ignored the paint requests that carried
-    /// these layer buffers, so that they can be re-added to the surface cache.
-    ReturnUnusedLayerBuffers(Vec<Box<LayerBuffer>>),
+    /// these native surfaces, so that they can be re-added to the surface cache.
+    ReturnUnusedNativeSurfaces(Vec<NativeSurface>),
+    /// Collect memory reports and send them back to the given mem::ReportsChan.
+    CollectMemoryReports(mem::ReportsChan),
 }
 
 impl Debug for Msg {
@@ -225,7 +227,8 @@ impl Debug for Msg {
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
             Msg::HeadParsed => write!(f, "HeadParsed"),
-            Msg::ReturnUnusedLayerBuffers(..) => write!(f, "ReturnUnusedLayerBuffers"),
+            Msg::ReturnUnusedNativeSurfaces(..) => write!(f, "ReturnUnusedNativeSurfaces"),
+            Msg::CollectMemoryReports(..) => write!(f, "CollectMemoryReports"),
         }
     }
 }

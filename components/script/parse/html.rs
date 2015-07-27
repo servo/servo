@@ -14,7 +14,6 @@ use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
-use dom::bindings::trace::RootedVec;
 use dom::characterdata::{CharacterDataHelpers, CharacterDataTypeId};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
@@ -284,7 +283,7 @@ pub fn parse_html(document: &Document,
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
 pub fn parse_html_fragment(context_node: &Node,
                            input: DOMString,
-                           output: &mut RootedVec<JS<Node>>) {
+                           output: &Node) {
     let window = window_from_node(context_node);
     let context_document = document_from_node(context_node);
     let context_document = context_document.r();
@@ -314,6 +313,6 @@ pub fn parse_html_fragment(context_node: &Node,
     let root_element = document.r().GetDocumentElement().expect("no document element");
     let root_node = NodeCast::from_ref(root_element.r());
     for child in root_node.children() {
-        output.push(JS::from_rooted(&child));
+        output.AppendChild(child.r()).unwrap();
     }
 }

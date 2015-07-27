@@ -40,6 +40,12 @@ path = "../util"
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
+[dependencies.canvas]
+path = "../canvas"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
@@ -48,6 +54,7 @@ git = "https://github.com/servo/rust-layers"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
+features = [ "serde-serialization" ]
 
 [dependencies.clipboard]
 git = "https://github.com/aweinstock314/rust-clipboard"
@@ -55,17 +62,21 @@ git = "https://github.com/aweinstock314/rust-clipboard"
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+features = ["texture_surface"]
+
 [dependencies]
-log = "*"
+log = "0.3"
 num = "0.1.24"
-url = "0.2.35"
+url = "0.2.36"
 time = "0.1.17"
-libc = "*"
+libc = "0.1"
 gleam = "0.1"
 euclid = "0.1"
 
 [target.x86_64-apple-darwin.dependencies]
-core-graphics = "*"
+core-graphics = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"

@@ -39,13 +39,14 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
-use ipc_channel::ipc::IpcReceiver;
-use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
+use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use profile_traits::mem::{self, Report, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportsChan};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use net_traits::{load_bytes_iter, PendingAsyncLoad};
@@ -53,11 +54,12 @@ use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheC
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse};
-use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
-use script::layout_interface::{MouseOverResponse, Msg, Reflow, ReflowGoal, ReflowQueryType};
+use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
+use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
+use serde::json;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -184,9 +186,6 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the memory profiler.
     pub mem_profiler_chan: mem::ProfilerChan,
 
-    /// The name used for the task's memory reporter.
-    pub reporter_name: String,
-
     /// The channel on which messages can be sent to the image cache.
     pub image_cache_task: ImageCacheTask,
 
@@ -198,8 +197,8 @@ pub struct LayoutTask {
 
     /// To receive a canvas renderer associated to a layer, this message is propagated
     /// to the paint chan
-    pub canvas_layers_receiver: Receiver<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
-    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+    pub canvas_layers_receiver: Receiver<(LayerId, IpcSender<CanvasMsg>)>,
+    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -223,17 +222,18 @@ impl LayoutTaskFactory for LayoutTask {
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
-              memory_profiler_chan: mem::ProfilerChan,
+              mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id), task_state::LAYOUT, move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
+                let layout_chan = LayoutChan(sender);
                 let layout = LayoutTask::new(id,
                                              url,
                                              is_iframe,
                                              chan.receiver(),
-                                             LayoutChan(sender),
+                                             layout_chan.clone(),
                                              pipeline_port,
                                              constellation_chan,
                                              script_chan,
@@ -241,8 +241,27 @@ impl LayoutTaskFactory for LayoutTask {
                                              image_cache_task,
                                              font_cache_task,
                                              time_profiler_chan,
-                                             memory_profiler_chan);
+                                             mem_profiler_chan.clone());
+
+                // Create a memory reporter thread.
+                let reporter_name = format!("layout-reporter-{}", id.0);
+                let (reporter_sender, reporter_receiver) =
+                    ipc::channel::<ReporterRequest>().unwrap();
+                let layout_chan_for_reporter = layout_chan.clone();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
+                    // Just injects an appropriate event into the layout task's queue.
+                    let request: ReporterRequest = message.to().unwrap();
+                    layout_chan_for_reporter.0.send(Msg::CollectReports(request.reports_channel))
+                                              .unwrap();
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
+
                 layout.start();
+
+                let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
+                mem_profiler_chan.send(msg);
             }
             shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), con_chan);
@@ -306,11 +325,6 @@ impl LayoutTask {
             None
         };
 
-        // Register this thread as a memory reporter, via its own channel.
-        let reporter = box chan.clone();
-        let reporter_name = format!("layout-reporter-{}", id.0);
-        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
-
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
         let (image_cache_sender, image_cache_receiver) = channel();
@@ -336,7 +350,6 @@ impl LayoutTask {
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            reporter_name: reporter_name,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
@@ -559,6 +572,9 @@ impl LayoutTask {
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
                 sender.send(rw_data.epoch).unwrap();
             },
+            Msg::CreateLayoutTask(info) => {
+                self.create_layout_task(info)
+            }
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
@@ -607,6 +623,24 @@ impl LayoutTask {
         reports_chan.send(reports);
     }
 
+    fn create_layout_task(&self, info: NewLayoutTaskInfo) {
+        LayoutTaskFactory::create(None::<&mut LayoutTask>,
+                                  info.id,
+                                  info.url.clone(),
+                                  info.is_parent,
+                                  info.layout_pair,
+                                  info.pipeline_port,
+                                  info.constellation_chan,
+                                  info.failure,
+                                  ScriptControlChan(info.script_chan.clone()),
+                                  *info.paint_chan.downcast::<PaintChan>().unwrap(),
+                                  self.image_cache_task.clone(),
+                                  self.font_cache_task.clone(),
+                                  self.time_profiler_chan.clone(),
+                                  self.mem_profiler_chan.clone(),
+                                  info.layout_shutdown_chan);
+    }
+
     /// Enters a quiescent state in which no new messages except for
     /// `layout_interface::Msg::ReapLayoutData` will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
@@ -650,9 +684,6 @@ impl LayoutTask {
             }
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
-
-        let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
-        self.mem_profiler_chan.send(msg);
 
         self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv().unwrap()
@@ -886,6 +917,9 @@ impl LayoutTask {
                     println!("#### start printing display list.");
                     stacking_context.print("#".to_owned());
                 }
+                if opts::get().dump_display_list_json {
+                    println!("{}", json::to_string_pretty(&stacking_context).unwrap());
+                }
 
                 rw_data.stacking_context = Some(stacking_context.clone());
 
@@ -996,9 +1030,7 @@ impl LayoutTask {
         // Send new canvas renderers to the paint task
         while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
             // Just send if there's an actual renderer
-            if let Some(renderer) = renderer {
-                self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
-            }
+            self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
         }
 
         // Perform post-style recalculation layout passes.
@@ -1399,3 +1431,4 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
+

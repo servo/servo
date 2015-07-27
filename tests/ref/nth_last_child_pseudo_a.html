@@ -3,8 +3,9 @@
   <head>
     <title>:nth-last-child test</title>
     <style type="text/css">
-      /* should not match according to Selectors 3 because html has no parent element */
-      html:nth-last-child(1) { background: red; }
+      html { background: red; }
+      /* Should match according to Selectors Level 4 (changed from Level 3) */
+      html:nth-last-child(1) { background: white; }
 
       div > p { float: left; width: 40px; height: 40px; margin-right: 10px; border: 1px solid black; }
       div { clear: both; }

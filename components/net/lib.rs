@@ -18,6 +18,7 @@ extern crate devtools_traits;
 extern crate flate2;
 extern crate euclid;
 extern crate hyper;
+extern crate ipc_channel;
 extern crate png;
 #[macro_use]
 extern crate log;
@@ -40,6 +41,7 @@ pub mod image_cache_task;
 pub mod net_error_list;
 pub mod pub_domains;
 pub mod resource_task;
+pub mod hsts;
 pub mod storage_task;
 pub mod mime_classifier;
 

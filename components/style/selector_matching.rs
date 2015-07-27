@@ -193,7 +193,7 @@ impl Stylist {
     pub fn push_applicable_declarations<E,V>(
                                         &self,
                                         element: &E,
-                                        parent_bf: &Option<Box<BloomFilter>>,
+                                        parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
                                         pseudo_element: Option<PseudoElement>,
                                         applicable_declarations: &mut V)

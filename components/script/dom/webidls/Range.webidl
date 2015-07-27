@@ -46,10 +46,10 @@ interface Range {
   // void deleteContents();
   // [NewObject, Throws]
   // DocumentFragment extractContents();
-  // [NewObject, Throws]
-  // DocumentFragment cloneContents();
-  // [Throws]
-  // void insertNode(Node node);
+  [NewObject, Throws]
+  DocumentFragment cloneContents();
+  [Throws]
+  void insertNode(Node node);
   // [Throws]
   // void surroundContents(Node newParent);
 

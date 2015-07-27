@@ -44,23 +44,28 @@ git = "https://github.com/servo/skia"
 [dependencies.script_traits]
 path = "../script_traits"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
-log = "*"
+log = "0.3"
 fnv = "1.0"
-url = "0.2.35"
+url = "0.2.36"
 time = "0.1.12"
-bitflags = "*"
+bitflags = "0.3"
 rustc-serialize = "0.3"
-libc = "*"
-rand = "*"
+libc = "0.1"
+rand = "0.3"
 harfbuzz = "0.1"
 smallvec = "0.1"
 string_cache = "0.1"
 euclid = "0.1"
+serde = "0.4"
+serde_macros = "0.4"
 
 [target.x86_64-apple-darwin.dependencies]
-core-foundation = "*"
-core-graphics = "*"
+core-foundation = "0.1"
+core-graphics = "0.1"
 
 [target.i686-unknown-linux-gnu.dependencies.fontconfig]
 git = "https://github.com/servo/rust-fontconfig"
@@ -69,6 +74,9 @@ git = "https://github.com/servo/rust-fontconfig"
 git = "https://github.com/servo/rust-fontconfig"
 
 [target.arm-unknown-linux-gnueabihf.dependencies.fontconfig]
+git = "https://github.com/servo/rust-fontconfig"
+
+[target.aarch64-unknown-linux-gnu.dependencies.fontconfig]
 git = "https://github.com/servo/rust-fontconfig"
 
 [target.arm-linux-androideabi.dependencies.fontconfig]
@@ -81,6 +89,9 @@ git = "https://github.com/servo/rust-freetype"
 git = "https://github.com/servo/rust-freetype"
 
 [target.arm-unknown-linux-gnueabihf.dependencies.freetype]
+git = "https://github.com/servo/rust-freetype"
+
+[target.aarch64-unknown-linux-gnu.dependencies.freetype]
 git = "https://github.com/servo/rust-freetype"
 
 [target.arm-linux-androideabi.dependencies.freetype]

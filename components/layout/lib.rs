@@ -5,6 +5,8 @@
 #![feature(append)]
 #![feature(arc_unique)]
 #![feature(box_syntax)]
+#![feature(cell_extras)]
+#![feature(custom_derive)]
 #![feature(filling_drop)]
 #![feature(hashmap_hasher)]
 #![feature(heap_api)]
@@ -12,6 +14,7 @@
 #![feature(plugin)]
 #![feature(raw)]
 #![feature(slice_chars)]
+#![feature(step_by)]
 #![feature(str_char)]
 #![feature(unsafe_no_drop_flag)]
 
@@ -36,7 +39,6 @@ extern crate profile_traits;
 #[macro_use]
 extern crate util;
 
-extern crate rustc_serialize;
 extern crate azure;
 extern crate canvas_traits;
 extern crate clock_ticks;
@@ -50,12 +52,15 @@ extern crate ipc_channel;
 extern crate layout_traits;
 extern crate libc;
 extern crate msg;
+extern crate rustc_serialize;
 extern crate script;
 extern crate script_traits;
 extern crate selectors;
+extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
 extern crate style;
+extern crate unicode_bidi;
 extern crate url;
 
 // Listed first because of macro definitions

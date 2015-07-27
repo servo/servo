@@ -41,14 +41,13 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
     //FIXME: The "callback this value" should be currentTarget
 
     /* capturing */
-    for cur_target in chain.iter().rev() {
-        let cur_target = cur_target.root();
-        let stopped = match cur_target.r().get_listeners_for(&type_, ListenerPhase::Capturing) {
+    for cur_target in chain.r().iter().rev() {
+        let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
             Some(listeners) => {
-                event.set_current_target(cur_target.r());
+                event.set_current_target(cur_target);
                 for listener in listeners.iter() {
                     // Explicitly drop any exception on the floor.
-                    let _ = listener.HandleEvent_(cur_target.r(), event, Report);
+                    let _ = listener.HandleEvent_(*cur_target, event, Report);
 
                     if event.stop_immediate() {
                         break;
@@ -87,14 +86,13 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
     if event.bubbles() && !event.stop_propagation() {
         event.set_phase(EventPhase::Bubbling);
 
-        for cur_target in chain.iter() {
-            let cur_target = cur_target.root();
-            let stopped = match cur_target.r().get_listeners_for(&type_, ListenerPhase::Bubbling) {
+        for cur_target in chain.r() {
+            let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
                 Some(listeners) => {
-                    event.set_current_target(cur_target.r());
+                    event.set_current_target(cur_target);
                     for listener in listeners.iter() {
                         // Explicitly drop any exception on the floor.
-                        let _ = listener.HandleEvent_(cur_target.r(), event, Report);
+                        let _ = listener.HandleEvent_(*cur_target, event, Report);
 
                         if event.stop_immediate() {
                             break;

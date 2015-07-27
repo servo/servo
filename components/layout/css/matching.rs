@@ -11,13 +11,13 @@ use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
-use smallvec::SmallVec16;
+use smallvec::SmallVec;
 use wrapper::{LayoutElement, LayoutNode};
 
 use script::dom::characterdata::CharacterDataTypeId;
 use script::dom::node::NodeTypeId;
 use script::layout_interface::Animation;
-use selectors::{Node, Element};
+use selectors::{Element};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -38,7 +38,7 @@ use util::opts;
 use util::vec::ForgetfulSink;
 
 pub struct ApplicableDeclarations {
-    pub normal: SmallVec16<DeclarationBlock>,
+    pub normal: SmallVec<[DeclarationBlock; 16]>,
     pub before: Vec<DeclarationBlock>,
     pub after: Vec<DeclarationBlock>,
 
@@ -49,7 +49,7 @@ pub struct ApplicableDeclarations {
 impl ApplicableDeclarations {
     pub fn new() -> ApplicableDeclarations {
         ApplicableDeclarations {
-            normal: SmallVec16::new(),
+            normal: SmallVec::new(),
             before: Vec::new(),
             after: Vec::new(),
             normal_shareable: false,
@@ -57,7 +57,7 @@ impl ApplicableDeclarations {
     }
 
     pub fn clear(&mut self) {
-        self.normal = SmallVec16::new();
+        self.normal = SmallVec::new();
         self.before = Vec::new();
         self.after = Vec::new();
         self.normal_shareable = false;
@@ -222,18 +222,14 @@ impl StyleSharingCandidate {
     /// Attempts to create a style sharing candidate from this node. Returns
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
-    fn new(node: &LayoutNode) -> Option<StyleSharingCandidate> {
-        let parent_node = match node.parent_node() {
+    fn new(element: &LayoutElement) -> Option<StyleSharingCandidate> {
+        let parent_element = match element.parent_element() {
             None => return None,
-            Some(parent_node) => parent_node,
-        };
-        let element = match parent_node.as_element() {
-            Some(element) => element,
-            None => return None
+            Some(parent_element) => parent_element,
         };
 
         let style = unsafe {
-            match *node.borrow_layout_data_unchecked() {
+            match *element.as_node().borrow_layout_data_unchecked() {
                 None => return None,
                 Some(ref layout_data_ref) => {
                     match layout_data_ref.shared_data.style {
@@ -244,7 +240,7 @@ impl StyleSharingCandidate {
             }
         };
         let parent_style = unsafe {
-            match *parent_node.borrow_layout_data_unchecked() {
+            match *parent_element.as_node().borrow_layout_data_unchecked() {
                 None => return None,
                 Some(ref parent_layout_data_ref) => {
                     match parent_layout_data_ref.shared_data.style {
@@ -357,8 +353,8 @@ impl StyleSharingCandidateCache {
         self.cache.iter()
     }
 
-    pub fn insert_if_possible(&mut self, node: &LayoutNode) {
-        match StyleSharingCandidate::new(node) {
+    pub fn insert_if_possible(&mut self, element: &LayoutElement) {
+        match StyleSharingCandidate::new(element) {
             None => {}
             Some(candidate) => self.cache.insert(candidate, ())
         }
@@ -395,7 +391,7 @@ pub trait MatchMethods {
 
     fn match_node(&self,
                   stylist: &Stylist,
-                  parent_bf: &Option<Box<BloomFilter>>,
+                  parent_bf: Option<&BloomFilter>,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool);
 
@@ -540,7 +536,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
 impl<'ln> MatchMethods for LayoutNode<'ln> {
     fn match_node(&self,
                   stylist: &Stylist,
-                  parent_bf: &Option<Box<BloomFilter>>,
+                  parent_bf: Option<&BloomFilter>,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool) {
         let element = self.as_element().unwrap();

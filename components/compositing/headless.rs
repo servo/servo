@@ -111,7 +111,8 @@ impl CompositorEventListener for NullCompositor {
             Msg::IsReadyToSaveImageReply(..) => {}
             Msg::NewFavicon(..) => {}
             Msg::HeadParsed => {}
-            Msg::ReturnUnusedLayerBuffers(..) => {}
+            Msg::ReturnUnusedNativeSurfaces(..) => {}
+            Msg::CollectMemoryReports(..) => {}
         }
         true
     }

@@ -9,6 +9,7 @@
 
 #[macro_use] extern crate log;
 
+extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
 extern crate profile_traits;

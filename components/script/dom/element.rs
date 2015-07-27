@@ -16,7 +16,9 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::CharacterDataCast;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::DocumentDerived;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
@@ -25,6 +27,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextA
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
+use dom::bindings::codegen::InheritTypes::TextCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
@@ -34,6 +37,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
+use dom::characterdata::CharacterDataHelpers;
 use dom::create::create_element;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
@@ -177,12 +181,8 @@ pub trait RawLayoutElementHelpers {
 
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    unsafe fn get_checked_state_for_layout(&self) -> bool;
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
-
-    fn local_name<'a>(&'a self) -> &'a Atom;
 }
 
 #[inline]
@@ -459,29 +459,6 @@ impl RawLayoutElementHelpers for Element {
         }
     }
 
-    #[inline]
-    #[allow(unrooted_must_root)]
-    unsafe fn get_checked_state_for_layout(&self) -> bool {
-        // TODO option and menuitem can also have a checked state.
-        if !self.is_htmlinputelement() {
-            return false
-        }
-        let this: &HTMLInputElement = mem::transmute(self);
-        this.get_checked_state_for_layout()
-    }
-
-    #[inline]
-    #[allow(unrooted_must_root)]
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
-        // TODO progress elements can also be matched with :indeterminate
-        if !self.is_htmlinputelement() {
-            return false
-        }
-        let this: &HTMLInputElement = mem::transmute(self);
-        this.get_indeterminate_state_for_layout()
-    }
-
-
     unsafe fn get_unsigned_integer_attribute_for_layout(&self,
                                                         attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32> {
@@ -498,12 +475,6 @@ impl RawLayoutElementHelpers for Element {
             }
         }
     }
-
-    // Getters used in components/layout/wrapper.rs
-
-    fn local_name<'a>(&'a self) -> &'a Atom {
-        &self.local_name
-    }
 }
 
 pub trait LayoutElementHelpers {
@@ -511,6 +482,11 @@ pub trait LayoutElementHelpers {
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
+    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
+    fn local_name<'a>(&'a self) -> &'a Atom;
+    fn namespace<'a>(&'a self) -> &'a Namespace;
+    fn get_checked_state_for_layout(&self) -> bool;
+    fn get_indeterminate_state_for_layout(&self) -> bool;
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -527,6 +503,51 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
+    }
+
+    #[allow(unsafe_code)]
+    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock> {
+        unsafe {
+            (*self.unsafe_get()).style_attribute.borrow_for_layout()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn local_name<'a>(&'a self) -> &'a Atom {
+        unsafe {
+            &(*self.unsafe_get()).local_name
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn namespace<'a>(&'a self) -> &'a Namespace {
+        unsafe {
+            &(*self.unsafe_get()).namespace
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn get_checked_state_for_layout(&self) -> bool {
+        // TODO option and menuitem can also have a checked state.
+        match HTMLInputElementCast::to_layout_js(self) {
+            Some(input) => unsafe {
+                (*input.unsafe_get()).get_checked_state_for_layout()
+            },
+            None => false,
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn get_indeterminate_state_for_layout(&self) -> bool {
+        // TODO progress elements can also be matched with :indeterminate
+        match HTMLInputElementCast::to_layout_js(self) {
+            Some(input) => unsafe {
+                (*input.unsafe_get()).get_indeterminate_state_for_layout()
+            },
+            None => false,
+        }
     }
 }
 
@@ -845,9 +866,9 @@ impl<'a> AttributeHandlers for &'a Element {
     fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
         let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
-        attributes.iter()
-                  .map(|attr| attr.root())
-                  .find(|attr| attr.r().namespace() == namespace)
+        attributes.r().iter()
+                  .find(|attr| attr.namespace() == namespace)
+                  .map(|attr| Root::from_ref(*attr))
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
@@ -1433,7 +1454,7 @@ impl<'a> ElementMethods for &'a Element {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
-                Ok(matches(selectors, &self, &mut None))
+                Ok(matches(selectors, &Root::from_ref(self), None))
             }
         }
     }
@@ -1445,9 +1466,9 @@ impl<'a> ElementMethods for &'a Element {
             Ok(ref selectors) => {
                 let root = NodeCast::from_ref(self);
                 for element in root.inclusive_ancestors() {
-                    if let Some(element) = ElementCast::to_ref(element.r()) {
-                        if matches(selectors, &element, &mut None) {
-                            return Ok(Some(Root::from_ref(element)));
+                    if let Some(element) = ElementCast::to_root(element) {
+                        if matches(selectors, &element, None) {
+                            return Ok(Some(element));
                         }
                     }
                 }
@@ -1599,16 +1620,44 @@ impl<'a> VirtualMethods for &'a Element {
     }
 }
 
-impl<'a> ::selectors::Element for &'a Element {
-    type Node = &'a Node;
+impl<'a> ::selectors::Element for Root<Element> {
+    fn parent_element(&self) -> Option<Root<Element>> {
+        NodeCast::from_ref(&**self).GetParentElement()
+    }
 
-    fn as_node(&self) -> &'a Node {
-        NodeCast::from_ref(*self)
+    fn first_child_element(&self) -> Option<Root<Element>> {
+        self.node.child_elements().next()
+    }
+
+    fn last_child_element(&self) -> Option<Root<Element>> {
+        self.node.rev_children().filter_map(ElementCast::to_root).next()
+    }
+
+    fn prev_sibling_element(&self) -> Option<Root<Element>> {
+        self.node.preceding_siblings().filter_map(ElementCast::to_root).next()
+    }
+
+    fn next_sibling_element(&self) -> Option<Root<Element>> {
+        self.node.following_siblings().filter_map(ElementCast::to_root).next()
+    }
+
+    fn is_root(&self) -> bool {
+        match self.node.GetParentNode() {
+            None => false,
+            Some(node) => node.is_document(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.node.children().all(|node| !node.is_element() && match TextCast::to_ref(&*node) {
+            None => true,
+            Some(text) => CharacterDataCast::from_ref(text).data().is_empty()
+        })
     }
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
@@ -1631,20 +1680,20 @@ impl<'a> ::selectors::Element for &'a Element {
     }
 
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        ElementHelpers::local_name(*self)
+        ElementHelpers::local_name(&**self)
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
         self.namespace()
     }
     fn get_hover_state(&self) -> bool {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_hover_state()
     }
     fn get_focus_state(&self) -> bool {
         // TODO: Also check whether the top-level browsing context has the system focus,
         // and whether this element is a browsing context container.
         // https://html.spec.whatwg.org/multipage/#selector-focus
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_focus_state()
     }
     fn get_id(&self) -> Option<Atom> {
@@ -1656,29 +1705,29 @@ impl<'a> ::selectors::Element for &'a Element {
         })
     }
     fn get_disabled_state(&self) -> bool {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_disabled_state()
     }
     fn get_enabled_state(&self) -> bool {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(&**self);
         node.get_enabled_state()
     }
     fn get_checked_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(*self);
+        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(&**self);
         match input_element {
             Some(input) => input.Checked(),
             None => false,
         }
     }
     fn get_indeterminate_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(*self);
+        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(&**self);
         match input_element {
             Some(input) => input.get_indeterminate_state(),
             None => false,
         }
     }
     fn has_class(&self, name: &Atom) -> bool {
-        AttributeHandlers::has_class(*self, name)
+        AttributeHandlers::has_class(&**self, name)
     }
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
@@ -1692,7 +1741,7 @@ impl<'a> ::selectors::Element for &'a Element {
         }
     }
     fn has_servo_nonzero_border(&self) -> bool {
-        let table_element: Option<&HTMLTableElement> = HTMLTableElementCast::to_ref(*self);
+        let table_element: Option<&HTMLTableElement> = HTMLTableElementCast::to_ref(&**self);
         match table_element {
             None => false,
             Some(this) => {

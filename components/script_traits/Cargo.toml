@@ -13,13 +13,22 @@ path = "../msg"
 [dependencies.net_traits]
 path = "../net_traits"
 
+[dependencies.profile_traits]
+path = "../profile_traits"
+
 [dependencies.util]
 path = "../util"
 
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
 [dependencies]
-url = "0.2.35"
-libc = "*"
+url = "0.2.36"
+libc = "0.1"
 euclid = "0.1"
+serde = "0.4"
+serde_macros = "0.4"
+

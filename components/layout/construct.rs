@@ -40,7 +40,8 @@ use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
-use wrapper::{PostorderNodeMutTraversal, PseudoElementType, ThreadSafeLayoutNode};
+use traversal::PostorderNodeMutTraversal;
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use script::dom::characterdata::CharacterDataTypeId;
@@ -666,7 +667,7 @@ impl<'a> FlowConstructor<'a> {
 
             self.create_fragments_for_node_text_content(&mut initial_fragments,
                                                         node,
-                                                        node.style());
+                                                        &*node.style());
         }
 
         self.build_flow_for_block_starting_with_fragments(flow, node, initial_fragments)

@@ -21,28 +21,16 @@ extern crate util;
 // The traits are here instead of in layout so
 //   that these modules won't have to depend on layout.
 
-use euclid::rect::Rect;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::PaintChan;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::compositor_msg::{Epoch, LayerId};
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use profile_traits::mem;
 use profile_traits::time;
 use net_traits::image_cache_task::ImageCacheTask;
-use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
+use script_traits::{LayoutControlMsg, ScriptControlChan, OpaqueScriptLayoutChannel};
 use std::sync::mpsc::Sender;
-use util::geometry::Au;
 use url::Url;
-
-/// Messages sent to the layout task from the constellation and/or compositor.
-#[derive(Deserialize, Serialize)]
-pub enum LayoutControlMsg {
-    ExitNow(PipelineExitType),
-    GetCurrentEpoch(IpcSender<Epoch>),
-    TickAnimations,
-    SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
-}
 
 /// A channel wrapper for constellation messages
 #[derive(Clone, Deserialize, Serialize)]

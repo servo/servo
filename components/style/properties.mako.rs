@@ -3050,7 +3050,7 @@ pub mod longhands {
             use values::CSSFloat;
             use values::specified::{Angle};
 
-            #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+            #[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
             pub enum Filter {
                 Blur(Au),
                 Brightness(CSSFloat),
@@ -3063,7 +3063,7 @@ pub mod longhands {
                 Sepia(CSSFloat),
             }
 
-            #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+            #[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
             pub struct T { pub filters: Vec<Filter> }
 
             impl T {
@@ -3857,7 +3857,7 @@ pub mod longhands {
             use cssparser::ToCss;
             use std::fmt;
 
-            #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+            #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf, Deserialize, Serialize)]
             pub enum T {
                 Auto,
                 CrispEdges,

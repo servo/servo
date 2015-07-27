@@ -12,7 +12,7 @@ use dom::webglobject::WebGLObject;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLError, WebGLShaderParameter};
-use std::sync::mpsc::{channel, Sender};
+use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 use std::cell::RefCell;
 
@@ -24,11 +24,11 @@ pub struct WebGLShader {
     source: RefCell<Option<String>>,
     is_deleted: Cell<bool>,
     // TODO(ecoal95): Evaluate moving this to `WebGLObject`
-    renderer: Sender<CanvasMsg>,
+    renderer: IpcSender<CanvasMsg>,
 }
 
 impl WebGLShader {
-    fn new_inherited(renderer: Sender<CanvasMsg>, id: u32, shader_type: u32) -> WebGLShader {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32, shader_type: u32) -> WebGLShader {
         WebGLShader {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -40,9 +40,9 @@ impl WebGLShader {
     }
 
     pub fn maybe_new(global: GlobalRef,
-                     renderer: Sender<CanvasMsg>,
+                     renderer: IpcSender<CanvasMsg>,
                      shader_type: u32) -> Option<Root<WebGLShader>> {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
         renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateShader(shader_type, sender))).unwrap();
 
         let result = receiver.recv().unwrap();
@@ -50,7 +50,7 @@ impl WebGLShader {
     }
 
     pub fn new(global: GlobalRef,
-               renderer: Sender<CanvasMsg>,
+               renderer: IpcSender<CanvasMsg>,
                id: u32,
                shader_type: u32) -> Root<WebGLShader> {
         reflect_dom_object(
@@ -95,7 +95,7 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
 
     /// glGetShaderInfoLog
     fn info_log(self) -> Option<String> {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderInfoLog(self.id, sender))).unwrap();
         receiver.recv().unwrap()
     }
@@ -107,7 +107,7 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
             _ => return Err(WebGLError::InvalidEnum),
         }
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(self.id, param_id, sender))).unwrap();
         Ok(receiver.recv().unwrap())
     }

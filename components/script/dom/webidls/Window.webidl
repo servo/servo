@@ -126,6 +126,7 @@ partial interface Window {
   readonly attribute Console console;
   void debug(DOMString arg);
   void gc();
+  void trap();
 };
 Window implements OnErrorEventHandlerForWindow;
 

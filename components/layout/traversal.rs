@@ -4,8 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-#![allow(unsafe_code)]
-
 use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;
@@ -15,11 +13,9 @@ use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use script::layout_interface::ReflowGoal;
 use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
-use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
-use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
+use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use selectors::bloom::BloomFilter;
-use selectors::Node;
 use util::opts;
 use util::tid::tid;
 
@@ -118,6 +114,32 @@ fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
     debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
 }
 
+
+/// A top-down traversal.
+pub trait PreorderDomTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, node: LayoutNode);
+}
+
+/// A bottom-up traversal, with a optional in-order pass.
+pub trait PostorderDomTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, node: LayoutNode);
+}
+
+/// A bottom-up, parallelizable traversal.
+pub trait PostorderNodeMutTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
+
+    /// Returns true if this node should be pruned. If this returns true, we skip the operation
+    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
+    /// visited. The default implementation never prunes any nodes.
+    fn should_prune<'a>(&'a self, _node: &ThreadSafeLayoutNode<'a>) -> bool {
+        false
+    }
+}
+
 /// The recalc-style-for-node traversal, which styles each node and must run before
 /// layout computation. This computes the styles applied to each node.
 #[derive(Copy, Clone)]
@@ -127,6 +149,7 @@ pub struct RecalcStyleForNode<'a> {
 
 impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
     #[inline]
+    #[allow(unsafe_code)]
     fn process(&self, node: LayoutNode) {
         // Initialize layout data.
         //
@@ -138,10 +161,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         let parent_opt = node.layout_parent_node(self.layout_context.shared);
 
         // Get the style bloom filter.
-        let bf = take_task_local_bloom_filter(parent_opt, self.layout_context);
-
-        // Just needs to be wrapped in an option for `match_node`.
-        let some_bf = Some(bf);
+        let mut bf = take_task_local_bloom_filter(parent_opt, self.layout_context);
 
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout || node.is_dirty() {
@@ -168,7 +188,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                         // Perform the CSS selector matching.
                         let stylist = unsafe { &*self.layout_context.shared.stylist };
                         node.match_node(stylist,
-                                        &some_bf,
+                                        Some(&*bf),
                                         &mut applicable_declarations,
                                         &mut shareable);
                     } else if node.has_changed() {
@@ -187,7 +207,9 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 
                     // Add ourselves to the LRU cache.
                     if shareable {
-                        style_sharing_candidate_cache.insert_if_possible(&node);
+                        if let Some(element) = node.as_element() {
+                            style_sharing_candidate_cache.insert_if_possible(&element);
+                        }
                     }
                 }
                 StyleSharingResult::StyleWasShared(index, damage) => {
@@ -196,8 +218,6 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                 }
             }
         }
-
-        let mut bf = some_bf.unwrap();
 
         let unsafe_layout_node = layout_node_to_unsafe_layout_node(&node);
 
@@ -219,6 +239,7 @@ pub struct ConstructFlows<'a> {
 
 impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
     #[inline]
+    #[allow(unsafe_code)]
     fn process(&self, node: LayoutNode) {
         // Construct flows for this node.
         {

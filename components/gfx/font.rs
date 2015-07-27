@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::{Point2D, Rect, Size2D};
-use smallvec::SmallVec8;
+use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::mem;
 use std::slice;
@@ -69,7 +69,7 @@ pub trait FontTableMethods {
     fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, usize);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FontMetrics {
     pub underline_size:   Au,
     pub underline_offset: Au,
@@ -106,7 +106,9 @@ bitflags! {
         #[doc="Set if we are to ignore ligatures."]
         const IGNORE_LIGATURES_SHAPING_FLAG = 0x02,
         #[doc="Set if we are to disable kerning."]
-        const DISABLE_KERNING_SHAPING_FLAG = 0x04
+        const DISABLE_KERNING_SHAPING_FLAG = 0x04,
+        #[doc="Text direction is right-to-left."]
+        const RTL_FLAG = 0x08,
     }
 }
 
@@ -204,11 +206,11 @@ impl Font {
 }
 
 pub struct FontGroup {
-    pub fonts: SmallVec8<Rc<RefCell<Font>>>,
+    pub fonts: SmallVec<[Rc<RefCell<Font>>; 8]>,
 }
 
 impl FontGroup {
-    pub fn new(fonts: SmallVec8<Rc<RefCell<Font>>>) -> FontGroup {
+    pub fn new(fonts: SmallVec<[Rc<RefCell<Font>>; 8]>) -> FontGroup {
         FontGroup {
             fonts: fonts,
         }

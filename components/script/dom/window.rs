@@ -17,7 +17,7 @@ use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
-use dom::browsercontext::BrowserContext;
+use dom::browsercontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::document::{Document, DocumentHelpers};
@@ -45,11 +45,13 @@ use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
+use profile_traits::mem;
 use util::geometry::{self, Au, MAX_RECT};
-use util::opts;
+use util::{breakpoint, opts};
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
@@ -64,7 +66,7 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
-use std::mem;
+use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
@@ -106,7 +108,7 @@ pub struct Window {
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
     compositor: DOMRefCell<ScriptListener>,
-    browser_context: DOMRefCell<Option<BrowserContext>>,
+    browsing_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -117,6 +119,9 @@ pub struct Window {
     timers: TimerManager,
 
     next_worker_id: Cell<WorkerId>,
+
+    /// For sending messages to the memory profiler.
+    mem_profiler_chan: mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -181,7 +186,7 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    webdriver_script_chan: RefCell<Option<Sender<WebDriverJSResult>>>,
+    webdriver_script_chan: RefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -192,7 +197,7 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            *self.browser_context.borrow_for_script_deallocation() = None;
+            *self.browsing_context.borrow_for_script_deallocation() = None;
             self.current_state.set(WindowState::Zombie);
         }
     }
@@ -245,8 +250,8 @@ impl Window {
         self.compositor.borrow_mut()
     }
 
-    pub fn browser_context<'a>(&'a self) -> Ref<'a, Option<BrowserContext>> {
-        self.browser_context.borrow()
+    pub fn browsing_context<'a>(&'a self) -> Ref<'a, Option<BrowsingContext>> {
+        self.browsing_context.borrow()
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
@@ -338,7 +343,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     fn Document(self) -> Root<Document> {
-        self.browser_context().as_ref().unwrap().active_document()
+        self.browsing_context().as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
@@ -366,7 +371,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://html.spec.whatwg.org/#dom-frameelement
     fn GetFrameElement(self) -> Option<Root<Element>> {
-        self.browser_context().as_ref().unwrap().frame_element()
+        self.browsing_context().as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
@@ -477,6 +482,10 @@ impl<'a> WindowMethods for &'a Window {
         }
     }
 
+    fn Trap(self) {
+        breakpoint();
+    }
+
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
@@ -521,7 +530,7 @@ impl<'a> WindowMethods for &'a Window {
 
 pub trait WindowHelpers {
     fn clear_js_runtime(self);
-    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>);
+    fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
@@ -538,6 +547,7 @@ pub trait WindowHelpers {
     fn window_size(self) -> Option<WindowSizeData>;
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
+    fn mem_profiler_chan(self) -> mem::ProfilerChan;
     fn devtools_chan(self) -> Option<DevtoolsControlChan>;
     fn layout_chan(self) -> LayoutChan;
     fn constellation_chan(self) -> ConstellationChan;
@@ -557,7 +567,7 @@ pub trait WindowHelpers {
     fn emit_timeline_marker(self, marker: TimelineMarker);
     fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
-    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>);
+    fn set_webdriver_script_chan(self, chan: Option<IpcSender<WebDriverJSResult>>);
     fn is_alive(self) -> bool;
     fn parent(self) -> Option<Root<Window>>;
 }
@@ -617,7 +627,7 @@ impl<'a> WindowHelpers for &'a Window {
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-        *self.browser_context.borrow_mut() = None;
+        *self.browsing_context.borrow_mut() = None;
     }
 
     /// Reflows the page unconditionally. This method will wait for the layout thread to complete
@@ -721,7 +731,7 @@ impl<'a> WindowHelpers for &'a Window {
     /// layout task has finished any pending request messages.
     fn join_layout(self) {
         let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = mem::replace(&mut *layout_join_port, None) {
+        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
             match join_port.try_recv() {
                 Err(Empty) => {
                     info!("script: waiting on layout");
@@ -770,10 +780,10 @@ impl<'a> WindowHelpers for &'a Window {
         self.window_size.set(Some(new_size));
     }
 
-    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>) {
-        let mut browser_context = self.browser_context.borrow_mut();
-        *browser_context = Some(BrowserContext::new(doc, frame_element));
-        (*browser_context).as_mut().unwrap().create_window_proxy();
+    fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>) {
+        let mut browsing_context = self.browsing_context.borrow_mut();
+        *browsing_context = Some(BrowsingContext::new(doc, frame_element));
+        (*browsing_context).as_mut().unwrap().create_window_proxy();
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -821,6 +831,10 @@ impl<'a> WindowHelpers for &'a Window {
 
     fn resource_task(self) -> ResourceTask {
         self.resource_task.clone()
+    }
+
+    fn mem_profiler_chan(self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
     }
 
     fn devtools_chan(self) -> Option<DevtoolsControlChan> {
@@ -936,7 +950,7 @@ impl<'a> WindowHelpers for &'a Window {
         *self.devtools_marker_sender.borrow_mut() = None;
     }
 
-    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>) {
+    fn set_webdriver_script_chan(self, chan: Option<IpcSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
 
@@ -945,14 +959,14 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn parent(self) -> Option<Root<Window>> {
-        let browser_context = self.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
+        let browsing_context = self.browsing_context();
+        let browsing_context = browsing_context.as_ref().unwrap();
 
-        browser_context.frame_element().map(|frame_element| {
+        browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element.r());
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
-            let context = r.browser_context();
+            let context = r.browsing_context();
             context.as_ref().unwrap().active_window()
         })
     }
@@ -968,6 +982,7 @@ impl Window {
                image_cache_task: ImageCacheTask,
                resource_task: ResourceTask,
                storage_task: StorageTask,
+               mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<DevtoolsControlChan>,
                constellation_chan: ConstellationChan,
                layout_chan: LayoutChan,
@@ -993,8 +1008,9 @@ impl Window {
             page: page,
             navigator: Default::default(),
             image_cache_task: image_cache_task,
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
-            browser_context: DOMRefCell::new(None),
+            browsing_context: DOMRefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_ns() as f64,
