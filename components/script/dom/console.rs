@@ -8,8 +8,11 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::WindowHelpers;
+use dom::document::DocumentHelpers;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use devtools_traits::{DevtoolsControlMsg, ConsoleMessage, LogLevel};
 use util::str::DOMString;
+use time;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 #[dom_struct]
@@ -81,6 +84,54 @@ impl<'a> ConsoleMethods for &'a Console {
             println!("Assertion failed: {}", message);
             propagate_console_msg(&self, prepare_message(LogLevel::Error, message.to_owned()));
         }
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
+    fn Time(self, name: Option<DOMString>) {
+        let name = match name {
+            Some(name) => name,
+            _ => return
+        };
+        let global = self.global.root();
+        match global.r() {
+            GlobalRef::Window(window_ref) => {
+                window_ref.Document().add_console_timer(&name);
+            },
+
+            GlobalRef::Worker(_) => {
+                // TODO: support worker console timers.
+                return
+            }
+        }
+        let msg = format!("{}: timer started", name);
+        println!("{}", msg);
+        propagate_console_msg(&self, prepare_message(LogLevel::Log, msg.to_owned()));
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
+    fn TimeEnd(self, name: Option<DOMString>) {
+        let name = match name {
+            Some(name) => name,
+            _ => return,
+        };
+        let global = self.global.root();
+        let start_time = match global.r() {
+            GlobalRef::Window(window_ref) => {
+                match window_ref.Document().remove_console_timer(&name) {
+                    Some(time) => time,
+                    _ => return
+                }
+            },
+
+            GlobalRef::Worker(_) => {
+                // TODO: support worker console timers.
+                return
+            }
+        };
+        let time = (time::precise_time_ns() - start_time) / 10000;
+        let msg = format!("{}: {}ms", name, time as f64 / 100.);
+        println!("{}", msg);
+        propagate_console_msg(&self, prepare_message(LogLevel::Log, msg.to_owned()));
     }
 }
 
