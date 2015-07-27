@@ -12,8 +12,7 @@ test(function() {
   var sliced = blob.slice();
   blob.close();
 
-  var t= async_test("Blob shoud be empty");
-  t.step(function() {
+  async_test(function(t) {
     var reader = new FileReader();
 
     reader.onload = t.step_func(function(evt) {
@@ -27,7 +26,7 @@ test(function() {
     });
 
     reader.readAsText(blob, "UTF-8");
-  });
+  }, "Closed Blob");
 
   test_blob(function() {
     return sliced;
