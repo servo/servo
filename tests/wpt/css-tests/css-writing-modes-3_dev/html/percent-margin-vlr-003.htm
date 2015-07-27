@@ -3,14 +3,14 @@
 
  <head>
 
-  <title>CSS Writing Modes Test: margin percentage and 'vertical-lr'</title>
+  <title>CSS Writing Modes Test: margin percentage and 'vertical-lr' (orthogonal flow)</title>
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
   <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping" title="7.2 Dimensional Mapping">
   <link rel="match" href="reference/margin-vrl-002-ref.htm">
 
   <meta content="image" name="flags">
-  <meta content="This test checks that percentages on the margin are calculated with respect to the width of the containing block if the 'writing-mode' of such containing block is 'horizontal-tb'. In this test, div.outer's computed 'writing-mode' value is 'horizontal-tb' and it is the div.inner's containing block." name="assert">
+  <meta content="This test checks that percentages on the margin are calculated with respect to the width (inline-size) of the containing block if the 'writing-mode' of such containing block is 'horizontal-tb'. In this test, div.outer's computed 'writing-mode' value is 'horizontal-tb' and it is the div.inner's containing block." name="assert">
 
   <style type="text/css">
   div.outer
@@ -18,6 +18,22 @@
       background-color: blue;
       border: blue solid 3px;
       width: 200px;
+    }
+
+  div.inner
+    {
+      background-color: yellow;
+      height: 50px;
+      width: 50px;
+      writing-mode: vertical-lr;
+    }
+
+  div.foo
+    {
+      margin-bottom: 2.5%; /* 5px ; collapses with hr's margin-top */
+      margin-left: 50%; /* 100px */
+      margin-right: 25%; /* 50px */
+      margin-top: 10%; /* 20px */
     }
 
   hr
@@ -28,29 +44,12 @@
       margin: 0.5em auto;
     }
 
-  div.inner
-    {
-      background-color: yellow;
-      height: 50px; /* necessary, otherwise div.inner blocks must grow as tall as the height of viewport */
-      width: 50px;
-    }
-
-  div.foo
-    {
-      margin-bottom: 2.5%;
-      margin-left: 50%;
-      margin-right: 25%;
-      margin-top: 10%;
-      writing-mode: vertical-lr;
-    }
-
   div.bar
     {
-      margin-bottom: 10%;
-      margin-left: 25%;
-      margin-right: 50%;
-      margin-top: 2.5%;
-      writing-mode: vertical-lr;
+      margin-bottom: 10%; /* 20px */
+      margin-left: 25%; /* 50px */
+      margin-right: 50%; /* 100px */
+      margin-top: 2.5%; /* 5px ; collapses with hr's margin-bottom */
     }
 
   div#reference

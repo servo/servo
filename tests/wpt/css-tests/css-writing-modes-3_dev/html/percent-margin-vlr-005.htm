@@ -10,7 +10,7 @@
   <link rel="match" href="reference/margin-vrl-002-ref.htm">
 
   <meta content="image" name="flags">
-  <meta content="This test checks that percentages on the margin are calculated with respect to the height of the containing block if the 'writing-mode' of such containing block is 'vertical-lr'." name="assert">
+  <meta content="This test checks that percentages on the margin are calculated with respect to the height (inline-size) of the containing block if the 'writing-mode' of such containing block is 'vertical-lr'." name="assert">
 
   <style type="text/css">
   div.outer
@@ -27,7 +27,7 @@
   div.inner
     {
       background-color: yellow;
-      height: 50px; /* necessary, otherwise div.inner blocks must grow as tall as the height of viewport */
+      height: 50px;
       width: 50px;
     }
 

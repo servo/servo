@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Glyph Composition (26 tests)</h2>
+  <h2>Glyph Composition (25 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -34,35 +34,35 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s9.#text-combine-horizontal">
-      <!-- 2 tests -->
-      <tr id="text-combine-horizontal-010-9.#text-combine-horizontal" class="primary font">
-        <td><strong>
-            <a href="text-combine-horizontal-010.htm">text-combine-horizontal-010</a></strong></td>
-        <td><a href="reference/text-combine-horizontal-010-ref.htm">=</a> </td>
-        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
-        <td>text-combine-horizontal - none
-          <ul class="assert">
-            <li>This test verifies that 'text-combine-horizontal: none' does not combine multiple characters into the space of a single character i.e. characters from horizontal-only scripts are set sideways, i.e. 90&amp;deg; clockwise from their standard orientation in horizontal text.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-combine-horizontal-011-9.#text-combine-horizontal" class="primary font">
-        <td><strong>
-            <a href="text-combine-horizontal-011.htm">text-combine-horizontal-011</a></strong></td>
-        <td><a href="reference/text-combine-horizontal-011-ref.htm">=</a> </td>
-        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
-        <td>text-combine-horizontal - all
-          <ul class="assert">
-            <li>This test verifies that 'text-combine-horizontal: all' display the text contents of the element horizontally within the vertical line box. i.e. characters from horizontal-only scripts are rendered upright.</li>
-          </ul>
-        </td>
-      </tr>
+      <!-- 0 tests -->
     </tbody>
     <tbody id="s9.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s9.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright">9.1 Horizontal-in-Vertical Composition: the text-combine-upright property</a></th></tr>
       <!-- 21 tests -->
+      <tr id="text-combine-upright-inherit-all-002-9.1" class="primary">
+        <td><strong>
+            <a href="text-combine-upright-inherit-all-002.htm">text-combine-upright-inherit-all-002</a></strong></td>
+        <td><a href="reference/text-combine-upright-inherit-all-002.htm">=</a> </td>
+        <td></td>
+        <td>text-combine-upright :all
+          <ul class="assert">
+            <li>This test checks text-combine-upright:all inherits through the containment hierarchy and interrupted (by a box boundary) text runs</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-combine-upright-line-breaking-rules-001-9.1" class="primary">
+        <td><strong>
+            <a href="text-combine-upright-line-breaking-rules-001.htm">text-combine-upright-line-breaking-rules-001</a></strong></td>
+        <td><a href="reference/text-combine-upright-line-breaking-rules-001.htm">=</a> </td>
+        <td></td>
+        <td>CSS Writing Modes: line-breaking-rules
+          <ul class="assert">
+            <li>The bracket should be combined with following characters.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="text-combine-upright-parsing-invalid-001-9.1" class="primary dom invalid script">
         <td><strong>
             <a href="text-combine-upright-parsing-invalid-001.htm">text-combine-upright-parsing-invalid-001</a></strong></td>
@@ -107,31 +107,20 @@
           </ul>
         </td>
       </tr>
-      <tr id="text-decoration-001-9.1" class="primary">
+      <tr id="text-combine-upright-value-all-001-9.1" class="primary font">
         <td><strong>
-            <a href="text-decoration-001.htm">text-decoration-001</a></strong></td>
-        <td><a href="reference/text-decoration-001-ref.htm">=</a> </td>
-        <td></td>
-        <td>text-combine-upright with text-decoration
+            <a href="text-combine-upright-value-all-001.htm">text-combine-upright-value-all-001</a></strong></td>
+        <td><a href="reference/text-combine-upright-value-single-character.htm">=</a> </td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>CSS Writing Modes: text-combine-upright: all
           <ul class="assert">
-            <li>Test passes if text decoration applies to the composed character but each character inside tate-chu-yoko.</li>
+            <li>'text-combine-upright: all' rotates the composition even if tate-chu-yoko</li>
           </ul>
         </td>
       </tr>
-      <tr id="text-emphasis-001-9.1" class="primary">
+      <tr id="text-combine-upright-value-all-002-9.1" class="primary ahem">
         <td><strong>
-            <a href="text-emphasis-001.htm">text-emphasis-001</a></strong></td>
-        <td><a href="reference/text-emphasis-001-ref.htm">=</a> <a href="reference/reference/text-emphasis-001-notref.htm">&#x2260;</a> </td>
-        <td></td>
-        <td>text-combine-upright with text-emphasis
-          <ul class="assert">
-            <li>Test passes if text emphasis applies to the composed character but each character inside tate-chu-yoko.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="value-all-002-9.1" class="primary ahem">
-        <td><strong>
-            <a href="value-all-002.htm">value-all-002</a></strong></td>
+            <a href="text-combine-upright-value-all-002.htm">text-combine-upright-value-all-002</a></strong></td>
         <td><a href="reference/vertical-ahem-1x1-ref.htm">=</a> <a href="reference/horizontal-ahem-1x1-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: all
@@ -140,9 +129,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-all-003-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-all-003-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-all-003.htm">value-all-003</a></strong></td>
+            <a href="text-combine-upright-value-all-003.htm">text-combine-upright-value-all-003</a></strong></td>
         <td><a href="reference/vertical-ahem-1x1-ref.htm">=</a> <a href="reference/horizontal-ahem-1x1-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: all
@@ -151,31 +140,20 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-all-and-inherit-001-9.1" class="primary">
+      <tr id="text-combine-upright-value-digits2-001-9.1" class="primary font">
         <td><strong>
-            <a href="value-all-and-inherit-001.htm">value-all-and-inherit-001</a></strong></td>
-        <td><a href="reference/value-all-and-inherit-001-ref.htm">=</a> </td>
-        <td></td>
-        <td>text-combine-upright :all
+            <a href="text-combine-upright-value-digits2-001.htm">text-combine-upright-value-digits2-001</a></strong></td>
+        <td><a href="reference/text-combine-upright-value-single-character.htm">=</a> </td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>CSS Writing Modes: text-combine-upright: digits 2
           <ul class="assert">
-            <li>Two white triangles does not pointing to the right. Pointing up.</li>
+            <li>the 'digits' values in text-combine-upright rotates the composition even if there is only one character inside tate-chu-yoko.</li>
           </ul>
         </td>
       </tr>
-      <tr id="value-digit2-and-inherit-001-9.1" class="primary">
+      <tr id="text-combine-upright-value-digits2-002-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digit2-and-inherit-001.htm">value-digit2-and-inherit-001</a></strong></td>
-        <td><a href="reference/value-digit2-and-inherit-001-ref.htm">=</a> </td>
-        <td></td>
-        <td>text-combine-upright :digit2
-          <ul class="assert">
-            <li>Two white triangles does not pointing to the right. Pointing up.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="value-digits2-002-9.1" class="primary ahem">
-        <td><strong>
-            <a href="value-digits2-002.htm">value-digits2-002</a></strong></td>
+            <a href="text-combine-upright-value-digits2-002.htm">text-combine-upright-value-digits2-002</a></strong></td>
         <td><a href="reference/vertical-ahem-1x1-ref.htm">=</a> <a href="reference/horizontal-ahem-1x1-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 2 + two digits
@@ -184,9 +162,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-digits2-003-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-digits2-003-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digits2-003.htm">value-digits2-003</a></strong></td>
+            <a href="text-combine-upright-value-digits2-003.htm">text-combine-upright-value-digits2-003</a></strong></td>
         <td><a href="reference/vertical-ahem-1x3-ref.htm">=</a> <a href="reference/horizontal-ahem-1x3-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 2 + three digits
@@ -195,9 +173,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-digits3-001-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-digits3-001-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digits3-001.htm">value-digits3-001</a></strong></td>
+            <a href="text-combine-upright-value-digits3-001.htm">text-combine-upright-value-digits3-001</a></strong></td>
         <td><a href="reference/vertical-ahem-1x1-ref.htm">=</a> <a href="reference/horizontal-ahem-1x1-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 3 + two digits
@@ -206,9 +184,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-digits3-002-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-digits3-002-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digits3-002.htm">value-digits3-002</a></strong></td>
+            <a href="text-combine-upright-value-digits3-002.htm">text-combine-upright-value-digits3-002</a></strong></td>
         <td><a href="reference/vertical-ahem-1x1-ref.htm">=</a> <a href="reference/horizontal-ahem-1x1-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 3 + three digits
@@ -217,9 +195,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-digits3-003-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-digits3-003-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digits3-003.htm">value-digits3-003</a></strong></td>
+            <a href="text-combine-upright-value-digits3-003.htm">text-combine-upright-value-digits3-003</a></strong></td>
         <td><a href="reference/vertical-ahem-1x4-ref.htm">=</a> <a href="reference/horizontal-ahem-1x4-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 3 + four digits
@@ -228,9 +206,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-digits4-001-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-digits4-001-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digits4-001.htm">value-digits4-001</a></strong></td>
+            <a href="text-combine-upright-value-digits4-001.htm">text-combine-upright-value-digits4-001</a></strong></td>
         <td><a href="reference/vertical-ahem-1x1-ref.htm">=</a> <a href="reference/horizontal-ahem-1x1-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 4 + three digits
@@ -239,9 +217,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-digits4-002-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-digits4-002-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digits4-002.htm">value-digits4-002</a></strong></td>
+            <a href="text-combine-upright-value-digits4-002.htm">text-combine-upright-value-digits4-002</a></strong></td>
         <td><a href="reference/vertical-ahem-1x1-ref.htm">=</a> <a href="reference/horizontal-ahem-1x1-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 4 + four digits
@@ -250,9 +228,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-digits4-003-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-digits4-003-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-digits4-003.htm">value-digits4-003</a></strong></td>
+            <a href="text-combine-upright-value-digits4-003.htm">text-combine-upright-value-digits4-003</a></strong></td>
         <td><a href="reference/vertical-ahem-1x5-ref.htm">=</a> <a href="reference/horizontal-ahem-1x5-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: digits 4 + five digits
@@ -261,9 +239,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="value-none-001-9.1" class="primary ahem">
+      <tr id="text-combine-upright-value-none-001-9.1" class="primary ahem">
         <td><strong>
-            <a href="value-none-001.htm">value-none-001</a></strong></td>
+            <a href="text-combine-upright-value-none-001.htm">text-combine-upright-value-none-001</a></strong></td>
         <td><a href="reference/vertical-ahem-1x3-ref.htm">=</a> <a href="reference/horizontal-ahem-1x3-notref.htm">&#x2260;</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>CSS Writing Modes: text-combine-upright: none
@@ -317,7 +295,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s9.1.2">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-layout">9.1.2 Layout Rules</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 1 tests -->
+      <tr id="text-combine-upright-layout-rules-001-9.1.2" class="primary ahem">
+        <td><strong>
+            <a href="text-combine-upright-layout-rules-001.htm">text-combine-upright-layout-rules-001</a></strong></td>
+        <td><a href="reference/text-combine-upright-layout-rules-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>CSS Writing Modes: Layout rules of text-combine-upright
+          <ul class="assert">
+            <li>Anything outside the 1em-composition does not affect layout.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s9.1.3">
       <tr><th colspan="4" scope="rowgroup">

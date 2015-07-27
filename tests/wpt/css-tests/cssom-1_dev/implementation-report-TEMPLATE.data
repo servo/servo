@@ -1,0 +1,53 @@
+# UA version OS version
+# UA string (if applicable)
+# http://test.csswg.org/suites/cssom-1_dev/DATESTAMP/
+# See http://wiki.csswg.org/test/implementation-report for instructions
+testname	revision	result	comment
+html/computed-style-001.htm	923388f4dc84c4167d4c74b769957e559c061c8f	?
+xhtml1/computed-style-001.xht	923388f4dc84c4167d4c74b769957e559c061c8f	?
+html/css-style-declaration-modifications.htm	a75b92c0e94e318e4f4616d45dda2b24fda14361	?
+xhtml1/css-style-declaration-modifications.xht	a75b92c0e94e318e4f4616d45dda2b24fda14361	?
+html/cssimportrule.htm	019aaec334948e86a3b5b54c715efc2ff5d611c5	?
+xhtml1/cssimportrule.xht	019aaec334948e86a3b5b54c715efc2ff5d611c5	?
+html/cssom-cssstyledeclaration-set.htm	b63533ef337d08541ec0fb5b70b618931b9809b0	?
+xhtml1/cssom-cssstyledeclaration-set.xht	b63533ef337d08541ec0fb5b70b618931b9809b0	?
+html/cssom-csstext-serialize.htm	3e14e2c10025c3e4e66daa88ea819dc46bd8b529	?
+xhtml1/cssom-csstext-serialize.xht	3e14e2c10025c3e4e66daa88ea819dc46bd8b529	?
+html/cssom-setproperty-shorthand.htm	7630d8007322fed0af2c7d8e6f94585f3ae3703d	?
+xhtml1/cssom-setproperty-shorthand.xht	7630d8007322fed0af2c7d8e6f94585f3ae3703d	?
+html/cssstyledeclaration-mutability.htm	38cd7a355a26875bad54365ed7326a5dc51801de	?
+xhtml1/cssstyledeclaration-mutability.xht	38cd7a355a26875bad54365ed7326a5dc51801de	?
+html/cssstylerule.htm	f7142a2fa889f3fb2c5eac54bce43844fc6acd99	?
+xhtml1/cssstylerule.xht	f7142a2fa889f3fb2c5eac54bce43844fc6acd99	?
+html/index-001.htm	690f3025eb8ad461891d7cd861467a6dfd15c3c6	?
+xhtml1/index-001.xht	690f3025eb8ad461891d7cd861467a6dfd15c3c6	?
+html/index-002.htm	0bc1c948a918adda327afe34f4a31d3aafec67e3	?
+xhtml1/index-002.xht	0bc1c948a918adda327afe34f4a31d3aafec67e3	?
+html/inline-style-001.htm	f04334e818f64c3df86a59802b9f97b308a381f0	?
+xhtml1/inline-style-001.xht	f04334e818f64c3df86a59802b9f97b308a381f0	?
+html/matchmedia.htm	968cc094c6258392a6d1f8dd5eb814f43ed6692f	?
+xhtml1/matchmedia.xht	968cc094c6258392a6d1f8dd5eb814f43ed6692f	?
+html/medialist-interfaces-001.htm	18c6ca7690229435cd46aed160d37c7150f6fb6d	?
+xhtml1/medialist-interfaces-001.xht	18c6ca7690229435cd46aed160d37c7150f6fb6d	?
+html/medialist-interfaces-002.htm	c04d5564112f6761478aeaf604c428307b72c993	?
+xhtml1/medialist-interfaces-002.xht	c04d5564112f6761478aeaf604c428307b72c993	?
+html/medialist-interfaces-003.htm	7427259c9bacaa3c80010691d0405f7954e7e040	?
+xhtml1/medialist-interfaces-003.xht	7427259c9bacaa3c80010691d0405f7954e7e040	?
+html/medialist-interfaces-004.htm	5e031a138cf16515b8b2ad1d31bf27780d5c6f64	?
+xhtml1/medialist-interfaces-004.xht	5e031a138cf16515b8b2ad1d31bf27780d5c6f64	?
+html/medialist.htm	950f388af24cce357db899c6fdd58f0a785aa5e3	?
+xhtml1/medialist.xht	950f388af24cce357db899c6fdd58f0a785aa5e3	?
+html/shape-outside-shape-arguments-000.htm	8e30b0aa976388a251ee8392188230ae8d983576	?
+xhtml1/shape-outside-shape-arguments-000.xht	8e30b0aa976388a251ee8392188230ae8d983576	?
+html/shape-outside-shape-arguments-001.htm	9dd0113414a623dabe94f0e29eb616393dc49315	?
+xhtml1/shape-outside-shape-arguments-001.xht	9dd0113414a623dabe94f0e29eb616393dc49315	?
+html/shape-outside-shape-notation-000.htm	f60e7fa2061e9a98c83fd1e9cb3d2c094ae544e1	?
+xhtml1/shape-outside-shape-notation-000.xht	f60e7fa2061e9a98c83fd1e9cb3d2c094ae544e1	?
+html/style-sheet-interfaces-002.htm	5445e593037f6bcef142eb603216810b90d426dd	?
+xhtml1/style-sheet-interfaces-002.xht	5445e593037f6bcef142eb603216810b90d426dd	?
+html/ttwf-cssom-doc-ext-load-count.htm	5ec3f2383ac86be896d62ddca38cb98bfdb2fd89	?
+xhtml1/ttwf-cssom-doc-ext-load-count.xht	5ec3f2383ac86be896d62ddca38cb98bfdb2fd89	?
+html/ttwf-cssom-doc-ext-load-tree-order.htm	7d490bd1ed5a33b883cb7cbf60a9e20581d00657	?
+xhtml1/ttwf-cssom-doc-ext-load-tree-order.xht	7d490bd1ed5a33b883cb7cbf60a9e20581d00657	?
+html/ttwf-cssom-document-extension.htm	8399b5f56b217b06cb0608df93624c46566fbe29	?
+xhtml1/ttwf-cssom-document-extension.xht	8399b5f56b217b06cb0608df93624c46566fbe29	?

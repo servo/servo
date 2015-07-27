@@ -6,28 +6,24 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help">
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley">
 <meta content="font" name="flags">
-<meta content="Setting list-style-type to armenian will produce a suffix as described in the CSS3 Counter Styles module." name="assert">
+<meta content="list-style-type: armenian will produce a suffix per the spec." name="assert">
 <style type="text/css">
+ol li { list-style-type: armenian;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: armenian;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the suffix in each of the two columns is the same, ignoring the actual numbers.</p>
-
-
-<div class="test"><ol start="1"><li title="1">Ա.</li></ol>
-</div>
-
-
+<p class="instructions">Test passes if the numbers AND the suffix in each of the two columns is the same.</p>
+<div class="test"><ol>
+<li title="1">Ա.</li>
+<li title="2">Բ.</li>
+</ol></div>
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Grid Layout Test: Reference file 3 overlapped squares the following colors: blue, yellow and green</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <style type="text/css"><![CDATA[
+            #main {
+                  position: relative;
+            }
+
+            #main div {
+                width: 100px;
+                height: 100px;
+            }
+
+            .blue {
+                background-color: blue;
+                position: absolute;
+                left: 0px;
+                top: 0px;
+            }
+
+            .yellow {
+                background-color: yellow;
+                position: absolute;
+                left: 25px;
+                top: 25px;
+            }
+
+            .green {
+                background-color: green;
+                position: absolute;
+                left: 50px;
+                top: 50px;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <p>Test passes if there are 3 filled squares with the same size, and <strong>green</strong> is overlapping <strong>yellow</strong> which is overlapping <strong>blue</strong>.</p>
+
+        <div id="main">
+            <div class="blue"></div>
+            <div class="yellow"></div>
+            <div class="green"></div>
+        </div>
+    </body>
+</html>

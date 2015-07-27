@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>CSS Basic User Interface Test: Directional Focus Navigation - unkown element id</title>
+<link href="mailto:florian@rivoal.net" rel="author" title="Florian Rivoal" />
+<link href="http://www.w3.org/TR/css3-ui/#nav-dir" rel="help" />
+<meta content="interact" name="flags" />
+<meta content="Test checks that an unknow element id used as the value of the 'nav-up' property value does not hinder normal spacial navigation." name="assert" />
+<style>
+#start {
+nav-up: #foo;
+}
+</style>
+</head>
+<body>
+	<p>First, use directional navigation to navigate the focus to the "START" link below.</p>
+	<!-- In Opera 12.16, directional navigation may be done using Shift+<arrow key>.
+	     In the SmartTV emulator, use the keypad in the GUI. -->
+	<p>Test passes if navigating up moves the focus to the "FINISH" link.</p>
+
+	<a href="" id="finish">FINISH</a><br />
+	<a href="" id="start">START</a>
+
+</body></html>

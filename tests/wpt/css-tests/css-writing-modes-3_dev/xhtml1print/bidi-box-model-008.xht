@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: bidirection box model - borders on embed block</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test bidi-box-model-008"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"/> <!-- 2012-03-12 -->
+    <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+    <link rel="match" href="reference/bidi-box-model-007-ref.xht"/>
+
+    <meta name="flags" content=""/>
+    <meta name="assert" content="Border sides should be unaffected by directionality"/>
+    <style type="text/css"><![CDATA[
+      div {
+      border: 5px solid gray; 
+      border-color: orange purple teal yellow;
+      text-align: left;
+      width: 10em;
+      margin-bottom: 1em;
+      }
+      
+      .rtol {
+      direction: rtl;
+      unicode-bidi: embed;
+      }
+      
+      p {text-align: left;}
+    ]]></style>
+  </head>
+  
+  <body>
+    <p>Test passes if the 2 lines are <strong>identical</strong>.</p>
+    <div>
+      Text
+    </div>
+    <div class="rtol">
+      Text
+    </div>
+  </body>
+</html>

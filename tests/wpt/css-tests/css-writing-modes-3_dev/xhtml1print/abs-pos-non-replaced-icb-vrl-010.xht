@@ -1,0 +1,115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <title>CSS Writing Modes Test: position absolute and 'vertical-rl' - 'left' and 'right' are 'auto', 'width' is not 'auto' with 'direction: ltr' in initial containing block</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test abs-pos-non-replaced-icb-vrl-010"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="This test checks that when the initial containing block's writing-mode is 'horizontal-tb' and its 'direction' is 'ltr', then an absolutely positioned box (with 'left' and 'right' are 'auto', 'width' is not 'auto') whose containing block is the initial containing block and whose direction is 'ltr' must set left to static position and then solve for 'right'. Whether such absolutely positioned box's 'writing-mode' is vertical or not is irrelevant." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      direction: ltr;
+    }
+
+  div#green-overlapping-test
+    {
+      background-color: green;
+      border-left: green solid 35px;
+      border-right: green solid 15px;
+      height: 100px;
+      left: auto;
+      position: absolute;
+      right: auto;
+      width: 50px;
+      writing-mode: vertical-rl;
+    }
+
+  /*
+  "
+  2. 'left' and 'right' are 'auto' and 'width' is not 'auto', then if the 'direction' property of the element establishing the static-position containing block is 'ltr' set 'left' to the static position (...) Then solve for (...) 'right' (if 'direction' is 'ltr').
+  "
+  10.3.7 Absolutely positioned, non-replaced elements
+  http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
+
+  So:
+
+           auto : left
+        +
+            0px : margin-left
+        +
+           35px : border-left-width
+        +
+            0px : padding-left
+        +
+           50px : width
+        +
+            0px : padding-right
+        +
+           15px : border-right-width
+        +
+            0px : margin-right
+        +
+           auto : right
+        ====================
+                : width of containing block (width of Initial Containing Block)
+
+  becomes
+
+            8px : left (set to static position)
+        +
+            0px : margin-left
+        +
+           35px : border-left-width
+        +
+            0px : padding-left
+        +
+           50px : width
+        +
+            0px : padding-right
+        +
+           15px : border-right-width
+        +
+            0px : margin-right
+        +
+          solve : right
+        ====================
+                : width of containing block (width of Initial Containing Block)
+  */
+
+  div#red-overlapped-reference
+    {
+      background-color: red;
+      height: 100px;
+      position: relative;
+      width: 100px;
+      z-index: -1;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="green-overlapping-test"></div>
+
+  <div id="red-overlapped-reference"></div>
+
+ </body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <meta name="flags" content="image" />
+  <style type="text/css"><![CDATA[
+    img
+    {
+      vertical-align: top;
+    }
+
+    img#orange
+    {
+      padding-top: 60px; /* = the height of first character */
+    }
+  ]]></style>
+
+</head>
+
+<body>
+
+<p>Test passes if the left edge of orange square attaches the right edge of blue square.</p>
+
+<div>
+   <img src="support/swatch-blue.png" width="30" height="90" alt="Image download support must be enabled" /><!--
+--><img id="orange" src="support/swatch-orange.png" width="30" height="30" alt="Image download support must be enabled" />
+</div>
+
+</body>
+</html>

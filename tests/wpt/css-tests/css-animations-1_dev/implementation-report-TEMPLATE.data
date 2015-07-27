@@ -2,110 +2,34 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-animations-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/animation-delay-001.htm	?	
-xhtml1/animation-delay-001.xht	?	
-html4/animation-delay-002.htm	?	
-xhtml1/animation-delay-002.xht	?	
-html4/animation-delay-003.htm	?	
-xhtml1/animation-delay-003.xht	?	
-html4/animation-delay-004.htm	?	
-xhtml1/animation-delay-004.xht	?	
-html4/animation-delay-005.htm	?	
-xhtml1/animation-delay-005.xht	?	
-html4/animation-direction-001.htm	?	
-xhtml1/animation-direction-001.xht	?	
-html4/animation-direction-002.htm	?	
-xhtml1/animation-direction-002.xht	?	
-html4/animation-direction-003.htm	?	
-xhtml1/animation-direction-003.xht	?	
-html4/animation-direction-004.htm	?	
-xhtml1/animation-direction-004.xht	?	
-html4/animation-direction-005.htm	?	
-xhtml1/animation-direction-005.xht	?	
-html4/animation-direction-006.htm	?	
-xhtml1/animation-direction-006.xht	?	
-html4/animation-duration-001.htm	?	
-xhtml1/animation-duration-001.xht	?	
-html4/animation-duration-002.htm	?	
-xhtml1/animation-duration-002.xht	?	
-html4/animation-duration-003.htm	?	
-xhtml1/animation-duration-003.xht	?	
-html4/animation-duration-004.htm	?	
-xhtml1/animation-duration-004.xht	?	
-html4/animation-iteration-count-001.htm	?	
-xhtml1/animation-iteration-count-001.xht	?	
-html4/animation-iteration-count-002.htm	?	
-xhtml1/animation-iteration-count-002.xht	?	
-html4/animation-iteration-count-003.htm	?	
-xhtml1/animation-iteration-count-003.xht	?	
-html4/animation-iteration-count-004.htm	?	
-xhtml1/animation-iteration-count-004.xht	?	
-html4/animation-iteration-count-005.htm	?	
-xhtml1/animation-iteration-count-005.xht	?	
-html4/animation-iteration-count-006.htm	?	
-xhtml1/animation-iteration-count-006.xht	?	
-html4/animation-iteration-event.htm	?	
-xhtml1/animation-iteration-event.xht	?	
-html4/animation-keyframes.htm	?	
-xhtml1/animation-keyframes.xht	?	
-html4/animation-name-001.htm	?	
-xhtml1/animation-name-001.xht	?	
-html4/animation-name-002.htm	?	
-xhtml1/animation-name-002.xht	?	
-html4/animation-name-003.htm	?	
-xhtml1/animation-name-003.xht	?	
-html4/animation-name-004.htm	?	
-xhtml1/animation-name-004.xht	?	
-html4/animation-play-state-001.htm	?	
-xhtml1/animation-play-state-001.xht	?	
-html4/animation-play-state-002.htm	?	
-xhtml1/animation-play-state-002.xht	?	
-html4/animation-timing-function-001.htm	?	
-xhtml1/animation-timing-function-001.xht	?	
-html4/animation-timing-function-002.htm	?	
-xhtml1/animation-timing-function-002.xht	?	
-html4/animation-timing-function-003.htm	?	
-xhtml1/animation-timing-function-003.xht	?	
-html4/animation-timing-function-004.htm	?	
-xhtml1/animation-timing-function-004.xht	?	
-html4/animation-timing-function-005.htm	?	
-xhtml1/animation-timing-function-005.xht	?	
-html4/animation-timing-function-006.htm	?	
-xhtml1/animation-timing-function-006.xht	?	
-html4/animations-001.htm	?	
-xhtml1/animations-001.xht	?	
-html4/animationstart-and-animationend-events.htm	?	
-xhtml1/animationstart-and-animationend-events.xht	?	
-html4/css-filters-animation-blur.htm	?	
-xhtml1/css-filters-animation-blur.xht	?	
-html4/css-filters-animation-brightness.htm	?	
-xhtml1/css-filters-animation-brightness.xht	?	
-html4/css-filters-animation-combined-001.htm	?	
-xhtml1/css-filters-animation-combined-001.xht	?	
-html4/css-filters-animation-contrast.htm	?	
-xhtml1/css-filters-animation-contrast.xht	?	
-html4/css-filters-animation-drop-shadow.htm	?	
-xhtml1/css-filters-animation-drop-shadow.xht	?	
-html4/css-filters-animation-grayscale.htm	?	
-xhtml1/css-filters-animation-grayscale.xht	?	
-html4/css-filters-animation-hue-rotate.htm	?	
-xhtml1/css-filters-animation-hue-rotate.xht	?	
-html4/css-filters-animation-invert.htm	?	
-xhtml1/css-filters-animation-invert.xht	?	
-html4/css-filters-animation-opacity.htm	?	
-xhtml1/css-filters-animation-opacity.xht	?	
-html4/css-filters-animation-saturate.htm	?	
-xhtml1/css-filters-animation-saturate.xht	?	
-html4/css-filters-animation-sepia.htm	?	
-xhtml1/css-filters-animation-sepia.xht	?	
-html4/pseudoelement-001.htm	?	
-xhtml1/pseudoelement-001.xht	?	
-html4/pseudoelement-002.htm	?	
-xhtml1/pseudoelement-002.xht	?	
-html4/vh-interpolate-pct.htm	?	
-xhtml1/vh-interpolate-pct.xht	?	
-html4/vh-interpolate-px.htm	?	
-xhtml1/vh-interpolate-px.xht	?	
-html4/vh-interpolate-vh.htm	?	
-xhtml1/vh-interpolate-vh.xht	?	
+testname	revision	result	comment
+html/animations-001.htm	58200be49397d3ebd75335737334fadb5f72043a	?
+xhtml1/animations-001.xht	58200be49397d3ebd75335737334fadb5f72043a	?
+html/css-filters-animation-blur.htm	53622387367e3daa90b9880e22ff9548665f4883	?
+xhtml1/css-filters-animation-blur.xht	53622387367e3daa90b9880e22ff9548665f4883	?
+html/css-filters-animation-brightness.htm	6ef87e3d77b51aaa2d33c91de5b6c84e96b41eae	?
+xhtml1/css-filters-animation-brightness.xht	6ef87e3d77b51aaa2d33c91de5b6c84e96b41eae	?
+html/css-filters-animation-combined-001.htm	aaaa710118343f2b999ebc2edcd0c2c7e18d1ffe	?
+xhtml1/css-filters-animation-combined-001.xht	aaaa710118343f2b999ebc2edcd0c2c7e18d1ffe	?
+html/css-filters-animation-contrast.htm	517f0cbaf18b73ffe0d87947c8e48f8b13bb4c59	?
+xhtml1/css-filters-animation-contrast.xht	517f0cbaf18b73ffe0d87947c8e48f8b13bb4c59	?
+html/css-filters-animation-drop-shadow.htm	70bc0ac9029e86c93916acec368678aa6fbb5f87	?
+xhtml1/css-filters-animation-drop-shadow.xht	70bc0ac9029e86c93916acec368678aa6fbb5f87	?
+html/css-filters-animation-grayscale.htm	66ebc18a6a7c6e692cb223505fa362279d477ac0	?
+xhtml1/css-filters-animation-grayscale.xht	66ebc18a6a7c6e692cb223505fa362279d477ac0	?
+html/css-filters-animation-hue-rotate.htm	4abc8e87e83f87fcf3b41a12f2a0d1f2505a1abe	?
+xhtml1/css-filters-animation-hue-rotate.xht	4abc8e87e83f87fcf3b41a12f2a0d1f2505a1abe	?
+html/css-filters-animation-invert.htm	ff60b4d8c0fc6a76ada1a62230af435de194fb0f	?
+xhtml1/css-filters-animation-invert.xht	ff60b4d8c0fc6a76ada1a62230af435de194fb0f	?
+html/css-filters-animation-opacity.htm	c280f619d6a33d5953c6bde268ba7b0813467b70	?
+xhtml1/css-filters-animation-opacity.xht	c280f619d6a33d5953c6bde268ba7b0813467b70	?
+html/css-filters-animation-saturate.htm	1527b952f6a2421d3ff02ce50405d38d1cbb45b5	?
+xhtml1/css-filters-animation-saturate.xht	1527b952f6a2421d3ff02ce50405d38d1cbb45b5	?
+html/css-filters-animation-sepia.htm	36a7316bfb518ea1cdefd38151449383c02b57a0	?
+xhtml1/css-filters-animation-sepia.xht	36a7316bfb518ea1cdefd38151449383c02b57a0	?
+html/vh-interpolate-pct.htm	e263245c653c76da4ebf1afd5463deb31d27e365	?
+xhtml1/vh-interpolate-pct.xht	e263245c653c76da4ebf1afd5463deb31d27e365	?
+html/vh-interpolate-px.htm	fa83d5d77411f3c93cf7e465552f47494bfe9d7a	?
+xhtml1/vh-interpolate-px.xht	fa83d5d77411f3c93cf7e465552f47494bfe9d7a	?
+html/vh-interpolate-vh.htm	0e224532385323bb9061d9b18c1def8c330ad6ae	?
+xhtml1/vh-interpolate-vh.xht	0e224532385323bb9061d9b18c1def8c330ad6ae	?

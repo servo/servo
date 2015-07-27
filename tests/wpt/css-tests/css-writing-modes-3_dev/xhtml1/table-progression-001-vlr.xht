@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>CSS Test: vertical-lr Table Row/Rowgroup/Cell Ordering</title>
+<link href="http://fantasai.inkedblade.net/contact" rel="author" title="Elika J. Etemad" />
+<link href="reference/table-progression-001-ref.xht" rel="match" />
+<meta content="This test checks that vertical-lr tables order rows/rowgroups left to right and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'." name="assert" />
+<link href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" rel="help" />
+
+<style>
+  .test {
+    writing-mode: vertical-lr;
+  }
+
+  table {
+    border-spacing: 0;
+    margin: 1em;
+  }
+  td {
+    width: 1em;
+    height: 1em;
+    border: solid gray;
+  }
+
+  .a { background: navy}
+  .b { background: blue }
+  .c { background: aqua }
+  .d { background: teal }
+  .e { background: purple }
+  .f { background: fuchsia }
+  .g { background: yellow }
+  .h { background: orange }
+</style>
+
+</head><body><p>Test passes if the following three tables look identical.
+
+</p><table class="test">
+  <thead>
+    <tr>
+      <td colspan="2"> 
+      </td><td class="c">
+      </td><td class="d">
+  </td></tr></thead><tfoot>
+    <tr>
+      <td class="a">
+      </td><td class="b">
+      </td><td colspan="2">
+  </td></tr></tfoot><tbody>
+    <tr>
+      <td class="h">
+      </td><td colspan="3">
+  </td></tr></tbody><tbody>
+    <tr>
+      <td rowspan="3">
+      </td><td class="g">
+      </td><td colspan="2" rowspan="2">
+    </td></tr><tr>
+      <td class="f">
+    </td></tr><tr>
+      <td colspan="2">
+      </td><td class="e">
+</td></tr></tbody></table>
+
+<table class="test" dir="rtl">
+  <thead>
+    <tr>
+      <td class="d">
+      </td><td class="c">
+      </td><td colspan="2"> 
+  </td></tr></thead><tfoot>
+    <tr>
+      <td colspan="2">
+      </td><td class="b">
+      </td><td class="a">
+  </td></tr></tfoot><tbody>
+    <tr>
+      <td colspan="3">
+      </td><td class="h">
+  </td></tr></tbody><tbody>
+    <tr>
+      <td colspan="2" rowspan="2">
+      </td><td class="g">
+      </td><td rowspan="3">
+    </td></tr><tr>
+      <td class="f">
+    </td></tr><tr>
+      <td class="e">
+      </td><td colspan="2">
+</td></tr></tbody></table>
+
+
+<table class="reference">
+  <tbody><tr>
+    <td rowspan="2">
+    </td><td class="h">
+    </td><td colspan='3"'>
+    </td><td class="a">
+  </td></tr><tr>
+    <td rowspan='3"'>
+    </td><td class="g">
+    </td><td class="f">
+    </td><td rowspan='2"'>
+    </td><td class="b">
+  </td></tr><tr>
+    <td class="c">
+    </td><td colspan="2" rowspan="2">
+    </td><td rowspan="2">
+  </td></tr><tr>
+    <td class="d">
+    </td><td class="e">
+</td></tr></tbody></table>
+
+</body></html>

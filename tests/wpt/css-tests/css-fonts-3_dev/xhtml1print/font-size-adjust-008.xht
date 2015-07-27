@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <title>CSS Fonts Test: font-size-adjust - a negative value is invalid</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Fonts Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test font-size-adjust-008"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop" title="3.6 Relative sizing: the font-size-adjust property" />
+  <link rel="bookmark" href="https://lists.w3.org/Archives/Public/www-style/2015Mar/0282.html" title="[css-fonts] What does font-size-adjust for '0' look like?" />
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="ahem invalid" name="flags" />
+  <meta content="This test checks that a negative value is invalid and therefore must be ignored." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#test-negative-value
+  {
+  color: green;
+  font: 6.25em/1 Ahem; /* computes to 100px/100px */
+  font-size-adjust: -0.5;
+  }
+
+  div#reference-overlapped-red
+  {
+  background-color: red;
+  bottom: 100px;
+  height: 100px;
+  position: relative;
+  width: 100px;
+  z-index: -1;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="test-negative-value">N</div>
+
+  <div id="reference-overlapped-red"></div>
+
+ </body>
+</html>

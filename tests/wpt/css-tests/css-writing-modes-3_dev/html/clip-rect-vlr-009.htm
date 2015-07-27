@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'clip: rect()' in 'vertical-lr' writing-mode (orthogonal)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#physical-only" title="7.6 Purely Physical Mappings">
+  <link rel="match" href="reference/clip-rect-vrl-008-ref.htm">
+
+  <meta content="image" name="flags">
+  <meta content="This test checks that 'clip: rect(50px, 100px, 100px, 50px)' set to an image with 'writing-mode: vertical-lr' will make invisible the region outside the bottom-right corner of such image." name="assert">
+
+  <style type="text/css">
+  img#test
+    {
+      clip: rect(50px, 100px, 100px, 50px);
+      position: absolute;
+      writing-mode: vertical-lr;
+    }
+  </style>
+ </head>
+
+ <body>
+
+  <p><img src="support/pass-cdts-abs-pos-non-replaced.png" width="246" height="36" alt="Image download support must be enabled"></p>
+
+  <!--
+  Image says:
+  Test passes if there is a filled green square and <strong>no red</strong>.
+  -->
+
+  <div><img id="test" src="support/pattern-rr-rg-100x100.png" width="100" height="100" alt="Image download support must be enabled"></div>
+
+ </body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>CSS Basic User Interface Test: box-sizing:border-box and auto sizing of intrinsicly sized replaced elements.</title>
+<link href="http://florian.rivoal.net/" rel="author" title="Florian Rivoal">
+<link href="http://dev.w3.org/csswg/css-ui-3/#box-sizing" rel="help">
+<link href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" rel="help">
+<link href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height" rel="help">
+<meta content="svg" name="flags">
+<link href="reference/box-sizing-007-ref.htm" rel="match">
+<meta content="Exercises the sizing rules in CSS2.1 10.3.2 and 10.6.2 with box-sizing:border-box for replaced elements with either both intrisic dimentions or an intrinsic ratio, to check that they work correctly in terms of the content width height." name="assert">
+<style>
+img {
+	box-sizing: border-box;
+	width: auto;
+	height: auto;
+	background: white;
+	margin: 10px;
+}
+
+#t01, #t11, #t21, #t31 {
+	padding-left: 20px;
+	margin-left: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+#t02, #t12, #t22, #t32 {
+	padding-bottom: 20px;
+	margin-bottom: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+#t03, #t13, #t23, #t33 {
+	width: 120px;
+	padding-left: 20px;
+	margin-left: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+#t04, #t14, #t24, #t34 {
+	height: 120px;
+	padding-bottom: 20px;
+	margin-bottom: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+
+#t30, #t32 {
+	width: 100px;
+}
+
+#t31 {
+	height: 100px;
+}
+body {
+	max-width: 700px;
+}
+</style>
+</head><body>
+  <p>Test passes if there are 20 <strong>filled green squares</strong> and they are the <strong>same size</strong>.</p>
+  <img src="support/w100_h100.svg" id="t00">
+  <img src="support/w100_h100.svg" id="t01">
+  <img src="support/w100_h100.svg" id="t02">
+  <img src="support/w100_h100.svg" id="t03">
+  <img src="support/w100_h100.svg" id="t04">
+
+  <img src="support/w100_r1-1.svg" id="t10">
+  <img src="support/w100_r1-1.svg" id="t11">
+  <img src="support/w100_r1-1.svg" id="t12">
+  <img src="support/w100_r1-1.svg" id="t13">
+  <img src="support/w100_r1-1.svg" id="t14">
+
+  <img src="support/h100_r1-1.svg" id="t20">
+  <img src="support/h100_r1-1.svg" id="t21">
+  <img src="support/h100_r1-1.svg" id="t22">
+  <img src="support/h100_r1-1.svg" id="t23">
+  <img src="support/h100_r1-1.svg" id="t24">
+
+  <img src="support/r1-1.svg" id="t30">
+  <img src="support/r1-1.svg" id="t31">
+  <img src="support/r1-1.svg" id="t32">
+  <img src="support/r1-1.svg" id="t33">
+  <img src="support/r1-1.svg" id="t34">
+
+</body></html>

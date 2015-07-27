@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head>
+  <title>CSS Test: Verify that explicit sizes are honored on flex items whose writing-mode may differ from the flex container's writing-mode</title>
+  <link href="mailto:dholbert@mozilla.com" rel="author" title="Daniel Holbert">
+  <link href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm" rel="help">
+  <link href="http://www.w3.org/TR/css-writing-modes-3/#propdef-writing-mode" rel="help">
+  <link href="reference/flexbox-writing-mode-009-ref.htm" rel="match">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      width: 40px;
+      height: 30px;
+      border: 1px solid gray;
+      margin-bottom: 5px;
+      writing-mode: vertical-rl;
+      flex-flow: row wrap;
+    }
+    .flexContainer > * {
+      width: 20px;
+      height: 15px;
+    }
+    .item1 {
+      /* Note: flex items are ordered as "CMYK": cyan, magenta, yellow, black */
+      background: cyan;
+    }
+    .item2 {
+      background: magenta;
+    }
+    .item3 {
+      background: yellow;
+    }
+    .item4 {
+      background: black;
+    }
+
+    /* Classes applied to flex container, to customize its children
+     * (which should not affect their sizing):
+     */
+    .kids_horizontal_tb > * {
+      writing-mode: horizontal-tb;
+    }
+    .kids_vertical_lr > * {
+      writing-mode: vertical-lr;
+    }
+    .kids_vertical_rl > * {
+      writing-mode: vertical-rl;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="flexContainer">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer kids_horizontal_tb">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer kids_vertical_lr">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer kids_vertical_rl">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+
+
+</body></html>

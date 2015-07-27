@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Test: CSSOM View matchMedia and MediaQueryList</title>
+        <link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com" />
+        <link rel="help" href="http://www.w3.org/TR/cssom-view/#dom-window-matchmedia" />
+        <link rel="help" href="http://www.w3.org/TR/cssom-view/#the-mediaquerylist-interface" />
+        <link rel="help" href="http://www.w3.org/TR/cssom/#serializing-media-queries" />
+        <meta name="flags" content="dom" />
+        <script src="/resources/testharness.js" type="text/javascript"></script>
+        <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+        <style type="text/css"><![CDATA[
+            iframe { border: none; }
+        ]]></style>
+    </head>
+    <body>
+        <noscript>Test not run - javascript required.</noscript>
+        <div id="log"></div>
+        <iframe width="200" height="100"></iframe>
+        <script type="text/javascript"><![CDATA[
+            function reflow(doc) {
+                doc.body.offsetWidth;
+            }
+
+            var iframe = document.querySelector("iframe");
+            var iframe_window = window.frames[0];
+
+            reflow(iframe_window.document);
+
+            test(function(){
+                assert_inherits(window, "matchMedia");
+            }, "window.matchMedia exists");
+
+            test(function(){
+                assert_true(window.matchMedia instanceof Function, "FATAL ERROR: The window.matchMedia function is not present. The rest of the testsuite will fail to run.");
+            }, "window.matchMedia is a Function");
+
+            var mql, mql1, mql2, mql3;
+
+            test(function(){
+                mql = window.matchMedia("all");
+                assert_true(mql instanceof MediaQueryList, "matchMedia(\"all\") returned MediaQueryList object.");
+            }, "window.matchMedia(\"all\")");
+
+            test(function(){
+                assert_idl_attribute(mql, "media", "Check that MediaQueryList.media exists.");
+            }, "MediaQueryList.media exists");
+
+            test(function(){
+                assert_readonly(mql, "media", "Check that MediaQueryList.media is readonly.");
+            }, "MediaQueryList.media is readonly");
+
+            test(function(){
+                assert_equals(mql.media, "all");
+            }, "MediaQueryList.media for \"all\"");
+
+            test(function(){
+                assert_idl_attribute(mql, "matches", "Check that MediaQueryList.matches exists.");
+            }, "MediaQueryList.matches exists");
+
+            test(function(){
+                assert_readonly(mql, "matches", "Check that MediaQueryList.matches is readonly.");
+            }, "MediaQueryList.matches is readonly");
+
+            test(function(){
+                assert_true(mql.matches);
+            }, "MediaQueryList.matches for \"all\"");
+
+            test(function(){
+                assert_inherits(mql, "addListener");
+            }, "MediaQueryList.addListener exists");
+
+            test(function(){
+                assert_true(mql.addListener instanceof Function);
+            }, "MediaQueryList.addListener is a Function");
+
+            test(function(){
+                assert_inherits(mql, "removeListener");
+            }, "MediaQueryList.removeListener exists");
+
+            test(function(){
+                assert_true(mql.removeListener instanceof Function);
+            }, "MediaQueryList.removeListener is a Function");
+
+            test(function(){
+                mql = window.matchMedia("::");
+                assert_true(mql instanceof MediaQueryList, "window.matchMedia(\"::\") returned MediaQueryList object.");
+                assert_equals(mql.media, "not all", "MediaQueryList.media serialized as \"not all\" from original string with syntax error.");
+            }, "MediaQueryList.media syntax error");
+
+            test(function(){
+                assert_false(mql.matches);
+            }, "MediaQueryList.matches for \"not all\"");
+
+            test(function(){
+                mql = iframe_window.matchMedia("(max-width: 199px), all and (min-width: 200px)");
+                assert_equals(mql.media, "(max-width: 199px), (min-width: 200px)");
+                assert_true(mql.matches);
+            }, "MediaQueryList.matches for \"(max-width: 199px), all and (min-width: 200px)\"")
+
+            test(function(){
+                mql = iframe_window.matchMedia("(min-aspect-ratio: 1/1)");
+                assert_true(mql.matches);
+            }, "MediaQueryList.matches for \"(min-aspect-ratio: 1/1)\"");
+
+            test(function(){
+                mql = iframe_window.matchMedia("(width: 200px)");
+                assert_true(mql.matches);
+            }, "MediaQueryList.matches for \"(width: 200px)\"");
+
+            test(function(){
+                mql1 = iframe_window.matchMedia("(max-height: 50px)");
+                assert_false(mql1.matches);
+            }, "MediaQueryList.matches for \"(max-height: 50px)\"");
+
+            test(function(){
+                mql2 = iframe_window.matchMedia("(min-width: 150px)");
+                assert_true(mql2.matches);
+            }, "MediaQueryList.matches for \"(min-width: 150px)\"");
+
+            var resizeTest = async_test("Resize iframe from 200x100 to 200x50, then to 100x50");
+            var listenerOrderTest = async_test("Listeners are called in the order which they have been added");
+            var duplicateListenerTest = async_test("Listener added twice is only called once.");
+
+            window.onload = function(){
+
+                var rmListener = function(x){
+                    resizeTest.step(function(){
+                        assert_unreached("removeListener was not successful.");
+                    });
+                };
+
+                var dupListener = function(x){
+                    duplicateListenerTest.step(function(){
+                        assert_false(mql1.dupListenerCalled, "Check that this listener has not been called before.");
+                        mql1.dupListenerCalled = true;
+                    });
+                };
+
+                mql1.firstListenerCalled = false;
+                mql1.dupListenerCalled = false;
+                // Add listener twice and remove it below. Should not be called.
+                mql1.addListener(rmListener);
+                mql1.addListener(rmListener);
+                // Add listener twice. Should only be called once.
+                mql1.addListener(dupListener);
+                mql1.addListener(dupListener);
+
+                mql1.addListener(function(x){
+                    resizeTest.step(function(){
+                        assert_equals(x, mql1, "Check that the MediaQueryList passed to the handler is the same that addListener was invoked on.");
+                        assert_true(x.matches, "(max-height: 50px) should now pass.");
+                        assert_true(mql2.matches, "(min-width: 150px) should still pass.");
+                        iframe.width = "100";
+                    });
+
+                    listenerOrderTest.step(function(){
+                        assert_false(mql1.firstListenerCalled, "Check that this listener is only called once.");
+                        mql1.firstListenerCalled = true;
+                    });
+                });
+
+                mql1.addListener(function(x){
+                    listenerOrderTest.step(function(){
+                        assert_true(mql1.firstListenerCalled, "Check that the listener added last is called last.");
+                    });
+                    listenerOrderTest.done();
+                });
+
+                mql1.removeListener(rmListener);
+
+                mql2.addListener(function(x){
+                    duplicateListenerTest.done();
+                    resizeTest.step(function(){
+                        assert_equals(x, mql2, "Check that the MediaQueryList passed to the handler is the same that addListener was invoked on.");
+                        assert_true(mql1.matches, "(max-height: 50px) should still pass.");
+                        assert_false(x.matches, "(min-width: 150px) should now fail.");
+                    });
+                    resizeTest.done();
+                });
+
+                iframe.height = "50";
+            };]]>
+        </script>
+    </body>
+</html>

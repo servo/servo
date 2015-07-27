@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
+<title>CSS Test: hsl() values</title>
+<link href="http://dbaron.org/" rel="author" title="L. David Baron" />
+<link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+<link href="http://www.intel.com" rel="author" title="Intel" />
+<link href="http://www.w3.org/TR/css3-color/#hsl-color" rel="help" />
+<link href="reference/t424-hsl-values-b-5-ref.xht" rel="match" />
+<meta content="" name="flags" />
+<meta content="Implementation of algorithm for converting hsl() colors to rgb() colors." name="assert" />
+<style>
+  table { border-spacing: 0; padding: 0; border: none; }
+  td { border: none; padding: 0; }
+  td { width: 1.2em; height: 1.2em; }
+</style>
+</head><body>
+  <p>The following two matching (except the checkerboard at both ends to show where the rows are) rows of colors should change in two steps from nearly gray at the left to yellow at the right.</p>
+  <table>
+    <tbody><tr>
+      <td style="background: black">&#xA0;</td>
+      <td style="background: hsl(60, 20%, 50%)">&#xA0;</td>
+      <td style="background: hsl(60, 60%, 50%)">&#xA0;</td>
+      <td style="background: hsl(60, 100%, 50%)">&#xA0;</td>
+      <td style="background: white">&#xA0;</td>
+    </tr>
+    <tr>
+      <td style="background: white">&#xA0;</td>
+      <td style="background: rgb(153, 153, 102)">&#xA0;</td>
+      <td style="background: rgb(204, 204, 51)">&#xA0;</td>
+      <td style="background: rgb(255, 255, 0)">&#xA0;</td>
+      <td style="background: black">&#xA0;</td>
+    </tr>
+  </tbody></table>
+
+</body></html>

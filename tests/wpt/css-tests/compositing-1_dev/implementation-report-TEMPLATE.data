@@ -2,104 +2,16 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/compositing-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/blend-isolation.htm	?	
-xhtml1/blend-isolation.xht	?	
-html4/blending_in_a_group_with_filter.htm	?	
-xhtml1/blending_in_a_group_with_filter.xht	?	
-html4/blending_in_a_group_with_opacity.htm	?	
-xhtml1/blending_in_a_group_with_opacity.xht	?	
-html4/line-with-svg-background.htm	?	
-xhtml1/line-with-svg-background.xht	?	
-html4/mix-blend-mode-animation.htm	?	
-xhtml1/mix-blend-mode-animation.xht	?	
-html4/mix-blend-mode-blended-element-interposed.htm	?	
-xhtml1/mix-blend-mode-blended-element-interposed.xht	?	
-html4/mix-blend-mode-blended-element-overflow-hidden-and-border-radius.htm	?	
-xhtml1/mix-blend-mode-blended-element-overflow-hidden-and-border-radius.xht	?	
-html4/mix-blend-mode-blended-element-overflow-scroll.htm	?	
-xhtml1/mix-blend-mode-blended-element-overflow-scroll.xht	?	
-html4/mix-blend-mode-blended-element-with-transparent-pixels.htm	?	
-xhtml1/mix-blend-mode-blended-element-with-transparent-pixels.xht	?	
-html4/mix-blend-mode-blended-with-3d-transform.htm	?	
-xhtml1/mix-blend-mode-blended-with-3d-transform.xht	?	
-html4/mix-blend-mode-blended-with-transform-and-perspective.htm	?	
-xhtml1/mix-blend-mode-blended-with-transform-and-perspective.xht	?	
-html4/mix-blend-mode-blending-with-sibling.htm	?	
-xhtml1/mix-blend-mode-blending-with-sibling.xht	?	
-html4/mix-blend-mode-border-image.htm	?	
-xhtml1/mix-blend-mode-border-image.xht	?	
-html4/mix-blend-mode-both-parent-and-blended-with-3d-transform.htm	?	
-xhtml1/mix-blend-mode-both-parent-and-blended-with-3d-transform.xht	?	
-html4/mix-blend-mode-canvas-parent.htm	?	
-xhtml1/mix-blend-mode-canvas-parent.xht	?	
-html4/mix-blend-mode-canvas-sibling.htm	?	
-xhtml1/mix-blend-mode-canvas-sibling.xht	?	
-html4/mix-blend-mode-creates-stacking-context.htm	?	
-xhtml1/mix-blend-mode-creates-stacking-context.xht	?	
-html4/mix-blend-mode-filter.htm	?	
-xhtml1/mix-blend-mode-filter.xht	?	
-html4/mix-blend-mode-iframe-parent.htm	?	
-xhtml1/mix-blend-mode-iframe-parent.xht	?	
-html4/mix-blend-mode-iframe-sibling.htm	?	
-xhtml1/mix-blend-mode-iframe-sibling.xht	?	
-html4/mix-blend-mode-image.htm	?	
-xhtml1/mix-blend-mode-image.xht	?	
-html4/mix-blend-mode-in-svg-image.htm	?	
-xhtml1/mix-blend-mode-in-svg-image.xht	?	
-html4/mix-blend-mode-intermediate-element-overflow-hidden-and-border-radius.htm	?	
-xhtml1/mix-blend-mode-intermediate-element-overflow-hidden-and-border-radius.xht	?	
-html4/mix-blend-mode-mask.htm	?	
-xhtml1/mix-blend-mode-mask.xht	?	
-html4/mix-blend-mode-overflowing-child-of-blended-element.htm	?	
-xhtml1/mix-blend-mode-overflowing-child-of-blended-element.xht	?	
-html4/mix-blend-mode-overflowing-child.htm	?	
-xhtml1/mix-blend-mode-overflowing-child.xht	?	
-html4/mix-blend-mode-paragraph-background-image.htm	?	
-xhtml1/mix-blend-mode-paragraph-background-image.xht	?	
-html4/mix-blend-mode-paragraph.htm	?	
-xhtml1/mix-blend-mode-paragraph.xht	?	
-html4/mix-blend-mode-parent-element-overflow-hidden-and-border-radius.htm	?	
-xhtml1/mix-blend-mode-parent-element-overflow-hidden-and-border-radius.xht	?	
-html4/mix-blend-mode-parent-element-overflow-scroll-blended-position-fixed.htm	?	
-xhtml1/mix-blend-mode-parent-element-overflow-scroll-blended-position-fixed.xht	?	
-html4/mix-blend-mode-parent-element-overflow-scroll.htm	?	
-xhtml1/mix-blend-mode-parent-element-overflow-scroll.xht	?	
-html4/mix-blend-mode-parent-with-3d-transform-and-transition.htm	?	
-xhtml1/mix-blend-mode-parent-with-3d-transform-and-transition.xht	?	
-html4/mix-blend-mode-parent-with-3d-transform.htm	?	
-xhtml1/mix-blend-mode-parent-with-3d-transform.xht	?	
-html4/mix-blend-mode-parent-with-border-radius.htm	?	
-xhtml1/mix-blend-mode-parent-with-border-radius.xht	?	
-html4/mix-blend-mode-parent-with-text.htm	?	
-xhtml1/mix-blend-mode-parent-with-text.xht	?	
-html4/mix-blend-mode-parsing.htm	?	
-xhtml1/mix-blend-mode-parsing.xht	?	
-html4/mix-blend-mode-script.htm	?	
-xhtml1/mix-blend-mode-script.xht	?	
-html4/mix-blend-mode-sibling-with-3d-transform-and-transition.htm	?	
-xhtml1/mix-blend-mode-sibling-with-3d-transform-and-transition.xht	?	
-html4/mix-blend-mode-sibling-with-3d-transform.htm	?	
-xhtml1/mix-blend-mode-sibling-with-3d-transform.xht	?	
-html4/mix-blend-mode-simple.htm	?	
-xhtml1/mix-blend-mode-simple.xht	?	
-html4/mix-blend-mode-stacking-context-001.htm	?	
-xhtml1/mix-blend-mode-stacking-context-001.xht	?	
-html4/mix-blend-mode-stacking-context-creates-isolation.htm	?	
-xhtml1/mix-blend-mode-stacking-context-creates-isolation.xht	?	
-html4/mix-blend-mode-svg-rectangle.htm	?	
-xhtml1/mix-blend-mode-svg-rectangle.xht	?	
-html4/mix-blend-mode-svg.htm	?	
-xhtml1/mix-blend-mode-svg.xht	?	
-html4/mix-blend-mode-transition.htm	?	
-xhtml1/mix-blend-mode-transition.xht	?	
-html4/mix-blend-mode-video-sibling.htm	?	
-xhtml1/mix-blend-mode-video-sibling.xht	?	
-html4/mix-blend-mode-video.htm	?	
-xhtml1/mix-blend-mode-video.xht	?	
-html4/mix-blend-mode-with-transform-and-preserve-3d.htm	?	
-xhtml1/mix-blend-mode-with-transform-and-preserve-3d.xht	?	
-html4/text-with-svg-background.htm	?	
-xhtml1/text-with-svg-background.xht	?	
-html4/text_with_svg_background.htm	?	
-xhtml1/text_with_svg_background.xht	?	
+testname	revision	result	comment
+html/blend-isolation.htm	f36f229f6681087b64bcc1163988bf0ce121ee82	?
+xhtml1/blend-isolation.xht	f36f229f6681087b64bcc1163988bf0ce121ee82	?
+html/blending_in_a_group_with_filter.htm	c38878e1c33585325870d56650a622470ec16eb8	?
+xhtml1/blending_in_a_group_with_filter.xht	c38878e1c33585325870d56650a622470ec16eb8	?
+html/blending_in_a_group_with_opacity.htm	19ea11d72459630c0655a466c6c840e32087b626	?
+xhtml1/blending_in_a_group_with_opacity.xht	19ea11d72459630c0655a466c6c840e32087b626	?
+html/line-with-svg-background.htm	29d19c66e2d9a863866bb93010a482900db0631f	?
+xhtml1/line-with-svg-background.xht	29d19c66e2d9a863866bb93010a482900db0631f	?
+html/text-with-svg-background.htm	ba9c7ae99506609324d8fd3f671459e52e00fcbd	?
+xhtml1/text-with-svg-background.xht	ba9c7ae99506609324d8fd3f671459e52e00fcbd	?
+html/text_with_svg_background.htm	2b9ae3afd4e0927b11adcab29b13f9ab1d7e4098	?
+xhtml1/text_with_svg_background.xht	2b9ae3afd4e0927b11adcab29b13f9ab1d7e4098	?

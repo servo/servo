@@ -1,0 +1,94 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+  <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+
+  <title>Embedded HTML document for abs-pos-non-replaced-icb-vlr-019 in 'writing-mode: vertical-lr'</title>
+
+  <!--
+  position absolute and 'vertical-rl' - 'left' is 'auto', 'width' and 'right' are not 'auto' with 'direction: ltr' in initial containing block
+  -->
+
+  <style type="text/css">
+  html
+    {
+      direction: ltr;
+    }
+
+  div
+    {
+      background-color: green;
+      border-left: green solid 35px;
+      border-right: green solid 15px;
+      height: 100px;
+      left: auto;
+      position: absolute;
+      right: 80%;
+      top: 0px;
+      width: 50px;
+      writing-mode: vertical-lr;
+    }
+
+  /*
+  "
+  4. [If] 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'
+  "
+  10.3.7 Absolutely positioned, non-replaced elements
+  http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
+
+  So:
+
+           auto : left
+        +
+            0px : margin-left
+        +
+           35px : border-left-width
+        +
+            0px : padding-left
+        +
+           50px : width
+        +
+            0px : padding-right
+        +
+           15px : border-right-width
+        +
+            0px : margin-right
+        +
+            80% : right
+        ====================
+          500px : width of containing block (width of Initial Containing Block)
+
+  becomes
+
+        (solve) : left
+        +
+            0px : margin-left
+        +
+           35px : border-left-width
+        +
+            0px : padding-left
+        +
+           50px : width
+        +
+            0px : padding-right
+        +
+           15px : border-right-width
+        +
+            0px : margin-right
+        +
+          400px : right (80% of 500px == 400px)
+        ====================
+          500px : width of containing block (width of Initial Containing Block)
+
+   so used left offset value must be 0px .
+
+  */
+  </style>
+ </head>
+
+ <body>
+
+  <div></div>
+
+ 
+</body></html>

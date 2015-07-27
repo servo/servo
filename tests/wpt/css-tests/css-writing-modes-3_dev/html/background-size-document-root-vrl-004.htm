@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html><head>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Writing Modes Test: 'background-size: 100%' filling padding-box of document root element</title>
+
+  <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii">
+  <link href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" rel="reviewer" title="Gérard Talbot"> <!-- 2015-05-01 -->
+  <link href="http://www.w3.org/TR/css-writing-modes-3/#physical-only" rel="help" title="7.6 Purely Physical Mappings">
+  <link href="reference/background-size-document-root-vrl-002-ref.htm" rel="match">
+
+  <meta content="image" name="flags">
+  <meta content="Test checks that 'background-size: 100% 100%' applied for the html root element will make the background-image fill the padding-box of the document box. Since 'background-color' is 'transparent' and since 'background-repeat' is set to 'no-repeat', then only the padding-box of the document root box should be painted green and such padding-box should start at top-right corner of canvas because 'writing-mode' is set to 'vertical-rl'." name="assert">
+
+  <style>
+  img
+    {
+      margin-left: 100px;
+    }
+
+  iframe
+    {
+      border: transparent 0px none;
+      height: 100px;
+      vertical-align: top;
+      width: 200px;
+    }
+
+  img#reference-overlapped-red
+    {
+      bottom: 100px;
+      position: relative;
+      z-index: -1;
+    }
+  </style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div><iframe src="support/embedded-doc-for-background-size-root-vrl-004.html">This test requires an user agent with capability to embed an HTML document thanks to the HTML &amp;lt;iframe&amp;gt; element.</iframe></div>
+
+  <div><img src="support/100x100-red.png" alt="Image download support must be enabled" id="reference-overlapped-red"></div>
+
+ 
+
+</body></html>

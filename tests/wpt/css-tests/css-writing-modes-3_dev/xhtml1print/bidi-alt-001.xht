@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: unicode-bidi: bidi-override in alt text</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test bidi-alt-001"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+    <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#unicode-bidi"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <meta name="assert" content="If alt text is not treated as replaced content, then unicode-bidi applies to image alt text."/>
+    <style type="text/css"><![CDATA[
+      .rtol {
+        direction: rtl;
+        unicode-bidi: bidi-override;
+      }
+      img {
+        color:blue;
+        width: 0; /* If alt text is treated as replaced content, then this makes it invisible. */
+                  /* (The rendering of replaced content is out-of-scope for CSS.) */
+        display: inline;
+      }
+    ]]></style>
+  </head>
+  
+  <body>
+    
+    <p>The three lines below should be <strong>identical</strong>.</p>
+    
+    <p>Three lines of <img src="" alt="readable" width="0"/> text</p>
+    <p>Three lines of <span class="rtol"><img src="" alt="elbadaer" width="0"/></span> text</p>
+    <p>Three lines of <img src="" alt="elbadaer" class="rtol" width="0"/> text</p>
+
+  </body>
+</html>

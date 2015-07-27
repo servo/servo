@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Elaborate description of Stacking Contexts (19 tests)</h2>
+  <h2>Elaborate description of Stacking Contexts (20 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -43,7 +43,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#sE.2">+</a>
         <a href="http://www.w3.org/TR/CSS21/zindex.html#painting-order">E.2 Painting order</a></th></tr>
-      <!-- 19 tests -->
+      <!-- 20 tests -->
       <tr id="inline-block-zorder-001-E.2" class="primary">
         <td><strong>
             <a href="inline-block-zorder-001.htm">inline-block-zorder-001</a></strong></td>
@@ -122,6 +122,17 @@
         <td><a href="reference/inline-table-zorder-004-ref.htm">=</a> </td>
         <td></td>
         <td>Test for z-ordering of inline-table
+        </td>
+      </tr>
+      <tr id="painting-order-underline-001-E.2" class="primary ahem">
+        <td><strong>
+            <a href="painting-order-underline-001.htm">painting-order-underline-001</a></strong></td>
+        <td><a href="reference/painting-order-underline-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'underline' decoration painting order and descender
+          <ul class="assert">
+            <li>This test checks that underlining painting is done before glyphs are painted; therefore, if the underlining crosses the descenders (glyphs like 'g', 'j', 'p', 'q', 'y' have a descender), then the descender part must overlap the underline.</li>
+          </ul>
         </td>
       </tr>
       <tr id="z-index-abspos-001-E.2" class="">

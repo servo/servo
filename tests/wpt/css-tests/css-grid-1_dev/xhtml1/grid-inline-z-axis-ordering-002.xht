@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Grid Layout Test: 'z-index' property controls the z-axis order of grid items within an inline grid</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#z-order" title="4.4. Z-axis Ordering: the z-index property" />
+        <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
+        <meta name="flags" content="ahem" />
+        <style type="text/css"><![CDATA[
+            #inline-grid {
+                display: inline-grid;
+                font: 100px/1 Ahem;
+            }
+
+            #test-item-overlapping-green {
+                color: green;
+            }
+
+            #reference-item-overlapped-red {
+                color: red;
+                z-index: -1;
+            }
+
+            .first-row-first-column {
+                grid-area: 1 / 1;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+        <div id="inline-grid">
+            <div id="test-item-overlapping-green" class="first-row-first-column">G</div>
+            <div id="reference-item-overlapped-red" class="first-row-first-column">R</div>
+        </div>
+    </body>
+</html>

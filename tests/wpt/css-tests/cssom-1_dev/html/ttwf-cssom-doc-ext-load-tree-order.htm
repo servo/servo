@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html><head>
+    <title>CSSOM -  Extensions to the Document Interface: Stylesheet header load order</title>
+    <link href="mailto:jesse@codeforamerica.org" rel="author" title="Jesse Bounds">
+    <link href="http://www.w3.org/TR/cssom/#extensions-to-the-document-interface" rel="help">
+    <link href="http://www.w3.org/TR/cssom/#the-stylesheetlist-sequence" rel="help">
+    <link href="http://www.w3.org/TR/cssom/#style-sheet-collections" rel="help">
+    <style type="text/css" title="aaa">
+      H1 {border-width: 1; border: solid; text-align: center}
+    </style>
+    <link href="zebra.css" type="text/css" rel="stylesheet" title="zebra">
+    <link href="kilo.css" type="text/css" rel="stylesheet" title="kilo">
+    <link href="alpha.css" type="text/css" rel="stylesheet" title="alpha">
+    <link href="/directory01/zebra.css" type="text/css" rel="stylesheet" title="zebra">
+    <meta content="dom" name="flags">
+    <meta content="Document's style sheets created from HTTP Link headers are first in list and loaded in header order" name="assert">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="log"></div>
+    <script>
+
+      // Get the Document's styleSheets attribute
+      var styleSheets = document.styleSheets;
+
+      // Verify that the styleSheets list length is 5
+      test(function() {
+        assert_equals(styleSheets.length, 5, "styleSheets.length is incorrect:");
+      }, "styleSheets.length must be 5");
+
+      // Verify that titles of loaded sheets are as expected (in the correct order)
+      test(function() {
+        assert_equals(styleSheets.item(0).title, "aaa", "title for item 1 is incorrect:");
+      }, "styleSheets item 0 title must be aaa");
+      // Verify that titles of loaded sheets are as expected (in the correct order)
+      test(function() {
+        assert_equals(styleSheets.item(1).title, "zebra", "title for item 1 is incorrect:");
+      }, "styleSheets item 1 title must be zebra");
+      // Verify that titles of loaded sheets are as expected (in the correct order)
+      test(function() {
+        assert_equals(styleSheets.item(2).title, "kilo", "title for item 1 is incorrect:");
+      }, "styleSheets item 0 title must be kilo");
+      // Verify that titles of loaded sheets are as expected (in the correct order)
+      test(function() {
+        assert_equals(styleSheets.item(3).title, "alpha", "title for item 1 is incorrect:");
+      }, "styleSheets item 0 title must be alpha");
+      // Verify that titles of loaded sheets are as expected (in the correct order)
+      test(function() {
+        assert_equals(styleSheets.item(4).title, "zebra", "title for item 1 is incorrect:");
+      }, "styleSheets item 0 title must be zebra");
+
+    </script>
+
+
+</body></html>

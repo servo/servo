@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Grid Layout Test: '::first-letter' works on grid items within an inline grid</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Grid Layout Module Level 1 CR Test Suite"; }
+            @top-right { content: "Test grid-inline-first-letter-003"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-containers" title="3.1 Establishing Grid Containers" />
+        <link rel="help" href="http://www.w3.org/TR/css3-selectors/#first-letter" title="7.2. The ::first-letter pseudo-element" />
+        <link rel="match" href="reference/grid-first-letter-green-margin-no-collapse-ref.xht" />
+        <meta name="assert" content="This test checks that '::first-letter' pseudo-element works as expected if it is applied directly to a grid item within an inline grid." />
+        <style type="text/css"><![CDATA[
+            .inline-grid {
+                display: inline-grid;
+            }
+
+            .item::first-letter {
+                color: green;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <div class="inline-grid">
+            <div class="item">
+                <p>
+                    The <strong>first letter</strong> of this paragraph, and only that one, should be <strong>green</strong>.
+                    In addition, body and paragraph margins should <strong>not collapse</strong>.
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

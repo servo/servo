@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Text (610 tests)</h2>
+  <h2>Text (608 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -9216,13 +9216,16 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s16.6.1">+</a>
         <a href="http://www.w3.org/TR/CSS21/text.html#white-space-model">16.6.1 The 'white-space' processing model</a></th></tr>
-      <!-- 95 tests -->
+      <!-- 93 tests -->
       <tr id="bidi-001-16.6.1" class="">
         <td>
             <a href="bidi-001.xht">bidi-001</a></td>
         <td><a href="reference/bidi-001-ref.xht">=</a> </td>
         <td></td>
-        <td>The bidi algorithm and inlines in CSS
+        <td>RLO/PDF bidi reordering across closing inline element boundary
+          <ul class="assert">
+            <li>Tests that RLO + closing inline element boundary + PDF reorders text, splitting inline and rendering borders and padding appropriately.</li>
+          </ul>
         </td>
       </tr>
       <tr id="bidi-003-16.6.1" class="">
@@ -9230,25 +9233,9 @@
             <a href="bidi-003.xht">bidi-003</a></td>
         <td><a href="reference/bidi-003-ref.xht">=</a> </td>
         <td></td>
-        <td>The bidi algorithm and inlines in CSS
-        </td>
-      </tr>
-      <tr id="bidi-004-16.6.1" class="may">
-        <td>
-            <a href="bidi-004.xht">bidi-004</a></td>
-        <td><a href="reference/bidi-004-ref.xht">=</a> </td>
-        <td><abbr class="may" title="Behavior tested is preferred but optional">Optional</abbr></td>
-        <td>The bidi algorithm and inlines in CSS
-        </td>
-      </tr>
-      <tr id="bidi-004a-16.6.1" class="">
-        <td>
-            <a href="bidi-004a.xht">bidi-004a</a></td>
-        <td><a href="reference/bidi-004a-ref.xht">=</a> </td>
-        <td></td>
-        <td>Bidi Codes, White space, and Tree structure
+        <td>RLO/PDF bidi reordering across closing inline element boundary + opening inline boundary
           <ul class="assert">
-            <li>The final order of characters in a block container is the same as if markup had been stripped, consecutive space collapsed in logical order, and the resulting character sequence, including any bidi codes, had been passed to an implementation of the Unicode bidirectional algorithm for plain text that produced the same line-breaks as the styled text.</li>
+            <li>Tests that RLO + closing inline element boundary + opening inline element boundary + PDF reorders text, splitting inlines and rendering their borders and padding appropriately.</li>
           </ul>
         </td>
       </tr>

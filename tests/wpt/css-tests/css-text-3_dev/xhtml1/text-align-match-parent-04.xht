@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html class="reftest-wait" xmlns="http://www.w3.org/1999/xhtml"><head>
+    <meta charset="utf-8" />
+    <title>CSS Text: text-align: match-parent</title>
+    <link href="mailto:smontagu@mozilla.com" rel="author" title="Simon Montagu" />
+    <link href="http://www.w3.org/TR/css-text-3/#text-align-property" rel="help" />
+    <meta content="dom" name="flags" />
+    <meta content="Text checks that an element with
+      text-align: match-parent still aligns correctly if the parent's
+      width is changed" name="assert" />
+     <link href="reference/text-align-match-parent-ref.xht" rel="match" />
+    <style type="text/css">
+div.start  { text-align: start; }
+div.end    { text-align: end; }
+div.left   { text-align: left; }
+div.right  { text-align: right; }
+div &gt; div  { text-align: match-parent; }
+    </style>
+    <script type="text/javascript">
+function changeParentWidth()
+{
+  for (parent = 0; parent &lt; 16; ++parent) {
+     var parentDiv = document.getElementById("d" + parent);
+     parentDiv.style.width = "";
+   }
+
+  document.documentElement.removeAttribute("class");
+}
+   </script>
+  </head>
+  <body onload="changeParentWidth()">
+   <div>Test passes if each line that says "Left" is aligned left and
+   each line that says "Right" is aligned right</div>
+   <div style="width: 50%;" class="start" dir="ltr" id="d0"><div dir="ltr">Left</div></div>
+   <div style="width: 50%;" class="start" dir="ltr" id="d1"><div dir="rtl">Left</div></div>
+   <div style="width: 50%;" class="start" dir="rtl" id="d2"><div dir="ltr">Right</div></div>
+   <div style="width: 50%;" class="start" dir="rtl" id="d3"><div dir="rtl">Right</div></div>
+   <div style="width: 50%;" class="end" dir="ltr" id="d4"><div dir="ltr">Right</div></div>
+   <div style="width: 50%;" class="end" dir="ltr" id="d5"><div dir="rtl">Right</div></div>
+   <div style="width: 50%;" class="end" dir="rtl" id="d6"><div dir="ltr">Left</div></div>
+   <div style="width: 50%;" class="end" dir="rtl" id="d7"><div dir="rtl">Left</div></div>
+   <div style="width: 50%;" class="left" dir="ltr" id="d8"><div dir="ltr">Left</div></div>
+   <div style="width: 50%;" class="left" dir="ltr" id="d9"><div dir="rtl">Left</div></div>
+   <div style="width: 50%;" class="left" dir="rtl" id="d10"><div dir="ltr">Left</div></div>
+   <div style="width: 50%;" class="left" dir="rtl" id="d11"><div dir="rtl">Left</div></div>
+   <div style="width: 50%;" class="right" dir="ltr" id="d12"><div dir="ltr">Right</div></div>
+   <div style="width: 50%;" class="right" dir="ltr" id="d13"><div dir="rtl">Right</div></div>
+   <div style="width: 50%;" class="right" dir="rtl" id="d14"><div dir="ltr">Right</div></div>
+   <div style="width: 50%;" class="right" dir="rtl" id="d15"><div dir="rtl">Right</div></div>
+ 
+
+</body></html>

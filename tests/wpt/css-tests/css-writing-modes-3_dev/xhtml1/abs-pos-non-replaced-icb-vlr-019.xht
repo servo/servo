@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <title>CSS Writing Modes Test: position absolute and 'vertical-lr' - 'left' is 'auto', 'width' and 'right' are not 'auto' with 'direction: ltr' in initial containing block</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="This test checks that when the initial containing block's writing-mode is 'horizontal-tb' and its 'direction' is 'ltr', then an absolutely positioned box (with 'left' is 'auto', 'width' and 'right' are not 'auto') whose containing block is the initial containing block must solve for 'left'. Whether such absolutely positioned box's 'writing-mode' is vertical or not is irrelevant." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  object#overlapping-green
+    {
+      height: 116px;
+      width: 500px; /* 500px divided by 5 == 100px (width of green square) */
+      vertical-align: top;
+    }
+
+  div#red-overlapped-reference
+    {
+      background-color: red;
+      bottom: 116px;
+      height: 100px;
+      left: auto;
+      position: relative;
+      width: 100px;
+      z-index: -1;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div><object data="support/embedded-doc-abs-pos-non-replaced-icb-vlr-019.html" type="text/html" id="overlapping-green">This test requires a browser with capability to embed an HTML document thanks to the HTML &lt;object&gt; element.</object></div>
+
+  <div id="red-overlapped-reference"></div>
+
+ </body>
+</html>

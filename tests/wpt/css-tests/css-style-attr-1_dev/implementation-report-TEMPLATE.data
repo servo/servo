@@ -2,35 +2,35 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-style-attr-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/style-attr-braces-001.htm	?	
-xhtml1/style-attr-braces-001.xht	?	
-html4/style-attr-braces-002-quirks.htm	?	
-xhtml1/style-attr-braces-002-quirks.xht	?	
-html4/style-attr-braces-002.htm	?	
-xhtml1/style-attr-braces-002.xht	?	
-html4/style-attr-braces-003.htm	?	
-xhtml1/style-attr-braces-003.xht	?	
-html4/style-attr-cascade-001.htm	?	
-xhtml1/style-attr-cascade-001.xht	?	
-html4/style-attr-cascade-002.htm	?	
-xhtml1/style-attr-cascade-002.xht	?	
-html4/style-attr-cascade-003.htm	?	
-xhtml1/style-attr-cascade-003.xht	?	
-html4/style-attr-cascade-004.htm	?	
-xhtml1/style-attr-cascade-004.xht	?	
-html4/style-attr-cascade-005.htm	?	
-xhtml1/style-attr-cascade-005.xht	?	
-html4/style-attr-cascade-006.htm	?	
-xhtml1/style-attr-cascade-006.xht	?	
-html4/style-attr-cascade-007.htm	?	
-xhtml1/style-attr-cascade-007.xht	?	
-html4/style-attr-specificity-001.htm	?	
-xhtml1/style-attr-specificity-001.xht	?	
-html4/style-attr-specificity-002.htm	?	
-xhtml1/style-attr-specificity-002.xht	?	
-html4/style-attr-urls-001.htm	?	
-xhtml1/style-attr-urls-001.xht	?	
-html4/style-attr-urls-002.htm	?	
-xhtml1/style-attr-urls-002.xht	?	
-xhtml1/style-attr-urls-003.xht	?	
+testname	revision	result	comment
+html4/style-attr-braces-001.htm	28814a265530b5be85e95fffa0d3f047517a3471	?
+xhtml1/style-attr-braces-001.xht	28814a265530b5be85e95fffa0d3f047517a3471	?
+html4/style-attr-braces-002-quirks.htm	c33a182b067386e9f9560c7c8f2e24aae3b6b389	?
+xhtml1/style-attr-braces-002-quirks.xht	c33a182b067386e9f9560c7c8f2e24aae3b6b389	?
+html4/style-attr-braces-002.htm	65c6097d193647a42de9d95cd768b59eca30c725	?
+xhtml1/style-attr-braces-002.xht	65c6097d193647a42de9d95cd768b59eca30c725	?
+html4/style-attr-braces-003.htm	353e1e5388745f3c6da6e89b83d3be82d5211a3e	?
+xhtml1/style-attr-braces-003.xht	353e1e5388745f3c6da6e89b83d3be82d5211a3e	?
+html4/style-attr-cascade-001.htm	9ea5fe841cee012c60f48a36f301ef4554767c4b	?
+xhtml1/style-attr-cascade-001.xht	9ea5fe841cee012c60f48a36f301ef4554767c4b	?
+html4/style-attr-cascade-002.htm	acbe2d01ac56c44e2fc6c7e7a8a4507ec8984f9a	?
+xhtml1/style-attr-cascade-002.xht	acbe2d01ac56c44e2fc6c7e7a8a4507ec8984f9a	?
+html4/style-attr-cascade-003.htm	17ce428ad2e965f4f3fc07558f21c2f3ff71d9ae	?
+xhtml1/style-attr-cascade-003.xht	17ce428ad2e965f4f3fc07558f21c2f3ff71d9ae	?
+html4/style-attr-cascade-004.htm	73eb0f1e393638bcd4b65f97d840c6a30a722dc4	?
+xhtml1/style-attr-cascade-004.xht	73eb0f1e393638bcd4b65f97d840c6a30a722dc4	?
+html4/style-attr-cascade-005.htm	29da953d3c353f6f18e4dbdae63638d354c73df2	?
+xhtml1/style-attr-cascade-005.xht	29da953d3c353f6f18e4dbdae63638d354c73df2	?
+html4/style-attr-cascade-006.htm	5f31a718bbe6eedd436062d4e68e5878b74aa581	?
+xhtml1/style-attr-cascade-006.xht	5f31a718bbe6eedd436062d4e68e5878b74aa581	?
+html4/style-attr-cascade-007.htm	d59eaebdf15f153ab8c1016e07344df3bed2dbd2	?
+xhtml1/style-attr-cascade-007.xht	d59eaebdf15f153ab8c1016e07344df3bed2dbd2	?
+html4/style-attr-specificity-001.htm	ff304694f5444dd8bbe043ceb52447cea2ec2cee	?
+xhtml1/style-attr-specificity-001.xht	ff304694f5444dd8bbe043ceb52447cea2ec2cee	?
+html4/style-attr-specificity-002.htm	29e69440bdd31c3db98008ba9db14c305db7c42b	?
+xhtml1/style-attr-specificity-002.xht	29e69440bdd31c3db98008ba9db14c305db7c42b	?
+html4/style-attr-urls-001.htm	08b6f8918a0a2bd3605532108d0de05b13f05ec2	?
+xhtml1/style-attr-urls-001.xht	08b6f8918a0a2bd3605532108d0de05b13f05ec2	?
+html4/style-attr-urls-002.htm	be3596bd5cf3f8ac7772bcb6cdf8b45da69f6397	?
+xhtml1/style-attr-urls-002.xht	be3596bd5cf3f8ac7772bcb6cdf8b45da69f6397	?
+xhtml1/style-attr-urls-003.xht	47877f5a63571007064b3f6abc86cbb3e1d98311	?

@@ -2,352 +2,354 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-variables-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/css-vars-custom-property-case-sensitive-001.htm	?	
-xhtml1/css-vars-custom-property-case-sensitive-001.xht	?	
-html4/css-vars-custom-property-inheritance.htm	?	
-xhtml1/css-vars-custom-property-inheritance.xht	?	
-html4/test_variable_legal_values.htm	?	
-xhtml1/test_variable_legal_values.xht	?	
-html4/variable-declaration-01.htm	?	
-xhtml1/variable-declaration-01.xht	?	
-html4/variable-declaration-02.htm	?	
-xhtml1/variable-declaration-02.xht	?	
-html4/variable-declaration-03.htm	?	
-xhtml1/variable-declaration-03.xht	?	
-html4/variable-declaration-04.htm	?	
-xhtml1/variable-declaration-04.xht	?	
-html4/variable-declaration-05.htm	?	
-xhtml1/variable-declaration-05.xht	?	
-html4/variable-declaration-06.htm	?	
-xhtml1/variable-declaration-06.xht	?	
-html4/variable-declaration-07.htm	?	
-xhtml1/variable-declaration-07.xht	?	
-html4/variable-declaration-08.htm	?	
-xhtml1/variable-declaration-08.xht	?	
-html4/variable-declaration-09.htm	?	
-xhtml1/variable-declaration-09.xht	?	
-html4/variable-declaration-10.htm	?	
-xhtml1/variable-declaration-10.xht	?	
-html4/variable-declaration-11.htm	?	
-xhtml1/variable-declaration-11.xht	?	
-html4/variable-declaration-12.htm	?	
-xhtml1/variable-declaration-12.xht	?	
-html4/variable-declaration-13.htm	?	
-xhtml1/variable-declaration-13.xht	?	
-html4/variable-declaration-14.htm	?	
-xhtml1/variable-declaration-14.xht	?	
-html4/variable-declaration-15.htm	?	
-xhtml1/variable-declaration-15.xht	?	
-html4/variable-declaration-16.htm	?	
-xhtml1/variable-declaration-16.xht	?	
-html4/variable-declaration-17.htm	?	
-xhtml1/variable-declaration-17.xht	?	
-html4/variable-declaration-18.htm	?	
-xhtml1/variable-declaration-18.xht	?	
-html4/variable-declaration-19.htm	?	
-xhtml1/variable-declaration-19.xht	?	
-html4/variable-declaration-20.htm	?	
-xhtml1/variable-declaration-20.xht	?	
-html4/variable-declaration-21.htm	?	
-xhtml1/variable-declaration-21.xht	?	
-html4/variable-declaration-22.htm	?	
-xhtml1/variable-declaration-22.xht	?	
-html4/variable-declaration-23.htm	?	
-xhtml1/variable-declaration-23.xht	?	
-html4/variable-declaration-24.htm	?	
-xhtml1/variable-declaration-24.xht	?	
-html4/variable-declaration-25.htm	?	
-xhtml1/variable-declaration-25.xht	?	
-html4/variable-declaration-26.htm	?	
-xhtml1/variable-declaration-26.xht	?	
-html4/variable-declaration-28.htm	?	
-xhtml1/variable-declaration-28.xht	?	
-html4/variable-declaration-29.htm	?	
-xhtml1/variable-declaration-29.xht	?	
-html4/variable-declaration-30.htm	?	
-xhtml1/variable-declaration-30.xht	?	
-html4/variable-declaration-31.htm	?	
-xhtml1/variable-declaration-31.xht	?	
-html4/variable-declaration-32.htm	?	
-xhtml1/variable-declaration-32.xht	?	
-html4/variable-declaration-33.htm	?	
-xhtml1/variable-declaration-33.xht	?	
-html4/variable-declaration-34.htm	?	
-xhtml1/variable-declaration-34.xht	?	
-html4/variable-declaration-35.htm	?	
-xhtml1/variable-declaration-35.xht	?	
-html4/variable-declaration-36.htm	?	
-xhtml1/variable-declaration-36.xht	?	
-html4/variable-declaration-37.htm	?	
-xhtml1/variable-declaration-37.xht	?	
-html4/variable-declaration-38.htm	?	
-xhtml1/variable-declaration-38.xht	?	
-html4/variable-declaration-39.htm	?	
-xhtml1/variable-declaration-39.xht	?	
-html4/variable-declaration-40.htm	?	
-xhtml1/variable-declaration-40.xht	?	
-html4/variable-declaration-41.htm	?	
-xhtml1/variable-declaration-41.xht	?	
-html4/variable-declaration-42.htm	?	
-xhtml1/variable-declaration-42.xht	?	
-html4/variable-declaration-43.htm	?	
-xhtml1/variable-declaration-43.xht	?	
-html4/variable-declaration-44.htm	?	
-xhtml1/variable-declaration-44.xht	?	
-html4/variable-declaration-45.htm	?	
-xhtml1/variable-declaration-45.xht	?	
-html4/variable-declaration-46.htm	?	
-xhtml1/variable-declaration-46.xht	?	
-html4/variable-declaration-47.htm	?	
-xhtml1/variable-declaration-47.xht	?	
-html4/variable-declaration-48.htm	?	
-xhtml1/variable-declaration-48.xht	?	
-html4/variable-declaration-49.htm	?	
-xhtml1/variable-declaration-49.xht	?	
-html4/variable-declaration-50.htm	?	
-xhtml1/variable-declaration-50.xht	?	
-html4/variable-declaration-51.htm	?	
-xhtml1/variable-declaration-51.xht	?	
-html4/variable-declaration-52.htm	?	
-xhtml1/variable-declaration-52.xht	?	
-html4/variable-declaration-53.htm	?	
-xhtml1/variable-declaration-53.xht	?	
-html4/variable-declaration-54.htm	?	
-xhtml1/variable-declaration-54.xht	?	
-html4/variable-declaration-55.htm	?	
-xhtml1/variable-declaration-55.xht	?	
-html4/variable-declaration-56.htm	?	
-xhtml1/variable-declaration-56.xht	?	
-html4/variable-declaration-57.htm	?	
-xhtml1/variable-declaration-57.xht	?	
-html4/variable-declaration-58.htm	?	
-xhtml1/variable-declaration-58.xht	?	
-html4/variable-declaration-59.htm	?	
-xhtml1/variable-declaration-59.xht	?	
-html4/variable-declaration-60.htm	?	
-xhtml1/variable-declaration-60.xht	?	
-html4/variable-external-declaration-01.htm	?	
-xhtml1/variable-external-declaration-01.xht	?	
-html4/variable-external-font-face-01.htm	?	
-xhtml1/variable-external-font-face-01.xht	?	
-html4/variable-external-reference-01.htm	?	
-xhtml1/variable-external-reference-01.xht	?	
-html4/variable-external-supports-01.htm	?	
-xhtml1/variable-external-supports-01.xht	?	
-html4/variable-font-face-01.htm	?	
-xhtml1/variable-font-face-01.xht	?	
-html4/variable-font-face-02.htm	?	
-xhtml1/variable-font-face-02.xht	?	
-html4/variable-reference-01.htm	?	
-xhtml1/variable-reference-01.xht	?	
-html4/variable-reference-02.htm	?	
-xhtml1/variable-reference-02.xht	?	
-html4/variable-reference-03.htm	?	
-xhtml1/variable-reference-03.xht	?	
-html4/variable-reference-04.htm	?	
-xhtml1/variable-reference-04.xht	?	
-html4/variable-reference-05.htm	?	
-xhtml1/variable-reference-05.xht	?	
-html4/variable-reference-06.htm	?	
-xhtml1/variable-reference-06.xht	?	
-html4/variable-reference-07.htm	?	
-xhtml1/variable-reference-07.xht	?	
-html4/variable-reference-08.htm	?	
-xhtml1/variable-reference-08.xht	?	
-html4/variable-reference-09.htm	?	
-xhtml1/variable-reference-09.xht	?	
-html4/variable-reference-10.htm	?	
-xhtml1/variable-reference-10.xht	?	
-html4/variable-reference-11.htm	?	
-xhtml1/variable-reference-11.xht	?	
-html4/variable-reference-12.htm	?	
-xhtml1/variable-reference-12.xht	?	
-html4/variable-reference-13.htm	?	
-xhtml1/variable-reference-13.xht	?	
-html4/variable-reference-14.htm	?	
-xhtml1/variable-reference-14.xht	?	
-html4/variable-reference-15.htm	?	
-xhtml1/variable-reference-15.xht	?	
-html4/variable-reference-16.htm	?	
-xhtml1/variable-reference-16.xht	?	
-html4/variable-reference-17.htm	?	
-xhtml1/variable-reference-17.xht	?	
-html4/variable-reference-18.htm	?	
-xhtml1/variable-reference-18.xht	?	
-html4/variable-reference-19.htm	?	
-xhtml1/variable-reference-19.xht	?	
-html4/variable-reference-20.htm	?	
-xhtml1/variable-reference-20.xht	?	
-html4/variable-reference-21.htm	?	
-xhtml1/variable-reference-21.xht	?	
-html4/variable-reference-22.htm	?	
-xhtml1/variable-reference-22.xht	?	
-html4/variable-reference-23.htm	?	
-xhtml1/variable-reference-23.xht	?	
-html4/variable-reference-24.htm	?	
-xhtml1/variable-reference-24.xht	?	
-html4/variable-reference-25.htm	?	
-xhtml1/variable-reference-25.xht	?	
-html4/variable-reference-26.htm	?	
-xhtml1/variable-reference-26.xht	?	
-html4/variable-reference-27.htm	?	
-xhtml1/variable-reference-27.xht	?	
-html4/variable-reference-28.htm	?	
-xhtml1/variable-reference-28.xht	?	
-html4/variable-reference-29.htm	?	
-xhtml1/variable-reference-29.xht	?	
-html4/variable-reference-30.htm	?	
-xhtml1/variable-reference-30.xht	?	
-html4/variable-reference-31.htm	?	
-xhtml1/variable-reference-31.xht	?	
-html4/variable-reference-32.htm	?	
-xhtml1/variable-reference-32.xht	?	
-html4/variable-reference-33.htm	?	
-xhtml1/variable-reference-33.xht	?	
-html4/variable-reference-34.htm	?	
-xhtml1/variable-reference-34.xht	?	
-html4/variable-reference-35.htm	?	
-xhtml1/variable-reference-35.xht	?	
-html4/variable-reference-36.htm	?	
-xhtml1/variable-reference-36.xht	?	
-html4/variable-reference-37.htm	?	
-xhtml1/variable-reference-37.xht	?	
-html4/variable-reference-38.htm	?	
-xhtml1/variable-reference-38.xht	?	
-html4/variable-reference-39.htm	?	
-xhtml1/variable-reference-39.xht	?	
-html4/variable-supports-01.htm	?	
-xhtml1/variable-supports-01.xht	?	
-html4/variable-supports-02.htm	?	
-xhtml1/variable-supports-02.xht	?	
-html4/variable-supports-03.htm	?	
-xhtml1/variable-supports-03.xht	?	
-html4/variable-supports-04.htm	?	
-xhtml1/variable-supports-04.xht	?	
-html4/variable-supports-05.htm	?	
-xhtml1/variable-supports-05.xht	?	
-html4/variable-supports-06.htm	?	
-xhtml1/variable-supports-06.xht	?	
-html4/variable-supports-07.htm	?	
-xhtml1/variable-supports-07.xht	?	
-html4/variable-supports-08.htm	?	
-xhtml1/variable-supports-08.xht	?	
-html4/variable-supports-09.htm	?	
-xhtml1/variable-supports-09.xht	?	
-html4/variable-supports-10.htm	?	
-xhtml1/variable-supports-10.xht	?	
-html4/variable-supports-11.htm	?	
-xhtml1/variable-supports-11.xht	?	
-html4/variable-supports-12.htm	?	
-xhtml1/variable-supports-12.xht	?	
-html4/variable-supports-13.htm	?	
-xhtml1/variable-supports-13.xht	?	
-html4/variable-supports-14.htm	?	
-xhtml1/variable-supports-14.xht	?	
-html4/variable-supports-15.htm	?	
-xhtml1/variable-supports-15.xht	?	
-html4/variable-supports-16.htm	?	
-xhtml1/variable-supports-16.xht	?	
-html4/variable-supports-17.htm	?	
-xhtml1/variable-supports-17.xht	?	
-html4/variable-supports-18.htm	?	
-xhtml1/variable-supports-18.xht	?	
-html4/variable-supports-19.htm	?	
-xhtml1/variable-supports-19.xht	?	
-html4/variable-supports-20.htm	?	
-xhtml1/variable-supports-20.xht	?	
-html4/variable-supports-21.htm	?	
-xhtml1/variable-supports-21.xht	?	
-html4/variable-supports-22.htm	?	
-xhtml1/variable-supports-22.xht	?	
-html4/variable-supports-23.htm	?	
-xhtml1/variable-supports-23.xht	?	
-html4/variable-supports-24.htm	?	
-xhtml1/variable-supports-24.xht	?	
-html4/variable-supports-25.htm	?	
-xhtml1/variable-supports-25.xht	?	
-html4/variable-supports-26.htm	?	
-xhtml1/variable-supports-26.xht	?	
-html4/variable-supports-27.htm	?	
-xhtml1/variable-supports-27.xht	?	
-html4/variable-supports-28.htm	?	
-xhtml1/variable-supports-28.xht	?	
-html4/variable-supports-29.htm	?	
-xhtml1/variable-supports-29.xht	?	
-html4/variable-supports-30.htm	?	
-xhtml1/variable-supports-30.xht	?	
-html4/variable-supports-31.htm	?	
-xhtml1/variable-supports-31.xht	?	
-html4/variable-supports-32.htm	?	
-xhtml1/variable-supports-32.xht	?	
-html4/variable-supports-33.htm	?	
-xhtml1/variable-supports-33.xht	?	
-html4/variable-supports-34.htm	?	
-xhtml1/variable-supports-34.xht	?	
-html4/variable-supports-35.htm	?	
-xhtml1/variable-supports-35.xht	?	
-html4/variable-supports-36.htm	?	
-xhtml1/variable-supports-36.xht	?	
-html4/variable-supports-37.htm	?	
-xhtml1/variable-supports-37.xht	?	
-html4/variable-supports-38.htm	?	
-xhtml1/variable-supports-38.xht	?	
-html4/variable-supports-39.htm	?	
-xhtml1/variable-supports-39.xht	?	
-html4/variable-supports-40.htm	?	
-xhtml1/variable-supports-40.xht	?	
-html4/variable-supports-41.htm	?	
-xhtml1/variable-supports-41.xht	?	
-html4/variable-supports-42.htm	?	
-xhtml1/variable-supports-42.xht	?	
-html4/variable-supports-43.htm	?	
-xhtml1/variable-supports-43.xht	?	
-html4/variable-supports-44.htm	?	
-xhtml1/variable-supports-44.xht	?	
-html4/variable-supports-45.htm	?	
-xhtml1/variable-supports-45.xht	?	
-html4/variable-supports-46.htm	?	
-xhtml1/variable-supports-46.xht	?	
-html4/variable-supports-47.htm	?	
-xhtml1/variable-supports-47.xht	?	
-html4/variable-supports-48.htm	?	
-xhtml1/variable-supports-48.xht	?	
-html4/variable-supports-49.htm	?	
-xhtml1/variable-supports-49.xht	?	
-html4/variable-supports-50.htm	?	
-xhtml1/variable-supports-50.xht	?	
-html4/variable-supports-51.htm	?	
-xhtml1/variable-supports-51.xht	?	
-html4/variable-supports-52.htm	?	
-xhtml1/variable-supports-52.xht	?	
-html4/variable-supports-53.htm	?	
-xhtml1/variable-supports-53.xht	?	
-html4/variable-supports-54.htm	?	
-xhtml1/variable-supports-54.xht	?	
-html4/variable-supports-55.htm	?	
-xhtml1/variable-supports-55.xht	?	
-html4/variable-supports-56.htm	?	
-xhtml1/variable-supports-56.xht	?	
-html4/variable-supports-57.htm	?	
-xhtml1/variable-supports-57.xht	?	
-html4/variable-supports-58.htm	?	
-xhtml1/variable-supports-58.xht	?	
-html4/variable-supports-59.htm	?	
-xhtml1/variable-supports-59.xht	?	
-html4/variable-supports-60.htm	?	
-xhtml1/variable-supports-60.xht	?	
-html4/variable-supports-61.htm	?	
-xhtml1/variable-supports-61.xht	?	
-html4/variable-supports-62.htm	?	
-xhtml1/variable-supports-62.xht	?	
-html4/variable-supports-63.htm	?	
-xhtml1/variable-supports-63.xht	?	
-html4/variable-supports-64.htm	?	
-xhtml1/variable-supports-64.xht	?	
-html4/variable-supports-65.htm	?	
-xhtml1/variable-supports-65.xht	?	
-html4/variable-supports-66.htm	?	
-xhtml1/variable-supports-66.xht	?	
-html4/variable-supports-67.htm	?	
-xhtml1/variable-supports-67.xht	?	
+testname	revision	result	comment
+html/css-vars-custom-property-case-sensitive-001.htm	54635d9858bba609cf606b0a3987e6911732dbfe	?
+xhtml1/css-vars-custom-property-case-sensitive-001.xht	54635d9858bba609cf606b0a3987e6911732dbfe	?
+html/css-vars-custom-property-inheritance.htm	03059d06522d5796fd67aeb24828bfecf6b7120c	?
+xhtml1/css-vars-custom-property-inheritance.xht	03059d06522d5796fd67aeb24828bfecf6b7120c	?
+html/test_variable_legal_values.htm	b7b2d045a2b48fc36715a50ba885f7c0350e6de1	?
+xhtml1/test_variable_legal_values.xht	b7b2d045a2b48fc36715a50ba885f7c0350e6de1	?
+html/variable-declaration-01.htm	0d1c6d96e6f0c7dc9082c8d616b52a74a92c5bac	?
+xhtml1/variable-declaration-01.xht	0d1c6d96e6f0c7dc9082c8d616b52a74a92c5bac	?
+html/variable-declaration-02.htm	c6d3c7d84d4ea1c2322da25c5b67babc33c90506	?
+xhtml1/variable-declaration-02.xht	c6d3c7d84d4ea1c2322da25c5b67babc33c90506	?
+html/variable-declaration-03.htm	37c4b2cf1249e34ce61286f453d19be7bea68358	?
+xhtml1/variable-declaration-03.xht	37c4b2cf1249e34ce61286f453d19be7bea68358	?
+html/variable-declaration-04.htm	ba0144abae678932e18f469dcc609c6d48402b46	?
+xhtml1/variable-declaration-04.xht	ba0144abae678932e18f469dcc609c6d48402b46	?
+html/variable-declaration-05.htm	62981c92332c5a4a12b21b411c72c69053772c26	?
+xhtml1/variable-declaration-05.xht	62981c92332c5a4a12b21b411c72c69053772c26	?
+html/variable-declaration-06.htm	c9cdf40df53a44638075f5898f16f3a51bdac12d	?
+xhtml1/variable-declaration-06.xht	c9cdf40df53a44638075f5898f16f3a51bdac12d	?
+html/variable-declaration-07.htm	35820eefe4ae4729e24ff0a52025859bba6813f1	?
+xhtml1/variable-declaration-07.xht	35820eefe4ae4729e24ff0a52025859bba6813f1	?
+html/variable-declaration-08.htm	3b479977f5bec77639fa0dfa6b829a2c91df354a	?
+xhtml1/variable-declaration-08.xht	3b479977f5bec77639fa0dfa6b829a2c91df354a	?
+html/variable-declaration-09.htm	4761177a4d32dd4b196fa97da113f775151e1d5c	?
+xhtml1/variable-declaration-09.xht	4761177a4d32dd4b196fa97da113f775151e1d5c	?
+html/variable-declaration-10.htm	e8efb6f5089cc55096a03b8863778f3db4f8f9f2	?
+xhtml1/variable-declaration-10.xht	e8efb6f5089cc55096a03b8863778f3db4f8f9f2	?
+html/variable-declaration-11.htm	9df8066400d2a0cdd909cb8b2fb3eb80fe8cbf43	?
+xhtml1/variable-declaration-11.xht	9df8066400d2a0cdd909cb8b2fb3eb80fe8cbf43	?
+html/variable-declaration-12.htm	6b8636c11d2bde7eab5c2032ef7e9614671a5725	?
+xhtml1/variable-declaration-12.xht	6b8636c11d2bde7eab5c2032ef7e9614671a5725	?
+html/variable-declaration-13.htm	980bf1272ab9789312394c068c0660b4437dd3fc	?
+xhtml1/variable-declaration-13.xht	980bf1272ab9789312394c068c0660b4437dd3fc	?
+html/variable-declaration-14.htm	5736e42bce19e1788a3284fffe3da5bf42edbffc	?
+xhtml1/variable-declaration-14.xht	5736e42bce19e1788a3284fffe3da5bf42edbffc	?
+html/variable-declaration-15.htm	f358888e5c637ab7938f47aaa3d3eb75b0e2db74	?
+xhtml1/variable-declaration-15.xht	f358888e5c637ab7938f47aaa3d3eb75b0e2db74	?
+html/variable-declaration-16.htm	c55b2d0afd1398029dc047d482f1b3e5e07eaf6c	?
+xhtml1/variable-declaration-16.xht	c55b2d0afd1398029dc047d482f1b3e5e07eaf6c	?
+html/variable-declaration-17.htm	478c8b6b8e8624365600638d741151cac716b832	?
+xhtml1/variable-declaration-17.xht	478c8b6b8e8624365600638d741151cac716b832	?
+html/variable-declaration-18.htm	d1a3962d78fa3e509ce6ad265f3a87ddaea4dd64	?
+xhtml1/variable-declaration-18.xht	d1a3962d78fa3e509ce6ad265f3a87ddaea4dd64	?
+html/variable-declaration-19.htm	698ea8aa2f4532e072fdea0c5a1784ba0e3e70a1	?
+xhtml1/variable-declaration-19.xht	698ea8aa2f4532e072fdea0c5a1784ba0e3e70a1	?
+html/variable-declaration-20.htm	014872e045a1f301f1f22c9cab78d6a5e2a81f48	?
+xhtml1/variable-declaration-20.xht	014872e045a1f301f1f22c9cab78d6a5e2a81f48	?
+html/variable-declaration-21.htm	9b8ffcfb43f9f198ca948b1d492ab5e7ce481741	?
+xhtml1/variable-declaration-21.xht	9b8ffcfb43f9f198ca948b1d492ab5e7ce481741	?
+html/variable-declaration-22.htm	47809d8c1b94226d2842cb9b9312ffe0812da51f	?
+xhtml1/variable-declaration-22.xht	47809d8c1b94226d2842cb9b9312ffe0812da51f	?
+html/variable-declaration-23.htm	dfaa285cea6565fb4f651da9c0d37be6193f37d0	?
+xhtml1/variable-declaration-23.xht	dfaa285cea6565fb4f651da9c0d37be6193f37d0	?
+html/variable-declaration-24.htm	e3cf6b66acf0f4134a6b573abeb2ab5e6260764c	?
+xhtml1/variable-declaration-24.xht	e3cf6b66acf0f4134a6b573abeb2ab5e6260764c	?
+html/variable-declaration-25.htm	1c9a3b946ef28df9c7069ff045dfcc43b96b1527	?
+xhtml1/variable-declaration-25.xht	1c9a3b946ef28df9c7069ff045dfcc43b96b1527	?
+html/variable-declaration-26.htm	1cad102672bd1d55588a01af7da8ca08a22dd0c2	?
+xhtml1/variable-declaration-26.xht	1cad102672bd1d55588a01af7da8ca08a22dd0c2	?
+html/variable-declaration-28.htm	977f132ef320f34684364774ffa1ec725244211c	?
+xhtml1/variable-declaration-28.xht	977f132ef320f34684364774ffa1ec725244211c	?
+html/variable-declaration-29.htm	84b1113949aec30c6e01a641a12c9177f7ea35c0	?
+xhtml1/variable-declaration-29.xht	84b1113949aec30c6e01a641a12c9177f7ea35c0	?
+html/variable-declaration-30.htm	b5176b925d25beecbed221dfd6a75db16d279509	?
+xhtml1/variable-declaration-30.xht	b5176b925d25beecbed221dfd6a75db16d279509	?
+html/variable-declaration-31.htm	4f9680a9800a098ea0564f5f2f862e8e8f675288	?
+xhtml1/variable-declaration-31.xht	4f9680a9800a098ea0564f5f2f862e8e8f675288	?
+html/variable-declaration-32.htm	4d6c4c197e83fb577ba1157ac58a82869610ab41	?
+xhtml1/variable-declaration-32.xht	4d6c4c197e83fb577ba1157ac58a82869610ab41	?
+html/variable-declaration-33.htm	34a89737a18e13fdcaac33da3febc9be0d0d07e8	?
+xhtml1/variable-declaration-33.xht	34a89737a18e13fdcaac33da3febc9be0d0d07e8	?
+html/variable-declaration-34.htm	09b5901caa7fcba871955b6167c6e0b21ab48b91	?
+xhtml1/variable-declaration-34.xht	09b5901caa7fcba871955b6167c6e0b21ab48b91	?
+html/variable-declaration-35.htm	9b1224c871aeada136ec6d75224acef76972b9f2	?
+xhtml1/variable-declaration-35.xht	9b1224c871aeada136ec6d75224acef76972b9f2	?
+html/variable-declaration-36.htm	978ce8d496605f8d033de3f1bfbbdcf7ff3ef067	?
+xhtml1/variable-declaration-36.xht	978ce8d496605f8d033de3f1bfbbdcf7ff3ef067	?
+html/variable-declaration-37.htm	a53b3364c51b304c2baee85765e51ad24e7b6555	?
+xhtml1/variable-declaration-37.xht	a53b3364c51b304c2baee85765e51ad24e7b6555	?
+html/variable-declaration-38.htm	d12759ac8c8855c9bb8dd1a36ce344b3bd064924	?
+xhtml1/variable-declaration-38.xht	d12759ac8c8855c9bb8dd1a36ce344b3bd064924	?
+html/variable-declaration-39.htm	95e97ae9268d07b5b5438a0b85603c30f3df2564	?
+xhtml1/variable-declaration-39.xht	95e97ae9268d07b5b5438a0b85603c30f3df2564	?
+html/variable-declaration-40.htm	9caee31605e928d7f5c8c433ed376c3de178ed91	?
+xhtml1/variable-declaration-40.xht	9caee31605e928d7f5c8c433ed376c3de178ed91	?
+html/variable-declaration-41.htm	d24e49a19ec8743f5fc1d82cbe50fef3d850f63d	?
+xhtml1/variable-declaration-41.xht	d24e49a19ec8743f5fc1d82cbe50fef3d850f63d	?
+html/variable-declaration-42.htm	e408b28af04deec8b6ad9f8f6aaa5ead4b216bb4	?
+xhtml1/variable-declaration-42.xht	e408b28af04deec8b6ad9f8f6aaa5ead4b216bb4	?
+html/variable-declaration-43.htm	5c477ae383f9f71cb533220d02805c502c0e3738	?
+xhtml1/variable-declaration-43.xht	5c477ae383f9f71cb533220d02805c502c0e3738	?
+html/variable-declaration-44.htm	ed70d48d0cb3a268e9abc364d2e0b0cd9b4cb4b1	?
+xhtml1/variable-declaration-44.xht	ed70d48d0cb3a268e9abc364d2e0b0cd9b4cb4b1	?
+html/variable-declaration-45.htm	d228087a6243c7b84fcf476f63655b269a270ece	?
+xhtml1/variable-declaration-45.xht	d228087a6243c7b84fcf476f63655b269a270ece	?
+html/variable-declaration-46.htm	676d7fffa2c3e1f3dfa7363640045480dea69f0a	?
+xhtml1/variable-declaration-46.xht	676d7fffa2c3e1f3dfa7363640045480dea69f0a	?
+html/variable-declaration-47.htm	dd58372ac95ae869378e38296186b91e709fb8db	?
+xhtml1/variable-declaration-47.xht	dd58372ac95ae869378e38296186b91e709fb8db	?
+html/variable-declaration-48.htm	435e3f0f4e8e9effd90b140d427ef66ed8cf629a	?
+xhtml1/variable-declaration-48.xht	435e3f0f4e8e9effd90b140d427ef66ed8cf629a	?
+html/variable-declaration-49.htm	b4db0ea7356e0382312d36d52a54b6cb42eb846e	?
+xhtml1/variable-declaration-49.xht	b4db0ea7356e0382312d36d52a54b6cb42eb846e	?
+html/variable-declaration-50.htm	2a9c2b137ddb79cb79f0e0b23de8187f8bfb743c	?
+xhtml1/variable-declaration-50.xht	2a9c2b137ddb79cb79f0e0b23de8187f8bfb743c	?
+html/variable-declaration-51.htm	2b86331d973fa314a615ac4a29c6a9981e55dbc0	?
+xhtml1/variable-declaration-51.xht	2b86331d973fa314a615ac4a29c6a9981e55dbc0	?
+html/variable-declaration-52.htm	2d432a65fa82c049df4b2fe47bb58ade791c9165	?
+xhtml1/variable-declaration-52.xht	2d432a65fa82c049df4b2fe47bb58ade791c9165	?
+html/variable-declaration-53.htm	8cee2d7c81ed680c7074a35d01ef0179699a61e3	?
+xhtml1/variable-declaration-53.xht	8cee2d7c81ed680c7074a35d01ef0179699a61e3	?
+html/variable-declaration-54.htm	a27035a22deeca3dc7aa2d21456f54e571a62144	?
+xhtml1/variable-declaration-54.xht	a27035a22deeca3dc7aa2d21456f54e571a62144	?
+html/variable-declaration-55.htm	07342ad58db6e43d86224e58714e2d71e72da787	?
+xhtml1/variable-declaration-55.xht	07342ad58db6e43d86224e58714e2d71e72da787	?
+html/variable-declaration-56.htm	81a5f126144476d2ce949d2d63446fc9b9f12a90	?
+xhtml1/variable-declaration-56.xht	81a5f126144476d2ce949d2d63446fc9b9f12a90	?
+html/variable-declaration-57.htm	779af2846d229dead3382ac483529923fbb6150b	?
+xhtml1/variable-declaration-57.xht	779af2846d229dead3382ac483529923fbb6150b	?
+html/variable-declaration-58.htm	adc9cd62de5903c9c7f540b807c903a2e12adc0a	?
+xhtml1/variable-declaration-58.xht	adc9cd62de5903c9c7f540b807c903a2e12adc0a	?
+html/variable-declaration-59.htm	ea4e390f4318091d38719cc6aad514524d84330a	?
+xhtml1/variable-declaration-59.xht	ea4e390f4318091d38719cc6aad514524d84330a	?
+html/variable-declaration-60.htm	18d840323d5ee1f130db200c4a359017ff67f1d1	?
+xhtml1/variable-declaration-60.xht	18d840323d5ee1f130db200c4a359017ff67f1d1	?
+html/variable-external-declaration-01.htm	79eb559335b1a833d79a54bc70bbebd3c0b7703c	?
+xhtml1/variable-external-declaration-01.xht	79eb559335b1a833d79a54bc70bbebd3c0b7703c	?
+html/variable-external-font-face-01.htm	3776bcd72a00610e68642a0ca0abf9be54580199	?
+xhtml1/variable-external-font-face-01.xht	3776bcd72a00610e68642a0ca0abf9be54580199	?
+html/variable-external-reference-01.htm	e1cb9adcf7f262364ebec3c2491b07c6c756f91f	?
+xhtml1/variable-external-reference-01.xht	e1cb9adcf7f262364ebec3c2491b07c6c756f91f	?
+html/variable-external-supports-01.htm	4a4be82f521b45c6bd4e240ecefcc623e603e249	?
+xhtml1/variable-external-supports-01.xht	4a4be82f521b45c6bd4e240ecefcc623e603e249	?
+html/variable-font-face-01.htm	aa02741631a4e3c9e61b631452f6bcb375dd53e4	?
+xhtml1/variable-font-face-01.xht	aa02741631a4e3c9e61b631452f6bcb375dd53e4	?
+html/variable-font-face-02.htm	0092032263c837c21790672575f64faffa052337	?
+xhtml1/variable-font-face-02.xht	0092032263c837c21790672575f64faffa052337	?
+html/variable-reference-01.htm	62cc62e31297c7d0cab490882cf143156eac766d	?
+xhtml1/variable-reference-01.xht	62cc62e31297c7d0cab490882cf143156eac766d	?
+html/variable-reference-02.htm	36a8e6041ed4c93b4e50ba8b88f72a6cee7b5d04	?
+xhtml1/variable-reference-02.xht	36a8e6041ed4c93b4e50ba8b88f72a6cee7b5d04	?
+html/variable-reference-03.htm	6664ae6697e79d276fe5ac5696b4665ed481df15	?
+xhtml1/variable-reference-03.xht	6664ae6697e79d276fe5ac5696b4665ed481df15	?
+html/variable-reference-04.htm	be921c7c680d6fd825867aae179172c03fb82545	?
+xhtml1/variable-reference-04.xht	be921c7c680d6fd825867aae179172c03fb82545	?
+html/variable-reference-05.htm	848218269da2d46f72cebefe4c50eca0eaab87d0	?
+xhtml1/variable-reference-05.xht	848218269da2d46f72cebefe4c50eca0eaab87d0	?
+html/variable-reference-06.htm	f1556ca7762c0d0370936043fe39d463732532fc	?
+xhtml1/variable-reference-06.xht	f1556ca7762c0d0370936043fe39d463732532fc	?
+html/variable-reference-07.htm	5b8f7f883c8a7bd977757452726592de5b0818a9	?
+xhtml1/variable-reference-07.xht	5b8f7f883c8a7bd977757452726592de5b0818a9	?
+html/variable-reference-08.htm	a46e4d511224dc015f26da6b7451523fd11c34be	?
+xhtml1/variable-reference-08.xht	a46e4d511224dc015f26da6b7451523fd11c34be	?
+html/variable-reference-09.htm	dba2152b39aa0286e724611e549207d8653b79b8	?
+xhtml1/variable-reference-09.xht	dba2152b39aa0286e724611e549207d8653b79b8	?
+html/variable-reference-10.htm	09a6987882653d675698ee0b3b99bd4ed43d45be	?
+xhtml1/variable-reference-10.xht	09a6987882653d675698ee0b3b99bd4ed43d45be	?
+html/variable-reference-11.htm	86207ce548b6c8d6c0b7f18b0ee1bd5f4a7a0db9	?
+xhtml1/variable-reference-11.xht	86207ce548b6c8d6c0b7f18b0ee1bd5f4a7a0db9	?
+html/variable-reference-12.htm	e8a100aacdd9cfc552e0607c39448fed0ddc4503	?
+xhtml1/variable-reference-12.xht	e8a100aacdd9cfc552e0607c39448fed0ddc4503	?
+html/variable-reference-13.htm	88ff27f9562bb9d8516633b5a9d696cf9156db96	?
+xhtml1/variable-reference-13.xht	88ff27f9562bb9d8516633b5a9d696cf9156db96	?
+html/variable-reference-14.htm	9f99d48a6fa972a3686edeac12149f3446eece22	?
+xhtml1/variable-reference-14.xht	9f99d48a6fa972a3686edeac12149f3446eece22	?
+html/variable-reference-15.htm	f3e2d58e20451e67b6e9fe816150c20255558b1c	?
+xhtml1/variable-reference-15.xht	f3e2d58e20451e67b6e9fe816150c20255558b1c	?
+html/variable-reference-16.htm	1ad493bfa044ae115cbb81b76bee51f73c326335	?
+xhtml1/variable-reference-16.xht	1ad493bfa044ae115cbb81b76bee51f73c326335	?
+html/variable-reference-17.htm	e86afc59154b116eb1eaef82e46d4bed0aaaa6fd	?
+xhtml1/variable-reference-17.xht	e86afc59154b116eb1eaef82e46d4bed0aaaa6fd	?
+html/variable-reference-18.htm	8c2ff8baed432309ea5838db047cb3e45b89f3f5	?
+xhtml1/variable-reference-18.xht	8c2ff8baed432309ea5838db047cb3e45b89f3f5	?
+html/variable-reference-19.htm	1f3c29d0649f091ec07ce4e39d24dfc073d3cb78	?
+xhtml1/variable-reference-19.xht	1f3c29d0649f091ec07ce4e39d24dfc073d3cb78	?
+html/variable-reference-20.htm	100b52db4b848866bdf9d8f52d6a84ffc41b899f	?
+xhtml1/variable-reference-20.xht	100b52db4b848866bdf9d8f52d6a84ffc41b899f	?
+html/variable-reference-21.htm	91fb4d6b73ab9f54e58c97d86e94ff304e477651	?
+xhtml1/variable-reference-21.xht	91fb4d6b73ab9f54e58c97d86e94ff304e477651	?
+html/variable-reference-22.htm	5d32b4389c083b708d588ffe7cf37fef11f6e50b	?
+xhtml1/variable-reference-22.xht	5d32b4389c083b708d588ffe7cf37fef11f6e50b	?
+html/variable-reference-23.htm	7f97906dc1c58c80744485e8a564cd16d55b2d88	?
+xhtml1/variable-reference-23.xht	7f97906dc1c58c80744485e8a564cd16d55b2d88	?
+html/variable-reference-24.htm	8aa223edd92a020ed4ac4e6a316c9c73c870edbc	?
+xhtml1/variable-reference-24.xht	8aa223edd92a020ed4ac4e6a316c9c73c870edbc	?
+html/variable-reference-25.htm	c66a290d6a6d5483e7b30da8ccef78ddfec392e9	?
+xhtml1/variable-reference-25.xht	c66a290d6a6d5483e7b30da8ccef78ddfec392e9	?
+html/variable-reference-26.htm	0182bf8534d8b747f2123e3f5db0d5955e09d394	?
+xhtml1/variable-reference-26.xht	0182bf8534d8b747f2123e3f5db0d5955e09d394	?
+html/variable-reference-27.htm	90ec0453c4944093b213c575225949637db9df3f	?
+xhtml1/variable-reference-27.xht	90ec0453c4944093b213c575225949637db9df3f	?
+html/variable-reference-28.htm	70bc943cb40be6703a994b321e5332904f59209f	?
+xhtml1/variable-reference-28.xht	70bc943cb40be6703a994b321e5332904f59209f	?
+html/variable-reference-29.htm	5380ef3551d40fe39fb889dd323cc7cc0cd8a896	?
+xhtml1/variable-reference-29.xht	5380ef3551d40fe39fb889dd323cc7cc0cd8a896	?
+html/variable-reference-30.htm	2574315d67bddce34160d2929cd82f3b2e2f7cd3	?
+xhtml1/variable-reference-30.xht	2574315d67bddce34160d2929cd82f3b2e2f7cd3	?
+html/variable-reference-31.htm	63d8546c1967856b0b0b3ade91dfd5ddf6ca70c3	?
+xhtml1/variable-reference-31.xht	63d8546c1967856b0b0b3ade91dfd5ddf6ca70c3	?
+html/variable-reference-32.htm	24450a312ffe4fde8a3d27d61772b1fd609df89a	?
+xhtml1/variable-reference-32.xht	24450a312ffe4fde8a3d27d61772b1fd609df89a	?
+html/variable-reference-33.htm	4f953cc438b2681a75b5440d10aea4f351a60e4e	?
+xhtml1/variable-reference-33.xht	4f953cc438b2681a75b5440d10aea4f351a60e4e	?
+html/variable-reference-34.htm	c2fa5841a6ac7868db483818f23c6fc0cc5a8f1f	?
+xhtml1/variable-reference-34.xht	c2fa5841a6ac7868db483818f23c6fc0cc5a8f1f	?
+html/variable-reference-35.htm	3bed29528ed99a863e596d7c09bee6296921ae03	?
+xhtml1/variable-reference-35.xht	3bed29528ed99a863e596d7c09bee6296921ae03	?
+html/variable-reference-36.htm	3b838d0ae59489a854cf00018761973db4089355	?
+xhtml1/variable-reference-36.xht	3b838d0ae59489a854cf00018761973db4089355	?
+html/variable-reference-37.htm	9d4813fc0163f114496fcfa2a9254949889ae8cc	?
+xhtml1/variable-reference-37.xht	9d4813fc0163f114496fcfa2a9254949889ae8cc	?
+html/variable-reference-38.htm	b88da6eb36f31a5f4845cfee72db0833cac81e1f	?
+xhtml1/variable-reference-38.xht	b88da6eb36f31a5f4845cfee72db0833cac81e1f	?
+html/variable-reference-39.htm	87d4f5a8474c7d505a5cedf330b69adbe72425e5	?
+xhtml1/variable-reference-39.xht	87d4f5a8474c7d505a5cedf330b69adbe72425e5	?
+html/variable-reference-40.htm	2dc90de2f2ee674455cc427c1ce8f1e62d9dffee	?
+xhtml1/variable-reference-40.xht	2dc90de2f2ee674455cc427c1ce8f1e62d9dffee	?
+html/variable-supports-01.htm	aea47c3174023e5424aa8e183ae5915ea18d4ebc	?
+xhtml1/variable-supports-01.xht	aea47c3174023e5424aa8e183ae5915ea18d4ebc	?
+html/variable-supports-02.htm	69456e5880107a4d5d00ef0d6ccc9475abb77331	?
+xhtml1/variable-supports-02.xht	69456e5880107a4d5d00ef0d6ccc9475abb77331	?
+html/variable-supports-03.htm	c52eb1e427e47a9631766a578d14031f33f14a6e	?
+xhtml1/variable-supports-03.xht	c52eb1e427e47a9631766a578d14031f33f14a6e	?
+html/variable-supports-04.htm	d8c3576bee5a953250230603bd29b74cce92574e	?
+xhtml1/variable-supports-04.xht	d8c3576bee5a953250230603bd29b74cce92574e	?
+html/variable-supports-05.htm	cd90fe208ae743d9fd8c0b61a1108a64da38b470	?
+xhtml1/variable-supports-05.xht	cd90fe208ae743d9fd8c0b61a1108a64da38b470	?
+html/variable-supports-06.htm	ffc71b62f772f9c47e5d0685b20da369bba80d28	?
+xhtml1/variable-supports-06.xht	ffc71b62f772f9c47e5d0685b20da369bba80d28	?
+html/variable-supports-07.htm	1e092b1bccc69b6f9ae5015bd448716d5322a795	?
+xhtml1/variable-supports-07.xht	1e092b1bccc69b6f9ae5015bd448716d5322a795	?
+html/variable-supports-08.htm	70517bed0cb26358a5edd57b3e1ebe0e3e7fe740	?
+xhtml1/variable-supports-08.xht	70517bed0cb26358a5edd57b3e1ebe0e3e7fe740	?
+html/variable-supports-09.htm	4c0c20d3323e04b64e4dda51bebc32e5928b13db	?
+xhtml1/variable-supports-09.xht	4c0c20d3323e04b64e4dda51bebc32e5928b13db	?
+html/variable-supports-10.htm	bda3d137c8f662d84a0edc53b136cc125bb3698c	?
+xhtml1/variable-supports-10.xht	bda3d137c8f662d84a0edc53b136cc125bb3698c	?
+html/variable-supports-11.htm	71c1f6c618bdbf141f715eab9fe5a70f0c60235f	?
+xhtml1/variable-supports-11.xht	71c1f6c618bdbf141f715eab9fe5a70f0c60235f	?
+html/variable-supports-12.htm	2d55b2283a15d5b6302f36367a78e44ff896cb1c	?
+xhtml1/variable-supports-12.xht	2d55b2283a15d5b6302f36367a78e44ff896cb1c	?
+html/variable-supports-13.htm	4dc510420272d9b2001a320098f20aea5c809c93	?
+xhtml1/variable-supports-13.xht	4dc510420272d9b2001a320098f20aea5c809c93	?
+html/variable-supports-14.htm	7e9d1bb98795e2d94665a85b5618b877c29119cb	?
+xhtml1/variable-supports-14.xht	7e9d1bb98795e2d94665a85b5618b877c29119cb	?
+html/variable-supports-15.htm	3474d1e97af8c4de5dad712a5e63875484c44ea3	?
+xhtml1/variable-supports-15.xht	3474d1e97af8c4de5dad712a5e63875484c44ea3	?
+html/variable-supports-16.htm	716d222212d4ed97dcc72130bed21a37632bd667	?
+xhtml1/variable-supports-16.xht	716d222212d4ed97dcc72130bed21a37632bd667	?
+html/variable-supports-17.htm	a7a9fed2b929244c519ffb2b2be39ba993590a1d	?
+xhtml1/variable-supports-17.xht	a7a9fed2b929244c519ffb2b2be39ba993590a1d	?
+html/variable-supports-18.htm	8a419fc9b1f009f524cc78c8e5e4dd5b5f5cc4f5	?
+xhtml1/variable-supports-18.xht	8a419fc9b1f009f524cc78c8e5e4dd5b5f5cc4f5	?
+html/variable-supports-19.htm	6d7a945581dbc6111ed6d8c9b2b7e266c0a9b425	?
+xhtml1/variable-supports-19.xht	6d7a945581dbc6111ed6d8c9b2b7e266c0a9b425	?
+html/variable-supports-20.htm	67a4d4ba336a07282e2b85d5f8b316d01209e8c7	?
+xhtml1/variable-supports-20.xht	67a4d4ba336a07282e2b85d5f8b316d01209e8c7	?
+html/variable-supports-21.htm	3a4b1c9c05026553661729e194d5c5aa44034052	?
+xhtml1/variable-supports-21.xht	3a4b1c9c05026553661729e194d5c5aa44034052	?
+html/variable-supports-22.htm	5d20b8a2e2a1882d0d186db546e3f830d54055e6	?
+xhtml1/variable-supports-22.xht	5d20b8a2e2a1882d0d186db546e3f830d54055e6	?
+html/variable-supports-23.htm	a3329510534c16fb26d8c7a565113656a62c7009	?
+xhtml1/variable-supports-23.xht	a3329510534c16fb26d8c7a565113656a62c7009	?
+html/variable-supports-24.htm	f0d6418a4fc570ed3a874a57368cb95e1b3e4271	?
+xhtml1/variable-supports-24.xht	f0d6418a4fc570ed3a874a57368cb95e1b3e4271	?
+html/variable-supports-25.htm	4d5e1e945933c6a25b27d4e7c08f7817fef0dba4	?
+xhtml1/variable-supports-25.xht	4d5e1e945933c6a25b27d4e7c08f7817fef0dba4	?
+html/variable-supports-26.htm	15e799c510f8314e1124c01b4adb1a290b668399	?
+xhtml1/variable-supports-26.xht	15e799c510f8314e1124c01b4adb1a290b668399	?
+html/variable-supports-27.htm	2acb7d56c34078f574f26132b3a8ca027fc0b80d	?
+xhtml1/variable-supports-27.xht	2acb7d56c34078f574f26132b3a8ca027fc0b80d	?
+html/variable-supports-28.htm	2b99ba1ba721bd71ccb19cc57a3c897e8fc1c7e6	?
+xhtml1/variable-supports-28.xht	2b99ba1ba721bd71ccb19cc57a3c897e8fc1c7e6	?
+html/variable-supports-29.htm	4d60f921915a45b5566f2f2ad75dfb76749d80de	?
+xhtml1/variable-supports-29.xht	4d60f921915a45b5566f2f2ad75dfb76749d80de	?
+html/variable-supports-30.htm	6b966cc8ed942ff7885eb4ae675a7479a462b487	?
+xhtml1/variable-supports-30.xht	6b966cc8ed942ff7885eb4ae675a7479a462b487	?
+html/variable-supports-31.htm	c13683492635502f3658beb8da6539ba4730d87d	?
+xhtml1/variable-supports-31.xht	c13683492635502f3658beb8da6539ba4730d87d	?
+html/variable-supports-32.htm	5f0a26f4c6aac2ef7edcf0d885856dac43746c6c	?
+xhtml1/variable-supports-32.xht	5f0a26f4c6aac2ef7edcf0d885856dac43746c6c	?
+html/variable-supports-33.htm	f2de2f042faac5489d9efd90ce38aca526a6a480	?
+xhtml1/variable-supports-33.xht	f2de2f042faac5489d9efd90ce38aca526a6a480	?
+html/variable-supports-34.htm	addf10fd3ed90805fb4ceadc5f5d09d18c2faa84	?
+xhtml1/variable-supports-34.xht	addf10fd3ed90805fb4ceadc5f5d09d18c2faa84	?
+html/variable-supports-35.htm	6d068b2639dd08c10be9f120888954f4c6570227	?
+xhtml1/variable-supports-35.xht	6d068b2639dd08c10be9f120888954f4c6570227	?
+html/variable-supports-36.htm	7c63f6948e30839212128eded30e02e41d0b780d	?
+xhtml1/variable-supports-36.xht	7c63f6948e30839212128eded30e02e41d0b780d	?
+html/variable-supports-37.htm	52dfdd6c50d5b5dc7f01e7a5bce912cd5cb28ca3	?
+xhtml1/variable-supports-37.xht	52dfdd6c50d5b5dc7f01e7a5bce912cd5cb28ca3	?
+html/variable-supports-38.htm	6c0345798baad3b0d2cbf2391cda9decc500e722	?
+xhtml1/variable-supports-38.xht	6c0345798baad3b0d2cbf2391cda9decc500e722	?
+html/variable-supports-39.htm	6a9051493ed86ee3c6c9cd241643990dc1f5476c	?
+xhtml1/variable-supports-39.xht	6a9051493ed86ee3c6c9cd241643990dc1f5476c	?
+html/variable-supports-40.htm	3e68a0da60ba0cd9abb7630dcb6f6fa9e514bc5c	?
+xhtml1/variable-supports-40.xht	3e68a0da60ba0cd9abb7630dcb6f6fa9e514bc5c	?
+html/variable-supports-41.htm	8a05353ec09bbae47d97c0f84221acd2efc9293e	?
+xhtml1/variable-supports-41.xht	8a05353ec09bbae47d97c0f84221acd2efc9293e	?
+html/variable-supports-42.htm	770b12eedb7f78a1a3465299d2737c3f2aaf1623	?
+xhtml1/variable-supports-42.xht	770b12eedb7f78a1a3465299d2737c3f2aaf1623	?
+html/variable-supports-43.htm	eeaa8a49695dcfa9c5ec461a3524e12727050d4e	?
+xhtml1/variable-supports-43.xht	eeaa8a49695dcfa9c5ec461a3524e12727050d4e	?
+html/variable-supports-44.htm	62303425549c6097a322bf6ab1b786684febe661	?
+xhtml1/variable-supports-44.xht	62303425549c6097a322bf6ab1b786684febe661	?
+html/variable-supports-45.htm	47150e92480c35c1e2f985593d00c4d8b8a110a9	?
+xhtml1/variable-supports-45.xht	47150e92480c35c1e2f985593d00c4d8b8a110a9	?
+html/variable-supports-46.htm	e1bbfa10cd200a3d5e556c4b4b8521cbe5940c2c	?
+xhtml1/variable-supports-46.xht	e1bbfa10cd200a3d5e556c4b4b8521cbe5940c2c	?
+html/variable-supports-47.htm	58da282b3f794665e5c34b7cc371f6089ddffeae	?
+xhtml1/variable-supports-47.xht	58da282b3f794665e5c34b7cc371f6089ddffeae	?
+html/variable-supports-48.htm	2d4ac647596305e4c0aaba00bb524372e6bed4e4	?
+xhtml1/variable-supports-48.xht	2d4ac647596305e4c0aaba00bb524372e6bed4e4	?
+html/variable-supports-49.htm	e1bbb7cc25606d7171ac564b44dc63ff6cf77dd6	?
+xhtml1/variable-supports-49.xht	e1bbb7cc25606d7171ac564b44dc63ff6cf77dd6	?
+html/variable-supports-50.htm	83e85801f95aee06c3a3f55e7bdd0ddeafcaf985	?
+xhtml1/variable-supports-50.xht	83e85801f95aee06c3a3f55e7bdd0ddeafcaf985	?
+html/variable-supports-51.htm	b2e48bace1e3c026b4814ee0892af96edb9420ad	?
+xhtml1/variable-supports-51.xht	b2e48bace1e3c026b4814ee0892af96edb9420ad	?
+html/variable-supports-52.htm	52ef3f9e9dd9117abb578fcaea563a67fc0666cc	?
+xhtml1/variable-supports-52.xht	52ef3f9e9dd9117abb578fcaea563a67fc0666cc	?
+html/variable-supports-53.htm	82eb5b87946073754f43816cf5721e889a016946	?
+xhtml1/variable-supports-53.xht	82eb5b87946073754f43816cf5721e889a016946	?
+html/variable-supports-54.htm	007a8d2472b25f63f05f0a7e636b9dd0f47d0964	?
+xhtml1/variable-supports-54.xht	007a8d2472b25f63f05f0a7e636b9dd0f47d0964	?
+html/variable-supports-55.htm	9a0f81ef0f2070231f4cf822b4efd9613cf9ded8	?
+xhtml1/variable-supports-55.xht	9a0f81ef0f2070231f4cf822b4efd9613cf9ded8	?
+html/variable-supports-56.htm	e50b33fa6254d6722c6b8764f50a0a6eaad021ab	?
+xhtml1/variable-supports-56.xht	e50b33fa6254d6722c6b8764f50a0a6eaad021ab	?
+html/variable-supports-57.htm	9d621b28d59e667b72d21ee48956d66b6ddf1cc9	?
+xhtml1/variable-supports-57.xht	9d621b28d59e667b72d21ee48956d66b6ddf1cc9	?
+html/variable-supports-58.htm	2b9849fb1389bcb83af3749484f27146822f6462	?
+xhtml1/variable-supports-58.xht	2b9849fb1389bcb83af3749484f27146822f6462	?
+html/variable-supports-59.htm	03bd861e4042d3de799a020c0824e3cd7e678a4f	?
+xhtml1/variable-supports-59.xht	03bd861e4042d3de799a020c0824e3cd7e678a4f	?
+html/variable-supports-60.htm	a43821ee18c29aeeaa86f1d481037702f0c57c04	?
+xhtml1/variable-supports-60.xht	a43821ee18c29aeeaa86f1d481037702f0c57c04	?
+html/variable-supports-61.htm	19434e73b3c2105b254c04246f24e5e9f6354656	?
+xhtml1/variable-supports-61.xht	19434e73b3c2105b254c04246f24e5e9f6354656	?
+html/variable-supports-62.htm	2b049c86554770dea27ca871c4fa900e783cee63	?
+xhtml1/variable-supports-62.xht	2b049c86554770dea27ca871c4fa900e783cee63	?
+html/variable-supports-63.htm	d95b6ea40fcc139615e1c56a28600c72723105e5	?
+xhtml1/variable-supports-63.xht	d95b6ea40fcc139615e1c56a28600c72723105e5	?
+html/variable-supports-64.htm	5b082eff25a3e6e276661e7f7024b3fe69b27a62	?
+xhtml1/variable-supports-64.xht	5b082eff25a3e6e276661e7f7024b3fe69b27a62	?
+html/variable-supports-65.htm	6ce69d92a521555242c7521b9b90decd43edbc8c	?
+xhtml1/variable-supports-65.xht	6ce69d92a521555242c7521b9b90decd43edbc8c	?
+html/variable-supports-66.htm	2ca28cc9c29d2083fe0b3ed3a4cb764d41a44ed0	?
+xhtml1/variable-supports-66.xht	2ca28cc9c29d2083fe0b3ed3a4cb764d41a44ed0	?
+html/variable-supports-67.htm	d9318198dd393ada88c2c242984cb90ebafa41ee	?
+xhtml1/variable-supports-67.xht	d9318198dd393ada88c2c242984cb90ebafa41ee	?

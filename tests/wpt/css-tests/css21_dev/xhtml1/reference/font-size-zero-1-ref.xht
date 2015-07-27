@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>CSS Test Reference</title>
+<link href="http://dbaron.org/" rel="author" title="L. David Baron" />
+<link href="http://www.mozilla.org/" rel="author" title="Mozilla" />
+<link href="reference/font-size-zero-1-notref.xht" rel="mismatch" />
+<meta content="" name="flags" />
+<style>
+/* spec ambiguous whether font-size-adjust influences line-height: normal */
+body { line-height: 1.2 }
+
+p { margin: 1em 0 }
+p.first { margin-bottom: 2em }
+</style>
+
+</head><body><p class="first">before</p>
+<p>after</p>
+</body></html>

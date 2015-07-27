@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Grid Layout Test: Reference file 2x2 grid and cells with the following colors: blue, yellow, lime and magenta</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <style type="text/css"><![CDATA[
+            div {
+                font: 50px/1 Ahem;
+            }
+
+            #blue {
+                color: blue;
+            }
+
+            #yellow {
+                color: yellow;
+            }
+
+            #lime {
+                color: lime;
+            }
+
+            #magenta {
+                color: magenta;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <p>Test passes if there are four filled squares with the same size and <strong>no red</strong>.</p>
+        <p>Blue and yellow squares in the first line; lime and magenta squares in the second line (exactly in this order).</p>
+
+        <div>
+            <span id="blue">B</span><span id="yellow">Y</span>
+            <br />
+            <span id="lime">L</span><span id="magenta">M</span>
+        </div>
+    </body>
+</html>

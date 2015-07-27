@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html><head>
+        <title>CSSOM: CSSStyleDeclaration (set|remove)PropertyValue sets/removes shorthand properties</title>
+        <link href="mailto:paul.irish@gmail.com" rel="author" title="Paul Irish">
+        <link href="http://www.w3.org/TR/cssom/#the-cssstyledeclaration-interface" rel="help">
+
+        <link href="http://trac.webkit.org/export/120528/trunk/LayoutTests/fast/css/cssom-remove-shorthand-property.html" rel="source">
+        <meta content="dom" name="flags">
+
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+
+    <body>
+        <div id="log"></div>
+
+        <div id="box"></div>
+
+        <script>
+            shorthandProperties = [
+                "font",
+                "border-top",
+                "border-right",
+                "border-bottom",
+                "border-left",
+                "border",
+                "border-color",
+                "border-style",
+                "border-width",
+                "background-position",
+                "background-repeat",
+                "border-spacing",
+                "list-style",
+                "margin",
+                "outline",
+                "padding",
+                "background",
+                "overflow",
+                "border-radius"
+            ];
+
+            element = document.createElement('span');
+
+            function canSetProperty(propertyName) {
+                element.style.setProperty(propertyName, 'initial');
+                return element.style.getPropertyValue(propertyName) == 'initial';
+            }
+
+            function canRemoveProperty(propertyName) {
+                element.style.removeProperty(propertyName);
+                return element.style.getPropertyValue(propertyName) != 'initial';
+            }
+
+            for (i = 0; i < shorthandProperties.length; ++i) {
+                var propertyName = shorthandProperties[i];
+
+                test(function(){
+                    assert_true(canSetProperty(propertyName), 'can setPropertyValue with shorthand');
+                }, 'shorthand ' + propertyName + ' can be set with setProperty');
+
+                test(function(){
+                    assert_true(canRemoveProperty(propertyName), 'can setPropertyValue with shorthand');
+                }, 'shorthand ' + propertyName + ' can be removed with removeProperty');
+
+            }
+        </script>
+    
+
+</body></html>

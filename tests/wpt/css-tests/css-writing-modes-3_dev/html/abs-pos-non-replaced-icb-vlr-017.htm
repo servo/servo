@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+ <head>
+
+  <title>CSS Writing Modes Test: position absolute and 'vertical-lr' - 'width' and 'right' are 'auto' and 'left' is not 'auto' with 'direction: rtl' in initial containing block</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes">
+  <link rel="match" href="reference/abs-pos-non-replaced-icb-vrl-008-ref.htm">
+
+  <meta content="" name="flags">
+  <meta content="This test checks that when initial containing block's writing-mode is 'horizontal-tb' and its 'direction' is 'rtl', then an absolutely positioned box (with 'width' and 'right' are 'auto' and 'left' is not 'auto') whose containing block is the initial containing block must set width to shrink-to-fit and then solve for 'right'. Whether such absolutely positioned box's 'writing-mode' is vertical or not is irrelevant." name="assert">
+
+  <style type="text/css">
+  object#overlapping-green
+    {
+      height: 116px;
+      width: 500px; /* 60% of 500px == 300px (offset of green square) */
+      vertical-align: top;
+    }
+
+  div#red-overlapped-reference
+    {
+      background-color: red;
+      bottom: 116px;
+      height: 100px;
+      left: 300px;
+      position: relative;
+      width: 100px;
+      z-index: -1;
+    }
+  </style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div><object data="support/embedded-doc-abs-pos-non-replaced-icb-vlr-017.html" type="text/html" id="overlapping-green">This test requires a browser with capability to embed an HTML document thanks to the HTML &lt;object&gt; element.</object></div>
+
+  <div id="red-overlapped-reference"></div>
+
+ </body>
+</html>

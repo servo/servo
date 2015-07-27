@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
+<title>CSS Writing Modes: line-breaking-rules</title>
+<link href="shinsuke.matsuki@access-company.com" rel="author" title="Shinsuke Matsuki" />
+<link href="kojiishi@gmail.com" rel="author" title="Koji Ishii" />
+<link href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright" rel="help" />
+<link href="reference/text-combine-upright-line-breaking-rules-001.xht" rel="match" />
+<meta content="The bracket should be combined with following characters." name="assert" />
+<style>
+.vrl {
+    border:solid;
+    font-size:20pt;
+    height:2.5em;
+    margin:.2em;
+    writing-mode:vertical-rl;
+}
+.tcy {
+    text-combine-upright:all;
+}
+</style>
+</head>
+<body>
+<p>Test passes two blocks look identical.</p>
+<div class="vrl">あ「<span class="tcy">12</span></div>
+<div class="vrl">あ<br />「<span class="tcy">12</span></div>
+
+
+</body></html>

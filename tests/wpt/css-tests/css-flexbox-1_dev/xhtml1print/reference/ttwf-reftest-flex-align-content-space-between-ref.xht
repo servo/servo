@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Flexible Box Test: align-content property - space-between</title>
+    <link href="mailto:haosdent@gmail.com" rel="author" title="haosdent" />
+    <style type="text/css">
+        .container {
+        position: relative;
+        height: 14em;
+        width: 20em;
+        background: red;
+        margin: 1em;
+        border: 1px solid black;
+        }
+	.first, .second {
+	margin-bottom: 112px;
+	}
+        span {
+        height: 2em;
+        display: inline-block;
+        background: green;
+        color: white;
+        margin: 1em;
+        width: 8em;
+        float: left;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passed if you see a 2*2 table and all the cells are spaced equally apart.</p>
+    <div class="container">
+      <span class="first">first</span>
+      <span class="second">second</span>
+      <span>third</span>
+      <span>forth</span>
+    </div>
+
+
+</body></html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
+<title>CSS Test: hsl() values</title>
+<link href="http://dbaron.org/" rel="author" title="L. David Baron" />
+<link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+<link href="http://www.intel.com" rel="author" title="Intel" />
+<link href="http://www.w3.org/TR/css3-color/#hsl-color" rel="help" />
+<link href="reference/t424-hsl-values-b-2-ref.xht" rel="match" />
+<meta content="" name="flags" />
+<meta content="Implementation of algorithm for converting hsl() colors to rgb() colors." name="assert" />
+<style>
+  table { border-spacing: 0; padding: 0; border: none; }
+  td { border: none; padding: 0; }
+  td { width: 1.2em; height: 1.2em; }
+</style>
+</head><body>
+  <p>The following two matching (except the checkerboard at both ends to show where the rows are) rows of colors should change gradually from green at the left to blue at the right (through aqua in the middle).</p>
+  <table>
+    <tbody><tr>
+      <td style="background: black">&#xA0;</td>
+      <td style="background: hsl(120, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(132, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(144, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(156, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(168, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(180, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(192, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(204, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(216, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(228, 100%, 50%)">&#xA0;</td>
+      <td style="background: hsl(240, 100%, 50%)">&#xA0;</td>
+      <td style="background: white">&#xA0;</td>
+    </tr>
+    <tr>
+      <td style="background: white">&#xA0;</td>
+      <td style="background: rgb(0, 255, 0)">&#xA0;</td>
+      <td style="background: rgb(0, 255, 51)">&#xA0;</td>
+      <td style="background: rgb(0, 255, 102)">&#xA0;</td>
+      <td style="background: rgb(0, 255, 153)">&#xA0;</td>
+      <td style="background: rgb(0, 255, 204)">&#xA0;</td>
+      <td style="background: rgb(0, 255, 255)">&#xA0;</td>
+      <td style="background: rgb(0, 204, 255)">&#xA0;</td>
+      <td style="background: rgb(0, 153, 255)">&#xA0;</td>
+      <td style="background: rgb(0, 102, 255)">&#xA0;</td>
+      <td style="background: rgb(0, 51, 255)">&#xA0;</td>
+      <td style="background: rgb(0, 0, 255)">&#xA0;</td>
+      <td style="background: black">&#xA0;</td>
+    </tr>
+  </tbody></table>
+
+</body></html>

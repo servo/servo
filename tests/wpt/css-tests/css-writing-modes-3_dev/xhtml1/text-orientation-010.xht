@@ -1,13 +1,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">	
+<html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		<title>CSS Writing Modes Test: text-orientation - mixed</title>
 		<link rel="author" title="Taka Oshiyama" href="mailto:takaoshiyama@gmail.com"/>
 		<link rel="help" title="5.1. Orienting Text: the‘text-orientation’property" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation"/>
-		<link rel="match" href="reference/text-orientation-010-ref.xht"/>
 		<meta http-equiv="content-language" content="en, ja"/>
 		<meta name="flags" content="ahem font"/>
-		<meta name="assert" content="This test checks that 'text-orientation: mixed' causes characters from horizontal-only scripts are set sideways, i.e. 90°clockwise from their standard orientation in horizontal text. Characters from vertical scripts are set with their intrinsic orientation. This is effective to verify 1.block flow direction, 2.inline direction and 3.glyph orientation."/>		
+		<meta name="assert" content="This test checks that 'text-orientation: mixed' causes characters from horizontal-only scripts are set sideways, i.e. 90°clockwise from their standard orientation in horizontal text. Characters from vertical scripts are set with their intrinsic orientation. This is effective to verify 1.block flow direction, 2.inline direction and 3.glyph orientation."/>
 		<style type="text/css">
 				@font-face
 				{
@@ -25,20 +24,20 @@
 					color: blue;
 					font: 20px/1 "Ahem";
 					height: 3em;
-					margin: 10px;        
+					margin: 10px;
 					width: 3em;
 					white-space: pre;
 				}
 				#test_ahem
 				{
-					text-orientation: mixed;				//The property to be tested
+					text-orientation: mixed;				/* The property to be tested */
 					writing-mode: vertical-rl;
 				}
 				#control_ahem
 				{
 					writing-mode: horizontal-tb;
 				}
-				.view 
+				.view
 				{
 					border: 1px solid gray;
 					font-family: "mplus-1p-regular";
@@ -48,13 +47,13 @@
 					width: 3em;
 					writing-mode: vertical-rl;
 				}
-				#test 
+				#test
 				{
-					text-orientation: mixed;					//The property to be tested
+					text-orientation: mixed;					/* The property to be tested */
 				}
-				#control 
+				#control
 				{
-					text-combine-horizontal: none;
+					text-combine-upright: none;
 				}
 		</style>
 	</head>
@@ -62,11 +61,11 @@
 		<!--
 			This test consists of a pair of sub-tests which complements each other.
 			Logically, the test should verify 1.block flow direction, 2.inline direction
-			and 3.glyph orientation. The "Ahem" sub-test comes first and checks 1. and 2. , 
+			and 3.glyph orientation. The "Ahem" sub-test comes first and checks 1. and 2. ,
 			whereas "glyph" sub-test comes later and also checks 3.
 		-->
 		<p>Test passes if a pair of rectangles is <strong>identical</strong> including <strong>layout</strong> and <strong>orientation</strong>.</p>
-		<div class="view_ahem"><span id="test_ahem">123 
+		<div class="view_ahem"><span id="test_ahem">123
  56
 7  </span></div>
 		<div class="view_ahem"><span id="control_ahem">7 1

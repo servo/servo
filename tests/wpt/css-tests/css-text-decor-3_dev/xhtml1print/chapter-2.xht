@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Text Decoration Module Level 3 CR Test Suite</h1>
-  <h2>Line Decoration: Underline, Overline, and Strike-Through (13 tests)</h2>
+  <h2>Line Decoration: Underline, Overline, and Strike-Through (14 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -31,13 +31,24 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s2">+</a>
         <a href="http://www.w3.org/TR/css-text-decor-3/#line-decoration">2 Line Decoration: Underline, Overline, and Strike-Through</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 2 tests -->
       <tr id="ruby-text-decoration-01-2" class="primary">
         <td><strong>
             <a href="ruby-text-decoration-01.xht">ruby-text-decoration-01</a></strong></td>
-        <td></td>
+        <td><a href="reference/ruby-text-decoration-01-ref.xht">=</a> </td>
         <td></td>
         <td>text-decoration on rubies
+        </td>
+      </tr>
+      <tr id="text-decoration-propagation-01-2" class="primary">
+        <td><strong>
+            <a href="text-decoration-propagation-01.xht">text-decoration-propagation-01</a></strong></td>
+        <td><a href="reference/text-decoration-propagation-01-ref.xht">=</a> </td>
+        <td></td>
+        <td>text-decoration shouldn't propagate through 'svg' element
+          <ul class="assert">
+            <li>An outer 'svg' element is an atomic inline-axis element, so text decorations must not propagate through it.</li>
+          </ul>
         </td>
       </tr>
     </tbody>
