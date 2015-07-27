@@ -15,8 +15,7 @@ use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem};
-use hyper::header::{Quality, QualityItem};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::header::StrictTransportSecurity;
 use hyper::Error as HttpError;
 use hyper::method::Method;
@@ -299,23 +298,25 @@ reason: \"certificate verify failed\" }]))";
             }
         }
 
-        if let Some(header) = response.headers.get::<StrictTransportSecurity>() {
-            if let Some(host) = url.domain() {
-                info!("adding host {} to the strict transport security list", host);
-                info!("- max-age {}", header.max_age);
+        if url.scheme == "https" {
+            if let Some(header) = response.headers.get::<StrictTransportSecurity>() {
+                if let Some(host) = url.domain() {
+                    info!("adding host {} to the strict transport security list", host);
+                    info!("- max-age {}", header.max_age);
 
-                let include_subdomains = if header.include_subdomains {
-                    info!("- includeSubdomains");
-                    IncludeSubdomains::Included
-                } else {
-                    IncludeSubdomains::NotIncluded
-                };
+                    let include_subdomains = if header.include_subdomains {
+                        info!("- includeSubdomains");
+                        IncludeSubdomains::Included
+                    } else {
+                        IncludeSubdomains::NotIncluded
+                    };
 
-                resource_mgr_chan.send(
-                    ControlMsg::SetHSTSEntryForHost(
-                        host.to_string(), include_subdomains, header.max_age
-                    )
-                ).unwrap();
+                    resource_mgr_chan.send(
+                        ControlMsg::SetHSTSEntryForHost(
+                            host.to_string(), include_subdomains, header.max_age
+                        )
+                    ).unwrap();
+                }
             }
         }
 
