@@ -15,7 +15,6 @@
 
 use block::BlockFlow;
 use context::LayoutContext;
-use css::node_style::StyledNode;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
 use flow::{Descendants, AbsDescendants};

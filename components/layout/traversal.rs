@@ -4,7 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;
 use context::LayoutContext;
