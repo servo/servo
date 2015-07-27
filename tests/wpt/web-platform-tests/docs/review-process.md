@@ -24,7 +24,7 @@ may also be used as long as the review is clearly linked.
 ### Critic
 
 [Critic][critic] is a code review tool that is frequently used for
-reviewing web-platform-tests sumbissions. Although it has a steeper
+reviewing web-platform-tests submissions. Although it has a steeper
 learning curve than the GitHub tools, it has more features that aid in
 conducting non-trivial reviews.
 
@@ -33,13 +33,13 @@ and log (authentication is via GitHub). On the homepage, click "Add
 Filter". In the resulting dialog, select the web-platform-tests
 repository and add the path of the folder(s) where you want to review
 code, e.g. `/` to review any submissions or `XMLHttpRequest/` to
-review only submissions in the XHMLHttpRequest directory. Ensure that
+review only submissions in the `XHMLHttpRequest` directory. Ensure that
 your email address is added so that you receive notifications of new
 reviews matching your filters, and activity on existing reviews.
 
 ## Labels
 
-Pull requests get automatically labelled in the Github repository. Check
+Pull requests get automatically labelled in the GitHub repository. Check
 out the [list of labels in Github][issues]
 to see the open pull requests for a given specification or a given Working Group.
 

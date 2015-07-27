@@ -69,6 +69,20 @@
           },
           "origin": ["cross-origin-http", "same-host-http"],
           "expectation": "blocked"
+        },
+        {
+          "name": "ws-downgrade-blocks",
+          "expansion": "default",
+          "source_scheme": "https",
+          "opt_in_method": ["no-opt-in", "http-csp", "meta-csp"],
+          "context_nesting": "top-level",
+          "redirection": "*",
+          "subresource": {
+            "blockable": "websocket-request",
+            "optionally-blockable": []
+          },
+          "origin": ["cross-origin-ws", "same-host-ws"],
+          "expectation": "blocked"
         }
       ]
     },
@@ -91,6 +105,20 @@
           },
           "origin": ["same-host-https"],
           "expectation": "allowed"
+        },
+        {
+          "name": "websocket-allowed",
+          "expansion": "default",
+          "source_scheme": "https",
+          "opt_in_method": "*",
+          "context_nesting": "top-level",
+          "redirection": ["no-redirect", "keep-scheme-redirect"],
+          "subresource": {
+            "blockable": "websocket-request",
+            "optionally-blockable": []
+          },
+          "origin": ["same-host-wss"],
+          "expectation": "allowed"
         }
       ]
     }
@@ -98,7 +126,7 @@
 
   "excluded_tests": [
     {
-      "name": "TODO-subresources-not-supported",
+      "name": "Redundant-subresources",
       "expansion": "*",
       "source_scheme": "*",
       "opt_in_method": "*",
@@ -106,12 +134,32 @@
       "redirection": "*",
       "subresource": {
         "blockable": [
-          "a-tag",
-          "websocket-request"
+          "a-tag"
         ],
         "optionally-blockable": []
       },
       "origin": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "Skip-origins-not-applicable-to-websockets",
+      "expansion": "*",
+      "source_scheme": "*",
+      "opt_in_method": "*",
+      "context_nesting": "*",
+      "redirection": "*",
+      "subresource": {
+        "blockable": [
+          "websocket-request"
+        ],
+        "optionally-blockable": []
+      },
+      "origin": [
+        "same-host-https",
+        "same-host-http",
+        "cross-origin-https",
+        "cross-origin-http"
+      ],
       "expectation": "*"
     },
     {
@@ -175,7 +223,11 @@
       "same-host-https",
       "same-host-http",
       "cross-origin-https",
-      "cross-origin-http"
+      "cross-origin-http",
+      "same-host-wss",
+      "same-host-ws",
+      "cross-origin-wss",
+      "cross-origin-ws"
     ],
     "subresource": {
       "blockable": [

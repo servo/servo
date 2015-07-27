@@ -26,7 +26,7 @@ environment, the [wptrunner](http://github.com/w3c/wptrunner) test runner
 can be used. This is a test runner written in Python and designed to
 control the browser from the outside using some remote control
 protocol such as WebDriver. This allows it to handle cases such as the
-browser crashing that connot be handled by an in-browser harness. It
+browser crashing that cannot be handled by an in-browser harness. It
 also has the ability to automatically run both testharness-based tests
 and reftests.
 

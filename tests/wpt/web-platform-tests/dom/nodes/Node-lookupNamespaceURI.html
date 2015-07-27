@@ -82,7 +82,7 @@ var fooChild = document.createElementNS('childNamespace', 'childElem');
 fooElem.appendChild(fooChild);
 
 lookupNamespaceURI(fooChild, null, 'childNamespace', 'Child element should inherit baz namespace');
-lookupNamespaceURI(fooChild, '', 'childNamespace', 'Child element should have null namespace');	
+lookupNamespaceURI(fooChild, '', 'childNamespace', 'Child element should have null namespace');
 lookupNamespaceURI(fooChild, 'xmlns', null, 'Child element should not have XMLNS namespace');
 lookupNamespaceURI(fooChild, 'prefix', 'fooNamespace', 'Child element has namespace URI matching prefix');
 

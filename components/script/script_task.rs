@@ -53,12 +53,12 @@ use webdriver_handlers;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
-use script_traits::{CompositorEvent, MouseButton};
-use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
-use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
+use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
+use script_traits::{CompositorEvent, MouseButton};
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptState, ScriptTaskFactory};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan, FocusType};
@@ -517,14 +517,18 @@ impl ScriptTask {
         }
 
         let (devtools_sender, devtools_receiver) = channel();
-        let (image_cache_channel, image_cache_port) = channel();
+
+        // Ask the router to proxy IPC messages from the image cache task to us.
+        let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
+        let image_cache_port =
+            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_port);
 
         ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
 
             image_cache_task: image_cache_task,
-            image_cache_channel: ImageCacheChan(image_cache_channel),
+            image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
             image_cache_port: image_cache_port,
 
             resource_task: resource_task,

@@ -56,13 +56,21 @@ Manifest.prototype = {
     }
 };
 
-function ManifestIterator(manifest, path, test_types) {
+function ManifestIterator(manifest, path, test_types, use_regex) {
     this.manifest = manifest;
-    this.path = path;
+    this.paths = null;
+    this.regex_pattern = null;
     this.test_types = test_types;
     this.test_types_index = -1;
     this.test_list = null;
     this.test_index = null;
+
+    if (use_regex) {
+        this.regex_pattern = path;
+    } else {
+        // Split paths by either a comma or whitespace, and ignore empty sub-strings.
+        this.paths = path.split(/[,\s]+/).filter(function(s) { return s.length > 0 });
+    }
 }
 
 ManifestIterator.prototype = {
@@ -94,7 +102,13 @@ ManifestIterator.prototype = {
     },
 
     matches: function(manifest_item) {
-        return manifest_item.url.indexOf(this.path) === 0;
+        if (this.regex_pattern !== null) {
+            return manifest_item.url.match(this.regex_pattern);
+        } else {
+            return this.paths.some(function(p) {
+                return manifest_item.url.indexOf(p) === 0;
+            });
+        }
     },
 
     to_test: function(manifest_item) {
@@ -138,6 +152,18 @@ function VisualOutput(elem, runner) {
     this.runner.start_callbacks.push(this.on_start.bind(this));
     this.runner.result_callbacks.push(this.on_result.bind(this));
     this.runner.done_callbacks.push(this.on_done.bind(this));
+
+    this.display_filter_state = {};
+
+    var visual_output = this;
+    var display_filter_inputs = this.elem.querySelectorAll(".result-display-filter");
+    for (var i = 0; i < display_filter_inputs.length; ++i) {
+        var display_filter_input = display_filter_inputs[i];
+        this.display_filter_state[display_filter_input.value] = display_filter_input.checked;
+        display_filter_input.addEventListener("change", function(e) {
+            visual_output.apply_display_filter(e.target.value, e.target.checked);
+        })
+    }
 }
 
 VisualOutput.prototype = {
@@ -238,6 +264,7 @@ VisualOutput.prototype = {
             this.elem.querySelector("td." + status_arr[i]).textContent = this.result_count[status_arr[i]];
         }
 
+        this.apply_display_filter_to_result_row(row, this.display_filter_state[test_status]);
         this.results_table.tBodies[0].appendChild(row);
         this.update_meter(this.runner.progress(), this.runner.results.count(), this.runner.test_count());
     },
@@ -295,8 +322,19 @@ VisualOutput.prototype = {
         this.meter.setAttribute("aria-valuenow", count);
         this.meter.setAttribute("aria-valuemax", total);
         this.meter.textContent = this.meter.style.width = (progress * 100).toFixed(1) + "%";
-    }
+    },
 
+    apply_display_filter: function(test_status, display_state) {
+        this.display_filter_state[test_status] = display_state;
+        var result_cells = this.elem.querySelectorAll(".results > table tr td." + test_status);
+        for (var i = 0; i < result_cells.length; ++i) {
+            this.apply_display_filter_to_result_row(result_cells[i].parentNode, display_state)
+        }
+    },
+
+    apply_display_filter_to_result_row: function(result_row, display_state) {
+        result_row.style.display = display_state ? "" : "none";
+    }
 };
 
 function ManualUI(elem, runner) {
@@ -382,6 +420,7 @@ ManualUI.prototype = {
 function TestControl(elem, runner) {
     this.elem = elem;
     this.path_input = this.elem.querySelector(".path");
+    this.use_regex_input = this.elem.querySelector("#use_regex");
     this.pause_button = this.elem.querySelector("button.togglePause");
     this.start_button = this.elem.querySelector("button.toggleStart");
     this.type_checkboxes = Array.prototype.slice.call(
@@ -412,7 +451,8 @@ TestControl.prototype = {
             var path = this.get_path();
             var test_types = this.get_test_types();
             var settings = this.get_testharness_settings();
-            this.runner.start(path, test_types, settings);
+            var use_regex = this.get_use_regex();
+            this.runner.start(path, test_types, settings, use_regex);
             this.set_stop();
             this.set_pause();
         }.bind(this);
@@ -464,6 +504,10 @@ TestControl.prototype = {
     get_testharness_settings: function() {
         return {timeout_multiplier: parseFloat(this.timeout_input.value),
                 output: this.render_checkbox.checked};
+    },
+
+    get_use_regex: function() {
+        return this.use_regex_input.checked;
     },
 
     on_done: function() {
@@ -557,14 +601,15 @@ Runner.prototype = {
         }
     },
 
-    start: function(path, test_types, testharness_settings) {
+    start: function(path, test_types, testharness_settings, use_regex) {
         this.pause_flag = false;
         this.stop_flag = false;
         this.done_flag = false;
         this.path = path;
+        this.use_regex = use_regex;
         this.test_types = test_types;
         window.testharness_properties = testharness_settings;
-        this.manifest_iterator = new ManifestIterator(this.manifest, this.path, this.test_types);
+        this.manifest_iterator = new ManifestIterator(this.manifest, this.path, this.test_types, this.use_regex);
         this.num_tests = null;
 
         if (this.manifest.data === null) {
@@ -709,7 +754,8 @@ function setup() {
     if (options.autorun === "1") {
         runner.start(test_control.get_path(),
                      test_control.get_test_types(),
-                     test_control.get_testharness_settings());
+                     test_control.get_testharness_settings(),
+                     test_control.get_use_regex());
         return;
     }
 }

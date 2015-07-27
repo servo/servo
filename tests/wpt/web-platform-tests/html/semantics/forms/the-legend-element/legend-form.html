@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLLegendElement Test: form</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<div style="display:none">
+  <form id="testform">
+    <legend id="testlegend">radio</legend>
+  </form>
+</div>
+
+<script>
+
+test(function () {
+  var legendEle = document.getElementById("testlegend");
+  assert_equals(legendEle.form, null);
+}, "Check if legend.form return null when legend has no fieldset element as its parent");
+
+</script>

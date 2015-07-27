@@ -16,30 +16,43 @@
  * @return {object} Object wrapping the start method used to run the test.
  */
 function MixedContentTestCase(scenario, description, sanityChecker) {
-  var insecureProtocol = "http";
-  var secureProtocol = "https";
+  var httpProtocol = "http";
+  var httpsProtocol = "https";
+  var wsProtocol = "ws";
+  var wssProtocol = "wss";
 
   var sameOriginHost = location.hostname;
   var crossOriginHost = "{{domains[www1]}}";
 
   // These values can evaluate to either empty strings or a ":port" string.
-  var insecurePort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
-  var securePort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
+  var httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
+  var httpsPort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
+  var wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
+  var wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
 
   var resourcePath = "/mixed-content/generic/expect.py";
+  var wsResourcePath = "/stash_responder";
 
   // Map all endpoints to scenario for use in the test.
   var endpoint = {
     "same-origin":
       location.origin + resourcePath,
     "same-host-https":
-      secureProtocol + "://" + sameOriginHost + securePort + resourcePath,
+      httpsProtocol + "://" + sameOriginHost + httpsPort + resourcePath,
     "same-host-http":
-      insecureProtocol + "://" + sameOriginHost + insecurePort + resourcePath,
+      httpProtocol + "://" + sameOriginHost + httpPort + resourcePath,
     "cross-origin-https":
-      secureProtocol + "://" + crossOriginHost + securePort + resourcePath,
+      httpsProtocol + "://" + crossOriginHost + httpsPort + resourcePath,
     "cross-origin-http":
-      insecureProtocol + "://" + crossOriginHost + insecurePort + resourcePath
+      httpProtocol + "://" + crossOriginHost + httpPort + resourcePath,
+    "same-host-wss":
+      wssProtocol + "://" + sameOriginHost + wssPort + wsResourcePath,
+    "same-host-ws":
+      wsProtocol + "://" + sameOriginHost + wsPort + wsResourcePath,
+    "cross-origin-wss":
+      wssProtocol + "://" + crossOriginHost + wssPort + wsResourcePath,
+    "cross-origin-ws":
+      wsProtocol + "://" + crossOriginHost + wsPort + wsResourcePath
   };
 
   // Mapping all the resource requesting methods to the scenario.
@@ -58,7 +71,8 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "picture-tag": requestViaPicture,
     "object-tag": requestViaObject,
     "link-css-tag": requestViaLinkStylesheet,
-    "link-prefetch-tag": requestViaLinkPrefetch
+    "link-prefetch-tag": requestViaLinkPrefetch,
+    "websocket-request": requestViaWebSocket
   };
 
   sanityChecker.checkScenario(scenario, resourceMap);
@@ -79,35 +93,29 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "picture-tag": "image/png",
     "object-tag": "text/html",
     "link-css-tag": "text/css",
-    "link-prefetch-tag": "text/html"
+    "link-prefetch-tag": "text/html",
+    "websocket-request": "application/json"
   };
 
   var mixed_content_test = async_test(description);
 
   function runTest() {
-    var testCompleted = false;
-
-    // Due to missing implementations, tests time out, so we fail them early.
-    // TODO(kristijanburnik): Once WPT rolled in:
-    //   https://github.com/w3c/testharness.js/pull/127
-    // Refactor to make use of step_timeout.
-    setTimeout(function() {
-      mixed_content_test.step(function() {
-        assert_true(testCompleted, "Expected test to complete.");
-        mixed_content_test.done();
-      })
-    }, 1000);
+    sanityChecker.setFailTimeout(mixed_content_test);
 
     var key = guid();
     var value = guid();
+    // We use the same path for both HTTP/S and WS/S stash requests.
+    var stash_path = encodeURIComponent("/mixed-content");
     var announceResourceRequestUrl = endpoint['same-origin'] +
                                      "?action=put&key=" + key +
-                                     "&value=" + value;
+                                     "&value=" + value +
+                                     "&path=" + stash_path;
     var assertResourceRequestUrl = endpoint['same-origin'] +
-                                  "?action=take&key=" + key;
+                                  "?action=take&key=" + key +
+                                  "&path=" + stash_path;
     var resourceRequestUrl = endpoint[scenario.origin] + "?redirection=" +
-                             scenario.redirection + "&action=purge&key=" +
-                             key + "&content_type=" +
+                             scenario.redirection + "&action=purge&key=" + key +
+                             "&path=" + stash_path + "&content_type=" +
                              contentType[scenario.subresource];
 
     xhrRequest(announceResourceRequestUrl)
@@ -147,7 +155,6 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
                   "'.");
          }, "Check if request was sent.");
          mixed_content_test.done();
-         testCompleted = true;
       });
 
   }  // runTest

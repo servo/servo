@@ -160,11 +160,11 @@ impl<'a> MouseEventMethods for &'a MouseEvent {
     //  - https://github.com/servo/servo/issues/6643
     //  - https://bugzilla.mozilla.org/show_bug.cgi?id=1186125
     // This returns the same result as current gecko.
-    fn GetWhich(self) -> Fallible<i32> {
+    fn Which(self) -> i32 {
         if opts::experimental_enabled() {
-            Ok((self.button.get() + 1) as i32)
+            (self.button.get() + 1) as i32
         } else {
-            Err(NotSupported)
+            0
         }
     }
 

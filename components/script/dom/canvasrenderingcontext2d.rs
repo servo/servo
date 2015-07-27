@@ -28,7 +28,6 @@ use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use ipc_channel::ipc;
 
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
@@ -38,7 +37,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
 use net_traits::image::base::PixelFormat;
 
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -341,7 +340,7 @@ impl CanvasRenderingContext2D {
         let window = window_from_node(canvas.r());
         let window = window.r();
         let image_cache = window.image_cache_task();
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = ipc::channel().unwrap();
         image_cache.request_image(url, ImageCacheChan(response_chan), None);
         let result = response_port.recv().unwrap();
         result.image_response

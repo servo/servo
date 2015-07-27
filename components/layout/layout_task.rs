@@ -68,7 +68,6 @@ use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::thread;
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
 use style::selector_matching::Stylist;
@@ -327,16 +326,15 @@ impl LayoutTask {
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
-        let (image_cache_sender, image_cache_receiver) = channel();
         let (canvas_layers_sender, canvas_layers_receiver) = channel();
 
-        // Start a thread to proxy IPC messages from the layout thread to us.
-        let (pipeline_sender, pipeline_receiver) = channel();
-        thread::spawn(move || {
-            while let Ok(message) = pipeline_port.recv() {
-                pipeline_sender.send(message).unwrap()
-            }
-        });
+        // Proxy IPC messages from the pipeline to the layout thread.
+        let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
+
+        // Ask the router to proxy IPC messages from the image cache task to the layout thread.
+        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
+        let image_cache_receiver =
+            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
         LayoutTask {
             id: id,
@@ -354,7 +352,7 @@ impl LayoutTask {
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
-            image_cache_sender: ImageCacheChan(image_cache_sender),
+            image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(

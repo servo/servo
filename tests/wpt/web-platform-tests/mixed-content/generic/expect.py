@@ -58,14 +58,15 @@ def main(request, response):
 
         key = request.GET["key"]
         stash = request.server.stash
+        path = request.GET.get("path", request.url.split('?'))[0]
 
         if action == "put":
             value = request.GET["value"]
-            stash.take(key=key)
-            stash.put(key=key, value=value)
+            stash.take(key=key, path=path)
+            stash.put(key=key, value=value, path=path)
             response_data = json.dumps({"status": "success", "result": key})
         elif action == "purge":
-            value = stash.take(key=key)
+            value = stash.take(key=key, path=path)
             if content_type == "image/png":
                 response_data = open(os.path.join(request.doc_root,
                                                   "images",
@@ -86,7 +87,7 @@ def main(request, response):
             else:
                 response_data = "/* purged */"
         elif action == "take":
-            value = stash.take(key=key)
+            value = stash.take(key=key, path=path)
             if value is None:
                 status = "allowed"
             else:

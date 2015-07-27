@@ -38,7 +38,8 @@
   //readonly attribute WindowProxy parent;
   readonly attribute Window parent;
   readonly attribute Element? frameElement;
-  //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank", optional DOMString features = "", optional boolean replace = false);
+  //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
+  //                 optional DOMString features = "", optional boolean replace = false);
   //getter WindowProxy (unsigned long index);
   //getter object (DOMString name);
 

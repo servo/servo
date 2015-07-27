@@ -20,7 +20,6 @@ interface MouseEvent : UIEvent {
     //readonly    attribute unsigned short buttons;
     //boolean getModifierState (DOMString keyArg);
 
-    [Throws]
     readonly    attribute long           which;
 };
 
@@ -38,5 +37,11 @@ dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-def-MouseEvent-1
 partial interface MouseEvent {
     // Deprecated in DOM Level 3
-    void initMouseEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg, long detailArg, long screenXArg, long screenYArg, long clientXArg, long clientYArg, boolean ctrlKeyArg, boolean altKeyArg, boolean shiftKeyArg, boolean metaKeyArg, short buttonArg, EventTarget? relatedTargetArg);
+    void initMouseEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,
+                         Window? viewArg, long detailArg,
+                         long screenXArg, long screenYArg,
+                         long clientXArg, long clientYArg,
+                         boolean ctrlKeyArg, boolean altKeyArg,
+                         boolean shiftKeyArg, boolean metaKeyArg,
+                         short buttonArg, EventTarget? relatedTargetArg);
 };

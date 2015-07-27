@@ -1,8 +1,8 @@
 /* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- *
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
  * The origin of this IDL file is:
  * https://dom.spec.whatwg.org/#interface-document
  * https://www.whatwg.org/specs/web-apps/current-work/#the-document-object
@@ -59,9 +59,11 @@ interface Document : Node {
 
   // NodeFilter.SHOW_ALL = 0xFFFFFFFF
   [NewObject]
-  NodeIterator createNodeIterator(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
+  NodeIterator createNodeIterator(Node root, optional unsigned long whatToShow = 0xFFFFFFFF,
+                                  optional NodeFilter? filter = null);
   [NewObject]
-  TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
+  TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF,
+                              optional NodeFilter? filter = null);
 };
 Document implements ParentNode;
 

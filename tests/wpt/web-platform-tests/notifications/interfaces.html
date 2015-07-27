@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Web Notifications IDL tests</title>
+<title>Notification interface IDL tests</title>
 <div id=log></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -74,7 +74,7 @@ var idlArray = new IdlArray();
   }
 });
 idlArray.add_objects({
-  Notification: ['new Notification("foo")'],
+  Notification: ['new Notification("Running idlharness.")'],
 });
 idlArray.test();
 </script>

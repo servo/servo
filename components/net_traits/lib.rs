@@ -10,6 +10,8 @@
 #![feature(vec_push_all)]
 #![plugin(serde_macros)]
 
+#![plugin(serde_macros)]
+
 extern crate euclid;
 extern crate hyper;
 extern crate ipc_channel;
