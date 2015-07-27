@@ -21,7 +21,7 @@ test(function() {
 
     reader.onerror = t.step_func(function(e) {
       assert_equals(reader.result, null);
-      assert_equals(reader.error.code, 11);
+      assert_equals(reader.error.code, DOMException.INVALID_STATE_ERR);
       t.done();
     });
 
