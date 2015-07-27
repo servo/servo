@@ -98,12 +98,28 @@ pub trait LayoutRPC {
     /// Requests the node containing the point of interest
     fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
     fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
+    fn offset_parent(&self) -> OffsetParentResponse;
 }
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
 pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
+
+#[derive(Clone)]
+pub struct OffsetParentResponse {
+    pub node_address: Option<UntrustedNodeAddress>,
+    pub rect: Rect<Au>,
+}
+
+impl OffsetParentResponse {
+    pub fn empty() -> OffsetParentResponse {
+        OffsetParentResponse {
+            node_address: None,
+            rect: Rect::zero(),
+        }
+    }
+}
 
 /// Why we're doing reflow.
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -120,6 +136,7 @@ pub enum ReflowQueryType {
     NoQuery,
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
+    OffsetParentQuery(TrustedNodeAddress),
 }
 
 /// Information needed for a reflow.

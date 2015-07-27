@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="/resources/testharness.js"></script>
+		<script src="/resources/testharnessreport.js"></script>
+        <style type="text/css">
+            #outer {
+                position: absolute;
+                margin-left: 50px;
+                width: 400px;
+                height: 400px;
+                background-color: red;
+            }
+            #inner {
+                margin-left: 100px;
+                width: 200px;
+                height: 200px;
+                background-color: green;
+            }
+            #div {
+                margin: 25px;
+                position: absolute;
+                width: 80px;
+                height: 130px;
+                background-color: blue;
+            }
+        </style>
+	</head>
+	<body>
+        <div id="outer">
+            <div id="inner">
+                <div id="div"></div>
+            </div>
+        </div>
+
+		<script>
+  			test(function() {
+                var div = document.getElementById("div");
+                var outer = document.getElementById("outer");
+
+                var parent = div.offsetParent;
+                assert_equals(parent, outer);
+
+                assert_equals(div.offsetLeft, 125);
+                assert_equals(div.offsetTop, 25);
+                assert_equals(div.offsetWidth, 80);
+                assert_equals(div.offsetHeight, 130);
+  			});
+		</script>
+	</body>
+</html>

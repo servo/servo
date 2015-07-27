@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerN
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
-use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
@@ -25,7 +25,7 @@ use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers};
+use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers, from_untrusted_node_address};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -539,6 +539,7 @@ pub trait WindowHelpers {
     fn layout(&self) -> &LayoutRPC;
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au>;
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>);
     fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn handle_resize_inactive_msg(self, new_size: WindowSizeData);
     fn set_fragment_name(self, fragment: Option<String>);
@@ -767,6 +768,28 @@ impl<'a> WindowHelpers for &'a Window {
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
+    }
+
+    fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::OffsetParentQuery(node),
+                    ReflowReason::Query);
+        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
+        let response = self.layout_rpc.offset_parent();
+        let js_runtime = self.js_runtime.borrow();
+        let js_runtime = js_runtime.as_ref().unwrap();
+        let element = match response.node_address {
+            Some(parent_node_address) => {
+                let node = from_untrusted_node_address(js_runtime.rt(),
+                                                       parent_node_address);
+                let element = ElementCast::to_ref(node.r()).unwrap();
+                Some(Root::from_ref(element))
+            }
+            None => {
+                None
+            }
+        };
+        (element, response.rect)
     }
 
     fn handle_reflow_complete_msg(self, reflow_id: u32) {
@@ -1077,6 +1100,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::NoQuery => "\tNoQuery",
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+        ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
     });
 
     debug_msg.push_str(match *reason {
