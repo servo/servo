@@ -743,22 +743,18 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         self.node.mutate_layout_data()
     }
 
-    #[inline]
-    pub fn get_style<'a>(&self, layout_data_ref: &'a LayoutDataWrapper) -> &'a Arc<ComputedValues> {
-        match self.get_pseudo_element_type() {
-            PseudoElementType::Before(_) => layout_data_ref.data.before_style.as_ref().unwrap(),
-            PseudoElementType::After(_) => layout_data_ref.data.after_style.as_ref().unwrap(),
-            PseudoElementType::Normal => layout_data_ref.shared_data.style.as_ref().unwrap(),
-        }
-    }
-
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
     #[inline]
     pub fn style<'a>(&'a self) -> Ref<'a, Arc<ComputedValues>> {
         Ref::map(self.borrow_layout_data(), |layout_data_ref| {
             let layout_data = layout_data_ref.as_ref().expect("no layout data");
-            self.get_style(layout_data)
+            let style = match self.get_pseudo_element_type() {
+                PseudoElementType::Before(_) => &layout_data.data.before_style,
+                PseudoElementType::After(_) => &layout_data.data.after_style,
+                PseudoElementType::Normal => &layout_data.shared_data.style,
+            };
+            style.as_ref().unwrap()
         })
     }
 
