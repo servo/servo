@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived, HTMLHtmlElementDerived};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Error::Syntax;
@@ -215,6 +215,63 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
         document.r().begin_focus_transaction();
         // If `request_focus` is not called, focus will be set to None.
         document.r().commit_focus_transaction(FocusType::Element);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    fn GetOffsetParent(self) -> Option<Root<Element>> {
+        if self.is_htmlbodyelement() || self.is_htmlhtmlelement() {
+            return None;
+        }
+
+        let node = NodeCast::from_ref(self);
+        let window = window_from_node(self);
+        let (element, _) = window.offset_parent_query(node.to_trusted_node_address());
+
+        element
+    }
+
+    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    fn OffsetTop(self) -> i32 {
+        if self.is_htmlbodyelement() {
+            return 0;
+        }
+
+        let node = NodeCast::from_ref(self);
+        let window = window_from_node(self);
+        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+
+        rect.origin.y.to_nearest_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    fn OffsetLeft(self) -> i32 {
+        if self.is_htmlbodyelement() {
+            return 0;
+        }
+
+        let node = NodeCast::from_ref(self);
+        let window = window_from_node(self);
+        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+
+        rect.origin.x.to_nearest_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    fn OffsetWidth(self) -> i32 {
+        let node = NodeCast::from_ref(self);
+        let window = window_from_node(self);
+        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+
+        rect.size.width.to_nearest_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    fn OffsetHeight(self) -> i32 {
+        let node = NodeCast::from_ref(self);
+        let window = window_from_node(self);
+        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+
+        rect.size.height.to_nearest_px()
     }
 }
 

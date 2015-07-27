@@ -45,5 +45,16 @@ interface HTMLElement : Element {
   //readonly attribute boolean? commandDisabled;
   //readonly attribute boolean? commandChecked;
 };
+
+// http://dev.w3.org/csswg/cssom-view/#extensions-to-the-htmlelement-interface
+partial interface HTMLElement {
+  // CSSOM things are not [Pure] because they can flush
+  readonly attribute Element? offsetParent;
+  readonly attribute long offsetTop;
+  readonly attribute long offsetLeft;
+  readonly attribute long offsetWidth;
+  readonly attribute long offsetHeight;
+};
+
 HTMLElement implements GlobalEventHandlers;
 HTMLElement implements ElementCSSInlineStyle;

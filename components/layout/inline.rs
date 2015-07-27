@@ -1623,6 +1623,7 @@ impl Flow for InlineFlow {
 
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
+                                             level: i32,
                                              stacking_context_position: &Point2D<Au>) {
         // FIXME(#2795): Get the real container size.
         for fragment in self.fragments.fragments.iter() {
@@ -1636,6 +1637,7 @@ impl Flow for InlineFlow {
             let relative_containing_block_mode =
                 self.base.absolute_position_info.relative_containing_block_mode;
             iterator.process(fragment,
+                             level,
                              &fragment.stacking_relative_border_box(stacking_relative_position,
                                                                     relative_containing_block_size,
                                                                     relative_containing_block_mode,

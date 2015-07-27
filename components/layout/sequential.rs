@@ -122,22 +122,24 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
 pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
                                                        iterator: &mut FragmentBorderBoxIterator) {
     fn doit(flow: &mut Flow,
+            level: i32,
             iterator: &mut FragmentBorderBoxIterator,
             stacking_context_position: &Point2D<Au>) {
-        flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position);
+        flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
 
         for kid in flow::mut_base(flow).child_iter() {
             let stacking_context_position =
                 if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
-                    *stacking_context_position + flow::base(kid).stacking_relative_position
+                    let margin = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0));
+                    *stacking_context_position + flow::base(kid).stacking_relative_position + margin
                 } else {
                     *stacking_context_position
                 };
 
             // FIXME(#2795): Get the real container size.
-            doit(kid, iterator, &stacking_context_position);
+            doit(kid, level+1, iterator, &stacking_context_position);
         }
     }
 
-    doit(&mut **root, iterator, &ZERO_POINT);
+    doit(&mut **root, 0, iterator, &ZERO_POINT);
 }
