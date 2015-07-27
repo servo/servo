@@ -1214,12 +1214,10 @@ impl Iterator for NodeSiblingIterator {
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
-        let current = match self.current.take() {
-            None => return None,
-            Some(current) => current,
-        };
-        self.current = current.r().GetNextSibling();
-        Some(current)
+        self.current.take().and_then(|current| {
+            self.current = current.r().GetNextSibling();
+            Some(current)
+        })
     }
 }
 
@@ -1231,12 +1229,10 @@ impl Iterator for ReverseSiblingIterator {
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
-        let current = match self.current.take() {
-            None => return None,
-            Some(current) => current,
-        };
-        self.current = current.r().GetPreviousSibling();
-        Some(current)
+        self.current.take().and_then(|current| {
+            self.current = current.r().GetPreviousSibling();
+            Some(current)
+        })
     }
 }
 
@@ -1338,12 +1334,10 @@ impl Iterator for LastChildIterator {
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
-        let current = match self.current.take() {
-            None => return None,
-            Some(current) => current,
-        };
-        self.current = current.r().GetLastChild();
-        Some(current)
+        self.current.take().and_then(|current| {
+            self.current = current.r().GetLastChild();
+            Some(current)
+        })
     }
 }
 
@@ -1355,12 +1349,10 @@ impl Iterator for AncestorIterator {
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
-        let current = match self.current.take() {
-            None => return None,
-            Some(current) => current,
-        };
-        self.current = current.r().GetParentNode();
-        Some(current)
+        self.current.take().and_then(|current| {
+            self.current = current.r().GetParentNode();
+            Some(current)
+        })
     }
 }
 
