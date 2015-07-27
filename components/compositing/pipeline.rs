@@ -28,7 +28,9 @@ use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use url::Url;
+use util;
 use util::geometry::{PagePx, ViewportPx};
+use util::ipc::OptionalIpcSender;
 use util::opts;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
@@ -82,7 +84,7 @@ impl Pipeline {
                            device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
                            -> (Pipeline, PipelineContent)
                            where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
-        let (layout_to_paint_chan, layout_to_paint_port) = channel();
+        let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
@@ -288,7 +290,7 @@ pub struct PipelineContent {
     load_data: LoadData,
     failure: Failure,
     script_port: Option<Receiver<ConstellationControlMsg>>,
-    layout_to_paint_chan: Sender<LayoutToPaintMsg>,
+    layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
     layout_to_paint_port: Option<Receiver<LayoutToPaintMsg>>,
     chrome_to_paint_port: Option<Receiver<ChromeToPaintMsg>>,
