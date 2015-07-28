@@ -36,14 +36,14 @@ pub enum FileReaderFunction {
 pub type TrustedFileReader = Trusted<FileReader>;
 
 pub struct ReadData {
-    pub bytes: Receiver<Option<Vec<u8>>>,
+    pub bytes: Receiver<Vec<u8>>,
     pub blobtype: DOMString,
     pub label: Option<DOMString>,
     pub function: FileReaderFunction
 }
 
 impl ReadData {
-    pub fn new(bytes: Receiver<Option<Vec<u8>>>, blobtype: DOMString,
+    pub fn new(bytes: Receiver<Vec<u8>>, blobtype: DOMString,
                label: Option<DOMString>, function: FileReaderFunction) -> ReadData {
         ReadData {
             bytes: bytes,
@@ -179,7 +179,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId, data: Option<BlobBody>) {
+    pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId, blob_body: BlobBody) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -194,18 +194,11 @@ impl FileReader {
         // Step 8.1
         fr.change_ready_state(FileReaderReadyState::Done);
         // Step 8.2
-        let output = match data {
-            Some(blob_body) => {
-                match blob_body.function {
-                    FileReaderFunction::ReadAsDataUrl =>
-                        FileReader::perform_readasdataurl(blob_body),
-                    FileReaderFunction::ReadAsText =>
-                        FileReader::perform_readastext(blob_body),
-                }
-            },
-            None => {
-                Ok(None)
-            }
+        let output = match blob_body.function {
+            FileReaderFunction::ReadAsDataUrl =>
+                FileReader::perform_readasdataurl(blob_body),
+            FileReaderFunction::ReadAsText =>
+                FileReader::perform_readastext(blob_body),
         };
 
         //FIXME handle error if error is possible
@@ -408,7 +401,7 @@ pub enum FileReaderEvent {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId, DOMString),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
-    ProcessReadEOF(TrustedFileReader, GenerationId, Option<BlobBody>)
+    ProcessReadEOF(TrustedFileReader, GenerationId, BlobBody)
 }
 
 impl Runnable for FileReaderEvent {
@@ -443,7 +436,7 @@ fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
         gen_id, DOMString::new());
     chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
 
-    let output = match read_data.bytes.recv() {
+    let bytes = match read_data.bytes.recv() {
         Ok(bytes) => bytes,
         Err(_) => {
             let task = box FileReaderEvent::ProcessReadError(filereader,
@@ -456,9 +449,7 @@ fn perform_annotated_read_operation(gen_id: GenerationId, read_data: ReadData,
     let blobtype = read_data.blobtype.clone();
     let label = read_data.label.clone();
 
-    let blob_body = output.map(|bytes| {
-        BlobBody::new(bytes, blobtype, label, read_data.function)
-    });
+    let blob_body = BlobBody::new(bytes, blobtype, label, read_data.function);
 
     let task = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, blob_body);
     chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
