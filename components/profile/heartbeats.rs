@@ -51,6 +51,7 @@ pub fn init() {
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWebSocketEvent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWorkerEvent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptXhrEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
     unsafe {
         HBS = Some(mem::transmute(Box::new(hbs)));
     }
@@ -68,6 +69,12 @@ pub fn cleanup() {
             h.clear();
         }
         HBS = None;
+    }
+}
+
+pub fn is_heartbeat_enabled(category: &ProfilerCategory) -> bool {
+    unsafe {
+        HBS.map_or(false, |m| (*m).contains_key(category))
     }
 }
 

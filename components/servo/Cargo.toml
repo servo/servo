@@ -45,6 +45,7 @@ default = ["glutin_app", "window", "webdriver"]
 window = ["glutin_app/window"]
 headless = ["glutin_app/headless"]
 webdriver = ["webdriver_server"]
+energy-profiling = ["profile_traits/energy-profiling"]
 
 # Uncomment to profile on Linux:
 #

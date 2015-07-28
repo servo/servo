@@ -33,6 +33,7 @@ special integration:
 * [`tests/ref`][tests/ref]: Reference tests.
 * [`tests/html`][tests/html]: Manual test cases and examples.
 * [`tests/power`][tests/power]: Tests for measuring power usage.
+* [`tests/heartbeats`][tests/heartbeats]: Tests for profiler-level timing and energy behavior.
 * [`tests/wpt`][tests/wpt]: Web platform tests and harness.
 
 ## Miscellaneous

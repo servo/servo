@@ -7,12 +7,24 @@ authors = ["The Servo Project Developers"]
 name = "profile_traits"
 path = "lib.rs"
 
+[features]
+energy-profiling = ["energymon", "energy-monitor"]
+
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
+
+[dependencies.energymon]
+git = "https://github.com/energymon/energymon-rust.git"
+rev = "67f74732ac"
+optional = true
+
+[dependencies.energy-monitor]
+version = "0.1.0"
+optional = true
 
 [dependencies]
 serde = "0.5"

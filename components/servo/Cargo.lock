@@ -436,6 +436,40 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "energy-monitor"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "energymon"
+version = "0.1.0"
+source = "git+https://github.com/energymon/energymon-rust.git?rev=67f74732ac#67f74732ac0acc682659f7e81836155a32188fd0"
+dependencies = [
+ "energy-monitor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "energymon-default-sys 0.1.0 (git+https://github.com/energymon/energymon-default-sys.git)",
+ "energymon-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "energymon-default-sys"
+version = "0.1.0"
+source = "git+https://github.com/energymon/energymon-default-sys.git#3e83c0ad72d9729f7f6b297e4c55dfa8b1db32ac"
+dependencies = [
+ "energymon-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "energymon-sys"
+version = "0.1.0"
+source = "git+https://github.com/energymon/energymon-sys.git#770d2cfe0373cf833992352b50dfdceb7a42b2e6"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1282,6 +1316,8 @@ dependencies = [
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
+ "energy-monitor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "energymon 0.1.0 (git+https://github.com/energymon/energymon-rust.git?rev=67f74732ac)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "serde 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
