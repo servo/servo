@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
-use dom::bindings::error::Error::NotSupported;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
@@ -215,4 +214,3 @@ impl<'a> MouseEventMethods for &'a MouseEvent {
         self.related_target.set(relatedTargetArg.map(JS::from_ref));
     }
 }
-
