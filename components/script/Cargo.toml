@@ -30,9 +30,6 @@ path = "../profile_traits"
 [dependencies.script_traits]
 path = "../script_traits"
 
-[dependencies.layout_traits]
-path = "../layout_traits"
-
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
