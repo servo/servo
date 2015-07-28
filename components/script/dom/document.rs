@@ -23,6 +23,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElem
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::InheritTypes::ElementDerived;
+use dom::bindings::codegen::InheritTypes::HTMLBaseElementCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
@@ -45,6 +46,7 @@ use dom::element::{ElementTypeId, ActivationElementHelpers, FocusElementHelpers}
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
@@ -231,7 +233,14 @@ pub trait DocumentHelpers<'a> {
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
     fn is_fully_active(self) -> bool;
+    /// https://dom.spec.whatwg.org/#concept-document-url
     fn url(self) -> Url;
+    /// https://html.spec.whatwg.org/multipage/#fallback-base-url
+    fn fallback_base_url(self) -> Url;
+    /// https://html.spec.whatwg.org/multipage/#document-base-url
+    fn base_url(self) -> Url;
+    /// Returns the first `base` element in the DOM that has an `href` attribute.
+    fn base_element(self) -> Option<Root<HTMLBaseElement>>;
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
     fn set_encoding_name(self, name: DOMString);
@@ -335,9 +344,36 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         true
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-url
+    // https://dom.spec.whatwg.org/#concept-document-url
     fn url(self) -> Url {
         self.url.clone()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#fallback-base-url
+    fn fallback_base_url(self) -> Url {
+        // Step 1: iframe srcdoc (#4767).
+        // Step 2: about:blank with a creator browsing context.
+        // Step 3.
+        self.url()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#document-base-url
+    fn base_url(self) -> Url {
+        match self.base_element() {
+            // Step 1.
+            None => self.fallback_base_url(),
+            // Step 2.
+            Some(base) => base.frozen_base_url(),
+        }
+    }
+
+    /// Returns the first `base` element in the DOM that has an `href` attribute.
+    fn base_element(self) -> Option<Root<HTMLBaseElement>> {
+        NodeCast::from_ref(self)
+            .traverse_preorder()
+            .filter_map(HTMLBaseElementCast::to_root)
+            .filter(|element| ElementCast::from_ref(&**element).has_attribute(&atom!("href")))
+            .next()
     }
 
     fn quirks_mode(self) -> QuirksMode {
