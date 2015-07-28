@@ -370,6 +370,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         for node in child.traverse_preorder() {
             node.set_flag(IS_IN_DOC, false);
             vtable_for(&&*node).unbind_from_tree(parent_in_doc);
+            node.layout_data.dispose(&node);
         }
         child.layout_data.dispose(child);
         let document = child.owner_doc();
