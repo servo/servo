@@ -4,12 +4,14 @@
 
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
+use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -41,3 +43,8 @@ impl HTMLBaseElement {
     }
 }
 
+impl<'a> VirtualMethods for &'a HTMLBaseElement {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+        Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+    }
+}
