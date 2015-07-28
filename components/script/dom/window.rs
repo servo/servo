@@ -540,6 +540,7 @@ pub trait WindowHelpers {
     fn layout(&self) -> &LayoutRPC;
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au>;
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32>;
     fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn set_fragment_name(self, fragment: Option<String>);
     fn steal_fragment_name(self) -> Option<String>;
@@ -769,6 +770,13 @@ impl<'a> WindowHelpers for &'a Window {
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
+    }
+
+    fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeGeometryQuery(node_geometry_request),
+                    ReflowReason::Query);
+        self.layout_rpc.node_geometry().client_rect
     }
 
     fn handle_reflow_complete_msg(self, reflow_id: u32) {
@@ -1077,6 +1085,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::NoQuery => "\tNoQuery",
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+        ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
     });
 
     debug_msg.push_str(match *reason {

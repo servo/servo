@@ -53,7 +53,7 @@ use net_traits::{load_bytes_iter, PendingAsyncLoad};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
-use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse};
+use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
@@ -70,6 +70,7 @@ use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
+use style::properties::style_structs;
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
@@ -125,6 +126,9 @@ pub struct LayoutTaskData {
 
     /// A queued response for the content boxes of a node.
     pub content_boxes_response: Vec<Rect<Au>>,
+
+    /// A queued response for the client {top, left, width, height} of a node in pixels.
+    pub client_rect_response: Rect<i32>,
 
     /// The list of currently-running animations.
     pub running_animations: Vec<Animation>,
@@ -368,6 +372,7 @@ impl LayoutTask {
                     generation: 0,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
+                    client_rect_response: Rect::zero(),
                     running_animations: Vec::new(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
@@ -850,6 +855,16 @@ impl LayoutTask {
         rw_data.content_boxes_response = iterator.rects;
     }
 
+    fn process_node_geometry_request<'a>(&'a self,
+                                      requested_node: TrustedNodeAddress,
+                                      layout_root: &mut FlowRef,
+                                      rw_data: &mut RWGuard<'a>) {
+        let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+        let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
+        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+        rw_data.client_rect_response = iterator.client_rect;
+    }
+
     fn compute_abs_pos_and_build_display_list<'a>(&'a self,
                                                   data: &Reflow,
                                                   layout_root: &mut FlowRef,
@@ -1043,6 +1058,9 @@ impl LayoutTask {
             }
             ReflowQueryType::ContentBoxesQuery(node) => {
                 self.process_content_boxes_request(node, &mut root_flow, &mut rw_data)
+            }
+            ReflowQueryType::NodeGeometryQuery(node) => {
+                self.process_node_geometry_request(node, &mut root_flow, &mut rw_data)
             }
             ReflowQueryType::NoQuery => {}
         }
@@ -1283,6 +1301,14 @@ impl LayoutRPC for LayoutRPCImpl {
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
+    fn node_geometry(&self) -> NodeGeometryResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        NodeGeometryResponse {
+            client_rect: rw_data.client_rect_response
+        }
+    }
+
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
@@ -1397,6 +1423,40 @@ impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
         fragment.contains_node(self.node_address)
+    }
+}
+
+struct FragmentLocatingFragmentIterator {
+    node_address: OpaqueNode,
+    client_rect: Rect<i32>,
+}
+
+impl FragmentLocatingFragmentIterator {
+    fn new(node_address: OpaqueNode) -> FragmentLocatingFragmentIterator {
+        FragmentLocatingFragmentIterator {
+            node_address: node_address,
+            client_rect: Rect::zero()
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
+    fn process(&mut self, fragment: &Fragment, border_box: &Rect<Au>) {
+        let style_structs::Border {
+            border_top_width: top_width,
+            border_right_width: right_width,
+            border_bottom_width: bottom_width,
+            border_left_width: left_width,
+            ..
+        } = *fragment.style.get_border();
+        self.client_rect.origin.y = top_width.to_px();
+        self.client_rect.origin.x = left_width.to_px();
+        self.client_rect.size.width = (border_box.size.width - left_width - right_width).to_px();
+        self.client_rect.size.height = (border_box.size.height - top_width - bottom_width).to_px();
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.node == self.node_address
     }
 }
 
