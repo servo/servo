@@ -44,8 +44,8 @@ interface Range {
   short compareBoundaryPoints(unsigned short how, Range sourceRange);
   // [Throws]
   // void deleteContents();
-  // [NewObject, Throws]
-  // DocumentFragment extractContents();
+  [NewObject, Throws]
+  DocumentFragment extractContents();
   [NewObject, Throws]
   DocumentFragment cloneContents();
   [Throws]
