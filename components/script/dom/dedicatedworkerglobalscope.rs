@@ -26,7 +26,7 @@ use script_task::StackRootTLS;
 
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 
 use net_traits::{load_whole_resource, ResourceTask};
 use profile_traits::mem::{self, Reporter, ReporterRequest};
@@ -34,7 +34,7 @@ use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
@@ -110,7 +110,7 @@ impl DedicatedWorkerGlobalScope {
     fn new_inherited(worker_url: Url,
                      id: PipelineId,
                      mem_profiler_chan: mem::ProfilerChan,
-                     devtools_chan: Option<DevtoolsControlChan>,
+                     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                      runtime: Rc<Runtime>,
                      resource_task: ResourceTask,
                      constellation_chan: ConstellationChan,
@@ -133,7 +133,7 @@ impl DedicatedWorkerGlobalScope {
     pub fn new(worker_url: Url,
                id: PipelineId,
                mem_profiler_chan: mem::ProfilerChan,
-               devtools_chan: Option<DevtoolsControlChan>,
+               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                runtime: Rc<Runtime>,
                resource_task: ResourceTask,
                constellation_chan: ConstellationChan,
@@ -152,7 +152,7 @@ impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(worker_url: Url,
                             id: PipelineId,
                             mem_profiler_chan: mem::ProfilerChan,
-                            devtools_chan: Option<DevtoolsControlChan>,
+                            devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
                             constellation_chan: ConstellationChan,

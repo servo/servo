@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rustc_serialize::{json, Encoder, Encodable};
 use std::cell::RefCell;
@@ -10,21 +11,20 @@ use std::mem;
 use std::net::TcpStream;
 use std::thread::sleep_ms;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{channel, Sender, Receiver};
-use time::PreciseTime;
+use std::sync::mpsc::{channel, Sender};
 
 use actor::{Actor, ActorRegistry};
 use actors::memory::{MemoryActor, TimelineMemoryReply};
 use actors::framerate::FramerateActor;
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use devtools_traits::DevtoolScriptControlMsg::{SetTimelineMarkers, DropTimelineMarkers};
-use devtools_traits::{TimelineMarker, TracingMetadata, TimelineMarkerType};
+use devtools_traits::{PreciseTime, TimelineMarker, TracingMetadata, TimelineMarkerType};
 use protocol::JsonPacketStream;
 use util::task;
 
 pub struct TimelineActor {
     name: String,
-    script_sender: Sender<DevtoolScriptControlMsg>,
+    script_sender: IpcSender<DevtoolScriptControlMsg>,
     devtools_sender: Sender<DevtoolsControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
     pipeline: PipelineId,
@@ -126,7 +126,7 @@ static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u32 = 200; //ms
 impl TimelineActor {
     pub fn new(name: String,
                pipeline: PipelineId,
-               script_sender: Sender<DevtoolScriptControlMsg>,
+               script_sender: IpcSender<DevtoolScriptControlMsg>,
                devtools_sender: Sender<DevtoolsControlMsg>) -> TimelineActor {
 
         let marker_types = vec!(TimelineMarkerType::Reflow,
@@ -146,7 +146,7 @@ impl TimelineActor {
         }
     }
 
-    fn pull_timeline_data(&self, receiver: Receiver<TimelineMarker>, mut emitter: Emitter) {
+    fn pull_timeline_data(&self, receiver: IpcReceiver<TimelineMarker>, mut emitter: Emitter) {
         let is_recording = self.is_recording.clone();
 
         if !*is_recording.lock().unwrap() {
@@ -240,8 +240,10 @@ impl Actor for TimelineActor {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
 
-                let (tx, rx) = channel::<TimelineMarker>();
-                self.script_sender.send(SetTimelineMarkers(self.pipeline, self.marker_types.clone(), tx)).unwrap();
+                let (tx, rx) = ipc::channel::<TimelineMarker>().unwrap();
+                self.script_sender.send(SetTimelineMarkers(self.pipeline,
+                                                           self.marker_types.clone(),
+                                                           tx)).unwrap();
 
                 *self.stream.borrow_mut() = stream.try_clone().ok();
 
@@ -255,10 +257,11 @@ impl Actor for TimelineActor {
                 // init framerate actor
                 if let Some(with_ticks) = msg.get("withTicks") {
                     if let Some(true) = with_ticks.as_boolean() {
-                        let framerate_actor = Some(FramerateActor::create(registry,
-                                                                          self.pipeline.clone(),
-                                                                          self.script_sender.clone(),
-                                                                          self.devtools_sender.clone()));
+                        let framerate_actor = Some(FramerateActor::create(
+                                registry,
+                                self.pipeline.clone(),
+                                self.script_sender.clone(),
+                                self.devtools_sender.clone()));
                         *self.framerate_actor.borrow_mut() = framerate_actor;
                     }
                 }

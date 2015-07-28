@@ -287,6 +287,12 @@
             "url": "/_mozilla/mozilla/child_reparenting.html"
           }
         ],
+        "mozilla/client-top-left-height-width.html": [
+          {
+            "path": "mozilla/client-top-left-height-width.html",
+            "url": "/_mozilla/mozilla/client-top-left-height-width.html"
+          }
+        ],
         "mozilla/collections.html": [
           {
             "path": "mozilla/collections.html",

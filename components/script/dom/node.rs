@@ -492,6 +492,7 @@ pub trait NodeHelpers {
 
     fn get_bounding_content_box(self) -> Rect<Au>;
     fn get_content_boxes(self) -> Vec<Rect<Au>>;
+    fn get_client_rect(self) -> Rect<i32>;
 
     fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult;
     fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult;
@@ -792,6 +793,10 @@ impl<'a> NodeHelpers for &'a Node {
 
     fn get_content_boxes(self) -> Vec<Rect<Au>> {
         window_from_node(self).r().content_boxes_query(self.to_trusted_node_address())
+    }
+
+    fn get_client_rect(self) -> Rect<i32> {
+        window_from_node(self).r().client_rect_query(self.to_trusted_node_address())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before

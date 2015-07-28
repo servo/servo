@@ -12,9 +12,12 @@
 
 #![feature(box_syntax)]
 #![feature(core)]
+#![feature(custom_derive)]
 #![feature(get_type_id)]
+#![feature(plugin)]
 #![feature(raw)]
 #![feature(reflect_marker)]
+#![plugin(serde_macros)]
 
 #![allow(non_snake_case)]
 
@@ -24,6 +27,8 @@ extern crate log;
 extern crate core;
 extern crate devtools_traits;
 extern crate rustc_serialize;
+extern crate ipc_channel;
+extern crate serde;
 extern crate msg;
 extern crate time;
 extern crate util;
@@ -41,11 +46,13 @@ use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
 use protocol::JsonPacketStream;
 
-use devtools_traits::{ConsoleMessage, DevtoolsControlMsg, NetworkEvent, LogLevel};
-use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
+use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
+use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg, LogLevel, NetworkEvent};
+use devtools_traits::{ScriptToDevtoolsControlMsg};
 use msg::constellation_msg::{PipelineId, WorkerId};
 use util::task::spawn_named;
 
+use ipc_channel::ipc::IpcSender;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -184,7 +191,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     // TODO: move this into the root or tab modules?
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          ids: (PipelineId, Option<WorkerId>),
-                         script_sender: Sender<DevtoolScriptControlMsg>,
+                         script_sender: IpcSender<DevtoolScriptControlMsg>,
                          devtools_sender: Sender<DevtoolsControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
@@ -371,28 +378,34 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         // accept connections and process them, spawning a new task for each one
         for stream in listener.incoming() {
             // connection succeeded
-            sender_clone.send(DevtoolsControlMsg::AddClient(stream.unwrap())).unwrap();
+            sender_clone.send(DevtoolsControlMsg::FromChrome(
+                    ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()))).unwrap();
         }
     });
 
     loop {
         match receiver.recv() {
-            Ok(DevtoolsControlMsg::AddClient(stream)) => {
+            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream))) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.try_clone().unwrap());
                 spawn_named("DevtoolsClientHandler".to_owned(), move || {
                     handle_client(actors, stream.try_clone().unwrap())
                 })
             }
-            Ok(DevtoolsControlMsg::FramerateTick(actor_name, tick)) =>
+            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::FramerateTick(
+                        actor_name, tick))) =>
                 handle_framerate_tick(actors.clone(), actor_name, tick),
-            Ok(DevtoolsControlMsg::NewGlobal(ids, script_sender, pageinfo)) =>
+            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
+                        ids, script_sender, pageinfo))) =>
                 handle_new_global(actors.clone(), ids, script_sender, sender.clone(), &mut actor_pipelines,
                                   &mut actor_workers, pageinfo),
-            Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
+            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::SendConsoleMessage(
+                        id,
+                        console_message))) =>
                 handle_console_message(actors.clone(), id, console_message,
                                        &actor_pipelines),
-            Ok(DevtoolsControlMsg::NetworkEventMessage(request_id, network_event)) => {
+            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEventMessage(
+                        request_id, network_event))) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();
                 for stream in accepted_connections.iter() {
@@ -403,7 +416,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests,
                                      PipelineId(0), request_id, network_event);
             },
-            Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break
+            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg)) |
+            Err(RecvError) => break
         }
     }
     for connection in accepted_connections.iter_mut() {
