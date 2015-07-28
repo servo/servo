@@ -655,7 +655,16 @@ pub mod longhands {
                 }
             }
         }
-        #[inline]
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    computed_value::T::Normal => dest.write_str("normal"),
+                    computed_value::T::Length(length) => length.to_css(dest),
+                    computed_value::T::Number(number) => write!(dest, "{}", number),
+                }
+            }
+        }
+         #[inline]
         pub fn get_initial_value() -> computed_value::T { computed_value::T::Normal }
 
         impl ToComputedValue for SpecifiedValue {
@@ -746,6 +755,17 @@ pub mod longhands {
                         % endfor
                         &T::Length(length) => write!(f, "{:?}", length),
                         &T::Percentage(number) => write!(f, "{}%", number),
+                    }
+                }
+            }
+            impl ::cssparser::ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    match *self {
+                        % for keyword in vertical_align_keywords:
+                            T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
+                        % endfor
+                        T::Length(value) => value.to_css(dest),
+                        T::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
                     }
                 }
             }
@@ -1067,7 +1087,20 @@ pub mod longhands {
 
         pub mod computed_value {
             use url::Url;
-            pub type T = Option<Url>;
+            use cssparser::{ToCss, Token};
+            use std::fmt;
+
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<Url>);
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    match self.0 {
+                        None => dest.write_str("none"),
+                        Some(ref url) => Token::Url(url.to_string().into()).to_css(dest)
+                    }
+                }
+            }
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -1076,8 +1109,8 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, _context: &Context) -> computed_value::T {
                 match *self {
-                    SpecifiedValue::None => None,
-                    SpecifiedValue::Url(ref url) => Some(url.clone()),
+                    SpecifiedValue::None => computed_value::T(None),
+                    SpecifiedValue::Url(ref url) => computed_value::T(Some(url.clone())),
                 }
             }
         }
@@ -1091,7 +1124,7 @@ pub mod longhands {
         }
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
     </%self:longhand>
 
@@ -1249,7 +1282,20 @@ pub mod longhands {
 
         pub mod computed_value {
             use values::computed;
-            pub type T = Option<computed::Image>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<computed::Image>);
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => dest.write_str("none"),
+                    Some(computed::Image::Url(ref url)) =>
+                        ::cssparser::Token::Url(url.to_string().into()).to_css(dest),
+                    Some(computed::Image::LinearGradient(ref gradient)) =>
+                        gradient.to_css(dest)
+                }
+            }
         }
 
         #[derive(Clone, PartialEq)]
@@ -1266,7 +1312,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -1281,8 +1327,9 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
-                    SpecifiedValue(None) => None,
-                    SpecifiedValue(Some(ref image)) => Some(image.to_computed_value(context)),
+                    SpecifiedValue(None) => computed_value::T(None),
+                    SpecifiedValue(Some(ref image)) =>
+                        computed_value::T(Some(image.to_computed_value(context))),
                 }
             }
         }
@@ -1310,6 +1357,15 @@ pub mod longhands {
             }
 
             impl ToCss for SpecifiedValue {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    try!(self.horizontal.to_css(dest));
+                    try!(dest.write_str(" "));
+                    try!(self.vertical.to_css(dest));
+                    Ok(())
+                }
+            }
+
+            impl ToCss for computed_value::T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                     try!(self.horizontal.to_css(dest));
                     try!(dest.write_str(" "));
@@ -1421,6 +1477,19 @@ pub mod longhands {
                 Explicit(ExplicitSize),
                 Cover,
                 Contain,
+            }
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    computed_value::T::Explicit(ref size) => {
+                        try!(size.width.to_css(dest));
+                        try!(dest.write_str(" "));
+                        size.height.to_css(dest)
+                    },
+                    _ => panic!("unimplemented")
+                }
             }
         }
 
@@ -1727,6 +1796,15 @@ pub mod longhands {
                 }
             }
         }
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    % for weight in range(100, 901, 100):
+                        computed_value::T::Weight${weight} => dest.write_str("${weight}"),
+                    % endfor
+                }
+            }
+        }
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T::Weight400  // normal
@@ -1909,12 +1987,22 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            pub type T = Option<Au>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<Au>);
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => dest.write_str("normal"),
+                    Some(l) => l.to_css(dest),
+                }
+            }
         }
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -1923,8 +2011,9 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
-                    SpecifiedValue::Normal => None,
-                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                    SpecifiedValue::Normal => computed_value::T(None),
+                    SpecifiedValue::Specified(l) =>
+                        computed_value::T(Some(l.to_computed_value(context)))
                 }
             }
         }
@@ -1960,12 +2049,22 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            pub type T = Option<Au>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<Au>);
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => dest.write_str("normal"),
+                    Some(l) => l.to_css(dest),
+                }
+            }
         }
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -1974,8 +2073,9 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
-                    SpecifiedValue::Normal => None,
-                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                    SpecifiedValue::Normal => computed_value::T(None),
+                    SpecifiedValue::Specified(l) =>
+                        computed_value::T(Some(l.to_computed_value(context)))
                 }
             }
         }
@@ -2098,7 +2198,9 @@ pub mod longhands {
 
     <%self:longhand name="-servo-text-decorations-in-effect"
                     derived_from="display text-decoration">
-        use cssparser::RGBA;
+        use cssparser::{RGBA, ToCss};
+        use std::fmt;
+
         use values::computed::ComputedValueAsSpecified;
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -2112,6 +2214,13 @@ pub mod longhands {
 
         pub mod computed_value {
             pub type T = super::SpecifiedValue;
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                // XXX needs to be implemented
+                panic!("unimplemented")
+            }
         }
 
         #[inline]
@@ -2226,6 +2335,14 @@ pub mod longhands {
         }
 
         impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                try!(self.horizontal.to_css(dest));
+                try!(dest.write_str(" "));
+                self.vertical.to_css(dest)
+            }
+        }
+
+        impl ToCss for computed_value::T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 try!(self.horizontal.to_css(dest));
                 try!(dest.write_str(" "));
@@ -2370,12 +2487,22 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            pub type T = Option<Au>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<Au>);
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => dest.write_str("auto"),
+                    Some(l) => l.to_css(dest),
+                }
+            }
         }
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -2384,8 +2511,9 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
-                    SpecifiedValue::Auto => None,
-                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                    SpecifiedValue::Auto => computed_value::T(None),
+                    SpecifiedValue::Specified(l) =>
+                        computed_value::T(Some(l.to_computed_value(context)))
                 }
             }
         }
@@ -2420,12 +2548,22 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            pub type T = Option<u32>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<u32>);
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => dest.write_str("auto"),
+                    Some(count) => write!(dest, "{}", count),
+                }
+            }
         }
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -2434,8 +2572,9 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, _context: &Context) -> computed_value::T {
                 match *self {
-                    SpecifiedValue::Auto => None,
-                    SpecifiedValue::Specified(count) => Some(count)
+                    SpecifiedValue::Auto => computed_value::T(None),
+                    SpecifiedValue::Specified(count) =>
+                        computed_value::T(Some(count))
                 }
             }
         }
@@ -2476,12 +2615,22 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            pub type T = Option<Au>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<Au>);
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => dest.write_str("normal"),
+                    Some(l) => l.to_css(dest),
+                }
+            }
         }
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -2490,8 +2639,9 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
-                    SpecifiedValue::Normal => None,
-                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                    SpecifiedValue::Normal => computed_value::T(None),
+                    SpecifiedValue::Specified(l) =>
+                        computed_value::T(Some(l.to_computed_value(context)))
                 }
             }
         }
@@ -2611,7 +2761,8 @@ pub mod longhands {
             use values::computed;
             use std::fmt;
 
-            pub type T = Vec<BoxShadow>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Vec<BoxShadow>);
 
             #[derive(Clone, PartialEq, Copy)]
             pub struct BoxShadow {
@@ -2635,9 +2786,44 @@ pub mod longhands {
             }
         }
 
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                let mut iter = self.0.iter();
+                if let Some(shadow) = iter.next() {
+                    try!(shadow.to_css(dest));
+                } else {
+                    try!(dest.write_str("none"));
+                    return Ok(())
+                }
+                for shadow in iter {
+                    try!(dest.write_str(", "));
+                    try!(shadow.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+
+        impl ToCss for computed_value::BoxShadow {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                if self.inset {
+                    try!(dest.write_str("inset "));
+                }
+                try!(self.blur_radius.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.spread_radius.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.offset_x.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.offset_y.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.color.to_css(dest));
+                Ok(())
+            }
+        }
+
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            Vec::new()
+            computed_value::T(Vec::new())
         }
 
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -2653,7 +2839,7 @@ pub mod longhands {
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                self.0.iter().map(|value| compute_one_box_shadow(value, context)).collect()
+                computed_value::T(self.0.iter().map(|value| compute_one_box_shadow(value, context)).collect())
             }
         }
 
@@ -2752,7 +2938,38 @@ pub mod longhands {
                 pub left: Au,
             }
 
-            pub type T = Option<ClipRect>;
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Option<ClipRect>);
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => dest.write_str("auto"),
+                    Some(rect) => {
+                        try!(dest.write_str("rect("));
+                        try!(rect.top.to_css(dest));
+                        try!(dest.write_str(", "));
+                        if let Some(right) = rect.right {
+                            try!(right.to_css(dest));
+                            try!(dest.write_str(", "));
+                        } else {
+                            try!(dest.write_str("auto, "));
+                        }
+
+                        if let Some(bottom) = rect.bottom {
+                            try!(bottom.to_css(dest));
+                            try!(dest.write_str(", "));
+                        } else {
+                            try!(dest.write_str("auto, "));
+                        }
+
+                        try!(rect.left.to_css(dest));
+                        try!(dest.write_str(")"));
+                        Ok(())
+                    }
+                }
+            }
         }
 
         #[derive(Clone, Debug, PartialEq, Copy)]
@@ -2780,7 +2997,7 @@ pub mod longhands {
                     try!(dest.write_str("auto, "));
                 }
 
-                if let Some(bottom) = self.right {
+                if let Some(bottom) = self.bottom {
                     try!(bottom.to_css(dest));
                     try!(dest.write_str(", "));
                 } else {
@@ -2806,7 +3023,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -2814,12 +3031,12 @@ pub mod longhands {
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                self.0.map(|value| computed_value::ClipRect {
+                computed_value::T(self.0.map(|value| computed_value::ClipRect {
                     top: value.top.to_computed_value(context),
                     right: value.right.map(|right| right.to_computed_value(context)),
                     bottom: value.bottom.map(|bottom| bottom.to_computed_value(context)),
                     left: value.left.to_computed_value(context),
-                })
+                }))
             }
         }
 
@@ -2900,6 +3117,36 @@ pub mod longhands {
                 pub offset_y: Au,
                 pub blur_radius: Au,
                 pub color: Color,
+            }
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                let mut iter = self.0.iter();
+                if let Some(shadow) = iter.next() {
+                    try!(shadow.to_css(dest));
+                } else {
+                    try!(dest.write_str("none"));
+                    return Ok(())
+                }
+                for shadow in iter {
+                    try!(dest.write_str(", "));
+                    try!(shadow.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+
+        impl ToCss for computed_value::TextShadow {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                try!(self.offset_x.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.offset_y.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.blur_radius.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.color.to_css(dest));
+                Ok(())
             }
         }
 
@@ -3103,6 +3350,12 @@ pub mod longhands {
             }
         }
 
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                panic!("unimplemented");
+            }
+        }
+
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 let mut iter = self.0.iter();
@@ -3253,7 +3506,8 @@ pub mod longhands {
                 Perspective(computed::Length),
             }
 
-            pub type T = Option<Vec<ComputedOperation>>;
+            #[derive(Clone, Debug, PartialEq)]
+            pub struct T(pub Option<Vec<ComputedOperation>>);
         }
 
         pub use self::computed_value::ComputedMatrix as SpecifiedMatrix;
@@ -3290,6 +3544,13 @@ pub mod longhands {
             Perspective(specified::Length),
         }
 
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+                // TODO(pcwalton)
+                panic!("unimplemented")
+            }
+        }
+
         impl ToCss for SpecifiedOperation {
             fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
                 // TODO(pcwalton)
@@ -3316,7 +3577,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            None
+            computed_value::T(None)
         }
 
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
@@ -3550,7 +3811,7 @@ pub mod longhands {
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 if self.0.is_empty() {
-                    return None
+                    return computed_value::T(None)
                 }
 
                 let mut result = vec!();
@@ -3579,7 +3840,7 @@ pub mod longhands {
                     };
                 }
 
-                Some(result)
+                computed_value::T(Some(result))
             }
         }
     </%self:longhand>
@@ -3612,6 +3873,16 @@ pub mod longhands {
             horizontal: LengthOrPercentage,
             vertical: LengthOrPercentage,
             depth: Length,
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                try!(self.horizontal.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.vertical.to_css(dest));
+                try!(dest.write_str(" "));
+                self.depth.to_css(dest)
+            }
         }
 
         impl ToCss for SpecifiedValue {
@@ -3741,6 +4012,14 @@ pub mod longhands {
             pub struct T {
                 pub horizontal: LengthOrPercentage,
                 pub vertical: LengthOrPercentage,
+            }
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                try!(self.horizontal.to_css(dest));
+                try!(dest.write_str(" "));
+                self.vertical.to_css(dest)
             }
         }
 
@@ -5544,7 +5823,7 @@ impl ComputedValues {
     #[inline]
     pub fn is_multicol(&self) -> bool {
         let style = self.get_column();
-        style.column_count.is_some() || style.column_width.is_some()
+        style.column_count.0.is_some() || style.column_width.0.is_some()
     }
 
     #[inline]
@@ -5562,13 +5841,13 @@ impl ComputedValues {
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         if effects.opacity < 1.0 ||
            !effects.filter.is_empty() ||
-           effects.clip.is_some() {
+           effects.clip.0.is_some() {
            effects.mix_blend_mode != mix_blend_mode::T::normal ||
             return transform_style::T::flat;
         }
 
         if effects.transform_style == transform_style::T::auto {
-            if effects.transform.is_some() {
+            if effects.transform.0.is_some() {
                 return transform_style::T::flat;
             }
             if effects.perspective != computed::LengthOrNone::None {
@@ -5581,17 +5860,28 @@ impl ComputedValues {
     }
 
     % for style_struct in STYLE_STRUCTS:
-        #[inline]
-        pub fn get_${style_struct.name.lower()}
-                <'a>(&'a self) -> &'a style_structs::${style_struct.name} {
-            &*self.${style_struct.ident}
-        }
-        #[inline]
-        pub fn mutate_${style_struct.name.lower()}
-                <'a>(&'a mut self) -> &'a mut style_structs::${style_struct.name} {
-            &mut *Arc::make_unique(&mut self.${style_struct.ident})
-        }
+    #[inline]
+    pub fn get_${style_struct.name.lower()}
+            <'a>(&'a self) -> &'a style_structs::${style_struct.name} {
+        &*self.${style_struct.ident}
+    }
+    #[inline]
+    pub fn mutate_${style_struct.name.lower()}
+            <'a>(&'a mut self) -> &'a mut style_structs::${style_struct.name} {
+        &mut *Arc::make_unique(&mut self.${style_struct.ident})
+    }
     % endfor
+
+    pub fn computed_value_to_string(&self, name: &str) -> Option<String> {
+        match name {
+            % for style_struct in STYLE_STRUCTS:
+                % for longhand in style_struct.longhands:
+                "${longhand.name}" => Some(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
+                % endfor
+            % endfor
+            _ => None
+        }
+    }
 }
 
 

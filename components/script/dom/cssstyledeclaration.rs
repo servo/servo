@@ -11,7 +11,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentHelpers;
 use dom::element::{ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
-use dom::node::{window_from_node, document_from_node, NodeDamage};
+use dom::node::{window_from_node, document_from_node, NodeDamage, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use util::str::DOMString;
 use string_cache::Atom;
@@ -75,6 +75,7 @@ impl CSSStyleDeclaration {
 trait PrivateCSSStyleDeclarationHelpers {
     fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn get_computed_style(self, property: &Atom) -> Option<DOMString>;
 }
 
 impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
@@ -88,6 +89,13 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
         let owner = self.owner.root();
         let element = ElementCast::from_ref(owner.r());
         element.get_important_inline_style_declaration(property).map(|decl| decl.clone())
+    }
+
+    fn get_computed_style(self, property: &Atom) -> Option<DOMString> {
+        let owner = self.owner.root();
+        let node = NodeCast::from_ref(owner.r());
+        let addr = node.to_trusted_node_address();
+        window_from_node(owner.r()).resolved_style_query(addr, property)
     }
 }
 
@@ -128,6 +136,11 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
+
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            return self.get_computed_style(&property).unwrap_or("".to_owned());
+        }
 
         // Step 2
         let longhand_properties = longhands_from_shorthand(&property);
