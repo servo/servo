@@ -212,7 +212,35 @@ def check_webidl_spec(file_name, contents):
     yield 0, "No specification link found."
 
 
+def check_spec(file_name, contents):
+    base_path = "components/script/dom/"
+    if base_path not in file_name:
+        raise StopIteration
+    file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
+    patt = re.compile("^\s*\/\/.+")
+    pattern = "impl<'a> %sMethods for &'a %s {" % (file_name, file_name)
+    contents = contents.splitlines(True)
+    brace_count = 0
+    in_impl = False
+    for idx, line in enumerate(contents):
+        if "// check-tidy: no specs after this line" in line:
+            break
+        if not patt.match(line):
+            if pattern.lower() in line.lower():
+                in_impl = True
+            if "fn " in line and brace_count == 1:
+                if "// https://" not in contents[idx - 1] and "// https://" not in contents[idx - 2]:
+                    yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
+            if '{' in line and in_impl:
+                brace_count += 1
+            if '}' in line and in_impl:
+                if brace_count == 1:
+                    break
+                brace_count -= 1
+
+
 def collect_errors_for_files(files_to_check, checking_functions):
+    base_path = "components/script/dom/"
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
             contents = fp.read()
@@ -250,7 +278,7 @@ def scan():
     all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_by_line, check_flake8, check_toml, check_webidl_spec]
+    checking_functions = [check_license, check_by_line, check_flake8, check_toml, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = collect_file_names(reftest_directories)
@@ -261,8 +289,8 @@ def scan():
 
     if errors:
         for error in errors:
-            print("{}:{}: {}".format(*error))
+            print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
         return 1
     else:
-        print("tidy reported no errors.")
+        print "\033[92mtidy reported no errors.\033[0m"
         return 0
