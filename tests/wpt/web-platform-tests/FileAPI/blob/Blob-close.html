@@ -11,17 +11,27 @@ test(function() {
   var blob = new Blob(["TEST"]);
   var sliced = blob.slice();
   blob.close();
-  test_blob(function() {
-    return blob;
-  }, {
-    expected: "",
-    type: "",
-    desc: "Blob should be empty."
-  });
+
+  async_test(function(t) {
+    var reader = new FileReader();
+
+    reader.onload = t.step_func(function(evt) {
+      assert_unreached("Should not dispatch the load event");
+    });
+
+    reader.onerror = t.step_func(function(e) {
+      assert_equals(reader.result, null);
+      assert_equals(reader.error.code, DOMException.INVALID_STATE_ERR);
+      t.done();
+    });
+
+    reader.readAsText(blob, "UTF-8");
+  }, "Closed Blob");
+
   test_blob(function() {
     return sliced;
   }, {
-    expected: "PASS",
+    expected: "TEST",
     type: "",
     desc: "Slice should still have the data."
   });
