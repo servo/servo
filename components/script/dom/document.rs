@@ -155,6 +155,8 @@ pub struct Document {
     current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
+    /// The cached first `base` element with an `href` attribute.
+    base_element: MutNullableHeap<JS<HTMLBaseElement>>,
 }
 
 impl PartialEq for Document {
@@ -241,6 +243,8 @@ pub trait DocumentHelpers<'a> {
     fn base_url(self) -> Url;
     /// Returns the first `base` element in the DOM that has an `href` attribute.
     fn base_element(self) -> Option<Root<HTMLBaseElement>>;
+    /// Refresh the cached first base element in the DOM.
+    fn refresh_base_element(self);
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
     fn set_encoding_name(self, name: DOMString);
@@ -370,11 +374,17 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
     fn base_element(self) -> Option<Root<HTMLBaseElement>> {
-        NodeCast::from_ref(self)
+        self.base_element.get().map(Root::from_rooted)
+    }
+
+    /// Refresh the cached first base element in the DOM.
+    fn refresh_base_element(self) {
+        let base = NodeCast::from_ref(self)
             .traverse_preorder()
             .filter_map(HTMLBaseElementCast::to_root)
             .filter(|element| ElementCast::from_ref(&**element).has_attribute(&atom!("href")))
-            .next()
+            .next();
+        self.base_element.set(base.map(|element| JS::from_ref(&*element)));
     }
 
     fn quirks_mode(self) -> QuirksMode {
@@ -1131,6 +1141,7 @@ impl Document {
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
+            base_element: Default::default(),
         }
     }
 
