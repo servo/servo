@@ -15,7 +15,6 @@
 
 use block::BlockFlow;
 use context::LayoutContext;
-use css::node_style::StyledNode;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
 use flow::{Descendants, AbsDescendants};
@@ -1248,9 +1247,9 @@ impl<'a> FlowConstructor<'a> {
             return false
         }
 
+        let mut style = node.style().clone();
         let mut layout_data_ref = node.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
-        let mut style = (*node.get_style(&layout_data)).clone();
         let damage = layout_data.data.restyle_damage;
         match node.construction_result_mut(layout_data) {
             &mut ConstructionResult::None => true,

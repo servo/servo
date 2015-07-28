@@ -10,7 +10,6 @@
 use animation;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, heap_size_of_local_context};
-use css::node_style::StyledNode;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};

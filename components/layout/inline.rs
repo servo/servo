@@ -5,7 +5,6 @@
 #![deny(unsafe_code)]
 
 use block::{AbsoluteAssignBSizesTraversal, AbsoluteStoreOverflowTraversal};
-use css::node_style::StyledNode;
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use floats::{FloatKind, Floats, PlacementInfo};

@@ -32,7 +32,6 @@
 
 use canvas_traits::CanvasMsg;
 use context::SharedLayoutContext;
-use css::node_style::StyledNode;
 use incremental::RestyleDamage;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
@@ -64,6 +63,7 @@ use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
 use std::mem;
+use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
@@ -72,6 +72,7 @@ use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::ComputedValues;
 use url::Url;
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -740,6 +741,36 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         self.node.mutate_layout_data()
+    }
+
+    /// Returns the style results for the given node. If CSS selector matching
+    /// has not yet been performed, fails.
+    #[inline]
+    pub fn style<'a>(&'a self) -> Ref<'a, Arc<ComputedValues>> {
+        Ref::map(self.borrow_layout_data(), |layout_data_ref| {
+            let layout_data = layout_data_ref.as_ref().expect("no layout data");
+            let style = match self.get_pseudo_element_type() {
+                PseudoElementType::Before(_) => &layout_data.data.before_style,
+                PseudoElementType::After(_) => &layout_data.data.after_style,
+                PseudoElementType::Normal => &layout_data.shared_data.style,
+            };
+            style.as_ref().unwrap()
+        })
+    }
+
+    /// Removes the style from this node.
+    pub fn unstyle(self) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        let layout_data = layout_data_ref.as_mut().expect("no layout data");
+
+        let style =
+            match self.get_pseudo_element_type() {
+                PseudoElementType::Before(_) => &mut layout_data.data.before_style,
+                PseudoElementType::After (_) => &mut layout_data.data.after_style,
+                PseudoElementType::Normal    => &mut layout_data.shared_data.style,
+            };
+
+        *style = None;
     }
 
     pub fn is_ignorable_whitespace(&self) -> bool {
