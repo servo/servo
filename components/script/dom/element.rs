@@ -1317,6 +1317,34 @@ impl<'a> ElementMethods for &'a Element {
             rect.origin.x + rect.size.width)
     }
 
+    // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
+    fn ClientTop(self) -> i32 {
+        let node = NodeCast::from_ref(self);
+        let rect = node.get_bounding_content_box();
+        rect.origin.y.to_nearest_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
+    fn ClientLeft(self) -> i32 {
+        let node = NodeCast::from_ref(self);
+        let rect = node.get_bounding_content_box();
+        rect.origin.x.to_nearest_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
+    fn ClientWidth(self) -> i32 {
+        let node = NodeCast::from_ref(self);
+        let rect = node.get_bounding_content_box();
+        rect.size.width.to_nearest_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
+    fn ClientHeight(self) -> i32 {
+        let node = NodeCast::from_ref(self);
+        let rect = node.get_bounding_content_box();
+        rect.size.height.to_nearest_px()
+    }
+
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
     fn GetInnerHTML(self) -> Fallible<DOMString> {
         //XXX TODO: XML case
