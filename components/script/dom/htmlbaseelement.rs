@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
@@ -59,5 +59,55 @@ impl HTMLBaseElement {
 impl<'a> VirtualMethods for &'a HTMLBaseElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+    }
+
+    fn after_set_attr(&self, attr: &Attr) {
+        self.super_type().unwrap().after_set_attr(attr);
+
+        match attr.local_name() {
+            &atom!("href") => {
+                let document = document_from_node(*self);
+                document.refresh_base_element();
+            },
+            _ => ()
+        }
+    }
+
+    fn before_remove_attr(&self, attr: &Attr) {
+        self.super_type().unwrap().before_remove_attr(attr);
+
+        match attr.local_name() {
+            &atom!("href") => {
+                let document = document_from_node(*self);
+                document.refresh_base_element();
+            },
+            _ => ()
+        }
+    }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        self.super_type().unwrap().bind_to_tree(tree_in_doc);
+
+        if !tree_in_doc {
+            return;
+        }
+
+        if ElementCast::from_ref(*self).has_attribute(&atom!("href")) {
+            let document = document_from_node(*self);
+            document.refresh_base_element();
+        }
+    }
+
+    fn unbind_from_tree(&self, tree_in_doc: bool) {
+        self.super_type().unwrap().unbind_from_tree(tree_in_doc);
+
+        if !tree_in_doc {
+            return;
+        }
+
+        if ElementCast::from_ref(*self).has_attribute(&atom!("href")) {
+            let document = document_from_node(*self);
+            document.refresh_base_element();
+        }
     }
 }
