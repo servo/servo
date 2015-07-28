@@ -361,7 +361,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Implements background image, per spec:
         // http://www.w3.org/TR/CSS21/colors.html#background
         let background = style.get_background();
-        match background.background_image {
+        match background.background_image.0 {
             None => {}
             Some(computed::Image::LinearGradient(ref gradient)) => {
                 self.build_display_list_for_background_linear_gradient(display_list,
@@ -668,7 +668,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        absolute_bounds: &Rect<Au>,
                                                        clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
-        for box_shadow in style.get_effects().box_shadow.iter().rev() {
+        for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
             let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
                                                                                 box_shadow.offset_y)),
                                        box_shadow.blur_radius,
@@ -863,7 +863,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                       -> ClippingRegion {
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match (self.style().get_box().position,
-                                     self.style().get_effects().clip) {
+                                     self.style().get_effects().clip.0) {
             (position::T::absolute, Some(style_clip_rect)) => style_clip_rect,
             _ => return (*parent_clip).clone(),
         };
@@ -1147,7 +1147,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let mut transform = Matrix4::identity();
 
-        if let Some(ref operations) = self.style().get_effects().transform {
+        if let Some(ref operations) = self.style().get_effects().transform.0 {
             let transform_origin = self.style().get_effects().transform_origin;
             let transform_origin =
                 Point3D::new(model::specified(transform_origin.horizontal,

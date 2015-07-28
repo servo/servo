@@ -1117,7 +1117,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode, flotation: float::T)
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
-        let marker_fragment = match node.style().get_list().list_style_image {
+        let marker_fragment = match node.style().get_list().list_style_image.0 {
             Some(ref url) => {
                 let image_info = box ImageFragmentInfo::new(node,
                                                             Some((*url).clone()),

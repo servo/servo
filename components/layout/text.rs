@@ -167,8 +167,8 @@ impl TextRunScanner {
                     white_space::T::pre => CompressionMode::CompressNone,
                 };
                 text_transform = inherited_text_style.text_transform;
-                letter_spacing = inherited_text_style.letter_spacing;
-                word_spacing = inherited_text_style.word_spacing.unwrap_or(Au(0));
+                letter_spacing = inherited_text_style.letter_spacing.0;
+                word_spacing = inherited_text_style.word_spacing.0.unwrap_or(Au(0));
                 text_rendering = inherited_text_style.text_rendering;
             }
 

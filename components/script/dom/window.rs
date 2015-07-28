@@ -20,9 +20,11 @@ use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::htmlelement::HTMLElement;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers};
@@ -30,7 +32,7 @@ use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
-use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ScriptReflow};
+use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use page::Page;
 use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
 use script_task::ScriptMsg;
@@ -47,6 +49,7 @@ use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
 use profile_traits::mem;
+use string_cache::Atom;
 use util::geometry::{self, Au, MAX_RECT};
 use util::{breakpoint, opts};
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
@@ -58,10 +61,12 @@ use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
 use js::rust::Runtime;
 use js::rust::CompileOptionsWrapper;
+use selectors::parser::PseudoElement;
 use url::{Url, UrlParser};
 
 use libc;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::collections::HashSet;
@@ -539,6 +544,23 @@ impl<'a> WindowMethods for &'a Window {
             chan.send(Err(WebDriverJSError::Timeout)).unwrap();
         }
     }
+
+    // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
+    fn GetComputedStyle(self,
+                        element: &HTMLElement,
+                        pseudo: Option<DOMString>) -> Root<CSSStyleDeclaration> {
+        // Steps 1-4.
+        let pseudo = match pseudo.map(|s| s.to_ascii_lowercase()) {
+            Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" =>
+                Some(PseudoElement::Before),
+            Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" =>
+                Some(PseudoElement::After),
+            _ => None
+        };
+
+        // Step 5.
+        CSSStyleDeclaration::new(self, element, pseudo, CSSModificationAccess::Readonly)
+    }
 }
 
 pub trait WindowHelpers {
@@ -553,6 +575,8 @@ pub trait WindowHelpers {
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au>;
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>>;
     fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32>;
+    fn resolved_style_query(self, element: TrustedNodeAddress,
+                            pseudo: Option<PseudoElement>, property: &Atom) -> Option<String>;
     fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn set_fragment_name(self, fragment: Option<String>);
     fn steal_fragment_name(self) -> Option<String>;
@@ -789,6 +813,17 @@ impl<'a> WindowHelpers for &'a Window {
                     ReflowQueryType::NodeGeometryQuery(node_geometry_request),
                     ReflowReason::Query);
         self.layout_rpc.node_geometry().client_rect
+    }
+
+    fn resolved_style_query(self,
+                            element: TrustedNodeAddress,
+                            pseudo: Option<PseudoElement>,
+                            property: &Atom) -> Option<String> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
+                    ReflowReason::Query);
+        let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
+        resolved
     }
 
     fn handle_reflow_complete_msg(self, reflow_id: u32) {
@@ -1098,6 +1133,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+        ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
     });
 
     debug_msg.push_str(match *reason {
