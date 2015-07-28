@@ -2,17 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
+use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
+use dom::element::{ElementTypeId, AttributeHandlers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::node::{Node, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
+
+use url::{Url, UrlParser};
 
 #[dom_struct]
 pub struct HTMLBaseElement {
@@ -40,6 +44,16 @@ impl HTMLBaseElement {
                document: &Document) -> Root<HTMLBaseElement> {
         let element = HTMLBaseElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBaseElementBinding::Wrap)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#frozen-base-url
+    pub fn frozen_base_url(&self) -> Url {
+        let href = ElementCast::from_ref(self).get_attribute(&ns!(""), &atom!("href"))
+            .expect("The frozen base url is only defined for base elements \
+                     that have a base url.");
+        let base = document_from_node(self).fallback_base_url();
+        let parsed = UrlParser::new().base_url(&base).parse(&href.value());
+        parsed.unwrap_or(base)
     }
 }
 
