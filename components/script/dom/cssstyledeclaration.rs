@@ -11,9 +11,10 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentHelpers;
 use dom::element::{ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
-use dom::node::{window_from_node, document_from_node, NodeDamage};
+use dom::node::{window_from_node, document_from_node, NodeDamage, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use util::str::DOMString;
+use selectors::parser::PseudoElement;
 use string_cache::Atom;
 use style::properties::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
 use style::properties::PropertyDeclaration;
@@ -27,6 +28,7 @@ pub struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: JS<HTMLElement>,
     readonly: bool,
+    pseudo: Option<PseudoElement>,
 }
 
 #[derive(PartialEq)]
@@ -56,17 +58,20 @@ fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
 
 impl CSSStyleDeclaration {
     pub fn new_inherited(owner: &HTMLElement,
+                         pseudo: Option<PseudoElement>,
                          modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: JS::from_ref(owner),
+            pseudo: pseudo,
             readonly: modification_access == CSSModificationAccess::Readonly,
         }
     }
 
     pub fn new(global: &Window, owner: &HTMLElement,
+               pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess) -> Root<CSSStyleDeclaration> {
-        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, modification_access),
+        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access),
                            GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
     }
@@ -75,6 +80,7 @@ impl CSSStyleDeclaration {
 trait PrivateCSSStyleDeclarationHelpers {
     fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn get_computed_style(self, property: &Atom) -> Option<DOMString>;
 }
 
 impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
@@ -88,6 +94,13 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
         let owner = self.owner.root();
         let element = ElementCast::from_ref(owner.r());
         element.get_important_inline_style_declaration(property).map(|decl| decl.clone())
+    }
+
+    fn get_computed_style(self, property: &Atom) -> Option<DOMString> {
+        let owner = self.owner.root();
+        let node = NodeCast::from_ref(owner.r());
+        let addr = node.to_trusted_node_address();
+        window_from_node(owner.r()).resolved_style_query(addr, self.pseudo.clone(), property)
     }
 }
 
@@ -128,6 +141,11 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
+
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            return self.get_computed_style(&property).unwrap_or("".to_owned());
+        }
 
         // Step 2
         let longhand_properties = longhands_from_shorthand(&property);

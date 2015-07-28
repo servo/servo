@@ -618,7 +618,7 @@ impl BlockFlow {
 
     pub fn transform_requires_layer(&self) -> bool {
         // Check if the transform matrix is 2D or 3D
-        if let Some(ref transform_list) = self.fragment.style().get_effects().transform {
+        if let Some(ref transform_list) = self.fragment.style().get_effects().transform.0 {
             for transform in transform_list {
                 match transform {
                     &transform::ComputedOperation::Perspective(..) => {

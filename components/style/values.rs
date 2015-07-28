@@ -975,6 +975,16 @@ pub mod computed {
         }
     }
 
+    impl ::cssparser::ToCss for LengthOrPercentage {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrPercentage::Length(length) => length.to_css(dest),
+                &LengthOrPercentage::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
+            }
+        }
+    }
+
     #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Au),
@@ -1006,6 +1016,17 @@ pub mod computed {
                 specified::LengthOrPercentageOrAuto::Auto => {
                     LengthOrPercentageOrAuto::Auto
                 }
+            }
+        }
+    }
+
+    impl ::cssparser::ToCss for LengthOrPercentageOrAuto {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
+                &LengthOrPercentageOrAuto::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
             }
         }
     }
@@ -1045,6 +1066,17 @@ pub mod computed {
         }
     }
 
+    impl ::cssparser::ToCss for LengthOrPercentageOrNone {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
+                &LengthOrPercentageOrNone::Percentage(percentage) =>
+                    write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrNone::None => dest.write_str("none"),
+            }
+        }
+    }
+
     #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrNone {
         Length(Au),
@@ -1071,6 +1103,15 @@ pub mod computed {
                 specified::LengthOrNone::None => {
                     LengthOrNone::None
                 }
+            }
+        }
+    }
+
+    impl ::cssparser::ToCss for LengthOrNone {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrNone::Length(length) => length.to_css(dest),
+                &LengthOrNone::None => dest.write_str("none"),
             }
         }
     }
@@ -1116,6 +1157,19 @@ pub mod computed {
         pub stops: Vec<ColorStop>,
     }
 
+    impl ::cssparser::ToCss for LinearGradient {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(dest.write_str("linear-gradient("));
+            try!(self.angle_or_corner.to_css(dest));
+            for stop in self.stops.iter() {
+                try!(dest.write_str(", "));
+                try!(stop.to_css(dest));
+            }
+            try!(dest.write_str(")"));
+            Ok(())
+        }
+    }
+
     impl fmt::Debug for LinearGradient {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             let _ = write!(f, "{:?}", self.angle_or_corner);
@@ -1135,6 +1189,17 @@ pub mod computed {
         /// The position of this stop. If not specified, this stop is placed halfway between the
         /// point that precedes it and the point that follows it per CSS-IMAGES § 3.4.
         pub position: Option<LengthOrPercentage>,
+    }
+
+    impl ::cssparser::ToCss for ColorStop {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.color.to_css(dest));
+            if let Some(position) = self.position {
+                try!(dest.write_str(" "));
+                try!(position.to_css(dest));
+            }
+            Ok(())
+        }
     }
 
     impl fmt::Debug for ColorStop {
