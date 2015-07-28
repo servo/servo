@@ -202,7 +202,7 @@ impl FileReader {
                 FileReader::perform_readastext(blob_body),
         };
 
-        *fr.result.borrow_mut() = output;
+        *fr.result.borrow_mut() = Some(output);
 
         // Step 8.3
         fr.dispatch_progress_event("load".to_owned(), 0, None);
@@ -218,7 +218,7 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     fn perform_readastext(blob_body: BlobBody)
-        -> Option<DOMString> {
+        -> DOMString {
 
         let blob_label = &blob_body.label;
         let blob_type = &blob_body.blobtype;
@@ -246,12 +246,12 @@ impl FileReader {
         let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
-        Some(output)
+        output
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn perform_readasdataurl(blob_body: BlobBody)
-        -> Option<DOMString> {
+        -> DOMString {
         let config = Config {
             char_set: CharacterSet::UrlSafe,
             newline: Newline::LF,
@@ -266,7 +266,7 @@ impl FileReader {
             format!("data:{};base64,{}", blob_body.blobtype, base64)
         };
 
-        Some(output)
+        output
     }
 
 }
@@ -325,7 +325,7 @@ impl<'a> FileReaderMethods for &'a FileReader {
 trait PrivateFileReaderHelpers {
     fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>);
     fn terminate_ongoing_reading(self);
-    fn read(self, function: FileReaderFunction, blob: &Blob, label:Option<DOMString>) -> ErrorResult;
+    fn read(self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult;
     fn change_ready_state(self, state: FileReaderReadyState);
 }
 
