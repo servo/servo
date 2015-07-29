@@ -85,6 +85,7 @@ pub mod model;
 pub mod multicol;
 pub mod opaque_node;
 pub mod parallel;
+pub mod query;
 pub mod sequential;
 pub mod table_wrapper;
 pub mod table;
