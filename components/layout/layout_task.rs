@@ -873,6 +873,9 @@ impl LayoutTask {
         rw_data.client_rect_response = iterator.client_rect;
     }
 
+    // Compute the resolved value of property for a given (pseudo)element.
+    // Stores the result in rw_data.resolved_style_response.
+    // https://drafts.csswg.org/cssom/#resolved-value
     fn process_resolved_style_request<'a>(&'a self,
                                           requested_node: TrustedNodeAddress,
                                           pseudo: &Option<PseudoElement>,
