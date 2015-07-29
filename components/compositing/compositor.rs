@@ -530,7 +530,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
-                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running = true;
+                if self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running {
+                    return
+                }
+                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running =
+                    true;
+                self.tick_animations_for_pipeline(pipeline_id);
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::NoAnimationsPresent => {
@@ -1072,11 +1077,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for (pipeline_id, pipeline_details) in self.pipeline_details.iter() {
             if pipeline_details.animations_running ||
                pipeline_details.animation_callbacks_running {
-
-                self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id))
-                                         .unwrap();
+                self.tick_animations_for_pipeline(*pipeline_id)
             }
         }
+    }
+
+    fn tick_animations_for_pipeline(&self, pipeline_id: PipelineId) {
+        self.constellation_chan.0.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
     }
 
     fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
