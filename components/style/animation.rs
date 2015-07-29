@@ -21,7 +21,7 @@ use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{LengthAndPercentage, LengthOrPercentage, Length, Time};
+use values::computed::{LengthOrPercentage, Length, Time};
 use values::CSSFloat;
 use cssparser::{RGBA, Color};
 
@@ -506,17 +506,6 @@ impl Interpolate for LengthOrPercentage {
     }
 }
 
-impl Interpolate for LengthAndPercentage {
-    #[inline]
-    fn interpolate(&self, other: &LengthAndPercentage, time: f32)
-                   -> Option<LengthAndPercentage> {
-        Some(LengthAndPercentage {
-            length: self.length.interpolate(&other.length, time).unwrap(),
-            percentage: self.percentage.interpolate(&other.percentage, time).unwrap(),
-        })
-    }
-}
-
 impl Interpolate for LengthOrPercentageOrAuto {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentageOrAuto, time: f32)
@@ -795,8 +784,8 @@ fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<Transfor
                 result.push(TransformOperation::Skew(0.0, 0.0));
             }
             &TransformOperation::Translate(..) => {
-                result.push(TransformOperation::Translate(LengthAndPercentage::zero(),
-                                                          LengthAndPercentage::zero(),
+                result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
+                                                          LengthOrPercentage::zero(),
                                                           Au(0)));
             }
             &TransformOperation::Scale(..) => {

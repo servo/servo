@@ -28,7 +28,6 @@
 #![deny(unsafe_code)]
 
 use context::LayoutContext;
-use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};

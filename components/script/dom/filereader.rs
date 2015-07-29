@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -268,7 +269,6 @@ impl FileReader {
 
         output
     }
-
 }
 
 impl<'a> FileReaderMethods for &'a FileReader {
@@ -357,7 +357,15 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         if self.ready_state.get() == FileReaderReadyState::Loading {
             return Err(InvalidState);
         }
-        //TODO STEP 2 if isClosed implemented in Blob
+        // Step 2
+        if blob.IsClosed() {
+            let global = self.global.root();
+            let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
+            self.error.set(Some(JS::from_rooted(&exception)));
+
+            self.dispatch_progress_event("error".to_owned(), 0, None);
+            return Ok(());
+        }
 
         // Step 3
         self.change_ready_state(FileReaderReadyState::Loading);

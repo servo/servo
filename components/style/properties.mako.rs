@@ -3245,8 +3245,8 @@ pub mod longhands {
             pub enum ComputedOperation {
                 Matrix(ComputedMatrix),
                 Skew(CSSFloat, CSSFloat),
-                Translate(computed::LengthAndPercentage,
-                          computed::LengthAndPercentage,
+                Translate(computed::LengthOrPercentage,
+                          computed::LengthOrPercentage,
                           computed::Length),
                 Scale(CSSFloat, CSSFloat, CSSFloat),
                 Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
@@ -3259,13 +3259,13 @@ pub mod longhands {
         pub use self::computed_value::ComputedMatrix as SpecifiedMatrix;
 
         fn parse_two_lengths_or_percentages(input: &mut Parser)
-                                            -> Result<(specified::LengthAndPercentage,
-                                                       specified::LengthAndPercentage),()> {
-            let first = try!(specified::LengthAndPercentage::parse(input));
+                                            -> Result<(specified::LengthOrPercentage,
+                                                       specified::LengthOrPercentage),()> {
+            let first = try!(specified::LengthOrPercentage::parse(input));
             let second = input.try(|input| {
                 try!(input.expect_comma());
-                specified::LengthAndPercentage::parse(input)
-            }).unwrap_or(specified::LengthAndPercentage::zero());
+                specified::LengthOrPercentage::parse(input)
+            }).unwrap_or(specified::LengthOrPercentage::zero());
             Ok((first, second))
         }
 
@@ -3282,8 +3282,8 @@ pub mod longhands {
         enum SpecifiedOperation {
             Matrix(SpecifiedMatrix),
             Skew(CSSFloat, CSSFloat),
-            Translate(specified::LengthAndPercentage,
-                      specified::LengthAndPercentage,
+            Translate(specified::LengthOrPercentage,
+                      specified::LengthOrPercentage,
                       specified::Length),
             Scale(CSSFloat, CSSFloat, CSSFloat),
             Rotate(CSSFloat, CSSFloat, CSSFloat, specified::Angle),
@@ -3381,9 +3381,8 @@ pub mod longhands {
                         try!(input.parse_nested_block(|input| {
                             let tx = try!(specified::LengthOrPercentage::parse(input));
                             result.push(SpecifiedOperation::Translate(
-                                specified::LengthAndPercentage::from_length_or_percentage(
-                                    &tx),
-                                specified::LengthAndPercentage::zero(),
+                                tx,
+                                specified::LengthOrPercentage::zero(),
                                 specified::Length::Absolute(Au(0))));
                             Ok(())
                         }))
@@ -3392,9 +3391,8 @@ pub mod longhands {
                         try!(input.parse_nested_block(|input| {
                             let ty = try!(specified::LengthOrPercentage::parse(input));
                             result.push(SpecifiedOperation::Translate(
-                                specified::LengthAndPercentage::zero(),
-                                specified::LengthAndPercentage::from_length_or_percentage(
-                                    &ty),
+                                specified::LengthOrPercentage::zero(),
+                                ty,
                                 specified::Length::Absolute(Au(0))));
                             Ok(())
                         }))
@@ -3403,8 +3401,8 @@ pub mod longhands {
                         try!(input.parse_nested_block(|input| {
                             let tz = try!(specified::Length::parse(input));
                             result.push(SpecifiedOperation::Translate(
-                                specified::LengthAndPercentage::zero(),
-                                specified::LengthAndPercentage::zero(),
+                                specified::LengthOrPercentage::zero(),
+                                specified::LengthOrPercentage::zero(),
                                 tz));
                             Ok(())
                         }))
@@ -3417,8 +3415,8 @@ pub mod longhands {
                             try!(input.expect_comma());
                             let tz = try!(specified::Length::parse(input));
                             result.push(SpecifiedOperation::Translate(
-                                specified::LengthAndPercentage::from_length_or_percentage(&tx),
-                                specified::LengthAndPercentage::from_length_or_percentage(&ty),
+                                tx,
+                                ty,
                                 tz));
                             Ok(())
                         }))

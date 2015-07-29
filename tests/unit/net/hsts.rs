@@ -5,7 +5,7 @@
 use net::hsts::HSTSList;
 use net::hsts::HSTSEntry;
 use net_traits::IncludeSubdomains;
-use net::hsts::secure_url;
+use net::hsts::{secure_url, preload_hsts_domains};
 use net::resource_task::ResourceManager;
 use std::sync::mpsc::channel;
 use url::Url;
@@ -269,6 +269,12 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
     };
 
     assert!(!hsts_list.is_host_secure("mozilla.org"));
+}
+
+#[test]
+fn test_preload_hsts_domains_well_formed() {
+    let hsts_list = preload_hsts_domains().unwrap();
+    assert!(hsts_list.entries.len() != 0);
 }
 
 #[test]
