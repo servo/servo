@@ -370,9 +370,10 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         // Step 3
         self.change_ready_state(FileReaderReadyState::Loading);
 
+        // Step 4
         let (send, bytes) = mpsc::channel();
         blob.read_out_buffer(send);
-        let type_ = blob.read_out_type();
+        let type_ = blob.Type();
 
         let load_data = ReadData::new(bytes, type_, label, function);
 
