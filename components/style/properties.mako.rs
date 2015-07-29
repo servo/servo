@@ -3278,11 +3278,21 @@ pub mod longhands {
             Ok((first, second))
         }
 
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        enum TranslateKind {
+            Translate,
+            TranslateX,
+            TranslateY,
+            TranslateZ,
+            Translate3D,
+        }
+
         #[derive(Clone, Debug, PartialEq)]
         enum SpecifiedOperation {
             Matrix(SpecifiedMatrix),
             Skew(CSSFloat, CSSFloat),
-            Translate(specified::LengthOrPercentage,
+            Translate(TranslateKind,
+                      specified::LengthOrPercentage,
                       specified::LengthOrPercentage,
                       specified::Length),
             Scale(CSSFloat, CSSFloat, CSSFloat),
@@ -3291,9 +3301,61 @@ pub mod longhands {
         }
 
         impl ToCss for SpecifiedOperation {
-            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
-                // TODO(pcwalton)
-                Ok(())
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    // todo(gw): implement serialization for transform
+                    // types other than translate.
+                    SpecifiedOperation::Matrix(_m) => {
+                        Ok(())
+                    }
+                    SpecifiedOperation::Skew(_sx, _sy) => {
+                        Ok(())
+                    }
+                    SpecifiedOperation::Translate(kind, tx, ty, tz) => {
+                        match kind {
+                            TranslateKind::Translate => {
+                                try!(dest.write_str("translate("));
+                                try!(tx.to_css(dest));
+                                try!(dest.write_str(", "));
+                                try!(ty.to_css(dest));
+                                dest.write_str(")")
+                            }
+                            TranslateKind::TranslateX => {
+                                try!(dest.write_str("translateX("));
+                                try!(tx.to_css(dest));
+                                dest.write_str(")")
+                            }
+                            TranslateKind::TranslateY => {
+                                try!(dest.write_str("translateY("));
+                                try!(ty.to_css(dest));
+                                dest.write_str(")")
+                            }
+                            TranslateKind::TranslateZ => {
+                                try!(dest.write_str("translateZ("));
+                                try!(tz.to_css(dest));
+                                dest.write_str(")")
+                            }
+                            TranslateKind::Translate3D => {
+                                try!(dest.write_str("translate3d("));
+                                try!(tx.to_css(dest));
+                                try!(dest.write_str(", "));
+                                try!(ty.to_css(dest));
+                                try!(dest.write_str(", "));
+                                try!(tz.to_css(dest));
+                                dest.write_str(")")
+                            }
+                        }
+                    }
+                    SpecifiedOperation::Scale(_sx, _sy, _sz) => {
+                        Ok(())
+                    }
+                    SpecifiedOperation::Rotate(_ax, _ay, _az, _angle) => {
+                        Ok(())
+                    }
+                    SpecifiedOperation::Perspective(_p) => {
+                        Ok(())
+                    }
+                }
             }
         }
 
@@ -3371,7 +3433,8 @@ pub mod longhands {
                     "translate" => {
                         try!(input.parse_nested_block(|input| {
                             let (tx, ty) = try!(parse_two_lengths_or_percentages(input));
-                            result.push(SpecifiedOperation::Translate(tx,
+                            result.push(SpecifiedOperation::Translate(TranslateKind::Translate,
+                                                                      tx,
                                                                       ty,
                                                                       specified::Length::Absolute(Au(0))));
                             Ok(())
@@ -3381,6 +3444,7 @@ pub mod longhands {
                         try!(input.parse_nested_block(|input| {
                             let tx = try!(specified::LengthOrPercentage::parse(input));
                             result.push(SpecifiedOperation::Translate(
+                                TranslateKind::TranslateX,
                                 tx,
                                 specified::LengthOrPercentage::zero(),
                                 specified::Length::Absolute(Au(0))));
@@ -3391,6 +3455,7 @@ pub mod longhands {
                         try!(input.parse_nested_block(|input| {
                             let ty = try!(specified::LengthOrPercentage::parse(input));
                             result.push(SpecifiedOperation::Translate(
+                                TranslateKind::TranslateY,
                                 specified::LengthOrPercentage::zero(),
                                 ty,
                                 specified::Length::Absolute(Au(0))));
@@ -3401,6 +3466,7 @@ pub mod longhands {
                         try!(input.parse_nested_block(|input| {
                             let tz = try!(specified::Length::parse(input));
                             result.push(SpecifiedOperation::Translate(
+                                TranslateKind::TranslateZ,
                                 specified::LengthOrPercentage::zero(),
                                 specified::LengthOrPercentage::zero(),
                                 tz));
@@ -3415,6 +3481,7 @@ pub mod longhands {
                             try!(input.expect_comma());
                             let tz = try!(specified::Length::parse(input));
                             result.push(SpecifiedOperation::Translate(
+                                TranslateKind::Translate3D,
                                 tx,
                                 ty,
                                 tz));
@@ -3557,7 +3624,7 @@ pub mod longhands {
                         SpecifiedOperation::Matrix(ref matrix) => {
                             result.push(computed_value::ComputedOperation::Matrix(*matrix));
                         }
-                        SpecifiedOperation::Translate(ref tx, ref ty, ref tz) => {
+                        SpecifiedOperation::Translate(_, ref tx, ref ty, ref tz) => {
                             result.push(computed_value::ComputedOperation::Translate(tx.to_computed_value(context),
                                                                                      ty.to_computed_value(context),
                                                                                      tz.to_computed_value(context)));
