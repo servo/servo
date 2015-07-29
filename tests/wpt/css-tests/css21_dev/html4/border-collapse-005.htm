@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html><head>
+    <meta charset="utf-8">
+    <title>CSS Test (Tables): collapsing borders with empty tbody</title>
+    <link href="http://chrisrebert.com" rel="author" title="Chris Rebert">
+    <link href="http://www.w3.org/TR/CSS2/tables.html#collapsing-borders" rel="help">
+    <link href="https://drafts.csswg.org/css2/tables.html#collapsing-borders" rel="help">
+    <link href="https://drafts.csswg.org/css3-tables/#collapsing-borders" rel="help">
+    <link href="reference/border-collapse-005-ref.htm" rel="match">
+    <meta content="" name="flags">
+    <meta content="border-collapse should work correctly when a table has an empty tbody" name="assert">
+    <style>
+table {
+    border-collapse: collapse;
+    border: 2px solid blue;
+}
+th {
+    font-weight: normal;
+    text-align: left;
+}
+    </style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>One</th>
+                <th>Two</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+            <tr>
+                <td>Three</td>
+                <td>Four</td>
+            </tr>
+        </tfoot>
+    </table>
+    <p>Test passes if there is a solid blue border around the <strong>entire perimeter</strong> of the table.</p>
+
+
+</body></html>

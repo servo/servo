@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html xmlns="http://www.w3.org/1999/xhtml"><head>
+  <title>CSS Reftest Reference</title>
+  <link href="mailto:dholbert@mozilla.com" rel="author" title="Daniel Holbert" />
+  <meta charset="utf-8" />
+  <style>
+    .flexContainer {
+      width: 40px;
+      height: 30px;
+      border: 1px solid gray;
+      margin-bottom: 5px;
+    }
+    .flexContainer &gt; * {
+      width: 20px;
+      height: 15px;
+      float: left;
+    }
+    .item1 {
+      /* Note: flex items are ordered as "CMYK": cyan, magenta, yellow, black */
+      background: cyan;
+    }
+    .item2 {
+      background: magenta;
+    }
+    .item3 {
+      background: yellow;
+    }
+    .item4 {
+      background: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer">
+    <div class="item3"></div><div class="item1"></div>
+    <div class="item4"></div><div class="item2"></div>
+  </div>
+  <div class="flexContainer">
+    <div class="item3"></div><div class="item1"></div>
+    <div class="item4"></div><div class="item2"></div>
+  </div>
+  <div class="flexContainer">
+    <div class="item3"></div><div class="item1"></div>
+    <div class="item4"></div><div class="item2"></div>
+  </div>
+  <div class="flexContainer">
+    <div class="item3"></div><div class="item1"></div>
+    <div class="item4"></div><div class="item2"></div>
+  </div>
+
+
+</body></html>

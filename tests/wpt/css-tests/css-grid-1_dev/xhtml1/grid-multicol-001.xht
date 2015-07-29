@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Grid Layout Test: 'column-*' properties from grid container does not apply to grid items</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-containers" title="3.1 Establishing Grid Containers" />
+        <link rel="help" href="http://www.w3.org/TR/css3-multicol/#the-number-and-width-of-columns" title="3. The number and width of columns" />
+        <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
+        <meta name="assert" content="This test checks that 'column-*' properties in the Multicol module are ignored in grid items when applied to a grid container." />
+        <style type="text/css"><![CDATA[
+            #reference-overlapped-red {
+                position: absolute;
+                background-color: red;
+                width: 100px;
+                height: 100px;
+                z-index: -1;
+            }
+
+            .test-overlapping-green {
+                background-color: green;
+                width: 100px;
+                height: 50px;
+            }
+
+            .grid {
+                display: grid;
+                -moz-column-width: 50px;
+                -webkit-column-width: 50px;
+                column-width: 50px;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+        <div id="reference-overlapped-red"></div>
+
+        <div class="grid">
+            <div class="test-overlapping-green"></div>
+            <div class="test-overlapping-green"></div>
+        </div>
+    </body>
+</html>

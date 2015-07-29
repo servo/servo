@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>CSS Reftest Reference</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS 2.1 Conformance Test Suite"; }
+            @top-right { content: "Test vertical-alignment-new-006-ref"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+  <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <meta name="flags" content="image" />
+  <style type="text/css"><![CDATA[
+    img
+    {
+      vertical-align: top;
+    }
+
+    img
+    {
+      padding-left: 15px; /* = the position of first orange square */
+    }
+
+    img + br + img
+    {
+      padding-left: 15px; /* = the position of second orange square*/
+    }
+  ]]></style>
+
+</head>
+
+<body>
+
+<p>Test passes if the <strong>left edge</strong> of an irregular orange polygon is straight and unbroken.</p>
+
+<div>
+   <img src="support/swatch-orange.png" width="60" height="60" alt="Image download support must be enabled" /><br /><!--
+--><img src="support/swatch-orange.png" width="30" height="30" alt="Image download support must be enabled" />
+</div>
+
+</body>
+</html>

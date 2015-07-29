@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
+<title>CSS Writing Modes: text-combine-upright: digits 3 + two digits</title>
+<link href="https://google.com/+MasatakaYakura" rel="author" title="Masataka Yakura" />
+<link href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright" rel="help" />
+<link href="reference/vertical-ahem-1x1-ref.xht" rel="match" />
+<link href="reference/horizontal-ahem-1x1-notref.xht" rel="mismatch" />
+<meta content="'text-combine-upright: digits 3' combines two ASCII digits horizontally." name="assert" />
+<meta content="ahem" name="flags" />
+<style>
+.test {
+  writing-mode: vertical-rl;
+  font-size: 5em;
+  line-height: 1;
+  font-family: Ahem;
+}
+
+.tcy {
+  text-combine-upright: digits 3;
+}
+</style>
+</head>
+<body>
+
+<p>Test passes if there are 2 <strong>identical</strong> black squares.</p>
+
+<div class="test">
+  <p><span class="tcy">12</span></p>
+  <p>x</p>
+</div>
+
+
+</body></html>

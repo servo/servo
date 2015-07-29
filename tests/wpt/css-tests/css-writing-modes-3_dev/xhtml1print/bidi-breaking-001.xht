@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Bidi paragraph boundaries: Blocks</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test bidi-breaking-001"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"/> <!-- 2012-03-12 -->
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-algo"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+  <link rel="match" href="reference/bidi-breaking-001-ref.xht"/>
+
+  <meta name="flags" content=""/>
+  <meta name="assert" content="Block boundaries break bidi paragraphs."/>
+  <style type="text/css"><![CDATA[
+     /* Make test easier to read */
+    .test, .control {
+      color: blue;
+      font: bold larger monospace;
+      margin: 1em;
+      padding: 0.25em;
+      border: solid silver;
+      float: left;
+    }
+    .set {
+      clear: both;
+      float: left;
+      border-bottom: solid orange;
+    }
+    p + .set {
+      border-top: solid orange;
+    }
+
+    /* ensure BDO processing */
+    bdo {
+      unicode-bidi: bidi-override;
+      direction: ltr;
+    }
+  ]]></style>
+</head>
+<body>
+  <p>In each pair of silver boxes below, the two patterns must be identical.</p>
+
+  <!--  
+  &#x05D0; א is hebrew letter alef
+  &#x05EA; ת is hebrew letter tav
+  -->
+
+  <!-- control for bidi support -->
+  <div class="set">
+    <div class="test">
+      <div>&rlm;&nbsp; + - &times; &divide; א</div>
+      <div>ת + - &times; &divide; &nbsp;&rlm;</div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א &divide; &times; - + &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; &divide; &times; - + ת</bdo></div>
+    </div>
+  </div>
+
+  <!-- sibling boxes -->
+  <div class="set">
+    <div class="test">
+      <div>א + - &times; &divide; &nbsp;</div>
+      <div>&nbsp; + - &times; &divide; ת</div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+  </div>
+
+  <!-- anonymous boxes -->
+  <div class="set">
+    <div class="test">
+      <div>א + - &times; &divide; &nbsp;</div>
+      &nbsp; + - &times; &divide; ת
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+  </div>
+
+  <!-- anonymous boxes -->
+  <div class="set">
+    <div class="test">
+      א + - &times; &divide; &nbsp;
+      <div/>
+      &nbsp; + - &times; &divide; ת
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+  </div>
+<!--
+PS &#x2029; Paragraph separator
+LS &#x2028; Line separator
+-->
+</body>
+</html>

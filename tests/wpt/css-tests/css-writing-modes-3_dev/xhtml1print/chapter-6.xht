@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Abstract Box Terminology (4 tests)</h2>
+  <h2>Abstract Box Terminology (22 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -216,7 +216,205 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.4">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#logical-to-physical">6.4 Abstract-to-Physical Mappings</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 18 tests -->
+      <tr id="text-decoration-sidewaysleft-vlr-003-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysleft-vlr-003.xht">text-decoration-sidewaysleft-vlr-003</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and 'text-orientation: sideways-left' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: underline' generates a line on the righthand side of text when 'text-orientation' is set to 'sideways-left' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysleft-vlr-005-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysleft-vlr-005.xht">text-decoration-sidewaysleft-vlr-005</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: overline' and 'text-orientation: sideways-left' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: overline' generates a line on the lefthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysleft-vlr-007-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysleft-vlr-007.xht">text-decoration-sidewaysleft-vlr-007</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: line-through' and 'text-orientation: sideways-left' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'sideways-left' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysleft-vrl-002-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysleft-vrl-002.xht">text-decoration-sidewaysleft-vrl-002</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and 'text-orientation: sideways-left' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: underline' generates a line on the righthand side of text when 'text-orientation' is set to 'sideways-left' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysleft-vrl-004-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysleft-vrl-004.xht">text-decoration-sidewaysleft-vrl-004</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: overline' and 'text-orientation: sideways-left' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: overline' generates a line on the lefthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysleft-vrl-006-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysleft-vrl-006.xht">text-decoration-sidewaysleft-vrl-006</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: line-through' and 'text-orientation: sideways-left' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'sideways-left' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysright-vlr-003-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysright-vlr-003.xht">text-decoration-sidewaysright-vlr-003</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and 'text-orientation: sideways-right' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: underline' generates a line on the lefthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysright-vlr-005-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysright-vlr-005.xht">text-decoration-sidewaysright-vlr-005</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: overline' and 'text-orientation: sideways-right' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: overline' generates a line on the righthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysright-vlr-007-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysright-vlr-007.xht">text-decoration-sidewaysright-vlr-007</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: line-through' and 'text-orientation: sideways-right' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'sideways-right' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysright-vrl-002-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysright-vrl-002.xht">text-decoration-sidewaysright-vrl-002</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and 'text-orientation: sideways-right' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: underline' generates a line on the lefthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysright-vrl-004-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysright-vrl-004.xht">text-decoration-sidewaysright-vrl-004</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: overline' and 'text-orientation: sideways-right' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: overline' generates a line on the righthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-sidewaysright-vrl-006-6.4" class="">
+        <td>
+            <a href="text-decoration-sidewaysright-vrl-006.xht">text-decoration-sidewaysright-vrl-006</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: line-through' and 'text-orientation: sideways-right' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'sideways-right' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-upright-vlr-003-6.4" class="">
+        <td>
+            <a href="text-decoration-upright-vlr-003.xht">text-decoration-upright-vlr-003</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and 'text-orientation: upright' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: underline' generates a line on the lefthand side of text when 'text-orientation' is set to 'upright' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-upright-vlr-005-6.4" class="">
+        <td>
+            <a href="text-decoration-upright-vlr-005.xht">text-decoration-upright-vlr-005</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: overline' and 'text-orientation: upright' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: overline' generates a line on the righthand side of text when 'text-orientation' is set to 'upright' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-upright-vlr-007-6.4" class="">
+        <td>
+            <a href="text-decoration-upright-vlr-007.xht">text-decoration-upright-vlr-007</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: line-through' and 'text-orientation: upright' in a 'vertical-lr' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'upright' in a 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-upright-vrl-002-6.4" class="">
+        <td>
+            <a href="text-decoration-upright-vrl-002.xht">text-decoration-upright-vrl-002</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and 'text-orientation: upright' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: underline' generates a line on the lefthand side of text when 'text-orientation' is set to 'upright' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-upright-vrl-004-6.4" class="">
+        <td>
+            <a href="text-decoration-upright-vrl-004.xht">text-decoration-upright-vrl-004</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: overline' and 'text-orientation: upright' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: overline' generates a line on the righthand side of text when 'text-orientation' is set to 'upright' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-decoration-upright-vrl-006-6.4" class="">
+        <td>
+            <a href="text-decoration-upright-vrl-006.xht">text-decoration-upright-vrl-006</a></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: line-through' and 'text-orientation: upright' in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'upright' in a 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
   </table>
 

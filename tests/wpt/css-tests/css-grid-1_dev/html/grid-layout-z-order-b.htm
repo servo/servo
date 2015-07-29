@@ -18,19 +18,19 @@
         width: 150px;
         background: #eee;
         display: grid;
-        grid-definition-columns: 50px 50px 50px;
+        grid-template-columns: 50px 50px 50px;
         color:white;
       }
       .a {
         background: blue;
-        grid-column: 1;
-        grid-column-span: 2;
+        grid-row: 1;
+        grid-column: 1 / 3;
         z-index:10
       }
       .b {
         background: yellow;
-        grid-column: 2;
-        grid-column-span: 2;
+        grid-row: 1;
+        grid-column: 2 / 4;
         z-index:1
       }
     </style>
@@ -42,4 +42,5 @@
       <div class="a">up</div>
     </div>
   
+
 </body></html>

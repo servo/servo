@@ -16,6 +16,7 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
   <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" title="10.3.7 Absolutely positioned, non-replaced elements" />
   <link rel="match" href="reference/abs-pos-non-replaced-vlr-009-ref.xht" />
 
   <meta name="flags" content="ahem image" />
@@ -51,26 +52,24 @@
 "
 
 'left' + 'margin-left' + 'border-left-width' + 'padding-left' + 'width' + 'padding-right' + 'border-right-width' + 'margin-right' + 'right' = width of containing block
-CSS2.1, § 10.3.7 Absolutely positioned, non-replaced elements
-http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
 
 So:
 
      80px : left
   +
-      0px : margin-left: auto
+      0px : margin-left
   +
-      0px : border-top-width
+      0px : border-left-width
   +
-      0px : padding-top
+      0px : padding-left
   +
-    (shrink-to-fit) : width: auto
+  (shrink-to-fit) : width: auto
   +
       0px : padding-right
   +
       0px : border-right-width
   +
-      0px : margin-right: auto
+      0px : margin-right
   +
   (solve) : right: auto
     =====================
@@ -80,7 +79,7 @@ gives us:
 
      80px : left
   +
-      0px : margin-left: auto
+      0px : margin-left
   +
       0px : border-top-width
   +
@@ -92,13 +91,13 @@ gives us:
   +
       0px : border-right-width
   +
-      0px : margin-right: auto
+      0px : margin-right
   +
   (solve) : right: auto
     =====================
     320px : width of containing block
 
-And so computed right value must be 160px.
+And so computed right value must be 160px .
 */
 
   ]]></style>

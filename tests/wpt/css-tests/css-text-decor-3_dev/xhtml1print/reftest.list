@@ -1,8 +1,10 @@
 
+ruby-text-decoration-01.xht == reference/ruby-text-decoration-01-ref.xht
 text-decoration-line-010.xht == reference/text-decoration-line-010-ref.xht
 text-decoration-line-011.xht == reference/text-decoration-line-011-ref.xht
 text-decoration-line-012.xht == reference/text-decoration-line-012-ref.xht
 text-decoration-line-013.xht == reference/text-decoration-line-013-ref.xht
+text-decoration-propagation-01.xht == reference/text-decoration-propagation-01-ref.xht
 text-emphasis-style-002.xht == reference/text-emphasis-style-002-ref.xht
 text-emphasis-style-006.xht == reference/text-emphasis-style-006.xht
 text-emphasis-style-007.xht == reference/text-emphasis-style-007.xht

@@ -16,6 +16,7 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
   <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" title="10.3.7 Absolutely positioned, non-replaced elements" />
   <link rel="match" href="reference/abs-pos-non-replaced-vlr-009-ref.xht" />
 
   <meta name="flags" content="ahem image" />
@@ -39,41 +40,37 @@
       color: green;
       left: auto;
       position: absolute;
-      right: auto;
+      right: 2em;
       width: auto;
       writing-mode: vertical-lr;
     }
 
 /*
 "
-set 'auto' values for 'margin-left' and 'margin-right' to 0, and pick the one of the following six rules that applies.
-
 1. 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width is shrink-to-fit. Then solve for 'left'
 "
 
 'left' + 'margin-left' + 'border-left-width' + 'padding-left' + 'width' + 'padding-right' + 'border-right-width' + 'margin-right' + 'right' = width of containing block
-CSS2.1, § 10.3.7 Absolutely positioned, non-replaced elements
-http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
 
 So:
 
   (solve) : left: auto
   +
-      0px : margin-left: auto
+      0px : margin-left
   +
-      0px : border-top-width
+      0px : border-left-width
   +
-      0px : padding-top
+      0px : padding-left
   +
-    (shrink-to-fit) : width: auto
+  (shrink-to-fit) : width: auto
   +
       0px : padding-right
   +
       0px : border-right-width
   +
-      0px : margin-right: auto
+      0px : margin-right
   +
-    160px : right
+     160px : right
     =====================
     320px : width of containing block
 
@@ -81,11 +78,11 @@ gives us:
 
   (solve) : left: auto
   +
-      0px : margin-left: auto
+      0px : margin-left
   +
-      0px : border-top-width
+      0px : border-left-width
   +
-      0px : padding-top
+      0px : padding-left
   +
      80px : (shrink-to-fit) : width: auto
   +
@@ -93,13 +90,13 @@ gives us:
   +
       0px : border-right-width
   +
-      0px : margin-right: auto
+      0px : margin-right
   +
-    160px : right
+     160px : right
     =====================
     320px : width of containing block
 
-And so computed left value must be 80px;
+And so computed left value must be 80px .
 */
 
   ]]></style>

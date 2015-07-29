@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Introduction to Vertical Text Layout (12 tests)</h2>
+  <h2>Introduction to Vertical Text Layout (28 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -55,11 +55,11 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation">5.1 Orienting Text: the text-orientation property</a></th></tr>
-      <!-- 12 tests -->
+      <!-- 28 tests -->
       <tr id="text-orientation-010-5.1" class="primary ahem font">
         <td><strong>
             <a href="text-orientation-010.xht">text-orientation-010</a></strong></td>
-        <td><a href="reference/text-orientation-010-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>text-orientation - mixed
           <ul class="assert">
@@ -70,7 +70,7 @@
       <tr id="text-orientation-011-5.1" class="primary ahem font">
         <td><strong>
             <a href="text-orientation-011.xht">text-orientation-011</a></strong></td>
-        <td><a href="reference/text-orientation-011-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>text-orientation - upright
           <ul class="assert">
@@ -125,7 +125,7 @@
       <tr id="text-orientation-mixed-001-5.1" class="primary font image">
         <td><strong>
             <a href="text-orientation-mixed-001.xht">text-orientation-mixed-001</a></strong></td>
-        <td><a href="reference/text-orientation-mixed-001-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="font" title="Requires a special font">Font</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - mixed in vertical-rl writing mode
           <ul class="assert">
@@ -133,10 +133,186 @@
           </ul>
         </td>
       </tr>
+      <tr id="text-orientation-script-001-5.1" class="primary combo dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001.xht">text-orientation-script-001</a></strong></td>
+        <td></td>
+        <td><abbr class="combo" title="Combination of child tests">Combo</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters.
+          <ul class="assert">
+            <li>Test orientation of characters</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001a-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001a.xht">text-orientation-script-001a</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#1/8, 2048 code points in U+0020-0B35).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#1/8, 2048 code points in U+0020-0B35)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001b-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001b.xht">text-orientation-script-001b</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#2/8, 2048 code points in U+0B36-1B4A).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#2/8, 2048 code points in U+0B36-1B4A)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001c-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001c.xht">text-orientation-script-001c</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#3/8, 2048 code points in U+1B4B-2896).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#3/8, 2048 code points in U+1B4B-2896)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001d-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001d.xht">text-orientation-script-001d</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#4/8, 2048 code points in U+2897-A882).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#4/8, 2048 code points in U+2897-A882)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001e-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001e.xht">text-orientation-script-001e</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#5/8, 2048 code points in U+A883-10341).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#5/8, 2048 code points in U+A883-10341)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001f-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001f.xht">text-orientation-script-001f</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#6/8, 2048 code points in U+10342-1169B).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#6/8, 2048 code points in U+10342-1169B)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001g-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001g.xht">text-orientation-script-001g</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#7/8, 2048 code points in U+1169C-16F9E).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#7/8, 2048 code points in U+1169C-16F9E)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001h-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001h.xht">text-orientation-script-001h</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=R (#8/8, 1702 code points in U+16F9F-1F8AD).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=R (#8/8, 1702 code points in U+16F9F-1F8AD)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001i-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001i.xht">text-orientation-script-001i</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=U (#1/5, 2048 code points in U+00A7-2ED7).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=U (#1/5, 2048 code points in U+00A7-2ED7)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001j-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001j.xht">text-orientation-script-001j</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=U (#2/5, 2048 code points in U+2ED8-A387).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=U (#2/5, 2048 code points in U+2ED8-A387)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001k-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001k.xht">text-orientation-script-001k</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=U (#3/5, 2048 code points in U+A388-133AA).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=U (#3/5, 2048 code points in U+A388-133AA)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001l-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001l.xht">text-orientation-script-001l</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=U (#4/5, 2048 code points in U+133AB-1F6BA).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=U (#4/5, 2048 code points in U+133AB-1F6BA)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001m-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001m.xht">text-orientation-script-001m</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=U (#5/5, 787 code points in U+1F6BB-2FA1D).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=U (#5/5, 787 code points in U+1F6BB-2FA1D)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001n-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001n.xht">text-orientation-script-001n</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=Tr (47 code points in U+2329-FFE3).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=Tr (47 code points in U+2329-FFE3)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-script-001o-5.1" class="primary dom font script">
+        <td><strong>
+            <a href="text-orientation-script-001o.xht">text-orientation-script-001o</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="font" title="Requires a special font">Font</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Test orientation of characters where vo=Tu (147 code points in U+3001-1F201).
+          <ul class="assert">
+            <li>Test orientation of characters where vo=Tu (147 code points in U+3001-1F201)</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="text-orientation-sideways-001-5.1" class="primary font image">
         <td><strong>
             <a href="text-orientation-sideways-001.xht">text-orientation-sideways-001</a></strong></td>
-        <td><a href="reference/text-orientation-sideways-right-001-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="font" title="Requires a special font">Font</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - sideways in vertical-rl writing mode
           <ul class="assert">
@@ -147,7 +323,7 @@
       <tr id="text-orientation-sideways-002-5.1" class="primary font image">
         <td><strong>
             <a href="text-orientation-sideways-002.xht">text-orientation-sideways-002</a></strong></td>
-        <td><a href="reference/text-orientation-sideways-left-001-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="font" title="Requires a special font">Font</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - sideways in vertical-lr writing mode
           <ul class="assert">
@@ -158,7 +334,7 @@
       <tr id="text-orientation-sideways-left-001-5.1" class="primary font image">
         <td><strong>
             <a href="text-orientation-sideways-left-001.xht">text-orientation-sideways-left-001</a></strong></td>
-        <td><a href="reference/text-orientation-sideways-left-001-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="font" title="Requires a special font">Font</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - sideways-left in vertical-rl writing mode
           <ul class="assert">
@@ -169,7 +345,7 @@
       <tr id="text-orientation-sideways-right-001-5.1" class="primary font image">
         <td><strong>
             <a href="text-orientation-sideways-right-001.xht">text-orientation-sideways-right-001</a></strong></td>
-        <td><a href="reference/text-orientation-sideways-right-001-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="font" title="Requires a special font">Font</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - sideways-right in vertical-rl writing mode
           <ul class="assert">
@@ -180,7 +356,7 @@
       <tr id="text-orientation-upright-001-5.1" class="primary font image">
         <td><strong>
             <a href="text-orientation-upright-001.xht">text-orientation-upright-001</a></strong></td>
-        <td><a href="reference/text-orientation-upright-001-ref.xht">=</a> </td>
+        <td></td>
         <td><abbr class="font" title="Requires a special font">Font</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - upright in vertical-rl writing mode
           <ul class="assert">

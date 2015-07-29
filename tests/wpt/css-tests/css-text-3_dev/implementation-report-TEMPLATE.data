@@ -2,1370 +2,192 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-text-3_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/css3-text-line-break-baspglwj-001.htm	?	
-xhtml1/css3-text-line-break-baspglwj-001.xht	?	
-html4/css3-text-line-break-baspglwj-002.htm	?	
-xhtml1/css3-text-line-break-baspglwj-002.xht	?	
-html4/css3-text-line-break-baspglwj-003.htm	?	
-xhtml1/css3-text-line-break-baspglwj-003.xht	?	
-html4/css3-text-line-break-baspglwj-004.htm	?	
-xhtml1/css3-text-line-break-baspglwj-004.xht	?	
-html4/css3-text-line-break-baspglwj-005.htm	?	
-xhtml1/css3-text-line-break-baspglwj-005.xht	?	
-html4/css3-text-line-break-baspglwj-006.htm	?	
-xhtml1/css3-text-line-break-baspglwj-006.xht	?	
-html4/css3-text-line-break-baspglwj-007.htm	?	
-xhtml1/css3-text-line-break-baspglwj-007.xht	?	
-html4/css3-text-line-break-baspglwj-008.htm	?	
-xhtml1/css3-text-line-break-baspglwj-008.xht	?	
-html4/css3-text-line-break-baspglwj-009.htm	?	
-xhtml1/css3-text-line-break-baspglwj-009.xht	?	
-html4/css3-text-line-break-baspglwj-010.htm	?	
-xhtml1/css3-text-line-break-baspglwj-010.xht	?	
-html4/css3-text-line-break-baspglwj-011.htm	?	
-xhtml1/css3-text-line-break-baspglwj-011.xht	?	
-html4/css3-text-line-break-baspglwj-012.htm	?	
-xhtml1/css3-text-line-break-baspglwj-012.xht	?	
-html4/css3-text-line-break-baspglwj-014.htm	?	
-xhtml1/css3-text-line-break-baspglwj-014.xht	?	
-html4/css3-text-line-break-baspglwj-015.htm	?	
-xhtml1/css3-text-line-break-baspglwj-015.xht	?	
-html4/css3-text-line-break-baspglwj-016.htm	?	
-xhtml1/css3-text-line-break-baspglwj-016.xht	?	
-html4/css3-text-line-break-baspglwj-017.htm	?	
-xhtml1/css3-text-line-break-baspglwj-017.xht	?	
-html4/css3-text-line-break-baspglwj-018.htm	?	
-xhtml1/css3-text-line-break-baspglwj-018.xht	?	
-html4/css3-text-line-break-baspglwj-019.htm	?	
-xhtml1/css3-text-line-break-baspglwj-019.xht	?	
-html4/css3-text-line-break-baspglwj-020.htm	?	
-xhtml1/css3-text-line-break-baspglwj-020.xht	?	
-html4/css3-text-line-break-baspglwj-021.htm	?	
-xhtml1/css3-text-line-break-baspglwj-021.xht	?	
-html4/css3-text-line-break-baspglwj-022.htm	?	
-xhtml1/css3-text-line-break-baspglwj-022.xht	?	
-html4/css3-text-line-break-baspglwj-023.htm	?	
-xhtml1/css3-text-line-break-baspglwj-023.xht	?	
-html4/css3-text-line-break-baspglwj-024.htm	?	
-xhtml1/css3-text-line-break-baspglwj-024.xht	?	
-html4/css3-text-line-break-baspglwj-025.htm	?	
-xhtml1/css3-text-line-break-baspglwj-025.xht	?	
-html4/css3-text-line-break-baspglwj-026.htm	?	
-xhtml1/css3-text-line-break-baspglwj-026.xht	?	
-html4/css3-text-line-break-baspglwj-030.htm	?	
-xhtml1/css3-text-line-break-baspglwj-030.xht	?	
-html4/css3-text-line-break-baspglwj-031.htm	?	
-xhtml1/css3-text-line-break-baspglwj-031.xht	?	
-html4/css3-text-line-break-baspglwj-032.htm	?	
-xhtml1/css3-text-line-break-baspglwj-032.xht	?	
-html4/css3-text-line-break-baspglwj-033.htm	?	
-xhtml1/css3-text-line-break-baspglwj-033.xht	?	
-html4/css3-text-line-break-baspglwj-034.htm	?	
-xhtml1/css3-text-line-break-baspglwj-034.xht	?	
-html4/css3-text-line-break-baspglwj-035.htm	?	
-xhtml1/css3-text-line-break-baspglwj-035.xht	?	
-html4/css3-text-line-break-baspglwj-036.htm	?	
-xhtml1/css3-text-line-break-baspglwj-036.xht	?	
-html4/css3-text-line-break-baspglwj-037.htm	?	
-xhtml1/css3-text-line-break-baspglwj-037.xht	?	
-html4/css3-text-line-break-baspglwj-038.htm	?	
-xhtml1/css3-text-line-break-baspglwj-038.xht	?	
-html4/css3-text-line-break-baspglwj-039.htm	?	
-xhtml1/css3-text-line-break-baspglwj-039.xht	?	
-html4/css3-text-line-break-baspglwj-040.htm	?	
-xhtml1/css3-text-line-break-baspglwj-040.xht	?	
-html4/css3-text-line-break-baspglwj-041.htm	?	
-xhtml1/css3-text-line-break-baspglwj-041.xht	?	
-html4/css3-text-line-break-baspglwj-042.htm	?	
-xhtml1/css3-text-line-break-baspglwj-042.xht	?	
-html4/css3-text-line-break-baspglwj-043.htm	?	
-xhtml1/css3-text-line-break-baspglwj-043.xht	?	
-html4/css3-text-line-break-baspglwj-044.htm	?	
-xhtml1/css3-text-line-break-baspglwj-044.xht	?	
-html4/css3-text-line-break-baspglwj-045.htm	?	
-xhtml1/css3-text-line-break-baspglwj-045.xht	?	
-html4/css3-text-line-break-baspglwj-046.htm	?	
-xhtml1/css3-text-line-break-baspglwj-046.xht	?	
-html4/css3-text-line-break-baspglwj-047.htm	?	
-xhtml1/css3-text-line-break-baspglwj-047.xht	?	
-html4/css3-text-line-break-baspglwj-048.htm	?	
-xhtml1/css3-text-line-break-baspglwj-048.xht	?	
-html4/css3-text-line-break-baspglwj-049.htm	?	
-xhtml1/css3-text-line-break-baspglwj-049.xht	?	
-html4/css3-text-line-break-baspglwj-050.htm	?	
-xhtml1/css3-text-line-break-baspglwj-050.xht	?	
-html4/css3-text-line-break-baspglwj-051.htm	?	
-xhtml1/css3-text-line-break-baspglwj-051.xht	?	
-html4/css3-text-line-break-baspglwj-052.htm	?	
-xhtml1/css3-text-line-break-baspglwj-052.xht	?	
-html4/css3-text-line-break-baspglwj-060.htm	?	
-xhtml1/css3-text-line-break-baspglwj-060.xht	?	
-html4/css3-text-line-break-baspglwj-061.htm	?	
-xhtml1/css3-text-line-break-baspglwj-061.xht	?	
-html4/css3-text-line-break-baspglwj-062.htm	?	
-xhtml1/css3-text-line-break-baspglwj-062.xht	?	
-html4/css3-text-line-break-baspglwj-063.htm	?	
-xhtml1/css3-text-line-break-baspglwj-063.xht	?	
-html4/css3-text-line-break-baspglwj-064.htm	?	
-xhtml1/css3-text-line-break-baspglwj-064.xht	?	
-html4/css3-text-line-break-baspglwj-065.htm	?	
-xhtml1/css3-text-line-break-baspglwj-065.xht	?	
-html4/css3-text-line-break-baspglwj-066.htm	?	
-xhtml1/css3-text-line-break-baspglwj-066.xht	?	
-html4/css3-text-line-break-baspglwj-067.htm	?	
-xhtml1/css3-text-line-break-baspglwj-067.xht	?	
-html4/css3-text-line-break-baspglwj-068.htm	?	
-xhtml1/css3-text-line-break-baspglwj-068.xht	?	
-html4/css3-text-line-break-baspglwj-069.htm	?	
-xhtml1/css3-text-line-break-baspglwj-069.xht	?	
-html4/css3-text-line-break-baspglwj-070.htm	?	
-xhtml1/css3-text-line-break-baspglwj-070.xht	?	
-html4/css3-text-line-break-baspglwj-071.htm	?	
-xhtml1/css3-text-line-break-baspglwj-071.xht	?	
-html4/css3-text-line-break-baspglwj-072.htm	?	
-xhtml1/css3-text-line-break-baspglwj-072.xht	?	
-html4/css3-text-line-break-baspglwj-073.htm	?	
-xhtml1/css3-text-line-break-baspglwj-073.xht	?	
-html4/css3-text-line-break-baspglwj-074.htm	?	
-xhtml1/css3-text-line-break-baspglwj-074.xht	?	
-html4/css3-text-line-break-baspglwj-075.htm	?	
-xhtml1/css3-text-line-break-baspglwj-075.xht	?	
-html4/css3-text-line-break-baspglwj-076.htm	?	
-xhtml1/css3-text-line-break-baspglwj-076.xht	?	
-html4/css3-text-line-break-baspglwj-077.htm	?	
-xhtml1/css3-text-line-break-baspglwj-077.xht	?	
-html4/css3-text-line-break-baspglwj-078.htm	?	
-xhtml1/css3-text-line-break-baspglwj-078.xht	?	
-html4/css3-text-line-break-baspglwj-080.htm	?	
-xhtml1/css3-text-line-break-baspglwj-080.xht	?	
-html4/css3-text-line-break-baspglwj-081.htm	?	
-xhtml1/css3-text-line-break-baspglwj-081.xht	?	
-html4/css3-text-line-break-baspglwj-082.htm	?	
-xhtml1/css3-text-line-break-baspglwj-082.xht	?	
-html4/css3-text-line-break-baspglwj-083.htm	?	
-xhtml1/css3-text-line-break-baspglwj-083.xht	?	
-html4/css3-text-line-break-baspglwj-084.htm	?	
-xhtml1/css3-text-line-break-baspglwj-084.xht	?	
-html4/css3-text-line-break-baspglwj-085.htm	?	
-xhtml1/css3-text-line-break-baspglwj-085.xht	?	
-html4/css3-text-line-break-baspglwj-086.htm	?	
-xhtml1/css3-text-line-break-baspglwj-086.xht	?	
-html4/css3-text-line-break-baspglwj-090.htm	?	
-xhtml1/css3-text-line-break-baspglwj-090.xht	?	
-html4/css3-text-line-break-baspglwj-091.htm	?	
-xhtml1/css3-text-line-break-baspglwj-091.xht	?	
-html4/css3-text-line-break-baspglwj-092.htm	?	
-xhtml1/css3-text-line-break-baspglwj-092.xht	?	
-html4/css3-text-line-break-baspglwj-093.htm	?	
-xhtml1/css3-text-line-break-baspglwj-093.xht	?	
-html4/css3-text-line-break-baspglwj-094.htm	?	
-xhtml1/css3-text-line-break-baspglwj-094.xht	?	
-html4/css3-text-line-break-baspglwj-095.htm	?	
-xhtml1/css3-text-line-break-baspglwj-095.xht	?	
-html4/css3-text-line-break-baspglwj-096.htm	?	
-xhtml1/css3-text-line-break-baspglwj-096.xht	?	
-html4/css3-text-line-break-baspglwj-097.htm	?	
-xhtml1/css3-text-line-break-baspglwj-097.xht	?	
-html4/css3-text-line-break-baspglwj-098.htm	?	
-xhtml1/css3-text-line-break-baspglwj-098.xht	?	
-html4/css3-text-line-break-baspglwj-099.htm	?	
-xhtml1/css3-text-line-break-baspglwj-099.xht	?	
-html4/css3-text-line-break-baspglwj-100.htm	?	
-xhtml1/css3-text-line-break-baspglwj-100.xht	?	
-html4/css3-text-line-break-baspglwj-101.htm	?	
-xhtml1/css3-text-line-break-baspglwj-101.xht	?	
-html4/css3-text-line-break-baspglwj-102.htm	?	
-xhtml1/css3-text-line-break-baspglwj-102.xht	?	
-html4/css3-text-line-break-baspglwj-103.htm	?	
-xhtml1/css3-text-line-break-baspglwj-103.xht	?	
-html4/css3-text-line-break-baspglwj-104.htm	?	
-xhtml1/css3-text-line-break-baspglwj-104.xht	?	
-html4/css3-text-line-break-baspglwj-105.htm	?	
-xhtml1/css3-text-line-break-baspglwj-105.xht	?	
-html4/css3-text-line-break-baspglwj-106.htm	?	
-xhtml1/css3-text-line-break-baspglwj-106.xht	?	
-html4/css3-text-line-break-baspglwj-107.htm	?	
-xhtml1/css3-text-line-break-baspglwj-107.xht	?	
-html4/css3-text-line-break-baspglwj-108.htm	?	
-xhtml1/css3-text-line-break-baspglwj-108.xht	?	
-html4/css3-text-line-break-baspglwj-109.htm	?	
-xhtml1/css3-text-line-break-baspglwj-109.xht	?	
-html4/css3-text-line-break-baspglwj-110.htm	?	
-xhtml1/css3-text-line-break-baspglwj-110.xht	?	
-html4/css3-text-line-break-baspglwj-111.htm	?	
-xhtml1/css3-text-line-break-baspglwj-111.xht	?	
-html4/css3-text-line-break-baspglwj-112.htm	?	
-xhtml1/css3-text-line-break-baspglwj-112.xht	?	
-html4/css3-text-line-break-baspglwj-113.htm	?	
-xhtml1/css3-text-line-break-baspglwj-113.xht	?	
-html4/css3-text-line-break-baspglwj-114.htm	?	
-xhtml1/css3-text-line-break-baspglwj-114.xht	?	
-html4/css3-text-line-break-baspglwj-115.htm	?	
-xhtml1/css3-text-line-break-baspglwj-115.xht	?	
-html4/css3-text-line-break-baspglwj-116.htm	?	
-xhtml1/css3-text-line-break-baspglwj-116.xht	?	
-html4/css3-text-line-break-baspglwj-117.htm	?	
-xhtml1/css3-text-line-break-baspglwj-117.xht	?	
-html4/css3-text-line-break-baspglwj-118.htm	?	
-xhtml1/css3-text-line-break-baspglwj-118.xht	?	
-html4/css3-text-line-break-baspglwj-120.htm	?	
-xhtml1/css3-text-line-break-baspglwj-120.xht	?	
-html4/css3-text-line-break-baspglwj-121.htm	?	
-xhtml1/css3-text-line-break-baspglwj-121.xht	?	
-html4/css3-text-line-break-baspglwj-122.htm	?	
-xhtml1/css3-text-line-break-baspglwj-122.xht	?	
-html4/css3-text-line-break-baspglwj-123.htm	?	
-xhtml1/css3-text-line-break-baspglwj-123.xht	?	
-html4/css3-text-line-break-baspglwj-124.htm	?	
-xhtml1/css3-text-line-break-baspglwj-124.xht	?	
-html4/css3-text-line-break-baspglwj-125.htm	?	
-xhtml1/css3-text-line-break-baspglwj-125.xht	?	
-html4/css3-text-line-break-baspglwj-126.htm	?	
-xhtml1/css3-text-line-break-baspglwj-126.xht	?	
-html4/css3-text-line-break-baspglwj-127.htm	?	
-xhtml1/css3-text-line-break-baspglwj-127.xht	?	
-html4/css3-text-line-break-baspglwj-128.htm	?	
-xhtml1/css3-text-line-break-baspglwj-128.xht	?	
-html4/css3-text-line-break-baspglwj-130.htm	?	
-xhtml1/css3-text-line-break-baspglwj-130.xht	?	
-html4/css3-text-line-break-baspglwj-131.htm	?	
-xhtml1/css3-text-line-break-baspglwj-131.xht	?	
-html4/css3-text-line-break-jazh-001.htm	?	
-xhtml1/css3-text-line-break-jazh-001.xht	?	
-html4/css3-text-line-break-jazh-002.htm	?	
-xhtml1/css3-text-line-break-jazh-002.xht	?	
-html4/css3-text-line-break-jazh-003.htm	?	
-xhtml1/css3-text-line-break-jazh-003.xht	?	
-html4/css3-text-line-break-jazh-004.htm	?	
-xhtml1/css3-text-line-break-jazh-004.xht	?	
-html4/css3-text-line-break-jazh-005.htm	?	
-xhtml1/css3-text-line-break-jazh-005.xht	?	
-html4/css3-text-line-break-jazh-006.htm	?	
-xhtml1/css3-text-line-break-jazh-006.xht	?	
-html4/css3-text-line-break-jazh-007.htm	?	
-xhtml1/css3-text-line-break-jazh-007.xht	?	
-html4/css3-text-line-break-jazh-008.htm	?	
-xhtml1/css3-text-line-break-jazh-008.xht	?	
-html4/css3-text-line-break-jazh-009.htm	?	
-xhtml1/css3-text-line-break-jazh-009.xht	?	
-html4/css3-text-line-break-jazh-010.htm	?	
-xhtml1/css3-text-line-break-jazh-010.xht	?	
-html4/css3-text-line-break-jazh-011.htm	?	
-xhtml1/css3-text-line-break-jazh-011.xht	?	
-html4/css3-text-line-break-jazh-012.htm	?	
-xhtml1/css3-text-line-break-jazh-012.xht	?	
-html4/css3-text-line-break-jazh-013.htm	?	
-xhtml1/css3-text-line-break-jazh-013.xht	?	
-html4/css3-text-line-break-jazh-014.htm	?	
-xhtml1/css3-text-line-break-jazh-014.xht	?	
-html4/css3-text-line-break-jazh-015.htm	?	
-xhtml1/css3-text-line-break-jazh-015.xht	?	
-html4/css3-text-line-break-jazh-016.htm	?	
-xhtml1/css3-text-line-break-jazh-016.xht	?	
-html4/css3-text-line-break-jazh-017.htm	?	
-xhtml1/css3-text-line-break-jazh-017.xht	?	
-html4/css3-text-line-break-jazh-018.htm	?	
-xhtml1/css3-text-line-break-jazh-018.xht	?	
-html4/css3-text-line-break-jazh-019.htm	?	
-xhtml1/css3-text-line-break-jazh-019.xht	?	
-html4/css3-text-line-break-jazh-020.htm	?	
-xhtml1/css3-text-line-break-jazh-020.xht	?	
-html4/css3-text-line-break-jazh-021.htm	?	
-xhtml1/css3-text-line-break-jazh-021.xht	?	
-html4/css3-text-line-break-jazh-022.htm	?	
-xhtml1/css3-text-line-break-jazh-022.xht	?	
-html4/css3-text-line-break-jazh-023.htm	?	
-xhtml1/css3-text-line-break-jazh-023.xht	?	
-html4/css3-text-line-break-jazh-024.htm	?	
-xhtml1/css3-text-line-break-jazh-024.xht	?	
-html4/css3-text-line-break-jazh-025.htm	?	
-xhtml1/css3-text-line-break-jazh-025.xht	?	
-html4/css3-text-line-break-jazh-026.htm	?	
-xhtml1/css3-text-line-break-jazh-026.xht	?	
-html4/css3-text-line-break-jazh-027.htm	?	
-xhtml1/css3-text-line-break-jazh-027.xht	?	
-html4/css3-text-line-break-jazh-028.htm	?	
-xhtml1/css3-text-line-break-jazh-028.xht	?	
-html4/css3-text-line-break-jazh-029.htm	?	
-xhtml1/css3-text-line-break-jazh-029.xht	?	
-html4/css3-text-line-break-jazh-030.htm	?	
-xhtml1/css3-text-line-break-jazh-030.xht	?	
-html4/css3-text-line-break-jazh-031.htm	?	
-xhtml1/css3-text-line-break-jazh-031.xht	?	
-html4/css3-text-line-break-jazh-032.htm	?	
-xhtml1/css3-text-line-break-jazh-032.xht	?	
-html4/css3-text-line-break-jazh-033.htm	?	
-xhtml1/css3-text-line-break-jazh-033.xht	?	
-html4/css3-text-line-break-jazh-034.htm	?	
-xhtml1/css3-text-line-break-jazh-034.xht	?	
-html4/css3-text-line-break-jazh-035.htm	?	
-xhtml1/css3-text-line-break-jazh-035.xht	?	
-html4/css3-text-line-break-jazh-036.htm	?	
-xhtml1/css3-text-line-break-jazh-036.xht	?	
-html4/css3-text-line-break-jazh-037.htm	?	
-xhtml1/css3-text-line-break-jazh-037.xht	?	
-html4/css3-text-line-break-jazh-038.htm	?	
-xhtml1/css3-text-line-break-jazh-038.xht	?	
-html4/css3-text-line-break-jazh-039.htm	?	
-xhtml1/css3-text-line-break-jazh-039.xht	?	
-html4/css3-text-line-break-jazh-040.htm	?	
-xhtml1/css3-text-line-break-jazh-040.xht	?	
-html4/css3-text-line-break-jazh-041.htm	?	
-xhtml1/css3-text-line-break-jazh-041.xht	?	
-html4/css3-text-line-break-jazh-042.htm	?	
-xhtml1/css3-text-line-break-jazh-042.xht	?	
-html4/css3-text-line-break-jazh-043.htm	?	
-xhtml1/css3-text-line-break-jazh-043.xht	?	
-html4/css3-text-line-break-jazh-044.htm	?	
-xhtml1/css3-text-line-break-jazh-044.xht	?	
-html4/css3-text-line-break-jazh-045.htm	?	
-xhtml1/css3-text-line-break-jazh-045.xht	?	
-html4/css3-text-line-break-jazh-046.htm	?	
-xhtml1/css3-text-line-break-jazh-046.xht	?	
-html4/css3-text-line-break-jazh-047.htm	?	
-xhtml1/css3-text-line-break-jazh-047.xht	?	
-html4/css3-text-line-break-jazh-048.htm	?	
-xhtml1/css3-text-line-break-jazh-048.xht	?	
-html4/css3-text-line-break-jazh-049.htm	?	
-xhtml1/css3-text-line-break-jazh-049.xht	?	
-html4/css3-text-line-break-jazh-050.htm	?	
-xhtml1/css3-text-line-break-jazh-050.xht	?	
-html4/css3-text-line-break-jazh-051.htm	?	
-xhtml1/css3-text-line-break-jazh-051.xht	?	
-html4/css3-text-line-break-jazh-052.htm	?	
-xhtml1/css3-text-line-break-jazh-052.xht	?	
-html4/css3-text-line-break-jazh-054.htm	?	
-xhtml1/css3-text-line-break-jazh-054.xht	?	
-html4/css3-text-line-break-jazh-055.htm	?	
-xhtml1/css3-text-line-break-jazh-055.xht	?	
-html4/css3-text-line-break-jazh-056.htm	?	
-xhtml1/css3-text-line-break-jazh-056.xht	?	
-html4/css3-text-line-break-jazh-057.htm	?	
-xhtml1/css3-text-line-break-jazh-057.xht	?	
-html4/css3-text-line-break-jazh-058.htm	?	
-xhtml1/css3-text-line-break-jazh-058.xht	?	
-html4/css3-text-line-break-jazh-059.htm	?	
-xhtml1/css3-text-line-break-jazh-059.xht	?	
-html4/css3-text-line-break-jazh-060.htm	?	
-xhtml1/css3-text-line-break-jazh-060.xht	?	
-html4/css3-text-line-break-jazh-101.htm	?	
-xhtml1/css3-text-line-break-jazh-101.xht	?	
-html4/css3-text-line-break-jazh-102.htm	?	
-xhtml1/css3-text-line-break-jazh-102.xht	?	
-html4/css3-text-line-break-jazh-103.htm	?	
-xhtml1/css3-text-line-break-jazh-103.xht	?	
-html4/css3-text-line-break-jazh-104.htm	?	
-xhtml1/css3-text-line-break-jazh-104.xht	?	
-html4/css3-text-line-break-jazh-105.htm	?	
-xhtml1/css3-text-line-break-jazh-105.xht	?	
-html4/css3-text-line-break-jazh-106.htm	?	
-xhtml1/css3-text-line-break-jazh-106.xht	?	
-html4/css3-text-line-break-jazh-107.htm	?	
-xhtml1/css3-text-line-break-jazh-107.xht	?	
-html4/css3-text-line-break-jazh-108.htm	?	
-xhtml1/css3-text-line-break-jazh-108.xht	?	
-html4/css3-text-line-break-jazh-109.htm	?	
-xhtml1/css3-text-line-break-jazh-109.xht	?	
-html4/css3-text-line-break-jazh-110.htm	?	
-xhtml1/css3-text-line-break-jazh-110.xht	?	
-html4/css3-text-line-break-jazh-111.htm	?	
-xhtml1/css3-text-line-break-jazh-111.xht	?	
-html4/css3-text-line-break-jazh-112.htm	?	
-xhtml1/css3-text-line-break-jazh-112.xht	?	
-html4/css3-text-line-break-jazh-113.htm	?	
-xhtml1/css3-text-line-break-jazh-113.xht	?	
-html4/css3-text-line-break-jazh-114.htm	?	
-xhtml1/css3-text-line-break-jazh-114.xht	?	
-html4/css3-text-line-break-jazh-115.htm	?	
-xhtml1/css3-text-line-break-jazh-115.xht	?	
-html4/css3-text-line-break-jazh-116.htm	?	
-xhtml1/css3-text-line-break-jazh-116.xht	?	
-html4/css3-text-line-break-jazh-117.htm	?	
-xhtml1/css3-text-line-break-jazh-117.xht	?	
-html4/css3-text-line-break-jazh-118.htm	?	
-xhtml1/css3-text-line-break-jazh-118.xht	?	
-html4/css3-text-line-break-jazh-119.htm	?	
-xhtml1/css3-text-line-break-jazh-119.xht	?	
-html4/css3-text-line-break-jazh-120.htm	?	
-xhtml1/css3-text-line-break-jazh-120.xht	?	
-html4/css3-text-line-break-jazh-121.htm	?	
-xhtml1/css3-text-line-break-jazh-121.xht	?	
-html4/css3-text-line-break-jazh-122.htm	?	
-xhtml1/css3-text-line-break-jazh-122.xht	?	
-html4/css3-text-line-break-jazh-123.htm	?	
-xhtml1/css3-text-line-break-jazh-123.xht	?	
-html4/css3-text-line-break-jazh-124.htm	?	
-xhtml1/css3-text-line-break-jazh-124.xht	?	
-html4/css3-text-line-break-jazh-125.htm	?	
-xhtml1/css3-text-line-break-jazh-125.xht	?	
-html4/css3-text-line-break-jazh-126.htm	?	
-xhtml1/css3-text-line-break-jazh-126.xht	?	
-html4/css3-text-line-break-jazh-127.htm	?	
-xhtml1/css3-text-line-break-jazh-127.xht	?	
-html4/css3-text-line-break-jazh-128.htm	?	
-xhtml1/css3-text-line-break-jazh-128.xht	?	
-html4/css3-text-line-break-jazh-129.htm	?	
-xhtml1/css3-text-line-break-jazh-129.xht	?	
-html4/css3-text-line-break-jazh-130.htm	?	
-xhtml1/css3-text-line-break-jazh-130.xht	?	
-html4/css3-text-line-break-jazh-131.htm	?	
-xhtml1/css3-text-line-break-jazh-131.xht	?	
-html4/css3-text-line-break-jazh-132.htm	?	
-xhtml1/css3-text-line-break-jazh-132.xht	?	
-html4/css3-text-line-break-jazh-133.htm	?	
-xhtml1/css3-text-line-break-jazh-133.xht	?	
-html4/css3-text-line-break-jazh-134.htm	?	
-xhtml1/css3-text-line-break-jazh-134.xht	?	
-html4/css3-text-line-break-jazh-135.htm	?	
-xhtml1/css3-text-line-break-jazh-135.xht	?	
-html4/css3-text-line-break-jazh-136.htm	?	
-xhtml1/css3-text-line-break-jazh-136.xht	?	
-html4/css3-text-line-break-jazh-137.htm	?	
-xhtml1/css3-text-line-break-jazh-137.xht	?	
-html4/css3-text-line-break-jazh-138.htm	?	
-xhtml1/css3-text-line-break-jazh-138.xht	?	
-html4/css3-text-line-break-jazh-139.htm	?	
-xhtml1/css3-text-line-break-jazh-139.xht	?	
-html4/css3-text-line-break-jazh-140.htm	?	
-xhtml1/css3-text-line-break-jazh-140.xht	?	
-html4/css3-text-line-break-jazh-141.htm	?	
-xhtml1/css3-text-line-break-jazh-141.xht	?	
-html4/css3-text-line-break-jazh-142.htm	?	
-xhtml1/css3-text-line-break-jazh-142.xht	?	
-html4/css3-text-line-break-jazh-143.htm	?	
-xhtml1/css3-text-line-break-jazh-143.xht	?	
-html4/css3-text-line-break-jazh-144.htm	?	
-xhtml1/css3-text-line-break-jazh-144.xht	?	
-html4/css3-text-line-break-jazh-145.htm	?	
-xhtml1/css3-text-line-break-jazh-145.xht	?	
-html4/css3-text-line-break-jazh-146.htm	?	
-xhtml1/css3-text-line-break-jazh-146.xht	?	
-html4/css3-text-line-break-jazh-147.htm	?	
-xhtml1/css3-text-line-break-jazh-147.xht	?	
-html4/css3-text-line-break-jazh-148.htm	?	
-xhtml1/css3-text-line-break-jazh-148.xht	?	
-html4/css3-text-line-break-jazh-149.htm	?	
-xhtml1/css3-text-line-break-jazh-149.xht	?	
-html4/css3-text-line-break-jazh-150.htm	?	
-xhtml1/css3-text-line-break-jazh-150.xht	?	
-html4/css3-text-line-break-jazh-151.htm	?	
-xhtml1/css3-text-line-break-jazh-151.xht	?	
-html4/css3-text-line-break-jazh-152.htm	?	
-xhtml1/css3-text-line-break-jazh-152.xht	?	
-html4/css3-text-line-break-jazh-154.htm	?	
-xhtml1/css3-text-line-break-jazh-154.xht	?	
-html4/css3-text-line-break-jazh-155.htm	?	
-xhtml1/css3-text-line-break-jazh-155.xht	?	
-html4/css3-text-line-break-jazh-156.htm	?	
-xhtml1/css3-text-line-break-jazh-156.xht	?	
-html4/css3-text-line-break-jazh-157.htm	?	
-xhtml1/css3-text-line-break-jazh-157.xht	?	
-html4/css3-text-line-break-jazh-158.htm	?	
-xhtml1/css3-text-line-break-jazh-158.xht	?	
-html4/css3-text-line-break-jazh-159.htm	?	
-xhtml1/css3-text-line-break-jazh-159.xht	?	
-html4/css3-text-line-break-jazh-160.htm	?	
-xhtml1/css3-text-line-break-jazh-160.xht	?	
-html4/css3-text-line-break-jazh-201.htm	?	
-xhtml1/css3-text-line-break-jazh-201.xht	?	
-html4/css3-text-line-break-jazh-202.htm	?	
-xhtml1/css3-text-line-break-jazh-202.xht	?	
-html4/css3-text-line-break-jazh-203.htm	?	
-xhtml1/css3-text-line-break-jazh-203.xht	?	
-html4/css3-text-line-break-jazh-204.htm	?	
-xhtml1/css3-text-line-break-jazh-204.xht	?	
-html4/css3-text-line-break-jazh-205.htm	?	
-xhtml1/css3-text-line-break-jazh-205.xht	?	
-html4/css3-text-line-break-jazh-206.htm	?	
-xhtml1/css3-text-line-break-jazh-206.xht	?	
-html4/css3-text-line-break-jazh-207.htm	?	
-xhtml1/css3-text-line-break-jazh-207.xht	?	
-html4/css3-text-line-break-jazh-208.htm	?	
-xhtml1/css3-text-line-break-jazh-208.xht	?	
-html4/css3-text-line-break-jazh-209.htm	?	
-xhtml1/css3-text-line-break-jazh-209.xht	?	
-html4/css3-text-line-break-jazh-210.htm	?	
-xhtml1/css3-text-line-break-jazh-210.xht	?	
-html4/css3-text-line-break-jazh-211.htm	?	
-xhtml1/css3-text-line-break-jazh-211.xht	?	
-html4/css3-text-line-break-jazh-212.htm	?	
-xhtml1/css3-text-line-break-jazh-212.xht	?	
-html4/css3-text-line-break-jazh-213.htm	?	
-xhtml1/css3-text-line-break-jazh-213.xht	?	
-html4/css3-text-line-break-jazh-214.htm	?	
-xhtml1/css3-text-line-break-jazh-214.xht	?	
-html4/css3-text-line-break-jazh-215.htm	?	
-xhtml1/css3-text-line-break-jazh-215.xht	?	
-html4/css3-text-line-break-jazh-216.htm	?	
-xhtml1/css3-text-line-break-jazh-216.xht	?	
-html4/css3-text-line-break-jazh-217.htm	?	
-xhtml1/css3-text-line-break-jazh-217.xht	?	
-html4/css3-text-line-break-jazh-218.htm	?	
-xhtml1/css3-text-line-break-jazh-218.xht	?	
-html4/css3-text-line-break-jazh-219.htm	?	
-xhtml1/css3-text-line-break-jazh-219.xht	?	
-html4/css3-text-line-break-jazh-220.htm	?	
-xhtml1/css3-text-line-break-jazh-220.xht	?	
-html4/css3-text-line-break-jazh-221.htm	?	
-xhtml1/css3-text-line-break-jazh-221.xht	?	
-html4/css3-text-line-break-jazh-222.htm	?	
-xhtml1/css3-text-line-break-jazh-222.xht	?	
-html4/css3-text-line-break-jazh-223.htm	?	
-xhtml1/css3-text-line-break-jazh-223.xht	?	
-html4/css3-text-line-break-jazh-224.htm	?	
-xhtml1/css3-text-line-break-jazh-224.xht	?	
-html4/css3-text-line-break-jazh-225.htm	?	
-xhtml1/css3-text-line-break-jazh-225.xht	?	
-html4/css3-text-line-break-jazh-226.htm	?	
-xhtml1/css3-text-line-break-jazh-226.xht	?	
-html4/css3-text-line-break-jazh-227.htm	?	
-xhtml1/css3-text-line-break-jazh-227.xht	?	
-html4/css3-text-line-break-jazh-228.htm	?	
-xhtml1/css3-text-line-break-jazh-228.xht	?	
-html4/css3-text-line-break-jazh-229.htm	?	
-xhtml1/css3-text-line-break-jazh-229.xht	?	
-html4/css3-text-line-break-jazh-230.htm	?	
-xhtml1/css3-text-line-break-jazh-230.xht	?	
-html4/css3-text-line-break-jazh-231.htm	?	
-xhtml1/css3-text-line-break-jazh-231.xht	?	
-html4/css3-text-line-break-jazh-232.htm	?	
-xhtml1/css3-text-line-break-jazh-232.xht	?	
-html4/css3-text-line-break-jazh-233.htm	?	
-xhtml1/css3-text-line-break-jazh-233.xht	?	
-html4/css3-text-line-break-jazh-234.htm	?	
-xhtml1/css3-text-line-break-jazh-234.xht	?	
-html4/css3-text-line-break-jazh-235.htm	?	
-xhtml1/css3-text-line-break-jazh-235.xht	?	
-html4/css3-text-line-break-jazh-236.htm	?	
-xhtml1/css3-text-line-break-jazh-236.xht	?	
-html4/css3-text-line-break-jazh-237.htm	?	
-xhtml1/css3-text-line-break-jazh-237.xht	?	
-html4/css3-text-line-break-jazh-238.htm	?	
-xhtml1/css3-text-line-break-jazh-238.xht	?	
-html4/css3-text-line-break-jazh-239.htm	?	
-xhtml1/css3-text-line-break-jazh-239.xht	?	
-html4/css3-text-line-break-jazh-240.htm	?	
-xhtml1/css3-text-line-break-jazh-240.xht	?	
-html4/css3-text-line-break-jazh-241.htm	?	
-xhtml1/css3-text-line-break-jazh-241.xht	?	
-html4/css3-text-line-break-jazh-242.htm	?	
-xhtml1/css3-text-line-break-jazh-242.xht	?	
-html4/css3-text-line-break-jazh-243.htm	?	
-xhtml1/css3-text-line-break-jazh-243.xht	?	
-html4/css3-text-line-break-jazh-244.htm	?	
-xhtml1/css3-text-line-break-jazh-244.xht	?	
-html4/css3-text-line-break-jazh-245.htm	?	
-xhtml1/css3-text-line-break-jazh-245.xht	?	
-html4/css3-text-line-break-jazh-246.htm	?	
-xhtml1/css3-text-line-break-jazh-246.xht	?	
-html4/css3-text-line-break-jazh-247.htm	?	
-xhtml1/css3-text-line-break-jazh-247.xht	?	
-html4/css3-text-line-break-jazh-248.htm	?	
-xhtml1/css3-text-line-break-jazh-248.xht	?	
-html4/css3-text-line-break-jazh-249.htm	?	
-xhtml1/css3-text-line-break-jazh-249.xht	?	
-html4/css3-text-line-break-jazh-250.htm	?	
-xhtml1/css3-text-line-break-jazh-250.xht	?	
-html4/css3-text-line-break-jazh-251.htm	?	
-xhtml1/css3-text-line-break-jazh-251.xht	?	
-html4/css3-text-line-break-jazh-252.htm	?	
-xhtml1/css3-text-line-break-jazh-252.xht	?	
-html4/css3-text-line-break-jazh-254.htm	?	
-xhtml1/css3-text-line-break-jazh-254.xht	?	
-html4/css3-text-line-break-jazh-255.htm	?	
-xhtml1/css3-text-line-break-jazh-255.xht	?	
-html4/css3-text-line-break-jazh-256.htm	?	
-xhtml1/css3-text-line-break-jazh-256.xht	?	
-html4/css3-text-line-break-jazh-257.htm	?	
-xhtml1/css3-text-line-break-jazh-257.xht	?	
-html4/css3-text-line-break-jazh-258.htm	?	
-xhtml1/css3-text-line-break-jazh-258.xht	?	
-html4/css3-text-line-break-jazh-259.htm	?	
-xhtml1/css3-text-line-break-jazh-259.xht	?	
-html4/css3-text-line-break-jazh-260.htm	?	
-xhtml1/css3-text-line-break-jazh-260.xht	?	
-html4/css3-text-line-break-jazh-301.htm	?	
-xhtml1/css3-text-line-break-jazh-301.xht	?	
-html4/css3-text-line-break-jazh-302.htm	?	
-xhtml1/css3-text-line-break-jazh-302.xht	?	
-html4/css3-text-line-break-jazh-303.htm	?	
-xhtml1/css3-text-line-break-jazh-303.xht	?	
-html4/css3-text-line-break-jazh-304.htm	?	
-xhtml1/css3-text-line-break-jazh-304.xht	?	
-html4/css3-text-line-break-jazh-305.htm	?	
-xhtml1/css3-text-line-break-jazh-305.xht	?	
-html4/css3-text-line-break-jazh-306.htm	?	
-xhtml1/css3-text-line-break-jazh-306.xht	?	
-html4/css3-text-line-break-jazh-307.htm	?	
-xhtml1/css3-text-line-break-jazh-307.xht	?	
-html4/css3-text-line-break-jazh-308.htm	?	
-xhtml1/css3-text-line-break-jazh-308.xht	?	
-html4/css3-text-line-break-jazh-309.htm	?	
-xhtml1/css3-text-line-break-jazh-309.xht	?	
-html4/css3-text-line-break-jazh-310.htm	?	
-xhtml1/css3-text-line-break-jazh-310.xht	?	
-html4/css3-text-line-break-jazh-311.htm	?	
-xhtml1/css3-text-line-break-jazh-311.xht	?	
-html4/css3-text-line-break-jazh-312.htm	?	
-xhtml1/css3-text-line-break-jazh-312.xht	?	
-html4/css3-text-line-break-jazh-313.htm	?	
-xhtml1/css3-text-line-break-jazh-313.xht	?	
-html4/css3-text-line-break-jazh-314.htm	?	
-xhtml1/css3-text-line-break-jazh-314.xht	?	
-html4/css3-text-line-break-jazh-315.htm	?	
-xhtml1/css3-text-line-break-jazh-315.xht	?	
-html4/css3-text-line-break-jazh-316.htm	?	
-xhtml1/css3-text-line-break-jazh-316.xht	?	
-html4/css3-text-line-break-jazh-317.htm	?	
-xhtml1/css3-text-line-break-jazh-317.xht	?	
-html4/css3-text-line-break-jazh-318.htm	?	
-xhtml1/css3-text-line-break-jazh-318.xht	?	
-html4/css3-text-line-break-jazh-319.htm	?	
-xhtml1/css3-text-line-break-jazh-319.xht	?	
-html4/css3-text-line-break-jazh-320.htm	?	
-xhtml1/css3-text-line-break-jazh-320.xht	?	
-html4/css3-text-line-break-jazh-321.htm	?	
-xhtml1/css3-text-line-break-jazh-321.xht	?	
-html4/css3-text-line-break-jazh-322.htm	?	
-xhtml1/css3-text-line-break-jazh-322.xht	?	
-html4/css3-text-line-break-jazh-323.htm	?	
-xhtml1/css3-text-line-break-jazh-323.xht	?	
-html4/css3-text-line-break-jazh-324.htm	?	
-xhtml1/css3-text-line-break-jazh-324.xht	?	
-html4/css3-text-line-break-jazh-325.htm	?	
-xhtml1/css3-text-line-break-jazh-325.xht	?	
-html4/css3-text-line-break-jazh-326.htm	?	
-xhtml1/css3-text-line-break-jazh-326.xht	?	
-html4/css3-text-line-break-jazh-327.htm	?	
-xhtml1/css3-text-line-break-jazh-327.xht	?	
-html4/css3-text-line-break-jazh-351.htm	?	
-xhtml1/css3-text-line-break-jazh-351.xht	?	
-html4/css3-text-line-break-jazh-352.htm	?	
-xhtml1/css3-text-line-break-jazh-352.xht	?	
-html4/css3-text-line-break-jazh-353.htm	?	
-xhtml1/css3-text-line-break-jazh-353.xht	?	
-html4/css3-text-line-break-jazh-354.htm	?	
-xhtml1/css3-text-line-break-jazh-354.xht	?	
-html4/css3-text-line-break-jazh-355.htm	?	
-xhtml1/css3-text-line-break-jazh-355.xht	?	
-html4/css3-text-line-break-jazh-356.htm	?	
-xhtml1/css3-text-line-break-jazh-356.xht	?	
-html4/css3-text-line-break-jazh-357.htm	?	
-xhtml1/css3-text-line-break-jazh-357.xht	?	
-html4/css3-text-line-break-jazh-358.htm	?	
-xhtml1/css3-text-line-break-jazh-358.xht	?	
-html4/css3-text-line-break-jazh-359.htm	?	
-xhtml1/css3-text-line-break-jazh-359.xht	?	
-html4/css3-text-line-break-jazh-360.htm	?	
-xhtml1/css3-text-line-break-jazh-360.xht	?	
-html4/css3-text-line-break-jazh-361.htm	?	
-xhtml1/css3-text-line-break-jazh-361.xht	?	
-html4/css3-text-line-break-jazh-362.htm	?	
-xhtml1/css3-text-line-break-jazh-362.xht	?	
-html4/css3-text-line-break-jazh-363.htm	?	
-xhtml1/css3-text-line-break-jazh-363.xht	?	
-html4/css3-text-line-break-jazh-364.htm	?	
-xhtml1/css3-text-line-break-jazh-364.xht	?	
-html4/css3-text-line-break-jazh-365.htm	?	
-xhtml1/css3-text-line-break-jazh-365.xht	?	
-html4/css3-text-line-break-jazh-366.htm	?	
-xhtml1/css3-text-line-break-jazh-366.xht	?	
-html4/css3-text-line-break-jazh-367.htm	?	
-xhtml1/css3-text-line-break-jazh-367.xht	?	
-html4/css3-text-line-break-jazh-368.htm	?	
-xhtml1/css3-text-line-break-jazh-368.xht	?	
-html4/css3-text-line-break-jazh-369.htm	?	
-xhtml1/css3-text-line-break-jazh-369.xht	?	
-html4/css3-text-line-break-jazh-370.htm	?	
-xhtml1/css3-text-line-break-jazh-370.xht	?	
-html4/css3-text-line-break-jazh-371.htm	?	
-xhtml1/css3-text-line-break-jazh-371.xht	?	
-html4/css3-text-line-break-jazh-372.htm	?	
-xhtml1/css3-text-line-break-jazh-372.xht	?	
-html4/css3-text-line-break-jazh-373.htm	?	
-xhtml1/css3-text-line-break-jazh-373.xht	?	
-html4/css3-text-line-break-jazh-374.htm	?	
-xhtml1/css3-text-line-break-jazh-374.xht	?	
-html4/css3-text-line-break-jazh-375.htm	?	
-xhtml1/css3-text-line-break-jazh-375.xht	?	
-html4/css3-text-line-break-jazh-376.htm	?	
-xhtml1/css3-text-line-break-jazh-376.xht	?	
-html4/css3-text-line-break-jazh-377.htm	?	
-xhtml1/css3-text-line-break-jazh-377.xht	?	
-html4/css3-text-line-break-jazh-401.htm	?	
-xhtml1/css3-text-line-break-jazh-401.xht	?	
-html4/css3-text-line-break-jazh-402.htm	?	
-xhtml1/css3-text-line-break-jazh-402.xht	?	
-html4/css3-text-line-break-jazh-403.htm	?	
-xhtml1/css3-text-line-break-jazh-403.xht	?	
-html4/css3-text-line-break-jazh-404.htm	?	
-xhtml1/css3-text-line-break-jazh-404.xht	?	
-html4/css3-text-line-break-jazh-405.htm	?	
-xhtml1/css3-text-line-break-jazh-405.xht	?	
-html4/css3-text-line-break-jazh-406.htm	?	
-xhtml1/css3-text-line-break-jazh-406.xht	?	
-html4/css3-text-line-break-jazh-407.htm	?	
-xhtml1/css3-text-line-break-jazh-407.xht	?	
-html4/css3-text-line-break-jazh-408.htm	?	
-xhtml1/css3-text-line-break-jazh-408.xht	?	
-html4/css3-text-line-break-jazh-409.htm	?	
-xhtml1/css3-text-line-break-jazh-409.xht	?	
-html4/css3-text-line-break-jazh-410.htm	?	
-xhtml1/css3-text-line-break-jazh-410.xht	?	
-html4/css3-text-line-break-jazh-411.htm	?	
-xhtml1/css3-text-line-break-jazh-411.xht	?	
-html4/css3-text-line-break-jazh-412.htm	?	
-xhtml1/css3-text-line-break-jazh-412.xht	?	
-html4/css3-text-line-break-jazh-413.htm	?	
-xhtml1/css3-text-line-break-jazh-413.xht	?	
-html4/css3-text-line-break-jazh-414.htm	?	
-xhtml1/css3-text-line-break-jazh-414.xht	?	
-html4/css3-text-line-break-jazh-415.htm	?	
-xhtml1/css3-text-line-break-jazh-415.xht	?	
-html4/css3-text-line-break-jazh-416.htm	?	
-xhtml1/css3-text-line-break-jazh-416.xht	?	
-html4/css3-text-line-break-jazh-417.htm	?	
-xhtml1/css3-text-line-break-jazh-417.xht	?	
-html4/css3-text-line-break-jazh-418.htm	?	
-xhtml1/css3-text-line-break-jazh-418.xht	?	
-html4/css3-text-line-break-jazh-419.htm	?	
-xhtml1/css3-text-line-break-jazh-419.xht	?	
-html4/css3-text-line-break-jazh-420.htm	?	
-xhtml1/css3-text-line-break-jazh-420.xht	?	
-html4/css3-text-line-break-jazh-421.htm	?	
-xhtml1/css3-text-line-break-jazh-421.xht	?	
-html4/css3-text-line-break-jazh-422.htm	?	
-xhtml1/css3-text-line-break-jazh-422.xht	?	
-html4/css3-text-line-break-jazh-423.htm	?	
-xhtml1/css3-text-line-break-jazh-423.xht	?	
-html4/css3-text-line-break-jazh-424.htm	?	
-xhtml1/css3-text-line-break-jazh-424.xht	?	
-html4/css3-text-line-break-jazh-425.htm	?	
-xhtml1/css3-text-line-break-jazh-425.xht	?	
-html4/css3-text-line-break-jazh-426.htm	?	
-xhtml1/css3-text-line-break-jazh-426.xht	?	
-html4/css3-text-line-break-jazh-427.htm	?	
-xhtml1/css3-text-line-break-jazh-427.xht	?	
-html4/css3-text-line-break-opclns-001.htm	?	
-xhtml1/css3-text-line-break-opclns-001.xht	?	
-html4/css3-text-line-break-opclns-002.htm	?	
-xhtml1/css3-text-line-break-opclns-002.xht	?	
-html4/css3-text-line-break-opclns-003.htm	?	
-xhtml1/css3-text-line-break-opclns-003.xht	?	
-html4/css3-text-line-break-opclns-004.htm	?	
-xhtml1/css3-text-line-break-opclns-004.xht	?	
-html4/css3-text-line-break-opclns-005.htm	?	
-xhtml1/css3-text-line-break-opclns-005.xht	?	
-html4/css3-text-line-break-opclns-006.htm	?	
-xhtml1/css3-text-line-break-opclns-006.xht	?	
-html4/css3-text-line-break-opclns-007.htm	?	
-xhtml1/css3-text-line-break-opclns-007.xht	?	
-html4/css3-text-line-break-opclns-008.htm	?	
-xhtml1/css3-text-line-break-opclns-008.xht	?	
-html4/css3-text-line-break-opclns-009.htm	?	
-xhtml1/css3-text-line-break-opclns-009.xht	?	
-html4/css3-text-line-break-opclns-010.htm	?	
-xhtml1/css3-text-line-break-opclns-010.xht	?	
-html4/css3-text-line-break-opclns-011.htm	?	
-xhtml1/css3-text-line-break-opclns-011.xht	?	
-html4/css3-text-line-break-opclns-012.htm	?	
-xhtml1/css3-text-line-break-opclns-012.xht	?	
-html4/css3-text-line-break-opclns-013.htm	?	
-xhtml1/css3-text-line-break-opclns-013.xht	?	
-html4/css3-text-line-break-opclns-014.htm	?	
-xhtml1/css3-text-line-break-opclns-014.xht	?	
-html4/css3-text-line-break-opclns-015.htm	?	
-xhtml1/css3-text-line-break-opclns-015.xht	?	
-html4/css3-text-line-break-opclns-016.htm	?	
-xhtml1/css3-text-line-break-opclns-016.xht	?	
-html4/css3-text-line-break-opclns-017.htm	?	
-xhtml1/css3-text-line-break-opclns-017.xht	?	
-html4/css3-text-line-break-opclns-018.htm	?	
-xhtml1/css3-text-line-break-opclns-018.xht	?	
-html4/css3-text-line-break-opclns-019.htm	?	
-xhtml1/css3-text-line-break-opclns-019.xht	?	
-html4/css3-text-line-break-opclns-020.htm	?	
-xhtml1/css3-text-line-break-opclns-020.xht	?	
-html4/css3-text-line-break-opclns-021.htm	?	
-xhtml1/css3-text-line-break-opclns-021.xht	?	
-html4/css3-text-line-break-opclns-022.htm	?	
-xhtml1/css3-text-line-break-opclns-022.xht	?	
-html4/css3-text-line-break-opclns-023.htm	?	
-xhtml1/css3-text-line-break-opclns-023.xht	?	
-html4/css3-text-line-break-opclns-024.htm	?	
-xhtml1/css3-text-line-break-opclns-024.xht	?	
-html4/css3-text-line-break-opclns-025.htm	?	
-xhtml1/css3-text-line-break-opclns-025.xht	?	
-html4/css3-text-line-break-opclns-026.htm	?	
-xhtml1/css3-text-line-break-opclns-026.xht	?	
-html4/css3-text-line-break-opclns-027.htm	?	
-xhtml1/css3-text-line-break-opclns-027.xht	?	
-html4/css3-text-line-break-opclns-028.htm	?	
-xhtml1/css3-text-line-break-opclns-028.xht	?	
-html4/css3-text-line-break-opclns-029.htm	?	
-xhtml1/css3-text-line-break-opclns-029.xht	?	
-html4/css3-text-line-break-opclns-030.htm	?	
-xhtml1/css3-text-line-break-opclns-030.xht	?	
-html4/css3-text-line-break-opclns-031.htm	?	
-xhtml1/css3-text-line-break-opclns-031.xht	?	
-html4/css3-text-line-break-opclns-032.htm	?	
-xhtml1/css3-text-line-break-opclns-032.xht	?	
-html4/css3-text-line-break-opclns-033.htm	?	
-xhtml1/css3-text-line-break-opclns-033.xht	?	
-html4/css3-text-line-break-opclns-034.htm	?	
-xhtml1/css3-text-line-break-opclns-034.xht	?	
-html4/css3-text-line-break-opclns-035.htm	?	
-xhtml1/css3-text-line-break-opclns-035.xht	?	
-html4/css3-text-line-break-opclns-036.htm	?	
-xhtml1/css3-text-line-break-opclns-036.xht	?	
-html4/css3-text-line-break-opclns-037.htm	?	
-xhtml1/css3-text-line-break-opclns-037.xht	?	
-html4/css3-text-line-break-opclns-038.htm	?	
-xhtml1/css3-text-line-break-opclns-038.xht	?	
-html4/css3-text-line-break-opclns-039.htm	?	
-xhtml1/css3-text-line-break-opclns-039.xht	?	
-html4/css3-text-line-break-opclns-040.htm	?	
-xhtml1/css3-text-line-break-opclns-040.xht	?	
-html4/css3-text-line-break-opclns-041.htm	?	
-xhtml1/css3-text-line-break-opclns-041.xht	?	
-html4/css3-text-line-break-opclns-042.htm	?	
-xhtml1/css3-text-line-break-opclns-042.xht	?	
-html4/css3-text-line-break-opclns-043.htm	?	
-xhtml1/css3-text-line-break-opclns-043.xht	?	
-html4/css3-text-line-break-opclns-044.htm	?	
-xhtml1/css3-text-line-break-opclns-044.xht	?	
-html4/css3-text-line-break-opclns-045.htm	?	
-xhtml1/css3-text-line-break-opclns-045.xht	?	
-html4/css3-text-line-break-opclns-046.htm	?	
-xhtml1/css3-text-line-break-opclns-046.xht	?	
-html4/css3-text-line-break-opclns-047.htm	?	
-xhtml1/css3-text-line-break-opclns-047.xht	?	
-html4/css3-text-line-break-opclns-048.htm	?	
-xhtml1/css3-text-line-break-opclns-048.xht	?	
-html4/css3-text-line-break-opclns-049.htm	?	
-xhtml1/css3-text-line-break-opclns-049.xht	?	
-html4/css3-text-line-break-opclns-050.htm	?	
-xhtml1/css3-text-line-break-opclns-050.xht	?	
-html4/css3-text-line-break-opclns-051.htm	?	
-xhtml1/css3-text-line-break-opclns-051.xht	?	
-html4/css3-text-line-break-opclns-052.htm	?	
-xhtml1/css3-text-line-break-opclns-052.xht	?	
-html4/css3-text-line-break-opclns-053.htm	?	
-xhtml1/css3-text-line-break-opclns-053.xht	?	
-html4/css3-text-line-break-opclns-054.htm	?	
-xhtml1/css3-text-line-break-opclns-054.xht	?	
-html4/css3-text-line-break-opclns-055.htm	?	
-xhtml1/css3-text-line-break-opclns-055.xht	?	
-html4/css3-text-line-break-opclns-056.htm	?	
-xhtml1/css3-text-line-break-opclns-056.xht	?	
-html4/css3-text-line-break-opclns-057.htm	?	
-xhtml1/css3-text-line-break-opclns-057.xht	?	
-html4/css3-text-line-break-opclns-058.htm	?	
-xhtml1/css3-text-line-break-opclns-058.xht	?	
-html4/css3-text-line-break-opclns-059.htm	?	
-xhtml1/css3-text-line-break-opclns-059.xht	?	
-html4/css3-text-line-break-opclns-060.htm	?	
-xhtml1/css3-text-line-break-opclns-060.xht	?	
-html4/css3-text-line-break-opclns-061.htm	?	
-xhtml1/css3-text-line-break-opclns-061.xht	?	
-html4/css3-text-line-break-opclns-062.htm	?	
-xhtml1/css3-text-line-break-opclns-062.xht	?	
-html4/css3-text-line-break-opclns-063.htm	?	
-xhtml1/css3-text-line-break-opclns-063.xht	?	
-html4/css3-text-line-break-opclns-064.htm	?	
-xhtml1/css3-text-line-break-opclns-064.xht	?	
-html4/css3-text-line-break-opclns-065.htm	?	
-xhtml1/css3-text-line-break-opclns-065.xht	?	
-html4/css3-text-line-break-opclns-100.htm	?	
-xhtml1/css3-text-line-break-opclns-100.xht	?	
-html4/css3-text-line-break-opclns-101.htm	?	
-xhtml1/css3-text-line-break-opclns-101.xht	?	
-html4/css3-text-line-break-opclns-102.htm	?	
-xhtml1/css3-text-line-break-opclns-102.xht	?	
-html4/css3-text-line-break-opclns-103.htm	?	
-xhtml1/css3-text-line-break-opclns-103.xht	?	
-html4/css3-text-line-break-opclns-104.htm	?	
-xhtml1/css3-text-line-break-opclns-104.xht	?	
-html4/css3-text-line-break-opclns-105.htm	?	
-xhtml1/css3-text-line-break-opclns-105.xht	?	
-html4/css3-text-line-break-opclns-106.htm	?	
-xhtml1/css3-text-line-break-opclns-106.xht	?	
-html4/css3-text-line-break-opclns-107.htm	?	
-xhtml1/css3-text-line-break-opclns-107.xht	?	
-html4/css3-text-line-break-opclns-108.htm	?	
-xhtml1/css3-text-line-break-opclns-108.xht	?	
-html4/css3-text-line-break-opclns-109.htm	?	
-xhtml1/css3-text-line-break-opclns-109.xht	?	
-html4/css3-text-line-break-opclns-110.htm	?	
-xhtml1/css3-text-line-break-opclns-110.xht	?	
-html4/css3-text-line-break-opclns-111.htm	?	
-xhtml1/css3-text-line-break-opclns-111.xht	?	
-html4/css3-text-line-break-opclns-112.htm	?	
-xhtml1/css3-text-line-break-opclns-112.xht	?	
-html4/css3-text-line-break-opclns-113.htm	?	
-xhtml1/css3-text-line-break-opclns-113.xht	?	
-html4/css3-text-line-break-opclns-114.htm	?	
-xhtml1/css3-text-line-break-opclns-114.xht	?	
-html4/css3-text-line-break-opclns-115.htm	?	
-xhtml1/css3-text-line-break-opclns-115.xht	?	
-html4/css3-text-line-break-opclns-116.htm	?	
-xhtml1/css3-text-line-break-opclns-116.xht	?	
-html4/css3-text-line-break-opclns-117.htm	?	
-xhtml1/css3-text-line-break-opclns-117.xht	?	
-html4/css3-text-line-break-opclns-118.htm	?	
-xhtml1/css3-text-line-break-opclns-118.xht	?	
-html4/css3-text-line-break-opclns-119.htm	?	
-xhtml1/css3-text-line-break-opclns-119.xht	?	
-html4/css3-text-line-break-opclns-120.htm	?	
-xhtml1/css3-text-line-break-opclns-120.xht	?	
-html4/css3-text-line-break-opclns-121.htm	?	
-xhtml1/css3-text-line-break-opclns-121.xht	?	
-html4/css3-text-line-break-opclns-122.htm	?	
-xhtml1/css3-text-line-break-opclns-122.xht	?	
-html4/css3-text-line-break-opclns-123.htm	?	
-xhtml1/css3-text-line-break-opclns-123.xht	?	
-html4/css3-text-line-break-opclns-124.htm	?	
-xhtml1/css3-text-line-break-opclns-124.xht	?	
-html4/css3-text-line-break-opclns-125.htm	?	
-xhtml1/css3-text-line-break-opclns-125.xht	?	
-html4/css3-text-line-break-opclns-126.htm	?	
-xhtml1/css3-text-line-break-opclns-126.xht	?	
-html4/css3-text-line-break-opclns-127.htm	?	
-xhtml1/css3-text-line-break-opclns-127.xht	?	
-html4/css3-text-line-break-opclns-128.htm	?	
-xhtml1/css3-text-line-break-opclns-128.xht	?	
-html4/css3-text-line-break-opclns-129.htm	?	
-xhtml1/css3-text-line-break-opclns-129.xht	?	
-html4/css3-text-line-break-opclns-130.htm	?	
-xhtml1/css3-text-line-break-opclns-130.xht	?	
-html4/css3-text-line-break-opclns-131.htm	?	
-xhtml1/css3-text-line-break-opclns-131.xht	?	
-html4/css3-text-line-break-opclns-132.htm	?	
-xhtml1/css3-text-line-break-opclns-132.xht	?	
-html4/css3-text-line-break-opclns-133.htm	?	
-xhtml1/css3-text-line-break-opclns-133.xht	?	
-html4/css3-text-line-break-opclns-134.htm	?	
-xhtml1/css3-text-line-break-opclns-134.xht	?	
-html4/css3-text-line-break-opclns-135.htm	?	
-xhtml1/css3-text-line-break-opclns-135.xht	?	
-html4/css3-text-line-break-opclns-136.htm	?	
-xhtml1/css3-text-line-break-opclns-136.xht	?	
-html4/css3-text-line-break-opclns-137.htm	?	
-xhtml1/css3-text-line-break-opclns-137.xht	?	
-html4/css3-text-line-break-opclns-138.htm	?	
-xhtml1/css3-text-line-break-opclns-138.xht	?	
-html4/css3-text-line-break-opclns-139.htm	?	
-xhtml1/css3-text-line-break-opclns-139.xht	?	
-html4/css3-text-line-break-opclns-140.htm	?	
-xhtml1/css3-text-line-break-opclns-140.xht	?	
-html4/css3-text-line-break-opclns-141.htm	?	
-xhtml1/css3-text-line-break-opclns-141.xht	?	
-html4/css3-text-line-break-opclns-142.htm	?	
-xhtml1/css3-text-line-break-opclns-142.xht	?	
-html4/css3-text-line-break-opclns-143.htm	?	
-xhtml1/css3-text-line-break-opclns-143.xht	?	
-html4/css3-text-line-break-opclns-144.htm	?	
-xhtml1/css3-text-line-break-opclns-144.xht	?	
-html4/css3-text-line-break-opclns-145.htm	?	
-xhtml1/css3-text-line-break-opclns-145.xht	?	
-html4/css3-text-line-break-opclns-146.htm	?	
-xhtml1/css3-text-line-break-opclns-146.xht	?	
-html4/css3-text-line-break-opclns-147.htm	?	
-xhtml1/css3-text-line-break-opclns-147.xht	?	
-html4/css3-text-line-break-opclns-148.htm	?	
-xhtml1/css3-text-line-break-opclns-148.xht	?	
-html4/css3-text-line-break-opclns-149.htm	?	
-xhtml1/css3-text-line-break-opclns-149.xht	?	
-html4/css3-text-line-break-opclns-150.htm	?	
-xhtml1/css3-text-line-break-opclns-150.xht	?	
-html4/css3-text-line-break-opclns-151.htm	?	
-xhtml1/css3-text-line-break-opclns-151.xht	?	
-html4/css3-text-line-break-opclns-152.htm	?	
-xhtml1/css3-text-line-break-opclns-152.xht	?	
-html4/css3-text-line-break-opclns-153.htm	?	
-xhtml1/css3-text-line-break-opclns-153.xht	?	
-html4/css3-text-line-break-opclns-154.htm	?	
-xhtml1/css3-text-line-break-opclns-154.xht	?	
-html4/css3-text-line-break-opclns-155.htm	?	
-xhtml1/css3-text-line-break-opclns-155.xht	?	
-html4/css3-text-line-break-opclns-156.htm	?	
-xhtml1/css3-text-line-break-opclns-156.xht	?	
-html4/css3-text-line-break-opclns-157.htm	?	
-xhtml1/css3-text-line-break-opclns-157.xht	?	
-html4/css3-text-line-break-opclns-158.htm	?	
-xhtml1/css3-text-line-break-opclns-158.xht	?	
-html4/css3-text-line-break-opclns-159.htm	?	
-xhtml1/css3-text-line-break-opclns-159.xht	?	
-html4/css3-text-line-break-opclns-160.htm	?	
-xhtml1/css3-text-line-break-opclns-160.xht	?	
-html4/css3-text-line-break-opclns-161.htm	?	
-xhtml1/css3-text-line-break-opclns-161.xht	?	
-html4/css3-text-line-break-opclns-162.htm	?	
-xhtml1/css3-text-line-break-opclns-162.xht	?	
-html4/css3-text-line-break-opclns-163.htm	?	
-xhtml1/css3-text-line-break-opclns-163.xht	?	
-html4/css3-text-line-break-opclns-164.htm	?	
-xhtml1/css3-text-line-break-opclns-164.xht	?	
-html4/css3-text-line-break-opclns-165.htm	?	
-xhtml1/css3-text-line-break-opclns-165.xht	?	
-html4/css3-text-line-break-opclns-166.htm	?	
-xhtml1/css3-text-line-break-opclns-166.xht	?	
-html4/css3-text-line-break-opclns-167.htm	?	
-xhtml1/css3-text-line-break-opclns-167.xht	?	
-html4/css3-text-line-break-opclns-168.htm	?	
-xhtml1/css3-text-line-break-opclns-168.xht	?	
-html4/css3-text-line-break-opclns-169.htm	?	
-xhtml1/css3-text-line-break-opclns-169.xht	?	
-html4/css3-text-line-break-opclns-170.htm	?	
-xhtml1/css3-text-line-break-opclns-170.xht	?	
-html4/css3-text-line-break-opclns-171.htm	?	
-xhtml1/css3-text-line-break-opclns-171.xht	?	
-html4/css3-text-line-break-opclns-200.htm	?	
-xhtml1/css3-text-line-break-opclns-200.xht	?	
-html4/css3-text-line-break-opclns-201.htm	?	
-xhtml1/css3-text-line-break-opclns-201.xht	?	
-html4/css3-text-line-break-opclns-202.htm	?	
-xhtml1/css3-text-line-break-opclns-202.xht	?	
-html4/css3-text-line-break-opclns-203.htm	?	
-xhtml1/css3-text-line-break-opclns-203.xht	?	
-html4/css3-text-line-break-opclns-204.htm	?	
-xhtml1/css3-text-line-break-opclns-204.xht	?	
-html4/css3-text-line-break-opclns-205.htm	?	
-xhtml1/css3-text-line-break-opclns-205.xht	?	
-html4/css3-text-line-break-opclns-206.htm	?	
-xhtml1/css3-text-line-break-opclns-206.xht	?	
-html4/css3-text-line-break-opclns-207.htm	?	
-xhtml1/css3-text-line-break-opclns-207.xht	?	
-html4/css3-text-line-break-opclns-208.htm	?	
-xhtml1/css3-text-line-break-opclns-208.xht	?	
-html4/css3-text-line-break-opclns-209.htm	?	
-xhtml1/css3-text-line-break-opclns-209.xht	?	
-html4/css3-text-line-break-opclns-210.htm	?	
-xhtml1/css3-text-line-break-opclns-210.xht	?	
-html4/css3-text-line-break-opclns-211.htm	?	
-xhtml1/css3-text-line-break-opclns-211.xht	?	
-html4/css3-text-line-break-opclns-212.htm	?	
-xhtml1/css3-text-line-break-opclns-212.xht	?	
-html4/css3-text-line-break-opclns-213.htm	?	
-xhtml1/css3-text-line-break-opclns-213.xht	?	
-html4/css3-text-line-break-opclns-214.htm	?	
-xhtml1/css3-text-line-break-opclns-214.xht	?	
-html4/css3-text-line-break-opclns-215.htm	?	
-xhtml1/css3-text-line-break-opclns-215.xht	?	
-html4/css3-text-line-break-opclns-216.htm	?	
-xhtml1/css3-text-line-break-opclns-216.xht	?	
-html4/css3-text-line-break-opclns-217.htm	?	
-xhtml1/css3-text-line-break-opclns-217.xht	?	
-html4/css3-text-line-break-opclns-218.htm	?	
-xhtml1/css3-text-line-break-opclns-218.xht	?	
-html4/css3-text-line-break-opclns-219.htm	?	
-xhtml1/css3-text-line-break-opclns-219.xht	?	
-html4/css3-text-line-break-opclns-220.htm	?	
-xhtml1/css3-text-line-break-opclns-220.xht	?	
-html4/css3-text-line-break-opclns-221.htm	?	
-xhtml1/css3-text-line-break-opclns-221.xht	?	
-html4/css3-text-line-break-opclns-222.htm	?	
-xhtml1/css3-text-line-break-opclns-222.xht	?	
-html4/css3-text-line-break-opclns-223.htm	?	
-xhtml1/css3-text-line-break-opclns-223.xht	?	
-html4/css3-text-line-break-opclns-224.htm	?	
-xhtml1/css3-text-line-break-opclns-224.xht	?	
-html4/css3-text-line-break-opclns-225.htm	?	
-xhtml1/css3-text-line-break-opclns-225.xht	?	
-html4/css3-text-line-break-opclns-226.htm	?	
-xhtml1/css3-text-line-break-opclns-226.xht	?	
-html4/css3-text-line-break-opclns-250.htm	?	
-xhtml1/css3-text-line-break-opclns-250.xht	?	
-html4/css3-text-line-break-opclns-251.htm	?	
-xhtml1/css3-text-line-break-opclns-251.xht	?	
-html4/css3-text-line-break-opclns-252.htm	?	
-xhtml1/css3-text-line-break-opclns-252.xht	?	
-html4/css3-text-line-break-opclns-253.htm	?	
-xhtml1/css3-text-line-break-opclns-253.xht	?	
-html4/css3-text-line-break-opclns-254.htm	?	
-xhtml1/css3-text-line-break-opclns-254.xht	?	
-html4/css3-text-line-break-opclns-255.htm	?	
-xhtml1/css3-text-line-break-opclns-255.xht	?	
-html4/css3-text-line-break-opclns-256.htm	?	
-xhtml1/css3-text-line-break-opclns-256.xht	?	
-html4/css3-text-line-break-opclns-257.htm	?	
-xhtml1/css3-text-line-break-opclns-257.xht	?	
-html4/css3-text-line-break-opclns-258.htm	?	
-xhtml1/css3-text-line-break-opclns-258.xht	?	
-html4/css3-text-line-break-opclns-259.htm	?	
-xhtml1/css3-text-line-break-opclns-259.xht	?	
-html4/css3-text-line-break-opclns-260.htm	?	
-xhtml1/css3-text-line-break-opclns-260.xht	?	
-html4/css3-text-line-break-opclns-261.htm	?	
-xhtml1/css3-text-line-break-opclns-261.xht	?	
-html4/css3-text-line-break-opclns-262.htm	?	
-xhtml1/css3-text-line-break-opclns-262.xht	?	
-html4/css3-text-line-break-opclns-263.htm	?	
-xhtml1/css3-text-line-break-opclns-263.xht	?	
-html4/css3-text-line-break-opclns-264.htm	?	
-xhtml1/css3-text-line-break-opclns-264.xht	?	
-html4/css3-text-line-break-opclns-265.htm	?	
-xhtml1/css3-text-line-break-opclns-265.xht	?	
-html4/css3-text-line-break-opclns-266.htm	?	
-xhtml1/css3-text-line-break-opclns-266.xht	?	
-html4/css3-text-line-break-opclns-267.htm	?	
-xhtml1/css3-text-line-break-opclns-267.xht	?	
-html4/css3-text-line-break-opclns-268.htm	?	
-xhtml1/css3-text-line-break-opclns-268.xht	?	
-html4/css3-text-line-break-opclns-269.htm	?	
-xhtml1/css3-text-line-break-opclns-269.xht	?	
-html4/css3-text-text-transform-001.htm	?	
-xhtml1/css3-text-text-transform-001.xht	?	
-html4/css3-text-text-transform-002.htm	?	
-xhtml1/css3-text-text-transform-002.xht	?	
-html4/css3-text-text-transform-003.htm	?	
-xhtml1/css3-text-text-transform-003.xht	?	
-html4/css3-text-text-transform-004.htm	?	
-xhtml1/css3-text-text-transform-004.xht	?	
-html4/css3-text-text-transform-005.htm	?	
-xhtml1/css3-text-text-transform-005.xht	?	
-html4/css3-text-text-transform-006.htm	?	
-xhtml1/css3-text-text-transform-006.xht	?	
-html4/css3-text-text-transform-007.htm	?	
-xhtml1/css3-text-text-transform-007.xht	?	
-html4/css3-text-text-transform-007a.htm	?	
-xhtml1/css3-text-text-transform-007a.xht	?	
-html4/css3-text-text-transform-008.htm	?	
-xhtml1/css3-text-text-transform-008.xht	?	
-html4/css3-text-text-transform-009.htm	?	
-xhtml1/css3-text-text-transform-009.xht	?	
-html4/css3-text-text-transform-010.htm	?	
-xhtml1/css3-text-text-transform-010.xht	?	
-html4/css3-text-text-transform-010a.htm	?	
-xhtml1/css3-text-text-transform-010a.xht	?	
-html4/css3-text-text-transform-011.htm	?	
-xhtml1/css3-text-text-transform-011.xht	?	
-html4/css3-text-text-transform-012.htm	?	
-xhtml1/css3-text-text-transform-012.xht	?	
-html4/css3-text-text-transform-014.htm	?	
-xhtml1/css3-text-text-transform-014.xht	?	
-html4/css3-text-text-transform-015.htm	?	
-xhtml1/css3-text-text-transform-015.xht	?	
-html4/css3-text-text-transform-016.htm	?	
-xhtml1/css3-text-text-transform-016.xht	?	
-html4/css3-text-text-transform-017.htm	?	
-xhtml1/css3-text-text-transform-017.xht	?	
-html4/css3-text-text-transform-018.htm	?	
-xhtml1/css3-text-text-transform-018.xht	?	
-html4/css3-text-text-transform-019.htm	?	
-xhtml1/css3-text-text-transform-019.xht	?	
-html4/css3-text-text-transform-020.htm	?	
-xhtml1/css3-text-text-transform-020.xht	?	
-html4/css3-text-text-transform-021.htm	?	
-xhtml1/css3-text-text-transform-021.xht	?	
-html4/css3-text-text-transform-022.htm	?	
-xhtml1/css3-text-text-transform-022.xht	?	
-html4/css3-text-text-transform-023.htm	?	
-xhtml1/css3-text-text-transform-023.xht	?	
-html4/css3-text-text-transform-024.htm	?	
-xhtml1/css3-text-text-transform-024.xht	?	
-html4/css3-text-text-transform-025.htm	?	
-xhtml1/css3-text-text-transform-025.xht	?	
-html4/css3-text-text-transform-026.htm	?	
-xhtml1/css3-text-text-transform-026.xht	?	
-html4/css3-text-text-transform-027.htm	?	
-xhtml1/css3-text-text-transform-027.xht	?	
-html4/css3-text-text-transform-028.htm	?	
-xhtml1/css3-text-text-transform-028.xht	?	
-html4/css3-text-text-transform-029.htm	?	
-xhtml1/css3-text-text-transform-029.xht	?	
-html4/css3-text-text-transform-030.htm	?	
-xhtml1/css3-text-text-transform-030.xht	?	
-html4/css3-text-text-transform-031.htm	?	
-xhtml1/css3-text-text-transform-031.xht	?	
-html4/css3-text-text-transform-032.htm	?	
-xhtml1/css3-text-text-transform-032.xht	?	
-html4/css3-text-text-transform-033.htm	?	
-xhtml1/css3-text-text-transform-033.xht	?	
-html4/css3-text-text-transform-034.htm	?	
-xhtml1/css3-text-text-transform-034.xht	?	
-html4/css3-text-text-transform-035.htm	?	
-xhtml1/css3-text-text-transform-035.xht	?	
-html4/css3-text-text-transform-038.htm	?	
-xhtml1/css3-text-text-transform-038.xht	?	
-html4/css3-text-text-transform-039.htm	?	
-xhtml1/css3-text-text-transform-039.xht	?	
-html4/css3-text-text-transform-040.htm	?	
-xhtml1/css3-text-text-transform-040.xht	?	
-html4/css3-text-text-transform-041.htm	?	
-xhtml1/css3-text-text-transform-041.xht	?	
-html4/css3-text-text-transform-042.htm	?	
-xhtml1/css3-text-text-transform-042.xht	?	
-html4/css3-text-text-transform-043.htm	?	
-xhtml1/css3-text-text-transform-043.xht	?	
-html4/css3-text-text-transform-044.htm	?	
-xhtml1/css3-text-text-transform-044.xht	?	
-html4/css3-text-text-transform-045.htm	?	
-xhtml1/css3-text-text-transform-045.xht	?	
-html4/css3-text-text-transform-046.htm	?	
-xhtml1/css3-text-text-transform-046.xht	?	
-html4/full-width-002.htm	?	
-xhtml1/full-width-002.xht	?	
-html4/full-width-003.htm	?	
-xhtml1/full-width-003.xht	?	
-html4/hanging-punctuation-allow-end-001.htm	?	
-xhtml1/hanging-punctuation-allow-end-001.xht	?	
-html4/hanging-punctuation-first-001.htm	?	
-xhtml1/hanging-punctuation-first-001.xht	?	
-html4/hanging-punctuation-force-end-001.htm	?	
-xhtml1/hanging-punctuation-force-end-001.xht	?	
-html4/hanging-punctuation-last-001.htm	?	
-xhtml1/hanging-punctuation-last-001.xht	?	
-html4/line-break-normal-021.htm	?	
-xhtml1/line-break-normal-021.xht	?	
-html4/line-break-normal-022.htm	?	
-xhtml1/line-break-normal-022.xht	?	
-html4/line-break-normal-023.htm	?	
-xhtml1/line-break-normal-023.xht	?	
-html4/line-break-normal-024.htm	?	
-xhtml1/line-break-normal-024.xht	?	
-html4/line-break-normal-025.htm	?	
-xhtml1/line-break-normal-025.xht	?	
-html4/line-break-strict-011.htm	?	
-xhtml1/line-break-strict-011.xht	?	
-html4/line-break-strict-012.htm	?	
-xhtml1/line-break-strict-012.xht	?	
-html4/line-break-strict-013.htm	?	
-xhtml1/line-break-strict-013.xht	?	
-html4/line-break-strict-014.htm	?	
-xhtml1/line-break-strict-014.xht	?	
-html4/line-break-strict-015.htm	?	
-xhtml1/line-break-strict-015.xht	?	
-html4/line-break-strict-016.htm	?	
-xhtml1/line-break-strict-016.xht	?	
-html4/line-break-strict-017.htm	?	
-xhtml1/line-break-strict-017.xht	?	
-html4/line-break-strict-018.htm	?	
-xhtml1/line-break-strict-018.xht	?	
-html4/overflow-wrap-001.htm	?	
-xhtml1/overflow-wrap-001.xht	?	
-html4/overflow-wrap-002.htm	?	
-xhtml1/overflow-wrap-002.xht	?	
-html4/overflow-wrap-003.htm	?	
-xhtml1/overflow-wrap-003.xht	?	
-html4/overflow-wrap-004.htm	?	
-xhtml1/overflow-wrap-004.xht	?	
-html4/overflow-wrap-005.htm	?	
-xhtml1/overflow-wrap-005.xht	?	
-html4/tab-size-integer-001.htm	?	
-xhtml1/tab-size-integer-001.xht	?	
-html4/tab-size-integer-002.htm	?	
-xhtml1/tab-size-integer-002.xht	?	
-html4/tab-size-integer-003.htm	?	
-xhtml1/tab-size-integer-003.xht	?	
-html4/tab-size-length-001.htm	?	
-xhtml1/tab-size-length-001.xht	?	
-html4/tab-size-length-002.htm	?	
-xhtml1/tab-size-length-002.xht	?	
-html4/tab-size-percent-001.htm	?	
-xhtml1/tab-size-percent-001.xht	?	
-html4/text-align-006.htm	?	
-xhtml1/text-align-006.xht	?	
-html4/text-align-007.htm	?	
-xhtml1/text-align-007.xht	?	
-html4/text-align-008.htm	?	
-xhtml1/text-align-008.xht	?	
-html4/text-align-last-001.htm	?	
-xhtml1/text-align-last-001.xht	?	
-html4/text-align-last-002.htm	?	
-xhtml1/text-align-last-002.xht	?	
-html4/text-align-last-003.htm	?	
-xhtml1/text-align-last-003.xht	?	
-html4/text-align-last-004.htm	?	
-xhtml1/text-align-last-004.xht	?	
-html4/text-align-last-005.htm	?	
-xhtml1/text-align-last-005.xht	?	
-html4/text-align-last-006.htm	?	
-xhtml1/text-align-last-006.xht	?	
-html4/text-align-last-007.htm	?	
-xhtml1/text-align-last-007.xht	?	
-html4/text-align-last-008.htm	?	
-xhtml1/text-align-last-008.xht	?	
-html4/text-align-last-009.htm	?	
-xhtml1/text-align-last-009.xht	?	
-html4/text-align-last-010.htm	?	
-xhtml1/text-align-last-010.xht	?	
-html4/text-align-last-011.htm	?	
-xhtml1/text-align-last-011.xht	?	
-html4/text-align-last-012.htm	?	
-xhtml1/text-align-last-012.xht	?	
-html4/text-align-last-013.htm	?	
-xhtml1/text-align-last-013.xht	?	
-html4/text-align-last-014.htm	?	
-xhtml1/text-align-last-014.xht	?	
-html4/text-emphasis-color-001.htm	?	
-xhtml1/text-emphasis-color-001.xht	?	
-html4/text-emphasis-position-above-left-001.htm	?	
-xhtml1/text-emphasis-position-above-left-001.xht	?	
-html4/text-emphasis-position-above-left-002.htm	?	
-xhtml1/text-emphasis-position-above-left-002.xht	?	
-html4/text-emphasis-position-above-right-001.htm	?	
-xhtml1/text-emphasis-position-above-right-001.xht	?	
-html4/text-emphasis-position-above-right-002.htm	?	
-xhtml1/text-emphasis-position-above-right-002.xht	?	
-html4/text-emphasis-position-below-left-001.htm	?	
-xhtml1/text-emphasis-position-below-left-001.xht	?	
-html4/text-emphasis-position-below-left-002.htm	?	
-xhtml1/text-emphasis-position-below-left-002.xht	?	
-html4/text-emphasis-position-below-right-001.htm	?	
-xhtml1/text-emphasis-position-below-right-001.xht	?	
-html4/text-emphasis-position-below-right-002.htm	?	
-xhtml1/text-emphasis-position-below-right-002.xht	?	
-html4/text-emphasis-style-filled-001.htm	?	
-xhtml1/text-emphasis-style-filled-001.xht	?	
-html4/text-emphasis-style-none-001.htm	?	
-xhtml1/text-emphasis-style-none-001.xht	?	
-html4/text-emphasis-style-open-001.htm	?	
-xhtml1/text-emphasis-style-open-001.xht	?	
-html4/text-emphasis-style-shape-001.htm	?	
-xhtml1/text-emphasis-style-shape-001.xht	?	
-html4/text-emphasis-style-string-001.htm	?	
-xhtml1/text-emphasis-style-string-001.xht	?	
-html4/text-indent-percentage-001.htm	?	
-xhtml1/text-indent-percentage-001.xht	?	
-html4/text-transform-capitalize-001.htm	?	
-xhtml1/text-transform-capitalize-001.xht	?	
-html4/text-transform-fullwidth-001.htm	?	
-xhtml1/text-transform-fullwidth-001.xht	?	
-html4/text-transform-lowercase-001.htm	?	
-xhtml1/text-transform-lowercase-001.xht	?	
-html4/text-transform-none-001.htm	?	
-xhtml1/text-transform-none-001.xht	?	
-html4/text-transform-uppercase-001.htm	?	
-xhtml1/text-transform-uppercase-001.xht	?	
-html4/white-space-collapsing-discard-001.htm	?	
-xhtml1/white-space-collapsing-discard-001.xht	?	
-html4/white-space-collapsing-preserve-breaks-001.htm	?	
-xhtml1/white-space-collapsing-preserve-breaks-001.xht	?	
-html4/white-space-collapsing-trim-inner-001.htm	?	
-xhtml1/white-space-collapsing-trim-inner-001.xht	?	
-html4/word-break-001.htm	?	
-xhtml1/word-break-001.xht	?	
-html4/word-break-002.htm	?	
-xhtml1/word-break-002.xht	?	
-html4/word-break-003.htm	?	
-xhtml1/word-break-003.xht	?	
-html4/word-break-004.htm	?	
-xhtml1/word-break-004.xht	?	
-html4/word-break-break-all-001.htm	?	
-xhtml1/word-break-break-all-001.xht	?	
-html4/word-break-keep-all-001.htm	?	
-xhtml1/word-break-keep-all-001.xht	?	
-html4/word-break-normal-001.htm	?	
-xhtml1/word-break-normal-001.xht	?	
-html4/word-wrap-001.htm	?	
-xhtml1/word-wrap-001.xht	?	
-html4/word-wrap-002.htm	?	
-xhtml1/word-wrap-002.xht	?	
-html4/word-wrap-003.htm	?	
-xhtml1/word-wrap-003.xht	?	
-html4/word-wrap-004.htm	?	
-xhtml1/word-wrap-004.xht	?	
-html4/word-wrap-005.htm	?	
-xhtml1/word-wrap-005.xht	?	
+testname	revision	result	comment
+html/bidi-005.htm	9a94108988b0d806f23f5d63aec2a5b34d6aea05	?
+xhtml1/bidi-005.xht	9a94108988b0d806f23f5d63aec2a5b34d6aea05	?
+html/bidi-006.htm	a699b5134869e68b68c5399f9be53865f6bb90cd	?
+xhtml1/bidi-006.xht	a699b5134869e68b68c5399f9be53865f6bb90cd	?
+html/bidi-007.htm	52cbe1038400d33a001f042c6b78f1ee216c902b	?
+xhtml1/bidi-007.xht	52cbe1038400d33a001f042c6b78f1ee216c902b	?
+html/bidi-008.htm	c878778f568e57aa6bc27e433596631230c507ff	?
+xhtml1/bidi-008.xht	c878778f568e57aa6bc27e433596631230c507ff	?
+html/bidi-009.htm	d6072671ffb3f62e5e2cd6b3a1e622c8c25ca81a	?
+xhtml1/bidi-009.xht	d6072671ffb3f62e5e2cd6b3a1e622c8c25ca81a	?
+html/bidi-010.htm	16d1297a97d5163619d5317e0a69343dd1c1eb6d	?
+xhtml1/bidi-010.xht	16d1297a97d5163619d5317e0a69343dd1c1eb6d	?
+html/full-width-002.htm	d3899bb9aac8c47ec60d90d6ece293c343e3d978	?
+xhtml1/full-width-002.xht	d3899bb9aac8c47ec60d90d6ece293c343e3d978	?
+html/full-width-003.htm	f6deaece33b7947dfe97c6514dab6a11d4718efa	?
+xhtml1/full-width-003.xht	f6deaece33b7947dfe97c6514dab6a11d4718efa	?
+html/hanging-punctuation-allow-end-001.htm	f64dd2497338e856daf7d7cb3a84dfd3ebf5c948	?
+xhtml1/hanging-punctuation-allow-end-001.xht	f64dd2497338e856daf7d7cb3a84dfd3ebf5c948	?
+html/hanging-punctuation-first-001.htm	5bee9960854e4c3c5e3b50acf25a0977fdf4952a	?
+xhtml1/hanging-punctuation-first-001.xht	5bee9960854e4c3c5e3b50acf25a0977fdf4952a	?
+html/hanging-punctuation-force-end-001.htm	d2e8c955987d49cad1abf22c9a61e5c977eb1d81	?
+xhtml1/hanging-punctuation-force-end-001.xht	d2e8c955987d49cad1abf22c9a61e5c977eb1d81	?
+html/hanging-punctuation-last-001.htm	0c878241442d1d9b544ebfb43dd239f1606c4e9a	?
+xhtml1/hanging-punctuation-last-001.xht	0c878241442d1d9b544ebfb43dd239f1606c4e9a	?
+html/line-break-normal-021.htm	594b6490e47894060a4d3ecc56266eeaa9893757	?
+xhtml1/line-break-normal-021.xht	594b6490e47894060a4d3ecc56266eeaa9893757	?
+html/line-break-normal-022.htm	28d64255152f225db66a553b5f037a0ba5cf54eb	?
+xhtml1/line-break-normal-022.xht	28d64255152f225db66a553b5f037a0ba5cf54eb	?
+html/line-break-normal-023.htm	a9a615b81bbe7d21b8443bf4acea07c8739f6641	?
+xhtml1/line-break-normal-023.xht	a9a615b81bbe7d21b8443bf4acea07c8739f6641	?
+html/line-break-normal-024.htm	4d875f5ad8c0f8c68e6e1a7b838eb027c9fe92e7	?
+xhtml1/line-break-normal-024.xht	4d875f5ad8c0f8c68e6e1a7b838eb027c9fe92e7	?
+html/line-break-normal-025.htm	d1c95b289edf2a76c72c3860c17d01f2b0852282	?
+xhtml1/line-break-normal-025.xht	d1c95b289edf2a76c72c3860c17d01f2b0852282	?
+html/line-break-strict-011.htm	05602faaae39e342e78e40b03e6670b64f19327b	?
+xhtml1/line-break-strict-011.xht	05602faaae39e342e78e40b03e6670b64f19327b	?
+html/line-break-strict-012.htm	53e45c1e6f5983b7da6d6202ed1e73bb4d26e373	?
+xhtml1/line-break-strict-012.xht	53e45c1e6f5983b7da6d6202ed1e73bb4d26e373	?
+html/line-break-strict-013.htm	d02e62d5dc6a4f3aae40f752cb933b06ddebafd0	?
+xhtml1/line-break-strict-013.xht	d02e62d5dc6a4f3aae40f752cb933b06ddebafd0	?
+html/line-break-strict-014.htm	f3cf3b80d1bf57f6aa224387bcafdb18ab887abb	?
+xhtml1/line-break-strict-014.xht	f3cf3b80d1bf57f6aa224387bcafdb18ab887abb	?
+html/line-break-strict-015.htm	2718a567ce6f7fa70aefac7f2e5ee46b78cca0d9	?
+xhtml1/line-break-strict-015.xht	2718a567ce6f7fa70aefac7f2e5ee46b78cca0d9	?
+html/line-break-strict-016.htm	4ee4abc13eb1a1d32026c802221701c4170fbb23	?
+xhtml1/line-break-strict-016.xht	4ee4abc13eb1a1d32026c802221701c4170fbb23	?
+html/line-break-strict-017.htm	9cded1b780e1a909b39ef48caefe72f3055f6436	?
+xhtml1/line-break-strict-017.xht	9cded1b780e1a909b39ef48caefe72f3055f6436	?
+html/line-break-strict-018.htm	75b764648018c7ed8792aca88c19c755805d4ff4	?
+xhtml1/line-break-strict-018.xht	75b764648018c7ed8792aca88c19c755805d4ff4	?
+html/overflow-wrap-001.htm	e2180bcd15b6599b0cfc1093ab9ca96a5977438f	?
+xhtml1/overflow-wrap-001.xht	e2180bcd15b6599b0cfc1093ab9ca96a5977438f	?
+html/overflow-wrap-002.htm	6b0a13d36af89aeefa25e1c7e5989c52dddb6a55	?
+xhtml1/overflow-wrap-002.xht	6b0a13d36af89aeefa25e1c7e5989c52dddb6a55	?
+html/overflow-wrap-003.htm	90537d6751f840fc6bdaaf224a9fd126633ea546	?
+xhtml1/overflow-wrap-003.xht	90537d6751f840fc6bdaaf224a9fd126633ea546	?
+html/overflow-wrap-004.htm	19123b9e3550ee2b726814585a0f7a905a4b08e4	?
+xhtml1/overflow-wrap-004.xht	19123b9e3550ee2b726814585a0f7a905a4b08e4	?
+html/overflow-wrap-005.htm	cd21eef80894ecb8a71238764dfa4536784b9f64	?
+xhtml1/overflow-wrap-005.xht	cd21eef80894ecb8a71238764dfa4536784b9f64	?
+html/tab-size-integer-001.htm	1ef7ccad102b3c839e5bf80d1ed157c8d8fc4f88	?
+xhtml1/tab-size-integer-001.xht	1ef7ccad102b3c839e5bf80d1ed157c8d8fc4f88	?
+html/tab-size-integer-002.htm	6d3a46c2722ed365d12cdabd96acfc7d0bac3067	?
+xhtml1/tab-size-integer-002.xht	6d3a46c2722ed365d12cdabd96acfc7d0bac3067	?
+html/tab-size-integer-003.htm	6eada61e43f8bf060e6ab930e4759ebf6f58edce	?
+xhtml1/tab-size-integer-003.xht	6eada61e43f8bf060e6ab930e4759ebf6f58edce	?
+html/tab-size-length-001.htm	ef4f72b39f318a141a5d29166bf659a7be5d8063	?
+xhtml1/tab-size-length-001.xht	ef4f72b39f318a141a5d29166bf659a7be5d8063	?
+html/tab-size-length-002.htm	a0a3beafb2bd8a8b9b63fa0f2acfa2853339ec72	?
+xhtml1/tab-size-length-002.xht	a0a3beafb2bd8a8b9b63fa0f2acfa2853339ec72	?
+html/tab-size-percent-001.htm	a7b965d5cfee52092d2ad9332bd43d5a7526163b	?
+xhtml1/tab-size-percent-001.xht	a7b965d5cfee52092d2ad9332bd43d5a7526163b	?
+html/text-align-006.htm	881507d6949094d4daeca3dca47e5bc42bbc8aba	?
+xhtml1/text-align-006.xht	881507d6949094d4daeca3dca47e5bc42bbc8aba	?
+html/text-align-007.htm	f03bb29856642a23b70a4928e4ac19e3f7ff10cb	?
+xhtml1/text-align-007.xht	f03bb29856642a23b70a4928e4ac19e3f7ff10cb	?
+html/text-align-008.htm	069273f30fcfdabea7919e0be823e38dfcf68d51	?
+xhtml1/text-align-008.xht	069273f30fcfdabea7919e0be823e38dfcf68d51	?
+html/text-align-last-001.htm	1fce65ed38da0c61a6f9bb19ed91fc203b7b70b7	?
+xhtml1/text-align-last-001.xht	1fce65ed38da0c61a6f9bb19ed91fc203b7b70b7	?
+html/text-align-last-002.htm	5de0bf74fd4529e0b56d8ee8b0f23729b0a77bf3	?
+xhtml1/text-align-last-002.xht	5de0bf74fd4529e0b56d8ee8b0f23729b0a77bf3	?
+html/text-align-last-003.htm	247cb2ee1fbae234cfc9f6f9f86f4c43463ec20c	?
+xhtml1/text-align-last-003.xht	247cb2ee1fbae234cfc9f6f9f86f4c43463ec20c	?
+html/text-align-last-004.htm	a05d62c08f3df9b9c25d708286ddd3e388380a15	?
+xhtml1/text-align-last-004.xht	a05d62c08f3df9b9c25d708286ddd3e388380a15	?
+html/text-align-last-005.htm	52d994cbeb701f56236dbe51fde12f28b985f705	?
+xhtml1/text-align-last-005.xht	52d994cbeb701f56236dbe51fde12f28b985f705	?
+html/text-align-last-006.htm	6738c5e3290d8bf1223448a7998b56f9eac5d2f6	?
+xhtml1/text-align-last-006.xht	6738c5e3290d8bf1223448a7998b56f9eac5d2f6	?
+html/text-align-last-007.htm	32186d9907ac2b5bcecae6922d591a354280afb4	?
+xhtml1/text-align-last-007.xht	32186d9907ac2b5bcecae6922d591a354280afb4	?
+html/text-align-last-008.htm	a38e78239f2bf4e8d1e17e148fd26fb2747759be	?
+xhtml1/text-align-last-008.xht	a38e78239f2bf4e8d1e17e148fd26fb2747759be	?
+html/text-align-last-009.htm	fa7057577a9acb736267a6c5c0e3c41c16582bed	?
+xhtml1/text-align-last-009.xht	fa7057577a9acb736267a6c5c0e3c41c16582bed	?
+html/text-align-last-010.htm	379c30ae8f4a1debc273a8786332fc021e6d5896	?
+xhtml1/text-align-last-010.xht	379c30ae8f4a1debc273a8786332fc021e6d5896	?
+html/text-align-last-011.htm	1b095b1fb69c600c798f7e26904998b43f43959d	?
+xhtml1/text-align-last-011.xht	1b095b1fb69c600c798f7e26904998b43f43959d	?
+html/text-align-last-012.htm	243b7e5e16d1df5b276d9d5e1f69c9d0816192e3	?
+xhtml1/text-align-last-012.xht	243b7e5e16d1df5b276d9d5e1f69c9d0816192e3	?
+html/text-align-last-013.htm	ec45d78717631c60b7d6f847f4381b28331aba65	?
+xhtml1/text-align-last-013.xht	ec45d78717631c60b7d6f847f4381b28331aba65	?
+html/text-align-last-014.htm	20099051e5599071cd54629d4b963d2ffe87497d	?
+xhtml1/text-align-last-014.xht	20099051e5599071cd54629d4b963d2ffe87497d	?
+html/text-align-match-parent-01.htm	c1312622a577c3a1d1d6ccf2aa48cb3a33516053	?
+xhtml1/text-align-match-parent-01.xht	c1312622a577c3a1d1d6ccf2aa48cb3a33516053	?
+html/text-align-match-parent-02.htm	47ae44fce3868ef22e15741312d379a4a9c71478	?
+xhtml1/text-align-match-parent-02.xht	47ae44fce3868ef22e15741312d379a4a9c71478	?
+html/text-align-match-parent-03.htm	f375680ea474c0d62d4fbccd995031f5e7f6cf69	?
+xhtml1/text-align-match-parent-03.xht	f375680ea474c0d62d4fbccd995031f5e7f6cf69	?
+html/text-align-match-parent-04.htm	5d2075a3a33a1300cf6f2ae911b09d63107093fa	?
+xhtml1/text-align-match-parent-04.xht	5d2075a3a33a1300cf6f2ae911b09d63107093fa	?
+html/text-align-match-parent-root-ltr.htm	0169c5b70c4c7c0fe96f9f7dfc21c8fbd6563871	?
+xhtml1/text-align-match-parent-root-ltr.xht	0169c5b70c4c7c0fe96f9f7dfc21c8fbd6563871	?
+html/text-align-match-parent-root-rtl.htm	49617035888a8e44e2b9ef3393005cfb2b3ed640	?
+xhtml1/text-align-match-parent-root-rtl.xht	49617035888a8e44e2b9ef3393005cfb2b3ed640	?
+html/text-emphasis-color-001.htm	0101ecfb09915d66f63365cff226bb205975eddb	?
+xhtml1/text-emphasis-color-001.xht	0101ecfb09915d66f63365cff226bb205975eddb	?
+html/text-emphasis-position-above-left-001.htm	8648c28df4a595d3ba86ea37a1745f54b426bef2	?
+xhtml1/text-emphasis-position-above-left-001.xht	8648c28df4a595d3ba86ea37a1745f54b426bef2	?
+html/text-emphasis-position-above-left-002.htm	06c524f3a83b993e2ee37d493e1c246ffb306c5b	?
+xhtml1/text-emphasis-position-above-left-002.xht	06c524f3a83b993e2ee37d493e1c246ffb306c5b	?
+html/text-emphasis-position-above-right-001.htm	c9cd3b7a367d4e74bb3f8e832547f9778892fed0	?
+xhtml1/text-emphasis-position-above-right-001.xht	c9cd3b7a367d4e74bb3f8e832547f9778892fed0	?
+html/text-emphasis-position-above-right-002.htm	af02ab586a42f0f1b533ada5537ace116654f551	?
+xhtml1/text-emphasis-position-above-right-002.xht	af02ab586a42f0f1b533ada5537ace116654f551	?
+html/text-emphasis-position-below-left-001.htm	bc9ef4425b0e63084f183b373b21363ad89d5c8f	?
+xhtml1/text-emphasis-position-below-left-001.xht	bc9ef4425b0e63084f183b373b21363ad89d5c8f	?
+html/text-emphasis-position-below-left-002.htm	713034a27f7b8841a7c12a36554817fc0db99018	?
+xhtml1/text-emphasis-position-below-left-002.xht	713034a27f7b8841a7c12a36554817fc0db99018	?
+html/text-emphasis-position-below-right-001.htm	8cf62b1a7d3ef7e53861c9259161d5eb163335ca	?
+xhtml1/text-emphasis-position-below-right-001.xht	8cf62b1a7d3ef7e53861c9259161d5eb163335ca	?
+html/text-emphasis-position-below-right-002.htm	8b6ba8e6f5f47f120906898dad5b37c25e0685eb	?
+xhtml1/text-emphasis-position-below-right-002.xht	8b6ba8e6f5f47f120906898dad5b37c25e0685eb	?
+html/text-emphasis-style-filled-001.htm	ddc9cc44c72bc76b5043f9d244a8fb72b79aff58	?
+xhtml1/text-emphasis-style-filled-001.xht	ddc9cc44c72bc76b5043f9d244a8fb72b79aff58	?
+html/text-emphasis-style-none-001.htm	c73584e8ed244fdc9915d988f60c0ef7149988ab	?
+xhtml1/text-emphasis-style-none-001.xht	c73584e8ed244fdc9915d988f60c0ef7149988ab	?
+html/text-emphasis-style-open-001.htm	69e101fb3823c7c572adbe50e24accbf6fb2f911	?
+xhtml1/text-emphasis-style-open-001.xht	69e101fb3823c7c572adbe50e24accbf6fb2f911	?
+html/text-emphasis-style-shape-001.htm	2a304ce4e9fdac06d395626bedf1011ec1daa13b	?
+xhtml1/text-emphasis-style-shape-001.xht	2a304ce4e9fdac06d395626bedf1011ec1daa13b	?
+html/text-emphasis-style-string-001.htm	9a13c761ef3d01ea0afe36bed2995393e26bcaf5	?
+xhtml1/text-emphasis-style-string-001.xht	9a13c761ef3d01ea0afe36bed2995393e26bcaf5	?
+html/text-indent-percentage-001.htm	8608b5827202743a4a659628e8482d21693c07c9	?
+xhtml1/text-indent-percentage-001.xht	8608b5827202743a4a659628e8482d21693c07c9	?
+html/text-transform-capitalize-001.htm	67add1c222d10af899b75dc55c7510215675788c	?
+xhtml1/text-transform-capitalize-001.xht	67add1c222d10af899b75dc55c7510215675788c	?
+html/text-transform-fullwidth-001.htm	3ce14e96ac5b083ef463997c3b6d1da292b3e449	?
+xhtml1/text-transform-fullwidth-001.xht	3ce14e96ac5b083ef463997c3b6d1da292b3e449	?
+html/text-transform-lowercase-001.htm	b99d33435f651a9ba6d835eaa2fd51ad6684ae48	?
+xhtml1/text-transform-lowercase-001.xht	b99d33435f651a9ba6d835eaa2fd51ad6684ae48	?
+html/text-transform-none-001.htm	3f76372dde584e0852e7cd297d3e68a30ecc4ec6	?
+xhtml1/text-transform-none-001.xht	3f76372dde584e0852e7cd297d3e68a30ecc4ec6	?
+html/text-transform-uppercase-001.htm	5efd91206f74207fcd84218c12ff9453b19f88fd	?
+xhtml1/text-transform-uppercase-001.xht	5efd91206f74207fcd84218c12ff9453b19f88fd	?
+html/white-space-collapsing-discard-001.htm	4e7388fa105da0a126f4707b9c0e34328598350a	?
+xhtml1/white-space-collapsing-discard-001.xht	4e7388fa105da0a126f4707b9c0e34328598350a	?
+html/white-space-collapsing-preserve-breaks-001.htm	abb5a200c3d77cfe21a8712585fbd35cf248a5f2	?
+xhtml1/white-space-collapsing-preserve-breaks-001.xht	abb5a200c3d77cfe21a8712585fbd35cf248a5f2	?
+html/white-space-collapsing-trim-inner-001.htm	16165f33930d684d4587141fcd66f1b31240c0b8	?
+xhtml1/white-space-collapsing-trim-inner-001.xht	16165f33930d684d4587141fcd66f1b31240c0b8	?
+html/word-break-001.htm	5165dbc84109a99b4443f0deca2392122d3018e8	?
+xhtml1/word-break-001.xht	5165dbc84109a99b4443f0deca2392122d3018e8	?
+html/word-break-002.htm	eadfff8cfd892567f882ec4419f9d09e7cc703d4	?
+xhtml1/word-break-002.xht	eadfff8cfd892567f882ec4419f9d09e7cc703d4	?
+html/word-break-003.htm	2e4c17d11d8d585063d1e3a4cd911dc2f090a575	?
+xhtml1/word-break-003.xht	2e4c17d11d8d585063d1e3a4cd911dc2f090a575	?
+html/word-break-004.htm	c603c1f44b5dbd03a2f0ba5f8c14b9f451bb9d51	?
+xhtml1/word-break-004.xht	c603c1f44b5dbd03a2f0ba5f8c14b9f451bb9d51	?
+html/word-break-break-all-001.htm	2b362c4d1d0bdbc8fda49815d0d0e3ebe8b0320a	?
+xhtml1/word-break-break-all-001.xht	2b362c4d1d0bdbc8fda49815d0d0e3ebe8b0320a	?
+html/word-break-keep-all-001.htm	b0542c1fdf49b550b199bfe79156efed6224a363	?
+xhtml1/word-break-keep-all-001.xht	b0542c1fdf49b550b199bfe79156efed6224a363	?
+html/word-break-normal-001.htm	155d9dc84cc4ffd2877f43264f494f8a04afdd66	?
+xhtml1/word-break-normal-001.xht	155d9dc84cc4ffd2877f43264f494f8a04afdd66	?
+html/word-wrap-001.htm	154a0142117691a37c208ced1054360fe481a85b	?
+xhtml1/word-wrap-001.xht	154a0142117691a37c208ced1054360fe481a85b	?
+html/word-wrap-002.htm	df36e26df34fe7c9352028e75ac1c12dc244a86e	?
+xhtml1/word-wrap-002.xht	df36e26df34fe7c9352028e75ac1c12dc244a86e	?
+html/word-wrap-003.htm	d172736f6ff25be674fd39c61040c8b418f72cd6	?
+xhtml1/word-wrap-003.xht	d172736f6ff25be674fd39c61040c8b418f72cd6	?
+html/word-wrap-004.htm	9309c671b9adbbf749e65236cc57e9f95265afe1	?
+xhtml1/word-wrap-004.xht	9309c671b9adbbf749e65236cc57e9f95265afe1	?
+html/word-wrap-005.htm	62913eef43bcca2cebb90a825f94c3ad32fe6a81	?
+xhtml1/word-wrap-005.xht	62913eef43bcca2cebb90a825f94c3ad32fe6a81	?

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Grid Layout Module Level 1 CR Test Suite</h1>
-  <h2>The Explicit Grid (4 tests)</h2>
+  <h2>The Explicit Grid (17 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -40,7 +40,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1">+</a>
         <a href="http://www.w3.org/TR/css-grid-1/#track-sizing">5.1 Track Sizing: the grid-template-rows and grid-template-columns properties</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 4 tests -->
+      <tr id="grid-inline-support-grid-template-columns-rows-001-5.1" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-inline-support-grid-template-columns-rows-001.htm">grid-inline-support-grid-template-columns-rows-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support for 'grid-template-columns' and 'grid-template-rows' properties within an inline grid
+          <ul class="assert">
+            <li>This test checks that 'grid-template-columns' and 'grid-template-rows' properties are supported in an inline grid. So you can use the different syntax options to define the trak list.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-layout-auto-tracks-5.1" class="primary">
+        <td><strong>
+            <a href="grid-layout-auto-tracks.htm">grid-layout-auto-tracks</a></strong></td>
+        <td><a href="reference/grid-layout-auto-tracks-ref.htm">=</a> </td>
+        <td></td>
+        <td>auto tracks
+          <ul class="assert">
+            <li>the layout should behave the same as reference.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="grid-layout-basic-5.1" class="primary">
         <td><strong>
             <a href="grid-layout-basic.htm">grid-layout-basic</a></strong></td>
@@ -49,6 +71,17 @@
         <td>basic
           <ul class="assert">
             <li>the layout should behave the same as reference.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-support-grid-template-columns-rows-001-5.1" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-support-grid-template-columns-rows-001.htm">grid-support-grid-template-columns-rows-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support for 'grid-template-columns' and 'grid-template-rows' properties
+          <ul class="assert">
+            <li>This test checks that 'grid-template-columns' and 'grid-template-rows' properties are supported in a grid. So you can use the different syntax options to define the trak list.</li>
           </ul>
         </td>
       </tr>
@@ -114,7 +147,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1.1">+</a>
         <a href="http://www.w3.org/TR/css-grid-1/#named-lines">5.1.1 Named Grid Lines: the (<custom-ident>*) syntax</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="grid-inline-support-named-grid-lines-001-5.1.1" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-inline-support-named-grid-lines-001.htm">grid-inline-support-named-grid-lines-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support for named grid lines in 'grid-template-columns' and 'grid-template-rows' properties within an inline grid
+          <ul class="assert">
+            <li>This test checks that grid lines can be explicitly named in 'grid-template-columns' and 'grid-template-rows' properties within an inline grid.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-support-named-grid-lines-001-5.1.1" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-support-named-grid-lines-001.htm">grid-support-named-grid-lines-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support for named grid lines in 'grid-template-columns' and 'grid-template-rows' properties
+          <ul class="assert">
+            <li>This test checks that grid lines can be explicitly named in 'grid-template-columns' and 'grid-template-rows' properties.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s5.1.1.#named-line">
       <!-- 0 tests -->
@@ -123,7 +178,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1.2">+</a>
         <a href="http://www.w3.org/TR/css-grid-1/#repeat-notation">5.1.2 Repeating Rows and Columns: the repeat() notation</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 3 tests -->
+      <tr id="grid-inline-support-repeat-001-5.1.2" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-inline-support-repeat-001.htm">grid-inline-support-repeat-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support 'repeat()' notation for 'grid-template-columns' and 'grid-template-rows' properties within an inline grid
+          <ul class="assert">
+            <li>This test checks that 'grid-template-columns' and 'grid-template-rows' properties support 'repeat()' notation within an inline grid, so you can use it to represents a repeated fragment of the track list.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="grid-layout-repeat-notation-5.1.2" class="primary">
         <td><strong>
             <a href="grid-layout-repeat-notation.htm">grid-layout-repeat-notation</a></strong></td>
@@ -132,6 +198,17 @@
         <td>repeat notation
           <ul class="assert">
             <li>the subgrid layout should behave the same as reference.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-support-repeat-001-5.1.2" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-support-repeat-001.htm">grid-support-repeat-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support 'repeat()' notation for 'grid-template-columns' and 'grid-template-rows' properties
+          <ul class="assert">
+            <li>This test checks that 'grid-template-columns' and 'grid-template-rows' properties support 'repeat()' notation, so you can use it to represents a repeated fragment of the track list.</li>
           </ul>
         </td>
       </tr>
@@ -146,7 +223,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1.3">+</a>
         <a href="http://www.w3.org/TR/css-grid-1/#fr-unit">5.1.3 Flexible Lengths: the fr unit</a></th></tr>
-      <!-- 2 tests -->
+      <!-- 4 tests -->
       <tr id="fr-unit-5.1.3" class="primary">
         <td><strong>
             <a href="fr-unit.htm">fr-unit</a></strong></td>
@@ -164,6 +241,28 @@
         <td><a href="reference/fr-unit-with-percentage-ref.htm">=</a> </td>
         <td></td>
         <td>CSS3 Grid Layout: Flexible Lenght
+        </td>
+      </tr>
+      <tr id="grid-inline-support-flexible-lengths-001-5.1.3" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-inline-support-flexible-lengths-001.htm">grid-inline-support-flexible-lengths-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support flexible lengths for 'grid-template-columns' and 'grid-template-rows' properties within an inline grid
+          <ul class="assert">
+            <li>This test checks that 'grid-template-columns' and 'grid-template-rows' properties support flexible lengths (the 'fr' unit) within an inline grid, so you can use it to represent a fraction of the free space in the grid container.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-support-flexible-lengths-001-5.1.3" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-support-flexible-lengths-001.htm">grid-support-flexible-lengths-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support flexible lengths for 'grid-template-columns' and 'grid-template-rows' properties
+          <ul class="assert">
+            <li>This test checks that 'grid-template-columns' and 'grid-template-rows' properties support flexible lengths (the 'fr' unit), so you can use it to represent a fraction of the free space in the grid container.</li>
+          </ul>
         </td>
       </tr>
     </tbody>
@@ -189,13 +288,57 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1.5">+</a>
         <a href="http://www.w3.org/TR/css-grid-1/#resolved-track-list">5.1.5 Resolved Values</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="grid-inline-template-columns-rows-resolved-values-001-5.1.5" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-inline-template-columns-rows-resolved-values-001.htm">grid-inline-template-columns-rows-resolved-values-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>'grid-template-columns' and 'grid-template-rows' properties resolved values for implicit tracks in an inline grid
+          <ul class="assert">
+            <li>This test checks that resolved values for 'grid-template-columns' and 'grid-template-rows' list tracks implicitly created in an inline grid.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-template-columns-rows-resolved-values-001-5.1.5" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-template-columns-rows-resolved-values-001.htm">grid-template-columns-rows-resolved-values-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>'grid-template-columns' and 'grid-template-rows' properties resolved values for implicit tracks
+          <ul class="assert">
+            <li>This test checks that resolved values for 'grid-template-columns' and 'grid-template-rows' list tracks implicitly created.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s5.2">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.2">+</a>
         <a href="http://www.w3.org/TR/css-grid-1/#grid-template-areas-property">5.2 Named Areas: the grid-template-areas property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="grid-inline-support-grid-template-areas-001-5.2" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-inline-support-grid-template-areas-001.htm">grid-inline-support-grid-template-areas-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support for 'grid-template-ares' property within an inline grid
+          <ul class="assert">
+            <li>This test checks that 'grid-template-areas' is supported in an inline grid. So you can define the grid structure.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-support-grid-template-areas-001-5.2" class="primary ahem dom script">
+        <td><strong>
+            <a href="grid-support-grid-template-areas-001.htm">grid-support-grid-template-areas-001</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>Support for 'grid-template-ares' property
+          <ul class="assert">
+            <li>This test checks that 'grid-template-areas' is supported in a grid. So you can define the grid structure.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s5.2.#named-cell-token">
       <!-- 0 tests -->

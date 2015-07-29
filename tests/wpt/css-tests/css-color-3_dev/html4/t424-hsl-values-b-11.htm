@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>CSS Test: hsl() values</title>
+<link href="http://dbaron.org/" rel="author" title="L. David Baron">
+<link href="http://mozilla.com/" rel="author" title="Mozilla Corporation">
+<link href="http://www.intel.com" rel="author" title="Intel">
+<link href="http://www.w3.org/TR/css3-color/#hsl-color" rel="help">
+<link href="reference/t424-hsl-values-b-11-ref.htm" rel="match">
+<meta content="" name="flags">
+<meta content="Implementation of algorithm for converting hsl() colors to rgb() colors." name="assert">
+<style>
+  table { border-spacing: 0; padding: 0; border: none; }
+  td { border: none; padding: 0; }
+  td { width: 1.2em; height: 1.2em; }
+</style>
+</head><body>
+  <p>The following two matching (except the checkerboard at both ends to show where the rows are) rows of colors should change in ten steps from black at the left to white at the right with yellow at the middle.</p>
+  <table>
+    <tbody><tr>
+      <td style="background: black">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 0%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 10%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 20%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 30%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 40%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 50%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 60%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 70%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 80%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 90%)">&nbsp;</td>
+      <td style="background: hsl(60, 100%, 100%)">&nbsp;</td>
+      <td style="background: white">&nbsp;</td>
+    </tr>
+    <tr>
+      <td style="background: white">&nbsp;</td>
+      <td style="background: rgb(0, 0, 0)">&nbsp;</td>
+      <td style="background: rgb(51, 51, 0)">&nbsp;</td>
+      <td style="background: rgb(102, 102, 0)">&nbsp;</td>
+      <td style="background: rgb(153, 153, 0)">&nbsp;</td>
+      <td style="background: rgb(204, 204, 0)">&nbsp;</td>
+      <td style="background: rgb(255, 255, 0)">&nbsp;</td>
+      <td style="background: rgb(255, 255, 51)">&nbsp;</td>
+      <td style="background: rgb(255, 255, 102)">&nbsp;</td>
+      <td style="background: rgb(255, 255, 153)">&nbsp;</td>
+      <td style="background: rgb(255, 255, 204)">&nbsp;</td>
+      <td style="background: rgb(255, 255, 255)">&nbsp;</td>
+      <td style="background: black">&nbsp;</td>
+    </tr>
+  </tbody></table>
+
+</body></html>

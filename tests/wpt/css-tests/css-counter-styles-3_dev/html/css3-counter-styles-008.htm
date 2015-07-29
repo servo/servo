@@ -6,29 +6,25 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help">
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley">
 <meta content="font" name="flags">
-<meta content="With list-style-type set to armenian, list markers above the limit specified in CSS3 will be rendered in the fallback counter style." name="assert">
+<meta content="list-style-type: armenian produces counter values outside its ranges using its fallback style." name="assert">
 <style type="text/css">
+ol li { list-style-type: armenian;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: armenian;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
-<div class="test"><ol start="10000"><li title="10000">10000.</li></ol>
-<ol start="10001"><li title="10001">10001.</li></ol>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="9999"><li title="9999">ՔՋՂԹ</li></ol>
+<ol start="10000"><li title="10000">10000</li></ol>
+<ol start="10001"><li title="10001">10001</li></ol>
 </div>
-
-
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

@@ -87,6 +87,10 @@ font-size-120.xht == reference/font-size-120-ref.xht
 font-size-121.xht == reference/font-size-121-ref.xht
 font-size-122.xht == reference/font-size-122-ref.xht
 font-size-123.xht == reference/font-size-123-ref.xht
+font-size-adjust-005.xht == reference/ref-if-there-is-no-red.xht
+font-size-adjust-006.xht == reference/ref-filled-green-100px-square.xht
+font-size-adjust-007.xht == reference/ref-if-there-is-no-red.xht
+font-size-adjust-008.xht == reference/ref-filled-green-100px-square.xht
 font-size-applies-to-016.xht == reference/font-size-001-ref.xht
 font-style-applies-to-001.xht == reference/font-style-applies-to-001-ref.xht
 font-style-applies-to-002.xht == reference/font-style-applies-to-001-ref.xht

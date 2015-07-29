@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head><title>CSS Test: font-size-adjust: 0</title>
+<link href="http://dbaron.org/" rel="author" title="L. David Baron">
+<link href="http://www.mozilla.org/" rel="author" title="Mozilla">
+<link href="http://www.w3.org/TR/css3-fonts/#font-size-adjust-prop" rel="help">
+<link href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" rel="help">
+<link href="reference/font-size-zero-2-ref.htm" rel="match">
+<meta content="" name="flags">
+<style>
+/* spec ambiguous whether font-size-adjust influences line-height: normal */
+body { line-height: 1.2 }
+span { line-height: 0 }
+
+p { margin: 1em 0 }
+span.zero { font-size-adjust: 0 }
+</style>
+
+</head><body><p>before</p>
+<p><span class="zero">zero</span></p>
+<p>after</p>
+</body></html>

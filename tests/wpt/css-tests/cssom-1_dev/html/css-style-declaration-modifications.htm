@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html><head>
+  <title>CSS Test: CSSStyleDeclaration Interface</title>
+  <link href="mailto:betravis@adobe.com" rel="author" title="Bear Travis">
+  <link href="http://www.w3.org/TR/cssom/#the-cssstyledeclaration-interface" rel="help">
+  <meta content="dom" name="flags">
+  <meta content="CSSStyleDeclaration is properly initialized and can be modified through its interface" name="assert">
+  <script src="/resources/testharness.js" type="text/javascript"></script>
+  <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+  <style id="styleElement">
+      #test { color: green; }
+  </style>
+  <script id="metadata_cache">/*
+{
+  "CSSStyleDeclaration_accessible": {
+    "help": ["http://www.w3.org/TR/cssom/#the-cssstylesheet-interface",
+             "http://www.w3.org/TR/cssom/#the-cssrulelist-sequence",
+             "http://www.w3.org/TR/cssom/#css-style-rule-rule-set"],
+    "assert": "Can access CSSStyleDeclaration through CSSOM"
+  },
+  "read": { "assert": "initial property values are correct" },
+  "csstext_write": {
+    "assert": ["setting cssText adds new properties",
+               "setting cssText removes existing properties",
+               "properties set through cssText are reflected in the computed style"]
+  },
+  "property_write": {
+    "assert": ["setProperty adds new properties",
+               "properties set through setProperty are reflected in the computed style"]
+  }
+}
+*/</script>
+ </head>
+ <body>
+ <noscript>Test not run - javascript required.</noscript>
+ <div id="log"></div>
+ <div id="test"></div>
+ <script type="text/javascript">
+    var styleElement = document.getElementById("styleElement");
+    var styleDeclaration;
+    test(function() {
+       assert_own_property(styleElement, "sheet");
+       assert_own_property(styleElement.sheet, "cssRules");
+       assert_true(styleElement.sheet.cssRules instanceof CSSRuleList);
+       assert_true(styleElement.sheet.cssRules.item(0) instanceof CSSStyleRule);
+       declaration = styleElement.sheet.cssRules.item(0).style;
+     }, "CSSStyleDeclaration_accessible",
+     {  help: [ "http://www.w3.org/TR/cssom/#the-cssstylesheet-interface",
+                "http://www.w3.org/TR/cssom/#the-cssrulelist-sequence",
+                "http://www.w3.org/TR/cssom/#css-style-rule-rule-set" ],
+        assert: "Can access CSSStyleDeclaration through CSSOM" });
+
+    test(function() {        
+        assert_regexp_match(declaration.cssText, /color: green;\s*/);
+        assert_equals(declaration.getPropertyValue("color"), "green");
+    }, "read",
+    { assert: "initial property values are correct" });
+
+    test(function() {
+        declaration.cssText = "margin-left: 10px; padding-left: 10px;";
+        assert_regexp_match(declaration.cssText, /margin-left: 10px;\s+padding-left: 10px;\s+/);
+        assert_equals(declaration.length, 2);
+        assert_equals(declaration.item(0), "margin-left");
+        assert_equals(declaration.item(1), "padding-left");
+        assert_equals(declaration.getPropertyValue("margin-left"), "10px");
+        assert_equals(declaration.getPropertyValue("padding-left"), "10px");
+        
+        var computedStyle = window.getComputedStyle(document.getElementById("test"));
+        assert_equals(computedStyle.getPropertyValue("margin-left"), "10px");
+        assert_equals(computedStyle.getPropertyValue("padding-left"), "10px");
+    }, "csstext_write",
+    { assert: [ "setting cssText adds new properties",
+                "setting cssText removes existing properties",
+                "properties set through cssText are reflected in the computed style"] });
+
+    test(function() {
+        while(declaration.length > 0)
+            declaration.removeProperty(declaration.item(0));
+        declaration.setProperty("margin-left", "15px");
+        declaration.setProperty("padding-left", "15px");
+        
+        assert_equals(declaration.length, 2);
+        assert_equals(declaration.item(0), "margin-left");
+        assert_equals(declaration.item(1), "padding-left");
+        assert_equals(declaration.getPropertyValue("margin-left"), "15px");
+        assert_equals(declaration.getPropertyValue("padding-left"), "15px");
+        
+        var computedStyle = window.getComputedStyle(document.getElementById("test"));
+        assert_equals(computedStyle.getPropertyValue("margin-left"), "15px");
+        assert_equals(computedStyle.getPropertyValue("padding-left"), "15px");
+    }, "property_write",
+    { assert: [ "setProperty adds new properties", 
+                "properties set through setProperty are reflected in the computed style"] });    
+ </script>
+ 
+</body></html>

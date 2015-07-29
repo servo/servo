@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html xmlns="http://www.w3.org/1999/xhtml"><head><title>CSS Test: Test that a variable reference within a gradient value in a border-image shorthand parses correctly.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack" />
+<link href="http://www.w3.org/TR/css-variables-1/#using-variables" rel="help" />
+<link href="reference/variable-reference-40-ref.xht" rel="match" />
+<style>
+p {
+  --orange: orange;
+  border: 2px solid transparent;
+  border-image: linear-gradient(to right, var(--orange), blue) 1 1;
+}
+</style>
+</head><body><p>This paragraph must have an orange/blue gradient border.</p>
+</body></html>

@@ -6,97 +6,45 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help" />
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley" />
 <meta content="font" name="flags" />
-<meta content="Setting list-style-type to cjk-decimal will produce list numbering after 9 as described in the CSS3 Counter Styles module." name="assert" />
+<meta content="list-style-type: cjk-decimal produces numbers after 9 items per the spec." name="assert" />
 <style type="text/css">
+ol li { list-style-type: cjk-decimal;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: cjk-decimal;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
-<div class="test"><ol start="10">
-				<li title="10">一〇、</li>
-				<li title="11">一一、</li>
-				<li title="12">一二、</li>
-			</ol>
-
-			<ol start="43">
-				<li title="43">四三、</li>
-			</ol>
-			<ol start="77">
-				<li title="77">七七、</li>
-			</ol>
-			<ol start="80">
-
-				<li title="80">八〇、</li>
-			</ol>
-			<ol start="99">
-				<li title="99">九九、</li>
-				<li title="100">一〇〇、</li>
-				<li title="101">一〇一、</li>
-
-			</ol>
-			<ol start="222">
-				<li title="222">二二二、</li>
-			</ol>
-			<ol start="540">
-				<li title="540">五四〇、</li>
-			</ol>
-
-			<ol start="999">
-				<li title="999">九九九、</li>
-				<li title="1000">一〇〇〇、</li>
-			</ol>
-			<ol start="1005">
-				<li title="1005">一〇〇五、</li>
-
-			</ol>
-			<ol start="1060">
-				<li title="1060">一〇六〇、</li>
-			</ol>
-			<ol start="1065">
-				<li title="1065">一〇六五、</li>
-			</ol>
-
-			<ol start="1800">
-				<li title="1800">一八〇〇、</li>
-			</ol>
-			<ol start="1860">
-				<li title="1860">一八六〇、</li>
-			</ol>
-			<ol start="1865">
-
-				<li title="1865">一八六五、</li>
-			</ol>
-			<ol start="5865">
-				<li title="5865">五八六五、</li>
-			</ol>
-			<ol start="7005">
-				<li title="7005">七〇〇五、</li>
-
-			</ol>
-			<ol start="7800">
-				<li title="7800">七八〇〇、</li>
-			</ol>
-			<ol start="7864">
-				<li title="7864">七八六四、</li>
-			</ol>
-
-			<ol start="9999">
-				<li title="9999">九九九九、</li>
-			</ol></div>
-
-
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="10"><li title="10">一〇</li></ol>
+<ol start="11"><li title="11">一一</li></ol>
+<ol start="12"><li title="12">一二</li></ol>
+<ol start="43"><li title="43">四三</li></ol>
+<ol start="77"><li title="77">七七</li></ol>
+<ol start="80"><li title="80">八〇</li></ol>
+<ol start="99"><li title="99">九九</li></ol>
+<ol start="100"><li title="100">一〇〇</li></ol>
+<ol start="101"><li title="101">一〇一</li></ol>
+<ol start="222"><li title="222">二二二</li></ol>
+<ol start="540"><li title="540">五四〇</li></ol>
+<ol start="999"><li title="999">九九九</li></ol>
+<ol start="1000"><li title="1000">一〇〇〇</li></ol>
+<ol start="1005"><li title="1005">一〇〇五</li></ol>
+<ol start="1060"><li title="1060">一〇六〇</li></ol>
+<ol start="1065"><li title="1065">一〇六五</li></ol>
+<ol start="1800"><li title="1800">一八〇〇</li></ol>
+<ol start="1860"><li title="1860">一八六〇</li></ol>
+<ol start="5865"><li title="5865">五八六五</li></ol>
+<ol start="7005"><li title="7005">七〇〇五</li></ol>
+<ol start="7800"><li title="7800">七八〇〇</li></ol>
+<ol start="7864"><li title="7864">七八六四</li></ol>
+<ol start="9999"><li title="9999">九九九九</li></ol>
+</div>
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

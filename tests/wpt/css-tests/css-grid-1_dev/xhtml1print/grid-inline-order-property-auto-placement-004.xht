@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Grid Layout Test: 'order' property affects grid items auto-placement position within an inline grid</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Grid Layout Module Level 1 CR Test Suite"; }
+            @top-right { content: "Test grid-inline-order-property-auto-placement-004"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#order-property" title="4.2 Reordered Grid Items: the order property" />
+        <link rel="help" href="http://dev.w3.org/csswg/css-flexbox-1/#order-property" title="5.4. Display Order: the order property" />
+        <link rel="match" href="reference/grid-2x2-blue-yellow-lime-magenta.xht" />
+        <meta name="flags" content="ahem" />
+        <style type="text/css"><![CDATA[
+            #reference-overlapped-red {
+                position: absolute;
+                background-color: red;
+                width: 100px;
+                height: 100px;
+                z-index: -1;
+            }
+
+            #inline-grid {
+                display: inline-grid;
+                font: 50px/1 Ahem;
+                grid-template-columns: auto auto;
+            }
+
+            #blue {
+                color: blue;
+                order: 1;
+            }
+
+            #yellow {
+                color: yellow;
+                order: 1;
+            }
+
+            #lime {
+                color: lime;
+                order: 5;
+            }
+
+            #magenta {
+                color: magenta;
+                order: 5;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <p>Test passes if there are four filled squares with the same size and <strong>no red</strong>.</p>
+        <p>Blue and yellow squares in the first line; lime and magenta squares in the second line (exactly in this order).</p>
+
+        <div id="reference-overlapped-red"></div>
+        <div id="inline-grid">
+            <div id="blue">B</div>
+            <div id="lime">L</div>
+            <div id="magenta">M</div>
+            <div id="yellow">Y</div>
+        </div>
+    </body>
+</html>

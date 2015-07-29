@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Grid Layout Module Level 1 CR Test Suite</h1>
-  <h2>Grid Containers (9 tests)</h2>
+  <h2>Grid Containers (28 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -37,7 +37,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.1">+</a>
         <a href="http://www.w3.org/TR/css-grid-1/#grid-containers">3.1 Establishing Grid Containers: the grid and inline-grid display values</a></th></tr>
-      <!-- 9 tests -->
+      <!-- 28 tests -->
       <tr id="display-grid-3.1" class="primary">
         <td><strong>
             <a href="display-grid.htm">display-grid</a></strong></td>
@@ -58,6 +58,14 @@
           <ul class="assert">
             <li>'display: inline-grid' causes an element to generate an inline-level grid container box.</li>
           </ul>
+        </td>
+      </tr>
+      <tr id="grid-computed-value-display-floated-items-001-3.1" class="primary dom script">
+        <td><strong>
+            <a href="grid-computed-value-display-floated-items-001.htm">grid-computed-value-display-floated-items-001</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>'float' affects to the computed value of 'display' on grid items
         </td>
       </tr>
       <tr id="grid-display-grid-001-3.1" class="primary ahem">
@@ -82,12 +90,152 @@
           </ul>
         </td>
       </tr>
+      <tr id="grid-first-letter-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-first-letter-001.htm">grid-first-letter-001</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-letter' from grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-letter' pseudo-element is ignored in grid items when applied to a grid container.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-first-letter-002-3.1" class="primary">
+        <td><strong>
+            <a href="grid-first-letter-002.htm">grid-first-letter-002</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-letter' from grid container ancestors does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-letter' pseudo-element is ignored in grid items when applied to a grid container ancestors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-first-letter-003-3.1" class="primary">
+        <td><strong>
+            <a href="grid-first-letter-003.htm">grid-first-letter-003</a></strong></td>
+        <td><a href="reference/grid-first-letter-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-letter' works on grid items
+          <ul class="assert">
+            <li>This test checks that '::first-letter' pseudo-element works as expected if it is applied directly to a grid item.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-first-line-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-first-line-001.htm">grid-first-line-001</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-line' from grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-line' pseudo-element is ignored in grid items when applied to a grid container.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-first-line-002-3.1" class="primary">
+        <td><strong>
+            <a href="grid-first-line-002.htm">grid-first-line-002</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-line' from grid container ancestors does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-line' pseudo-element is ignored in grid items when applied to a grid container ancestors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-first-line-003-3.1" class="primary">
+        <td><strong>
+            <a href="grid-first-line-003.htm">grid-first-line-003</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-line' works on grid items
+          <ul class="assert">
+            <li>This test checks that '::first-line' pseudo-element works as expected if it is applied directly to a grid item.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="grid-float-001-3.1" class="primary">
         <td><strong>
             <a href="grid-float-001.htm">grid-float-001</a></strong></td>
         <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
         <td></td>
         <td>'float' has no effect on grid items
+        </td>
+      </tr>
+      <tr id="grid-floats-no-intrude-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-floats-no-intrude-001.htm">grid-floats-no-intrude-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>floats do not intrude into a grid
+        </td>
+      </tr>
+      <tr id="grid-inline-first-letter-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-first-letter-001.htm">grid-inline-first-letter-001</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-letter' from inline grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-letter' pseudo-element is ignored in grid items when applied to an inline grid container.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-inline-first-letter-002-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-first-letter-002.htm">grid-inline-first-letter-002</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-letter' from inline grid container ancestors does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-letter' pseudo-element is ignored in grid items when applied to an inline grid container ancestors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-inline-first-letter-003-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-first-letter-003.htm">grid-inline-first-letter-003</a></strong></td>
+        <td><a href="reference/grid-first-letter-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-letter' works on grid items within an inline grid
+          <ul class="assert">
+            <li>This test checks that '::first-letter' pseudo-element works as expected if it is applied directly to a grid item within an inline grid.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-inline-first-line-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-first-line-001.htm">grid-inline-first-line-001</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-line' from inline grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-line' pseudo-element is ignored in grid items when applied to an inline grid container.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-inline-first-line-002-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-first-line-002.htm">grid-inline-first-line-002</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-line' from inline grid container ancestors does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that '::first-line' pseudo-element is ignored in anonymous grid items when applied to an inline grid container ancestors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-inline-first-line-003-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-first-line-003.htm">grid-inline-first-line-003</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>'::first-line' works on grid items within an inline grid
+          <ul class="assert">
+            <li>This test checks that '::first-line' pseudo-element works as expected if it is applied directly to a grid item within an inline grid.</li>
+          </ul>
         </td>
       </tr>
       <tr id="grid-inline-float-001-3.1" class="primary">
@@ -98,12 +246,64 @@
         <td>'float' has no effect on grid items within an inline grid
         </td>
       </tr>
+      <tr id="grid-inline-floats-no-intrude-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-floats-no-intrude-001.htm">grid-inline-floats-no-intrude-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>floats do not intrude into an inline grid
+        </td>
+      </tr>
+      <tr id="grid-inline-margins-no-collapse-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-margins-no-collapse-001.htm">grid-inline-margins-no-collapse-001</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>inline grid's margins do not collapse
+          <ul class="assert">
+            <li>This test checks that inline grid's margin (body) do not collapse with the marings of the grid item (a paragraph).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-inline-multicol-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-multicol-001.htm">grid-inline-multicol-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>'column-*' properties from inline grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that 'column-*' properties in the Multicol module are ignored in grid items when applied to an inline grid container.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="grid-inline-vertical-align-001-3.1" class="primary ahem">
         <td><strong>
             <a href="grid-inline-vertical-align-001.htm">grid-inline-vertical-align-001</a></strong></td>
         <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>'vertical-align' has no effect on grid items within an inline grid
+        </td>
+      </tr>
+      <tr id="grid-margins-no-collapse-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-margins-no-collapse-001.htm">grid-margins-no-collapse-001</a></strong></td>
+        <td><a href="reference/grid-text-green-margin-no-collapse-ref.htm">=</a> </td>
+        <td></td>
+        <td>grid's margins do not collapse
+          <ul class="assert">
+            <li>This test checks that grid's margin (body) do not collapse with the marings of the grid item (a paragraph).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-multicol-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-multicol-001.htm">grid-multicol-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>'column-*' properties from grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that 'column-*' properties in the Multicol module are ignored in grid items when applied to a grid container.</li>
+          </ul>
         </td>
       </tr>
       <tr id="grid-support-display-001-3.1" class="primary dom script">

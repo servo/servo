@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Test: Direction applied to element with 'display' set to inline-block</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test direction-applies-to-012"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-03 -->
+        <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#direction" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-direction" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction" />
+        <link rel="match" href="reference/direction-applies-to-007-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'direction' property applies to elements with a display of inline-block." />
+        <style type="text/css">
+            div
+            {
+                background: orange;
+                direction: rtl;
+                display: inline-block;
+                font: 50px/1em Ahem;
+                height: 100px;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a black square in the <strong>upper-right corner</strong> of the orange square.</p>
+
+        <div>X</div>
+
+    </body>
+</html>

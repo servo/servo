@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Basic User Interface Module Level 3 CR Test Suite</h1>
-  <h2>Pointing Devices and Keyboards (138 tests)</h2>
+  <h2>Pointing Devices and Keyboards (142 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -66,44 +66,44 @@
           </ul>
         </td>
       </tr>
-      <tr id="cursor-image-003-6.1.1" class="primary image interact">
+      <tr id="cursor-image-003-6.1.1" class="primary image interact may">
         <td><strong>
             <a href="cursor-image-003.xht">cursor-image-003</a></strong></td>
         <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr><abbr class="may" title="Behavior tested is preferred but optional">Optional</abbr></td>
         <td>Cursor property, url value
           <ul class="assert">
             <li>Test checks that an ICO image is supported as a custom cursor.</li>
           </ul>
         </td>
       </tr>
-      <tr id="cursor-image-004-6.1.1" class="primary image interact">
+      <tr id="cursor-image-004-6.1.1" class="primary image interact may">
         <td><strong>
             <a href="cursor-image-004.xht">cursor-image-004</a></strong></td>
         <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr><abbr class="may" title="Behavior tested is preferred but optional">Optional</abbr></td>
         <td>Cursor property, url value
           <ul class="assert">
             <li>Test checks that an ICO image, with its own hotspot, is supported as a custom cursor.</li>
           </ul>
         </td>
       </tr>
-      <tr id="cursor-image-005-6.1.1" class="primary image interact svg">
+      <tr id="cursor-image-005-6.1.1" class="primary interact svg">
         <td><strong>
             <a href="cursor-image-005.xht">cursor-image-005</a></strong></td>
         <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr><abbr class="svg" title="Requires SVG support">SVG</abbr></td>
+        <td><abbr class="interact" title="Requires user interaction">Interact</abbr><abbr class="svg" title="Requires SVG support">SVG</abbr></td>
         <td>Cursor property, url value
           <ul class="assert">
             <li>Test checks that a fixed size SVG image is supported as a custom cursor.</li>
           </ul>
         </td>
       </tr>
-      <tr id="cursor-image-005-nfs-6.1.1" class="primary image interact svg">
+      <tr id="cursor-image-005-nfs-6.1.1" class="primary interact svg">
         <td><strong>
             <a href="cursor-image-005-nfs.xht">cursor-image-005-nfs</a></strong></td>
         <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr><abbr class="svg" title="Requires SVG support">SVG</abbr></td>
+        <td><abbr class="interact" title="Requires user interaction">Interact</abbr><abbr class="svg" title="Requires SVG support">SVG</abbr></td>
         <td>Cursor property, url value
           <ul class="assert">
             <li>Test checks that an SVG image with no fixed size is supported as a custom cursor at the default object size for cursor images.</li>
@@ -661,6 +661,9 @@
         </td>
       </tr>
     </tbody>
+    <tbody id="s6.1.1.#example-4a59cfe4">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s6.1.1.#propdef-cursor">
       <!-- 0 tests -->
     </tbody>
@@ -715,6 +718,9 @@
         </td>
       </tr>
     </tbody>
+    <tbody id="s6.2.1.#example-24147f22">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s6.2.1.#propdef-caret-color">
       <!-- 0 tests -->
     </tbody>
@@ -728,7 +734,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.3.1">+</a>
         <a href="http://www.w3.org/TR/css3-ui/#nav-dir">6.3.1 Directional focus navigation: the nav-up, nav-right, nav-down, nav-left properties</a></th></tr>
-      <!-- 79 tests -->
+      <!-- 83 tests -->
       <tr id="nav-dir-001-6.3.1" class="primary interact">
         <td><strong>
             <a href="nav-dir-001.xht">nav-dir-001</a></strong></td>
@@ -781,6 +787,50 @@
         <td>Directional Focus Navigation - currently focused element
           <ul class="assert">
             <li>Test checks that focus doesn't change when navigating to the currently focused element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="nav-dir-missing-1-6.3.1" class="primary interact">
+        <td><strong>
+            <a href="nav-dir-missing-1.xht">nav-dir-missing-1</a></strong></td>
+        <td></td>
+        <td><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>Directional Focus Navigation - unkown element id
+          <ul class="assert">
+            <li>Test checks that an unknow element id used as the value of the 'nav-right' property value does not hinder normal spacial navigation.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="nav-dir-missing-2-6.3.1" class="primary interact">
+        <td><strong>
+            <a href="nav-dir-missing-2.xht">nav-dir-missing-2</a></strong></td>
+        <td></td>
+        <td><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>Directional Focus Navigation - unkown element id
+          <ul class="assert">
+            <li>Test checks that an unknow element id used as the value of the 'nav-left' property value does not hinder normal spacial navigation.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="nav-dir-missing-3-6.3.1" class="primary interact">
+        <td><strong>
+            <a href="nav-dir-missing-3.xht">nav-dir-missing-3</a></strong></td>
+        <td></td>
+        <td><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>Directional Focus Navigation - unkown element id
+          <ul class="assert">
+            <li>Test checks that an unknow element id used as the value of the 'nav-down' property value does not hinder normal spacial navigation.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="nav-dir-missing-4-6.3.1" class="primary interact">
+        <td><strong>
+            <a href="nav-dir-missing-4.xht">nav-dir-missing-4</a></strong></td>
+        <td></td>
+        <td><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>Directional Focus Navigation - unkown element id
+          <ul class="assert">
+            <li>Test checks that an unknow element id used as the value of the 'nav-up' property value does not hinder normal spacial navigation.</li>
           </ul>
         </td>
       </tr>
@@ -1614,13 +1664,19 @@
     <tbody id="s6.3.1.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.3.1.1">+</a>
-        <a href="http://www.w3.org/TR/css3-ui/#example-positioned-buttons">6.3.1.1 Example: positioned buttons</a></th></tr>
+        <a href="http://www.w3.org/TR/css3-ui/#example-b196d206">6.3.1.1 Example: positioned buttons</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s6.3.1.1.#example-positioned-buttons">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s6.3.1.2">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.3.1.2">+</a>
-        <a href="http://www.w3.org/TR/css3-ui/#example-moving-focus-to-inside-a-frame">6.3.1.2 Example: moving focus to inside a frame</a></th></tr>
+        <a href="http://www.w3.org/TR/css3-ui/#example-381d7fe7">6.3.1.2 Example: moving focus to inside a frame</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s6.3.1.2.#example-moving-focus-to-inside-a-frame">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s6.3.2">
@@ -1629,13 +1685,10 @@
         <a href="http://www.w3.org/TR/css3-ui/#input-method-editor">6.3.2 Obsolete: the ime-mode property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
+    <tbody id="s6.3.2.#example-8592b31b">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s.#abstract">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s.#biblio-css-align-3">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s.#biblio-css-animations-1">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s.#biblio-css-backgrounds-3">
@@ -1644,22 +1697,7 @@
     <tbody id="s.#biblio-css-color-3">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s.#biblio-css-color-4">
-      <!-- 0 tests -->
-    </tbody>
     <tbody id="s.#biblio-css-images-3">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s.#biblio-css-masking-1">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s.#biblio-css-overflow-3">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s.#biblio-css-position-3">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s.#biblio-css-style-attr-1">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s.#biblio-css-values-3">
@@ -1677,6 +1715,9 @@
     <tbody id="s.#biblio-css21">
       <!-- 0 tests -->
     </tbody>
+    <tbody id="s.#biblio-css3-background">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s.#biblio-css3-writing-modes">
       <!-- 0 tests -->
     </tbody>
@@ -1686,16 +1727,28 @@
     <tbody id="s.#biblio-css3color">
       <!-- 0 tests -->
     </tbody>
+    <tbody id="s.#biblio-css4-images">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s.#biblio-cssui">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s.#biblio-html5">
       <!-- 0 tests -->
     </tbody>
+    <tbody id="s.#biblio-png">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s.#biblio-rfc2119">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s.#biblio-select">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s.#biblio-svg">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s.#biblio-svg-integration">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s.#biblio-svg10">
@@ -1716,6 +1769,12 @@
     <tbody id="s.#conventions">
       <!-- 0 tests -->
     </tbody>
+    <tbody id="s.#cr-exit-criteria">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s.#example-f839f6c8">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s.#experimental">
       <!-- 0 tests -->
     </tbody>
@@ -1729,9 +1788,6 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s.#informative">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s.#issues-index">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s.#normative">

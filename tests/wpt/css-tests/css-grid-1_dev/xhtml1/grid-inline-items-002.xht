@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Grid Layout Test: Children of grid items do not create new items within an inline grid</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-items" title="4 Grid Items" />
+        <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Checks that the grid items do not split around blocks creating extra items within an inline grid." />
+        <style type="text/css"><![CDATA[
+            #reference-overlapped-red {
+                position: absolute;
+                background-color: red;
+                width: 100px;
+                height: 100px;
+                z-index: -1;
+            }
+
+            .test-inline-grid-overlapping-green {
+                display: inline-grid;
+                font: 25px/1 Ahem;
+                color: green;
+            }
+
+            .two-columns {
+                grid-template-columns: auto auto;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+        <div id="reference-overlapped-red"></div>
+        <div class="test-inline-grid-overlapping-green two-columns">
+            <div>
+                <div>it</div>
+                em
+            </div>
+            <div>
+                it
+                <div>em</div>
+            </div>
+        </div>
+        <br />
+        <div class="test-inline-grid-overlapping-green">
+            <span>
+                <span>it</span>em
+            </span>
+            <span>
+                it<span>em</span>
+            </span>
+        </div>
+
+    </body>
+</html>

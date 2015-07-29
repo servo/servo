@@ -1,4 +1,6 @@
 
+grid-inline-multicol-001.xht == reference/ref-filled-green-100px-square.xht
+grid-multicol-001.xht == reference/ref-filled-green-100px-square.xht
 multicol-basic-001.xht == reference/multicol-basic-ref.xht
 multicol-basic-002.xht == reference/multicol-basic-ref.xht
 multicol-basic-003.xht == reference/multicol-basic-ref.xht

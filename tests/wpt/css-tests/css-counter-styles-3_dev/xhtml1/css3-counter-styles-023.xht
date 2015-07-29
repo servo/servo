@@ -6,36 +6,31 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help" />
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley" />
 <meta content="font" name="flags" />
-<meta content="Setting list-style-type to upper-roman will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module." name="assert" />
+<meta content="list-style: upper-roman produces numbers up to 9 items per the spec." name="assert" />
 <style type="text/css">
+ol li { list-style-type: upper-roman;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: upper-roman;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
-<div class="test"><ol start="1"><li title="1">I.</li></ol>
-<ol start="2"><li title="2">II.</li></ol>
-<ol start="3"><li title="3">III.</li></ol>
-<ol start="4"><li title="4">IV.</li></ol>
-<ol start="5"><li title="5">V.</li></ol>
-<ol start="6"><li title="6">VI.</li></ol>
-<ol start="7"><li title="7">VII.</li></ol>
-<ol start="8"><li title="8">VIII.</li></ol>
-<ol start="9"><li title="9">IX.</li></ol>
-</div>
-
-
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test"><ol>
+<li title="1">I</li>
+<li title="2">II</li>
+<li title="3">III</li>
+<li title="4">IV</li>
+<li title="5">V</li>
+<li title="6">VI</li>
+<li title="7">VII</li>
+<li title="8">VIII</li>
+<li title="9">IX</li>
+</ol></div>
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

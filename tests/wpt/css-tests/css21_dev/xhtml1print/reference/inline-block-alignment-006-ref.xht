@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>CSS Reftest Reference</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS 2.1 Conformance Test Suite"; }
+            @top-right { content: "Test inline-block-alignment-006-ref"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+  <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <link rel="reviewer" title="Gerard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-07-21 -->
+  <meta name="flags" content="image" />
+  <style type="text/css"><![CDATA[
+
+  img
+  {
+    padding-left: 84px; /* 60px (padding-left) + 24px (the left edge position of box) */
+    vertical-align: top;
+  }
+  ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if the <strong>left edge</strong> of an irregular polygon is straight and unbroken.</p>
+
+  <div>
+    <img src="support/swatch-fuchsia.png" width="48" height="60" alt="Image download support must be enabled" /><br /><!--
+ --><img src="support/swatch-fuchsia.png" width="216" height="120" alt="Image download support must be enabled" /><br /><!--
+ --><img src="support/swatch-fuchsia.png" width="24" height="30" alt="Image download support must be enabled" />
+  </div>
+  </body>
+</html>

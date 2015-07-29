@@ -16,7 +16,7 @@
   or without margin collapse; so there are 2 possible rendered layouts for such code
   2015-01-18
 
-  Test adapted from
+  Test adapted and modified from
   http://test.csswg.org/suites/css2.1/nightly-unstable/html4/margin-collapse-012.htm
 
   "
@@ -25,6 +25,15 @@
   -->
 
   <style type="text/css">
+  body
+    {
+      margin-left: 66px;
+      /*
+      The sole purpose of this rule is to increase noticeability
+      of test failure in Google Chrome 40+
+      */
+    }
+
   p
     {
       font: 1em/1.25 serif; /* computes to 16px/20px */
@@ -56,14 +65,19 @@
     {
       background-color: blue;
       position: absolute;
-      top: 77px;
+      top: 97px;
       /*
       16px : p's margin-top
-    + 20px : p's line box height
-    + 16px : p's margin-bottom
-    + 25px : div#test's border-top
+    +
+      20px : p's top-most line box height
+    +
+      20px : p's bottom-most line box height
+    +
+      16px : p's margin-bottom
+    +
+      25px : div#test's border-top
    ==========
-      77px
+      97px
       */
       width: 1em;
     }
@@ -74,7 +88,7 @@
       font: 25px/1 Ahem;
       height: 4em; /* computes to 100px */
       margin-bottom: 0.2em;
-      width: 4em; /* and not 100px + 8px for #ref1 */
+      width: 4em;
     }
   </style>
 
@@ -82,7 +96,7 @@
 
  <body>
 
-  <p>Test passes if the top square has a layout identical to one of the squares below it.</p>
+  <p>Test passes if the top square has a layout<br>identical to one of the squares below it.</p>
 
   <div id="test">
     <div id="wrapper">
@@ -91,7 +105,7 @@
     </div>
   </div>
 
-  <div class="ref" id="ref1"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled"><!-- width is intentionally not 33 --><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled"></div>
+  <div class="ref" id="ref1"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled"></div>
 
   <div class="ref" id="ref2"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled"></div>
 

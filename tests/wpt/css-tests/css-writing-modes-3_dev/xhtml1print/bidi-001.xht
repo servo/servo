@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <title>CSS Test: RLO/PDF bidi reordering across closing inline element boundary</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test bidi-001"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+  <meta name="assert" content="Tests that RLO + closing inline element boundary + PDF                  reorders text, splitting inline and rendering borders and padding appropriately." />
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-12 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/bidi/001.html" type="text/html" />
+
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-control-codes" />
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+  <link rel="help" href="http://unicode.org/reports/tr9/" />
+
+  <link rel="match" href="reference/bidi-001-ref.xht" />
+
+  <style type="text/css">
+   .test { border: solid; padding: 0.4em 1em; line-height: 3em; color: blue; }
+   .control { line-height: 3em; color: blue; }
+   .control.a { border-style: solid none solid solid; padding: 0.4em 0 0.4em 1em;  }
+   .control.b { border-style: solid solid solid none; padding: 0.4em 1em 0.4em 0;  }
+  </style>
+ </head>
+ <body>
+  <p> The following two lines should be identical. (Force bidi: א) </p>
+  <p> <span class="control a">AAABBBCCC</span>DDDEEEFFF<span class="control b">GGGHHHIII</span>JJJKKKLLL </p>
+  <p> <span class="test"> AAABBBCCC‮IIIHHHGGG</span>FFFEEEDDD‬JJJKKKLLL </p>
+ </body>
+</html>

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Multi-column Layout Module Level 1 CR Test Suite</h1>
-  <h2>The number and width of columns (74 tests)</h2>
+  <h2>The number and width of columns (76 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -31,7 +31,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3">+</a>
         <a href="http://www.w3.org/TR/css3-multicol/#the-number-and-width-of-columns">3 The number and width of columns</a></th></tr>
-      <!-- 31 tests -->
+      <!-- 33 tests -->
+      <tr id="grid-inline-multicol-001-3" class="">
+        <td>
+            <a href="grid-inline-multicol-001.htm">grid-inline-multicol-001</a></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>'column-*' properties from inline grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that 'column-*' properties in the Multicol module are ignored in grid items when applied to an inline grid container.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-multicol-001-3" class="">
+        <td>
+            <a href="grid-multicol-001.htm">grid-multicol-001</a></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>'column-*' properties from grid container does not apply to grid items
+          <ul class="assert">
+            <li>This test checks that 'column-*' properties in the Multicol module are ignored in grid items when applied to a grid container.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="multicol-columns-001-3" class="primary ahem">
         <td><strong>
             <a href="multicol-columns-001.htm">multicol-columns-001</a></strong></td>

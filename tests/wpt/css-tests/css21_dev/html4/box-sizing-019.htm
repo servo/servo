@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>CSS Basic User Interface Test: auto sizing rules with box-sizing:border-box, intrinsic width and ratio, w &gt; max-wdith and h &gt; max-height and max-width/w &gt; max-height/h</title>
+<link href="http://florian.rivoal.net/" rel="author" title="Florian Rivoal">
+<link href="http://dev.w3.org/csswg/css-ui-3/#box-sizing" rel="help">
+<link href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" rel="help">
+<link href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height" rel="help">
+<link href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" rel="help">
+<meta content="svg" name="flags">
+<link href="reference/box-sizing-010-ref.htm" rel="match">
+<meta content="Test checks that the CSS2.1 rules for auto width and height
+                             on replaced elements with intrinsic width and ratio
+			     with the w > max-width and h > max-height constraint violation
+			     and max-width/w > max-height/h
+			     are properly interpreted when box-sizing is border-box." name="assert">
+<style>
+#ref {
+	display: inline-block;
+	width: 70px;
+	height: 70px;
+	background: green;
+}
+
+img {
+	box-sizing: border-box;
+	width: auto;
+	height: auto;
+	background: white;
+	max-height: 70px;
+	max-width: 100px;
+}
+
+</style>
+</head><body>
+  <p>Test passes if there are 2 <strong>filled green squares</strong> and they are the <strong>same size</strong>.</p>
+  <div id="ref"></div>
+  <img src="support/w100_r1-1.svg">
+
+</body></html>

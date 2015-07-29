@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>	
+<html>
 	<head>
 		<title>CSS Writing Modes Test: text-orientation - sideways-right</title>
 		<link rel="author" title="Taka Oshiyama" href="mailto:takaoshiyama@gmail.com">
@@ -7,7 +7,7 @@
 		<link rel="match" href="reference/text-orientation-012-ref.htm">
 		<meta http-equiv="content-language" content="en">
 		<meta name="flags" content="ahem">
-		<meta name="assert" content="This test checks that 'text-orientation: sideways-right' causes text to be set as if in a horizontal layout, but rotated 90° clockwise, in vertical writing modes. This is effective to verify 1.block flow direction, 2.inline direction and 3.glyph orientation.">	
+		<meta name="assert" content="This test checks that 'text-orientation: sideways-right' causes text to be set as if in a horizontal layout, but rotated 90° clockwise, in vertical writing modes. This is effective to verify 1.block flow direction, 2.inline direction and 3.glyph orientation.">
 		<style type="text/css">
 				.view_ahem
 				{
@@ -16,13 +16,13 @@
 					color: blue;
 					font: 20px/1 "Ahem";
 					height: 3em;
-					margin: 10px;        
+					margin: 10px;
 					width: 3em;
 					white-space: pre;
 				}
 				#test_ahem
 				{
-					text-orientation: sideways-right;			//The property to be tested
+					text-orientation: sideways-right;			/* The property to be tested */
 					-webkit-text-orientation:sideways-right;
 					writing-mode: vertical-rl;
 					-webkit-writing-mode: vertical-rl;
@@ -32,7 +32,7 @@
 					writing-mode: horizontal-tb;
 					-webkit-writing-mode: horizontal-tb;
 				}
-				.view 
+				.view
 				{
 					border: 1px solid gray;
 					font-size: 1.5em;
@@ -42,14 +42,14 @@
 					writing-mode: vertical-rl;
 					-webkit-writing-mode: vertical-rl;
 				}
-				#test 
+				#test
 				{
-					text-orientation: sideways-right;			//The property to be tested
+					text-orientation: sideways-right;			/* The property to be tested */
 					-webkit-text-orientation:sideways-right;
 				}
-				#control 
+				#control
 				{
-					text-combine-horizontal: none;
+					text-combine-upright: none;
 				}
 		</style>
 	</head>
@@ -57,11 +57,11 @@
 		<!--
 			This test consists of a pair of sub-tests which complements each other.
 			Logically, the test should verify 1.block flow direction, 2.inline direction
-			and 3.glyph orientation. The "Ahem" sub-test comes first and checks 1. and 2. , 
+			and 3.glyph orientation. The "Ahem" sub-test comes first and checks 1. and 2. ,
 			whereas "glyph" sub-test comes later and also checks 3.
 		-->
 		<p>Test passes if a pair of rectangles is <strong>identical</strong> including <strong>layout</strong> and <strong>orientation</strong>.</p>
-		<div class="view_ahem"><span id="test_ahem">123 
+		<div class="view_ahem"><span id="test_ahem">123
  56
 7  </span></div>
 		<div class="view_ahem"><span id="control_ahem">7 1

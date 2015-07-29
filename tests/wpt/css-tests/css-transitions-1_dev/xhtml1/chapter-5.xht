@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Transitions Module Level 1 CR Test Suite</h1>
-  <h2>Transition Events (8 tests)</h2>
+  <h2>Transition Events (9 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -31,7 +31,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5">+</a>
         <a href="http://www.w3.org/TR/css3-transitions/#transition-events">5 Transition Events</a></th></tr>
-      <!-- 8 tests -->
+      <!-- 9 tests -->
       <tr id="before-domcontentloaded-001-5" class="primary dom script">
         <td><strong>
             <a href="before-DOMContentLoaded-001.xht">before-domcontentloaded-001</a></strong></td>
@@ -117,6 +117,17 @@
         <td>transitionend event for pseudo elements
           <ul class="assert">
             <li>Test checks that TransitionEnd events are fired for pseudo-elements</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="events-007-5" class="primary dom script">
+        <td><strong>
+            <a href="events-007.xht">events-007</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>no transitionend event after display:none
+          <ul class="assert">
+            <li>Making an element display:none; while it has a transition in progress should prevent a transitionend event from getting fired.</li>
           </ul>
         </td>
       </tr>

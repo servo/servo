@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Box model (2324 tests)</h2>
+  <h2>Box model (2326 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -6923,7 +6923,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s8.3.1">+</a>
         <a href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins">8.3.1 Collapsing margins</a></th></tr>
-      <!-- 122 tests -->
+      <!-- 126 tests -->
       <tr id="abspos-022-8.3.1" class="primary may">
         <td><strong>
             <a href="abspos-022.htm">abspos-022</a></strong></td>
@@ -6954,6 +6954,38 @@
         <td></td>
         <td></td>
         <td>Vertical Formatting
+        </td>
+      </tr>
+      <tr id="font-size-adjust-zero-1-8.3.1" class="">
+        <td>
+            <a href="font-size-adjust-zero-1.htm">font-size-adjust-zero-1</a></td>
+        <td><a href="reference/font-size-zero-2-ref.htm">=</a> </td>
+        <td></td>
+        <td>font-size-adjust: 0
+        </td>
+      </tr>
+      <tr id="font-size-adjust-zero-2-8.3.1" class="">
+        <td>
+            <a href="font-size-adjust-zero-2.htm">font-size-adjust-zero-2</a></td>
+        <td><a href="reference/font-size-zero-2-ref.htm">=</a> </td>
+        <td></td>
+        <td>font-size-adjust: 0
+        </td>
+      </tr>
+      <tr id="font-size-zero-1-8.3.1" class="">
+        <td>
+            <a href="font-size-zero-1.htm">font-size-zero-1</a></td>
+        <td><a href="reference/font-size-zero-1-ref.htm">=</a> <a href="reference/font-size-zero-1-notref.htm">&#x2260;</a> </td>
+        <td></td>
+        <td>font-size: 0
+        </td>
+      </tr>
+      <tr id="font-size-zero-2-8.3.1" class="">
+        <td>
+            <a href="font-size-zero-2.htm">font-size-zero-2</a></td>
+        <td><a href="reference/font-size-zero-2-ref.htm">=</a> </td>
+        <td></td>
+        <td>font-size: 0
         </td>
       </tr>
       <tr id="margin-collapse-001-8.3.1" class="primary ahem">
@@ -45536,53 +45568,43 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s8.6">+</a>
         <a href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model">8.6 The box model for inline elements in bidirectional context</a></th></tr>
-      <!-- 82 tests -->
-      <tr id="bidi-001-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-001.htm">bidi-001</a></strong></td>
+      <!-- 80 tests -->
+      <tr id="bidi-001-8.6" class="">
+        <td>
+            <a href="bidi-001.htm">bidi-001</a></td>
         <td><a href="reference/bidi-001-ref.htm">=</a> </td>
         <td></td>
-        <td>The bidi algorithm and inlines in CSS
-        </td>
-      </tr>
-      <tr id="bidi-002-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-002.htm">bidi-002</a></strong></td>
-        <td><a href="reference/bidi-002-ref.htm">=</a> </td>
-        <td></td>
-        <td>The bidi algorithm and inlines in CSS
-        </td>
-      </tr>
-      <tr id="bidi-003-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-003.htm">bidi-003</a></strong></td>
-        <td><a href="reference/bidi-003-ref.htm">=</a> </td>
-        <td></td>
-        <td>The bidi algorithm and inlines in CSS
-        </td>
-      </tr>
-      <tr id="bidi-004-8.6" class="primary may">
-        <td><strong>
-            <a href="bidi-004.htm">bidi-004</a></strong></td>
-        <td><a href="reference/bidi-004-ref.htm">=</a> </td>
-        <td><abbr class="may" title="Behavior tested is preferred but optional">Optional</abbr></td>
-        <td>The bidi algorithm and inlines in CSS
-        </td>
-      </tr>
-      <tr id="bidi-004a-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-004a.htm">bidi-004a</a></strong></td>
-        <td><a href="reference/bidi-004a-ref.htm">=</a> </td>
-        <td></td>
-        <td>Bidi Codes, White space, and Tree structure
+        <td>RLO/PDF bidi reordering across closing inline element boundary
           <ul class="assert">
-            <li>The final order of characters in a block container is the same as if markup had been stripped, consecutive space collapsed in logical order, and the resulting character sequence, including any bidi codes, had been passed to an implementation of the Unicode bidirectional algorithm for plain text that produced the same line-breaks as the styled text.</li>
+            <li>Tests that RLO + closing inline element boundary + PDF reorders text, splitting inline and rendering borders and padding appropriately.</li>
           </ul>
         </td>
       </tr>
-      <tr id="bidi-005-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-005.htm">bidi-005</a></strong></td>
+      <tr id="bidi-002-8.6" class="">
+        <td>
+            <a href="bidi-002.htm">bidi-002</a></td>
+        <td><a href="reference/bidi-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>RLO/PDF bidi reordering across closing inline element boundary + soft line break
+          <ul class="assert">
+            <li>Tests that RLO + closing inline element boundary + soft line break + PDF reorders text, placing text correctly on each line while also splitting inline and rendering borders and padding appropriately.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-003-8.6" class="">
+        <td>
+            <a href="bidi-003.htm">bidi-003</a></td>
+        <td><a href="reference/bidi-003-ref.htm">=</a> </td>
+        <td></td>
+        <td>RLO/PDF bidi reordering across closing inline element boundary + opening inline boundary
+          <ul class="assert">
+            <li>Tests that RLO + closing inline element boundary + opening inline element boundary + PDF reorders text, splitting inlines and rendering their borders and padding appropriately.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-005-8.6" class="">
+        <td>
+            <a href="bidi-005.htm">bidi-005</a></td>
         <td></td>
         <td></td>
         <td>The bidi algorithm and inlines in CSS: embed levels and white-space: pre;
@@ -45604,9 +45626,9 @@
         <td>The bidi algorithm and inlines in CSS: embed levels and white-space: pre;
         </td>
       </tr>
-      <tr id="bidi-006-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-006.htm">bidi-006</a></strong></td>
+      <tr id="bidi-006-8.6" class="">
+        <td>
+            <a href="bidi-006.htm">bidi-006</a></td>
         <td></td>
         <td></td>
         <td>The bidi algorithm and inlines in CSS: embed levels and white-space: nowrap;
@@ -45628,9 +45650,9 @@
         <td>The bidi algorithm and inlines in CSS: embed levels and white-space: nowrap;
         </td>
       </tr>
-      <tr id="bidi-007-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-007.htm">bidi-007</a></strong></td>
+      <tr id="bidi-007-8.6" class="">
+        <td>
+            <a href="bidi-007.htm">bidi-007</a></td>
         <td></td>
         <td></td>
         <td>The bidi algorithm and inlines in CSS: embed levels and float: left;
@@ -45652,9 +45674,9 @@
         <td>The bidi algorithm and inlines in CSS: embed levels and float: left;
         </td>
       </tr>
-      <tr id="bidi-008-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-008.htm">bidi-008</a></strong></td>
+      <tr id="bidi-008-8.6" class="">
+        <td>
+            <a href="bidi-008.htm">bidi-008</a></td>
         <td></td>
         <td></td>
         <td>The bidi algorithm and inlines in CSS: embed levels and display: table;
@@ -45676,9 +45698,9 @@
         <td>The bidi algorithm and inlines in CSS: embed levels and display: table;
         </td>
       </tr>
-      <tr id="bidi-009-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-009.htm">bidi-009</a></strong></td>
+      <tr id="bidi-009-8.6" class="">
+        <td>
+            <a href="bidi-009.htm">bidi-009</a></td>
         <td></td>
         <td></td>
         <td>The bidi algorithm and inlines in CSS: embed levels and display: table-row;
@@ -45700,9 +45722,9 @@
         <td>The bidi algorithm and inlines in CSS: embed levels and display: table-row;
         </td>
       </tr>
-      <tr id="bidi-010-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-010.htm">bidi-010</a></strong></td>
+      <tr id="bidi-010-8.6" class="">
+        <td>
+            <a href="bidi-010.htm">bidi-010</a></td>
         <td></td>
         <td></td>
         <td>The bidi algorithm and inlines in CSS: embed levels and position: absolute
@@ -45724,17 +45746,17 @@
         <td>The bidi algorithm and inlines in CSS: embed levels and position: absolute
         </td>
       </tr>
-      <tr id="bidi-011-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-011.htm">bidi-011</a></strong></td>
+      <tr id="bidi-011-8.6" class="">
+        <td>
+            <a href="bidi-011.htm">bidi-011</a></td>
         <td><a href="reference/bidi-011-ref.htm">=</a> </td>
         <td></td>
         <td>The bidi algorithm and inlines in CSS wrapping bidi formatting characters
         </td>
       </tr>
-      <tr id="bidi-box-model-001-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-001.htm">bidi-box-model-001</a></strong></td>
+      <tr id="bidi-box-model-001-8.6" class="">
+        <td>
+            <a href="bidi-box-model-001.htm">bidi-box-model-001</a></td>
         <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on inline in normal block
@@ -45743,9 +45765,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-002-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-002.htm">bidi-box-model-002</a></strong></td>
+      <tr id="bidi-box-model-002-8.6" class="">
+        <td>
+            <a href="bidi-box-model-002.htm">bidi-box-model-002</a></td>
         <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on inline in embed block
@@ -45754,9 +45776,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-003-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-003.htm">bidi-box-model-003</a></strong></td>
+      <tr id="bidi-box-model-003-8.6" class="">
+        <td>
+            <a href="bidi-box-model-003.htm">bidi-box-model-003</a></td>
         <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on inline in bidi-override block
@@ -45765,9 +45787,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-004-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-004.htm">bidi-box-model-004</a></strong></td>
+      <tr id="bidi-box-model-004-8.6" class="">
+        <td>
+            <a href="bidi-box-model-004.htm">bidi-box-model-004</a></td>
         <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on normal inline
@@ -45776,9 +45798,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-005-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-005.htm">bidi-box-model-005</a></strong></td>
+      <tr id="bidi-box-model-005-8.6" class="">
+        <td>
+            <a href="bidi-box-model-005.htm">bidi-box-model-005</a></td>
         <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on embed inline
@@ -45787,9 +45809,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-006-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-006.htm">bidi-box-model-006</a></strong></td>
+      <tr id="bidi-box-model-006-8.6" class="">
+        <td>
+            <a href="bidi-box-model-006.htm">bidi-box-model-006</a></td>
         <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on bidi-override inline
@@ -45798,9 +45820,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-007-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-007.htm">bidi-box-model-007</a></strong></td>
+      <tr id="bidi-box-model-007-8.6" class="">
+        <td>
+            <a href="bidi-box-model-007.htm">bidi-box-model-007</a></td>
         <td><a href="reference/bidi-box-model-007-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on normal block
@@ -45809,9 +45831,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-008-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-008.htm">bidi-box-model-008</a></strong></td>
+      <tr id="bidi-box-model-008-8.6" class="">
+        <td>
+            <a href="bidi-box-model-008.htm">bidi-box-model-008</a></td>
         <td><a href="reference/bidi-box-model-007-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on embed block
@@ -45820,9 +45842,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-009-8.6" class="primary">
-        <td><strong>
-            <a href="bidi-box-model-009.htm">bidi-box-model-009</a></strong></td>
+      <tr id="bidi-box-model-009-8.6" class="">
+        <td>
+            <a href="bidi-box-model-009.htm">bidi-box-model-009</a></td>
         <td><a href="reference/bidi-box-model-007-ref.htm">=</a> </td>
         <td></td>
         <td>bidirection box model - borders on bidi-override block
@@ -46095,9 +46117,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-034-8.6" class="primary ahem">
-        <td><strong>
-            <a href="bidi-box-model-034.htm">bidi-box-model-034</a></strong></td>
+      <tr id="bidi-box-model-034-8.6" class="ahem">
+        <td>
+            <a href="bidi-box-model-034.htm">bidi-box-model-034</a></td>
         <td><a href="reference/bidi-box-model-034-ref.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>bidirection box model - padding-left on bidi-override block
@@ -46106,9 +46128,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-035-8.6" class="primary ahem">
-        <td><strong>
-            <a href="bidi-box-model-035.htm">bidi-box-model-035</a></strong></td>
+      <tr id="bidi-box-model-035-8.6" class="ahem">
+        <td>
+            <a href="bidi-box-model-035.htm">bidi-box-model-035</a></td>
         <td><a href="reference/bidi-box-model-034-ref.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>bidirection box model - padding-left on normal block
@@ -46117,9 +46139,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-036-8.6" class="primary ahem">
-        <td><strong>
-            <a href="bidi-box-model-036.htm">bidi-box-model-036</a></strong></td>
+      <tr id="bidi-box-model-036-8.6" class="ahem">
+        <td>
+            <a href="bidi-box-model-036.htm">bidi-box-model-036</a></td>
         <td><a href="reference/bidi-box-model-034-ref.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>bidirection box model - padding-left on embed block
@@ -46194,9 +46216,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-043-8.6" class="primary ahem">
-        <td><strong>
-            <a href="bidi-box-model-043.htm">bidi-box-model-043</a></strong></td>
+      <tr id="bidi-box-model-043-8.6" class="ahem">
+        <td>
+            <a href="bidi-box-model-043.htm">bidi-box-model-043</a></td>
         <td><a href="reference/bidi-box-model-043-ref.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>bidirection box model - padding-right on bidi-override block
@@ -46205,9 +46227,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-044-8.6" class="primary ahem">
-        <td><strong>
-            <a href="bidi-box-model-044.htm">bidi-box-model-044</a></strong></td>
+      <tr id="bidi-box-model-044-8.6" class="ahem">
+        <td>
+            <a href="bidi-box-model-044.htm">bidi-box-model-044</a></td>
         <td><a href="reference/bidi-box-model-043-ref.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>bidirection box model - padding-right on normal block
@@ -46216,9 +46238,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="bidi-box-model-045-8.6" class="primary ahem">
-        <td><strong>
-            <a href="bidi-box-model-045.htm">bidi-box-model-045</a></strong></td>
+      <tr id="bidi-box-model-045-8.6" class="ahem">
+        <td>
+            <a href="bidi-box-model-045.htm">bidi-box-model-045</a></td>
         <td><a href="reference/bidi-box-model-043-ref.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>bidirection box model - padding-right on embed block

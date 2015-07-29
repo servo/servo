@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html><head>
+    <title>CSSOM CSSRule CSSStyleRule interface</title>
+    <link href="mailto:lew.letitia@gmail.com" rel="author" title="Letitia Lew">
+    <link href="http://www.w3.org/TR/cssom/#css-rules" rel="help">
+    <link href="http://www.w3.org/TR/cssom/#the-cssrule-interface" rel="help">
+    <link href="http://www.w3.org/TR/cssom/#css-style-rule-rule-set" rel="help">
+    <meta content="dom" name="flags">
+    <meta content="All properties for this CSSStyleRule instance of CSSRule are initialized correctly" name="assert"> 
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <style type="text/css" id="styleElement">
+    	div { margin: 10px; padding: 0px; }
+    </style>
+
+    <script id="metadata_cache">/*
+	{
+	  "CSSRule and CSSStyleRule": { "assert": "rule is an instance of CSSRule and CSSStyleRule" },
+	  "Rule_type_property": { "assert": "CSSRule type property has correct type and constants" },
+	  "Rule_properties": { "assert": "cssText, parentRule, parentStyleSheet properties exist on CSSRule" },
+	  "Rule_properties_readonly": { "assert": "type, parentRule, parentStyleSheet properties on CSSRule are readonly" },
+	  "Rule_properties_values": { "assert": "type, parentRule, parentStyleSheet initial property values on CSSRule are correct" },
+	  "StyleRule_properties": { "assert": "selectorText, style properties on CSSStyleRule" },
+	  "StyleRule_properties_values": { "assert": "Initial values of selectorText, style properties on CSSStyleRule are correct" }
+	}
+	*/</script>
+</head>
+<body>
+	<noscript>Test not run -- JavaScript required.</noscript>
+	<div id="log"></div>
+
+	<script type="text/javascript">
+		var styleSheet = document.getElementById("styleElement").sheet;
+		var ruleList = styleSheet.cssRules;
+
+		var rule = ruleList[0];
+
+		test(function() {
+			assert_true(rule instanceof CSSRule);
+			assert_true(rule instanceof CSSStyleRule);
+		}, "CSSRule and CSSStyleRule",
+		{ assert: "rule is an instance of CSSRule and CSSStyleRule" }
+		);
+
+		test(function() {
+			assert_equals(rule.STYLE_RULE, 1);
+			assert_equals(rule.IMPORT_RULE, 3);
+			assert_equals(rule.MEDIA_RULE, 4);
+			assert_equals(rule.FONT_FACE_RULE, 5);
+			assert_equals(rule.PAGE_RULE, 6);
+			assert_equals(rule.NAMESPACE_RULE, 10);
+			assert_own_property(rule, "type");
+			assert_true(typeof rule.type === "number");
+		}, "Rule_type_property",
+		{ assert: "CSSRule type property has correct type and constants" }
+		);
+
+		test(function() {
+			assert_true(rule instanceof CSSRule);
+			assert_own_property(rule, "cssText");
+			assert_own_property(rule, "parentRule");
+			assert_own_property(rule, "parentStyleSheet");
+		}, "Rule_properties",
+		{ assert: "cssText, parentRule, parentStyleSheet properties exist on CSSRule" }
+		);
+
+		test(function() {
+			assert_readonly(rule, "type");
+			assert_readonly(rule, "parentRule");
+			assert_readonly(rule, "parentStyleSheet");
+		}, "Rule_properties_readonly",
+		{ assert: "type, parentRule, parentStyleSheet properties on CSSRule are readonly" }
+		);
+
+		test(function() {
+			assert_equals(rule.type, rule.STYLE_RULE);
+			assert_equals(typeof rule.cssText, "string");
+			assert_equals(rule.cssText.replace(/\s+/g, ''), "div{margin:10px;padding:0px;}");	// remove whitespace because serialization is not specified yet
+			assert_equals(rule.parentRule, null);
+			assert_true(rule.parentStyleSheet instanceof CSSStyleSheet);
+		}, "Rule_properties_values",
+		{ assert: "type, parentRule, parentStyleSheet initial property values on CSSRule are correct" }
+		);
+
+		test(function() {
+			assert_own_property(rule, "selectorText");
+			assert_equals(typeof rule.selectorText, "string");
+			assert_own_property(rule, "style");
+			assert_readonly(rule, "style");
+		}, "StyleRule_properties",
+		{ assert: "selectorText, style properties on CSSStyleRule" }
+		);
+
+		test(function() {
+			assert_equals(rule.selectorText, "div");
+			assert_true(rule.style instanceof CSSStyleDeclaration);
+		}, "StyleRule_properties_values",
+		{ assert: "Initial values of selectorText, style properties on CSSStyleRule are correct" }
+		);
+	</script>
+
+
+</body></html>

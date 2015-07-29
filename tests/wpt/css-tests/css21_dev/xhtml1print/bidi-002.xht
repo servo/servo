@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
  <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
-  <title>CSS Test: The bidi algorithm and inlines in CSS</title>
+  <title>CSS Test: RLO/PDF bidi reordering across closing inline element boundary + soft line break</title>
   <style type="text/css">
     @page { font: italic 8pt sans-serif; color: gray;
             margin: 7%;
@@ -12,11 +12,18 @@
             @bottom-right { content: counter(page); }
           }
 </style>
+  <meta name="assert" content="Tests that RLO + closing inline element boundary + soft line break + PDF                  reorders text, placing text correctly on each line                  while also splitting inline and rendering borders and padding appropriately." />
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch" />
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
   <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/bidi/002.html" type="text/html" />
+
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-control-codes" />
+
   <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model" />
   <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction" />
   <link rel="help" href="http://unicode.org/reports/tr9/" />
+
   <link rel="match" href="reference/bidi-002-ref.xht" />
 
   <style type="text/css">

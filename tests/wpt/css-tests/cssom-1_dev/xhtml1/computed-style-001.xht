@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+  <title>CSS Test: getComputedStyle</title>
+  <link href="mailto:betravis@adobe.com" rel="author" title="Bear Travis" />
+  <link href="http://www.w3.org/TR/cssom/#extensions-to-the-window-interface" rel="help" />
+  <link href="http://www.w3.org/TR/cssom/#the-cssstyledeclaration-interface" rel="help" />
+  <link href="http://www.w3.org/TR/cssom/#resolved-values" rel="help" />
+  <meta content="dom" name="flags" />
+  <meta content="getComputedStyle returns a readonly CSSStyleDeclaration with resolved values" name="assert" />
+  <script src="/resources/testharness.js" type="text/javascript"></script>
+  <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+  <style>
+    #outside {
+        width: 200px;
+        height: 200px;
+    }
+    #outside div {
+        font-size: 100px;
+    }
+    #inside {
+        width: 50%;
+        height: 100px;
+    }
+  </style>
+<script id="metadata_cache">/*
+{
+  "read_only": { "assert": "do not allow modifications to a computed CSSStyleDeclaration" },
+  "property_values": { "assert": "Directly set properties are resolved" },
+  "inherited_property_values": { "assert": "Inherited properties are resolved" },
+  "relative_property_values": { "assert": "Relative properties are resolved" }
+}
+*/</script>
+ </head>
+ <body>
+ <noscript>Test not run - javascript required.</noscript>
+ <div id="log"></div>
+ <div id="outside"><div id="inside"></div></div>
+ <script type="text/javascript">
+    var outer = document.getElementById("outside");
+    var inner = document.getElementById("inside");
+    var innerStyle;
+    
+    test(function() {
+        innerStyle = window.getComputedStyle(inner);
+        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR", 
+                        function() { innerStyle.cssText = "color: blue;"; },
+                        "do not allow setting cssText on a readonly CSSStyleDeclaration");
+        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
+                        function() { innerStyle.setProperty("color", "blue"); },
+                        "do not allow calling setProperty on a readonly CSSStyleDeclaration");
+        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
+                        function() { innerStyle.color = "blue"; },
+                        "do not allow setting a property on a readonly CSSStyleDeclaration");
+    }, "read_only", { 
+        assert: "do not allow modifications to a computed CSSStyleDeclaration"
+    });
+    
+    test(function() {
+        assert_equals(innerStyle.getPropertyValue("height"), "100px");
+    }, "property_values", {
+        assert: "Directly set properties are resolved"
+    });
+
+    test(function() {
+        assert_equals(innerStyle.getPropertyValue("font-size"), "100px");
+    }, "inherited_property_values", {
+        assert: "Inherited properties are resolved"
+    });
+    
+    test(function() {
+        assert_equals(innerStyle.getPropertyValue("width"), "100px");
+    }, "relative_property_values", {
+        assert: "Relative properties are resolved"
+    });
+ </script>
+ 
+
+</body></html>

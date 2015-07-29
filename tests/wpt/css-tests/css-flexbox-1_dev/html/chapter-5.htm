@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Flexible Box Layout Module Level 1 CR Test Suite</h1>
-  <h2>Ordering and Orientation (123 tests)</h2>
+  <h2>Ordering and Orientation (129 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -263,7 +263,7 @@
       <tr id="ttwf-reftest-flex-direction-column-reverse-5.1" class="primary">
         <td><strong>
             <a href="ttwf-reftest-flex-direction-column-reverse.htm">ttwf-reftest-flex-direction-column-reverse</a></strong></td>
-        <td><a href="reference/ttwf-reftest-flex-direction-column-ref.htm">=</a> </td>
+        <td><a href="reference/ttwf-reftest-flex-direction-column-reverse-ref.htm">=</a> </td>
         <td></td>
         <td>flex-direction proprety - column-reverse
           <ul class="assert">
@@ -284,7 +284,7 @@
       </tr>
     </tbody>
     <tbody id="s5.1.#propdef-flex-direction">
-      <!-- 1 tests -->
+      <!-- 7 tests -->
       <tr id="flex-margin-no-collapse-5.1.#propdef-flex-direction" class="primary">
         <td><strong>
             <a href="flex-margin-no-collapse.htm">flex-margin-no-collapse</a></strong></td>
@@ -294,6 +294,54 @@
           <ul class="assert">
             <li>The vertical gap between two green boxs should be 100px.</li>
           </ul>
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-001-5.1.#propdef-flex-direction" class="primary">
+        <td><strong>
+            <a href="flexbox-writing-mode-001.htm">flexbox-writing-mode-001</a></strong></td>
+        <td><a href="reference/flexbox-writing-mode-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>Try various flex-flow values, with 'direction: ltr' and 'writing-mode: horizontal-tb'
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-002-5.1.#propdef-flex-direction" class="primary">
+        <td><strong>
+            <a href="flexbox-writing-mode-002.htm">flexbox-writing-mode-002</a></strong></td>
+        <td><a href="reference/flexbox-writing-mode-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Try various flex-flow values, with 'direction: ltr' and 'writing-mode: vertical-rl'
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-003-5.1.#propdef-flex-direction" class="primary">
+        <td><strong>
+            <a href="flexbox-writing-mode-003.htm">flexbox-writing-mode-003</a></strong></td>
+        <td><a href="reference/flexbox-writing-mode-003-ref.htm">=</a> </td>
+        <td></td>
+        <td>Try various flex-flow values, with 'direction: ltr' and 'writing-mode: vertical-lr'
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-004-5.1.#propdef-flex-direction" class="primary">
+        <td><strong>
+            <a href="flexbox-writing-mode-004.htm">flexbox-writing-mode-004</a></strong></td>
+        <td><a href="reference/flexbox-writing-mode-004-ref.htm">=</a> </td>
+        <td></td>
+        <td>Try various flex-flow values, with 'direction: rtl' and 'writing-mode: horizontal-tb'
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-005-5.1.#propdef-flex-direction" class="primary">
+        <td><strong>
+            <a href="flexbox-writing-mode-005.htm">flexbox-writing-mode-005</a></strong></td>
+        <td><a href="reference/flexbox-writing-mode-005-ref.htm">=</a> </td>
+        <td></td>
+        <td>Try various flex-flow values, with 'direction: rtl' and 'writing-mode: vertical-rl'
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-006-5.1.#propdef-flex-direction" class="primary">
+        <td><strong>
+            <a href="flexbox-writing-mode-006.htm">flexbox-writing-mode-006</a></strong></td>
+        <td><a href="reference/flexbox-writing-mode-006-ref.htm">=</a> </td>
+        <td></td>
+        <td>Try various flex-flow values, with 'direction: rtl' and 'writing-mode: vertical-lr'
         </td>
       </tr>
     </tbody>
@@ -740,7 +788,7 @@
       <tr id="ttwf-reftest-flex-wrap-5.2.#propdef-flex-wrap" class="primary">
         <td><strong>
             <a href="ttwf-reftest-flex-wrap.htm">ttwf-reftest-flex-wrap</a></strong></td>
-        <td><a href="reference/ttwf-reftest-flex-inline-ref.htm">=</a> </td>
+        <td><a href="reference/ttwf-reftest-flex-wrap-ref.htm">=</a> </td>
         <td></td>
         <td>flex-wrap proprety - wrap
           <ul class="assert">
@@ -801,6 +849,9 @@
         <td>Testing all the values of the &quot;flex-flow&quot; shorthand property, with 3 flex items in each container
         </td>
       </tr>
+    </tbody>
+    <tbody id="s5.3.#example-ce59c06d">
+      <!-- 0 tests -->
     </tbody>
     <tbody id="s5.3.#propdef-flex-flow">
       <!-- 52 tests -->
@@ -1313,7 +1364,10 @@
         </td>
       </tr>
     </tbody>
-    <tbody id="s5.4.#order-modified-document-order">
+    <tbody id="s5.4.#example-6155594a">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.4.#order_modified-document-order">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.4.#propdef-order">
@@ -1456,11 +1510,11 @@
           </ul>
         </td>
       </tr>
-      <tr id="order_value-5.4.#propdef-order" class="primary">
+      <tr id="order_value-5.4.#propdef-order" class="primary script">
         <td><strong>
             <a href="order_value.htm">order_value</a></strong></td>
         <td></td>
-        <td></td>
+        <td><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>order_check
           <ul class="assert">
             <li>Check if the web engine can indentify order property.</li>
@@ -1486,6 +1540,9 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.4.1">+</a>
         <a href="http://www.w3.org/TR/css-flexbox-1/#order-accessibility">5.4.1 Reordering and Accessibility</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.4.1.#example-465c9ea3">
       <!-- 0 tests -->
     </tbody>
   </table>

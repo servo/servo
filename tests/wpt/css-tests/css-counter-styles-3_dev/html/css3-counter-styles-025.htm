@@ -6,29 +6,26 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help">
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley">
 <meta content="font" name="flags">
-<meta content="With list-style-type set to upper-roman, list markers above the limit specified in CSS3 will be rendered in the fallback counter style." name="assert">
+<meta content="list-style-type: upper-roman produces numbers in the fallback counter style above the limit per the spec" name="assert">
 <style type="text/css">
+ol li { list-style-type: upper-roman;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: upper-roman;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
-<div class="test"><ol start="5000"><li title="5000">5000.</li></ol>
-<ol start="5001"><li title="5001">5001.</li></ol>
-</div>
-
-
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test"><ol start="3999">
+<li title="3999">MMMCMXCIX</li>
+<li title="4000">4000</li></ol>
+<ol start="4001"><li title="4001">4001</li>
+<li title="4002">4002</li>
+</ol></div>
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>
