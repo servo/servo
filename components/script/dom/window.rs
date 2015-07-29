@@ -1101,7 +1101,7 @@ impl Window {
 
     pub fn get_url(&self) -> Url {
         let doc = self.Document();
-        doc.r().url()
+        (*doc.r().url()).clone()
     }
 
     pub fn resource_task(&self) -> ResourceTask {
