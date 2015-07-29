@@ -19,7 +19,7 @@ TEST_SERVER_PORT = 8192
 
 # Run servo and print / parse the results for a specific jQuery test module.
 def run_servo(servo_exe):
-    url = "http://localhost:{0}/?recommended&automated&post_json".format(TEST_SERVER_PORT)
+    url = "http://localhost:{0}/dromaeo/web/?recommended&automated&post_json".format(TEST_SERVER_PORT)
     #args = [servo_exe, url, "-z", "-f"] 
     args = [servo_exe, url, "-z"] 
     return subprocess.Popen(args)
