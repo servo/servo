@@ -43,6 +43,7 @@ use js::rust::Runtime;
 use url::Url;
 
 use rand::random;
+use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel};
 
@@ -79,12 +80,10 @@ struct AutoWorkerReset<'a> {
 
 impl<'a> AutoWorkerReset<'a> {
     fn new(workerscope: &'a DedicatedWorkerGlobalScope, worker: TrustedWorkerAddress) -> AutoWorkerReset<'a> {
-        let reset = AutoWorkerReset {
+        AutoWorkerReset {
             workerscope: workerscope,
-            old_worker: workerscope.worker.borrow().clone()
-        };
-        *workerscope.worker.borrow_mut() = Some(worker);
-        reset
+            old_worker: replace(&mut *workerscope.worker.borrow_mut(), Some(worker)),
+        }
     }
 }
 
