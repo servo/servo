@@ -67,7 +67,7 @@ use smallvec::VecLike;
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
-use style::properties::longhands::{self, border_spacing, height};
+use style::properties::longhands::{self, background_image, border_spacing, height};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use util::geometry::Au;
@@ -276,6 +276,19 @@ impl RawLayoutElementHelpers for Element {
             hints.push(from_declaration(
                 PropertyDeclaration::BackgroundColor(SpecifiedValue(
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
+        }
+
+        let background = if self.is_htmlbodyelement() {
+            let this: &HTMLBodyElement = mem::transmute(self);
+            this.get_background()
+        } else {
+            None
+        };
+
+        if let Some(url) = background {
+            hints.push(from_declaration(
+                PropertyDeclaration::BackgroundImage(SpecifiedValue(
+                    background_image::SpecifiedValue(Some(specified::Image::Url(url)))))));
         }
 
         let color = if self.is_htmlfontelement() {

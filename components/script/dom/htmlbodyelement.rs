@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrHelpers};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -14,7 +15,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use msg::constellation_msg::ConstellationChan;
@@ -22,6 +23,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 
 use cssparser::RGBA;
 use util::str::{self, DOMString};
+use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -36,6 +38,7 @@ const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
+    background: DOMRefCell<Option<Url>>
 }
 
 impl HTMLBodyElementDerived for EventTarget {
@@ -54,6 +57,7 @@ impl HTMLBodyElement {
                                                     prefix,
                                                     document),
             background_color: Cell::new(None),
+            background: DOMRefCell::new(None)
         }
     }
 
@@ -85,11 +89,19 @@ impl<'a> HTMLBodyElementMethods for &'a HTMLBodyElement {
 
 pub trait HTMLBodyElementHelpers {
     fn get_background_color(self) -> Option<RGBA>;
+    fn get_background(self) -> Option<Url>;
 }
 
 impl<'a> HTMLBodyElementHelpers for &'a HTMLBodyElement {
     fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
+    }
+
+    #[allow(unsafe_code)]
+    fn get_background(self) -> Option<Url> {
+        unsafe {
+            self.background.borrow_for_layout().clone()
+        }
     }
 }
 
@@ -147,6 +159,12 @@ impl<'a> VirtualMethods for &'a HTMLBodyElement {
             &atom!("bgcolor") => {
                 self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
             }
+            &atom!("background") => {
+                let doc = document_from_node(*self);
+                let base = doc.r().url();
+
+                *self.background.borrow_mut() = UrlParser::new().base_url(&base).parse(&attr.value()).ok();
+            }
             _ => {}
         }
     }
@@ -159,6 +177,7 @@ impl<'a> VirtualMethods for &'a HTMLBodyElement {
 
         match attr.local_name() {
             &atom!("bgcolor") => self.background_color.set(None),
+            &atom!("background") => *self.background.borrow_mut() = None,
             _ => {}
         }
     }
