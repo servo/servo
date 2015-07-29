@@ -891,9 +891,19 @@ impl LayoutTask {
 
         let layout_node = ThreadSafeLayoutNode::new(node);
         let layout_node = match pseudo {
-            &Some(PseudoElement::Before) => layout_node.get_before_pseudo().unwrap(),
-            &Some(PseudoElement::After) => layout_node.get_after_pseudo().unwrap(),
-            _ => layout_node
+            &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
+            &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
+            _ => Some(layout_node)
+        };
+
+        let layout_node = match layout_node {
+            None => {
+                // The pseudo doesn't exist, return nothing.  Chrome seems to query
+                // the element itself in this case, Firefox uses the resolved value.
+                rw_data.resolved_style_response = None;
+                return;
+            }
+            Some(layout_node) => layout_node
         };
 
         let style = &*layout_node.style();
