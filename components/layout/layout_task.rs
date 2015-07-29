@@ -19,7 +19,7 @@ use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAI
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
-use query::{LayoutRPCImpl, UnioningFragmentBorderBoxIterator, CollectingFragmentBorderBoxIterator};
+use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use sequential;
 use wrapper::LayoutNode;
 
@@ -34,7 +34,7 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use gfx_traits::color;
-use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
+use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
 use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
@@ -53,8 +53,8 @@ use net_traits::{load_bytes_iter, PendingAsyncLoad};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
-use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
-use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
+use script::layout_interface::Animation;
+use script::layout_interface::{LayoutChan, LayoutRPC};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
@@ -74,7 +74,6 @@ use style::properties::style_structs;
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
-use util::cursor::Cursor;
 use util::geometry::{Au, MAX_RECT};
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
@@ -274,7 +273,7 @@ impl LayoutTaskFactory for LayoutTask {
 /// The `LayoutTask` `rw_data` lock must remain locked until the first reflow,
 /// as RPC calls don't make sense until then. Use this in combination with
 /// `LayoutTask::lock_rw_data` and `LayoutTask::return_rw_data`.
-enum RWGuard<'a> {
+pub enum RWGuard<'a> {
     /// If the lock was previously held, from when the task started.
     Held(MutexGuard<'a, LayoutTaskData>),
     /// If the lock was just used, and has been returned since there has been
@@ -828,33 +827,6 @@ impl LayoutTask {
     fn verify_flow_tree(&self, _: &mut FlowRef) {
     }
 
-    fn process_content_box_request<'a>(&'a self,
-                                       requested_node: TrustedNodeAddress,
-                                       layout_root: &mut FlowRef,
-                                       rw_data: &mut RWGuard<'a>) {
-        // FIXME(pcwalton): This has not been updated to handle the stacking context relative
-        // stuff. So the position is wrong in most cases.
-        let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-        let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node);
-        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-        rw_data.content_box_response = match iterator.rect {
-            Some(rect) => rect,
-            None       => Rect::zero()
-        };
-    }
-
-    fn process_content_boxes_request<'a>(&'a self,
-                                         requested_node: TrustedNodeAddress,
-                                         layout_root: &mut FlowRef,
-                                         rw_data: &mut RWGuard<'a>) {
-        // FIXME(pcwalton): This has not been updated to handle the stacking context relative
-        // stuff. So the position is wrong in most cases.
-        let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-        let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node);
-        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-        rw_data.content_boxes_response = iterator.rects;
-    }
-
     fn process_node_geometry_request<'a>(&'a self,
                                       requested_node: TrustedNodeAddress,
                                       layout_root: &mut FlowRef,
@@ -1054,10 +1026,10 @@ impl LayoutTask {
         let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
         match data.query_type {
             ReflowQueryType::ContentBoxQuery(node) => {
-                self.process_content_box_request(node, &mut root_flow, &mut rw_data)
+                process_content_box_request(node, &mut root_flow, &mut rw_data)
             }
             ReflowQueryType::ContentBoxesQuery(node) => {
-                self.process_content_boxes_request(node, &mut root_flow, &mut rw_data)
+                process_content_boxes_request(node, &mut root_flow, &mut rw_data)
             }
             ReflowQueryType::NodeGeometryQuery(node) => {
                 self.process_node_geometry_request(node, &mut root_flow, &mut rw_data)
