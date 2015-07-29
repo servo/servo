@@ -82,12 +82,6 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
         })
     }
 
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<DOMString> {
-        let item = self.Item(index);
-        *found = item.is_some();
-        item
-    }
-
     // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(&token).map(|token| {
@@ -159,5 +153,12 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     fn Stringifier(self) -> DOMString {
         let tokenlist = self.element.root().r().get_tokenlist_attribute(&self.local_name);
         str_join(&tokenlist, "\x20")
+    }
+
+    // check-tidy: no specs after this line
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<DOMString> {
+        let item = self.Item(index);
+        *found = item.is_some();
+        item
     }
 }

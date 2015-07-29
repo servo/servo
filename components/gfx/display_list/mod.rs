@@ -544,8 +544,9 @@ impl StackingContext {
         point = point - self.bounds.origin;
 
         debug_assert!(!topmost_only || result.is_empty());
-        let frac_point = self.transform.transform_point(&Point2D::new(point.x.to_f32_px(),
-                                                                      point.y.to_f32_px()));
+        let inv_transform = self.transform.invert();
+        let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
+                                                                     point.y.to_f32_px()));
         point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
 
         // Iterate through display items in reverse stacking order. Steps here refer to the

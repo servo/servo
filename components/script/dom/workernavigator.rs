@@ -32,30 +32,37 @@ impl WorkerNavigator {
 }
 
 impl<'a> WorkerNavigatorMethods for &'a WorkerNavigator {
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-product
     fn Product(self) -> DOMString {
         navigatorinfo::Product()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-taintenabled
     fn TaintEnabled(self) -> bool {
         navigatorinfo::TaintEnabled()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-appname
     fn AppName(self) -> DOMString {
         navigatorinfo::AppName()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-appcodename
     fn AppCodeName(self) -> DOMString {
         navigatorinfo::AppCodeName()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-platform
     fn Platform(self) -> DOMString {
         navigatorinfo::Platform()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
     fn UserAgent(self) -> DOMString {
         navigatorinfo::UserAgent()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion
     fn AppVersion(self) -> DOMString {
         navigatorinfo::AppVersion()
     }

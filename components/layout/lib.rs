@@ -100,5 +100,4 @@ pub mod wrapper;
 
 pub mod css {
     pub mod matching;
-    pub mod node_style;
 }

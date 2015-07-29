@@ -8,7 +8,6 @@
 
 use animation;
 use context::SharedLayoutContext;
-use css::node_style::StyledNode;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
 use smallvec::SmallVec;

@@ -662,8 +662,8 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
         }
     }
 
-    // https://xhr.spec.whatwg.org/#the-response-attribute
     #[allow(unsafe_code)]
+    // https://xhr.spec.whatwg.org/#the-response-attribute
     fn Response(self, cx: *mut JSContext) -> JSVal {
          let mut rval = RootedValue::new(cx, UndefinedValue());
          match self.response_type.get() {

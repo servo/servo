@@ -215,24 +215,29 @@ impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
 }
 
 impl<'a> HTMLCanvasElementMethods for &'a HTMLCanvasElement {
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn Width(self) -> u32 {
         self.width.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn SetWidth(self, width: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn Height(self) -> u32 {
         self.height.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn SetHeight(self, height: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
     fn GetContext(self,
                   cx: *mut JSContext,
                   id: DOMString,

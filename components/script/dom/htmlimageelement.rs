@@ -220,33 +220,39 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
 
     make_bool_getter!(IsMap);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     fn SetIsMap(self, is_map: bool) {
         let element = ElementCast::from_ref(self);
         element.set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(self) -> u32 {
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(self, width: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(self) -> u32 {
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(self, height: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(self) -> u32 {
         let image = self.image.borrow();
 
@@ -256,6 +262,7 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(self) -> u32 {
         let image = self.image.borrow();
 
@@ -265,6 +272,7 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(self) -> bool {
         let image = self.image.borrow();
         image.is_some()

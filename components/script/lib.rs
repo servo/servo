@@ -48,7 +48,6 @@ extern crate fnv;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate js;
-extern crate layout_traits;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;

@@ -58,6 +58,7 @@ impl Storage {
 }
 
 impl<'a> StorageMethods for &'a Storage {
+    // https://html.spec.whatwg.org/multipage/#dom-storage-length
     fn Length(self) -> u32 {
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -65,6 +66,7 @@ impl<'a> StorageMethods for &'a Storage {
         receiver.recv().unwrap() as u32
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storage-key
     fn Key(self, index: u32) -> Option<DOMString> {
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -72,6 +74,7 @@ impl<'a> StorageMethods for &'a Storage {
         receiver.recv().unwrap()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storage-getitem
     fn GetItem(self, name: DOMString) -> Option<DOMString> {
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -80,12 +83,7 @@ impl<'a> StorageMethods for &'a Storage {
         receiver.recv().unwrap()
     }
 
-    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
-        let item = self.GetItem(name);
-        *found = item.is_some();
-        item
-    }
-
+    // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
     fn SetItem(self, name: DOMString, value: DOMString) {
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -97,14 +95,7 @@ impl<'a> StorageMethods for &'a Storage {
         }
     }
 
-    fn NamedSetter(self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
-    }
-
-    fn NamedCreator(self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
-    }
-
+    // https://html.spec.whatwg.org/multipage/#dom-storage-removeitem
     fn RemoveItem(self, name: DOMString) {
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -115,10 +106,7 @@ impl<'a> StorageMethods for &'a Storage {
         }
     }
 
-    fn NamedDeleter(self, name: DOMString) {
-        self.RemoveItem(name);
-    }
-
+    // https://html.spec.whatwg.org/multipage/#dom-storage-clear
     fn Clear(self) {
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -126,6 +114,25 @@ impl<'a> StorageMethods for &'a Storage {
         if receiver.recv().unwrap() {
             self.broadcast_change_notification(None, None, None);
         }
+    }
+
+    // check-tidy: no specs after this line
+    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
+        let item = self.GetItem(name);
+        *found = item.is_some();
+        item
+    }
+
+    fn NamedSetter(self, name: DOMString, value: DOMString) {
+        self.SetItem(name, value);
+    }
+
+    fn NamedCreator(self, name: DOMString, value: DOMString) {
+        self.SetItem(name, value);
+    }
+
+    fn NamedDeleter(self, name: DOMString) {
+        self.RemoveItem(name);
     }
 }
 

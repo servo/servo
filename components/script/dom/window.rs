@@ -339,10 +339,12 @@ impl<'a> WindowMethods for &'a Window {
         println!("ALERT: {}", s);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(self) {
         self.script_chan.send(ScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-0
     fn Document(self) -> Root<Document> {
         self.browsing_context().as_ref().unwrap().active_document()
     }
@@ -362,10 +364,12 @@ impl<'a> WindowMethods for &'a Window {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console
     fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
+    // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(self) -> Root<Crypto> {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
     }
@@ -430,10 +434,12 @@ impl<'a> WindowMethods for &'a Window {
         self.ClearTimeout(handle);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window
     fn Window(self) -> Root<Window> {
         Root::from_ref(self)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-self
     fn Self_(self) -> Root<Window> {
         self.Window()
     }
@@ -457,6 +463,8 @@ impl<'a> WindowMethods for &'a Window {
         window
     }
 
+    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
+    // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(self) -> Root<Performance> {
         self.performance.or_init(|| {
             Performance::new(self, self.navigation_start,
@@ -468,29 +476,17 @@ impl<'a> WindowMethods for &'a Window {
     event_handler!(unload, GetOnunload, SetOnunload);
     error_event_handler!(error, GetOnerror, SetOnerror);
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(self) -> Root<Screen> {
         self.screen.or_init(|| Screen::new(self))
     }
 
-    fn Debug(self, message: DOMString) {
-        debug!("{}", message);
-    }
-
-    #[allow(unsafe_code)]
-    fn Gc(self) {
-        unsafe {
-            JS_GC(JS_GetRuntime(self.get_cx()));
-        }
-    }
-
-    fn Trap(self) {
-        breakpoint();
-    }
-
+    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob
     fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
@@ -511,6 +507,22 @@ impl<'a> WindowMethods for &'a Window {
     fn CancelAnimationFrame(self, ident: i32) {
         let doc = self.Document();
         doc.r().cancel_animation_frame(ident);
+    }
+
+    // check-tidy: no specs after this line
+    fn Debug(self, message: DOMString) {
+        debug!("{}", message);
+    }
+
+    #[allow(unsafe_code)]
+    fn Gc(self) {
+        unsafe {
+            JS_GC(JS_GetRuntime(self.get_cx()));
+        }
+    }
+
+    fn Trap(self) {
+        breakpoint();
     }
 
     fn WebdriverCallback(self, cx: *mut JSContext, val: HandleValue) {

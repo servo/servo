@@ -44,6 +44,7 @@ impl Performance {
 }
 
 impl<'a> PerformanceMethods for &'a Performance {
+    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
     fn Timing(self) -> Root<PerformanceTiming> {
         self.timing.root()
     }

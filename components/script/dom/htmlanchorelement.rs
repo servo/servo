@@ -78,16 +78,19 @@ impl<'a> VirtualMethods for &'a HTMLAnchorElement {
 }
 
 impl<'a> HTMLAnchorElementMethods for &'a HTMLAnchorElement {
+    // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn Text(self) -> DOMString {
         let node = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn SetText(self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))

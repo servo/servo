@@ -7,7 +7,6 @@
 #![deny(unsafe_code)]
 
 use canvas_traits::CanvasMsg;
-use css::node_style::StyledNode;
 use context::LayoutContext;
 use floats::ClearType;
 use flow;

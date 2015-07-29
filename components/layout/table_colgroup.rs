@@ -7,7 +7,6 @@
 #![deny(unsafe_code)]
 
 use context::LayoutContext;
-use css::node_style::StyledNode;
 use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;

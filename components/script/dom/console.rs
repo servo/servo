@@ -40,6 +40,7 @@ impl<'a> ConsoleMethods for &'a Console {
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console
     fn Debug(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);

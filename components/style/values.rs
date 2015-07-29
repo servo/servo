@@ -79,7 +79,7 @@ pub mod specified {
     use std::f32::consts::PI;
     use std::fmt;
     use std::fmt::Write;
-    use std::ops::{Add, Mul};
+    use std::ops::Mul;
     use url::Url;
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
     use euclid::size::Size2D;
@@ -370,6 +370,10 @@ pub mod specified {
         }
     }
     impl LengthOrPercentage {
+        pub fn zero() -> LengthOrPercentage {
+            LengthOrPercentage::Length(Length::Absolute(Au(0)))
+        }
+
         fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
                           -> Result<LengthOrPercentage, ()>
         {
@@ -518,81 +522,6 @@ pub mod specified {
         #[inline]
         pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrNone, ()> {
             LengthOrNone::parse_internal(input, &AllowedNumericType::NonNegative)
-        }
-    }
-
-    /// The sum of a series of lengths and a percentage. This is used in `calc()` and other things
-    /// that effectively work like it (e.g. transforms).
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct LengthAndPercentage {
-        /// The length components.
-        pub lengths: Vec<Length>,
-        /// The percentage component.
-        pub percentage: CSSFloat,
-    }
-
-    impl LengthAndPercentage {
-        pub fn zero() -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: Vec::new(),
-                percentage: 0.0,
-            }
-        }
-
-        pub fn from_length_or_percentage(length_or_percentage: &LengthOrPercentage)
-                                         -> LengthAndPercentage {
-            match *length_or_percentage {
-                LengthOrPercentage::Length(ref length) => {
-                    LengthAndPercentage::from_length(*length)
-                }
-                LengthOrPercentage::Percentage(percentage) => {
-                    LengthAndPercentage::from_percentage(percentage)
-                }
-            }
-        }
-
-        pub fn parse(input: &mut Parser) -> Result<LengthAndPercentage, ()> {
-            LengthOrPercentage::parse(input).map(|value| {
-                LengthAndPercentage::from_length_or_percentage(&value)
-            })
-        }
-
-        pub fn from_length(length: Length) -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: vec![length],
-                percentage: 0.0,
-            }
-        }
-
-        pub fn from_percentage(percentage: CSSFloat) -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: Vec::new(),
-                percentage: percentage,
-            }
-        }
-    }
-
-    impl Add<LengthAndPercentage> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn add(self, other: LengthAndPercentage) -> LengthAndPercentage {
-            let mut new_lengths = self.lengths.clone();
-            new_lengths.push_all(&other.lengths);
-            LengthAndPercentage {
-                lengths: new_lengths,
-                percentage: self.percentage + other.percentage,
-            }
-        }
-    }
-
-    impl Mul<CSSFloat> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn mul(self, scalar: CSSFloat) -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: self.lengths.iter().map(|length| *length * scalar).collect(),
-                percentage: self.percentage * scalar,
-            }
         }
     }
 
@@ -936,7 +865,6 @@ pub mod computed {
     use euclid::size::Size2D;
     use properties::longhands;
     use std::fmt;
-    use std::ops::{Add, Mul};
     use url::Url;
     use util::geometry::Au;
 
@@ -1016,6 +944,13 @@ pub mod computed {
         Length(Au),
         Percentage(CSSFloat),
     }
+
+    impl LengthOrPercentage {
+        pub fn zero() -> LengthOrPercentage {
+            LengthOrPercentage::Length(Au(0))
+        }
+    }
+
     impl fmt::Debug for LengthOrPercentage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
@@ -1136,63 +1071,6 @@ pub mod computed {
                 specified::LengthOrNone::None => {
                     LengthOrNone::None
                 }
-            }
-        }
-    }
-
-    /// The sum of a series of lengths and a percentage. This is used in `calc()` and other things
-    /// that effectively work like it (e.g. transforms).
-    #[derive(Clone, Copy, Debug, PartialEq)]
-    pub struct LengthAndPercentage {
-        /// The length component.
-        pub length: Au,
-        /// The percentage component.
-        pub percentage: CSSFloat,
-    }
-
-    impl LengthAndPercentage {
-        #[inline]
-        pub fn zero() -> LengthAndPercentage {
-            LengthAndPercentage {
-                length: Au(0),
-                percentage: 0.0,
-            }
-        }
-    }
-
-    impl ToComputedValue for specified::LengthAndPercentage {
-        type ComputedValue = LengthAndPercentage;
-
-        fn to_computed_value(&self, context: &Context) -> LengthAndPercentage {
-            let mut total_length = Au(0);
-            for length in self.lengths.iter() {
-                total_length = total_length + length.to_computed_value(context)
-            }
-            LengthAndPercentage {
-                length: total_length,
-                percentage: self.percentage,
-            }
-        }
-    }
-
-    impl Add<LengthAndPercentage> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn add(self, other: LengthAndPercentage) -> LengthAndPercentage {
-            LengthAndPercentage {
-                length: self.length + other.length,
-                percentage: self.percentage + other.percentage,
-            }
-        }
-    }
-
-    impl Mul<CSSFloat> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn mul(self, scalar: CSSFloat) -> LengthAndPercentage {
-            LengthAndPercentage {
-                length: Au::from_f32_px(self.length.to_f32_px() * scalar),
-                percentage: self.percentage * scalar,
             }
         }
     }
