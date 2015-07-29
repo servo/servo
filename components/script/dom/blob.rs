@@ -9,11 +9,8 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
-
+use std::sync::mpsc::Sender;
 use util::str::DOMString;
-
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -83,14 +80,12 @@ impl Blob {
 }
 
 pub trait BlobHelpers {
-    fn read_out_buffer(self) -> Receiver<Vec<u8>>;
+    fn read_out_buffer(self, send: Sender<Vec<u8>>);
 }
 
 impl<'a> BlobHelpers for &'a Blob {
-    fn read_out_buffer(self) -> Receiver<Vec<u8>> {
-        let (send, recv) = mpsc::channel();
+    fn read_out_buffer(self, send: Sender<Vec<u8>>) {
         send.send(self.bytes.clone().unwrap_or(vec![])).unwrap();
-        recv
     }
 }
 
