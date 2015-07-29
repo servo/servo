@@ -85,6 +85,7 @@ use std::ascii::AsciiExt;
 use std::borrow::{Cow, ToOwned};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
+use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
 
@@ -679,7 +680,7 @@ impl Element {
             // than that.
             let existing_declarations = Arc::make_mut(existing_declarations);
             for declaration in &mut *existing_declarations {
-                if declaration.name() == property_decl.name() {
+                if declaration.id() == property_decl.id() {
                     *declaration = property_decl;
                     return;
                 }

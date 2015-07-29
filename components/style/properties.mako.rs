@@ -5838,6 +5838,15 @@ pub enum PropertyDeclaration {
     Custom(::custom_properties::Name, DeclaredValue<::custom_properties::SpecifiedValue>),
 }
 
+impl PropertyDeclaration {
+    #[inline]
+    pub fn id(&self) -> u64 {
+        unsafe {
+            intrinsics::discriminant_value(self)
+        }
+    }
+}
+
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub enum PropertyDeclarationParseResult {
