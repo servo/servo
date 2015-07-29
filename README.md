@@ -28,7 +28,7 @@ On Debian-based Linuxes:
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ cmake python-virtualenv \
-    libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev
+    libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev libglu1-mesa-dev
 ```
 
 On Fedora:
