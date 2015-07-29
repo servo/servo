@@ -5,6 +5,8 @@
 use layout_task::LayoutTaskData;
 
 use euclid::point::Point2D;
+use euclid::rect::Rect;
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
@@ -104,5 +106,60 @@ impl LayoutRPC for LayoutRPCImpl {
                                .collect();
             Ok(MouseOverResponse(response_list))
         }
+    }
+}
+
+pub struct UnioningFragmentBorderBoxIterator {
+    pub node_address: OpaqueNode,
+    pub rect: Option<Rect<Au>>,
+}
+
+impl UnioningFragmentBorderBoxIterator {
+    pub fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
+        UnioningFragmentBorderBoxIterator {
+            node_address: node_address,
+            rect: None
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
+    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+        self.rect = match self.rect {
+            Some(rect) => {
+                Some(rect.union(border_box))
+            }
+            None => {
+                Some(*border_box)
+            }
+        };
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address)
+    }
+}
+
+pub struct CollectingFragmentBorderBoxIterator {
+    pub node_address: OpaqueNode,
+    pub rects: Vec<Rect<Au>>,
+}
+
+impl CollectingFragmentBorderBoxIterator {
+    pub fn new(node_address: OpaqueNode) -> CollectingFragmentBorderBoxIterator {
+        CollectingFragmentBorderBoxIterator {
+            node_address: node_address,
+            rects: Vec::new(),
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
+    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+        self.rects.push(*border_box);
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address)
     }
 }

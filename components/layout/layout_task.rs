@@ -19,7 +19,7 @@ use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAI
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
-use query::LayoutRPCImpl;
+use query::{LayoutRPCImpl, UnioningFragmentBorderBoxIterator, CollectingFragmentBorderBoxIterator};
 use sequential;
 use wrapper::LayoutNode;
 
@@ -1280,61 +1280,6 @@ impl LayoutTask {
               } else {
                 TimerMetadataReflowType::Incremental
               }))
-    }
-}
-
-struct UnioningFragmentBorderBoxIterator {
-    node_address: OpaqueNode,
-    rect: Option<Rect<Au>>,
-}
-
-impl UnioningFragmentBorderBoxIterator {
-    fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
-        UnioningFragmentBorderBoxIterator {
-            node_address: node_address,
-            rect: None
-        }
-    }
-}
-
-impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
-    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
-        self.rect = match self.rect {
-            Some(rect) => {
-                Some(rect.union(border_box))
-            }
-            None => {
-                Some(*border_box)
-            }
-        };
-    }
-
-    fn should_process(&mut self, fragment: &Fragment) -> bool {
-        fragment.contains_node(self.node_address)
-    }
-}
-
-struct CollectingFragmentBorderBoxIterator {
-    node_address: OpaqueNode,
-    rects: Vec<Rect<Au>>,
-}
-
-impl CollectingFragmentBorderBoxIterator {
-    fn new(node_address: OpaqueNode) -> CollectingFragmentBorderBoxIterator {
-        CollectingFragmentBorderBoxIterator {
-            node_address: node_address,
-            rects: Vec::new(),
-        }
-    }
-}
-
-impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
-    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
-        self.rects.push(*border_box);
-    }
-
-    fn should_process(&mut self, fragment: &Fragment) -> bool {
-        fragment.contains_node(self.node_address)
     }
 }
 
