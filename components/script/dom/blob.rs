@@ -156,12 +156,12 @@ impl<'a> BlobMethods for &'a Blob {
         }
     }
 
-    // http://dev.w3.org/2006/webapi/FileAPI/#dfn-isClosed
+    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-isClosed
     fn IsClosed(self) -> bool {
         self.isClosed_.get()
     }
 
-    // http://dev.w3.org/2006/webapi/FileAPI/#dfn-close
+    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-close
     fn Close(self) {
         // Step 1
         if self.isClosed_.get() {
