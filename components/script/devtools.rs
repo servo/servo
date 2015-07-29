@@ -24,6 +24,8 @@ use js::jsval::UndefinedValue;
 
 use std::rc::Rc;
 
+// TODO take a GlobalRef instead of `page` and `pipeline`
+// and handle the EvaluateJS message by calling it
 
 pub fn handle_evaluate_js(
         page: &Rc<Page>,
