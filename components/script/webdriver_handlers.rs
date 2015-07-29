@@ -182,6 +182,7 @@ pub fn handle_get_name(page: &Rc<Page>,
 pub fn handle_get_url(page: &Rc<Page>,
                       _pipeline: PipelineId,
                       reply: IpcSender<Url>) {
-    let url = page.document().r().url();
-    reply.send(url).unwrap();
+    let document = page.document();
+    let url = document.r().url();
+    reply.send((*url).clone()).unwrap();
 }

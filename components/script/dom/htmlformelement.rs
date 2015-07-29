@@ -187,7 +187,8 @@ impl HTMLFormElement {
         }
         // TODO: Resolve the url relative to the submitter element
         // Step 10-15
-        let action_components = UrlParser::new().base_url(&base).parse(&action).unwrap_or(base);
+        let action_components =
+            UrlParser::new().base_url(base).parse(&action).unwrap_or((*base).clone());
         let _action = action_components.serialize();
         let scheme = action_components.scheme.clone();
         let enctype = submitter.enctype();
