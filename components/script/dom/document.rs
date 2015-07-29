@@ -1181,9 +1181,10 @@ impl<'a> DocumentMethods for &'a Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/browsers.html#relaxing-the-same-origin-restriction
+    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(self) -> DOMString {
-        self.url().serialize_host().unwrap_or_else(|| "".to_owned())
+        let window = self.window.root();
+        window.get_url().serialize_host().unwrap_or_else(|| "".to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
