@@ -5149,8 +5149,8 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
 }
 
 
-struct PropertyDeclarationParser<'a, 'b: 'a> {
-    context: &'a ParserContext<'b>,
+pub struct PropertyDeclarationParser<'a, 'b: 'a> {
+    pub context: &'a ParserContext<'b>,
 }
 
 

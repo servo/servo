@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -13,12 +14,15 @@ use dom::element::{ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
 use dom::node::{window_from_node, document_from_node, NodeDamage};
 use dom::window::{Window, WindowHelpers};
+use cssparser::{self, DeclarationParser};
 use util::str::DOMString;
 use string_cache::Atom;
-use style::properties::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
-use style::properties::PropertyDeclaration;
+use style::parser::ParserContext;
+use style::properties::{is_supported_property, longhands_from_shorthand};
+use style::properties::{PropertyDeclaration, PropertyDeclarationParser, parse_style_attribute};
+use style::stylesheets::Origin;
 
-use std::ascii::AsciiExt;
+use std::ascii::{AsciiExt, OwnedAsciiExt};
 use std::borrow::ToOwned;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -192,7 +196,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
 
         // Step 2
-        let property = property.to_ascii_lowercase();
+        let property = property.into_ascii_lowercase();
 
         // Step 3
         if !is_supported_property(&property) {
@@ -205,38 +209,35 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
 
         // Step 5
-        let priority = priority.to_ascii_lowercase();
-        if priority != "!important" && !priority.is_empty() {
-            return Ok(());
-        }
+        let priority = if priority.eq_ignore_ascii_case("!important") {
+            StylePriority::Important
+        } else if priority.is_empty() {
+            StylePriority::Normal
+        } else {
+            return Ok(())
+        };
 
         // Step 6
-        let mut synthesized_declaration = property;
-        synthesized_declaration.push_str(": ");
-        synthesized_declaration.push_str(&value);
-
         let owner = self.owner.root();
         let window = window_from_node(owner.r());
-        let decl_block = parse_style_attribute(&synthesized_declaration, &window.r().get_url());
+        let document = window.r().Document();
+        let url = document.r().url();
+        let context = ParserContext::new(Origin::Author, &url);
+        let mut css_parser = cssparser::Parser::new(&*value);
+        let parser = PropertyDeclarationParser {
+            context: &context,
+        };
+        let declaration = parser.parse_value(&*property, &mut css_parser);
 
         // Step 7
-        if decl_block.normal.len() == 0 {
-            return Ok(());
-        }
-
-        let owner = self.owner.root();
-        let element = ElementCast::from_ref(owner.r());
+        let declaration = match declaration {
+            Ok(declaration) => declaration,
+            Err(_) => return Ok(()),
+        };
 
         // Step 8
-        for decl in decl_block.normal.iter() {
-            // Step 9
-            let style_priority = if priority.is_empty() {
-                StylePriority::Normal
-            } else {
-                StylePriority::Important
-            };
-            element.update_inline_style(decl.clone(), style_priority);
-        }
+        let element = ElementCast::from_ref(owner.r());
+        element.update_inline_style(declaration.0.into_iter().next().unwrap(), priority);
 
         let document = document_from_node(element);
         let node = NodeCast::from_ref(element);
