@@ -101,11 +101,11 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 })
             }
             stb_image2::LoadResult::ImageF32(_image) => {
-                error!("HDR images not implemented");
+                debug!("HDR images not implemented");
                 None
             }
             stb_image2::LoadResult::Error(e) => {
-                error!("stb_image failed: {}", e);
+                debug!("stb_image failed: {}", e);
                 None
             }
         }
