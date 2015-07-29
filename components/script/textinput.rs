@@ -143,51 +143,71 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.replace_selection(s.into());
     }
 
-    pub fn get_sorted_selection(&self) -> (TextPoint, TextPoint) {
-        let begin = self.selection_begin.unwrap();
-        let end = self.edit_point;
+    pub fn get_sorted_selection(&self) -> Option<(TextPoint, TextPoint)> {
+        self.selection_begin.map(|begin| {
+            let end = self.edit_point;
 
-        if begin.line < end.line || (begin.line == end.line && begin.index < end.index) {
-            (begin, end)
-        } else {
-            (end, begin)
-        }
+            if begin.line < end.line || (begin.line == end.line && begin.index < end.index) {
+                (begin, end)
+            } else {
+                (end, begin)
+            }
+        })
+    }
+
+    pub fn get_selection_text(&self) -> Option<String> {
+        self.get_sorted_selection().map(|(begin, end)| {
+            if begin.line != end.line {
+                let mut s = String::new();
+                s.push_str(self.lines[begin.line].slice_chars(begin.index, self.lines[begin.line].len()));
+                for (_, line) in self.lines.iter().enumerate().filter(|&(i,_)| begin.line < i && i < end.line) {
+                    s.push_str("\n");
+                    s.push_str(line);
+                }
+                s.push_str("\n");
+                s.push_str(self.lines[end.line].slice_chars(0, end.index));
+                s
+            } else {
+                self.lines[begin.line].slice_chars(begin.index, end.index).to_owned()
+            }
+        })
     }
 
     pub fn replace_selection(&mut self, insert: String) {
-        let (begin, end) = self.get_sorted_selection();
-        self.clear_selection();
+        if let Some((begin, end)) = self.get_sorted_selection() {
+            self.clear_selection();
 
-        let new_lines = {
-            let prefix = self.lines[begin.line].slice_chars(0, begin.index);
-            let suffix = self.lines[end.line].slice_chars(end.index, self.lines[end.line].chars().count());
-            let lines_prefix = &self.lines[..begin.line];
-            let lines_suffix = &self.lines[end.line + 1..];
+            let new_lines = {
+                let prefix = self.lines[begin.line].slice_chars(0, begin.index);
+                let suffix = self.lines[end.line].slice_chars(end.index, self.lines[end.line].chars().count());
+                let lines_prefix = &self.lines[..begin.line];
+                let lines_suffix = &self.lines[end.line + 1..];
 
-            let mut insert_lines = if self.multiline {
-                insert.split('\n').map(|s| s.to_owned()).collect()
-            } else {
-                vec!(insert)
+                let mut insert_lines = if self.multiline {
+                    insert.split('\n').map(|s| s.to_owned()).collect()
+                } else {
+                    vec!(insert)
+                };
+
+                let mut new_line = prefix.to_owned();
+                new_line.push_str(&insert_lines[0]);
+                insert_lines[0] = new_line;
+
+                let last_insert_lines_index = insert_lines.len() - 1;
+                self.edit_point.index = insert_lines[last_insert_lines_index].chars().count();
+                self.edit_point.line = begin.line + last_insert_lines_index;
+
+                insert_lines[last_insert_lines_index].push_str(suffix);
+
+                let mut new_lines = vec!();
+                new_lines.push_all(lines_prefix);
+                new_lines.push_all(&insert_lines);
+                new_lines.push_all(lines_suffix);
+                new_lines
             };
 
-            let mut new_line = prefix.to_owned();
-            new_line.push_str(&insert_lines[0]);
-            insert_lines[0] = new_line;
-
-            let last_insert_lines_index = insert_lines.len() - 1;
-            self.edit_point.index = insert_lines[last_insert_lines_index].chars().count();
-            self.edit_point.line = begin.line + last_insert_lines_index;
-
-            insert_lines[last_insert_lines_index].push_str(suffix);
-
-            let mut new_lines = vec!();
-            new_lines.push_all(lines_prefix);
-            new_lines.push_all(&insert_lines);
-            new_lines.push_all(lines_suffix);
-            new_lines
-        };
-
-        self.lines = new_lines;
+            self.lines = new_lines;
+        }
     }
 
     /// Return the length of the current line under the editing point.
@@ -237,8 +257,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.selection_begin = Some(self.edit_point);
             }
         } else {
-            if self.selection_begin.is_some() {
-                let (begin, end) = self.get_sorted_selection();
+            if let Some((begin, end)) = self.get_sorted_selection() {
                 self.edit_point = if adjust < 0 {begin} else {end};
                 self.clear_selection();
                 return
@@ -304,11 +323,17 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
         let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
         match key {
-           Key::A if is_control_key(mods) => {
+            Key::A if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::Nothing
             },
-           Key::V if is_control_key(mods) => {
+            Key::C if is_control_key(mods) => {
+                if let Some(text) = self.get_selection_text() {
+                    self.clipboard_provider.set_clipboard_contents(text);
+                }
+                KeyReaction::DispatchInput
+            },
+            Key::V if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(contents);
                 KeyReaction::DispatchInput
