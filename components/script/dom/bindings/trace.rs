@@ -340,6 +340,13 @@ impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
     }
 }
 
+impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
 impl JSTraceable for ScriptListener {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
