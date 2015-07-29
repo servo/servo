@@ -64,20 +64,23 @@ impl WebGLRenderingContext {
                      canvas: &HTMLCanvasElement,
                      size: Size2D<i32>,
                      attrs: GLContextAttributes)
-                     -> Result<WebGLRenderingContext, &'static str> {
+                     -> Result<WebGLRenderingContext, String> {
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = global.constellation_chan();
         constellation_chan.0
                           .send(ConstellationMsg::CreateWebGLPaintTask(size, attrs, sender))
                           .unwrap();
-        let (ipc_renderer, renderer_id) = receiver.recv().unwrap();
-        Ok(WebGLRenderingContext {
-            reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(&global),
-            renderer_id: renderer_id,
-            ipc_renderer: ipc_renderer,
-            last_error: Cell::new(None),
-            canvas: JS::from_ref(canvas),
+        let result = receiver.recv().unwrap();
+
+        result.map(|(ipc_renderer, renderer_id)| {
+            WebGLRenderingContext {
+                reflector_: Reflector::new(),
+                global: GlobalField::from_rooted(&global),
+                renderer_id: renderer_id,
+                ipc_renderer: ipc_renderer,
+                last_error: Cell::new(None),
+                canvas: JS::from_ref(canvas),
+            }
         })
     }
 

@@ -268,7 +268,7 @@ pub enum Msg {
     /// WebGL uses the GPU and we don't want to give untrusted content access to the GPU.)
     CreateWebGLPaintTask(Size2D<i32>,
                          GLContextAttributes,
-                         IpcSender<(IpcSender<CanvasMsg>, usize)>),
+                         IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
