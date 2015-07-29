@@ -20,14 +20,14 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource, ScriptPort, ScriptMsg};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use profile_traits::mem;
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcReceiver};
 use js::jsapi::{JSContext, HandleValue};
 use js::rust::Runtime;
 use url::{Url, UrlParser};
@@ -56,6 +56,7 @@ pub struct WorkerGlobalScope {
     timers: TimerManager,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    devtools_port: Option<IpcReceiver<DevtoolScriptControlMsg>>,
     constellation_chan: ConstellationChan,
 }
 
@@ -66,6 +67,7 @@ impl WorkerGlobalScope {
                          resource_task: ResourceTask,
                          mem_profiler_chan: mem::ProfilerChan,
                          devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+                         devtools_port: Option<IpcReceiver<DevtoolScriptControlMsg>>,
                          constellation_chan: ConstellationChan)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
@@ -81,6 +83,7 @@ impl WorkerGlobalScope {
             timers: TimerManager::new(),
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
+            devtools_port: devtools_port,
             constellation_chan: constellation_chan,
         }
     }
@@ -91,6 +94,10 @@ impl WorkerGlobalScope {
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
+    }
+
+    pub fn devtools_port(&self) -> Option<&IpcReceiver<DevtoolScriptControlMsg>> {
+        self.devtools_port.as_ref().clone()
     }
 
     pub fn constellation_chan(&self) -> ConstellationChan {
@@ -298,4 +305,3 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
         self.runtime.cx()
     }
 }
-
