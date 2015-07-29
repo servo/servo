@@ -21,6 +21,7 @@ use encoding::all::UTF_8;
 use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 use hyper::mime::{Mime, Attr};
+use std::sync::mpsc;
 use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
 use std::cell::{Cell, RefCell};
 use std::sync::mpsc::Receiver;
@@ -202,8 +203,7 @@ impl FileReader {
                 FileReader::perform_readastext(blob_body),
         };
 
-        //FIXME handle error if error is possible
-        *fr.result.borrow_mut() = output.unwrap();
+        *fr.result.borrow_mut() = Some(output);
 
         // Step 8.3
         fr.dispatch_progress_event("load".to_owned(), 0, None);
@@ -219,7 +219,7 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     fn perform_readastext(blob_body: BlobBody)
-        -> Result<Option<DOMString>, DOMErrorName> {
+        -> DOMString {
 
         let blob_label = &blob_body.label;
         let blob_type = &blob_body.blobtype;
@@ -247,12 +247,12 @@ impl FileReader {
         let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
-        Ok(Some(output))
+        output
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn perform_readasdataurl(blob_body: BlobBody)
-        -> Result<Option<DOMString>, DOMErrorName> {
+        -> DOMString {
         let config = Config {
             char_set: CharacterSet::UrlSafe,
             newline: Newline::LF,
@@ -267,7 +267,7 @@ impl FileReader {
             format!("data:{};base64,{}", blob_body.blobtype, base64)
         };
 
-        Ok(Some(output))
+        output
     }
 }
 
@@ -282,62 +282,13 @@ impl<'a> FileReaderMethods for &'a FileReader {
     //TODO https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn ReadAsDataURL(self, blob: &Blob) -> ErrorResult {
-        let global = self.global.root();
-        // Step 1
-        if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(InvalidState);
-        }
-
-        // Step 2
-        if blob.IsClosed() {
-            let global = self.global.root();
-            let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
-            self.error.set(Some(JS::from_rooted(&exception)));
-
-            self.dispatch_progress_event("error".to_owned(), 0, None);
-            return Ok(());
-        }
-
-        // Step 3
-        self.change_ready_state(FileReaderReadyState::Loading);
-
-        let bytes = blob.read_out_buffer();
-        let type_ = blob.Type();
-
-        let load_data = ReadData::new(bytes, type_, None, FileReaderFunction::ReadAsDataUrl);
-
-        self.read(load_data, global.r())
+        self.read(FileReaderFunction::ReadAsDataUrl, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     fn ReadAsText(self, blob: &Blob, label:Option<DOMString>) -> ErrorResult {
-        let global = self.global.root();
-        // Step 1
-        if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(InvalidState);
-        }
-
-        // Step 2
-        if blob.IsClosed() {
-            let global = self.global.root();
-            let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
-            self.error.set(Some(JS::from_rooted(&exception)));
-
-            self.dispatch_progress_event("error".to_owned(), 0, None);
-            return Ok(());
-        }
-
-        // Step 3
-        self.change_ready_state(FileReaderReadyState::Loading);
-
-        let bytes = blob.read_out_buffer();
-        let type_ = blob.Type();
-
-        let load_data = ReadData::new(bytes, type_, label, FileReaderFunction::ReadAsText);
-
-        self.read(load_data, global.r())
+        self.read(FileReaderFunction::ReadAsText, blob, label)
     }
-
 
     // https://w3c.github.io/FileAPI/#dfn-abort
     fn Abort(self) {
@@ -377,7 +328,7 @@ impl<'a> FileReaderMethods for &'a FileReader {
 trait PrivateFileReaderHelpers {
     fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>);
     fn terminate_ongoing_reading(self);
-    fn read(self, read_data: ReadData,  global: GlobalRef) -> ErrorResult;
+    fn read(self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult;
     fn change_ready_state(self, state: FileReaderReadyState);
 }
 
@@ -399,7 +350,32 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         self.generation_id.set(GenerationId(prev_id + 1));
     }
 
-    fn read(self, read_data: ReadData, global: GlobalRef) -> ErrorResult {
+    fn read(self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
+        let root = self.global.root();
+        let global = root.r();
+        // Step 1
+        if self.ready_state.get() == FileReaderReadyState::Loading {
+            return Err(InvalidState);
+        }
+        // Step 2
+        if blob.IsClosed() {
+            let global = self.global.root();
+            let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
+            self.error.set(Some(JS::from_rooted(&exception)));
+
+            self.dispatch_progress_event("error".to_owned(), 0, None);
+            return Ok(());
+        }
+
+        // Step 3
+        self.change_ready_state(FileReaderReadyState::Loading);
+
+        // Step 4
+        let (send, bytes) = mpsc::channel();
+        blob.read_out_buffer(send);
+        let type_ = blob.Type();
+
+        let load_data = ReadData::new(bytes, type_, label, function);
 
         let fr = Trusted::new(global.get_cx(), self, global.script_chan());
         let gen_id = self.generation_id.get();
@@ -407,7 +383,7 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         let script_chan = global.script_chan();
 
         spawn_named("file reader async operation".to_owned(), move || {
-            perform_annotated_read_operation(gen_id, read_data, fr, script_chan)
+            perform_annotated_read_operation(gen_id, load_data, fr, script_chan)
         });
         Ok(())
     }
