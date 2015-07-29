@@ -233,7 +233,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
         let constructor = RootedObject::new(cx, create_constructor(cx, cnative, cnargs, cs.as_ptr()));
         assert!(!constructor.ptr.is_null());
         unsafe {
-            assert!(JS_DefineProperty1(cx, constructor.handle(), "prototype".as_ptr() as *const libc::c_char,
+            assert!(JS_DefineProperty1(cx, constructor.handle(), b"prototype\0".as_ptr() as *const libc::c_char,
                                        rval.handle(),
                                        JSPROP_PERMANENT | JSPROP_READONLY,
                                        None, None) != 0);
