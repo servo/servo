@@ -228,7 +228,7 @@ pub trait DocumentHelpers<'a> {
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
     fn is_fully_active(self) -> bool;
-    fn url(self) -> Url;
+    fn url(self) -> &'a Url;
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
     fn set_encoding_name(self, name: DOMString);
@@ -333,8 +333,8 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-url
-    fn url(self) -> Url {
-        self.url.clone()
+    fn url(self) -> &'a Url {
+        &self.url
     }
 
     fn quirks_mode(self) -> QuirksMode {
@@ -1721,7 +1721,7 @@ impl<'a> DocumentMethods for &'a Document {
         }
         let window = self.window.root();
         let (tx, rx) = channel();
-        let _ = window.r().resource_task().send(GetCookiesForUrl(url, tx, NonHTTP));
+        let _ = window.r().resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.unwrap_or("".to_owned()))
     }
@@ -1730,11 +1730,11 @@ impl<'a> DocumentMethods for &'a Document {
     fn SetCookie(self, cookie: DOMString) -> ErrorResult {
         //TODO: ignore for cookie-averse Document
         let url = self.url();
-        if !is_scheme_host_port_tuple(&url) {
+        if !is_scheme_host_port_tuple(url) {
             return Err(Security);
         }
         let window = self.window.root();
-        let _ = window.r().resource_task().send(SetCookiesForUrl(url, cookie, NonHTTP));
+        let _ = window.r().resource_task().send(SetCookiesForUrl((*url).clone(), cookie, NonHTTP));
         Ok(())
     }
 

@@ -222,7 +222,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         let window = window_from_node(owner.r());
         let document = window.r().Document();
         let url = document.r().url();
-        let context = ParserContext::new(Origin::Author, &url);
+        let context = ParserContext::new(Origin::Author, url);
         let mut css_parser = cssparser::Parser::new(&*value);
         let parser = PropertyDeclarationParser {
             context: &context,

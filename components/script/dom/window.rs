@@ -824,7 +824,7 @@ impl<'a> WindowHelpers for &'a Window {
 
     fn get_url(self) -> Url {
         let doc = self.Document();
-        doc.r().url()
+        (*doc.r().url()).clone()
     }
 
     fn resource_task(self) -> ResourceTask {
