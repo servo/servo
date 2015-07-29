@@ -5679,8 +5679,8 @@ pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url)
     }
 }
 
-struct PropertyDeclarationParser<'a, 'b: 'a> {
-    context: &'a ParserContext<'b>,
+pub struct PropertyDeclarationParser<'a, 'b: 'a> {
+    pub context: &'a ParserContext<'b>,
 }
 
 
