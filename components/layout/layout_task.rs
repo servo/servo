@@ -903,6 +903,7 @@ impl LayoutTask {
             None => {
                 // The pseudo doesn't exist, return nothing.  Chrome seems to query
                 // the element itself in this case, Firefox uses the resolved value.
+                // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
                 rw_data.resolved_style_response = None;
                 return;
             }
