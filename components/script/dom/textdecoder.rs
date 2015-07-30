@@ -102,15 +102,13 @@ impl<'a> TextDecoderMethods for &'a TextDecoder {
                                                 ArrayBufferView or ArrayBuffer".to_owned())),
                 };
                 array_buffer.init();
-                array_buffer.compute_length_and_data();
-                let buffer = array_buffer.as_slice();
-                return decode_from_slice(buffer, self.fatal, &self.encoding);
+                let data = array_buffer.extract();
+                return decode_from_slice(data.as_slice(), self.fatal, &self.encoding);
             }
         };
         array_buffer_view.init();
-        array_buffer_view.compute_length_and_data();
-        let buffer = array_buffer_view.as_untyped_slice();
-        decode_from_slice(buffer, self.fatal, &self.encoding)
+        let data = array_buffer_view.extract();
+        decode_from_slice(data.as_untyped_slice(), self.fatal, &self.encoding)
     }
 }
 
