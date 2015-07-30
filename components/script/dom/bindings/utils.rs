@@ -381,8 +381,8 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PrototypeList::ID::Count as usize];
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
-    let proto_array: Box<ProtoOrIfaceArray> = box ()
-        ([0 as *mut JSObject; PrototypeList::ID::Count as usize]);
+    let proto_array: Box<ProtoOrIfaceArray> =
+        box [0 as *mut JSObject; PrototypeList::ID::Count as usize];
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         let box_ = Box::into_raw(proto_array);
