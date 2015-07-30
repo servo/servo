@@ -99,6 +99,11 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
     fn get_computed_style(self, property: &Atom) -> Option<DOMString> {
         let owner = self.owner.root();
         let node = NodeCast::from_ref(owner.r());
+        if !node.is_in_doc() {
+            // TODO: Node should be matched against the style rules of this window.
+            // Firefox is currently the only browser to implement this.
+            return None;
+        }
         let addr = node.to_trusted_node_address();
         window_from_node(owner.r()).resolved_style_query(addr, self.pseudo.clone(), property)
     }
