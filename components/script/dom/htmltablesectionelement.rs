@@ -3,23 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrHelpers};
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
-use dom::bindings::js::Root;
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, NodeCast};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Error::IndexSize;
+use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
+use dom::element::{Element, ElementTypeId};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
 use util::str::{self, DOMString};
 use std::cell::Cell;
 
+#[derive(JSTraceable)]
+struct RowsFilter;
+impl CollectionFilter for RowsFilter {
+    fn filter(&self, elem: &Element, _root: &Node) -> bool {
+        elem.is_htmltablerowelement()
+    }
+}
+
 #[dom_struct]
 pub struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
+    rows: MutNullableHeap<JS<HTMLCollection>>,
     background_color: Cell<Option<RGBA>>,
 }
 
@@ -39,6 +56,7 @@ impl HTMLTableSectionElement {
                                                     localName,
                                                     prefix,
                                                     document),
+            rows: Default::default(),
             background_color: Cell::new(None),
         }
     }
@@ -58,6 +76,50 @@ pub trait HTMLTableSectionElementHelpers {
 impl<'a> HTMLTableSectionElementHelpers for &'a HTMLTableSectionElement {
     fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
+    }
+}
+
+impl <'a> HTMLTableSectionElementMethods for &'a HTMLTableSectionElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
+    fn Rows(self) -> Root<HTMLCollection> {
+        self.rows.or_init(|| {
+            let window = window_from_node(self);
+            let filter = box RowsFilter;
+            HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
+    fn InsertRow(self, index: i32) -> Fallible<Root<HTMLElement>> {
+        if index < -1 || index > self.Rows().Length() as i32 {
+            return Err(IndexSize);
+        }
+
+        let this = NodeCast::from_ref(self);
+        let tr = HTMLTableRowElement::new("tr".to_owned(), None, this.owner_doc().r());
+        if index == -1 || index == self.Rows().Length() as i32 {
+            try!(this.AppendChild(NodeCast::from_ref(tr.r())));
+        } else {
+            let reference = NodeCast::from_root(self.Rows().Item(index as u32).unwrap());
+            try!(this.InsertBefore(NodeCast::from_ref(tr.r()), Some(reference.r())));
+        }
+        Ok(HTMLElementCast::from_root(tr))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
+    fn DeleteRow(self, index: i32) -> ErrorResult {
+        if index < -1 || index >= self.Rows().Length() as i32 {
+            return Err(IndexSize);
+        }
+
+        let index = if index == -1 {
+            self.Rows().Length() as i32 - 1
+        } else {
+            index
+        };
+
+        NodeCast::from_ref(self.Rows().Item(index as u32).unwrap().r()).remove_self();
+        Ok(())
     }
 }
 

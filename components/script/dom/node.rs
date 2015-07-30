@@ -201,7 +201,7 @@ impl Drop for Node {
 /// https://dom.spec.whatwg.org/#concept-node-insert
 /// https://dom.spec.whatwg.org/#concept-node-remove
 #[derive(Copy, Clone)]
-enum SuppressObserver {
+pub enum SuppressObserver {
     Suppressed,
     Unsuppressed
 }
@@ -1662,10 +1662,10 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-insert
-    fn insert(node: &Node,
-              parent: &Node,
-              child: Option<&Node>,
-              suppress_observers: SuppressObserver) {
+    pub fn insert(node: &Node,
+                  parent: &Node,
+                  child: Option<&Node>,
+                  suppress_observers: SuppressObserver) {
         debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
 
@@ -1758,7 +1758,7 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
+    pub fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent.r() == parent));
 
         // Step 1-5: ranges.

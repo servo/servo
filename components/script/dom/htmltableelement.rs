@@ -7,14 +7,22 @@ use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementM
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLTableSectionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
-use dom::bindings::js::Root;
+use dom::bindings::codegen::InheritTypes::{HTMLTableCaptionElementDerived, HTMLTableColElementDerived};
+use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
+use dom::bindings::error::ErrorResult;
+use dom::bindings::error::Error::HierarchyRequest;
+use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
+use dom::element::{Element, ElementHelpers, ElementTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node};
+use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::node::{Node, NodeHelpers, NodeTypeId, SuppressObserver};
+use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
@@ -24,12 +32,21 @@ use string_cache::Atom;
 
 use std::cell::Cell;
 
+#[derive(JSTraceable)]
+struct TBodiesFilter;
+impl CollectionFilter for TBodiesFilter {
+    fn filter(&self, elem: &Element, _root: &Node) -> bool {
+        elem.is_htmltablesectionelement() && elem.local_name() == &atom!("tbody")
+    }
+}
+
 #[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
+    tbodies: MutNullableHeap<JS<HTMLCollection>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
@@ -52,6 +69,7 @@ impl HTMLTableElement {
             background_color: Cell::new(None),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
+            tbodies: Default::default(),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
@@ -62,6 +80,75 @@ impl HTMLTableElement {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn get_first_section_of_type(&self, atom: &Atom) -> Option<Root<HTMLTableSectionElement>> {
+        let node = NodeCast::from_ref(self);
+        node.child_elements()
+            .find(|n| n.is_htmltablesectionelement() && n.r().local_name() == atom)
+            .and_then(HTMLTableSectionElementCast::to_root)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn set_first_section_of_type<P>(&self,
+                                    atom: &Atom,
+                                    section: Option<&HTMLTableSectionElement>,
+                                    reference_predicate: P)
+                                        -> ErrorResult where P: FnMut(&Root<Element>) -> bool {
+        match section {
+            Some(e) if ElementCast::from_ref(e).local_name() != atom =>
+                Err(HierarchyRequest),
+            _ => {
+                if let Some(first_section) = self.get_first_section_of_type(atom) {
+                    NodeCast::from_ref(first_section.r()).remove_self()
+                }
+
+                let node = NodeCast::from_ref(self);
+
+                if let Some(section) = section {
+                    let reference_element =
+                        node.child_elements().find(reference_predicate);
+
+                    Node::insert(NodeCast::from_ref(section),
+                                 node,
+                                 reference_element.as_ref().map(|n| NodeCast::from_ref(n.r())),
+                                 SuppressObserver::Unsuppressed);
+                }
+
+                Ok(())
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
+    // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
+    fn create_section_of_type(&self, atom: &Atom) -> Root<HTMLElement> {
+        let section = match self.get_first_section_of_type(atom) {
+            Some(section) => section,
+            None => {
+                let section = HTMLTableSectionElement::new(atom.to_string(),
+                                                           None,
+                                                           document_from_node(self).r());
+                assert!(match atom {
+                    &atom!("thead") => self.SetTHead(Some(section.r())),
+                    &atom!("tfoot") => self.SetTFoot(Some(section.r())),
+                    _ => unreachable!("unexpected section type")
+                }.is_ok());
+                section
+            }
+        };
+        HTMLElementCast::from_root(section)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
+    fn delete_first_section_of_type(&self, atom: &Atom) {
+        if let Some(thead) = self.get_first_section_of_type(atom) {
+            NodeCast::from_ref(thead.r()).remove_self();
+        }
+    }
 }
 
 impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
@@ -69,9 +156,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     fn GetCaption(self) -> Option<Root<HTMLTableCaptionElement>> {
         let node = NodeCast::from_ref(self);
         node.children()
-            .filter_map(|c| {
-                HTMLTableCaptionElementCast::to_ref(c.r()).map(Root::from_ref)
-            })
+            .filter_map(HTMLTableCaptionElementCast::to_root)
             .next()
     }
 
@@ -109,6 +194,80 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
         if let Some(caption) = self.GetCaption() {
             NodeCast::from_ref(caption.r()).remove_self();
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    fn GetTHead(self) -> Option<Root<HTMLTableSectionElement>> {
+        self.get_first_section_of_type(&atom!("thead"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    fn SetTHead(self, thead: Option<&HTMLTableSectionElement>) -> ErrorResult {
+        self.set_first_section_of_type(&atom!("thead"),
+                                       thead,
+                                       |n| !(n.is_htmltablecaptionelement() ||
+                                             n.is_htmltablecolelement()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
+    fn CreateTHead(self) -> Root<HTMLElement> {
+        self.create_section_of_type(&atom!("thead"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
+    fn DeleteTHead(self) {
+        self.delete_first_section_of_type(&atom!("thead"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn GetTFoot(self) -> Option<Root<HTMLTableSectionElement>> {
+        self.get_first_section_of_type(&atom!("tfoot"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn SetTFoot(self, tfoot: Option<&HTMLTableSectionElement>) -> ErrorResult {
+        self.set_first_section_of_type(&atom!("tfoot"),
+                                       tfoot,
+                                       |n| !(n.is_htmltablecaptionelement() ||
+                                             n.is_htmltablecolelement() ||
+                                             (n.is_htmltablesectionelement() &&
+                                                 n.r().local_name() == &atom!("thead"))))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
+    fn CreateTFoot(self) -> Root<HTMLElement> {
+        self.create_section_of_type(&atom!("tfoot"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
+    fn DeleteTFoot(self) {
+        self.delete_first_section_of_type(&atom!("tfoot"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-tbodies
+    fn TBodies(self) -> Root<HTMLCollection> {
+        self.tbodies.or_init(|| {
+            let window = window_from_node(self);
+            let filter = box TBodiesFilter;
+            HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
+    fn CreateTBody(self) -> Root<HTMLElement> {
+        let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
+                                                 None,
+                                                 document_from_node(self).r());
+        let node = NodeCast::from_ref(self);
+        let reference_element =
+            node.child_elements().find(|n| n.is_htmltablesectionelement() &&
+                                           n.local_name() == &atom!("tbody"));
+
+        Node::insert(NodeCast::from_ref(tbody.r()),
+                     node,
+                     reference_element.as_ref().map(|n| NodeCast::from_ref(n.r())),
+                     SuppressObserver::Unsuppressed);
+        HTMLElementCast::from_root(tbody)
     }
 }
 

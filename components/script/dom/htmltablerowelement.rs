@@ -3,23 +3,41 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrHelpers};
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::HTMLTableRowElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived};
-use dom::bindings::js::Root;
+use dom::bindings::codegen::InheritTypes::{HTMLTableHeaderCellElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Error::IndexSize;
+use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
+use dom::element::{Element, ElementTypeId};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmltabledatacellelement::HTMLTableDataCellElement;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
 use util::str::{self, DOMString};
 use std::cell::Cell;
 
+#[derive(JSTraceable)]
+struct CellsFilter;
+impl CollectionFilter for CellsFilter {
+    fn filter(&self, elem: &Element, _root: &Node) -> bool {
+        elem.is_htmltableheadercellelement() || elem.is_htmltabledatacellelement()
+    }
+}
+
 #[dom_struct]
 pub struct HTMLTableRowElement {
     htmlelement: HTMLElement,
+    cells: MutNullableHeap<JS<HTMLCollection>>,
     background_color: Cell<Option<RGBA>>,
 }
 
@@ -39,6 +57,7 @@ impl HTMLTableRowElement {
                                                     localName,
                                                     prefix,
                                                     document),
+            cells: Default::default(),
             background_color: Cell::new(None),
         }
     }
@@ -60,6 +79,50 @@ pub trait HTMLTableRowElementHelpers {
 impl<'a> HTMLTableRowElementHelpers for &'a HTMLTableRowElement {
     fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
+    }
+}
+
+impl <'a> HTMLTableRowElementMethods for &'a HTMLTableRowElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tr-cells
+    fn Cells(self) -> Root<HTMLCollection> {
+        self.cells.or_init(|| {
+            let window = window_from_node(self);
+            let filter = box CellsFilter;
+            HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
+    fn InsertCell(self, index: i32) -> Fallible<Root<HTMLElement>> {
+        if index < -1 || index > self.Cells().Length() as i32 {
+            return Err(IndexSize);
+        }
+
+        let this = NodeCast::from_ref(self);
+        let td = HTMLTableDataCellElement::new("td".to_owned(), None, this.owner_doc().r());
+        if index == -1 || index == self.Cells().Length() as i32 {
+            try!(this.AppendChild(NodeCast::from_ref(td.r())));
+        } else {
+            let reference = NodeCast::from_root(self.Cells().Item(index as u32).unwrap());
+            try!(this.InsertBefore(NodeCast::from_ref(td.r()), Some(reference.r())));
+        }
+        Ok(HTMLElementCast::from_root(td))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
+    fn DeleteCell(self, index: i32) -> ErrorResult {
+        if index < -1 || index >= self.Cells().Length() as i32 {
+            return Err(IndexSize);
+        }
+
+        let index = if index == -1 {
+            self.Cells().Length() as i32 - 1
+        } else {
+            index
+        };
+
+        NodeCast::from_ref(self.Cells().Item(index as u32).unwrap().r()).remove_self();
+        Ok(())
     }
 }
 

@@ -4,7 +4,13 @@
 
 use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::HTMLTableRowElementMethods;
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
+use dom::bindings::codegen::InheritTypes::HTMLTableRowElementCast;
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -78,6 +84,21 @@ impl<'a> HTMLTableCellElementMethods for &'a HTMLTableCellElement {
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_getter!(ColSpan, "colspan", DEFAULT_COLSPAN);
     make_uint_setter!(SetColSpan, "colspan");
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
+    fn CellIndex(self) -> i32 {
+        if let Some(tr) = NodeCast::from_ref(self).GetParentNode() {
+            if let Some(tr) = HTMLTableRowElementCast::to_root(tr) {
+                let this = Some(Root::from_ref(ElementCast::from_ref(self)));
+                for i in 0..tr.Cells().Length() {
+                    if tr.Cells().Item(i) == this {
+                        return i as i32;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
 }
 
 pub trait HTMLTableCellElementHelpers {
