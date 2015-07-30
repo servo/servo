@@ -55,7 +55,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#5d2baca5fbbe3924a76b57b4b98dbbefd62cea99"
+source = "git+https://github.com/servo/rust-azure#53ac8495ca2618a4e795c402ab24ec96d5d6f596"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -697,7 +697,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#251c48b7a3c0d563acd96397679c114add2c4fd7"
+source = "git+https://github.com/servo/rust-layers#e2283b8ec3d3eb2e10afa8a318deda71dd59d11a"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1271,7 +1271,7 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#4569e30e308f33f45ee773e73393d769feaf8494"
+source = "git+https://github.com/servo/skia#6eddb1b798c8f1fa9182a4ebfe38f2a84c7ef418"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
