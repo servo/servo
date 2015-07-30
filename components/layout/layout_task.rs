@@ -46,7 +46,7 @@ use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use net_traits::{load_bytes_iter, PendingAsyncLoad};
@@ -609,13 +609,15 @@ impl LayoutTask {
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(Report {
-            path: path!["pages", format!("url({})", self.url), "layout-task", "display-list"],
+            path: path![format!("url({})", self.url), "layout-task", "display-list"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
             size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
         // The LayoutTask has a context in TLS...
         reports.push(Report {
-            path: path!["pages", format!("url({})", self.url), "layout-task", "local-context"],
+            path: path![format!("url({})", self.url), "layout-task", "local-context"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
             size: heap_size_of_local_context(),
         });
 
@@ -624,9 +626,10 @@ impl LayoutTask {
             let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
             for (i, size) in sizes.iter().enumerate() {
                 reports.push(Report {
-                    path: path!["pages", format!("url({})", self.url),
+                    path: path![format!("url({})", self.url),
                                 format!("layout-worker-{}-local-context", i)],
-                    size: *size
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: *size,
                 });
             }
         }

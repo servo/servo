@@ -23,11 +23,47 @@ impl ProfilerChan {
     }
 }
 
+/// The various kinds of memory measurement.
+///
+/// Here "explicit" means explicit memory allocations done by the application. It includes
+/// allocations made at the OS level (via functions such as VirtualAlloc, vm_allocate, and mmap),
+/// allocations made at the heap allocation level (via functions such as malloc, calloc, realloc,
+/// memalign, operator new, and operator new[]) and where possible, the overhead of the heap
+/// allocator itself. It excludes memory that is mapped implicitly such as code and data segments,
+/// and thread stacks. "explicit" is not guaranteed to cover every explicit allocation, but it does
+/// cover most (including the entire heap), and therefore it is the single best number to focus on
+/// when trying to reduce memory usage.
+#[derive(Deserialize, Serialize)]
+pub enum ReportKind {
+    /// A size measurement for an explicit allocation on the jemalloc heap. This should be used
+    /// for any measurements done via the `HeapSizeOf` trait.
+    ExplicitJemallocHeapSize,
+
+    /// A size measurement for an explicit allocation on the system heap. Only likely to be used
+    /// for external C or C++ libraries that don't use jemalloc.
+    ExplicitSystemHeapSize,
+
+    /// A size measurement for an explicit allocation not on the heap, e.g. via mmap().
+    ExplicitNonHeapSize,
+
+    /// A size measurement for an explicit allocation whose location is unknown or uncertain.
+    ExplicitUnknownLocationSize,
+
+    /// A size measurement for a non-explicit allocation. This kind is used for global
+    /// measurements such as "resident" and "vsize", and also for measurements that cross-cut the
+    /// measurements grouped under "explicit", e.g. by grouping those measurements in a way that's
+    /// different to how they are grouped under "explicit".
+    NonExplicitSize,
+}
+
 /// A single memory-related measurement.
 #[derive(Deserialize, Serialize)]
 pub struct Report {
     /// The identifying path for this report.
     pub path: Vec<String>,
+
+    /// The report kind.
+    pub kind: ReportKind,
 
     /// The size, in bytes.
     pub size: usize,

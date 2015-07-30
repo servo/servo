@@ -6,7 +6,8 @@
 
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
-use profile_traits::mem::{ProfilerChan, ProfilerMsg, Reporter, ReporterRequest, ReportsChan};
+use profile_traits::mem::{ProfilerChan, ProfilerMsg, Reporter, ReporterRequest, ReportKind};
+use profile_traits::mem::ReportsChan;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -20,6 +21,9 @@ pub struct Profiler {
     /// Registered memory reporters.
     reporters: HashMap<String, Reporter>,
 }
+
+const JEMALLOC_HEAP_ALLOCATED_STR: &'static str = "jemalloc-heap-allocated";
+const SYSTEM_HEAP_ALLOCATED_STR: &'static str = "system-heap-allocated";
 
 impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
@@ -122,16 +126,72 @@ impl Profiler {
         // each reporter once we have enough of them.
         //
         // If anything goes wrong with a reporter, we just skip it.
+        //
+        // We also track the total memory reported on the jemalloc heap and the system heap, and
+        // use that to compute the special "jemalloc-heap-unclassified" and
+        // "system-heap-unclassified" values.
+
         let mut forest = ReportsForest::new();
+
+        let mut jemalloc_heap_reported_size = 0;
+        let mut system_heap_reported_size = 0;
+
+        let mut jemalloc_heap_allocated_size: Option<usize> = None;
+        let mut system_heap_allocated_size: Option<usize> = None;
+
         for reporter in self.reporters.values() {
             let (chan, port) = ipc::channel().unwrap();
             reporter.collect_reports(ReportsChan(chan));
-            if let Ok(reports) = port.recv() {
-                for report in reports.iter() {
+            if let Ok(mut reports) = port.recv() {
+
+                for report in reports.iter_mut() {
+
+                    // Add "explicit" to the start of the path, when appropriate.
+                    match report.kind {
+                        ReportKind::ExplicitJemallocHeapSize |
+                        ReportKind::ExplicitSystemHeapSize |
+                        ReportKind::ExplicitNonHeapSize |
+                        ReportKind::ExplicitUnknownLocationSize =>
+                            report.path.insert(0, String::from("explicit")),
+                        ReportKind::NonExplicitSize => {},
+                    }
+
+                    // Update the reported fractions of the heaps, when appropriate.
+                    match report.kind {
+                        ReportKind::ExplicitJemallocHeapSize =>
+                            jemalloc_heap_reported_size += report.size,
+                        ReportKind::ExplicitSystemHeapSize =>
+                            system_heap_reported_size += report.size,
+                        _ => {},
+                    }
+
+                    // Record total size of the heaps, when we see them.
+                    if report.path.len() == 1 {
+                        if report.path[0] == JEMALLOC_HEAP_ALLOCATED_STR {
+                            assert!(jemalloc_heap_allocated_size.is_none());
+                            jemalloc_heap_allocated_size = Some(report.size);
+                        } else if report.path[0] == SYSTEM_HEAP_ALLOCATED_STR {
+                            assert!(system_heap_allocated_size.is_none());
+                            system_heap_allocated_size = Some(report.size);
+                        }
+                    }
+
+                    // Insert the report.
                     forest.insert(&report.path, report.size);
                 }
             }
         }
+
+        // Compute and insert the heap-unclassified values.
+        if let Some(jemalloc_heap_allocated_size) = jemalloc_heap_allocated_size {
+            forest.insert(&path!["explicit", "jemalloc-heap-unclassified"],
+                          jemalloc_heap_allocated_size - jemalloc_heap_reported_size);
+        }
+        if let Some(system_heap_allocated_size) = system_heap_allocated_size {
+            forest.insert(&path!["explicit", "system-heap-unclassified"],
+                          system_heap_allocated_size - system_heap_reported_size);
+        }
+
         forest.print();
 
         println!("|");
@@ -301,11 +361,12 @@ impl ReportsForest {
 
 mod system_reporter {
     use libc::{c_char, c_int, c_void, size_t};
-    use profile_traits::mem::{Report, ReporterRequest};
+    use profile_traits::mem::{Report, ReporterRequest, ReportKind};
     use std::borrow::ToOwned;
     use std::ffi::CString;
     use std::mem::size_of;
     use std::ptr::null_mut;
+    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os="macos")]
     use task_info::task_basic_info::{virtual_size, resident_size};
 
@@ -315,7 +376,11 @@ mod system_reporter {
         {
             let mut report = |path, size| {
                 if let Some(size) = size {
-                    reports.push(Report { path: path, size: size });
+                    reports.push(Report {
+                        path: path,
+                        kind: ReportKind::NonExplicitSize,
+                        size: size,
+                    });
                 }
             };
 
@@ -330,13 +395,13 @@ mod system_reporter {
 
             // Total number of bytes allocated by the application on the system
             // heap.
-            report(path!["system-heap-allocated"], get_system_heap_allocated());
+            report(path![SYSTEM_HEAP_ALLOCATED_STR], get_system_heap_allocated());
 
             // The descriptions of the following jemalloc measurements are taken
             // directly from the jemalloc documentation.
 
             // "Total number of bytes allocated by the application."
-            report(path!["jemalloc-heap-allocated"], get_jemalloc_stat("stats.allocated"));
+            report(path![JEMALLOC_HEAP_ALLOCATED_STR], get_jemalloc_stat("stats.allocated"));
 
             // "Total number of bytes in active pages allocated by the application.
             // This is a multiple of the page size, and greater than or equal to
