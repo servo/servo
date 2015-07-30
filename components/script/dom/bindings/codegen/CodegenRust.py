@@ -3442,8 +3442,6 @@ class CGUnionStruct(CGThing):
             "            %s::e%s(ref inner) => inner.to_jsval(cx, rval),"
             % (self.type, v["name"]) for v in templateVars
         ]
-        # XXXManishearth The following should be #[must_root],
-        # however we currently allow it till #2661 is fixed
         return ("""\
 pub enum %s {
 %s
