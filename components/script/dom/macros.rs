@@ -104,9 +104,10 @@ macro_rules! make_enumerated_getter(
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             use std::borrow::ToOwned;
+            use std::ascii::AsciiExt;
             let element = ElementCast::from_ref(self);
-            let val = element.get_string_attribute(&Atom::from_slice($htmlname))
-                             .into_ascii_lowercase();
+            let mut val = element.get_string_attribute(&Atom::from_slice($htmlname));
+            val.make_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match &*val {
                 $($choices)|+ => val,

@@ -88,7 +88,7 @@ impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
         let mut content = String::new();
         collect_text(&node, &mut content);
         let v: Vec<&str> = split_html_space_chars(&content).collect();
-        v.connect(" ")
+        v.join(" ")
     }
 
     // https://www.whatwg.org/html/#dom-option-text

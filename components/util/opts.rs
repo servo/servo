@@ -267,8 +267,7 @@ pub fn default_opts() -> Opts {
 }
 
 pub fn from_cmdline_args(args: &[String]) {
-    let app_name = args[0].to_string();
-    let args = args.tail();
+    let (app_name, args) = args.split_first().unwrap();
 
     let opts = vec!(
         getopts::optflag("c", "cpu", "CPU painting (default)"),
@@ -305,7 +304,7 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
-        print_usage(&app_name, &opts);
+        print_usage(app_name, &opts);
         process::exit(0);
     };
 
@@ -318,11 +317,11 @@ pub fn from_cmdline_args(args: &[String]) {
         debug_options.insert(split.clone());
     }
     if debug_options.contains(&"help") {
-        print_debug_usage(&app_name)
+        print_debug_usage(app_name)
     }
 
     let url = if opt_match.free.is_empty() {
-        print_usage(&app_name, &opts);
+        print_usage(app_name, &opts);
         args_fail("servo asks that you provide a URL")
     } else {
         let ref url = opt_match.free[0];

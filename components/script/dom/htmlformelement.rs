@@ -35,7 +35,6 @@ use hyper::mime;
 use msg::constellation_msg::LoadData;
 use util::str::DOMString;
 use script_task::{ScriptChan, ScriptMsg};
-use std::ascii::OwnedAsciiExt;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
 use string_cache::Atom;

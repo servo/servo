@@ -4,6 +4,7 @@
 
 #![feature(append)]
 #![feature(arc_unique)]
+#![feature(ascii)]
 #![feature(as_slice)]
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
@@ -17,7 +18,6 @@
 #![feature(hashmap_hasher)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
-#![feature(owned_ascii_ext)]
 #![feature(plugin)]
 #![feature(ref_slice)]
 #![feature(rc_unique)]
