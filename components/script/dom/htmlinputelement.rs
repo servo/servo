@@ -38,7 +38,6 @@ use msg::constellation_msg::ConstellationChan;
 use util::str::DOMString;
 use string_cache::Atom;
 
-use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 
