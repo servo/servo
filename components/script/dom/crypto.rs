@@ -54,9 +54,9 @@ impl<'a> CryptoMethods for &'a Crypto {
             return Err(Error::TypeMismatch);
         }
 
-        array_buffer_view.compute_length_and_data();
+        let mut data = array_buffer_view.extract();
         let mut buffer = unsafe {
-            array_buffer_view.as_mut_untyped_slice()
+            data.as_mut_untyped_slice()
         };
 
         if buffer.len() > 65536 {

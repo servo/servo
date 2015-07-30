@@ -289,8 +289,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             Err(_) => return,
         };
         array_buffer_view.init();
-        array_buffer_view.compute_length_and_data();
-        let data_vec = match array_buffer_view.as_slice() {
+        let data_buffer = array_buffer_view.extract();
+        let data_vec = match data_buffer.as_slice() {
             Ok(data) => data.to_vec(),
             Err(_) => return,
         };
@@ -495,8 +495,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             Err(_) => return,
         };
         typed_array.init();
-        typed_array.compute_length_and_data();
-        let data_vec = typed_array.as_slice().iter().cloned().take(4).collect();
+        let data_buffer = typed_array.extract();
+        let data_vec = data_buffer.as_slice().iter().cloned().take(4).collect();
 
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))

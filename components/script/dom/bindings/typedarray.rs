@@ -96,18 +96,49 @@ typed_array_element!(ClampedU8, u8, UnwrapUint8ClampedArray, GetUint8ClampedArra
 typed_array_element!(ArrayBufferU8, u8, UnwrapArrayBuffer, GetArrayBufferLengthAndData);
 typed_array_element!(ArrayBufferViewU8, u8, UnwrapArrayBufferView, GetArrayBufferViewLengthAndData);
 
+/// The underlying buffer representation for a typed array.
+pub struct TypedArrayBuffer<'a, T: TypedArrayElement> {
+    buffer: *mut T::FundamentalType,
+    elements: u32,
+    _typed_array: &'a TypedArrayObjectStorage,
+}
+
+impl<'owner, T: TypedArrayElement> TypedArrayBuffer<'owner, T> {
+    /// Return the underlying buffer as a slice of the element type.
+    pub fn as_slice(&self) -> &[T::FundamentalType] {
+        unsafe {
+            slice::from_raw_parts(self.buffer, self.elements as usize)
+        }
+    }
+
+    /// Return the underlying buffer as a mutable slice of the element type.
+    /// Creating multiple mutable slices of the same buffer simultaneously
+    /// will result in undefined behaviour.
+    pub unsafe fn as_mut_slice(&mut self) -> &mut [T::FundamentalType] {
+        slice::from_raw_parts_mut(self.buffer, self.elements as usize)
+    }
+
+    fn data(&self) -> *mut T::FundamentalType {
+        self.buffer
+    }
+
+    fn length(&self) -> u32 {
+        self.elements
+    }
+}
+
+impl<'owner> TypedArrayBuffer<'owner, ArrayBufferViewU8> {
+    unsafe fn as_slice_transmute<T: TypedArrayElement>(&self) -> &[T] {
+        slice::from_raw_parts(self.buffer as *mut T, self.elements as usize / mem::size_of::<T>())
+    }
+}
+
 /// The base representation for all typed arrays.
 pub struct TypedArrayBase<'a, T: 'a + TypedArrayElement> {
     /// The JS wrapper storage.
     storage: TypedArrayObjectStorage,
-    /// The underlying memory buffer.
-    data: *mut T::FundamentalType,
-    /// The number of elements that make up the buffer.
-    length: u32,
-    /// True if the length and data of this typed array have been computed.
-    /// Any attempt to interact with the underlying buffer must compute it first,
-    /// to minimize the window of potential GC hazards.
-    computed: bool,
+    /// The underlying memory buffer and number of contained elements, if computed
+    computed: Option<(*mut T::FundamentalType, u32)>,
     rooter: &'a mut TypedArrayRooter,
 }
 
@@ -126,9 +157,7 @@ impl<'a, T: TypedArrayElement> TypedArrayBase<'a, T> {
             storage: TypedArrayObjectStorage {
                 typed_obj: obj,
             },
-            data: ptr::null_mut(),
-            length: 0,
-            computed: false,
+            computed: None,
             rooter: rooter,
         })
     }
@@ -143,45 +172,21 @@ impl<'a, T: TypedArrayElement> TypedArrayBase<'a, T> {
         self.rooter.init(&mut self.storage);
     }
 
-    /// Return the underlying buffer as a slice of the element type.
-    /// Length and data must be computed first.
-    pub fn as_slice(&self) -> &[T::FundamentalType] {
-        assert!(self.computed);
-        unsafe {
-            slice::from_raw_parts(self.data, self.length as usize)
+    /// Retrieve a usable buffer from this typed array.
+    pub fn extract(&mut self) -> TypedArrayBuffer<T> {
+        assert!(self.inited());
+        if self.computed.is_none() {
+            let (length, data) = T::length_and_data(self.storage.typed_obj);
+            self.computed = Some((data, length));
+        }
+        let &(data, length) = self.computed.as_ref().unwrap();
+        TypedArrayBuffer {
+            buffer: data,
+            elements: length,
+            _typed_array: &self.storage
         }
     }
 
-    /// Return the underlying buffer as a mutable slice of the element type.
-    /// Length and data must be computed first.
-    /// Creating multiple mutable slices of the same buffer simultaneously
-    /// will result in undefined behaviour.
-    pub unsafe fn as_mut_slice(&mut self) -> &mut [T::FundamentalType] {
-        assert!(self.computed);
-        slice::from_raw_parts_mut(self.data, self.length as usize)
-    }
-
-    /// Compute the length and data of this typed array.
-    /// This operation that must only be performed once, as soon as
-    /// possible before making use of the resulting buffer.
-    pub fn compute_length_and_data(&mut self) {
-        assert!(self.inited());
-        assert!(!self.computed);
-        let (length, data) = T::length_and_data(self.storage.typed_obj);
-        self.length = length;
-        self.data = data;
-        self.computed = true;
-    }
-
-    fn data(&self) -> *mut T::FundamentalType {
-        assert!(self.computed);
-        self.data
-    }
-
-    fn length(&self) -> u32 {
-        assert!(self.computed);
-        self.length
-    }
 }
 
 impl<'a, T: TypedArrayElement> Drop for TypedArrayBase<'a, T> {
@@ -190,13 +195,6 @@ impl<'a, T: TypedArrayElement> Drop for TypedArrayBase<'a, T> {
         let storage = &mut self.storage as *mut _;
         let original = self.rooter.typed_array;
         assert_eq!(storage, original);
-    }
-}
-
-impl<'a> TypedArrayBase<'a, ArrayBufferViewU8> {
-    unsafe fn as_slice_transmute<T: TypedArrayElement>(&self) -> &[T] {
-        assert!(self.computed);
-        slice::from_raw_parts(self.data as *mut T, self.length as usize / mem::size_of::<T>())
     }
 }
 
@@ -335,6 +333,30 @@ array_buffer_view_output!(f32, Float32);
 array_buffer_view_output!(f64, Float64);
 array_buffer_view_output!(ClampedU8, Uint8Clamped);
 
+/// The underlying buffer representation for a typed array.
+pub struct ArrayBufferBuffer<'owner, T: TypedArrayElement> {
+    base: TypedArrayBuffer<'owner, T>,
+    type_: Type,
+}
+
+impl<'owner, T: TypedArrayElement> ArrayBufferBuffer<'owner, T> {
+    /// Return a slice of the bytes of the underlying buffer.
+    pub fn as_untyped_slice(&self) -> &[u8] {
+        unsafe {
+            let num_bytes = self.base.length() as usize * mem::size_of::<T::FundamentalType>();
+            slice::from_raw_parts(self.base.data() as *const _ as *const u8, num_bytes)
+        }
+    }
+
+    /// Return a mutable slice of the bytes of the underlying buffer.
+    /// Creating multiple mutable slices of the same buffer simultaneously
+    /// will result in undefined behaviour.
+    pub unsafe fn as_mut_untyped_slice(&mut self) -> &mut [u8] {
+        let num_bytes = self.base.length() as usize * mem::size_of::<T::FundamentalType>();
+        slice::from_raw_parts_mut(self.base.data() as *mut u8, num_bytes)
+    }
+}
+
 impl<'a, T: TypedArrayElement + ArrayBufferViewType> ArrayBufferViewBase<'a, T> {
     /// Create an ArrayBufferView wrapper for a JS reflector.
     /// Fails if the JS reflector is not an ArrayBufferView, or if it is not
@@ -359,45 +381,27 @@ impl<'a, T: TypedArrayElement + ArrayBufferViewType> ArrayBufferViewBase<'a, T> 
         self.typed_array.init();
     }
 
-    /// Compute the length and data of this typed array.
-    /// This operation that must only be performed once, as soon as
-    /// possible before making use of the resulting buffer.
-    pub fn compute_length_and_data(&mut self) {
-        self.typed_array.compute_length_and_data();
+    /// Retrieve a usable buffer from this typed array.
+    pub fn extract(&mut self) -> ArrayBufferBuffer<T>{
+        ArrayBufferBuffer {
+            base: self.typed_array.extract(),
+            type_: self.type_,
+        }
     }
 
     /// Return the element type of the wrapped ArrayBufferView.
     pub fn element_type(&self) -> Type {
         self.type_
     }
-
-    /// Return a slice of the bytes of the underlying buffer.
-    /// Length and data must be computed first.
-    pub fn as_untyped_slice(&self) -> &[u8] {
-        unsafe {
-            let num_bytes = self.typed_array.length() as usize * mem::size_of::<T::FundamentalType>();
-            slice::from_raw_parts(self.typed_array.data() as *const _ as *const u8, num_bytes)
-        }
-    }
-
-    /// Return a mutable slice of the bytes of the underlying buffer.
-    /// Length and data must be computed first.
-    /// Creating multiple mutable slices of the same buffer simultaneously
-    /// will result in undefined behaviour.
-    pub unsafe fn as_mut_untyped_slice(&mut self) -> &mut [u8] {
-        let num_bytes = self.typed_array.length() as usize * mem::size_of::<T::FundamentalType>();
-        slice::from_raw_parts_mut(self.typed_array.data() as *mut u8, num_bytes)
-    }
 }
 
-impl<'a> ArrayBufferViewBase<'a, ArrayBufferViewU8> {
+impl<'owner> ArrayBufferBuffer<'owner, ArrayBufferViewU8> {
     /// Return a slice of the underlying buffer reinterpreted as a different element type.
-    /// Length and data must be computed first.
-    pub fn as_slice<U>(&mut self) -> Result<&[U], ()>
-                                  where U: ArrayBufferViewOutput + TypedArrayElement {
+    pub fn as_slice<U>(&self) -> Result<&[U], ()>
+                              where U: ArrayBufferViewOutput + TypedArrayElement {
         if U::get_view_type() as u32 == self.type_ as u32 {
             unsafe {
-                Ok(self.typed_array.as_slice_transmute())
+                Ok(self.base.as_slice_transmute())
             }
         } else {
             Err(())

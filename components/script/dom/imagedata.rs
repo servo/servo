@@ -61,8 +61,8 @@ impl<'a> ImageDataHelpers for &'a ImageData {
             Err(_) => return vec![],
         };
         typed_array.init();
-        typed_array.compute_length_and_data();
-        typed_array.as_slice().to_vec()
+        let data = typed_array.extract();
+        data.as_slice().to_vec()
     }
 
     fn get_size(self) -> Size2D<i32> {
