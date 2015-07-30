@@ -2153,74 +2153,68 @@ impl<'a> NodeMethods for &'a Node {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is_document() =>
                 return Err(HierarchyRequest),
             NodeTypeId::DocumentType if !self.is_document() => return Err(HierarchyRequest),
-            NodeTypeId::DocumentFragment |
-            NodeTypeId::DocumentType |
-            NodeTypeId::Element(..) |
-            NodeTypeId::CharacterData(..) => (),
-            NodeTypeId::Document => return Err(HierarchyRequest)
+            NodeTypeId::Document => return Err(HierarchyRequest),
+            _ => ()
         }
 
         // Step 6.
-        match self.type_id {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children()
-                               .any(|c| c.r().is_text())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if self.child_elements()
-                                       .any(|c| NodeCast::from_ref(c.r()) != child) {
-                                    return Err(HierarchyRequest);
-                                }
-                                if child.following_siblings()
-                                        .any(|child| child.r().is_doctype()) {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest)
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(..) => {
-                        if self.child_elements()
-                               .any(|c| NodeCast::from_ref(c.r()) != child) {
-                            return Err(HierarchyRequest);
-                        }
-                        if child.following_siblings()
-                                .any(|child| child.r().is_doctype())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if self.children()
-                               .any(|c| c.r().is_doctype() &&
-                                    c.r() != child)
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        if self.children()
-                               .take_while(|c| c.r() != child)
-                               .any(|c| c.r().is_element())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    NodeTypeId::CharacterData(..) => (),
-                    NodeTypeId::Document => unreachable!()
-                }
-            },
-            _ => ()
+        if self.is_document() {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children()
+                           .any(|c| c.is_text())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if self.child_elements()
+                                   .any(|c| NodeCast::from_ref(c.r()) != child) {
+                                return Err(HierarchyRequest);
+                            }
+                            if child.following_siblings()
+                                    .any(|child| child.is_doctype()) {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest)
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(..) => {
+                    if self.child_elements()
+                           .any(|c| NodeCast::from_ref(c.r()) != child) {
+                        return Err(HierarchyRequest);
+                    }
+                    if child.following_siblings()
+                            .any(|child| child.is_doctype())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if self.children()
+                           .any(|c| c.is_doctype() &&
+                                c.r() != child)
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    if self.children()
+                           .take_while(|c| c.r() != child)
+                           .any(|c| c.is_element())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                NodeTypeId::CharacterData(..) => (),
+                NodeTypeId::Document => unreachable!()
+            }
         }
 
         // Ok if not caught by previous error checks.
@@ -2229,8 +2223,8 @@ impl<'a> NodeMethods for &'a Node {
         }
 
         // Step 7-8.
-        let child_next_sibling = child.next_sibling.get().map(Root::from_rooted);
-        let node_next_sibling = node.next_sibling.get().map(Root::from_rooted);
+        let child_next_sibling = child.GetNextSibling();
+        let node_next_sibling = node.GetNextSibling();
         let reference_child = if child_next_sibling.r() == Some(node) {
             node_next_sibling.r()
         } else {
