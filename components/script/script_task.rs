@@ -665,8 +665,9 @@ impl ScriptTask {
             }
         };
 
-        // Squash any pending resize, reflow, and mouse-move events in the queue.
+        // Squash any pending resize, reflow, animation tick, and mouse-move events in the queue.
         let mut mouse_move_event_index = None;
+        let mut animation_ticks = HashSet::new();
         loop {
             match event {
                 // This has to be handled before the ResizeMsg below,
@@ -681,6 +682,13 @@ impl ScriptTask {
                 }
                 MixedMessage::FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
                     self.handle_viewport(id, rect);
+                }
+                MixedMessage::FromConstellation(ConstellationControlMsg::TickAllAnimations(
+                        pipeline_id)) => {
+                    if !animation_ticks.contains(&pipeline_id) {
+                        animation_ticks.insert(pipeline_id);
+                        sequential.push(event);
+                    }
                 }
                 MixedMessage::FromConstellation(ConstellationControlMsg::SendEvent(
                         _,
