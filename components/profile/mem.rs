@@ -437,6 +437,13 @@ mod system_reporter {
     );
 
     #[cfg(target_os="linux")]
+    fn page_size() -> usize {
+        unsafe {
+            ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
+        }
+    }
+
+    #[cfg(target_os="linux")]
     fn get_proc_self_statm_field(field: usize) -> Option<usize> {
         use std::fs::File;
         use std::io::Read;
@@ -446,7 +453,7 @@ mod system_reporter {
         option_try!(f.read_to_string(&mut contents).ok());
         let s = option_try!(contents.split_whitespace().nth(field));
         let npages = option_try!(s.parse::<usize>().ok());
-        Some(npages * ::std::env::page_size())
+        Some(npages * page_size())
     }
 
     #[cfg(target_os="linux")]

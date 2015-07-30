@@ -4,7 +4,6 @@
 
 #![feature(box_syntax)]
 #![feature(iter_arith)]
-#![cfg_attr(target_os="linux", feature(page_size))]
 #![feature(slice_splits)]
 
 #[macro_use] extern crate log;
