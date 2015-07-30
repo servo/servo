@@ -121,9 +121,9 @@ impl LintPass for UnrootedPass {
                 block: &ast::Block, _span: codemap::Span, id: ast::NodeId) {
         match kind {
             visit::FkItemFn(i, _, _, _, _, _) |
-            visit::FkMethod(i, _, _) if i.as_str() == "new"
-                                        || i.as_str() == "new_inherited"
-                                        || i.as_str() == "new_initialized" => {
+            visit::FkMethod(i, _, _) if i.name.as_str() == "new"
+                                        || i.name.as_str() == "new_inherited"
+                                        || i.name.as_str() == "new_initialized" => {
                 self.in_new_function = true;
                 return;
             },
