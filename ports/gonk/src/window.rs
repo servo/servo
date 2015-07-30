@@ -803,6 +803,9 @@ impl WindowMethods for Window {
     fn set_page_url(&self, _: Url) {
     }
 
+    fn status(&self, _: Option<String>) {
+    }
+
     fn load_start(&self, _: bool, _: bool) {
     }
 

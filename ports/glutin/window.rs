@@ -554,6 +554,9 @@ impl WindowMethods for Window {
     fn set_page_url(&self, _: Url) {
     }
 
+    fn status(&self, _: Option<String>) {
+    }
+
     fn load_start(&self, _: bool, _: bool) {
     }
 
@@ -776,6 +779,9 @@ impl WindowMethods for Window {
     }
 
     fn set_favicon(&self, _: Url) {
+    }
+
+    fn status(&self, _: Option<String>) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
