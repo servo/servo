@@ -15,7 +15,7 @@
 #![feature(path_ext)]
 #![feature(plugin)]
 #![feature(rustc_private)]
-#![feature(slice_extras)]
+#![feature(slice_splits)]
 #![feature(step_by)]
 #![feature(step_trait)]
 #![feature(zero_one)]

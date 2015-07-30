@@ -1099,7 +1099,7 @@ impl ScriptTask {
         for it_page in self.root_page().iter() {
             urls.push(it_page.document().url().serialize());
         }
-        let path_seg = format!("url({})", urls.connect(", "));
+        let path_seg = format!("url({})", urls.join(", "));
         let reports = ScriptTask::get_reports(self.get_cx(), path_seg);
         reports_chan.send(reports);
     }
