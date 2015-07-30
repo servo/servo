@@ -455,12 +455,6 @@
             "url": "/_mozilla/mozilla/element_attributes.html"
           }
         ],
-        "mozilla/element_classList.html": [
-          {
-            "path": "mozilla/element_classList.html",
-            "url": "/_mozilla/mozilla/element_classList.html"
-          }
-        ],
         "mozilla/element_className.html": [
           {
             "path": "mozilla/element_className.html",
