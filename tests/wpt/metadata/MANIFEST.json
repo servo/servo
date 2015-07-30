@@ -28856,8 +28856,30 @@
     ]
   },
   "local_changes": {
-    "deleted": [],
-    "items": {},
+    "deleted": [
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
+      "2dcontext/transformations/canvas_transformations_reset_001.htm",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
+    ],
+    "items": {
+      "testharness": {
+        "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html": [
+          {
+            "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html",
+            "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html"
+          }
+        ],
+        "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html": [
+          {
+            "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html",
+            "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
