@@ -10,6 +10,7 @@
 use animation;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, heap_size_of_local_context};
+use cssparser::ToCss;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -55,9 +56,10 @@ use script::dom::node::{LayoutData, Node};
 use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
-use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
+use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
+use selectors::parser::PseudoElement;
 use serde::json;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -67,20 +69,23 @@ use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
+use string_cache::Atom;
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
 use style::properties::style_structs;
+use style::properties::longhands::{display, position};
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::{Au, MAX_RECT};
-use util::logical_geometry::LogicalPoint;
+use util::geometry::{Au, MAX_RECT, ZERO_POINT};
+use util::logical_geometry::{LogicalPoint, WritingMode};
 use util::mem::HeapSizeOf;
 use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
+use wrapper::ThreadSafeLayoutNode;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -128,6 +133,9 @@ pub struct LayoutTaskData {
 
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
+
+    /// A queued response for the resolved style property of an element.
+    pub resolved_style_response: Option<String>,
 
     /// The list of currently-running animations.
     pub running_animations: Vec<Animation>,
@@ -372,6 +380,7 @@ impl LayoutTask {
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
+                    resolved_style_response: None,
                     running_animations: Vec::new(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
@@ -864,6 +873,127 @@ impl LayoutTask {
         rw_data.client_rect_response = iterator.client_rect;
     }
 
+    // Compute the resolved value of property for a given (pseudo)element.
+    // Stores the result in rw_data.resolved_style_response.
+    // https://drafts.csswg.org/cssom/#resolved-value
+    fn process_resolved_style_request<'a>(&'a self,
+                                          requested_node: TrustedNodeAddress,
+                                          pseudo: &Option<PseudoElement>,
+                                          property: &Atom,
+                                          layout_root: &mut FlowRef,
+                                          rw_data: &mut RWGuard<'a>) {
+        // FIXME: Isolate this transmutation into a "bridge" module.
+        // FIXME(rust#16366): The following line had to be moved because of a
+        // rustc bug. It should be in the next unsafe block.
+        let node: LayoutJS<Node> = unsafe {
+            LayoutJS::from_trusted_node_address(requested_node)
+        };
+        let node: &LayoutNode = unsafe {
+            transmute(&node)
+        };
+
+        let layout_node = ThreadSafeLayoutNode::new(node);
+        let layout_node = match pseudo {
+            &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
+            &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
+            _ => Some(layout_node)
+        };
+
+        let layout_node = match layout_node {
+            None => {
+                // The pseudo doesn't exist, return nothing.  Chrome seems to query
+                // the element itself in this case, Firefox uses the resolved value.
+                // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
+                rw_data.resolved_style_response = None;
+                return;
+            }
+            Some(layout_node) => layout_node
+        };
+
+        let style = &*layout_node.style();
+
+        let positioned = match style.get_box().position {
+            position::computed_value::T::relative |
+            /*position::computed_value::T::sticky |*/
+            position::computed_value::T::fixed |
+            position::computed_value::T::absolute => true,
+            _ => false
+        };
+
+        //TODO: determine whether requested property applies to the element.
+        //      eg. width does not apply to non-replaced inline elements.
+        // Existing browsers disagree about when left/top/right/bottom apply
+        // (Chrome seems to think they never apply and always returns resolved values).
+        // There are probably other quirks.
+        let applies = true;
+
+        // TODO: we will return neither the computed nor used value for margin and padding.
+        // Firefox returns blank strings for the computed value of shorthands,
+        // so this should be web-compatible.
+        match property.clone() {
+            atom!("margin-bottom") | atom!("margin-top") |
+            atom!("margin-left") | atom!("margin-right") |
+            atom!("padding-bottom") | atom!("padding-top") |
+            atom!("padding-left") | atom!("padding-right")
+            if applies && style.get_box().display != display::computed_value::T::none => {
+                let (margin_padding, side) = match *property {
+                    atom!("margin-bottom") => (MarginPadding::Margin, Side::Bottom),
+                    atom!("margin-top") => (MarginPadding::Margin, Side::Top),
+                    atom!("margin-left") => (MarginPadding::Margin, Side::Left),
+                    atom!("margin-right") => (MarginPadding::Margin, Side::Right),
+                    atom!("padding-bottom") => (MarginPadding::Padding, Side::Bottom),
+                    atom!("padding-top") => (MarginPadding::Padding, Side::Top),
+                    atom!("padding-left") => (MarginPadding::Padding, Side::Left),
+                    atom!("padding-right") => (MarginPadding::Padding, Side::Right),
+                    _ => unreachable!()
+                };
+                let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+                let mut iterator =
+                    MarginRetrievingFragmentBorderBoxIterator::new(requested_node,
+                                                                   side,
+                                                                   margin_padding,
+                                                                   style.writing_mode);
+                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+            },
+
+            atom!("bottom") | atom!("top") | atom!("right") |
+            atom!("left") | atom!("width") | atom!("height")
+            if applies && positioned && style.get_box().display != display::computed_value::T::none => {
+                let layout_data = layout_node.borrow_layout_data();
+                let position = layout_data.as_ref().map(|layout_data| {
+                    match layout_data.data.flow_construction_result {
+                        ConstructionResult::Flow(ref flow_ref, _) =>
+                            flow::base(flow_ref.deref()).stacking_relative_position,
+                        // TODO search parents until we find node with a flow ref.
+                        _ => ZERO_POINT
+                    }
+                }).unwrap_or(ZERO_POINT);
+                let property = match *property {
+                    atom!("bottom") => PositionProperty::Bottom,
+                    atom!("top") => PositionProperty::Top,
+                    atom!("left") => PositionProperty::Left,
+                    atom!("right") => PositionProperty::Right,
+                    atom!("width") => PositionProperty::Width,
+                    atom!("height") => PositionProperty::Height,
+                    _ => unreachable!()
+                };
+                let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+                let mut iterator =
+                    PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
+                                                                     property,
+                                                                     position);
+                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+            },
+            // FIXME: implement used value computation for line-height
+            property => {
+                rw_data.resolved_style_response = style.computed_value_to_string(property.as_slice());
+            }
+        };
+    }
+
+
     fn compute_abs_pos_and_build_display_list<'a>(&'a self,
                                                   data: &Reflow,
                                                   layout_root: &mut FlowRef,
@@ -1052,15 +1182,14 @@ impl LayoutTask {
 
         let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
         match data.query_type {
-            ReflowQueryType::ContentBoxQuery(node) => {
-                self.process_content_box_request(node, &mut root_flow, &mut rw_data)
-            }
-            ReflowQueryType::ContentBoxesQuery(node) => {
-                self.process_content_boxes_request(node, &mut root_flow, &mut rw_data)
-            }
-            ReflowQueryType::NodeGeometryQuery(node) => {
-                self.process_node_geometry_request(node, &mut root_flow, &mut rw_data)
-            }
+            ReflowQueryType::ContentBoxQuery(node) =>
+                self.process_content_box_request(node, &mut root_flow, &mut rw_data),
+            ReflowQueryType::ContentBoxesQuery(node) =>
+                self.process_content_boxes_request(node, &mut root_flow, &mut rw_data),
+            ReflowQueryType::NodeGeometryQuery(node) =>
+                self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
+            ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) =>
+                self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
             ReflowQueryType::NoQuery => {}
         }
 
@@ -1308,6 +1437,13 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
+    /// Retrieves the resolved value for a CSS style property.
+    fn resolved_style(&self) -> ResolvedStyleResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        ResolvedStyleResponse(rw_data.resolved_style_response.clone())
+    }
+
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
@@ -1456,6 +1592,108 @@ impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
         fragment.node == self.node_address
+    }
+}
+
+enum Side {
+    Left,
+    Right,
+    Bottom,
+    Top
+}
+
+enum MarginPadding {
+    Margin,
+    Padding
+}
+
+enum PositionProperty {
+    Left,
+    Right,
+    Top,
+    Bottom,
+    Width,
+    Height,
+}
+
+struct PositionRetrievingFragmentBorderBoxIterator {
+    node_address: OpaqueNode,
+    result: Option<Au>,
+    position: Point2D<Au>,
+    property: PositionProperty,
+}
+
+impl PositionRetrievingFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode,
+           property: PositionProperty,
+           position: Point2D<Au>) -> PositionRetrievingFragmentBorderBoxIterator {
+        PositionRetrievingFragmentBorderBoxIterator {
+            node_address: node_address,
+            position: position,
+            property: property,
+            result: None,
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for PositionRetrievingFragmentBorderBoxIterator {
+    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+        self.result =
+            Some(match self.property {
+                     PositionProperty::Left => self.position.x,
+                     PositionProperty::Top => self.position.y,
+                     PositionProperty::Width => border_box.size.width,
+                     PositionProperty::Height => border_box.size.height,
+                     // TODO: the following 2 calculations are completely wrong.
+                     // They should return the difference between the parent's and this
+                     // fragment's border boxes.
+                     PositionProperty::Right => border_box.max_x() + self.position.x,
+                     PositionProperty::Bottom => border_box.max_y() + self.position.y,
+        });
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address)
+    }
+}
+
+struct MarginRetrievingFragmentBorderBoxIterator {
+    node_address: OpaqueNode,
+    result: Option<Au>,
+    writing_mode: WritingMode,
+    margin_padding: MarginPadding,
+    side: Side,
+}
+
+impl MarginRetrievingFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode, side: Side, margin_padding:
+    MarginPadding, writing_mode: WritingMode) -> MarginRetrievingFragmentBorderBoxIterator {
+        MarginRetrievingFragmentBorderBoxIterator {
+            node_address: node_address,
+            side: side,
+            margin_padding: margin_padding,
+            result: None,
+            writing_mode: writing_mode,
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
+    fn process(&mut self, fragment: &Fragment, _: &Rect<Au>) {
+        let rect = match self.margin_padding {
+            MarginPadding::Margin => &fragment.margin,
+            MarginPadding::Padding => &fragment.border_padding
+        };
+        self.result = Some(match self.side {
+                               Side::Left => rect.left(self.writing_mode),
+                               Side::Right => rect.right(self.writing_mode),
+                               Side::Bottom => rect.bottom(self.writing_mode),
+                               Side::Top => rect.top(self.writing_mode)
+        });
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address)
     }
 }
 

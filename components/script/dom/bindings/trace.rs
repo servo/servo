@@ -63,6 +63,7 @@ use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
 use util::str::{LengthOrPercentageOrAuto};
+use selectors::parser::PseudoElement;
 use serde::{Deserialize, Serialize};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -304,6 +305,7 @@ no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 no_jsmanaged_fields!(RepetitionStyle);
 no_jsmanaged_fields!(WebGLError);
 no_jsmanaged_fields!(ProfilerChan);
+no_jsmanaged_fields!(PseudoElement);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

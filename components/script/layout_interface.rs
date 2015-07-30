@@ -21,8 +21,10 @@ use net_traits::PendingAsyncLoad;
 use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
 use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
+use selectors::parser::PseudoElement;
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use string_cache::Atom;
 use style::animation::PropertyAnimation;
 use style::media_queries::MediaQueryList;
 use style::stylesheets::Stylesheet;
@@ -100,7 +102,10 @@ pub trait LayoutRPC {
     /// Requests the node containing the point of interest
     fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
     fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
+    /// Query layout for the resolved value of a given CSS property
+    fn resolved_style(&self) -> ResolvedStyleResponse;
 }
+
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
@@ -109,6 +114,7 @@ pub struct NodeGeometryResponse {
 }
 pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
+pub struct ResolvedStyleResponse(pub Option<String>);
 
 /// Why we're doing reflow.
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -126,6 +132,7 @@ pub enum ReflowQueryType {
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
     NodeGeometryQuery(TrustedNodeAddress),
+    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
 }
 
 /// Information needed for a reflow.
