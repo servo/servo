@@ -14,7 +14,7 @@ use msg::constellation_msg::SUPER;
 #[cfg(not(target_os="macos"))]
 use msg::constellation_msg::CONTROL;
 
-use script::textinput::{TextInput, Selection, Lines, DeleteDir};
+use script::textinput::{TextInput, Selection, Lines, Direction};
 use script::clipboard_provider::DummyClipboardContext;
 use std::borrow::ToOwned;
 
@@ -22,14 +22,14 @@ use std::borrow::ToOwned;
 fn test_textinput_delete_char() {
     let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
     textinput.adjust_horizontal(2, Selection::NotSelected);
-    textinput.delete_char(DeleteDir::Backward);
+    textinput.delete_char(Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
 
-    textinput.delete_char(DeleteDir::Forward);
+    textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "adefg");
 
     textinput.adjust_horizontal(2, Selection::Selected);
-    textinput.delete_char(DeleteDir::Forward);
+    textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "afg");
 }
 
