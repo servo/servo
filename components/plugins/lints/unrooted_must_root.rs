@@ -153,6 +153,25 @@ impl LintPass for UnrootedPass {
         }
     }
 
+    /// Trait casts from #[must_root] types are not allowed
+    fn check_expr(&mut self, cx: &Context, expr: &ast::Expr) {
+        fn require_rooted(cx: &Context, in_new_function: bool, subexpr: &ast::Expr) {
+            let ty = cx.tcx.expr_ty(&*subexpr);
+            if is_unrooted_ty(cx, ty, in_new_function) {
+                cx.span_lint(UNROOTED_MUST_ROOT,
+                             subexpr.span,
+                             &format!("Expression of type {:?} must be rooted", ty))
+            }
+        };
+
+        match expr.node {
+            ast::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            _ => {
+                // TODO(pcwalton): Check generics with a whitelist of allowed generics.
+            }
+        }
+    }
+
     // Partially copied from rustc::middle::lint::builtin
     // Catches `let` statements and assignments which store a #[must_root] value
     // Expressions which return out of blocks eventually end up in a `let` or assignment
