@@ -15,22 +15,29 @@ use msg::constellation_msg::SUPER;
 use msg::constellation_msg::CONTROL;
 
 use script::clipboard_provider::DummyClipboardContext;
-use script::textinput::{TextInput, Selection, Lines, DeleteDir};
+use script::textinput::{TextInput, Selection, Lines, Direction};
 use std::borrow::ToOwned;
 
 #[test]
 fn test_textinput_delete_char() {
     let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
     textinput.adjust_horizontal(2, Selection::NotSelected);
-    textinput.delete_char(DeleteDir::Backward);
+    textinput.delete_char(Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
 
-    textinput.delete_char(DeleteDir::Forward);
+    textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "adefg");
 
     textinput.adjust_horizontal(2, Selection::Selected);
-    textinput.delete_char(DeleteDir::Forward);
+    textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "afg");
+
+    let mut textinput = TextInput::new(Lines::Single, "a🌠b".to_owned(), DummyClipboardContext::new(""));
+    // Same as "Right" key
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.delete_char(Direction::Forward);
+    // Not splitting surrogate pairs.
+    assert_eq!(textinput.get_content(), "ab");
 }
 
 #[test]
@@ -43,6 +50,14 @@ fn test_textinput_insert_char() {
     textinput.adjust_horizontal(2, Selection::Selected);
     textinput.insert_char('b');
     assert_eq!(textinput.get_content(), "ababefg");
+
+    let mut textinput = TextInput::new(Lines::Single, "a🌠c".to_owned(), DummyClipboardContext::new(""));
+    // Same as "Right" key
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.insert_char('b');
+    // Not splitting surrogate pairs.
+    assert_eq!(textinput.get_content(), "a🌠bc");
 }
 
 #[test]

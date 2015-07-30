@@ -9,7 +9,7 @@ use dom::keyboardevent::{KeyboardEvent, key_value};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use util::mem::HeapSizeOf;
-use util::str::{DOMString, slice_chars};
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
@@ -26,7 +26,7 @@ pub enum Selection {
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
-    /// 0-based column number
+    /// 0-based column number in UTF-8 bytes
     pub index: usize,
 }
 
@@ -62,15 +62,15 @@ impl Default for TextPoint {
 }
 
 /// Control whether this control should allow multiple lines.
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum Lines {
     Single,
     Multiple,
 }
 
 /// The direction in which to delete a character.
-#[derive(PartialEq)]
-pub enum DeleteDir {
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum Direction {
     Forward,
     Backward
 }
@@ -121,13 +121,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Remove a character at the current editing point
-    pub fn delete_char(&mut self, dir: DeleteDir) {
+    pub fn delete_char(&mut self, dir: Direction) {
         if self.selection_begin.is_none() {
-            self.adjust_horizontal(if dir == DeleteDir::Forward {
-                1
-            } else {
-                -1
-            }, Selection::Selected);
+            self.adjust_horizontal_by_one(dir, Selection::Selected);
         }
         self.replace_selection("".to_owned());
     }
@@ -161,16 +157,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.get_sorted_selection().map(|(begin, end)| {
             if begin.line != end.line {
                 let mut s = String::new();
-                s.push_str(slice_chars(&self.lines[begin.line], begin.index, self.lines[begin.line].len()));
+                s.push_str(&self.lines[begin.line][begin.index..]);
                 for (_, line) in self.lines.iter().enumerate().filter(|&(i,_)| begin.line < i && i < end.line) {
                     s.push_str("\n");
                     s.push_str(line);
                 }
                 s.push_str("\n");
-                s.push_str(slice_chars(&self.lines[end.line], 0, end.index));
+                s.push_str(&self.lines[end.line][..end.index]);
                 s
             } else {
-                slice_chars(&self.lines[begin.line], begin.index, end.index).to_owned()
+                self.lines[begin.line][begin.index..end.index].to_owned()
             }
         })
     }
@@ -180,8 +176,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             self.clear_selection();
 
             let new_lines = {
-                let prefix = slice_chars(&self.lines[begin.line], 0, begin.index);
-                let suffix = slice_chars(&self.lines[end.line], end.index, self.lines[end.line].chars().count());
+                let prefix = &self.lines[begin.line][..begin.index];
+                let suffix = &self.lines[end.line][end.index..];
                 let lines_prefix = &self.lines[..begin.line];
                 let lines_suffix = &self.lines[end.line + 1..];
 
@@ -196,7 +192,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 insert_lines[0] = new_line;
 
                 let last_insert_lines_index = insert_lines.len() - 1;
-                self.edit_point.index = insert_lines[last_insert_lines_index].chars().count();
+                self.edit_point.index = insert_lines[last_insert_lines_index].len();
                 self.edit_point.line = begin.line + last_insert_lines_index;
 
                 insert_lines[last_insert_lines_index].push_str(suffix);
@@ -212,9 +208,9 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    /// Return the length of the current line under the editing point.
+    /// Return the length in UTF-8 bytes of the current line under the editing point.
     pub fn current_line_length(&self) -> usize {
-        self.lines[self.edit_point.line].chars().count()
+        self.lines[self.edit_point.line].len()
     }
 
     /// Adjust the editing point position by a given of lines. The resulting column is
@@ -254,18 +250,60 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
     pub fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
+        let direction = if adjust >= 0 { Direction::Forward } else { Direction::Backward };
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        self.perform_horizontal_adjustment(adjust, select);
+    }
+
+    pub fn adjust_horizontal_by_one(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        let adjust = {
+            let current_line = &self.lines[self.edit_point.line];
+            // FIXME: We adjust by one code point, but it proably should be one grapheme cluster
+            // https://github.com/unicode-rs/unicode-segmentation
+            match direction {
+                Direction::Forward => {
+                    match current_line[self.edit_point.index..].chars().next() {
+                        Some(c) => c.len_utf8() as isize,
+                        None => 1,  // Going to the next line is a "one byte" offset
+                    }
+                }
+                Direction::Backward => {
+                    match current_line[..self.edit_point.index].chars().next_back() {
+                        Some(c) => -(c.len_utf8() as isize),
+                        None => -1,  // Going to the previous line is a "one byte" offset
+                    }
+                }
+            }
+        };
+        self.perform_horizontal_adjustment(adjust, select);
+    }
+
+    // Return whether to cancel the caret move
+    fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection)
+                                              -> bool {
         if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
             }
         } else {
             if let Some((begin, end)) = self.get_sorted_selection() {
-                self.edit_point = if adjust < 0 {begin} else {end};
+                self.edit_point = match adjust {
+                    Direction::Backward => begin,
+                    Direction::Forward => end,
+                };
                 self.clear_selection();
-                return
+                return true
             }
         }
+        false
+    }
 
+    fn perform_horizontal_adjustment(&mut self, adjust: isize, select: Selection) {
         if adjust < 0 {
             let remaining = self.edit_point.index;
             if adjust.abs() as usize > remaining && self.edit_point.line > 0 {
@@ -307,7 +345,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         });
         let last_line = self.lines.len() - 1;
         self.edit_point.line = last_line;
-        self.edit_point.index = self.lines[last_line].chars().count();
+        self.edit_point.index = self.lines[last_line].len();
     }
 
     /// Remove the current selection.
@@ -350,19 +388,19 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::DispatchInput
             }
             Key::Delete => {
-                self.delete_char(DeleteDir::Forward);
+                self.delete_char(Direction::Forward);
                 KeyReaction::DispatchInput
             }
             Key::Backspace => {
-                self.delete_char(DeleteDir::Backward);
+                self.delete_char(Direction::Backward);
                 KeyReaction::DispatchInput
             }
             Key::Left => {
-                self.adjust_horizontal(-1, maybe_select);
+                self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
                 KeyReaction::Nothing
             }
             Key::Right => {
-                self.adjust_horizontal(1, maybe_select);
+                self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
                 KeyReaction::Nothing
             }
             Key::Up => {
