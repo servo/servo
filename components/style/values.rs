@@ -873,7 +873,6 @@ pub mod computed {
         pub inherited_font_size: longhands::font_size::computed_value::T,
         pub inherited_text_decorations_in_effect:
             longhands::_servo_text_decorations_in_effect::computed_value::T,
-        pub inherited_height: longhands::height::computed_value::T,
         pub color: longhands::color::computed_value::T,
         pub text_decoration: longhands::text_decoration::computed_value::T,
         pub font_size: longhands::font_size::computed_value::T,
