@@ -85,7 +85,7 @@ use euclid::point::Point2D;
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
-use url::Url;
+use url::{Url, Host};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 
 use num::ToPrimitive;
@@ -1184,7 +1184,14 @@ impl<'a> DocumentMethods for &'a Document {
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(self) -> DOMString {
         let window = self.window.root();
-        window.get_url().serialize_host().unwrap_or_else(|| "".to_owned())
+        let origin = window.get_url();
+
+        if let Some(&Host::Ipv6(ipv6)) = origin.host() {
+            // Omit square brackets for IPv6 addresses.
+            return ipv6.serialize();
+        }
+
+        origin.serialize_host().unwrap_or_else(|| "".to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
