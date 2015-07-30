@@ -60,21 +60,25 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
     fn Length(self) -> u32 {
-        self.data.borrow().chars().count() as u32
+        self.data.borrow().chars().map(|c| c.len_utf16()).sum::<usize>() as u32
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-substringdataoffset-count
+    // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
         let data = self.data.borrow();
         // Step 1.
-        let length = data.chars().count() as u32;
-        if offset > length {
+        let data_from_offset = match find_utf16_code_unit_offset(&data, offset) {
+            Some(offset_bytes) => &data[offset_bytes..],
             // Step 2.
-            return Err(IndexSize);
-        }
-        // Steps 3-4.
-        let end = if length - offset < count { length } else { offset + count };
-        Ok(data.slice_chars(offset as usize, end as usize).to_owned())
+            None => return Err(IndexSize)
+        };
+        let substring = match find_utf16_code_unit_offset(data_from_offset, count) {
+            // Steps 3.
+            None => data_from_offset,
+            // Steps 4.
+            Some(count_bytes) => &data_from_offset[..count_bytes],
+        };
+        Ok(substring.to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
@@ -92,26 +96,30 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
         self.ReplaceData(offset, count, "".to_owned())
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-replacedataoffset-count-data
+    // https://dom.spec.whatwg.org/#dom-characterdata-replacedata
     fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
-        // Step 1.
-        let length = self.data.borrow().chars().count() as u32;
-        if offset > length {
-            // Step 2.
-            return Err(IndexSize);
-        }
-        // Step 3.
-        let count = match length - offset {
-            diff if diff < count => diff,
-            _ => count,
+        let new_data = {
+            let data = self.data.borrow();
+            let (prefix, data_from_offset) = match find_utf16_code_unit_offset(&data, offset) {
+                Some(offset_bytes) => data.split_at(offset_bytes),
+                // Step 2.
+                None => return Err(IndexSize)
+            };
+            let suffix = match find_utf16_code_unit_offset(data_from_offset, count) {
+                // Steps 3.
+                None => data_from_offset,
+                Some(count_bytes) => &data_from_offset[count_bytes..],
+            };
+            // Step 4: Mutation observers.
+            // Step 5 to 7.
+            let mut new_data = String::with_capacity(prefix.len() + arg.len() + suffix.len());
+            new_data.push_str(prefix);
+            new_data.push_str(&arg);
+            new_data.push_str(suffix);
+            new_data
         };
-        // Step 4: Mutation observers.
-        // Step 5.
-        let mut data = self.data.borrow().slice_chars(0, offset as usize).to_owned();
-        data.push_str(&arg);
-        data.push_str(&self.data.borrow().slice_chars((offset + count) as usize, length as usize));
-        *self.data.borrow_mut() = data;
-        // FIXME: Once we have `Range`, we should implement step7 to step11
+        *self.data.borrow_mut() = new_data;
+        // FIXME: Once we have `Range`, we should implement step 8 to step 11
         Ok(())
     }
 
@@ -183,5 +191,24 @@ impl LayoutCharacterDataHelpers for LayoutJS<CharacterData> {
     #[inline]
     unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
         &(*self.unsafe_get()).data.borrow_for_layout()
+    }
+}
+
+/// Given a number of UTF-16 code units from the start of the given string,
+/// return the corresponding number of UTF-8 bytes.
+///
+/// s[find_utf16_code_unit_offset(s, o).unwrap()..] == s.to_utf16()[o..].to_utf8()
+fn find_utf16_code_unit_offset(s: &str, offset: u32) -> Option<usize> {
+    let mut code_units = 0;
+    for (i, c) in s.char_indices() {
+        if code_units == offset {
+            return Some(i)
+        }
+        code_units += c.len_utf16() as u32
+    }
+    if code_units == offset {
+        Some(s.len())
+    } else {
+        None
     }
 }
