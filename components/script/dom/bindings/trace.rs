@@ -65,7 +65,6 @@ use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
 use util::str::{LengthOrPercentageOrAuto};
 use selectors::parser::PseudoElement;
-use serde::{Deserialize, Serialize};
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
@@ -351,6 +350,13 @@ impl JSTraceable for ScriptListener {
 }
 
 impl JSTraceable for Box<LayoutRPC+'static> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for () {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

@@ -250,7 +250,7 @@ impl ResourceChannelManager {
     }
 }
 
-struct ResourceManager {
+pub struct ResourceManager {
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
     resource_task: IpcSender<ControlMsg>,
@@ -260,10 +260,10 @@ struct ResourceManager {
 }
 
 impl ResourceManager {
-    fn new(user_agent: Option<String>,
-           resource_task: IpcSender<ControlMsg>,
-           hsts_list: HSTSList,
-           devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
+    pub fn new(user_agent: Option<String>,
+               resource_task: IpcSender<ControlMsg>,
+               hsts_list: HSTSList,
+               devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             user_agent: user_agent,
             cookie_storage: CookieStorage::new(),
