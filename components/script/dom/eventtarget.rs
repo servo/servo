@@ -20,6 +20,7 @@ use js::jsapi::{CompileFunction, JS_GetFunctionObject};
 use js::jsapi::{JSContext, RootedFunction, HandleObject};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
+use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 use fnv::FnvHasher;
@@ -36,13 +37,14 @@ use url::Url;
 
 use std::collections::HashMap;
 
-#[derive(JSTraceable, Copy, Clone, PartialEq)]
+#[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
 #[derive(JSTraceable, Copy, Clone)]
+#[derive(HeapSizeOf)]
 pub enum EventTargetTypeId {
     Node(NodeTypeId),
     WebSocket,
@@ -95,6 +97,13 @@ pub enum EventListenerType {
     Inline(Rc<EventListener>),
 }
 
+impl HeapSizeOf for EventListenerType {
+    fn heap_size_of_children(&self) -> usize {
+        // FIXME: Rc<T> isn't HeapSizeOf and we can't ignore it due to #6870 and #6871
+        0
+    }
+}
+
 impl EventListenerType {
     fn get_listener(&self) -> Rc<EventListener> {
         match *self {
@@ -104,7 +113,7 @@ impl EventListenerType {
     }
 }
 
-#[derive(JSTraceable, Clone, PartialEq)]
+#[derive(JSTraceable, Clone, PartialEq, HeapSizeOf)]
 #[privatize]
 pub struct EventListenerEntry {
     phase: ListenerPhase,
@@ -112,6 +121,7 @@ pub struct EventListenerEntry {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct EventTarget {
     reflector_: Reflector,
     type_id: EventTargetTypeId,
