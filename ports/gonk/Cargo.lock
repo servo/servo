@@ -413,9 +413,10 @@ source = "git+https://github.com/servo/libfreetype2#3f22b9dd3be53cdea2a46a0d8ead
 
 [[package]]
 name = "futf"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "debug_unreachable 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -527,27 +528,28 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "html5ever_macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever_macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_macros 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_codegen 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "tendril 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "html5ever_macros"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -922,15 +924,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phf_macros"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "phf_generator 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_shared 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "phf_shared"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1034,6 +1027,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "rc"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "regex"
 version = "0.1.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1073,7 +1071,7 @@ dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
@@ -1094,7 +1092,7 @@ dependencies = [
  "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
- "tendril 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1303,11 +1301,11 @@ source = "git+https://github.com/servo/rust-tenacious#8f878d812a95dc44dab9c03096
 
 [[package]]
 name = "tendril"
-version = "0.1.1"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
- "futf 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
