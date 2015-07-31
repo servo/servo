@@ -42,6 +42,9 @@ pub struct CompositorData {
     /// The scroll offset originating from this scrolling root. This allows scrolling roots
     /// to track their current scroll position even while their content_offset does not change.
     pub scroll_offset: TypedPoint2D<LayerPixel, f32>,
+
+    /// The invalid rectangle for this layer.
+    pub invalid_rect: Rect<f32>,
 }
 
 impl CompositorData {
@@ -58,6 +61,7 @@ impl CompositorData {
             requested_epoch: Epoch(0),
             painted_epoch: Epoch(0),
             scroll_offset: Point2D::typed(0., 0.),
+            invalid_rect: layer_properties.invalid_rect,
         };
 
         Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
@@ -188,12 +192,16 @@ pub enum ScrollEventResult {
 
 impl CompositorLayer for Layer<CompositorData> {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
-        self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
         *self.transform.borrow_mut() = layer_properties.transform;
         *self.perspective.borrow_mut() = layer_properties.perspective;
 
-        *self.background_color.borrow_mut() = to_layers_color(&layer_properties.background_color);
+        {
+            let mut extra_data = self.extra_data.borrow_mut();
+            extra_data.scroll_policy = layer_properties.scroll_policy;
+            extra_data.invalid_rect = extra_data.invalid_rect.union(&layer_properties.invalid_rect);
+        }
 
+        *self.background_color.borrow_mut() = to_layers_color(&layer_properties.background_color);
         self.contents_changed();
     }
 
@@ -224,7 +232,10 @@ impl CompositorLayer for Layer<CompositorData> {
             self.add_buffer(buffer);
         }
 
-        compositor.cache_unused_buffers(self.collect_unused_buffers())
+        compositor.cache_unused_buffers(self.collect_unused_buffers());
+
+        // This layer is now up-to-date.
+        self.extra_data.borrow_mut().invalid_rect = Rect::zero();
     }
 
     fn clear<Window>(&self, compositor: &mut IOCompositor<Window>) where Window: WindowMethods {
