@@ -2,184 +2,186 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-transitions-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/before-domcontentloaded-001.htm	?	
-xhtml1/before-domcontentloaded-001.xht	?	
-html4/before-load-001.htm	?	
-xhtml1/before-load-001.xht	?	
-html4/changing-while-transition.htm	?	
-xhtml1/changing-while-transition.xht	?	
-html4/currentcolor-animation-001.htm	?	
-xhtml1/currentcolor-animation-001.xht	?	
-html4/detached-container-001.htm	?	
-xhtml1/detached-container-001.xht	?	
-html4/events-001.htm	?	
-xhtml1/events-001.xht	?	
-html4/events-002.htm	?	
-xhtml1/events-002.xht	?	
-html4/events-003.htm	?	
-xhtml1/events-003.xht	?	
-html4/events-004.htm	?	
-xhtml1/events-004.xht	?	
-html4/events-005.htm	?	
-xhtml1/events-005.xht	?	
-html4/events-006.htm	?	
-xhtml1/events-006.xht	?	
-html4/hidden-container-001.htm	?	
-xhtml1/hidden-container-001.xht	?	
-html4/properties-value-001.htm	?	
-xhtml1/properties-value-001.xht	?	
-html4/properties-value-002.htm	?	
-xhtml1/properties-value-002.xht	?	
-html4/properties-value-003.htm	?	
-xhtml1/properties-value-003.xht	?	
-html4/properties-value-auto-001.htm	?	
-xhtml1/properties-value-auto-001.xht	?	
-html4/properties-value-implicit-001.htm	?	
-xhtml1/properties-value-implicit-001.xht	?	
-html4/properties-value-inherit-001.htm	?	
-xhtml1/properties-value-inherit-001.xht	?	
-html4/properties-value-inherit-002.htm	?	
-xhtml1/properties-value-inherit-002.xht	?	
-html4/properties-value-inherit-003.htm	?	
-xhtml1/properties-value-inherit-003.xht	?	
-html4/pseudo-elements-001.htm	?	
-xhtml1/pseudo-elements-001.xht	?	
-html4/transition-001.htm	?	
-xhtml1/transition-001.xht	?	
-html4/transition-delay-000.htm	?	
-xhtml1/transition-delay-000.xht	?	
-html4/transition-delay-001.htm	?	
-xhtml1/transition-delay-001.xht	?	
-html4/transition-delay-002.htm	?	
-xhtml1/transition-delay-002.xht	?	
-html4/transition-delay-003.htm	?	
-xhtml1/transition-delay-003.xht	?	
-html4/transition-duration-001.htm	?	
-xhtml1/transition-duration-001.xht	?	
-html4/transition-duration-002.htm	?	
-xhtml1/transition-duration-002.xht	?	
-html4/transition-duration-003.htm	?	
-xhtml1/transition-duration-003.xht	?	
-html4/transition-duration-004.htm	?	
-xhtml1/transition-duration-004.xht	?	
-html4/transition-property-001.htm	?	
-xhtml1/transition-property-001.xht	?	
-html4/transition-property-002.htm	?	
-xhtml1/transition-property-002.xht	?	
-html4/transition-property-003.htm	?	
-xhtml1/transition-property-003.xht	?	
-html4/transition-property-004.htm	?	
-xhtml1/transition-property-004.xht	?	
-html4/transition-property-005.htm	?	
-xhtml1/transition-property-005.xht	?	
-html4/transition-property-006.htm	?	
-xhtml1/transition-property-006.xht	?	
-html4/transition-property-007.htm	?	
-xhtml1/transition-property-007.xht	?	
-html4/transition-property-008.htm	?	
-xhtml1/transition-property-008.xht	?	
-html4/transition-property-009.htm	?	
-xhtml1/transition-property-009.xht	?	
-html4/transition-property-010.htm	?	
-xhtml1/transition-property-010.xht	?	
-html4/transition-property-011.htm	?	
-xhtml1/transition-property-011.xht	?	
-html4/transition-property-012.htm	?	
-xhtml1/transition-property-012.xht	?	
-html4/transition-property-013.htm	?	
-xhtml1/transition-property-013.xht	?	
-html4/transition-property-014.htm	?	
-xhtml1/transition-property-014.xht	?	
-html4/transition-property-015.htm	?	
-xhtml1/transition-property-015.xht	?	
-html4/transition-property-016.htm	?	
-xhtml1/transition-property-016.xht	?	
-html4/transition-property-017.htm	?	
-xhtml1/transition-property-017.xht	?	
-html4/transition-property-018.htm	?	
-xhtml1/transition-property-018.xht	?	
-html4/transition-property-019.htm	?	
-xhtml1/transition-property-019.xht	?	
-html4/transition-property-020.htm	?	
-xhtml1/transition-property-020.xht	?	
-html4/transition-property-021.htm	?	
-xhtml1/transition-property-021.xht	?	
-html4/transition-property-022.htm	?	
-xhtml1/transition-property-022.xht	?	
-html4/transition-property-023.htm	?	
-xhtml1/transition-property-023.xht	?	
-html4/transition-property-024.htm	?	
-xhtml1/transition-property-024.xht	?	
-html4/transition-property-025.htm	?	
-xhtml1/transition-property-025.xht	?	
-html4/transition-property-026.htm	?	
-xhtml1/transition-property-026.xht	?	
-html4/transition-property-027.htm	?	
-xhtml1/transition-property-027.xht	?	
-html4/transition-property-028.htm	?	
-xhtml1/transition-property-028.xht	?	
-html4/transition-property-029.htm	?	
-xhtml1/transition-property-029.xht	?	
-html4/transition-property-030.htm	?	
-xhtml1/transition-property-030.xht	?	
-html4/transition-property-031.htm	?	
-xhtml1/transition-property-031.xht	?	
-html4/transition-property-032.htm	?	
-xhtml1/transition-property-032.xht	?	
-html4/transition-property-033.htm	?	
-xhtml1/transition-property-033.xht	?	
-html4/transition-property-034.htm	?	
-xhtml1/transition-property-034.xht	?	
-html4/transition-property-035.htm	?	
-xhtml1/transition-property-035.xht	?	
-html4/transition-property-036.htm	?	
-xhtml1/transition-property-036.xht	?	
-html4/transition-property-037.htm	?	
-xhtml1/transition-property-037.xht	?	
-html4/transition-property-038.htm	?	
-xhtml1/transition-property-038.xht	?	
-html4/transition-property-039.htm	?	
-xhtml1/transition-property-039.xht	?	
-html4/transition-property-040.htm	?	
-xhtml1/transition-property-040.xht	?	
-html4/transition-property-041.htm	?	
-xhtml1/transition-property-041.xht	?	
-html4/transition-property-042.htm	?	
-xhtml1/transition-property-042.xht	?	
-html4/transition-property-043.htm	?	
-xhtml1/transition-property-043.xht	?	
-html4/transition-property-044.htm	?	
-xhtml1/transition-property-044.xht	?	
-html4/transition-property-045.htm	?	
-xhtml1/transition-property-045.xht	?	
-html4/transition-test.htm	?	
-xhtml1/transition-test.xht	?	
-html4/transition-timing-function-001.htm	?	
-xhtml1/transition-timing-function-001.xht	?	
-html4/transition-timing-function-002.htm	?	
-xhtml1/transition-timing-function-002.xht	?	
-html4/transition-timing-function-003.htm	?	
-xhtml1/transition-timing-function-003.xht	?	
-html4/transition-timing-function-004.htm	?	
-xhtml1/transition-timing-function-004.xht	?	
-html4/transition-timing-function-005.htm	?	
-xhtml1/transition-timing-function-005.xht	?	
-html4/transition-timing-function-006.htm	?	
-xhtml1/transition-timing-function-006.xht	?	
-html4/transition-timing-function-007.htm	?	
-xhtml1/transition-timing-function-007.xht	?	
-html4/transition-timing-function-008.htm	?	
-xhtml1/transition-timing-function-008.xht	?	
-html4/transition-timing-function-009.htm	?	
-xhtml1/transition-timing-function-009.xht	?	
-html4/transition-timing-function-010.htm	?	
-xhtml1/transition-timing-function-010.xht	?	
-html4/transition-timing-function-011.htm	?	
-xhtml1/transition-timing-function-011.xht	?	
-html4/transition-timing-function-012.htm	?	
-xhtml1/transition-timing-function-012.xht	?	
-html4/transition-timing-function-013.htm	?	
-xhtml1/transition-timing-function-013.xht	?	
-html4/transitions-animatable-properties-01.htm	?	
-xhtml1/transitions-animatable-properties-01.xht	?	
+testname	revision	result	comment
+html/before-domcontentloaded-001.htm	dc6a4c776b388efba9fd47db12a144768506f023	?
+xhtml1/before-domcontentloaded-001.xht	dc6a4c776b388efba9fd47db12a144768506f023	?
+html/before-load-001.htm	d5b3b34be2c4b1f9f3a1c7aa4e6075bfefe44759	?
+xhtml1/before-load-001.xht	d5b3b34be2c4b1f9f3a1c7aa4e6075bfefe44759	?
+html/changing-while-transition.htm	b6a6a8a91287e467850887036d093a436b10fd2f	?
+xhtml1/changing-while-transition.xht	b6a6a8a91287e467850887036d093a436b10fd2f	?
+html/currentcolor-animation-001.htm	b2d9f4d2ca3203e12c5b88f775a2e36037a32853	?
+xhtml1/currentcolor-animation-001.xht	b2d9f4d2ca3203e12c5b88f775a2e36037a32853	?
+html/detached-container-001.htm	a3d88497a9b24a03b1dca4d61f15c7d6d13ce7e7	?
+xhtml1/detached-container-001.xht	a3d88497a9b24a03b1dca4d61f15c7d6d13ce7e7	?
+html/events-001.htm	85bb8e52fa33b7b51b7bc2c2123780bbe582c466	?
+xhtml1/events-001.xht	85bb8e52fa33b7b51b7bc2c2123780bbe582c466	?
+html/events-002.htm	65434ed9bff244a3c9bffc7ba163ec975e4bbfa6	?
+xhtml1/events-002.xht	65434ed9bff244a3c9bffc7ba163ec975e4bbfa6	?
+html/events-003.htm	f5077551411af03ce1b4dbee0728ed833d23b889	?
+xhtml1/events-003.xht	f5077551411af03ce1b4dbee0728ed833d23b889	?
+html/events-004.htm	92faab884a109828f5afbeeb3b913536a3418b9b	?
+xhtml1/events-004.xht	92faab884a109828f5afbeeb3b913536a3418b9b	?
+html/events-005.htm	50a9e339280106876cad63ad72e09526d926b464	?
+xhtml1/events-005.xht	50a9e339280106876cad63ad72e09526d926b464	?
+html/events-006.htm	8f08a369570e84a89e5aa2c51b27fe7a7cd5628a	?
+xhtml1/events-006.xht	8f08a369570e84a89e5aa2c51b27fe7a7cd5628a	?
+html/events-007.htm	669e841ed69c829aa5d3e5e6109adfedc60a5555	?
+xhtml1/events-007.xht	669e841ed69c829aa5d3e5e6109adfedc60a5555	?
+html/hidden-container-001.htm	e689df42d8bf76ca1c5ec9e9e49bfabd1852988d	?
+xhtml1/hidden-container-001.xht	e689df42d8bf76ca1c5ec9e9e49bfabd1852988d	?
+html/properties-value-001.htm	2f30f4afd96d5bcc15f2a673f732a7db32551344	?
+xhtml1/properties-value-001.xht	2f30f4afd96d5bcc15f2a673f732a7db32551344	?
+html/properties-value-002.htm	df72d839c83c0f27c51f3a0da0e665440455a4f7	?
+xhtml1/properties-value-002.xht	df72d839c83c0f27c51f3a0da0e665440455a4f7	?
+html/properties-value-003.htm	487a42a7c32ffa0076ac36fdc77c9e67455a3c78	?
+xhtml1/properties-value-003.xht	487a42a7c32ffa0076ac36fdc77c9e67455a3c78	?
+html/properties-value-auto-001.htm	cb7b5d82a93a1fd77ff732dbe65dd42f086a4518	?
+xhtml1/properties-value-auto-001.xht	cb7b5d82a93a1fd77ff732dbe65dd42f086a4518	?
+html/properties-value-implicit-001.htm	65e0893b080022f2fe0541790c80ad997f861d36	?
+xhtml1/properties-value-implicit-001.xht	65e0893b080022f2fe0541790c80ad997f861d36	?
+html/properties-value-inherit-001.htm	6f5152c30fe5e453d3acedf158436770badfd2ed	?
+xhtml1/properties-value-inherit-001.xht	6f5152c30fe5e453d3acedf158436770badfd2ed	?
+html/properties-value-inherit-002.htm	0f3bc2199461abf362b8d63ffc41853d700116f0	?
+xhtml1/properties-value-inherit-002.xht	0f3bc2199461abf362b8d63ffc41853d700116f0	?
+html/properties-value-inherit-003.htm	d8625e917d176251983385c5bda09a1d5af40727	?
+xhtml1/properties-value-inherit-003.xht	d8625e917d176251983385c5bda09a1d5af40727	?
+html/pseudo-elements-001.htm	2e680348ce4298026d6dfdcc70f26e24fe534ff7	?
+xhtml1/pseudo-elements-001.xht	2e680348ce4298026d6dfdcc70f26e24fe534ff7	?
+html/transition-001.htm	540d5e7c53057c604f417901b61bd9c4794fd7d1	?
+xhtml1/transition-001.xht	540d5e7c53057c604f417901b61bd9c4794fd7d1	?
+html/transition-delay-000.htm	7b5fc6fe20c69c70c483b243af34961f35d1aeb4	?
+xhtml1/transition-delay-000.xht	7b5fc6fe20c69c70c483b243af34961f35d1aeb4	?
+html/transition-delay-001.htm	936ec60d74c61f54ba71930eafbd8db9c5e84e82	?
+xhtml1/transition-delay-001.xht	936ec60d74c61f54ba71930eafbd8db9c5e84e82	?
+html/transition-delay-002.htm	f60f0f4ee71e8d3a56c9bbcce245d58660548224	?
+xhtml1/transition-delay-002.xht	f60f0f4ee71e8d3a56c9bbcce245d58660548224	?
+html/transition-delay-003.htm	ee1d6d64cc4d258093044bd336634da3acbee8b6	?
+xhtml1/transition-delay-003.xht	ee1d6d64cc4d258093044bd336634da3acbee8b6	?
+html/transition-duration-001.htm	663439e329a5e15084fda9eb5be1ac7d2e0dc5f7	?
+xhtml1/transition-duration-001.xht	663439e329a5e15084fda9eb5be1ac7d2e0dc5f7	?
+html/transition-duration-002.htm	99f1e4f02320754bc9641370035e395f9e0f32b2	?
+xhtml1/transition-duration-002.xht	99f1e4f02320754bc9641370035e395f9e0f32b2	?
+html/transition-duration-003.htm	540581742c49395a9a0409feec7e84910d879243	?
+xhtml1/transition-duration-003.xht	540581742c49395a9a0409feec7e84910d879243	?
+html/transition-duration-004.htm	b5638a3af904c46a173c77ac3775e217ca22ef45	?
+xhtml1/transition-duration-004.xht	b5638a3af904c46a173c77ac3775e217ca22ef45	?
+html/transition-property-001.htm	5a539dc7107854b9c97d19bad7131d33c6f0c530	?
+xhtml1/transition-property-001.xht	5a539dc7107854b9c97d19bad7131d33c6f0c530	?
+html/transition-property-002.htm	5d3ea7c4adbd9b5c304468e41532c051da7b9bf6	?
+xhtml1/transition-property-002.xht	5d3ea7c4adbd9b5c304468e41532c051da7b9bf6	?
+html/transition-property-003.htm	ade717dde13d637f6d55033c5d04f29a9edecf1f	?
+xhtml1/transition-property-003.xht	ade717dde13d637f6d55033c5d04f29a9edecf1f	?
+html/transition-property-004.htm	9556c59b1f6293b160be0e399b8d6a3db994cb40	?
+xhtml1/transition-property-004.xht	9556c59b1f6293b160be0e399b8d6a3db994cb40	?
+html/transition-property-005.htm	e1b4da4dd9d3dfbfe8386c8c262bda320b02e467	?
+xhtml1/transition-property-005.xht	e1b4da4dd9d3dfbfe8386c8c262bda320b02e467	?
+html/transition-property-006.htm	86f5b319c7a068d4b3e94f27271515bcf814518b	?
+xhtml1/transition-property-006.xht	86f5b319c7a068d4b3e94f27271515bcf814518b	?
+html/transition-property-007.htm	ff45f2df0d6d521e4ff33e82d870dd17935fb29e	?
+xhtml1/transition-property-007.xht	ff45f2df0d6d521e4ff33e82d870dd17935fb29e	?
+html/transition-property-008.htm	28207adaa2b4737d59c9e8a2f215c33f3429dbb0	?
+xhtml1/transition-property-008.xht	28207adaa2b4737d59c9e8a2f215c33f3429dbb0	?
+html/transition-property-009.htm	9cbaeda866d5123fda55266b69bf3c39aecf757a	?
+xhtml1/transition-property-009.xht	9cbaeda866d5123fda55266b69bf3c39aecf757a	?
+html/transition-property-010.htm	8601262b041f9c88a2ca9bac6abe2d9a554b2673	?
+xhtml1/transition-property-010.xht	8601262b041f9c88a2ca9bac6abe2d9a554b2673	?
+html/transition-property-011.htm	1f502889fc08d591a79522b798a7941f51bab180	?
+xhtml1/transition-property-011.xht	1f502889fc08d591a79522b798a7941f51bab180	?
+html/transition-property-012.htm	e65b69a43a3aeb0e0a076d8bfca4124f1afac20b	?
+xhtml1/transition-property-012.xht	e65b69a43a3aeb0e0a076d8bfca4124f1afac20b	?
+html/transition-property-013.htm	cf75a173d705cf736aa69e2df5f5beb30446e6cc	?
+xhtml1/transition-property-013.xht	cf75a173d705cf736aa69e2df5f5beb30446e6cc	?
+html/transition-property-014.htm	c7ae7167dbc38ce553de4b0feac0c508ecd03a49	?
+xhtml1/transition-property-014.xht	c7ae7167dbc38ce553de4b0feac0c508ecd03a49	?
+html/transition-property-015.htm	9c41b39972c59da64cbf284729ffa7fe89ebe2da	?
+xhtml1/transition-property-015.xht	9c41b39972c59da64cbf284729ffa7fe89ebe2da	?
+html/transition-property-016.htm	02b5122bb8eb85da7cc5dc0175914a3562922daf	?
+xhtml1/transition-property-016.xht	02b5122bb8eb85da7cc5dc0175914a3562922daf	?
+html/transition-property-017.htm	e6511090be7a418b1acd7ea811e7cc04775fefa3	?
+xhtml1/transition-property-017.xht	e6511090be7a418b1acd7ea811e7cc04775fefa3	?
+html/transition-property-018.htm	d68bd16426d5d2278130638f697fbae644132cde	?
+xhtml1/transition-property-018.xht	d68bd16426d5d2278130638f697fbae644132cde	?
+html/transition-property-019.htm	fe1c9c94c4918d032b790454324ec3ba731a2e44	?
+xhtml1/transition-property-019.xht	fe1c9c94c4918d032b790454324ec3ba731a2e44	?
+html/transition-property-020.htm	50f78c01c5b330b03d50af24f7a02fb494be9ca2	?
+xhtml1/transition-property-020.xht	50f78c01c5b330b03d50af24f7a02fb494be9ca2	?
+html/transition-property-021.htm	a72f32918df49a687a097a5cadf2d36c27beb785	?
+xhtml1/transition-property-021.xht	a72f32918df49a687a097a5cadf2d36c27beb785	?
+html/transition-property-022.htm	1e1290dd7955ab706d7731e0d16572556f79f0e6	?
+xhtml1/transition-property-022.xht	1e1290dd7955ab706d7731e0d16572556f79f0e6	?
+html/transition-property-023.htm	cffb9e3baef999ffb6bbab3102dc3a34df6a77b6	?
+xhtml1/transition-property-023.xht	cffb9e3baef999ffb6bbab3102dc3a34df6a77b6	?
+html/transition-property-024.htm	8a60dfb141657cb1c42b71b5256b887bed4f5058	?
+xhtml1/transition-property-024.xht	8a60dfb141657cb1c42b71b5256b887bed4f5058	?
+html/transition-property-025.htm	2a7370bd4ff59d77c824afdb2793e17ca3f0f935	?
+xhtml1/transition-property-025.xht	2a7370bd4ff59d77c824afdb2793e17ca3f0f935	?
+html/transition-property-026.htm	bdbb04bf2e857c16a11b6180aab55c958469aa74	?
+xhtml1/transition-property-026.xht	bdbb04bf2e857c16a11b6180aab55c958469aa74	?
+html/transition-property-027.htm	569162e7d549d5d85d0826d1d8ee9691ecebfcb6	?
+xhtml1/transition-property-027.xht	569162e7d549d5d85d0826d1d8ee9691ecebfcb6	?
+html/transition-property-028.htm	154ed3361ebeb6223005920a45b8286afd5d873b	?
+xhtml1/transition-property-028.xht	154ed3361ebeb6223005920a45b8286afd5d873b	?
+html/transition-property-029.htm	cba48a7cbd27cc4d26fd19d43f862d0df621e4fb	?
+xhtml1/transition-property-029.xht	cba48a7cbd27cc4d26fd19d43f862d0df621e4fb	?
+html/transition-property-030.htm	ecf39c495c9fdb433a8f0683d98151a1066b29fa	?
+xhtml1/transition-property-030.xht	ecf39c495c9fdb433a8f0683d98151a1066b29fa	?
+html/transition-property-031.htm	fad98e8ea872cc91d6d836533077a4ba126090a3	?
+xhtml1/transition-property-031.xht	fad98e8ea872cc91d6d836533077a4ba126090a3	?
+html/transition-property-032.htm	aba339d9006c555dea9d900ca50d6bc005ace289	?
+xhtml1/transition-property-032.xht	aba339d9006c555dea9d900ca50d6bc005ace289	?
+html/transition-property-033.htm	d8b2785854c6810a307829ee6cb8f83b1d6e1f26	?
+xhtml1/transition-property-033.xht	d8b2785854c6810a307829ee6cb8f83b1d6e1f26	?
+html/transition-property-034.htm	8402d0da9bca80c93f2a692a8d76f60883767de8	?
+xhtml1/transition-property-034.xht	8402d0da9bca80c93f2a692a8d76f60883767de8	?
+html/transition-property-035.htm	f412dd68534317c4622e1701fce294050d3e249e	?
+xhtml1/transition-property-035.xht	f412dd68534317c4622e1701fce294050d3e249e	?
+html/transition-property-036.htm	40afe5e85a2972b26c7eb382ac6e345b163d345a	?
+xhtml1/transition-property-036.xht	40afe5e85a2972b26c7eb382ac6e345b163d345a	?
+html/transition-property-037.htm	d66834856ae4aee4bf04308c414b0b9b91c45b61	?
+xhtml1/transition-property-037.xht	d66834856ae4aee4bf04308c414b0b9b91c45b61	?
+html/transition-property-038.htm	1d10a68646e64b72bf78e1218b10c32373bf9f7f	?
+xhtml1/transition-property-038.xht	1d10a68646e64b72bf78e1218b10c32373bf9f7f	?
+html/transition-property-039.htm	06686e9104069271a707011caa15281f95822c62	?
+xhtml1/transition-property-039.xht	06686e9104069271a707011caa15281f95822c62	?
+html/transition-property-040.htm	fed893048081120cae940ad2282be7b1b5c605d3	?
+xhtml1/transition-property-040.xht	fed893048081120cae940ad2282be7b1b5c605d3	?
+html/transition-property-041.htm	82c718ea39e8cee36f8bd99a8892e09b0a878980	?
+xhtml1/transition-property-041.xht	82c718ea39e8cee36f8bd99a8892e09b0a878980	?
+html/transition-property-042.htm	806fc7acbf2c1e61a15981f19b837e56c3dd09d5	?
+xhtml1/transition-property-042.xht	806fc7acbf2c1e61a15981f19b837e56c3dd09d5	?
+html/transition-property-043.htm	8bfd790a422cdfcc284dadf68574d9821ec1edaa	?
+xhtml1/transition-property-043.xht	8bfd790a422cdfcc284dadf68574d9821ec1edaa	?
+html/transition-property-044.htm	9d08a23150c8afe0612a67ab48b9b5c794fdde48	?
+xhtml1/transition-property-044.xht	9d08a23150c8afe0612a67ab48b9b5c794fdde48	?
+html/transition-property-045.htm	97fca96e045f2b173a058bd0bd8f4b43a5aeb0c6	?
+xhtml1/transition-property-045.xht	97fca96e045f2b173a058bd0bd8f4b43a5aeb0c6	?
+html/transition-test.htm	69ede626fef9d3c82dd63712d8a9fa51f90e0fe0	?
+xhtml1/transition-test.xht	69ede626fef9d3c82dd63712d8a9fa51f90e0fe0	?
+html/transition-timing-function-001.htm	fdb47bdbeb22e4cf767543b0306c7fea612d0d84	?
+xhtml1/transition-timing-function-001.xht	fdb47bdbeb22e4cf767543b0306c7fea612d0d84	?
+html/transition-timing-function-002.htm	70cde45e58d25dac817c480c333547e64e1d3130	?
+xhtml1/transition-timing-function-002.xht	70cde45e58d25dac817c480c333547e64e1d3130	?
+html/transition-timing-function-003.htm	c8efb42a48251c36280c78246d17b8df0abec3d8	?
+xhtml1/transition-timing-function-003.xht	c8efb42a48251c36280c78246d17b8df0abec3d8	?
+html/transition-timing-function-004.htm	d217cf85ce0b9533649efa378035ed11edf95825	?
+xhtml1/transition-timing-function-004.xht	d217cf85ce0b9533649efa378035ed11edf95825	?
+html/transition-timing-function-005.htm	cda9d6bf7a9f259cf6639833867e437d88aac8fc	?
+xhtml1/transition-timing-function-005.xht	cda9d6bf7a9f259cf6639833867e437d88aac8fc	?
+html/transition-timing-function-006.htm	2cc737a194c37ad2bdad577fc7c13c30199c90a1	?
+xhtml1/transition-timing-function-006.xht	2cc737a194c37ad2bdad577fc7c13c30199c90a1	?
+html/transition-timing-function-007.htm	f4201ac40b64c31fa1b2061c681f340e7201e518	?
+xhtml1/transition-timing-function-007.xht	f4201ac40b64c31fa1b2061c681f340e7201e518	?
+html/transition-timing-function-008.htm	8aa8346700f76417c5fa7067d6601d270eaa69aa	?
+xhtml1/transition-timing-function-008.xht	8aa8346700f76417c5fa7067d6601d270eaa69aa	?
+html/transition-timing-function-009.htm	3bc871ede8996f908486e4ae45989d1b4dbe712d	?
+xhtml1/transition-timing-function-009.xht	3bc871ede8996f908486e4ae45989d1b4dbe712d	?
+html/transition-timing-function-010.htm	add9c1ea4276ac251bea76e01f44b3656a058ad8	?
+xhtml1/transition-timing-function-010.xht	add9c1ea4276ac251bea76e01f44b3656a058ad8	?
+html/transition-timing-function-011.htm	c32be7bb9456b91521fdb65f20b732745ef027fe	?
+xhtml1/transition-timing-function-011.xht	c32be7bb9456b91521fdb65f20b732745ef027fe	?
+html/transition-timing-function-012.htm	697cf308e981930a115204bf380fd144f66db582	?
+xhtml1/transition-timing-function-012.xht	697cf308e981930a115204bf380fd144f66db582	?
+html/transition-timing-function-013.htm	878150531efe65abd6a8d1dddebc1e104de49fbf	?
+xhtml1/transition-timing-function-013.xht	878150531efe65abd6a8d1dddebc1e104de49fbf	?
+html/transitions-animatable-properties-01.htm	8556b336916af660b223d89c3bf3c2abe869912b	?
+xhtml1/transitions-animatable-properties-01.xht	8556b336916af660b223d89c3bf3c2abe869912b	?

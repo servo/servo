@@ -229,12 +229,14 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Element>> {
         let maybe_elem = self.Item(index);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
+    // check-tidy: no specs after this line
     fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Root<Element>> {
         let maybe_elem = self.NamedItem(name);
         *found = maybe_elem.is_some();

@@ -3,6 +3,7 @@
 <title>Subresource Integrity</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+
 <div id="log"></div>
 
 <div id="container"></div>
@@ -68,12 +69,12 @@
     // of executing them one at a time, the style tests are implemented as a
     // queue that builds up a list of tests, and then executes them one at a
     // time.
-    var SRIStyleTest = function(queue, pass, name, href, integrityValue, crossoriginValue) {
+    var SRIStyleTest = function(queue, pass, name, attrs, customCallback, altPassValue) {
         this.pass = pass;
         this.name = "Style: " + name;
-        this.href = href;
-        this.integrityValue = integrityValue;
-        this.crossoriginValue = crossoriginValue;
+        this.customCallback = customCallback || function () {};
+        this.attrs = attrs || {};
+        this.passValue = altPassValue || "rgb(255, 255, 0)";
 
         this.test = async_test(this.name);
 
@@ -82,6 +83,7 @@
     }
 
     SRIStyleTest.prototype.execute = function() {
+        var that = this;
         var container = document.getElementById("container");
         while (container.hasChildNodes()) {
           container.removeChild(container.firstChild);
@@ -92,17 +94,18 @@
         var div = document.createElement("div");
         div.className = "testdiv";
         var e = document.createElement("link");
-        e.rel = "stylesheet";
-        e.href = this.href;
-        e.setAttribute("integrity", this.integrityValue);
-        if(this.crossoriginValue) {
-            e.setAttribute("crossorigin", this.crossoriginValue);
+        this.attrs.rel = this.attrs.rel || "stylesheet";
+        for (var key in this.attrs) {
+            if (this.attrs.hasOwnProperty(key)) {
+                e.setAttribute(key, this.attrs[key]);
+            }
         }
+
         if(this.pass) {
             e.addEventListener("load", function() {
                 test.step(function() {
                     var background = window.getComputedStyle(div, null).getPropertyValue("background-color");
-                    assert_equals(background, "rgb(255, 255, 0)");
+                    assert_equals(background, that.passValue);
                     test.done();
                 });
             });
@@ -123,6 +126,7 @@
         }
         container.appendChild(div);
         container.appendChild(e);
+        this.customCallback(e, container);
     };
 
     var style_tests = [];
@@ -281,157 +285,256 @@
         style_tests,
         true,
         "Same-origin with correct sha256 hash",
-        "style.css",
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4="
+        {
+            href: "style.css",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4="
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with correct sha384 hash",
-        "style.css",
-        "sha384-wDAWxH4tOWBwAwHfBn9B7XuNmFxHTMeigAMwn0iVQ0zq3FtmYMLxihcGnU64CwcX"
+        {
+            href: "style.css",
+            integrity: "sha384-wDAWxH4tOWBwAwHfBn9B7XuNmFxHTMeigAMwn0iVQ0zq3FtmYMLxihcGnU64CwcX"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with correct sha512 hash",
-        "style.css",
-        "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w=="
+        {
+            href: "style.css",
+            integrity: "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w=="
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with empty integrity",
-        "style.css",
-        ""
+        {
+            href: "style.css",
+            integrity: ""
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         false,
         "Same-origin with incorrect hash.",
-        "style.css",
-        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        {
+            href: "style.css",
+            integrity: "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with multiple sha256 hashes, including correct.",
-        "style.css",
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4= sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        {
+            href: "style.css",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4= sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with multiple sha256 hashes, including unknown algorithm.",
-        "style.css",
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4= foo666-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        {
+            href: "style.css",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4= foo666-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with sha256 mismatch, sha512 match",
-        "style.css",
-        "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w== sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        {
+            href: "style.css",
+            integrity: "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w== sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         false,
         "Same-origin with sha256 match, sha512 mismatch",
-        "style.css",
-        "sha512-deadbeef9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2== sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4="
+        {
+            href: "style.css",
+            integrity: "sha512-deadbeef9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2== sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4="
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "<crossorigin='anonymous'> with correct hash, ACAO: *",
-        xorigin_anon_style,
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
-        "anonymous"
+        {
+            href: xorigin_anon_style,
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            crossorigin: "anonymous"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         false,
         "<crossorigin='anonymous'> with incorrect hash, ACAO: *",
-        xorigin_anon_style,
-        "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
-        "anonymous"
+        {
+            href: xorigin_anon_style,
+            integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
+            crossorigin: "anonymous"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "<crossorigin='use-credentials'> with correct hash, CORS-eligible",
-        xorigin_creds_style,
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
-        "use-credentials"
+        {
+            href: xorigin_creds_style,
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            crossorigin: "use-credentials"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         false,
         "<crossorigin='use-credentials'> with incorrect hash CORS-eligible",
-        xorigin_creds_style,
-        "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
-        "use-credentials"
+        {
+            href: xorigin_creds_style,
+            integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
+            crossorigin: "use-credentials"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         false,
         "<crossorigin='anonymous'> with CORS-ineligible resource",
-        xorigin_ineligible_style,
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
-        "anonymous"
+        {
+            href: xorigin_ineligible_style,
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            crossorigin: "anonymous"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Cross-origin, not CORS request, with correct hash",
-        xorigin_anon_style,
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
+        {
+            href: xorigin_anon_style,
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Cross-origin, not CORS request, with hash masmatch",
-        xorigin_anon_style,
-        "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk="
+        {
+            href: xorigin_anon_style,
+            integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk="
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Cross-origin, empty integrity",
-        xorigin_anon_style,
-        ""
+        {
+            href: xorigin_anon_style,
+            integrity: ""
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with correct hash, options.",
-        "style.css",
-        "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
+        {
+            href: "style.css",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
+        }
     );
 
     new SRIStyleTest(
         style_tests,
         true,
         "Same-origin with unknown algorithm only.",
-        "style.css",
-        "foo666-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
+        {
+            href: "style.css",
+            integrity: "foo666-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha256 hash, rel='stylesheet license'",
+        {
+            href: "style.css",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4=",
+            rel: "stylesheet license"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha256 hash, rel='license stylesheet'",
+        {
+            href: "style.css",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4=",
+            rel: "license stylesheet"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha256 and sha512 hash, rel='alternate stylesheet' enabled",
+        {
+            href: "alternate.css",
+            title: "alt",
+            type: "text/css",
+            class: "alternate",
+            disabled: "disabled",
+            rel: "alternate stylesheet",
+            integrity: "sha256-phbz83bWhnLig+d2VPKrRrTRyhqoDRo1ruGqZLZ0= sha512-8OYEB7ktnzcb6h+kB9CUIuc8qvKIyLpygRJdQSEEycRy74dUsB+Yu9rSjpOPjRUblle8WWX9Gn7v39LK2Oceig==",
+        },
+        function (link, container) {
+            var alternate = document.querySelector('link.alternate');
+            alternate.disabled = false;
+        },
+        "rgb(255, 0, 0)"
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Same-origin with incorrect sha256 and sha512 hash, rel='alternate stylesheet' enabled",
+        {
+            href: "alternate.css",
+            title: "alt",
+            type: "text/css",
+            class: "alternate",
+            disabled: "disabled",
+            rel: "alternate stylesheet",
+            integrity: "sha256-fail83bWhnLig+d2VPKrRrTRyhqoDRo1ruGqZLZ0= sha512-failB7ktnzcb6h+kB9CUIuc8qvKIyLpygRJdQSEEycRy74dUsB+Yu9rSjpOPjRUblle8WWX9Gn7v39LK2Oceig==",
+        },
+        function (link, container) {
+            var alternate = document.querySelector('link.alternate');
+            alternate.disabled = false;
+        }
     );
 
     style_tests.execute();

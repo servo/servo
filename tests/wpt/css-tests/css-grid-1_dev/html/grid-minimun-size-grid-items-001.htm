@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Grid Layout Test: Minimun size of grid items</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#min-size-auto" title="4.4. Implied Minimum Size of Grid Items">
+        <link rel="match" href="reference/ref-filled-green-100px-square.htm">
+        <meta name="flags" content="ahem">
+        <meta name="assert" content="Checks that minimun size for grid items is the min-content size.">
+        <style type="text/css">
+            #reference-overlapped-red {
+                position: absolute;
+                background-color: red;
+                width: 100px;
+                height: 100px;
+                z-index: -1;
+            }
+
+            #constrained-grid {
+                display: grid;
+                grid: 10px / 10px;
+            }
+
+            #test-grid-item-overlapping-green {
+                color: green;
+                background-color: green;
+                font: 50px/1 Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+        <div id="reference-overlapped-red"></div>
+        <div id="constrained-grid">
+            <div id="test-grid-item-overlapping-green">IT E</div>
+        </div>
+
+    </body>
+</html>

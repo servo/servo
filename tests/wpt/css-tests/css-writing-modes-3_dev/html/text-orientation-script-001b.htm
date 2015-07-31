@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#2/8, 2048 code points in U+0B36-1B4A).</title>
+<link href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" rel="help">
+<meta content="Test orientation of characters where vo=R (#2/8, 2048 code points in U+0B36-1B4A)" name="assert">
+<meta content="dom font" name="flags">
+<link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "orientation";
+    src: url("support/adobe-fonts/CSSHWOrientationTest.otf");
+}
+.test {
+    font: 16px/1 "orientation";
+    height: 17em;
+    writing-mode: vertical-rl;
+}
+.line {
+    white-space: pre;
+}
+.U {
+    text-orientation: upright;
+}
+.R {
+    text-orientation: sideways-right;
+}
+#details {
+    margin: 1em .5em;
+}
+summary {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: .5em;
+}
+</style>
+</head><body><div id="log"></div>
+<div id="details"></div>
+<div id="container">
+<div data-vo="R" class="test">
+<div data-block="Oriya">
+<div class="line">ଶଷସହଽଡ଼ଢ଼ୟୠୡ୦୧୨୩୪୫୬୭୮୯୰ୱ୲୳୴୵୶୷</div>
+</div>
+<div data-block="Tamil">
+<div class="line">ஃஅஆஇஈஉஊஎஏஐஒஓஔகஙசஜஞடணதநனபமயரறலளழவ</div>
+<div class="line">ஶஷஸஹௐ௦௧௨௩௪௫௬௭௮௯௰௱௲௳௴௵௶௷௸௹௺</div>
+</div>
+<div data-block="Telugu">
+<div class="line">అఆఇఈఉఊఋఌఎఏఐఒఓఔకఖగఘఙచఛజఝఞటఠడఢణతథద</div>
+<div class="line">ధనపఫబభమయరఱలళఴవశషసహఽౘౙౠౡ౦౧౨౩౪౫౬౭౮</div>
+<div class="line">౯౸౹౺౻౼౽౾౿</div>
+</div>
+<div data-block="Kannada">
+<div class="line">ಅಆಇಈಉಊಋಌಎಏಐಒಓಔಕಖಗಘಙಚಛಜಝಞಟಠಡಢಣತಥದ</div>
+<div class="line">ಧನಪಫಬಭಮಯರಱಲಳವಶಷಸಹಽೞೠೡ೦೧೨೩೪೫೬೭೮೯ೱ</div>
+<div class="line">ೲ</div>
+</div>
+<div data-block="Malayalam">
+<div class="line">അആഇഈഉഊഋഌഎഏഐഒഓഔകഖഗഘങചഛജഝഞടഠഡഢണതഥദ</div>
+<div class="line">ധനഩപഫബഭമയരറലളഴവശഷസഹഺഽൎൠൡ൦൧൨൩൪൫൬൭</div>
+<div class="line">൮൯൰൱൲൳൴൵൹ൺൻർൽൾൿ</div>
+</div>
+<div data-block="Sinhala">
+<div class="line">අආඇඈඉඊඋඌඍඎඏඐඑඒඓඔඕඖකඛගඝඞඟචඡජඣඤඥඦට</div>
+<div class="line">ඨඩඪණඬතථදධනඳපඵබභමඹයරලවශෂසහළෆ෦෧෨෩෪</div>
+<div class="line">෫෬෭෮෯෴</div>
+</div>
+<div data-block="Thai">
+<div class="line">กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภ</div>
+<div class="line">มยรฤลฦวศษสหฬอฮฯะาำ฿เแโใไๅๆ๏๐๑๒๓๔</div>
+<div class="line">๕๖๗๘๙๚๛</div>
+</div>
+<div data-block="Lao">
+<div class="line">ກຂຄງຈຊຍດຕຖທນບປຜຝພຟມຢຣລວສຫອຮຯະາຳຽ</div>
+<div class="line">ເແໂໃໄໆ໐໑໒໓໔໕໖໗໘໙ໜໝໞໟ</div>
+</div>
+<div data-block="Tibetan">
+<div class="line">ༀ༁༂༃༄༅༆༇༈༉༊་༌།༎༏༐༑༒༓༔༕༖༗༚༛༜༝༞༟༠༡</div>
+<div class="line">༢༣༤༥༦༧༨༩༪༫༬༭༮༯༰༱༲༳༴༶༸༺༻༼༽ཀཁགགྷངཅཆ</div>
+<div class="line">ཇཉཊཋཌཌྷཎཏཐདདྷནཔཕབབྷམཙཚཛཛྷཝཞཟའཡརལཤཥསཧ</div>
+<div class="line">ཨཀྵཪཫཬ྅ྈྉྊྋྌ྾྿࿀࿁࿂࿃࿄࿅࿇࿈࿉࿊࿋࿌࿎࿏࿐࿑࿒࿓࿔</div>
+<div class="line">࿕࿖࿗࿘࿙࿚</div>
+</div>
+<div data-block="Myanmar">
+<div class="line">ကခဂဃငစဆဇဈဉညဋဌဍဎဏတထဒဓနပဖဗဘမယရလဝသဟ</div>
+<div class="line">ဠအဢဣဤဥဦဧဨဩဪဿ၀၁၂၃၄၅၆၇၈၉၊။၌၍၎၏ၐၑၒၓ</div>
+<div class="line">ၔၕၚၛၜၝၡၥၦၮၯၰၵၶၷၸၹၺၻၼၽၾၿႀႁႎ႐႑႒႓႔႕</div>
+<div class="line">႖႗႘႙႞႟</div>
+</div>
+<div data-block="Georgian">
+<div class="line">ႠႡႢႣႤႥႦႧႨႩႪႫႬႭႮႯႰႱႲႳႴႵႶႷႸႹႺႻႼႽႾႿ</div>
+<div class="line">ჀჁჂჃჄჅჇჍაბგდევზთიკლმნოპჟრსტუფქღყ</div>
+<div class="line">შჩცძწჭხჯჰჱჲჳჴჵჶჷჸჹჺ჻ჼჽჾჿ</div>
+</div>
+<div data-block="Ethiopic">
+<div class="line">ሀሁሂሃሄህሆሇለሉሊላሌልሎሏሐሑሒሓሔሕሖሗመሙሚማሜምሞሟ</div>
+<div class="line">ሠሡሢሣሤሥሦሧረሩሪራሬርሮሯሰሱሲሳሴስሶሷሸሹሺሻሼሽሾሿ</div>
+<div class="line">ቀቁቂቃቄቅቆቇቈቊቋቌቍቐቑቒቓቔቕቖቘቚቛቜቝበቡቢባቤብቦ</div>
+<div class="line">ቧቨቩቪቫቬቭቮቯተቱቲታቴትቶቷቸቹቺቻቼችቾቿኀኁኂኃኄኅኆ</div>
+<div class="line">ኇኈኊኋኌኍነኑኒናኔንኖኗኘኙኚኛኜኝኞኟአኡኢኣኤእኦኧከኩ</div>
+<div class="line">ኪካኬክኮኯኰኲኳኴኵኸኹኺኻኼኽኾዀዂዃዄዅወዉዊዋዌውዎዏዐ</div>
+<div class="line">ዑዒዓዔዕዖዘዙዚዛዜዝዞዟዠዡዢዣዤዥዦዧየዩዪያዬይዮዯደዱ</div>
+<div class="line">ዲዳዴድዶዷዸዹዺዻዼዽዾዿጀጁጂጃጄጅጆጇገጉጊጋጌግጎጏጐጒ</div>
+<div class="line">ጓጔጕጘጙጚጛጜጝጞጟጠጡጢጣጤጥጦጧጨጩጪጫጬጭጮጯጰጱጲጳጴ</div>
+<div class="line">ጵጶጷጸጹጺጻጼጽጾጿፀፁፂፃፄፅፆፇፈፉፊፋፌፍፎፏፐፑፒፓፔ</div>
+<div class="line">ፕፖፗፘፙፚ፠፡።፣፤፥፦፧፨፩፪፫፬፭፮፯፰፱፲፳፴፵፶፷፸፹</div>
+<div class="line">፺፻፼ᎀᎁᎂᎃᎄᎅᎆᎇᎈᎉᎊᎋᎌᎍᎎᎏ᎐᎑᎒᎓᎔᎕᎖᎗᎘᎙</div>
+</div>
+<div data-block="Cherokee">
+<div class="line">ᎠᎡᎢᎣᎤᎥᎦᎧᎨᎩᎪᎫᎬᎭᎮᎯᎰᎱᎲᎳᎴᎵᎶᎷᎸᎹᎺᎻᎼᎽᎾᎿ</div>
+<div class="line">ᏀᏁᏂᏃᏄᏅᏆᏇᏈᏉᏊᏋᏌᏍᏎᏏᏐᏑᏒᏓᏔᏕᏖᏗᏘᏙᏚᏛᏜᏝᏞᏟ</div>
+<div class="line">ᏠᏡᏢᏣᏤᏥᏦᏧᏨᏩᏪᏫᏬᏭᏮᏯᏰᏱᏲᏳᏴ</div>
+</div>
+<div data-block="Unified">
+<div class="line">᐀</div>
+</div>
+<div data-block="Ogham">
+<div class="line"> ᚁᚂᚃᚄᚅᚆᚇᚈᚉᚊᚋᚌᚍᚎᚏᚐᚑᚒᚓᚔᚕᚖᚗᚘᚙᚚ᚛᚜</div>
+</div>
+<div data-block="Runic">
+<div class="line">ᚠᚡᚢᚣᚤᚥᚦᚧᚨᚩᚪᚫᚬᚭᚮᚯᚰᚱᚲᚳᚴᚵᚶᚷᚸᚹᚺᚻᚼᚽᚾᚿ</div>
+<div class="line">ᛀᛁᛂᛃᛄᛅᛆᛇᛈᛉᛊᛋᛌᛍᛎᛏᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟ</div>
+<div class="line">ᛠᛡᛢᛣᛤᛥᛦᛧᛨᛩᛪ᛫᛬᛭ᛮᛯᛰᛱᛲᛳᛴᛵᛶᛷᛸ</div>
+</div>
+<div data-block="Tagalog">
+<div class="line">ᜀᜁᜂᜃᜄᜅᜆᜇᜈᜉᜊᜋᜌᜎᜏᜐᜑ</div>
+</div>
+<div data-block="Hanunoo">
+<div class="line">ᜠᜡᜢᜣᜤᜥᜦᜧᜨᜩᜪᜫᜬᜭᜮᜯᜰᜱ᜵᜶</div>
+</div>
+<div data-block="Buhid">
+<div class="line">ᝀᝁᝂᝃᝄᝅᝆᝇᝈᝉᝊᝋᝌᝍᝎᝏᝐᝑ</div>
+</div>
+<div data-block="Tagbanwa">
+<div class="line">ᝠᝡᝢᝣᝤᝥᝦᝧᝨᝩᝪᝫᝬᝮᝯᝰ</div>
+</div>
+<div data-block="Khmer">
+<div class="line">កខគឃងចឆជឈញដឋឌឍណតថទធនបផពភមយរលវឝឞស</div>
+<div class="line">ហឡអឣឤឥឦឧឨឩឪឫឬឭឮឯឰឱឲឳ។៕៖ៗ៘៙៚៛ៜ០១២</div>
+<div class="line">៣៤៥៦៧៨៩៰៱៲៳៴៵៶៷៸៹</div>
+</div>
+<div data-block="Mongolian">
+<div class="line">᠀᠁᠂᠃᠄᠅᠆᠇᠈᠉᠊᠐᠑᠒᠓᠔᠕᠖᠗᠘᠙ᠠᠡᠢᠣᠤᠥᠦᠧᠨᠩᠪ</div>
+<div class="line">ᠫᠬᠭᠮᠯᠰᠱᠲᠳᠴᠵᠶᠷᠸᠹᠺᠻᠼᠽᠾᠿᡀᡁᡂᡃᡄᡅᡆᡇᡈᡉᡊ</div>
+<div class="line">ᡋᡌᡍᡎᡏᡐᡑᡒᡓᡔᡕᡖᡗᡘᡙᡚᡛᡜᡝᡞᡟᡠᡡᡢᡣᡤᡥᡦᡧᡨᡩᡪ</div>
+<div class="line">ᡫᡬᡭᡮᡯᡰᡱᡲᡳᡴᡵᡶᡷᢀᢁᢂᢃᢄᢅᢆᢇᢈᢉᢊᢋᢌᢍᢎᢏᢐᢑᢒ</div>
+<div class="line">ᢓᢔᢕᢖᢗᢘᢙᢚᢛᢜᢝᢞᢟᢠᢡᢢᢣᢤᢥᢦᢧᢨᢪ</div>
+</div>
+<div data-block="Limbu">
+<div class="line">ᤀᤁᤂᤃᤄᤅᤆᤇᤈᤉᤊᤋᤌᤍᤎᤏᤐᤑᤒᤓᤔᤕᤖᤗᤘᤙᤚᤛᤜᤝᤞ᥀</div>
+<div class="line">᥄᥅᥆᥇᥈᥉᥊᥋᥌᥍᥎᥏</div>
+</div>
+<div data-block="Tai">
+<div class="line">ᥐᥑᥒᥓᥔᥕᥖᥗᥘᥙᥚᥛᥜᥝᥞᥟᥠᥡᥢᥣᥤᥥᥦᥧᥨᥩᥪᥫᥬᥭᥰᥱ</div>
+<div class="line">ᥲᥳᥴ</div>
+</div>
+<div data-block="New">
+<div class="line">ᦀᦁᦂᦃᦄᦅᦆᦇᦈᦉᦊᦋᦌᦍᦎᦏᦐᦑᦒᦓᦔᦕᦖᦗᦘᦙᦚᦛᦜᦝᦞᦟ</div>
+<div class="line">ᦠᦡᦢᦣᦤᦥᦦᦧᦨᦩᦪᦫᧁᧂᧃᧄᧅᧆᧇ᧐᧑᧒᧓᧔᧕᧖᧗᧘᧙᧚᧞᧟</div>
+</div>
+<div data-block="Khmer">
+<div class="line">᧠᧡᧢᧣᧤᧥᧦᧧᧨᧩᧪᧫᧬᧭᧮᧯᧰᧱᧲᧳᧴᧵᧶᧷᧸᧹᧺᧻᧼᧽᧾᧿</div>
+</div>
+<div data-block="Buginese">
+<div class="line">ᨀᨁᨂᨃᨄᨅᨆᨇᨈᨉᨊᨋᨌᨍᨎᨏᨐᨑᨒᨓᨔᨕᨖ᨞᨟</div>
+</div>
+<div data-block="Tai">
+<div class="line">ᨠᨡᨢᨣᨤᨥᨦᨧᨨᨩᨪᨫᨬᨭᨮᨯᨰᨱᨲᨳᨴᨵᨶᨷᨸᨹᨺᨻᨼᨽᨾᨿ</div>
+<div class="line">ᩀᩁᩂᩃᩄᩅᩆᩇᩈᩉᩊᩋᩌᩍᩎᩏᩐᩑᩒᩓᩔ᪀᪁᪂᪃᪄᪅᪆᪇᪈᪉᪐</div>
+<div class="line">᪑᪒᪓᪔᪕᪖᪗᪘᪙᪠᪡᪢᪣᪤᪥᪦ᪧ᪨᪩᪪᪫᪬᪭</div>
+</div>
+<div data-block="Balinese">
+<div class="line">ᬅᬆᬇᬈᬉᬊᬋᬌᬍᬎᬏᬐᬑᬒᬓᬔᬕᬖᬗᬘᬙᬚᬛᬜᬝᬞᬟᬠᬡᬢᬣᬤ</div>
+<div class="line">ᬥᬦᬧᬨᬩᬪᬫᬬᬭᬮᬯᬰᬱᬲᬳᭅᭆᭇᭈᭉᭊ</div>
+</div>
+</div>
+</div>
+<script src="support/text-orientation.js"></script>
+</body></html>

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use buffer_map::BufferMap;
+use surface_map::SurfaceMap;
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
 use compositor_task::Msg;
@@ -22,13 +22,15 @@ use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::PaintRequest;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
 use layers::rendergl::RenderContext;
 use layers::rendergl;
 use layers::scene::Scene;
-use layout_traits::{LayoutControlChan, LayoutControlMsg};
+use layout_traits::LayoutControlChan;
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
 use msg::constellation_msg::AnimationState;
@@ -37,9 +39,9 @@ use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, WindowSizeData};
 use png;
-use profile_traits::mem;
+use profile_traits::mem::{self, Reporter, ReporterRequest, ReportKind};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::mem as std_mem;
@@ -158,8 +160,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
 
-    /// A data structure to store unused LayerBuffers.
-    buffer_map: BufferMap,
+    /// A data structure to cache unused NativeSurfaces.
+    surface_map: SurfaceMap,
 }
 
 pub struct ScrollEvent {
@@ -243,6 +245,10 @@ fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>, Vec<gl::GLui
     (framebuffer_ids, texture_ids)
 }
 
+pub fn reporter_name() -> String {
+    "compositor-reporter".to_string()
+}
+
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>,
            sender: Box<CompositorProxy+Send>,
@@ -251,10 +257,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> IOCompositor<Window> {
-        // Create an initial layer tree.
-        //
-        // TODO: There should be no initial layer tree until the painter creates one from the
-        // display list. This is only here because we don't have that logic in the painter yet.
+
+        // Register this thread as a memory reporter, via its own channel.
+        let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+        let compositor_proxy_for_memory_reporter = sender.clone_compositor_proxy();
+        ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
+            let reporter_request: ReporterRequest = reporter_request.to().unwrap();
+            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(reporter_request.reports_channel));
+        });
+        let reporter = Reporter(reporter_sender);
+        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
+
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
         let composite_target = match opts::get().output_file {
@@ -296,7 +309,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             last_composite_time: 0,
             has_seen_quit_event: false,
             ready_to_save_state: ReadyState::Unknown,
-            buffer_map: BufferMap::new(BUFFER_MAP_SIZE),
+            surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
         }
     }
 
@@ -333,6 +346,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
                 con_chan.send(ConstellationMsg::Exit).unwrap();
                 chan.send(()).unwrap();
+
+                self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
+
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
 
@@ -394,14 +410,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            (Msg::ReturnUnusedLayerBuffers(layer_buffers),
+            (Msg::ReturnUnusedNativeSurfaces(native_surfaces),
              ShutdownState::NotShuttingDown) => {
-                self.cache_unused_buffers(layer_buffers);
+                self.surface_map.insert_surfaces(&self.native_display, native_surfaces);
             }
 
             (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point),
              ShutdownState::NotShuttingDown) => {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
+            }
+
+            (Msg::Status(message), ShutdownState::NotShuttingDown) => {
+                self.window.status(message);
             }
 
             (Msg::LoadStart(back, forward), ShutdownState::NotShuttingDown) => {
@@ -412,7 +432,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.got_load_complete_message = true;
 
                 // If we're painting in headless mode, schedule a recomposite.
-                if opts::get().output_file.is_some() {
+                if opts::get().output_file.is_some() || opts::get().exit_after_load {
                     self.composite_if_necessary(CompositingReason::Headless);
                 }
 
@@ -482,6 +502,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.head_parsed();
             }
 
+            (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
+                let mut reports = vec![];
+                let name = "compositor-task";
+                // These are both `ExplicitUnknownLocationSize` because the memory might be in the
+                // GPU or on the heap.
+                reports.push(mem::Report {
+                    path: path![name, "surface-map"],
+                    kind: ReportKind::ExplicitUnknownLocationSize,
+                    size: self.surface_map.mem(),
+                });
+                reports.push(mem::Report {
+                    path: path![name, "layer-tree"],
+                    kind: ReportKind::ExplicitUnknownLocationSize,
+                    size: self.scene.get_memory_usage(),
+                });
+                reports_chan.send(reports);
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -502,7 +540,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
-                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running = true;
+                if self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running {
+                    return
+                }
+                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running =
+                    true;
+                self.tick_animations_for_pipeline(pipeline_id);
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::NoAnimationsPresent => {
@@ -1044,11 +1087,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for (pipeline_id, pipeline_details) in self.pipeline_details.iter() {
             if pipeline_details.animations_running ||
                pipeline_details.animation_callbacks_running {
-
-                self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id))
-                                         .unwrap();
+                self.tick_animations_for_pipeline(*pipeline_id)
             }
         }
+    }
+
+    fn tick_animations_for_pipeline(&self, pipeline_id: PipelineId) {
+        self.constellation_chan.0.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
     }
 
     fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
@@ -1155,23 +1200,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
-        if opts::get().gpu_painting {
-            return;
-        }
-
         for buffer_request in paint_request.buffer_requests.iter_mut() {
-            if self.buffer_map.mem() == 0 {
+            if self.surface_map.mem() == 0 {
                 return;
             }
 
-            if let Some(mut buffer) = self.buffer_map.find(buffer_request.screen_rect.size) {
-                buffer.rect = buffer_request.page_rect;
-                buffer.screen_pos = buffer_request.screen_rect;
-                buffer.resolution = paint_request.scale;
-                buffer.native_surface.mark_wont_leak();
-                buffer.painted_with_cpu = true;
-                buffer.content_age = buffer_request.content_age;
-                buffer_request.layer_buffer = Some(buffer);
+            let size = Size2D::new(buffer_request.screen_rect.size.width as i32,
+                                   buffer_request.screen_rect.size.height as i32);
+            if let Some(mut native_surface) = self.surface_map.find(size) {
+                native_surface.mark_wont_leak();
+                buffer_request.native_surface = Some(native_surface);
             }
         }
     }
@@ -1380,8 +1418,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 if !self.is_ready_to_paint_image_output() {
                     return None
                 }
-            },
-            _ => {}
+            }
+            CompositeTarget::Window => {
+                if opts::get().exit_after_load && !self.is_ready_to_paint_image_output() {
+                    return None
+                }
+            }
         }
 
         let (framebuffer_ids, texture_ids) = match target {
@@ -1418,14 +1460,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let path = opts::get().output_file.as_ref().unwrap();
                 let res = png::store_png(&mut img, &path);
                 assert!(res.is_ok());
-
-                debug!("shutting down the constellation after generating an output file");
-                let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ConstellationMsg::Exit).unwrap();
-                self.shutdown_state = ShutdownState::ShuttingDown;
                 None
             }
         };
+
+        if opts::get().output_file.is_some() || opts::get().exit_after_load {
+            debug!("shutting down the constellation (after generating an output file or exit flag specified)");
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ConstellationMsg::Exit).unwrap();
+            self.shutdown_state = ShutdownState::ShuttingDown;
+        }
 
         // Perform the page flip. This will likely block for a while.
         self.window.present();
@@ -1557,7 +1601,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn cache_unused_buffers(&mut self, buffers: Vec<Box<LayerBuffer>>) {
         if !buffers.is_empty() {
-            self.buffer_map.insert_buffers(&self.native_display, buffers);
+            let surfaces = buffers.into_iter().map(|buffer| {
+                buffer.native_surface
+            }).collect();
+            self.surface_map.insert_surfaces(&self.native_display, surfaces);
         }
     }
 }
@@ -1700,3 +1747,4 @@ pub enum CompositingReason {
     /// The window has been zoomed.
     Zoom,
 }
+

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Text Module Level 3 CR Test Suite</h1>
-  <h2>Alignment and Justification (17 tests)</h2>
+  <h2>Alignment and Justification (23 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -37,7 +37,73 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1">+</a>
         <a href="http://www.w3.org/TR/css-text-3/#text-align-property">7.1 Text Alignment: the &#8216;text-align&#8217; property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 6 tests -->
+      <tr id="text-align-match-parent-01-7.1" class="primary">
+        <td><strong>
+            <a href="text-align-match-parent-01.xht">text-align-match-parent-01</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>CSS Text: text-align: match-parent
+          <ul class="assert">
+            <li>Text checks that an element with text-align: match-parent inherits its parent's value and calculates 'start' and 'end' with respect to its parent's direction</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-match-parent-02-7.1" class="primary dom">
+        <td><strong>
+            <a href="text-align-match-parent-02.xht">text-align-match-parent-02</a></strong></td>
+        <td><a href="reference/text-align-match-parent-ref.xht">=</a> </td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr></td>
+        <td>CSS Text: text-align: match-parent
+          <ul class="assert">
+            <li>Text checks that an element with text-align: match-parent still aligns correctly if the parent's dir attribute is changed</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-match-parent-03-7.1" class="primary dom">
+        <td><strong>
+            <a href="text-align-match-parent-03.xht">text-align-match-parent-03</a></strong></td>
+        <td><a href="reference/text-align-match-parent-ref.xht">=</a> </td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr></td>
+        <td>CSS Text: text-align: match-parent
+          <ul class="assert">
+            <li>Text checks that an element whose text-align property is changed to match-parent aligns correctly</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-match-parent-04-7.1" class="primary dom">
+        <td><strong>
+            <a href="text-align-match-parent-04.xht">text-align-match-parent-04</a></strong></td>
+        <td><a href="reference/text-align-match-parent-ref.xht">=</a> </td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr></td>
+        <td>CSS Text: text-align: match-parent
+          <ul class="assert">
+            <li>Text checks that an element with text-align: match-parent still aligns correctly if the parent's width is changed</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-match-parent-root-ltr-7.1" class="primary">
+        <td><strong>
+            <a href="text-align-match-parent-root-ltr.xht">text-align-match-parent-root-ltr</a></strong></td>
+        <td><a href="reference/text-align-match-parent-root-ltr-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Text: text-align: match-parent
+          <ul class="assert">
+            <li>Text checks that text-align: match-parent on a root element with dir=ltr is equivalent to text-align: start</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-match-parent-root-rtl-7.1" class="primary">
+        <td><strong>
+            <a href="text-align-match-parent-root-rtl.xht">text-align-match-parent-root-rtl</a></strong></td>
+        <td><a href="reference/text-align-match-parent-root-rtl-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Text: text-align: match-parent
+          <ul class="assert">
+            <li>Text checks that text-align: match-parent on a root element with dir=rtl is equivalent to text-align: start</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.1.#center">
       <!-- 0 tests -->

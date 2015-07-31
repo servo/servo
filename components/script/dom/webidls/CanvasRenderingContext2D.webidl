@@ -94,14 +94,18 @@ interface CanvasRenderingContext2D {
   void clip(optional CanvasWindingRule fillRule = "nonzero");
   //void clip(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
   //void resetClip();
-  //boolean isPointInPath(unrestricted double x, unrestricted double y, optional CanvasWindingRule fillRule = "nonzero");
-  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y, optional CanvasWindingRule fillRule = "nonzero");
+  //boolean isPointInPath(unrestricted double x, unrestricted double y,
+  //                      optional CanvasWindingRule fillRule = "nonzero");
+  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y,
+  //                      optional CanvasWindingRule fillRule = "nonzero");
   //boolean isPointInStroke(unrestricted double x, unrestricted double y);
   //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 
   // text (see also the CanvasDrawingStyles interface)
-  //void fillText(DOMString text, unrestricted double x, unrestricted double y, optional unrestricted double maxWidth);
-  //void strokeText(DOMString text, unrestricted double x, unrestricted double y, optional unrestricted double maxWidth);
+  //void fillText(DOMString text, unrestricted double x, unrestricted double y,
+  //              optional unrestricted double maxWidth);
+  //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
+  //                optional unrestricted double maxWidth);
   //TextMetrics measureText(DOMString text);
 
   // drawing images
@@ -128,7 +132,10 @@ interface CanvasRenderingContext2D {
   [Throws]
   ImageData getImageData(double sx, double sy, double sw, double sh);
   void putImageData(ImageData imagedata, double dx, double dy);
-  void putImageData(ImageData imagedata, double dx, double dy, double dirtyX, double dirtyY, double dirtyWidth, double dirtyHeight);
+  void putImageData(ImageData imagedata,
+                    double dx, double dy,
+                    double dirtyX, double dirtyY,
+                    double dirtyWidth, double dirtyHeight);
 };
 
 [NoInterfaceObject]
@@ -147,7 +154,8 @@ interface CanvasDrawingStyles {
   // text
   //attribute DOMString font; // (default 10px sans-serif)
   //attribute DOMString textAlign; // "start", "end", "left", "right", "center" (default: "start")
-  //attribute DOMString textBaseline; // "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" (default: "alphabetic")
+  //attribute DOMString textBaseline; // "top", "hanging", "middle", "alphabetic",
+                                      // "ideographic", "bottom" (default: "alphabetic")
   //attribute DOMString direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
@@ -157,7 +165,8 @@ interface CanvasPathMethods {
   void closePath();
   void moveTo(unrestricted double x, unrestricted double y);
   void lineTo(unrestricted double x, unrestricted double y);
-  void quadraticCurveTo(unrestricted double cpx, unrestricted double cpy, unrestricted double x, unrestricted double y);
+  void quadraticCurveTo(unrestricted double cpx, unrestricted double cpy,
+                        unrestricted double x, unrestricted double y);
 
   void bezierCurveTo(unrestricted double cp1x,
                      unrestricted double cp1y,
@@ -170,16 +179,19 @@ interface CanvasPathMethods {
   void arcTo(unrestricted double x1, unrestricted double y1,
              unrestricted double x2, unrestricted double y2,
              unrestricted double radius);
-// NOT IMPLEMENTED  [LenientFloat] void arcTo(double x1, double y1, double x2, double y2, double radiusX, double radiusY, double rotation);
+  // [LenientFloat] void arcTo(double x1, double y1, double x2, double y2,
+  //                           double radiusX, double radiusY, double rotation);
 
   void rect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 
   [Throws]
-  void arc(double x, double y, double radius, double startAngle, double endAngle, optional boolean anticlockwise = false);
-// NOT IMPLEMENTED  [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY, double rotation, double startAngle, double endAngle, boolean anticlockwise);
+  void arc(double x, double y, double radius, double startAngle, double endAngle,
+           optional boolean anticlockwise = false);
+  // [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY,
+  //                             double rotation, double startAngle, double endAngle,
+  //                             boolean anticlockwise);
 };
 
 
 CanvasRenderingContext2D implements CanvasDrawingStyles;
 CanvasRenderingContext2D implements CanvasPathMethods;
-

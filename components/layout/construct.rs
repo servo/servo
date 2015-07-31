@@ -15,7 +15,6 @@
 
 use block::BlockFlow;
 use context::LayoutContext;
-use css::node_style::StyledNode;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
 use flow::{Descendants, AbsDescendants};
@@ -40,7 +39,8 @@ use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
-use wrapper::{PostorderNodeMutTraversal, PseudoElementType, ThreadSafeLayoutNode};
+use traversal::PostorderNodeMutTraversal;
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use script::dom::characterdata::CharacterDataTypeId;
@@ -666,7 +666,7 @@ impl<'a> FlowConstructor<'a> {
 
             self.create_fragments_for_node_text_content(&mut initial_fragments,
                                                         node,
-                                                        node.style());
+                                                        &*node.style());
         }
 
         self.build_flow_for_block_starting_with_fragments(flow, node, initial_fragments)
@@ -1117,7 +1117,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode, flotation: float::T)
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
-        let marker_fragment = match node.style().get_list().list_style_image {
+        let marker_fragment = match node.style().get_list().list_style_image.0 {
             Some(ref url) => {
                 let image_info = box ImageFragmentInfo::new(node,
                                                             Some((*url).clone()),
@@ -1247,9 +1247,9 @@ impl<'a> FlowConstructor<'a> {
             return false
         }
 
+        let mut style = node.style().clone();
         let mut layout_data_ref = node.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
-        let mut style = (*node.get_style(&layout_data)).clone();
         let damage = layout_data.data.restyle_damage;
         match node.construction_result_mut(layout_data) {
             &mut ConstructionResult::None => true,

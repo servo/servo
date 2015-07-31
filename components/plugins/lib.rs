@@ -27,6 +27,7 @@ use rustc::plugin::Registry;
 use syntax::ext::base::*;
 
 use syntax::parse::token::intern;
+use syntax::feature_gate::AttributeType::Whitelisted;
 
 // Public for documentation to show up
 /// Handles the auto-deriving for `#[derive(JSTraceable)]`
@@ -49,10 +50,13 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_macro("to_lower", casing::expand_lower);
     reg.register_macro("to_upper", casing::expand_upper);
     reg.register_lint_pass(box lints::transmute_type::TransmutePass as LintPassObject);
-    reg.register_lint_pass(box lints::unrooted_must_root::UnrootedPass as LintPassObject);
+    reg.register_lint_pass(box lints::unrooted_must_root::UnrootedPass::new() as LintPassObject);
     reg.register_lint_pass(box lints::privatize::PrivatizePass as LintPassObject);
     reg.register_lint_pass(box lints::inheritance_integrity::InheritancePass as LintPassObject);
     reg.register_lint_pass(box lints::str_to_string::StrToStringPass as LintPassObject);
     reg.register_lint_pass(box lints::ban::BanPass as LintPassObject);
     reg.register_lint_pass(box tenacious::TenaciousPass as LintPassObject);
+    reg.register_attribute("must_root".to_string(), Whitelisted);
+    reg.register_attribute("servo_lang".to_string(), Whitelisted);
+    reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
 }

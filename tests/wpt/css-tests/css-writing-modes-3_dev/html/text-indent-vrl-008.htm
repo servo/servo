@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'text-indent' with percentage unit, 'direction: rtl' in 'vertical-rl' writing-mode (orthogonal)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#logical-direction-layout" title="7.4 Flow-Relative Mappings">
+  <link rel="match" href="reference/text-indent-vrl-008-ref.htm">
+
+  <meta content="ahem image" name="flags">
+  <meta content="This test checks that 'text-indent' set with a percentage unit will be a percentage of the containing block height. 'text-indent' will indent the first line of text at line-start. Text of a line box in 'direction: rtl' and with 'writing-mode: vertical-rl' starts at bottom toward the top and progress toward the top." name="assert">
+
+  <style type="text/css">
+  div#containing-block
+    {
+      color: green;
+      font: 5em/1 Ahem; /* computes to 80px/80px */
+      height: 320px;
+      width: 160px;
+    }
+
+  div#containing-block
+    {
+      background: red url("support/bg-red-4col-3row-320x320.png") top right;
+      direction: rtl;
+      writing-mode: vertical-rl;
+    }
+
+  div#child
+    {
+      text-indent: 25%;
+    }
+  </style>
+ </head>
+
+ <body>
+
+  <p><img src="support/pass-cdts-abs-pos-non-replaced.png" width="246" height="36" alt="Image download support must be enabled"></p>
+
+  <div id="containing-block">
+    <div id="child">A</div>
+  </div>
+
+ </body>
+</html>

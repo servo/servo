@@ -85,8 +85,6 @@ function wrapResult(url, server_data) {
     referrer: server_data.headers.referer,
     headers: server_data.headers
   }
-
-  return result;
 }
 
 function queryIframe(url, callback) {

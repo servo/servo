@@ -21,7 +21,7 @@ use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{LengthAndPercentage, LengthOrPercentage, Length, Time};
+use values::computed::{LengthOrPercentage, Length, Time};
 use values::CSSFloat;
 use cssparser::{RGBA, Color};
 
@@ -92,6 +92,14 @@ impl PropertyAnimation {
                                                         new_style.$structname().$field)
                             }
                         )*
+                        TransitionProperty::Clip => {
+                            AnimatedProperty::Clip(old_style.get_effects().clip.0,
+                                                   new_style.get_effects().clip.0)
+                        }
+                        TransitionProperty::LetterSpacing => {
+                            AnimatedProperty::LetterSpacing(old_style.get_inheritedtext().letter_spacing.0,
+                                                            new_style.get_inheritedtext().letter_spacing.0)
+                        }
                         TransitionProperty::TextShadow => {
                             AnimatedProperty::TextShadow(old_style.get_effects().text_shadow.clone(),
                                                          new_style.get_effects().text_shadow.clone())
@@ -99,6 +107,10 @@ impl PropertyAnimation {
                         TransitionProperty::Transform => {
                             AnimatedProperty::Transform(old_style.get_effects().transform.clone(),
                                                         new_style.get_effects().transform.clone())
+                        }
+                        TransitionProperty::WordSpacing => {
+                            AnimatedProperty::WordSpacing(old_style.get_inheritedtext().word_spacing.0,
+                                                          new_style.get_inheritedtext().word_spacing.0)
                         }
                     }
                 }
@@ -117,12 +129,10 @@ impl PropertyAnimation {
             [BorderTopWidth; get_border; border_top_width],
             [Bottom; get_positionoffsets; bottom],
             [Color; get_color; color],
-            [Clip; get_effects; clip],
             [FontSize; get_font; font_size],
             [FontWeight; get_font; font_weight],
             [Height; get_box; height],
             [Left; get_positionoffsets; bottom],
-            [LetterSpacing; get_inheritedtext; letter_spacing],
             [LineHeight; get_inheritedbox; line_height],
             [MarginBottom; get_margin; margin_bottom],
             [MarginLeft; get_margin; margin_left],
@@ -145,7 +155,6 @@ impl PropertyAnimation {
             [VerticalAlign; get_box; vertical_align],
             [Visibility; get_inheritedbox; visibility],
             [Width; get_box; width],
-            [WordSpacing; get_inheritedtext; word_spacing],
             [ZIndex; get_box; z_index]);
 
         let property_animation = PropertyAnimation {
@@ -186,7 +195,22 @@ impl PropertyAnimation {
                             }
                         }
                     )*
-                }
+                    AnimatedProperty::Clip(ref start, ref end) => {
+                        if let Some(value) = start.interpolate(end, progress) {
+                            style.mutate_effects().clip.0 = value
+                        }
+                    }
+                    AnimatedProperty::LetterSpacing(ref start, ref end) => {
+                        if let Some(value) = start.interpolate(end, progress) {
+                            style.mutate_inheritedtext().letter_spacing.0 = value
+                        }
+                    }
+                    AnimatedProperty::WordSpacing(ref start, ref end) => {
+                        if let Some(value) = start.interpolate(end, progress) {
+                            style.mutate_inheritedtext().word_spacing.0 = value
+                        }
+                    }
+                 }
             });
         match_property!(
             [BackgroundColor; mutate_background; background_color],
@@ -202,12 +226,10 @@ impl PropertyAnimation {
             [BorderTopWidth; mutate_border; border_top_width],
             [Bottom; mutate_positionoffsets; bottom],
             [Color; mutate_color; color],
-            [Clip; mutate_effects; clip],
             [FontSize; mutate_font; font_size],
             [FontWeight; mutate_font; font_weight],
             [Height; mutate_box; height],
             [Left; mutate_positionoffsets; bottom],
-            [LetterSpacing; mutate_inheritedtext; letter_spacing],
             [LineHeight; mutate_inheritedbox; line_height],
             [MarginBottom; mutate_margin; margin_bottom],
             [MarginLeft; mutate_margin; margin_left],
@@ -232,7 +254,6 @@ impl PropertyAnimation {
             [VerticalAlign; mutate_box; vertical_align],
             [Visibility; mutate_inheritedbox; visibility],
             [Width; mutate_box; width],
-            [WordSpacing; mutate_inheritedtext; word_spacing],
             [ZIndex; mutate_box; z_index]);
     }
 
@@ -506,17 +527,6 @@ impl Interpolate for LengthOrPercentage {
     }
 }
 
-impl Interpolate for LengthAndPercentage {
-    #[inline]
-    fn interpolate(&self, other: &LengthAndPercentage, time: f32)
-                   -> Option<LengthAndPercentage> {
-        Some(LengthAndPercentage {
-            length: self.length.interpolate(&other.length, time).unwrap(),
-            percentage: self.percentage.interpolate(&other.percentage, time).unwrap(),
-        })
-    }
-}
-
 impl Interpolate for LengthOrPercentageOrAuto {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentageOrAuto, time: f32)
@@ -776,7 +786,7 @@ fn interpolate_transform_list(from_list: &Vec<TransformOperation>,
         result.push_all(from_list);
     }
 
-    Some(result)
+    TransformList(Some(result))
 }
 
 /// Build an equivalent 'identity transform function list' based
@@ -795,8 +805,8 @@ fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<Transfor
                 result.push(TransformOperation::Skew(0.0, 0.0));
             }
             &TransformOperation::Translate(..) => {
-                result.push(TransformOperation::Translate(LengthAndPercentage::zero(),
-                                                          LengthAndPercentage::zero(),
+                result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
+                                                          LengthOrPercentage::zero(),
                                                           Au(0)));
             }
             &TransformOperation::Scale(..) => {
@@ -820,7 +830,7 @@ impl Interpolate for TransformList {
     #[inline]
     fn interpolate(&self, other: &TransformList, time: f32) -> Option<TransformList> {
         // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-        let result = match (self, other) {
+        let result = match (&self.0, &other.0) {
             (&Some(ref from_list), &Some(ref to_list)) => {
                 // Two lists of transforms
                 interpolate_transform_list(from_list, &to_list, time)
@@ -835,9 +845,9 @@ impl Interpolate for TransformList {
                 let from_list = build_identity_transform_list(to_list);
                 interpolate_transform_list(&from_list, to_list, time)
             }
-            (&None, &None) => {
+            _ => {
                 // http://dev.w3.org/csswg/css-transforms/#none-none-animation
-                None
+                TransformList(None)
             }
         };
 

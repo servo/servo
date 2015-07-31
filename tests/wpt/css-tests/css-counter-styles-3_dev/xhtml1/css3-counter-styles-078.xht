@@ -6,7 +6,7 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#complex-cjk" rel="help" />
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley" />
 <meta content="font" name="flags" />
-<meta content="With list-style-type set to simp-chinese-formal, list markers above the limit specified in CSS3 will be rendered according to the special rules described." name="assert" />
+<meta content="[Exploratory] list-style-type: simp-chinese-formal produces counter values outside its range without using the prescribed fallback style." name="assert" />
 <style type="text/css">
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
@@ -14,19 +14,16 @@ ol li { list-style-type: simp-chinese-formal;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
-<div class="test"><ol start="10000"><li title="10000">一〇〇〇〇、</li><li title="10001">一〇〇〇一、</li></ol></div>
-
-
+<p class="instructions">Test fails if the two columns of the first line are NOT the same. Otherwise, test passes only if the left column of the 2nd and 3rd lines is NOT decimal digits and is NOT the same as the right side.  Score as Partial if the columns of the 2nd and 3rd lines are the same (ie. fallback was used). In all this IGNORE the suffix.</p>
+<div class="test"><ol start="9999">
+<li title="9999">玖仟玖佰玖拾玖</li>
+<li title="10000">一〇〇〇〇</li>
+<li title="10001">一〇〇〇一</li>
+</ol></div>
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

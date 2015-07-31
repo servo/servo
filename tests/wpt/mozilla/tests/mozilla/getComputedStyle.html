@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <style>
+            #foo:before {
+                color: red;
+            }
+
+            #foo {
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="foo"></div>
+        <script>
+            test(function() {
+                var div = document.getElementById("foo");
+                var cs = getComputedStyle(div);
+                assert_equals(cs.getPropertyValue("left"), "auto");
+                assert_equals(cs.getPropertyValue("right"), "auto");
+                assert_equals(cs.getPropertyValue("top"), "auto");
+                assert_equals(cs.getPropertyValue("bottom"), "auto");
+                assert_equals(cs.getPropertyValue("width"), "50px");
+                assert_equals(cs.getPropertyValue("height"), "auto");
+                assert_equals(cs.getPropertyValue("color"), "rgb(0, 0, 0)");
+            }, "Element's resolved values");
+
+            test(function() {
+                var div = document.getElementById("foo");
+                assert_equals(getComputedStyle(div, ':before').getPropertyValue("color"), "rgb(255, 0, 0)");
+                assert_equals(getComputedStyle(div, '::before').getPropertyValue("color"), "rgb(255, 0, 0)");
+            }, "Existing :before pseudoelement");
+
+            test(function() {
+                var div = document.getElementById("foo");
+                assert_equals(getComputedStyle(div, ':after').getPropertyValue("color"), "");
+                assert_equals(getComputedStyle(div, '::after').getPropertyValue("color"), "");
+            }, "Missing :after pseudoelement");
+
+            test(function() {
+                var div = document.createElement("div");
+                div.id = "foo";
+                assert_equals(getComputedStyle(div).getPropertyValue("width"), "");
+            }, "Blank style for elements not in a document");
+
+        </script>
+    </body>
+</html>

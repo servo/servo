@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
+<title>arabic-indic, 0-9</title>
+<link href="mailto:ishida@w3.org" rel="author" title="Richard Ishida" />
+<link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help" />
+<meta content="font" name="flags" />
+<meta content="list-style: arabic-indic produces numbers up to 9 items per the spec." name="assert" />
+<style type="text/css">
+ol li { list-style-type: arabic-indic;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test"><ol>
+<li title="1">١</li>
+<li title="2">٢</li>
+<li title="3">٣</li>
+<li title="4">٤</li>
+<li title="5">٥</li>
+<li title="6">٦</li>
+<li title="7">٧</li>
+<li title="8">٨</li>
+<li title="9">٩</li>
+</ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body></html>

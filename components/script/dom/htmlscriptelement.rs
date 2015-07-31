@@ -27,7 +27,8 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, CloneChildrenFlag};
+use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeHelpers};
+use dom::node::{NodeTypeId, document_from_node, window_from_node};
 use dom::servohtmlparser::ServoHTMLParserHelpers;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{WindowHelpers, ScriptHelpers};
@@ -564,9 +565,9 @@ impl<'a> VirtualMethods for &'a HTMLScriptElement {
         }
     }
 
-    fn child_inserted(&self, child: &Node) {
+    fn children_changed(&self, mutation: &ChildrenMutation) {
         if let Some(ref s) = self.super_type() {
-            s.child_inserted(child);
+            s.children_changed(mutation);
         }
         let node = NodeCast::from_ref(*self);
         if !self.parser_inserted.get() && node.is_in_doc() {

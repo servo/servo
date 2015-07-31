@@ -12,12 +12,13 @@ use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
+use traversal::{PreorderDomTraversal, PostorderDomTraversal};
+use traversal::PostorderNodeMutTraversal;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
 use traversal::{RecalcStyleForNode, ConstructFlows};
 use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
-use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
-use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
+use wrapper::UnsafeLayoutNode;
 
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use std::mem;
@@ -97,8 +98,7 @@ pub type DomTraversalFunction =
 pub type ChunkedFlowTraversalFunction =
     extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>);
 
-pub type FlowTraversalFunction =
-    extern "Rust" fn(UnsafeFlow, &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>);
+pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
 
 /// A parallel top-down DOM traversal.
 pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
@@ -237,45 +237,45 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     ///
     /// The only communication between siblings is that they both
     /// fetch-and-subtract the parent's children count.
-    fn run_parallel(&self,
-                    mut unsafe_flow: UnsafeFlow,
-                    _: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
+    fn run_parallel(&self, mut unsafe_flow: UnsafeFlow) {
         loop {
-            unsafe {
-                // Get a real flow.
-                let flow: &mut FlowRef = mem::transmute(&mut unsafe_flow);
+            // Get a real flow.
+            let flow: &mut FlowRef = unsafe {
+                mem::transmute(&mut unsafe_flow)
+            };
 
-                // Perform the appropriate traversal.
-                if self.should_process(&mut **flow) {
-                    self.process(&mut **flow);
-                }
+            // Perform the appropriate traversal.
+            if self.should_process(&mut **flow) {
+                self.process(&mut **flow);
+            }
 
 
-                let base = flow::mut_base(&mut **flow);
+            let base = flow::mut_base(&mut **flow);
 
-                // Reset the count of children for the next layout traversal.
-                base.parallel.children_count.store(base.children.len() as isize,
-                                                   Ordering::Relaxed);
+            // Reset the count of children for the next layout traversal.
+            base.parallel.children_count.store(base.children.len() as isize,
+                                               Ordering::Relaxed);
 
-                // Possibly enqueue the parent.
-                let mut unsafe_parent = base.parallel.parent;
-                if unsafe_parent == null_unsafe_flow() {
-                    // We're done!
-                    break
-                }
+            // Possibly enqueue the parent.
+            let mut unsafe_parent = base.parallel.parent;
+            if unsafe_parent == null_unsafe_flow() {
+                // We're done!
+                break
+            }
 
-                // No, we're not at the root yet. Then are we the last child
-                // of our parent to finish processing? If so, we can continue
-                // on with our parent; otherwise, we've gotta wait.
-                let parent: &mut FlowRef = mem::transmute(&mut unsafe_parent);
-                let parent_base = flow::mut_base(&mut **parent);
-                if parent_base.parallel.children_count.fetch_sub(1, Ordering::Relaxed) == 1 {
-                    // We were the last child of our parent. Reflow our parent.
-                    unsafe_flow = unsafe_parent
-                } else {
-                    // Stop.
-                    break
-                }
+            // No, we're not at the root yet. Then are we the last child
+            // of our parent to finish processing? If so, we can continue
+            // on with our parent; otherwise, we've gotta wait.
+            let parent: &mut FlowRef = unsafe {
+                mem::transmute(&mut unsafe_parent)
+            };
+            let parent_base = flow::mut_base(&mut **parent);
+            if parent_base.parallel.children_count.fetch_sub(1, Ordering::Relaxed) == 1 {
+                // We were the last child of our parent. Reflow our parent.
+                unsafe_flow = unsafe_parent
+            } else {
+                // Stop.
+                break
             }
         }
     }
@@ -320,7 +320,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
             // If there were no more children, start assigning block-sizes.
             if !had_children {
-                bottom_up_func(unsafe_flow, proxy)
+                bottom_up_func(unsafe_flow, proxy.user_data())
             }
         }
 
@@ -332,8 +332,6 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
         }
     }
 }
-
-impl<'a> ParallelPostorderFlowTraversal for BubbleISizes<'a> {}
 
 impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     fn run_parallel(&self,
@@ -411,13 +409,12 @@ fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
 
 fn assign_block_sizes_and_store_overflow(
         unsafe_flow: UnsafeFlow,
-        proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
-    let shared_layout_context = proxy.user_data();
+        shared_layout_context: &SharedLayoutContext) {
     let layout_context = LayoutContext::new(shared_layout_context);
     let assign_block_sizes_traversal = AssignBSizesAndStoreOverflow {
         layout_context: &layout_context,
     };
-    assign_block_sizes_traversal.run_parallel(unsafe_flow, proxy)
+    assign_block_sizes_traversal.run_parallel(unsafe_flow)
 }
 
 fn compute_absolute_positions(
@@ -432,15 +429,14 @@ fn compute_absolute_positions(
 }
 
 fn build_display_list(unsafe_flow: UnsafeFlow,
-                      proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
-    let shared_layout_context = proxy.user_data();
+                      shared_layout_context: &SharedLayoutContext) {
     let layout_context = LayoutContext::new(shared_layout_context);
 
     let build_display_list_traversal = BuildDisplayList {
         layout_context: &layout_context,
     };
 
-    build_display_list_traversal.run_parallel(unsafe_flow, proxy);
+    build_display_list_traversal.run_parallel(unsafe_flow);
 }
 
 fn run_queue_with_custom_work_data_type<To,F>(

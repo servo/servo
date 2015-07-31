@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
@@ -49,6 +49,7 @@ use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::location::Location;
 use dom::mouseevent::MouseEvent;
@@ -69,7 +70,7 @@ use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent};
+use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent, SubpageId};
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
@@ -287,6 +288,7 @@ pub trait DocumentHelpers<'a> {
     fn finish_load(self, load: LoadType);
     fn set_current_parser(self, script: Option<&ServoHTMLParser>);
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>>;
+    fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>>;
 }
 
 impl<'a> DocumentHelpers<'a> for &'a Document {
@@ -319,9 +321,9 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     fn is_fully_active(self) -> bool {
         let window = self.window.root();
         let window = window.r();
-        let browser_context = window.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
-        let active_document = browser_context.active_document();
+        let browsing_context = window.browsing_context();
+        let browsing_context = browsing_context.as_ref().unwrap();
+        let active_document = browsing_context.active_document();
 
         if self != active_document.r() {
             return false;
@@ -645,12 +647,13 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
         let x = point.x as i32;
         let y = point.y as i32;
+        let clickCount = 1;
         let event = MouseEvent::new(window.r(),
                                     mouse_event_type_string,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(window.r()),
-                                    0i32,
+                                    clickCount,
                                     x, y, x, y,
                                     false, false, false, false,
                                     0i16,
@@ -730,15 +733,13 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // Set hover state for any elements in the current mouse over list.
         // Check if any of them changed state to determine whether to
         // force a reflow below.
-        for target in mouse_over_targets.iter() {
-            let target = target.root();
-            let target_ref = target.r();
-            if !target_ref.get_hover_state() {
-                target_ref.set_hover_state(true);
+        for target in mouse_over_targets.r() {
+            if !target.get_hover_state() {
+                target.set_hover_state(true);
 
-                let target = EventTargetCast::from_ref(target_ref);
+                let target = EventTargetCast::from_ref(*target);
 
-                self.fire_mouse_event(point, &target, "mouseover".to_owned());
+                self.fire_mouse_event(point, target, "mouseover".to_owned());
 
             }
         }
@@ -988,6 +989,13 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>> {
         self.current_parser.get().map(Root::from_rooted)
+    }
+
+    /// Find an iframe element in the document.
+    fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
+        NodeCast::from_ref(self).traverse_preorder()
+            .filter_map(HTMLIFrameElementCast::to_root)
+            .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
 }
 
@@ -1422,7 +1430,7 @@ impl<'a> DocumentMethods for &'a Document {
             Some(ref title) => {
                 // Steps 3-4.
                 let value = Node::collect_text_contents(title.r().children());
-                split_html_space_chars(&value).collect::<Vec<_>>().connect(" ")
+                split_html_space_chars(&value).collect::<Vec<_>>().join(" ")
             },
         }
     }
@@ -1730,10 +1738,12 @@ impl<'a> DocumentMethods for &'a Document {
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
     fn BgColor(self) -> DOMString {
         self.get_body_attribute(&atom!("bgcolor"))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
     fn SetBgColor(self, value: DOMString) {
         self.set_body_attribute(&atom!("bgcolor"), value)
     }
@@ -1879,10 +1889,10 @@ impl DocumentProgressHandler {
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
         let window_ref = window.r();
-        let browser_context = window_ref.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
+        let browsing_context = window_ref.browsing_context();
+        let browsing_context = browsing_context.as_ref().unwrap();
 
-        browser_context.frame_element().map(|frame_element| {
+        browsing_context.frame_element().map(|frame_element| {
             let frame_window = window_from_node(frame_element.r());
             let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
                                    EventBubbles::DoesNotBubble,

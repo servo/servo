@@ -16,6 +16,7 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
   <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" title="10.3.7 Absolutely positioned, non-replaced elements" />
   <link rel="match" href="reference/abs-pos-non-replaced-vrl-006-ref.xht" />
 
   <meta name="flags" content="ahem image" />
@@ -50,24 +51,24 @@
 
 /*
 "
+Layout calculation rules (such as those in CSS2.1, Section 10.3) that apply to the horizontal dimension in horizontal writing modes instead apply to the vertical dimension in vertical writing modes.
+"
+7.1 Principles of Layout in Vertical Writing Modes
+http://www.w3.org/TR/css-writing-modes-3/#vertical-layout
+
+So here, *-top and *-bottom properties are input into the §10.3.7 algorithms where *-top properties refer to *-left properties in the layout rules and where *-bottom properties refer to *-right properties in the layout rules.
+
+"
 4. 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'
 "
 
-'left' + 'margin-left' + 'border-left-width' + 'padding-left' + 'width' + 'padding-right' + 'border-right-width' + 'margin-right' + 'right' = width of containing block
-CSS2.1, § 10.3.7 Absolutely positioned, non-replaced elements
-http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
-
-"
-Layout rules that refer to the *-left and *-right box properties (border, margin, padding) use *-top and *-bottom instead, and vice versa. Which side of the box the property applies to doesn't change: only which values are inputs to which layout calculations changes.
-"
-7.1 Principles of Layout in Vertical Writing Modes
-http://www.w3.org/TR/css-writing-modes-3/#logical-direction-layout
+'top' + 'margin-top' + 'border-top-width' + 'padding-top' + 'height' + 'padding-bottom' + 'border-bottom-width' + 'margin-bottom' + 'bottom' = height of containing block
 
 So:
 
   (solve) : top: auto
   +
-      0px : margin-top: auto
+      0px : margin-top
   +
       0px : border-top-width
   +
@@ -79,14 +80,15 @@ So:
   +
       0px : border-bottom-width
   +
-      0px : margin-bottom: auto
+      0px : margin-bottom
   +
      80px : bottom
     =====================
     320px : height of containing block
 
-And so computed top value must be 160px.
+And so computed top value must be 160px .
 */
+
 
   ]]></style>
 

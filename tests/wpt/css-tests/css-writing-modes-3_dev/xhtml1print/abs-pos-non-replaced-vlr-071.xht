@@ -16,6 +16,7 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
   <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" title="10.3.7 Absolutely positioned, non-replaced elements" />
   <link rel="match" href="reference/abs-pos-non-replaced-vrl-004-ref.xht" />
 
   <meta name="flags" content="ahem image" />
@@ -35,8 +36,8 @@
 
   div#containing-block > span
     {
-      background-color: red;
-      color: green;
+      background-color: green;
+      height: 1em;
       left: 2em;
       position: absolute;
       right: 1em;
@@ -50,18 +51,16 @@
 "
 
 'left' + 'margin-left' + 'border-left-width' + 'padding-left' + 'width' + 'padding-right' + 'border-right-width' + 'margin-right' + 'right' = width of containing block
-CSS2.1, § 10.3.7 Absolutely positioned, non-replaced elements
-http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
 
 So:
 
     160px : left
   +
-      0px : margin-left: auto
+      0px : margin-left
   +
-      0px : border-top-width
+      0px : border-left-width
   +
-      0px : padding-top
+      0px : padding-left
   +
   (solve) : width: auto
   +
@@ -69,13 +68,13 @@ So:
   +
       0px : border-right-width
   +
-      0px : margin-right: auto
+      0px : margin-right
   +
      80px : right
     =====================
     320px : width of containing block
 
-And so computed width value must be 80px.
+And so computed width value must be 80px .
 */
 
   ]]></style>
@@ -86,7 +85,7 @@ And so computed width value must be 80px.
 
   <p><img src="support/pass-cdts-abs-pos-non-replaced.png" width="246" height="36" alt="Image download support must be enabled" /></p>
 
-  <div id="containing-block">1 2 34<span>X</span></div>
+  <div id="containing-block">1 2 34<span></span></div>
 
  </body>
 </html>

@@ -2,44 +2,44 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-gcpm-3_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/leader-001.htm	?	
-xhtml1/leader-001.xht	?	
-html4/leader-002.htm	?	
-xhtml1/leader-002.xht	?	
-html4/leader-003.htm	?	
-xhtml1/leader-003.xht	?	
-html4/string-set-001.htm	?	
-xhtml1/string-set-001.xht	?	
-html4/string-set-002.htm	?	
-xhtml1/string-set-002.xht	?	
-html4/string-set-003.htm	?	
-xhtml1/string-set-003.xht	?	
-html4/string-set-004.htm	?	
-xhtml1/string-set-004.xht	?	
-html4/string-set-005.htm	?	
-xhtml1/string-set-005.xht	?	
-html4/string-set-006.htm	?	
-xhtml1/string-set-006.xht	?	
-html4/string-set-007.htm	?	
-xhtml1/string-set-007.xht	?	
-html4/string-set-008.htm	?	
-xhtml1/string-set-008.xht	?	
-html4/string-set-009.htm	?	
-xhtml1/string-set-009.xht	?	
-html4/string-set-010.htm	?	
-xhtml1/string-set-010.xht	?	
-html4/string-set-011.htm	?	
-xhtml1/string-set-011.xht	?	
-html4/string-set-012.htm	?	
-xhtml1/string-set-012.xht	?	
-html4/using-strings-001.htm	?	
-xhtml1/using-strings-001.xht	?	
-html4/using-strings-002.htm	?	
-xhtml1/using-strings-002.xht	?	
-html4/using-strings-003.htm	?	
-xhtml1/using-strings-003.xht	?	
-html4/using-strings-004.htm	?	
-xhtml1/using-strings-004.xht	?	
-html4/using-strings-005.htm	?	
-xhtml1/using-strings-005.xht	?	
+testname	revision	result	comment
+html/leader-001.htm	80f1aac0eceae86b453e71bb1e9266d7c2bd6ff0	?
+xhtml1/leader-001.xht	80f1aac0eceae86b453e71bb1e9266d7c2bd6ff0	?
+html/leader-002.htm	3408bd64aa9d5c446500097c6144ebaaae5e19b8	?
+xhtml1/leader-002.xht	3408bd64aa9d5c446500097c6144ebaaae5e19b8	?
+html/leader-003.htm	74d9b4060ebd3c475c1421affaba5e9a157b8ba2	?
+xhtml1/leader-003.xht	74d9b4060ebd3c475c1421affaba5e9a157b8ba2	?
+html/string-set-001.htm	680a5e8ae9f9d7d12998ab864ed1f610892da6f5	?
+xhtml1/string-set-001.xht	680a5e8ae9f9d7d12998ab864ed1f610892da6f5	?
+html/string-set-002.htm	5c9b61ae8e44db9596b2b5e71cb769e980f165e4	?
+xhtml1/string-set-002.xht	5c9b61ae8e44db9596b2b5e71cb769e980f165e4	?
+html/string-set-003.htm	13ccf65c084fec03627be39ca76358a9cafddfec	?
+xhtml1/string-set-003.xht	13ccf65c084fec03627be39ca76358a9cafddfec	?
+html/string-set-004.htm	bb2369a00d38c0db485ba469aa26e2a26c234ce8	?
+xhtml1/string-set-004.xht	bb2369a00d38c0db485ba469aa26e2a26c234ce8	?
+html/string-set-005.htm	082af309d719a9a07ae67bc18ddfd3e48826dd0b	?
+xhtml1/string-set-005.xht	082af309d719a9a07ae67bc18ddfd3e48826dd0b	?
+html/string-set-006.htm	3cf5d803ce75252975775e19dea619c026b58d18	?
+xhtml1/string-set-006.xht	3cf5d803ce75252975775e19dea619c026b58d18	?
+html/string-set-007.htm	20864a934ff67958f4a0e16527ed5c1cd6fc7694	?
+xhtml1/string-set-007.xht	20864a934ff67958f4a0e16527ed5c1cd6fc7694	?
+html/string-set-008.htm	5711b5fd32bddd3bd8503dbfaa414a80c7964ceb	?
+xhtml1/string-set-008.xht	5711b5fd32bddd3bd8503dbfaa414a80c7964ceb	?
+html/string-set-009.htm	fb0ecc440e9e4da9bb52d8580772b4745095b31a	?
+xhtml1/string-set-009.xht	fb0ecc440e9e4da9bb52d8580772b4745095b31a	?
+html/string-set-010.htm	cee4997f991765f9e003ab764dbe30e033cbfb06	?
+xhtml1/string-set-010.xht	cee4997f991765f9e003ab764dbe30e033cbfb06	?
+html/string-set-011.htm	034447c6e02ea182dcbf8ee1a4edb2f0b9037440	?
+xhtml1/string-set-011.xht	034447c6e02ea182dcbf8ee1a4edb2f0b9037440	?
+html/string-set-012.htm	75d9fe4680eb7ccb08b95c412faa23d17b5ff1ec	?
+xhtml1/string-set-012.xht	75d9fe4680eb7ccb08b95c412faa23d17b5ff1ec	?
+html/using-strings-001.htm	53ab5c748a20173113931a32dffe866e6cfcfce8	?
+xhtml1/using-strings-001.xht	53ab5c748a20173113931a32dffe866e6cfcfce8	?
+html/using-strings-002.htm	a596527550f1c9b08be3376dfd76d02604b0247f	?
+xhtml1/using-strings-002.xht	a596527550f1c9b08be3376dfd76d02604b0247f	?
+html/using-strings-003.htm	fa7164bb554555178db2076a0718762dc4d680f6	?
+xhtml1/using-strings-003.xht	fa7164bb554555178db2076a0718762dc4d680f6	?
+html/using-strings-004.htm	368ab63cdc47aad2a4379fe079cd2e01090582cc	?
+xhtml1/using-strings-004.xht	368ab63cdc47aad2a4379fe079cd2e01090582cc	?
+html/using-strings-005.htm	0253b58c3bac8ba3c75426fc1081e91cac842d90	?
+xhtml1/using-strings-005.xht	0253b58c3bac8ba3c75426fc1081e91cac842d90	?

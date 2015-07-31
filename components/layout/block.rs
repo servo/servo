@@ -28,7 +28,6 @@
 #![deny(unsafe_code)]
 
 use context::LayoutContext;
-use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
@@ -619,7 +618,7 @@ impl BlockFlow {
 
     pub fn transform_requires_layer(&self) -> bool {
         // Check if the transform matrix is 2D or 3D
-        if let Some(ref transform_list) = self.fragment.style().get_effects().transform {
+        if let Some(ref transform_list) = self.fragment.style().get_effects().transform.0 {
             for transform in transform_list {
                 match transform {
                     &transform::ComputedOperation::Perspective(..) => {

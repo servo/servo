@@ -2,26 +2,26 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-exclusions-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/exclusions-wrap-flow-01.htm	?	
-xhtml1/exclusions-wrap-flow-01.xht	?	
-html4/exclusions-wrap-flow-02.htm	?	
-xhtml1/exclusions-wrap-flow-02.xht	?	
-html4/exclusions-wrap-flow-03.htm	?	
-xhtml1/exclusions-wrap-flow-03.xht	?	
-html4/exclusions-wrap-flow-04.htm	?	
-xhtml1/exclusions-wrap-flow-04.xht	?	
-html4/wrap-flow-001.htm	?	
-xhtml1/wrap-flow-001.xht	?	
-html4/wrap-flow-002.htm	?	
-xhtml1/wrap-flow-002.xht	?	
-html4/wrap-flow-003.htm	?	
-xhtml1/wrap-flow-003.xht	?	
-html4/wrap-flow-004.htm	?	
-xhtml1/wrap-flow-004.xht	?	
-html4/wrap-flow-005.htm	?	
-xhtml1/wrap-flow-005.xht	?	
-html4/wrap-flow-006.htm	?	
-xhtml1/wrap-flow-006.xht	?	
-html4/wrap-through-001.htm	?	
-xhtml1/wrap-through-001.xht	?	
+testname	revision	result	comment
+html/exclusions-wrap-flow-01.htm	87b20cd26580a6346a310e1474e2822467ef14a7	?
+xhtml1/exclusions-wrap-flow-01.xht	87b20cd26580a6346a310e1474e2822467ef14a7	?
+html/exclusions-wrap-flow-02.htm	59772a63d4d123bb267a53d69e6959b3e1d48236	?
+xhtml1/exclusions-wrap-flow-02.xht	59772a63d4d123bb267a53d69e6959b3e1d48236	?
+html/exclusions-wrap-flow-03.htm	fb4e9c142415235a888c71dec00591e1fdd61b82	?
+xhtml1/exclusions-wrap-flow-03.xht	fb4e9c142415235a888c71dec00591e1fdd61b82	?
+html/exclusions-wrap-flow-04.htm	40ea14cd835ebacfb2efe5e4b1a40e70d03e76cd	?
+xhtml1/exclusions-wrap-flow-04.xht	40ea14cd835ebacfb2efe5e4b1a40e70d03e76cd	?
+html/wrap-flow-001.htm	dee5a4b85c977d6ad0147a97db1881a9d0aab23c	?
+xhtml1/wrap-flow-001.xht	dee5a4b85c977d6ad0147a97db1881a9d0aab23c	?
+html/wrap-flow-002.htm	df4efcf8af537c19c52cbc976ee328c718e5715d	?
+xhtml1/wrap-flow-002.xht	df4efcf8af537c19c52cbc976ee328c718e5715d	?
+html/wrap-flow-003.htm	3c75a65d1d24c9fedcffd96327d4cad6b8bc0be7	?
+xhtml1/wrap-flow-003.xht	3c75a65d1d24c9fedcffd96327d4cad6b8bc0be7	?
+html/wrap-flow-004.htm	d2172a8e5e300627e6a06f3b5c67d8bd3d9af950	?
+xhtml1/wrap-flow-004.xht	d2172a8e5e300627e6a06f3b5c67d8bd3d9af950	?
+html/wrap-flow-005.htm	c639835fca74edcf72dd0900cc3847cbffd96b1a	?
+xhtml1/wrap-flow-005.xht	c639835fca74edcf72dd0900cc3847cbffd96b1a	?
+html/wrap-flow-006.htm	890b10eba59f7e4225694e7fcc32688a8c988dea	?
+xhtml1/wrap-flow-006.xht	890b10eba59f7e4225694e7fcc32688a8c988dea	?
+html/wrap-through-001.htm	452034ef300d3ca0f7ffcef2ef93f15cd25ccc3c	?
+xhtml1/wrap-through-001.xht	452034ef300d3ca0f7ffcef2ef93f15cd25ccc3c	?

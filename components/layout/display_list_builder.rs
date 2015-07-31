@@ -18,9 +18,10 @@ use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
-use model::{self, MaybeAuto, ToGfxMatrix, ToAu};
+use model::{self, MaybeAuto, ToGfxMatrix};
 use table_cell::CollapsedBordersForCell;
 
+use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
 use euclid::Matrix4;
 use gfx_traits::color;
@@ -32,6 +33,7 @@ use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::compositor_msg::{ScrollPolicy, LayerId};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -40,6 +42,7 @@ use net_traits::image::base::{Image, PixelFormat};
 use std::cmp;
 use std::default::Default;
 use std::sync::Arc;
+use std::sync::mpsc::channel;
 use std::f32;
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin,
@@ -58,9 +61,6 @@ use util::cursor::Cursor;
 use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
-
-use canvas_traits::{CanvasMsg, CanvasCommonMsg};
-use std::sync::mpsc::channel;
 
 /// A possible `PaintLayer` for an stacking context
 pub enum StackingContextLayer {
@@ -361,7 +361,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Implements background image, per spec:
         // http://www.w3.org/TR/CSS21/colors.html#background
         let background = style.get_background();
-        match background.background_image {
+        match background.background_image.0 {
             None => {}
             Some(computed::Image::LinearGradient(ref gradient)) => {
                 self.build_display_list_for_background_linear_gradient(display_list,
@@ -668,7 +668,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        absolute_bounds: &Rect<Au>,
                                                        clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
-        for box_shadow in style.get_effects().box_shadow.iter().rev() {
+        for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
             let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
                                                                                 box_shadow.offset_y)),
                                        box_shadow.blur_radius,
@@ -829,7 +829,9 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let line_display_item = box LineDisplayItem {
             base: BaseDisplayItem::new(baseline,
-                                       DisplayItemMetadata::new(self.node, style, Cursor::DefaultCursor),
+                                       DisplayItemMetadata::new(self.node,
+                                                                style,
+                                                                Cursor::DefaultCursor),
                                        (*clip).clone()),
             color: color::rgb(0, 200, 0),
             style: border_style::T::dashed,
@@ -861,7 +863,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                       -> ClippingRegion {
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match (self.style().get_box().position,
-                                     self.style().get_effects().clip) {
+                                     self.style().get_effects().clip.0) {
             (position::T::absolute, Some(style_clip_rect)) => style_clip_rect,
             _ => return (*parent_clip).clone(),
         };
@@ -1096,14 +1098,14 @@ impl FragmentDisplayListBuilding for Fragment {
                     .computed_inline_size.map_or(0, |w| w.to_px() as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
-                let (sender, receiver) = channel::<Vec<u8>>();
-                let canvas_data = match canvas_fragment_info.renderer {
-                    Some(ref renderer) =>  {
-                        renderer.lock().unwrap().send(CanvasMsg::Common(
-                                CanvasCommonMsg::SendPixelContents(sender))).unwrap();
+                let (sender, receiver) = ipc::channel::<IpcSharedMemory>().unwrap();
+                let canvas_data = match canvas_fragment_info.ipc_renderer {
+                    Some(ref ipc_renderer) =>  {
+                        ipc_renderer.lock().unwrap().send(CanvasMsg::FromLayout(
+                                FromLayoutMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
-                    None => vec![0xFFu8; width * height * 4],
+                    None => IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
                 };
                 display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
                     base: BaseDisplayItem::new(stacking_relative_content_box,
@@ -1145,7 +1147,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let mut transform = Matrix4::identity();
 
-        if let Some(ref operations) = self.style().get_effects().transform {
+        if let Some(ref operations) = self.style().get_effects().transform.0 {
             let transform_origin = self.style().get_effects().transform_origin;
             let transform_origin =
                 Point3D::new(model::specified(transform_origin.horizontal,
@@ -1174,8 +1176,8 @@ impl FragmentDisplayListBuilding for Fragment {
                         Matrix4::create_scale(sx, sy, sz)
                     }
                     &transform::ComputedOperation::Translate(tx, ty, tz) => {
-                        let tx = tx.to_au(border_box.size.width).to_f32_px();
-                        let ty = ty.to_au(border_box.size.height).to_f32_px();
+                        let tx = model::specified(tx, border_box.size.width).to_f32_px();
+                        let ty = model::specified(ty, border_box.size.height).to_f32_px();
                         let tz = tz.to_f32_px();
                         Matrix4::create_translation(tx, ty, tz)
                     }
@@ -1245,8 +1247,11 @@ impl FragmentDisplayListBuilding for Fragment {
         // task
         if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
             let layer_id = layer.as_ref().unwrap().id;
-            layout_context.shared.canvas_layers_sender
-                .send((layer_id, fragment_info.renderer.clone())).unwrap();
+            if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
+                layout_context.shared
+                              .canvas_layers_sender
+                              .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
+            }
         }
 
         let transform_style = self.style().get_used_transform_style();

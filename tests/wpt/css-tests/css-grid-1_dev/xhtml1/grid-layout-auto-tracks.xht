@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
     <title>CSS Grid Layout Test: auto tracks</title>
     <link href="mailto:myst.dg@gmail.com" rel="author" title="Leo Deng" />
-    <link href="http://www.w3.org/TR/css-grid-1/#auto-tracks" rel="help" />
+    <link href="http://www.w3.org/TR/css-grid-1/#track-sizing" rel="help" />
     <link href="reference/grid-layout-auto-tracks-ref.xht" rel="match" />
     <meta content="the layout should behave the same as reference." name="assert" />
     <style>
@@ -19,8 +19,8 @@
         width: 100px;
         background: #eee;
         display: grid;
-        grid-definition-columns: 100px;
-        grid-definition-rows: auto;
+        grid-template-columns: 100px;
+        grid-template-rows: auto;
       }
       .a {
         background: blue;
@@ -47,4 +47,5 @@
       <div class="c">&#xA0;</div>
     </div>
   
+
 </body></html>

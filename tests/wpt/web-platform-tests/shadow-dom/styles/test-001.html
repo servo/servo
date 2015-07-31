@@ -68,7 +68,6 @@ test(unit(function (ctx) {
 
 	//Shadow root to play with
 	var s = host.createShadowRoot();
-	s.applyAuthorStyles = false;
 
 	var div1 = d.createElement('div');
 	div1.innerHTML ='<span id="shd" class="invis">This is the shadow tree</span>';
@@ -142,7 +141,6 @@ test(unit(function (ctx) {
 
 	//Shadow root to play with
 	var s1 = host.createShadowRoot();
-	s1.applyAuthorStyles = false;
 
 	var div1 = d.createElement('div');
 	div1.innerHTML = '<span id="shd1" class="invis">This is an old shadow tree</span>';

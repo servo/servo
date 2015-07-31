@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>CSS Writing Modes Test: vertical align - 'baseline' (alphabetical baseline with vertical layout)</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS 2.1 Conformance Test Suite"; }
+            @top-right { content: "Test vertical-alignment-new-008"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+    <link rel="help" title="4.4. Baseline Alignment" href="http://www.w3.org/TR/css-writing-modes-3/#baseline-alignment" />
+    <link rel="help" title="10.8 Line height calculations: the 'line-height' and 'vertical-align' properties" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" />
+    <meta name="assert" content="This test checks the position of inline box with vertical align property. When 'writing-mode' is 'vertical-rl', 'vertical-align' is 'bottom', the left edge of inline-box attaches the bottom of line-box." />
+    <link rel="match" href="reference/vertical-alignment-new-008-ref.xht" />
+    <meta name="flags" content="ahem" />
+    <style type="text/css"><![CDATA[
+    div#rl
+    {
+      border-left: 30px blue solid;
+      color: white;
+      font: 3.75em/1.5 Ahem; /* computes to 60px/90px */
+      writing-mode: vertical-rl;
+    }
+
+    span#orange30
+    {
+      color: orange;
+      font-size: 0.5em; /* computes to 30px */
+      vertical-align: bottom;
+      line-height: 1;
+    }
+
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if the left edge of orange square attaches the right edge of blue square.</p>
+
+  <div id="rl">A<span id="orange30">O</span></div>
+
+  </body>
+</html>

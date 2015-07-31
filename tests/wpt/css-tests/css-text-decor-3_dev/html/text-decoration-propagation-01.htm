@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>CSS Test: text-decoration shouldn't propagate through 'svg' element</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-text-decor-3/#line-decoration" rel="help">
+<link href="reference/text-decoration-propagation-01-ref.htm" rel="match">
+<meta content="An outer 'svg' element is an atomic inline-axis element, so text decorations must not propagate through it." name="assert">
+<style>
+span { text-decoration: underline; }
+</style>
+</head><body><span>
+  <svg width="400" height="100">
+    <text y="30" x="10">This text must not be underlined.</text>
+  </svg>
+</span>
+</body></html>

@@ -3,16 +3,32 @@
   <meta charset="UTF-8" />
   <title>CSS Test: Grid Layout - Properties exist</title>
   <link href="mailto:johnhax@gmail.com" rel="author" title="贺师俊" />
+  <link href="mailto:rego@igalia.com" rel="author" title="Manuel Rego Casasnovas" />
   <link href="mailto:shendayang@baidu.com" rel="reviewer" title="Dayang Shen" /> <!-- 2013-09-30 -->
   <link href="http://www.w3.org/TR/css-grid-1/#property-index" rel="help" />
-  <meta content="dom" name="flags" />
+  <meta content="ahem dom" name="flags" />
   <meta content="Test checks that css properties of grid layout exist." name="assert" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <style>
+    #container {
+        width: 800px;
+        height: 600px;
+    }
+    #myDiv {
+        font: 50px/1 Ahem;
+    }
+  </style>
 </head>
 <body>
-  <div id="myDiv"></div>
   <div id="log"></div>
+  <div id="container">
+    <div id="myDiv">
+      <div>I T</div>
+      <div>IT</div>
+      <div>I</div>
+    </div>
+  </div>
 
   <script>
     var myDiv = document.getElementById('myDiv')
@@ -48,112 +64,165 @@
         Object.keys(syntaxTests).forEach(function(testcase){
           test(function(){
             assert_own_property(myDiv.style, prop)
-            myDiv.style[prop] = syntaxTests[testcase]
-            assert_equals(getComputedStyle(myDiv)[prop], syntaxTests[testcase], testcase)
-            //assert_equals(myDiv.style[prop], syntaxTests[testcase], testcase)
+            myDiv.style[prop] = syntaxTests[testcase][0]
+            assert_equals(myDiv.style[prop], syntaxTests[testcase][0], testcase)
+            assert_equals(getComputedStyle(myDiv)[prop], syntaxTests[testcase][1], testcase)
           }, prop + '.' + testcase)
         })
       })
 
     }({
       'grid-template-columns': { // named 'grid-definition-columns' in last draft
-        initial: 'none',
-        'none': 'none',
-        '&lt;line-names&gt;': 'a b c',
-        '&lt;track-size&gt;.auto': 'auto',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+        initial: '150px',
+        'none': ['none', '150px'],
+        '&lt;line-names&gt;': ['[a] auto [b] auto [c]', '[a] 150px [b] 100px [c]'],
+        '&lt;track-size&gt;.auto': ['auto', '150px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': ['100px', '100px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': ['100%', '800px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': ['1fr', '800px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': ['min-content', '100px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': ['max-content', '150px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': ['minmax(100px, 200px)', '200px'],
+        'reset': ['none', '150px'],
       },
       'grid-template-rows': { // named 'grid-definition-rows' in last draft
-        initial: 'none',
-        'none': 'none',
-        '&lt;line-names&gt;': 'a b c',
-        '&lt;track-size&gt;.auto': 'auto',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+        initial: '50px 50px 50px',
+        'none': ['none', '50px 50px 50px'],
+        '&lt;line-names&gt;': ['[a] auto [b] auto [c]', '[a] 50px [b] 50px [c] 50px'],
+        '&lt;track-size&gt;.auto': ['auto', '50px 50px 50px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': ['100px', '100px 50px 50px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': ['100%', '50px 50px 50px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': ['1fr', '50px 50px 50px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': ['min-content', '50px 50px 50px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': ['max-content', '50px 50px 50px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': ['minmax(100px, 200px)', '200px 50px 50px'],
+        'reset': ['none', '50px 50px 50px'],
       },
       'grid-template-areas': {
         initial: 'none',
-        '&lt;string&gt;+': 'a',
+        'none': ['none', 'none'],
+        '&lt;string&gt;+': ['"a"', '"a"'],
+        'reset': ['none', 'none'],
       },
       'grid-template': {
-        'none': 'none',
-        '&lt;grid-template-columns&gt; / &lt;grid-template-rows&gt;': '100px / 100px',
-        '&lt;line-names&gt;': 'a b c',
+        initial: '150px / 50px 50px 50px',
+        'none': ['', '150px / 50px 50px 50px'],
+        '&lt;grid-template-columns&gt; / &lt;grid-template-rows&gt;': ['200px 200px / 100px 100px', '200px 200px / 100px 100px'],
+        '&lt;line-names&gt;': ['[a] auto [b] auto [c] / [d] auto [e] auto [f]', '[a] auto [b] auto [c] / [d] auto [e] auto [f]'],
+        '&lt;string&gt;+': ['"a b" "a b"', '"a b" "a b"'],
+        '&lt;string&gt;&lt;track-size&gt;+': ['100px / "a b" 50px', '100px / "a b" 50px'],
+        'reset': ['', '150px / 50px 50px 50px'],
       },
       'grid-auto-columns': {
         initial: 'auto',
-        '&lt;track-size&gt;.auto': 'auto',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+        '&lt;track-size&gt;.auto': ['auto', 'auto'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': ['100px', '100px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': ['100%', '100%'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': ['1fr', '1fr'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': ['min-content', 'min-content'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': ['max-content', 'max-content'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': ['minmax(100px, 200px)', 'minmax(100px, 200px)'],
+        'reset': ['auto', 'auto'],
       },
       'grid-auto-rows': {
         initial: 'auto',
-        '&lt;track-size&gt;.auto': 'auto',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
-        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+        '&lt;track-size&gt;.auto': ['auto', 'auto'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': ['100px', '100px'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': ['100%', '100%'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': ['1fr', '1fr'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': ['min-content', 'min-content'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': ['max-content', 'max-content'],
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': ['minmax(100px, 200px)', 'minmax(100px, 200px)'],
+        'reset': ['auto', 'auto'],
       },
       'grid-auto-flow': {
-        initial: 'rows',
-        'rows': 'rows',
-        'columns': 'columns',
-        'dense': 'rows dense',
-      },
-      'grid-auto': {
+        initial: 'row',
+        'row': ['row', 'row'],
+        'column': ['column', 'column'],
+        'dense': ['dense', 'row dense'],
+        'row dense': ['row dense', 'row dense'],
+        'column dense': ['column dense', 'column dense'],
+        'reset': ['row', 'row'],
       },
       'grid-row-start': {
         initial: 'auto',
-        'auto': 'auto',
-        '&lt;indent&gt;': 'a',
-        '&lt;integer&gt;': '1',
-        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
-        'span': 'span 1',
+        'auto': ['auto', 'auto'],
+        '&lt;custom-ident&gt;': ['a', 'a'],
+        '&lt;integer&gt;': ['1', '1'],
+        '&lt;integer&gt; &lt;ident&gt;': ['1 a', '1 a'],
+        'span &lt;integer&gt;': ['span 1', 'span 1'],
+        'span &lt;custom-ident&gt;': ['span a', 'span 1 a'],
+        'span &lt;integer&gt; &lt;custom-ident&gt;': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
       },
       'grid-column-start': {
         initial: 'auto',
-        'auto': 'auto',
-        '&lt;indent&gt;': 'a',
-        '&lt;integer&gt;': '1',
-        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
-        'span': 'span 1',
+        'auto': ['auto', 'auto'],
+        '&lt;custom-ident&gt;': ['a', 'a'],
+        '&lt;integer&gt;': ['1', '1'],
+        '&lt;integer&gt; &lt;ident&gt;': ['1 a', '1 a'],
+        'span &lt;integer&gt;': ['span 1', 'span 1'],
+        'span &lt;custom-ident&gt;': ['span a', 'span 1 a'],
+        'span &lt;integer&gt; &lt;custom-ident&gt;': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
       },
       'grid-row-end': {
         initial: 'auto',
-        'auto': 'auto',
-        '&lt;indent&gt;': 'a',
-        '&lt;integer&gt;': '1',
-        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
-        'span': 'span 1',
+        'auto': ['auto', 'auto'],
+        '&lt;custom-ident&gt;': ['a', 'a'],
+        '&lt;integer&gt;': ['1', '1'],
+        '&lt;integer&gt; &lt;ident&gt;': ['1 a', '1 a'],
+        'span &lt;integer&gt;': ['span 1', 'span 1'],
+        'span &lt;custom-ident&gt;': ['span a', 'span 1 a'],
+        'span &lt;integer&gt; &lt;custom-ident&gt;': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
       },
       'grid-column-end': {
         initial: 'auto',
-        'auto': 'auto',
-        '&lt;indent&gt;': 'a',
-        '&lt;integer&gt;': '1',
-        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
-        'span': 'span 1',
+        'auto': ['auto', 'auto'],
+        '&lt;custom-ident&gt;': ['a', 'a'],
+        '&lt;integer&gt;': ['1', '1'],
+        '&lt;integer&gt; &lt;ident&gt;': ['1 a', '1 a'],
+        'span &lt;integer&gt;': ['span 1', 'span 1'],
+        'span &lt;custom-ident&gt;': ['span a', 'span 1 a'],
+        'span &lt;integer&gt; &lt;custom-ident&gt;': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
       },
       'grid-column': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '&lt;custom-ident&gt;': ['a / b', 'a / b'],
+        '&lt;integer&gt; start': ['1', '1'],
+        '&lt;integer&gt;': ['1 / 3', '1 / 3'],
+        '&lt;integer&gt; &lt;ident&gt;': ['1 a / 2 b', '1 a / 2 b'],
+        'span &lt;integer&gt;': ['span 1 / span 2', 'span 1 / span 2'],
+        'span &lt;custom-ident&gt;': ['span a / span b', 'span 1 a / span 1 b'],
+        'span &lt;integer&gt; &lt;custom-ident&gt;': ['span 2 a / span 3 b', 'span 2 a / span 3 b'],
+        'reset': ['auto', 'auto'],
       },
       'grid-row': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '&lt;custom-ident&gt;': ['a / b', 'a / b'],
+        '&lt;integer&gt; start': ['1', '1'],
+        '&lt;integer&gt;': ['1 / 3', '1 / 3'],
+        '&lt;integer&gt; &lt;ident&gt;': ['1 a / 2 b', '1 a / 2 b'],
+        'span &lt;integer&gt;': ['span 1 / span 2', 'span 1 / span 2'],
+        'span &lt;custom-ident&gt;': ['span a / span b', 'span 1 a / span 1 b'],
+        'span &lt;integer&gt; &lt;custom-ident&gt;': ['span 2 a / span 3 b', 'span 2 a / span 3 b'],
+        'reset': ['auto', 'auto'],
       },
       'grid-area': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '&lt;custom-ident&gt;': ['a / b / c / d', 'a / b / c / d'],
+        '&lt;integer&gt; start': ['1 / 2', '1 / 2'],
+        '&lt;integer&gt;': ['1 / 2 / 3 / 4', '1 / 2 / 3 / 4'],
+        '&lt;integer&gt; &lt;ident&gt;': ['1 a / 2 b / 3 c / 4 d', '1 a / 2 b / 3 c / 4 d'],
+        'span &lt;integer&gt;': ['span 1 / span 2 / span 3 / span 4', 'span 1 / span 2 / span 3 / span 4'],
+        'span &lt;custom-ident&gt;': ['span a / span b / span c / span d', 'span 1 a / span 1 b / span 1 c / span 1 d'],
+        'span &lt;integer&gt; &lt;custom-ident&gt;': ['span 2 a / span 3 b / span 4 c / span 5 d', 'span 2 a / span 3 b / span 4 c / span 5 d'],
+        'reset': ['auto', 'auto'],
       },
     })
   </script>

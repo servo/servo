@@ -87,6 +87,10 @@ font-size-120.htm == reference/font-size-120-ref.htm
 font-size-121.htm == reference/font-size-121-ref.htm
 font-size-122.htm == reference/font-size-122-ref.htm
 font-size-123.htm == reference/font-size-123-ref.htm
+font-size-adjust-005.htm == reference/ref-if-there-is-no-red.htm
+font-size-adjust-006.htm == reference/ref-filled-green-100px-square.htm
+font-size-adjust-007.htm == reference/ref-if-there-is-no-red.htm
+font-size-adjust-008.htm == reference/ref-filled-green-100px-square.htm
 font-size-applies-to-016.htm == reference/font-size-001-ref.htm
 font-style-applies-to-001.htm == reference/font-style-applies-to-001-ref.htm
 font-style-applies-to-002.htm == reference/font-style-applies-to-001-ref.htm

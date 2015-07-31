@@ -67,6 +67,7 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
+use std::slice::ref_slice;
 use std::sync::Arc;
 use uuid;
 use string_cache::{Atom, Namespace, QualName};
@@ -282,42 +283,11 @@ pub enum NodeTypeId {
 }
 
 trait PrivateNodeHelpers {
-    fn node_inserted(self);
-    fn node_removed(self, parent_in_doc: bool);
     fn add_child(self, new_child: &Node, before: Option<&Node>);
     fn remove_child(self, child: &Node);
 }
 
 impl<'a> PrivateNodeHelpers for &'a Node {
-    // https://dom.spec.whatwg.org/#node-is-inserted
-    fn node_inserted(self) {
-        assert!(self.parent_node.get().is_some());
-        let document = document_from_node(self);
-        let is_in_doc = self.is_in_doc();
-
-        for node in self.traverse_preorder() {
-            vtable_for(&node.r()).bind_to_tree(is_in_doc);
-        }
-
-        let parent = self.parent_node.get().map(Root::from_rooted);
-        parent.r().map(|parent| vtable_for(&parent).child_inserted(self));
-        document.r().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
-    }
-
-    // https://dom.spec.whatwg.org/#node-is-removed
-    fn node_removed(self, parent_in_doc: bool) {
-        assert!(self.parent_node.get().is_none());
-        for node in self.traverse_preorder() {
-            node.r().set_flag(IS_IN_DOC, false);
-            vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
-        }
-        self.layout_data.dispose(self);
-    }
-
-    //
-    // Pointer stitching
-    //
-
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
@@ -328,14 +298,14 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         match before {
             Some(ref before) => {
                 assert!(before.parent_node.get().map(Root::from_rooted).r() == Some(self));
-                match before.prev_sibling.get() {
+                let prev_sibling = before.GetPreviousSibling();
+                match prev_sibling {
                     None => {
                         assert!(Some(*before) == self.first_child.get().map(Root::from_rooted).r());
                         self.first_child.set(Some(JS::from_ref(new_child)));
                     },
                     Some(ref prev_sibling) => {
-                        let prev_sibling = prev_sibling.root();
-                        prev_sibling.r().next_sibling.set(Some(JS::from_ref(new_child)));
+                        prev_sibling.next_sibling.set(Some(JS::from_ref(new_child)));
                         new_child.prev_sibling.set(Some(JS::from_ref(prev_sibling.r())));
                     },
                 }
@@ -343,11 +313,11 @@ impl<'a> PrivateNodeHelpers for &'a Node {
                 new_child.next_sibling.set(Some(JS::from_ref(before)));
             },
             None => {
-                match self.last_child.get() {
+                let last_child = self.GetLastChild();
+                match last_child {
                     None => self.first_child.set(Some(JS::from_ref(new_child))),
                     Some(ref last_child) => {
-                        let last_child = last_child.root();
-                        assert!(last_child.r().next_sibling.get().is_none());
+                        assert!(last_child.next_sibling.get().is_none());
                         last_child.r().next_sibling.set(Some(JS::from_ref(new_child)));
                         new_child.prev_sibling.set(Some(JS::from_rooted(&last_child)));
                     }
@@ -358,6 +328,14 @@ impl<'a> PrivateNodeHelpers for &'a Node {
         }
 
         new_child.parent_node.set(Some(JS::from_ref(self)));
+
+        let parent_in_doc = self.is_in_doc();
+        for node in new_child.traverse_preorder() {
+            node.set_flag(IS_IN_DOC, parent_in_doc);
+            vtable_for(&&*node).bind_to_tree(parent_in_doc);
+        }
+        let document = new_child.owner_doc();
+        document.content_and_heritage_changed(new_child, NodeDamage::OtherNodeDamage);
     }
 
     /// Removes the given child from this node's list of children.
@@ -365,28 +343,38 @@ impl<'a> PrivateNodeHelpers for &'a Node {
     /// Fails unless `child` is a child of this node.
     fn remove_child(self, child: &Node) {
         assert!(child.parent_node.get().map(Root::from_rooted).r() == Some(self));
-
-        match child.prev_sibling.get() {
+        let prev_sibling = child.GetPreviousSibling();
+        match prev_sibling {
             None => {
                 self.first_child.set(child.next_sibling.get());
             }
             Some(ref prev_sibling) => {
-                prev_sibling.root().r().next_sibling.set(child.next_sibling.get());
+                prev_sibling.next_sibling.set(child.next_sibling.get());
             }
         }
-
-        match child.next_sibling.get() {
+        let next_sibling = child.GetNextSibling();
+        match next_sibling {
             None => {
                 self.last_child.set(child.prev_sibling.get());
             }
             Some(ref next_sibling) => {
-                next_sibling.root().r().prev_sibling.set(child.prev_sibling.get());
+                next_sibling.prev_sibling.set(child.prev_sibling.get());
             }
         }
 
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
         child.parent_node.set(None);
+
+        let parent_in_doc = self.is_in_doc();
+        for node in child.traverse_preorder() {
+            node.set_flag(IS_IN_DOC, false);
+            vtable_for(&&*node).unbind_from_tree(parent_in_doc);
+            node.layout_data.dispose(&node);
+        }
+
+        let document = child.owner_doc();
+        document.content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -413,13 +401,14 @@ impl<'a> Iterator for QuerySelectorIterator {
         let selectors = &self.selectors;
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
-        self.iterator.find(|node| {
-            if let Some(element) = ElementCast::to_ref(node.r()) {
-                matches(selectors, &element, &mut None)
-            } else {
-                false
+        self.iterator.by_ref().filter_map(|node| {
+            if let Some(element) = ElementCast::to_root(node) {
+                if matches(selectors, &element, None) {
+                    return Some(NodeCast::from_root(element))
+                }
             }
-        })
+            None
+        }).next()
     }
 }
 
@@ -504,6 +493,7 @@ pub trait NodeHelpers {
 
     fn get_bounding_content_box(self) -> Rect<Au>;
     fn get_content_boxes(self) -> Vec<Rect<Au>>;
+    fn get_client_rect(self) -> Rect<i32>;
 
     fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult;
     fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult;
@@ -806,42 +796,60 @@ impl<'a> NodeHelpers for &'a Node {
         window_from_node(self).r().content_boxes_query(self.to_trusted_node_address())
     }
 
+    fn get_client_rect(self) -> Rect<i32> {
+        window_from_node(self).r().client_rect_query(self.to_trusted_node_address())
+    }
+
     // https://dom.spec.whatwg.org/#dom-childnode-before
     fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        match self.parent_node.get() {
-            None => {
-                // Step 1.
-                Ok(())
-            },
-            Some(ref parent_node) => {
-                // Step 2.
-                let doc = self.owner_doc();
-                let node = try!(doc.r().node_from_nodes_and_strings(nodes));
-                // Step 3.
-                Node::pre_insert(node.r(), parent_node.root().r(),
-                                 Some(self)).map(|_| ())
-            },
-        }
+        // Step 1.
+        let parent = &self.parent_node;
+
+        // Step 2.
+        let parent = match parent.get() {
+            None => return Ok(()),
+            Some(ref parent) => parent.root(),
+        };
+
+        // Step 3.
+        let viable_previous_sibling = first_node_not_in(self.preceding_siblings(), &nodes);
+
+        // Step 4.
+        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+
+        // Step 5.
+        let viable_previous_sibling = match viable_previous_sibling {
+            Some(ref viable_previous_sibling) => viable_previous_sibling.next_sibling.get(),
+            None => parent.first_child.get(),
+        }.map(|s| s.root());
+
+        // Step 6.
+        try!(Node::pre_insert(&node, &parent, viable_previous_sibling.r()));
+
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
     fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        match self.parent_node.get() {
-            None => {
-                // Step 1.
-                Ok(())
-            },
-            Some(ref parent_node) => {
-                // Step 2.
-                let doc = self.owner_doc();
-                let node = try!(doc.r().node_from_nodes_and_strings(nodes));
-                // Step 3.
-                // FIXME(https://github.com/servo/servo/issues/5720)
-                let next_sibling = self.next_sibling.get().map(Root::from_rooted);
-                Node::pre_insert(node.r(), parent_node.root().r(),
-                                 next_sibling.r()).map(|_| ())
-            },
-        }
+        // Step 1.
+        let parent = &self.parent_node;
+
+        // Step 2.
+        let parent = match parent.get() {
+            None => return Ok(()),
+            Some(ref parent) => parent.root(),
+        };
+
+        // Step 3.
+        let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
+
+        // Step 4.
+        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+
+        // Step 5.
+        try!(Node::pre_insert(&node, &parent, viable_next_sibling.r()));
+
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
@@ -891,7 +899,7 @@ impl<'a> NodeHelpers for &'a Node {
                 let root = self.ancestors().last();
                 let root = root.r().unwrap_or(self.clone());
                 Ok(root.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
-                    matches(selectors, &element.r(), &mut None)
+                    matches(selectors, element, None)
                 }))
             }
         }
@@ -970,9 +978,8 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     fn remove_self(self) {
-        match self.parent_node.get() {
-            Some(parent) => parent.root().r().remove_child(self),
-            None => ()
+        if let Some(ref parent) = self.GetParentNode() {
+            Node::remove(self, parent.r(), SuppressObserver::Unsuppressed);
         }
     }
 
@@ -1023,22 +1030,31 @@ impl<'a> NodeHelpers for &'a Node {
     fn parse_fragment(self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
         let context_node: &Node = NodeCast::from_ref(self);
         let context_document = document_from_node(self);
-        let mut new_children: RootedVec<JS<Node>> = RootedVec::new();
+        let fragment = DocumentFragment::new(context_document.r());
         if context_document.r().is_html_document() {
-            parse_html_fragment(context_node, markup, &mut new_children);
+            let fragment_node = NodeCast::from_ref(fragment.r());
+            parse_html_fragment(context_node, markup, fragment_node);
         } else {
             // FIXME: XML case
             unimplemented!();
         }
-        let fragment = DocumentFragment::new(context_document.r());
-        {
-            let fragment_node = NodeCast::from_ref(fragment.r());
-            for node in new_children.iter() {
-                fragment_node.AppendChild(node.root().r()).unwrap();
-            }
-        }
         Ok(fragment)
     }
+}
+
+
+/// Iterate through `nodes` until we find a `Node` that is not in `not_in`
+fn first_node_not_in<I>(mut nodes: I, not_in: &[NodeOrString]) -> Option<Root<Node>>
+        where I: Iterator<Item=Root<Node>>
+{
+    nodes.find(|node| {
+        not_in.iter().all(|n| {
+            match n {
+                &NodeOrString::eNode(ref n) => n != node,
+                _ => true,
+            }
+        })
+    })
 }
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
@@ -1091,6 +1107,11 @@ pub trait LayoutNodeHelpers {
     unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>>;
     #[allow(unsafe_code)]
     unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData>;
+
+    fn get_hover_state_for_layout(&self) -> bool;
+    fn get_focus_state_for_layout(&self) -> bool;
+    fn get_disabled_state_for_layout(&self) -> bool;
+    fn get_enabled_state_for_layout(&self) -> bool;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1180,44 +1201,34 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
         (*self.unsafe_get()).layout_data.borrow_unchecked()
     }
-}
 
-pub trait RawLayoutNodeHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn get_hover_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_focus_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_disabled_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_enabled_state_for_layout(&self) -> bool;
-    fn type_id_for_layout(&self) -> NodeTypeId;
-}
-
-impl RawLayoutNodeHelpers for Node {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_hover_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_HOVER_STATE)
+    fn get_hover_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_HOVER_STATE)
+        }
     }
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_focus_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_FOCUS_STATE)
+    fn get_focus_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_FOCUS_STATE)
+        }
     }
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_disabled_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_DISABLED_STATE)
+    fn get_disabled_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_DISABLED_STATE)
+        }
     }
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_enabled_state_for_layout(&self) -> bool {
-        self.flags.get().contains(IN_ENABLED_STATE)
-    }
-    #[inline]
-    fn type_id_for_layout(&self) -> NodeTypeId {
-        self.type_id
+    fn get_enabled_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_ENABLED_STATE)
+        }
     }
 }
 
@@ -1482,9 +1493,10 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &Node, document: &Document) {
         // Step 1.
-        match node.parent_node.get() {
+        let parent_node = node.GetParentNode();
+        match parent_node {
             Some(ref parent) => {
-                Node::remove(node, parent.root().r(), SuppressObserver::Unsuppressed);
+                Node::remove(node, parent, SuppressObserver::Unsuppressed);
             }
             None => (),
         }
@@ -1501,9 +1513,10 @@ impl Node {
         // If node is an element, it is _affected by a base URL change_.
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-pre-insert
-    fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
-                  -> Fallible<Root<Node>> {
+    // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
+    pub fn ensure_pre_insertion_validity(node: &Node,
+                                         parent: &Node,
+                                         child: Option<&Node>) -> ErrorResult {
         // Step 1.
         match parent.type_id() {
             NodeTypeId::Document |
@@ -1544,78 +1557,83 @@ impl Node {
         }
 
         // Step 6.
-        match parent.type_id() {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children()
-                               .any(|c| c.r().is_text())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                                if let Some(child) = child {
-                                    if child.inclusively_following_siblings()
-                                        .any(|child| child.r().is_doctype()) {
-                                            return Err(HierarchyRequest);
-                                    }
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest),
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(_) => {
-                        if !parent.child_elements().is_empty() {
-                            return Err(HierarchyRequest);
-                        }
-                        if let Some(ref child) = child {
-                            if child.inclusively_following_siblings()
-                                .any(|child| child.r().is_doctype()) {
-                                    return Err(HierarchyRequest);
+        if parent.type_id() == NodeTypeId::Document {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children()
+                           .any(|c| c.r().is_text())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
                             }
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if parent.children()
-                                 .any(|c| c.r().is_doctype())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match child {
-                            Some(child) => {
-                                if parent.children()
-                                         .take_while(|c| c.r() != child)
-                                         .any(|c| c.r().is_element())
-                                {
-                                    return Err(HierarchyRequest);
+                            if let Some(child) = child {
+                                if child.inclusively_following_siblings()
+                                    .any(|child| child.r().is_doctype()) {
+                                        return Err(HierarchyRequest);
                                 }
-                            },
-                            None => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest),
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(_) => {
+                    if !parent.child_elements().is_empty() {
+                        return Err(HierarchyRequest);
+                    }
+                    if let Some(ref child) = child {
+                        if child.inclusively_following_siblings()
+                            .any(|child| child.r().is_doctype()) {
+                                return Err(HierarchyRequest);
                         }
-                    },
-                    NodeTypeId::CharacterData(_) => (),
-                    NodeTypeId::Document => unreachable!(),
-                }
-            },
-            _ => (),
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if parent.children()
+                             .any(|c| c.r().is_doctype())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match child {
+                        Some(child) => {
+                            if parent.children()
+                                     .take_while(|c| c.r() != child)
+                                     .any(|c| c.r().is_element())
+                            {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        None => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                    }
+                },
+                NodeTypeId::CharacterData(_) => (),
+                NodeTypeId::Document => unreachable!(),
+            }
         }
+        Ok(())
+    }
 
-        // Step 7-8.
+    // https://dom.spec.whatwg.org/#concept-node-pre-insert
+    pub fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
+                      -> Fallible<Root<Node>> {
+        // Step 1.
+        try!(Node::ensure_pre_insertion_validity(node, parent, child));
+
+        // Steps 2-3.
         let reference_child_root;
         let reference_child = match child {
             Some(child) if child == node => {
@@ -1625,14 +1643,14 @@ impl Node {
             _ => child
         };
 
-        // Step 9.
+        // Step 4.
         let document = document_from_node(parent);
         Node::adopt(node, document.r());
 
-        // Step 10.
+        // Step 5.
         Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
 
-        // Step 11.
+        // Step 6.
         return Ok(Root::from_ref(node))
     }
 
@@ -1641,110 +1659,79 @@ impl Node {
               parent: &Node,
               child: Option<&Node>,
               suppress_observers: SuppressObserver) {
-        fn do_insert(node: &Node, parent: &Node, child: Option<&Node>) {
-            parent.add_child(node, child);
-            let is_in_doc = parent.is_in_doc();
-            for kid in node.traverse_preorder() {
-                let mut flags = kid.r().flags.get();
-                if is_in_doc {
-                    flags.insert(IS_IN_DOC);
-                } else {
-                    flags.remove(IS_IN_DOC);
-                }
-                kid.r().flags.set(flags);
+        debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
+        debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
+
+        // Steps 1-2: ranges.
+        let mut new_nodes = RootedVec::new();
+        let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
+            // Step 3.
+            new_nodes.extend(node.children().map(|kid| JS::from_rooted(&kid)));
+            // Step 4: mutation observers.
+            // Step 5.
+            for kid in new_nodes.r() {
+                Node::remove(*kid, node, SuppressObserver::Suppressed);
             }
+            vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            new_nodes.r()
+        } else {
+            // Step 3.
+            ref_slice(&node)
+        };
+        // Step 6: mutation observers.
+        let previous_sibling = match suppress_observers {
+            SuppressObserver::Unsuppressed => {
+                match child {
+                    Some(child) => child.GetPreviousSibling(),
+                    None => parent.GetLastChild(),
+                }
+            },
+            SuppressObserver::Suppressed => None,
+        };
+        // Step 7.
+        for kid in new_nodes {
+            // Step 7.1.
+            parent.add_child(*kid, child);
+            // Step 7.2: insertion steps.
         }
-
-        fn fire_observer_if_necessary(node: &Node, suppress_observers: SuppressObserver) {
-            match suppress_observers {
-                SuppressObserver::Unsuppressed => node.node_inserted(),
-                SuppressObserver::Suppressed => ()
-            }
-        }
-
-        // XXX assert owner_doc
-        // Step 1-3: ranges.
-
-        match node.type_id() {
-            NodeTypeId::DocumentFragment => {
-                // Step 4.
-                // Step 5: DocumentFragment, mutation records.
-                // Step 6: DocumentFragment.
-                let kids: Vec<Root<Node>> = node.children().collect();
-                for kid in &kids {
-                    Node::remove(kid.r(), node, SuppressObserver::Suppressed);
-                }
-
-                // Step 7: mutation records.
-                // Step 8.
-                for kid in &kids {
-                    do_insert(kid.r(), parent, child);
-                }
-
-                for kid in kids {
-                    fire_observer_if_necessary(kid.r(), suppress_observers);
-                }
-            }
-            _ => {
-                // Step 4.
-                // Step 5: DocumentFragment, mutation records.
-                // Step 6: DocumentFragment.
-                // Step 7: mutation records.
-                // Step 8.
-                do_insert(node, parent, child);
-                // Step 9.
-                fire_observer_if_necessary(node, suppress_observers);
-            }
+        if let SuppressObserver::Unsuppressed = suppress_observers {
+            vtable_for(&parent).children_changed(
+                &ChildrenMutation::insert(previous_sibling.r(), new_nodes, child));
         }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(node: Option<&Node>, parent: &Node) {
         // Step 1.
-        match node {
-            Some(node) => {
-                let document = document_from_node(parent);
-                Node::adopt(node, document.r());
-            }
-            None => (),
+        if let Some(node) = node {
+            Node::adopt(node, &*parent.owner_doc());
         }
-
         // Step 2.
-        let mut removed_nodes: RootedVec<JS<Node>> = RootedVec::new();
-        for child in parent.children() {
-            removed_nodes.push(JS::from_rooted(&child));
-        }
-
+        let mut removed_nodes = RootedVec::new();
+        removed_nodes.extend(parent.children().map(|child| JS::from_rooted(&child)));
         // Step 3.
-        let added_nodes = match node {
-            None => vec!(),
-            Some(node) => match node.type_id() {
-                NodeTypeId::DocumentFragment => node.children().collect(),
-                _ => vec!(Root::from_ref(node)),
-            },
+        let mut added_nodes = RootedVec::new();
+        let added_nodes = if let Some(node) = node.as_ref() {
+            if let NodeTypeId::DocumentFragment = node.type_id() {
+                added_nodes.extend(node.children().map(|child| JS::from_rooted(&child)));
+                added_nodes.r()
+            } else {
+                ref_slice(node)
+            }
+        } else {
+            &[] as &[&Node]
         };
-
         // Step 4.
-        for child in parent.children() {
-            Node::remove(child.r(), parent, SuppressObserver::Suppressed);
+        for child in removed_nodes.r() {
+            Node::remove(*child, parent, SuppressObserver::Suppressed);
         }
-
         // Step 5.
-        match node {
-            Some(node) => Node::insert(node, parent, None, SuppressObserver::Suppressed),
-            None => (),
+        if let Some(node) = node {
+            Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
-
-        // Step 6: mutation records.
-
-        // Step 7.
-        let parent_in_doc = parent.is_in_doc();
-        for removed_node in removed_nodes.iter() {
-            removed_node.root().r().node_removed(parent_in_doc);
-        }
-        for added_node in added_nodes {
-            added_node.r().node_inserted();
-        }
+        // Step 6: mutation observers.
+        vtable_for(&parent).children_changed(
+            &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes));
     }
 
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
@@ -1764,16 +1751,22 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: &Node, parent: &Node, _suppress_observers: SuppressObserver) {
+    fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent.r() == parent));
 
         // Step 1-5: ranges.
-        // Step 6-7: mutation observers.
-        // Step 8.
-        parent.remove_child(node);
-
+        // Step 6.
+        let old_previous_sibling = node.GetPreviousSibling();
+        // Steps 7-8: mutation observers.
         // Step 9.
-        node.node_removed(parent.is_in_doc());
+        let old_next_sibling = node.GetNextSibling();
+        parent.remove_child(node);
+        if let SuppressObserver::Unsuppressed = suppress_observers {
+            vtable_for(&parent).children_changed(
+                &ChildrenMutation::replace(old_previous_sibling.r(),
+                                           &node, &[],
+                                           old_next_sibling.r()));
+        }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-clone
@@ -1858,10 +1851,9 @@ impl Node {
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             NodeTypeId::Element(..) => {
-                let node_elem: &Element = ElementCast::to_ref(node).unwrap();
-                let copy_elem: &Element = ElementCast::to_ref(copy.r()).unwrap();
+                let node_elem = ElementCast::to_ref(node).unwrap();
+                let copy_elem = ElementCast::to_ref(copy.r()).unwrap();
 
-                // FIXME: https://github.com/mozilla/servo/issues/1737
                 let window = document.r().window();
                 for ref attr in node_elem.attrs().iter() {
                     let attr = attr.root();
@@ -2190,74 +2182,68 @@ impl<'a> NodeMethods for &'a Node {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is_document() =>
                 return Err(HierarchyRequest),
             NodeTypeId::DocumentType if !self.is_document() => return Err(HierarchyRequest),
-            NodeTypeId::DocumentFragment |
-            NodeTypeId::DocumentType |
-            NodeTypeId::Element(..) |
-            NodeTypeId::CharacterData(..) => (),
-            NodeTypeId::Document => return Err(HierarchyRequest)
+            NodeTypeId::Document => return Err(HierarchyRequest),
+            _ => ()
         }
 
         // Step 6.
-        match self.type_id {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children()
-                               .any(|c| c.r().is_text())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if self.child_elements()
-                                       .any(|c| NodeCast::from_ref(c.r()) != child) {
-                                    return Err(HierarchyRequest);
-                                }
-                                if child.following_siblings()
-                                        .any(|child| child.r().is_doctype()) {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest)
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(..) => {
-                        if self.child_elements()
-                               .any(|c| NodeCast::from_ref(c.r()) != child) {
-                            return Err(HierarchyRequest);
-                        }
-                        if child.following_siblings()
-                                .any(|child| child.r().is_doctype())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if self.children()
-                               .any(|c| c.r().is_doctype() &&
-                                    c.r() != child)
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                        if self.children()
-                               .take_while(|c| c.r() != child)
-                               .any(|c| c.r().is_element())
-                        {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    NodeTypeId::CharacterData(..) => (),
-                    NodeTypeId::Document => unreachable!()
-                }
-            },
-            _ => ()
+        if self.is_document() {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children()
+                           .any(|c| c.is_text())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if self.child_elements()
+                                   .any(|c| NodeCast::from_ref(c.r()) != child) {
+                                return Err(HierarchyRequest);
+                            }
+                            if child.following_siblings()
+                                    .any(|child| child.is_doctype()) {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest)
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(..) => {
+                    if self.child_elements()
+                           .any(|c| NodeCast::from_ref(c.r()) != child) {
+                        return Err(HierarchyRequest);
+                    }
+                    if child.following_siblings()
+                            .any(|child| child.is_doctype())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if self.children()
+                           .any(|c| c.is_doctype() &&
+                                c.r() != child)
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                    if self.children()
+                           .take_while(|c| c.r() != child)
+                           .any(|c| c.is_element())
+                    {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                NodeTypeId::CharacterData(..) => (),
+                NodeTypeId::Document => unreachable!()
+            }
         }
 
         // Ok if not caught by previous error checks.
@@ -2266,8 +2252,8 @@ impl<'a> NodeMethods for &'a Node {
         }
 
         // Step 7-8.
-        let child_next_sibling = child.next_sibling.get().map(Root::from_rooted);
-        let node_next_sibling = node.next_sibling.get().map(Root::from_rooted);
+        let child_next_sibling = child.GetNextSibling();
+        let node_next_sibling = node.GetNextSibling();
         let reference_child = if child_next_sibling.r() == Some(node) {
             node_next_sibling.r()
         } else {
@@ -2278,36 +2264,31 @@ impl<'a> NodeMethods for &'a Node {
         let document = document_from_node(self);
         Node::adopt(node, document.r());
 
+        // Step 10.
+        let previous_sibling = child.GetPreviousSibling();
+
+        // Step 11.
+        Node::remove(child, self, SuppressObserver::Suppressed);
+
         // Step 12.
-        let mut nodes: RootedVec<JS<Node>> = RootedVec::new();
-        if node.type_id() == NodeTypeId::DocumentFragment {
-            // Collect fragment children before Step 11,
-            // because Node::insert removes a DocumentFragment's children,
-            // and we need them in Step 13.
-            // Issue filed against the spec:
-            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28330
-            for child_node in node.children() {
-                nodes.push(JS::from_rooted(&child_node));
-            }
+        let mut nodes = RootedVec::new();
+        let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
+            nodes.extend(node.children().map(|node| JS::from_rooted(&node)));
+            nodes.r()
         } else {
-            nodes.push(JS::from_ref(node));
-        }
+            ref_slice(&node)
+        };
 
-        {
-            // Step 10.
-            Node::remove(child, self, SuppressObserver::Suppressed);
-
-            // Step 11.
-            Node::insert(node, self, reference_child, SuppressObserver::Suppressed);
-        }
-
-        // Step 13: mutation records.
-        child.node_removed(self.is_in_doc());
-        for child_node in &*nodes {
-            child_node.root().r().node_inserted();
-        }
+        // Step 13.
+        Node::insert(node, self, reference_child, SuppressObserver::Suppressed);
 
         // Step 14.
+        vtable_for(&self).children_changed(
+            &ChildrenMutation::replace(previous_sibling.r(),
+                                       &child, nodes,
+                                       reference_child));
+
+        // Step 15.
         Ok(Root::from_ref(child))
     }
 
@@ -2325,15 +2306,14 @@ impl<'a> NodeMethods for &'a Node {
                 Some(text) => {
                     let characterdata: &CharacterData = CharacterDataCast::from_ref(text);
                     if characterdata.Length() == 0 {
-                        self.remove_child(child.r());
+                        Node::remove(&*child, self, SuppressObserver::Unsuppressed);
                     } else {
                         match prev_text {
                             Some(ref text_node) => {
-                                let text_node = text_node.clone();
                                 let prev_characterdata =
                                     CharacterDataCast::from_ref(text_node.r());
-                                let _ = prev_characterdata.AppendData(characterdata.Data());
-                                self.remove_child(child.r());
+                                prev_characterdata.append_data(&**characterdata.data());
+                                Node::remove(&*child, self, SuppressObserver::Unsuppressed);
                             },
                             None => prev_text = Some(Root::from_ref(text))
                         }
@@ -2579,41 +2559,6 @@ impl<'a> VirtualMethods for &'a Node {
     }
 }
 
-impl<'a> ::selectors::Node<&'a Element> for &'a Node {
-    fn parent_node(&self) -> Option<&'a Node> {
-        (*self).parent_node.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn first_child(&self) -> Option<&'a Node> {
-        (*self).first_child.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn last_child(&self) -> Option<&'a Node> {
-        (*self).last_child.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn prev_sibling(&self) -> Option<&'a Node> {
-        (*self).prev_sibling.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn next_sibling(&self) -> Option<&'a Node> {
-        (*self).next_sibling.get()
-               .map(|node| node.root().get_unsound_ref_forever())
-    }
-
-    fn is_document(&self) -> bool {
-        DocumentDerived::is_document(*self)
-    }
-
-    fn as_element(&self) -> Option<&'a Element> {
-        ElementCast::to_ref(*self)
-    }
-}
-
 pub trait DisabledStateHelpers {
     fn check_ancestors_disabled_state_for_form_control(self);
     fn check_parent_disabled_state_for_option(self);
@@ -2673,4 +2618,62 @@ pub enum NodeDamage {
     NodeStyleDamaged,
     /// Other parts of a node changed; attributes, text content, etc.
     OtherNodeDamage,
+}
+
+pub enum ChildrenMutation<'a> {
+    Append { prev: &'a Node, added: &'a [&'a Node] },
+    Insert { prev: &'a Node, added: &'a [&'a Node], next: &'a Node },
+    Prepend { added: &'a [&'a Node], next: &'a Node },
+    Replace {
+        prev: Option<&'a Node>,
+        removed: &'a Node,
+        added: &'a [&'a Node],
+        next: Option<&'a Node>,
+    },
+    ReplaceAll { removed: &'a [&'a Node], added: &'a [&'a Node] },
+}
+
+impl<'a> ChildrenMutation<'a> {
+    fn insert(prev: Option<&'a Node>, added: &'a [&'a Node], next: Option<&'a Node>)
+              -> ChildrenMutation<'a> {
+        match (prev, next) {
+            (None, None) => {
+                ChildrenMutation::ReplaceAll { removed: &[], added: added }
+            },
+            (Some(prev), None) => {
+                ChildrenMutation::Append { prev: prev, added: added }
+            },
+            (None, Some(next)) => {
+                ChildrenMutation::Prepend { added: added, next: next }
+            },
+            (Some(prev), Some(next)) => {
+                ChildrenMutation::Insert { prev: prev, added: added, next: next }
+            },
+        }
+    }
+
+    fn replace(prev: Option<&'a Node>,
+               removed: &'a &'a Node,
+               added: &'a [&'a Node],
+               next: Option<&'a Node>)
+               -> ChildrenMutation<'a> {
+        if let (None, None) = (prev, next) {
+            ChildrenMutation::ReplaceAll {
+                removed: ref_slice(removed),
+                added: added,
+            }
+        } else {
+            ChildrenMutation::Replace {
+                prev: prev,
+                removed: *removed,
+                added: added,
+                next: next,
+            }
+        }
+    }
+
+    fn replace_all(removed: &'a [&'a Node], added: &'a [&'a Node])
+                   -> ChildrenMutation<'a> {
+        ChildrenMutation::ReplaceAll { removed: removed, added: added }
+    }
 }

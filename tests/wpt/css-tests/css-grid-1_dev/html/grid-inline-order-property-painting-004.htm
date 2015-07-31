@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Grid Layout Test: 'order' property affects grid items painting order within an inline grid</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#order-property" title="4.2 Reordered Grid Items: the order property">
+        <link rel="help" href="http://dev.w3.org/csswg/css-flexbox-1/#order-property" title="5.4. Display Order: the order property">
+        <link rel="match" href="reference/ref-filled-green-100px-square.htm">
+        <meta name="flags" content="ahem">
+        <style type="text/css">
+            #inline-grid {
+                display: inline-grid;
+                font: 100px/1 Ahem;
+            }
+
+            #test-item-overlapping-green {
+                color: green;
+                order: -5;
+            }
+
+            #reference-item-overlapped-red {
+                color: red;
+                order: -10;
+            }
+
+            .first-row-first-column {
+                grid-area: 1 / 1;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+        <div id="inline-grid">
+            <div id="test-item-overlapping-green" class="first-row-first-column">G</div>
+            <div id="reference-item-overlapped-red" class="first-row-first-column">R</div>
+        </div>
+    </body>
+</html>

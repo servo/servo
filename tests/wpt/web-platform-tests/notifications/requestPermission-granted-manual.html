@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification.requestPermission (permission=granted)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script>
+setup({ explicit_timeout: true })
+if (hasNotificationPermission()) {
+    async_test(function (t) {
+        t.step(function () {
+            t.done()
+        })
+    })
+}
+</script>

@@ -77,16 +77,17 @@ impl UIEvent {
 }
 
 impl<'a> UIEventMethods for &'a UIEvent {
-    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-view
+    // https://w3c.github.io/uievents/#widl-UIEvent-view
     fn GetView(self) -> Option<Root<Window>> {
         self.view.get().map(Root::from_rooted)
     }
 
-    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-detail
+    // https://w3c.github.io/uievents/#widl-UIEvent-detail
     fn Detail(self) -> i32 {
         self.detail.get()
     }
 
+    // https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent
     fn InitUIEvent(self,
                    type_: DOMString,
                    can_bubble: bool,

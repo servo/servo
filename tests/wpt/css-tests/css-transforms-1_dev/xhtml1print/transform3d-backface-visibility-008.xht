@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
+<title>CSS Transforms Test: backface-visibility - visible</title>
+<link href="http://www.intel.com" rel="author" title="Intel" />
+<link href="mailto:zhiqiang.zhang@intel.com" rel="reviewer" title="Zhiqiang Zhang" /> <!-- 2015-05-22 -->
+<link href="http://www.w3.org/TR/css-transforms-1/#backface-visibility-property" rel="help" />
+<link href="reference/ref-filled-green-100px-square.xht" rel="match" />
+<meta content="When 'backface-visiblity' is set to visible,
+                             the back side of a transformed element is visible." name="assert" />
+<style>
+  div {
+    height: 100px;
+    width: 100px;
+  }
+
+  body &gt; div {
+    background: red;
+  }
+
+  div &gt; div {
+    background: green;
+    backface-visibility: visible;
+    transform: rotateY(180deg);
+  }
+</style>
+</head><body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div>
+    <div></div>
+  </div>
+
+
+</body></html>

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Tables (1140 tests)</h2>
+  <h2>Tables (1141 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -9341,7 +9341,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s17.6.2">+</a>
         <a href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders">17.6.2 The collapsing border model</a></th></tr>
-      <!-- 54 tests -->
+      <!-- 55 tests -->
       <tr id="bidi-border-collapse-001-17.6.2" class="primary">
         <td><strong>
             <a href="bidi-border-collapse-001.htm">bidi-border-collapse-001</a></strong></td>
@@ -9392,6 +9392,17 @@
         <td></td>
         <td></td>
         <td>overflow: hidden and border-collapse: collapse
+        </td>
+      </tr>
+      <tr id="border-collapse-005-17.6.2" class="">
+        <td>
+            <a href="border-collapse-005.htm">border-collapse-005</a></td>
+        <td><a href="reference/border-collapse-005-ref.htm">=</a> </td>
+        <td></td>
+        <td>collapsing borders with empty tbody
+          <ul class="assert">
+            <li>border-collapse should work correctly when a table has an empty tbody</li>
+          </ul>
         </td>
       </tr>
       <tr id="border-collapse-dynamic-cell-001-17.6.2" class="primary dom">

@@ -285,7 +285,7 @@ class CommandBase(object):
                 "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib"
             ) % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"]}
             env["OPENSSL_LIB_DIR"] = openssl_dir
-            env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
+            env['OPENSSL_INCLUDE_DIR'] = path.join(env["GONKDIR"], "external/openssl/include")
 
         # FIXME: These are set because they are the variable names that
         # android-rs-glue expects. However, other submodules have makefiles that

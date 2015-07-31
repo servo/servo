@@ -73,6 +73,16 @@ function test_before(child, nodeName, innerHTML) {
     }, nodeName + '.before() with context object itself as the argument.');
 
     test(function() {
+        var parent = document.createElement('div')
+        var x = document.createElement('x');
+        parent.appendChild(child);
+        parent.appendChild(x);
+        child.before(x, child);
+        var expected = '<x></x>' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with context object itself and node as the arguments, switching positions.');
+
+    test(function() {
         var parent = document.createElement('div');
         var x = document.createElement('x');
         var y = document.createElement('y');
@@ -84,6 +94,36 @@ function test_before(child, nodeName, innerHTML) {
         var expected = '<x></x><y></y><z></z>' + innerHTML;
         assert_equals(parent.innerHTML, expected);
     }, nodeName + '.before() with all siblings of child as arguments.');
+
+    test(function() {
+        var parent = document.createElement('div')
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        var z = document.createElement('z');
+        parent.appendChild(x);
+        parent.appendChild(y);
+        parent.appendChild(z);
+        parent.appendChild(child);
+        child.before(y, z);
+        var expected = '<x></x><y></y><z></z>' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with some siblings of child as arguments; no changes in tree; viable sibling is first child.');
+
+    test(function() {
+        var parent = document.createElement('div')
+        var v = document.createElement('v');
+        var x = document.createElement('x');
+        var y = document.createElement('y');
+        var z = document.createElement('z');
+        parent.appendChild(v);
+        parent.appendChild(x);
+        parent.appendChild(y);
+        parent.appendChild(z);
+        parent.appendChild(child);
+        child.before(y, z);
+        var expected = '<v></v><x></x><y></y><z></z>' + innerHTML;
+        assert_equals(parent.innerHTML, expected);
+    }, nodeName + '.before() with some siblings of child as arguments; no changes in tree.');
 
     test(function() {
         var parent = document.createElement('div');

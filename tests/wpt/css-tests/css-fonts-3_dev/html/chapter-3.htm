@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Fonts Module Level 3 CR Test Suite</h1>
-  <h2>Basic Font Properties (338 tests)</h2>
+  <h2>Basic Font Properties (343 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -3191,7 +3191,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.6">+</a>
         <a href="http://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop">3.6 Relative sizing: the font-size-adjust property</a></th></tr>
-      <!-- 2 tests -->
+      <!-- 7 tests -->
       <tr id="font-size-adjust-001-3.6" class="primary Ahem">
         <td><strong>
             <a href="font-size-adjust-001.htm">font-size-adjust-001</a></strong></td>
@@ -3211,6 +3211,61 @@
         <td>font-size-adjust - less than aspect value of font
           <ul class="assert">
             <li>Test checks that the actual font size is less than the specified size when the value of font-size-adjust is less than the aspect value of font</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="font-size-adjust-003-3.6" class="primary font">
+        <td><strong>
+            <a href="font-size-adjust-003.htm">font-size-adjust-003</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>font-size-adjust - first available and installed font
+          <ul class="assert">
+            <li>In this test, span.test's first 3 fallback fonts are unavailable and the next fallback fonts have a relatively big aspect value with regards to each fonts listed, declared in span.reference rule (0.450). This test checks that 'font-size-adjust' property adjusts the relative height of lowercase letters of available, installed fallback fonts listed, declared in span.test rule (0.530-0.545) to match the relative height of lowercase letters of fonts listed, declared in span.reference rule (0.450).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="font-size-adjust-005-3.6" class="primary ahem">
+        <td><strong>
+            <a href="font-size-adjust-005.htm">font-size-adjust-005</a></strong></td>
+        <td><a href="reference/ref-if-there-is-no-red.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>font-size-adjust - 0 value implies a 0px used font-size
+          <ul class="assert">
+            <li>This test checks that a 0 value implies that used font-size must be 0px.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="font-size-adjust-006-3.6" class="primary ahem invalid">
+        <td><strong>
+            <a href="font-size-adjust-006.htm">font-size-adjust-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="invalid" title="Tests invalid CSS">Invalid</abbr></td>
+        <td>font-size-adjust - a percentage value is invalid
+          <ul class="assert">
+            <li>This test checks that a percentage value is invalid and therefore must be ignored.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="font-size-adjust-007-3.6" class="primary ahem invalid">
+        <td><strong>
+            <a href="font-size-adjust-007.htm">font-size-adjust-007</a></strong></td>
+        <td><a href="reference/ref-if-there-is-no-red.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="invalid" title="Tests invalid CSS">Invalid</abbr></td>
+        <td>font-size-adjust - 'auto' value is ignored
+          <ul class="assert">
+            <li>This test checks that 'auto' does not apply to font-size-adjust and therefore must be ignored.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="font-size-adjust-008-3.6" class="primary ahem invalid">
+        <td><strong>
+            <a href="font-size-adjust-008.htm">font-size-adjust-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="invalid" title="Tests invalid CSS">Invalid</abbr></td>
+        <td>font-size-adjust - a negative value is invalid
+          <ul class="assert">
+            <li>This test checks that a negative value is invalid and therefore must be ignored.</li>
           </ul>
         </td>
       </tr>

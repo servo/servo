@@ -15,10 +15,8 @@ use std::cmp;
 use std::env;
 use std::io::{self, Write};
 use std::fs::PathExt;
-use std::mem;
 use std::path::Path;
 use std::process;
-use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
@@ -140,6 +138,9 @@ pub struct Opts {
     /// Dumps the display list after a layout.
     pub dump_display_list: bool,
 
+    /// Dumps the display list in JSON form after a layout.
+    pub dump_display_list_json: bool,
+
     /// Dumps the display list after optimization (post layout, at painting time).
     pub dump_display_list_optimized: bool,
 
@@ -160,6 +161,9 @@ pub struct Opts {
 
     /// Whether to run absolute position calculation and display list construction in parallel.
     pub parallel_display_list_building: bool,
+
+    /// True to exit after the page load (`-x`).
+    pub exit_after_load: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -178,6 +182,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("disable-text-aa", "Disable antialiasing of rendered text.");
     print_option("dump-flow-tree", "Print the flow tree after each layout.");
     print_option("dump-display-list", "Print the display list after each layout.");
+    print_option("dump-display-list-json", "Print the display list in JSON form.");
     print_option("dump-display-list-optimized", "Print optimized display list (at paint time).");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
@@ -248,6 +253,7 @@ pub fn default_opts() -> Opts {
         user_agent: None,
         dump_flow_tree: false,
         dump_display_list: false,
+        dump_display_list_json: false,
         dump_display_list_optimized: false,
         relayout_event: false,
         validate_display_list_geometry: false,
@@ -256,12 +262,12 @@ pub fn default_opts() -> Opts {
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
+        exit_after_load: false,
     }
 }
 
 pub fn from_cmdline_args(args: &[String]) {
-    let app_name = args[0].to_string();
-    let args = args.tail();
+    let (app_name, args) = args.split_first().unwrap();
 
     let opts = vec!(
         getopts::optflag("c", "cpu", "CPU painting (default)"),
@@ -298,7 +304,7 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
-        print_usage(&app_name, &opts);
+        print_usage(app_name, &opts);
         process::exit(0);
     };
 
@@ -311,11 +317,11 @@ pub fn from_cmdline_args(args: &[String]) {
         debug_options.insert(split.clone());
     }
     if debug_options.contains(&"help") {
-        print_debug_usage(&app_name)
+        print_debug_usage(app_name)
     }
 
     let url = if opt_match.free.is_empty() {
-        print_usage(&app_name, &opts);
+        print_usage(app_name, &opts);
         args_fail("servo asks that you provide a URL")
     } else {
         let ref url = opt_match.free[0];
@@ -424,6 +430,7 @@ pub fn from_cmdline_args(args: &[String]) {
         enable_canvas_antialiasing: !debug_options.contains(&"disable-canvas-aa"),
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         dump_display_list: debug_options.contains(&"dump-display-list"),
+        dump_display_list_json: debug_options.contains(&"dump-display-list-json"),
         dump_display_list_optimized: debug_options.contains(&"dump-display-list-optimized"),
         relayout_event: debug_options.contains(&"relayout-event"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
@@ -431,9 +438,10 @@ pub fn from_cmdline_args(args: &[String]) {
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
         parallel_display_list_building: debug_options.contains(&"parallel-display-list-building"),
+        exit_after_load: opt_match.opt_present("x"),
     };
 
-    set(opts);
+    set_defaults(opts);
 }
 
 static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
@@ -452,27 +460,36 @@ pub fn experimental_enabled() -> bool {
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-static mut OPTIONS: *mut Opts = 0 as *mut Opts;
+static mut DEFAULT_OPTIONS: *mut Opts = 0 as *mut Opts;
+const INVALID_OPTIONS: *mut Opts = 0x01 as *mut Opts;
 
-pub fn set(opts: Opts) {
-    unsafe {
-        assert!(OPTIONS.is_null());
+lazy_static! {
+    static ref OPTIONS: Opts = {
+        let opts = unsafe {
+            let initial = if !DEFAULT_OPTIONS.is_null() {
+                let opts = Box::from_raw(DEFAULT_OPTIONS);
+                *opts
+            } else {
+                default_opts()
+            };
+            DEFAULT_OPTIONS = INVALID_OPTIONS;
+            initial
+        };
         set_experimental_enabled(opts.enable_experimental);
+        opts
+    };
+}
+
+pub fn set_defaults(opts: Opts) {
+    unsafe {
+        assert!(DEFAULT_OPTIONS.is_null());
+        assert!(DEFAULT_OPTIONS != INVALID_OPTIONS);
         let box_opts = box opts;
-        OPTIONS = mem::transmute(box_opts);
+        DEFAULT_OPTIONS = Box::into_raw(box_opts);
     }
 }
 
 #[inline]
-pub fn get<'a>() -> &'a Opts {
-    unsafe {
-        // If code attempts to retrieve the options and they haven't
-        // been set by the platform init code, just return a default
-        // set of options. This is mostly useful for unit tests that
-        // run through a code path which queries the cmd line options.
-        if OPTIONS == ptr::null_mut() {
-            set(default_opts());
-        }
-        mem::transmute(OPTIONS)
-    }
+pub fn get() -> &'static Opts {
+    &OPTIONS
 }

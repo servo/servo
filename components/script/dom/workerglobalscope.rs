@@ -20,12 +20,14 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource, ScriptPort, ScriptMsg};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 
-use msg::constellation_msg::{PipelineId, WorkerId};
+use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use profile_traits::mem;
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSContext, HandleValue};
 use js::rust::Runtime;
 use url::{Url, UrlParser};
@@ -52,7 +54,9 @@ pub struct WorkerGlobalScope {
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
-    devtools_chan: Option<DevtoolsControlChan>,
+    mem_profiler_chan: mem::ProfilerChan,
+    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    constellation_chan: ConstellationChan,
 }
 
 impl WorkerGlobalScope {
@@ -60,7 +64,10 @@ impl WorkerGlobalScope {
                          worker_url: Url,
                          runtime: Rc<Runtime>,
                          resource_task: ResourceTask,
-                         devtools_chan: Option<DevtoolsControlChan>) -> WorkerGlobalScope {
+                         mem_profiler_chan: mem::ProfilerChan,
+                         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+                         constellation_chan: ConstellationChan)
+                         -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -72,12 +79,22 @@ impl WorkerGlobalScope {
             console: Default::default(),
             crypto: Default::default(),
             timers: TimerManager::new(),
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
+            constellation_chan: constellation_chan,
         }
     }
 
-    pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
+    pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
+    }
+
+    pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
+    }
+
+    pub fn constellation_chan(&self) -> ConstellationChan {
+        self.constellation_chan.clone()
     }
 
     #[inline]
@@ -156,22 +173,27 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
         self.navigator.or_init(|| WorkerNavigator::new(self))
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/console
     fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dfn-Crypto
     fn Crypto(self) -> Root<Crypto> {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Worker(self)))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob
     fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -181,6 +203,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
                                             self.script_chan())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -190,10 +213,12 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
                                             self.script_chan())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
     fn ClearTimeout(self, handle: i32) {
         self.timers.clear_timeout_or_interval(handle);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -203,6 +228,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
                                             self.script_chan())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -212,6 +238,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
                                             self.script_chan())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
     fn ClearInterval(self, handle: i32) {
         self.ClearTimeout(handle);
     }

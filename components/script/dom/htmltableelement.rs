@@ -65,7 +65,7 @@ impl HTMLTableElement {
 }
 
 impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
-    //  https://www.whatwg.org/html/#dom-table-caption
+    // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(self) -> Option<Root<HTMLTableCaptionElement>> {
         let node = NodeCast::from_ref(self);
         node.children()
@@ -75,7 +75,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
             .next()
     }
 
-    // https://www.whatwg.org/html/#dom-table-caption
+    // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn SetCaption(self, new_caption: Option<&HTMLTableCaptionElement>) {
         let node = NodeCast::from_ref(self);
 

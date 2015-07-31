@@ -2,46 +2,48 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-text-decor-3_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/ruby-text-decoration-01.htm	?	
-xhtml1/ruby-text-decoration-01.xht	?	
-html4/text-decoration-line-010.htm	?	
-xhtml1/text-decoration-line-010.xht	?	
-html4/text-decoration-line-011.htm	?	
-xhtml1/text-decoration-line-011.xht	?	
-html4/text-decoration-line-012.htm	?	
-xhtml1/text-decoration-line-012.xht	?	
-html4/text-decoration-line-013.htm	?	
-xhtml1/text-decoration-line-013.xht	?	
-html4/text-decoration-line-014.htm	?	
-xhtml1/text-decoration-line-014.xht	?	
-html4/text-emphasis-style-002.htm	?	
-xhtml1/text-emphasis-style-002.xht	?	
-html4/text-emphasis-style-006.htm	?	
-xhtml1/text-emphasis-style-006.xht	?	
-html4/text-emphasis-style-007.htm	?	
-xhtml1/text-emphasis-style-007.xht	?	
-html4/text-emphasis-style-008.htm	?	
-xhtml1/text-emphasis-style-008.xht	?	
-html4/text-emphasis-style-010.htm	?	
-xhtml1/text-emphasis-style-010.xht	?	
-html4/text-emphasis-style-012.htm	?	
-xhtml1/text-emphasis-style-012.xht	?	
-html4/text-emphasis-style-016.htm	?	
-xhtml1/text-emphasis-style-016.xht	?	
-html4/text-emphasis-style-021.htm	?	
-xhtml1/text-emphasis-style-021.xht	?	
-html4/text-underline-position-alphabetic-001.htm	?	
-xhtml1/text-underline-position-alphabetic-001.xht	?	
-html4/text-underline-position-auto-001.htm	?	
-xhtml1/text-underline-position-auto-001.xht	?	
-html4/text-underline-position-left-001.htm	?	
-xhtml1/text-underline-position-left-001.xht	?	
-html4/text-underline-position-left-002.htm	?	
-xhtml1/text-underline-position-left-002.xht	?	
-html4/text-underline-position-right-001.htm	?	
-xhtml1/text-underline-position-right-001.xht	?	
-html4/text-underline-position-right-002.htm	?	
-xhtml1/text-underline-position-right-002.xht	?	
-html4/text-underline-position-under-001.htm	?	
-xhtml1/text-underline-position-under-001.xht	?	
+testname	revision	result	comment
+html/ruby-text-decoration-01.htm	0438c57e43e57886c25885c685231400768346a9	?
+xhtml1/ruby-text-decoration-01.xht	0438c57e43e57886c25885c685231400768346a9	?
+html/text-decoration-line-010.htm	6250f4231c4db26c70f7e4fdeea0cd272d1137c9	?
+xhtml1/text-decoration-line-010.xht	6250f4231c4db26c70f7e4fdeea0cd272d1137c9	?
+html/text-decoration-line-011.htm	cd213a8b91f260ffe05d9ded78a03a3949e50a65	?
+xhtml1/text-decoration-line-011.xht	cd213a8b91f260ffe05d9ded78a03a3949e50a65	?
+html/text-decoration-line-012.htm	8e0a98246d692e71a173a3800de4b1b98f5a4b82	?
+xhtml1/text-decoration-line-012.xht	8e0a98246d692e71a173a3800de4b1b98f5a4b82	?
+html/text-decoration-line-013.htm	941f9aba140d18783aa42e77db1a4504fadb7b52	?
+xhtml1/text-decoration-line-013.xht	941f9aba140d18783aa42e77db1a4504fadb7b52	?
+html/text-decoration-line-014.htm	5249afc1eca4ab8b4987ea7b1076470ec717eea1	?
+xhtml1/text-decoration-line-014.xht	5249afc1eca4ab8b4987ea7b1076470ec717eea1	?
+html/text-decoration-propagation-01.htm	d2c7ab23fa267a9a336a41c08a4a76dc23b7143b	?
+xhtml1/text-decoration-propagation-01.xht	d2c7ab23fa267a9a336a41c08a4a76dc23b7143b	?
+html/text-emphasis-style-002.htm	ccf68b60bc2ea97be8961717db3eab04dfea0c6d	?
+xhtml1/text-emphasis-style-002.xht	ccf68b60bc2ea97be8961717db3eab04dfea0c6d	?
+html/text-emphasis-style-006.htm	dbe08f05f6457a27fb5b81200fbe086078314555	?
+xhtml1/text-emphasis-style-006.xht	dbe08f05f6457a27fb5b81200fbe086078314555	?
+html/text-emphasis-style-007.htm	235004cf641da957e5a9b0ae9cd7767a66378717	?
+xhtml1/text-emphasis-style-007.xht	235004cf641da957e5a9b0ae9cd7767a66378717	?
+html/text-emphasis-style-008.htm	b7c4ed5fa1fdbfb7f1b1c30171fae45bf2500a3f	?
+xhtml1/text-emphasis-style-008.xht	b7c4ed5fa1fdbfb7f1b1c30171fae45bf2500a3f	?
+html/text-emphasis-style-010.htm	43d55dbc5d3b0e62c6c49ad0f88b2dd273054d6a	?
+xhtml1/text-emphasis-style-010.xht	43d55dbc5d3b0e62c6c49ad0f88b2dd273054d6a	?
+html/text-emphasis-style-012.htm	ae0c296c38c25ca79d81611ba40e792e5f41c350	?
+xhtml1/text-emphasis-style-012.xht	ae0c296c38c25ca79d81611ba40e792e5f41c350	?
+html/text-emphasis-style-016.htm	7f06e7907f88ebd78511b0dc2ce3594647f9706d	?
+xhtml1/text-emphasis-style-016.xht	7f06e7907f88ebd78511b0dc2ce3594647f9706d	?
+html/text-emphasis-style-021.htm	f4d99062d42adf9a47a22f534e7499bf67d9e608	?
+xhtml1/text-emphasis-style-021.xht	f4d99062d42adf9a47a22f534e7499bf67d9e608	?
+html/text-underline-position-alphabetic-001.htm	3ff96cf6129d587b9198efd2455a605c4154ac7c	?
+xhtml1/text-underline-position-alphabetic-001.xht	3ff96cf6129d587b9198efd2455a605c4154ac7c	?
+html/text-underline-position-auto-001.htm	bb181c132aad4782e75ce15c1b59914c3e7e5e5a	?
+xhtml1/text-underline-position-auto-001.xht	bb181c132aad4782e75ce15c1b59914c3e7e5e5a	?
+html/text-underline-position-left-001.htm	923b5360b9dc7b02bcccff5fb4743cf71bc7be7a	?
+xhtml1/text-underline-position-left-001.xht	923b5360b9dc7b02bcccff5fb4743cf71bc7be7a	?
+html/text-underline-position-left-002.htm	e043ed83c37a4090103f004a72ff00643ee6cce1	?
+xhtml1/text-underline-position-left-002.xht	e043ed83c37a4090103f004a72ff00643ee6cce1	?
+html/text-underline-position-right-001.htm	7bf96266a7e4e52eac4d2cbce954e5b3ac140395	?
+xhtml1/text-underline-position-right-001.xht	7bf96266a7e4e52eac4d2cbce954e5b3ac140395	?
+html/text-underline-position-right-002.htm	b331276dea060063ce6fc57b2832dd846a78441d	?
+xhtml1/text-underline-position-right-002.xht	b331276dea060063ce6fc57b2832dd846a78441d	?
+html/text-underline-position-under-001.htm	cbf161b41529bfb0200d0ce3c4c68efa3b59dc0e	?
+xhtml1/text-underline-position-under-001.xht	cbf161b41529bfb0200d0ce3c4c68efa3b59dc0e	?

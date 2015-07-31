@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <link rel="reviewer" title="Gerard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-07-21 -->
+  <meta name="flags" content="image" />
+  <style type="text/css"><![CDATA[
+  img
+  {
+   vertical-align: top;
+  }
+
+  img
+  {
+   padding-left: 192px; /* 60 px (padding-left) + 120px (width of inline-block) + 12px (the position difference of box) */
+  }
+
+  img + br + img
+  {
+   padding-left: 60px; /* 60 px (padding-left) */
+  }
+
+  img + br + img + br + img
+  {
+   padding-left: 198px; /* 60 px (padding-left) + 120px (width of inline-block)+ 18px (the position difference of box) */
+  }
+  ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if the <strong>right edge</strong> of an irregular polygon is straight and unbroken.</p>
+
+  <div>
+    <img src="support/swatch-olive.png" width="12" height="60" alt="Image download support must be enabled" /><br /><!--
+ --><img src="support/swatch-olive.png" width="144" height="120" alt="Image download support must be enabled" /><br /><!--
+ --><img src="support/swatch-olive.png" width="6" height="30" alt="Image download support must be enabled" />
+  </div>
+  </body>
+</html>

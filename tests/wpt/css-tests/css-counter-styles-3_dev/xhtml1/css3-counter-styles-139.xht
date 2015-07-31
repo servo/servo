@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
+<title>mongolian, suffix</title>
+<link href="mailto:ishida@w3.org" rel="author" title="Richard Ishida" />
+<link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help" />
+<meta content="font" name="flags" />
+<meta content="list-style-type: mongolian produces a suffix per the spec." name="assert" />
+<style type="text/css">
+ol li { list-style-type: mongolian;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the numbers AND the suffix in each of the two columns is the same.</p>
+<div class="test"><ol>
+<li title="1">᠑.</li>
+<li title="2">᠒.</li>
+</ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+</body></html>

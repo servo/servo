@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>CSS Reftest Reference</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test inline-block-alignment-orthogonal-vrl-002-ref"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+  <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <link rel="reviewer" title="Gerard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-06-12 -->
+  <meta name="flags" content="image" />
+  <style type="text/css"><![CDATA[
+    img
+    {
+      vertical-align: bottom;
+    }
+  ]]></style>
+
+</head>
+
+<body>
+
+<p>Test passes if the <strong>bottom edge</strong> of an irregular polygon is straight and unbroken.</p>
+
+<div><img src="support/swatch-orange.png" width="60" height="48" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="180" height="135" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="30" height="24" alt="Image download support must be enabled" /></div>
+
+</body>
+</html>

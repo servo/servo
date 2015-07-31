@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::CanvasMsg;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -27,12 +26,13 @@ use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderi
 use util::str::{DOMString, parse_unsigned_integer};
 use js::jsapi::{JSContext, HandleValue};
 use offscreen_gl_context::GLContextAttributes;
+use canvas_traits::CanvasMsg;
+use ipc_channel::ipc::IpcSender;
 
 use euclid::size::Size2D;
 
 use std::cell::Cell;
 use std::default::Default;
-use std::sync::mpsc::Sender;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -106,7 +106,9 @@ impl HTMLCanvasElement {
 
 pub trait LayoutHTMLCanvasElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>>;
+    unsafe fn get_renderer_id(&self) -> Option<usize>;
+    #[allow(unsafe_code)]
+    unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>>;
     #[allow(unsafe_code)]
     unsafe fn get_canvas_width(&self) -> u32;
     #[allow(unsafe_code)]
@@ -115,14 +117,25 @@ pub trait LayoutHTMLCanvasElementHelpers {
 
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
+    unsafe fn get_renderer_id(&self) -> Option<usize> {
         let ref canvas = *self.unsafe_get();
         if let Some(context) = canvas.context.get() {
             match context {
-                CanvasContext::Context2d(context)
-                    => Some(context.to_layout().get_renderer()),
-                CanvasContext::WebGL(context)
-                    => Some(context.to_layout().get_renderer()),
+                CanvasContext::Context2d(context) => Some(context.to_layout().get_renderer_id()),
+                CanvasContext::WebGL(context) => Some(context.to_layout().get_renderer_id()),
+            }
+        } else {
+            None
+        }
+    }
+
+    #[allow(unsafe_code)]
+    unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
+        let ref canvas = *self.unsafe_get();
+        if let Some(context) = canvas.context.get() {
+            match context {
+                CanvasContext::Context2d(context) => Some(context.to_layout().get_ipc_renderer()),
+                CanvasContext::WebGL(context) => Some(context.to_layout().get_ipc_renderer()),
             }
         } else {
             None
@@ -202,24 +215,29 @@ impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
 }
 
 impl<'a> HTMLCanvasElementMethods for &'a HTMLCanvasElement {
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn Width(self) -> u32 {
         self.width.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn SetWidth(self, width: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn Height(self) -> u32 {
         self.height.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn SetHeight(self, height: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
     fn GetContext(self,
                   cx: *mut JSContext,
                   id: DOMString,

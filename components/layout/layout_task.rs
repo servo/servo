@@ -10,7 +10,7 @@
 use animation;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, heap_size_of_local_context};
-use css::node_style::StyledNode;
+use cssparser::ToCss;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -39,25 +39,28 @@ use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintLayer};
-use ipc_channel::ipc::IpcReceiver;
-use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
+use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use profile_traits::mem::{self, Report, ReportsChan};
+use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use net_traits::{load_bytes_iter, PendingAsyncLoad};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
-use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse};
-use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
-use script::layout_interface::{MouseOverResponse, Msg, Reflow, ReflowGoal, ReflowQueryType};
-use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
+use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
+use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
+use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
+use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
+use selectors::parser::PseudoElement;
+use serde::json;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -66,20 +69,23 @@ use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::thread;
+use string_cache::Atom;
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
+use style::properties::style_structs;
+use style::properties::longhands::{display, position};
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::{Au, MAX_RECT};
-use util::logical_geometry::LogicalPoint;
+use util::geometry::{Au, MAX_RECT, ZERO_POINT};
+use util::logical_geometry::{LogicalPoint, WritingMode};
 use util::mem::HeapSizeOf;
 use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
+use wrapper::ThreadSafeLayoutNode;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -124,6 +130,12 @@ pub struct LayoutTaskData {
 
     /// A queued response for the content boxes of a node.
     pub content_boxes_response: Vec<Rect<Au>>,
+
+    /// A queued response for the client {top, left, width, height} of a node in pixels.
+    pub client_rect_response: Rect<i32>,
+
+    /// A queued response for the resolved style property of an element.
+    pub resolved_style_response: Option<String>,
 
     /// The list of currently-running animations.
     pub running_animations: Vec<Animation>,
@@ -184,9 +196,6 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the memory profiler.
     pub mem_profiler_chan: mem::ProfilerChan,
 
-    /// The name used for the task's memory reporter.
-    pub reporter_name: String,
-
     /// The channel on which messages can be sent to the image cache.
     pub image_cache_task: ImageCacheTask,
 
@@ -198,8 +207,8 @@ pub struct LayoutTask {
 
     /// To receive a canvas renderer associated to a layer, this message is propagated
     /// to the paint chan
-    pub canvas_layers_receiver: Receiver<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
-    pub canvas_layers_sender: Sender<(LayerId, Option<Arc<Mutex<Sender<CanvasMsg>>>>)>,
+    pub canvas_layers_receiver: Receiver<(LayerId, IpcSender<CanvasMsg>)>,
+    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -223,17 +232,18 @@ impl LayoutTaskFactory for LayoutTask {
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
-              memory_profiler_chan: mem::ProfilerChan,
+              mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id), task_state::LAYOUT, move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
+                let layout_chan = LayoutChan(sender);
                 let layout = LayoutTask::new(id,
                                              url,
                                              is_iframe,
                                              chan.receiver(),
-                                             LayoutChan(sender),
+                                             layout_chan.clone(),
                                              pipeline_port,
                                              constellation_chan,
                                              script_chan,
@@ -241,8 +251,27 @@ impl LayoutTaskFactory for LayoutTask {
                                              image_cache_task,
                                              font_cache_task,
                                              time_profiler_chan,
-                                             memory_profiler_chan);
+                                             mem_profiler_chan.clone());
+
+                // Create a memory reporter thread.
+                let reporter_name = format!("layout-reporter-{}", id.0);
+                let (reporter_sender, reporter_receiver) =
+                    ipc::channel::<ReporterRequest>().unwrap();
+                let layout_chan_for_reporter = layout_chan.clone();
+                ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
+                    // Just injects an appropriate event into the layout task's queue.
+                    let request: ReporterRequest = message.to().unwrap();
+                    layout_chan_for_reporter.0.send(Msg::CollectReports(request.reports_channel))
+                                              .unwrap();
+                });
+                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                        reporter_name.clone(),
+                        Reporter(reporter_sender)));
+
                 layout.start();
+
+                let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
+                mem_profiler_chan.send(msg);
             }
             shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), con_chan);
@@ -306,23 +335,17 @@ impl LayoutTask {
             None
         };
 
-        // Register this thread as a memory reporter, via its own channel.
-        let reporter = box chan.clone();
-        let reporter_name = format!("layout-reporter-{}", id.0);
-        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
-
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
-        let (image_cache_sender, image_cache_receiver) = channel();
         let (canvas_layers_sender, canvas_layers_receiver) = channel();
 
-        // Start a thread to proxy IPC messages from the layout thread to us.
-        let (pipeline_sender, pipeline_receiver) = channel();
-        thread::spawn(move || {
-            while let Ok(message) = pipeline_port.recv() {
-                pipeline_sender.send(message).unwrap()
-            }
-        });
+        // Proxy IPC messages from the pipeline to the layout thread.
+        let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
+
+        // Ask the router to proxy IPC messages from the image cache task to the layout thread.
+        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
+        let image_cache_receiver =
+            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
         LayoutTask {
             id: id,
@@ -336,12 +359,11 @@ impl LayoutTask {
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            reporter_name: reporter_name,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
-            image_cache_sender: ImageCacheChan(image_cache_sender),
+            image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(
@@ -357,6 +379,8 @@ impl LayoutTask {
                     generation: 0,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
+                    client_rect_response: Rect::zero(),
+                    resolved_style_response: None,
                     running_animations: Vec::new(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
@@ -559,6 +583,9 @@ impl LayoutTask {
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
                 sender.send(rw_data.epoch).unwrap();
             },
+            Msg::CreateLayoutTask(info) => {
+                self.create_layout_task(info)
+            }
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
@@ -582,13 +609,15 @@ impl LayoutTask {
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(Report {
-            path: path!["pages", format!("url({})", self.url), "layout-task", "display-list"],
+            path: path![format!("url({})", self.url), "layout-task", "display-list"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
             size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
         // The LayoutTask has a context in TLS...
         reports.push(Report {
-            path: path!["pages", format!("url({})", self.url), "layout-task", "local-context"],
+            path: path![format!("url({})", self.url), "layout-task", "local-context"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
             size: heap_size_of_local_context(),
         });
 
@@ -597,14 +626,33 @@ impl LayoutTask {
             let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
             for (i, size) in sizes.iter().enumerate() {
                 reports.push(Report {
-                    path: path!["pages", format!("url({})", self.url),
+                    path: path![format!("url({})", self.url),
                                 format!("layout-worker-{}-local-context", i)],
-                    size: *size
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: *size,
                 });
             }
         }
 
         reports_chan.send(reports);
+    }
+
+    fn create_layout_task(&self, info: NewLayoutTaskInfo) {
+        LayoutTaskFactory::create(None::<&mut LayoutTask>,
+                                  info.id,
+                                  info.url.clone(),
+                                  info.is_parent,
+                                  info.layout_pair,
+                                  info.pipeline_port,
+                                  info.constellation_chan,
+                                  info.failure,
+                                  ScriptControlChan(info.script_chan.clone()),
+                                  *info.paint_chan.downcast::<PaintChan>().unwrap(),
+                                  self.image_cache_task.clone(),
+                                  self.font_cache_task.clone(),
+                                  self.time_profiler_chan.clone(),
+                                  self.mem_profiler_chan.clone(),
+                                  info.layout_shutdown_chan);
     }
 
     /// Enters a quiescent state in which no new messages except for
@@ -650,9 +698,6 @@ impl LayoutTask {
             }
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
-
-        let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
-        self.mem_profiler_chan.send(msg);
 
         self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv().unwrap()
@@ -821,6 +866,137 @@ impl LayoutTask {
         rw_data.content_boxes_response = iterator.rects;
     }
 
+    fn process_node_geometry_request<'a>(&'a self,
+                                      requested_node: TrustedNodeAddress,
+                                      layout_root: &mut FlowRef,
+                                      rw_data: &mut RWGuard<'a>) {
+        let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+        let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
+        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+        rw_data.client_rect_response = iterator.client_rect;
+    }
+
+    // Compute the resolved value of property for a given (pseudo)element.
+    // Stores the result in rw_data.resolved_style_response.
+    // https://drafts.csswg.org/cssom/#resolved-value
+    fn process_resolved_style_request<'a>(&'a self,
+                                          requested_node: TrustedNodeAddress,
+                                          pseudo: &Option<PseudoElement>,
+                                          property: &Atom,
+                                          layout_root: &mut FlowRef,
+                                          rw_data: &mut RWGuard<'a>) {
+        // FIXME: Isolate this transmutation into a "bridge" module.
+        // FIXME(rust#16366): The following line had to be moved because of a
+        // rustc bug. It should be in the next unsafe block.
+        let node: LayoutJS<Node> = unsafe {
+            LayoutJS::from_trusted_node_address(requested_node)
+        };
+        let node: &LayoutNode = unsafe {
+            transmute(&node)
+        };
+
+        let layout_node = ThreadSafeLayoutNode::new(node);
+        let layout_node = match pseudo {
+            &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
+            &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
+            _ => Some(layout_node)
+        };
+
+        let layout_node = match layout_node {
+            None => {
+                // The pseudo doesn't exist, return nothing.  Chrome seems to query
+                // the element itself in this case, Firefox uses the resolved value.
+                // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
+                rw_data.resolved_style_response = None;
+                return;
+            }
+            Some(layout_node) => layout_node
+        };
+
+        let style = &*layout_node.style();
+
+        let positioned = match style.get_box().position {
+            position::computed_value::T::relative |
+            /*position::computed_value::T::sticky |*/
+            position::computed_value::T::fixed |
+            position::computed_value::T::absolute => true,
+            _ => false
+        };
+
+        //TODO: determine whether requested property applies to the element.
+        //      eg. width does not apply to non-replaced inline elements.
+        // Existing browsers disagree about when left/top/right/bottom apply
+        // (Chrome seems to think they never apply and always returns resolved values).
+        // There are probably other quirks.
+        let applies = true;
+
+        // TODO: we will return neither the computed nor used value for margin and padding.
+        // Firefox returns blank strings for the computed value of shorthands,
+        // so this should be web-compatible.
+        match property.clone() {
+            atom!("margin-bottom") | atom!("margin-top") |
+            atom!("margin-left") | atom!("margin-right") |
+            atom!("padding-bottom") | atom!("padding-top") |
+            atom!("padding-left") | atom!("padding-right")
+            if applies && style.get_box().display != display::computed_value::T::none => {
+                let (margin_padding, side) = match *property {
+                    atom!("margin-bottom") => (MarginPadding::Margin, Side::Bottom),
+                    atom!("margin-top") => (MarginPadding::Margin, Side::Top),
+                    atom!("margin-left") => (MarginPadding::Margin, Side::Left),
+                    atom!("margin-right") => (MarginPadding::Margin, Side::Right),
+                    atom!("padding-bottom") => (MarginPadding::Padding, Side::Bottom),
+                    atom!("padding-top") => (MarginPadding::Padding, Side::Top),
+                    atom!("padding-left") => (MarginPadding::Padding, Side::Left),
+                    atom!("padding-right") => (MarginPadding::Padding, Side::Right),
+                    _ => unreachable!()
+                };
+                let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+                let mut iterator =
+                    MarginRetrievingFragmentBorderBoxIterator::new(requested_node,
+                                                                   side,
+                                                                   margin_padding,
+                                                                   style.writing_mode);
+                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+            },
+
+            atom!("bottom") | atom!("top") | atom!("right") |
+            atom!("left") | atom!("width") | atom!("height")
+            if applies && positioned && style.get_box().display != display::computed_value::T::none => {
+                let layout_data = layout_node.borrow_layout_data();
+                let position = layout_data.as_ref().map(|layout_data| {
+                    match layout_data.data.flow_construction_result {
+                        ConstructionResult::Flow(ref flow_ref, _) =>
+                            flow::base(flow_ref.deref()).stacking_relative_position,
+                        // TODO search parents until we find node with a flow ref.
+                        _ => ZERO_POINT
+                    }
+                }).unwrap_or(ZERO_POINT);
+                let property = match *property {
+                    atom!("bottom") => PositionProperty::Bottom,
+                    atom!("top") => PositionProperty::Top,
+                    atom!("left") => PositionProperty::Left,
+                    atom!("right") => PositionProperty::Right,
+                    atom!("width") => PositionProperty::Width,
+                    atom!("height") => PositionProperty::Height,
+                    _ => unreachable!()
+                };
+                let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+                let mut iterator =
+                    PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
+                                                                     property,
+                                                                     position);
+                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+            },
+            // FIXME: implement used value computation for line-height
+            property => {
+                rw_data.resolved_style_response = style.computed_value_to_string(property.as_slice());
+            }
+        };
+    }
+
+
     fn compute_abs_pos_and_build_display_list<'a>(&'a self,
                                                   data: &Reflow,
                                                   layout_root: &mut FlowRef,
@@ -885,6 +1061,9 @@ impl LayoutTask {
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
                     stacking_context.print("#".to_owned());
+                }
+                if opts::get().dump_display_list_json {
+                    println!("{}", json::to_string_pretty(&stacking_context).unwrap());
                 }
 
                 rw_data.stacking_context = Some(stacking_context.clone());
@@ -996,9 +1175,7 @@ impl LayoutTask {
         // Send new canvas renderers to the paint task
         while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
             // Just send if there's an actual renderer
-            if let Some(renderer) = renderer {
-                self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
-            }
+            self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
         }
 
         // Perform post-style recalculation layout passes.
@@ -1008,12 +1185,14 @@ impl LayoutTask {
 
         let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
         match data.query_type {
-            ReflowQueryType::ContentBoxQuery(node) => {
-                self.process_content_box_request(node, &mut root_flow, &mut rw_data)
-            }
-            ReflowQueryType::ContentBoxesQuery(node) => {
-                self.process_content_boxes_request(node, &mut root_flow, &mut rw_data)
-            }
+            ReflowQueryType::ContentBoxQuery(node) =>
+                self.process_content_box_request(node, &mut root_flow, &mut rw_data),
+            ReflowQueryType::ContentBoxesQuery(node) =>
+                self.process_content_boxes_request(node, &mut root_flow, &mut rw_data),
+            ReflowQueryType::NodeGeometryQuery(node) =>
+                self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
+            ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) =>
+                self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
             ReflowQueryType::NoQuery => {}
         }
 
@@ -1253,6 +1432,21 @@ impl LayoutRPC for LayoutRPCImpl {
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
+    fn node_geometry(&self) -> NodeGeometryResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        NodeGeometryResponse {
+            client_rect: rw_data.client_rect_response
+        }
+    }
+
+    /// Retrieves the resolved value for a CSS style property.
+    fn resolved_style(&self) -> ResolvedStyleResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        ResolvedStyleResponse(rw_data.resolved_style_response.clone())
+    }
+
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
@@ -1370,6 +1564,142 @@ impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
     }
 }
 
+struct FragmentLocatingFragmentIterator {
+    node_address: OpaqueNode,
+    client_rect: Rect<i32>,
+}
+
+impl FragmentLocatingFragmentIterator {
+    fn new(node_address: OpaqueNode) -> FragmentLocatingFragmentIterator {
+        FragmentLocatingFragmentIterator {
+            node_address: node_address,
+            client_rect: Rect::zero()
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
+    fn process(&mut self, fragment: &Fragment, border_box: &Rect<Au>) {
+        let style_structs::Border {
+            border_top_width: top_width,
+            border_right_width: right_width,
+            border_bottom_width: bottom_width,
+            border_left_width: left_width,
+            ..
+        } = *fragment.style.get_border();
+        self.client_rect.origin.y = top_width.to_px();
+        self.client_rect.origin.x = left_width.to_px();
+        self.client_rect.size.width = (border_box.size.width - left_width - right_width).to_px();
+        self.client_rect.size.height = (border_box.size.height - top_width - bottom_width).to_px();
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.node == self.node_address
+    }
+}
+
+enum Side {
+    Left,
+    Right,
+    Bottom,
+    Top
+}
+
+enum MarginPadding {
+    Margin,
+    Padding
+}
+
+enum PositionProperty {
+    Left,
+    Right,
+    Top,
+    Bottom,
+    Width,
+    Height,
+}
+
+struct PositionRetrievingFragmentBorderBoxIterator {
+    node_address: OpaqueNode,
+    result: Option<Au>,
+    position: Point2D<Au>,
+    property: PositionProperty,
+}
+
+impl PositionRetrievingFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode,
+           property: PositionProperty,
+           position: Point2D<Au>) -> PositionRetrievingFragmentBorderBoxIterator {
+        PositionRetrievingFragmentBorderBoxIterator {
+            node_address: node_address,
+            position: position,
+            property: property,
+            result: None,
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for PositionRetrievingFragmentBorderBoxIterator {
+    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+        self.result =
+            Some(match self.property {
+                     PositionProperty::Left => self.position.x,
+                     PositionProperty::Top => self.position.y,
+                     PositionProperty::Width => border_box.size.width,
+                     PositionProperty::Height => border_box.size.height,
+                     // TODO: the following 2 calculations are completely wrong.
+                     // They should return the difference between the parent's and this
+                     // fragment's border boxes.
+                     PositionProperty::Right => border_box.max_x() + self.position.x,
+                     PositionProperty::Bottom => border_box.max_y() + self.position.y,
+        });
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address)
+    }
+}
+
+struct MarginRetrievingFragmentBorderBoxIterator {
+    node_address: OpaqueNode,
+    result: Option<Au>,
+    writing_mode: WritingMode,
+    margin_padding: MarginPadding,
+    side: Side,
+}
+
+impl MarginRetrievingFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode, side: Side, margin_padding:
+    MarginPadding, writing_mode: WritingMode) -> MarginRetrievingFragmentBorderBoxIterator {
+        MarginRetrievingFragmentBorderBoxIterator {
+            node_address: node_address,
+            side: side,
+            margin_padding: margin_padding,
+            result: None,
+            writing_mode: writing_mode,
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
+    fn process(&mut self, fragment: &Fragment, _: &Rect<Au>) {
+        let rect = match self.margin_padding {
+            MarginPadding::Margin => &fragment.margin,
+            MarginPadding::Padding => &fragment.border_padding
+        };
+        self.result = Some(match self.side {
+                               Side::Left => rect.left(self.writing_mode),
+                               Side::Right => rect.right(self.writing_mode),
+                               Side::Bottom => rect.bottom(self.writing_mode),
+                               Side::Top => rect.top(self.writing_mode)
+        });
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address)
+    }
+}
+
 // The default computed value for background-color is transparent (see
 // http://dev.w3.org/csswg/css-backgrounds/#background-color). However, we
 // need to propagate the background color from the root HTML/Body
@@ -1399,3 +1729,4 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
+

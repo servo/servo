@@ -13,6 +13,7 @@ macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
+        #[derive(Deserialize, Serialize)]
         pub enum $name {
             $( $variant ),+
         }
@@ -44,6 +45,7 @@ macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Copy, RustcEncodable, Debug, HeapSizeOf)]
+        #[derive(Deserialize, Serialize)]
         pub enum $name {
             $( $variant = $value ),+
         }
@@ -77,7 +79,7 @@ pub mod specified {
     use std::f32::consts::PI;
     use std::fmt;
     use std::fmt::Write;
-    use std::ops::{Add, Mul};
+    use std::ops::Mul;
     use url::Url;
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
     use euclid::size::Size2D;
@@ -368,6 +370,10 @@ pub mod specified {
         }
     }
     impl LengthOrPercentage {
+        pub fn zero() -> LengthOrPercentage {
+            LengthOrPercentage::Length(Length::Absolute(Au(0)))
+        }
+
         fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
                           -> Result<LengthOrPercentage, ()>
         {
@@ -519,81 +525,6 @@ pub mod specified {
         }
     }
 
-    /// The sum of a series of lengths and a percentage. This is used in `calc()` and other things
-    /// that effectively work like it (e.g. transforms).
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct LengthAndPercentage {
-        /// The length components.
-        pub lengths: Vec<Length>,
-        /// The percentage component.
-        pub percentage: CSSFloat,
-    }
-
-    impl LengthAndPercentage {
-        pub fn zero() -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: Vec::new(),
-                percentage: 0.0,
-            }
-        }
-
-        pub fn from_length_or_percentage(length_or_percentage: &LengthOrPercentage)
-                                         -> LengthAndPercentage {
-            match *length_or_percentage {
-                LengthOrPercentage::Length(ref length) => {
-                    LengthAndPercentage::from_length(*length)
-                }
-                LengthOrPercentage::Percentage(percentage) => {
-                    LengthAndPercentage::from_percentage(percentage)
-                }
-            }
-        }
-
-        pub fn parse(input: &mut Parser) -> Result<LengthAndPercentage, ()> {
-            LengthOrPercentage::parse(input).map(|value| {
-                LengthAndPercentage::from_length_or_percentage(&value)
-            })
-        }
-
-        pub fn from_length(length: Length) -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: vec![length],
-                percentage: 0.0,
-            }
-        }
-
-        pub fn from_percentage(percentage: CSSFloat) -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: Vec::new(),
-                percentage: percentage,
-            }
-        }
-    }
-
-    impl Add<LengthAndPercentage> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn add(self, other: LengthAndPercentage) -> LengthAndPercentage {
-            let mut new_lengths = self.lengths.clone();
-            new_lengths.push_all(&other.lengths);
-            LengthAndPercentage {
-                lengths: new_lengths,
-                percentage: self.percentage + other.percentage,
-            }
-        }
-    }
-
-    impl Mul<CSSFloat> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn mul(self, scalar: CSSFloat) -> LengthAndPercentage {
-            LengthAndPercentage {
-                lengths: self.lengths.iter().map(|length| *length * scalar).collect(),
-                percentage: self.percentage * scalar,
-            }
-        }
-    }
-
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
     #[derive(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
@@ -645,7 +576,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, PartialOrd, Copy, Debug, HeapSizeOf)]
+    #[derive(Clone, PartialEq, PartialOrd, Copy, Debug, HeapSizeOf, Deserialize, Serialize)]
     pub struct Angle(pub CSSFloat);
 
     impl ToCss for Angle {
@@ -934,7 +865,6 @@ pub mod computed {
     use euclid::size::Size2D;
     use properties::longhands;
     use std::fmt;
-    use std::ops::{Add, Mul};
     use url::Url;
     use util::geometry::Au;
 
@@ -1014,6 +944,13 @@ pub mod computed {
         Length(Au),
         Percentage(CSSFloat),
     }
+
+    impl LengthOrPercentage {
+        pub fn zero() -> LengthOrPercentage {
+            LengthOrPercentage::Length(Au(0))
+        }
+    }
+
     impl fmt::Debug for LengthOrPercentage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
@@ -1034,6 +971,16 @@ pub mod computed {
                 specified::LengthOrPercentage::Percentage(value) => {
                     LengthOrPercentage::Percentage(value)
                 }
+            }
+        }
+    }
+
+    impl ::cssparser::ToCss for LengthOrPercentage {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrPercentage::Length(length) => length.to_css(dest),
+                &LengthOrPercentage::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
             }
         }
     }
@@ -1073,6 +1020,17 @@ pub mod computed {
         }
     }
 
+    impl ::cssparser::ToCss for LengthOrPercentageOrAuto {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
+                &LengthOrPercentageOrAuto::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
+            }
+        }
+    }
+
     #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Au),
@@ -1108,6 +1066,17 @@ pub mod computed {
         }
     }
 
+    impl ::cssparser::ToCss for LengthOrPercentageOrNone {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
+                &LengthOrPercentageOrNone::Percentage(percentage) =>
+                    write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrNone::None => dest.write_str("none"),
+            }
+        }
+    }
+
     #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrNone {
         Length(Au),
@@ -1138,59 +1107,11 @@ pub mod computed {
         }
     }
 
-    /// The sum of a series of lengths and a percentage. This is used in `calc()` and other things
-    /// that effectively work like it (e.g. transforms).
-    #[derive(Clone, Copy, Debug, PartialEq)]
-    pub struct LengthAndPercentage {
-        /// The length component.
-        pub length: Au,
-        /// The percentage component.
-        pub percentage: CSSFloat,
-    }
-
-    impl LengthAndPercentage {
-        #[inline]
-        pub fn zero() -> LengthAndPercentage {
-            LengthAndPercentage {
-                length: Au(0),
-                percentage: 0.0,
-            }
-        }
-    }
-
-    impl ToComputedValue for specified::LengthAndPercentage {
-        type ComputedValue = LengthAndPercentage;
-
-        fn to_computed_value(&self, context: &Context) -> LengthAndPercentage {
-            let mut total_length = Au(0);
-            for length in self.lengths.iter() {
-                total_length = total_length + length.to_computed_value(context)
-            }
-            LengthAndPercentage {
-                length: total_length,
-                percentage: self.percentage,
-            }
-        }
-    }
-
-    impl Add<LengthAndPercentage> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn add(self, other: LengthAndPercentage) -> LengthAndPercentage {
-            LengthAndPercentage {
-                length: self.length + other.length,
-                percentage: self.percentage + other.percentage,
-            }
-        }
-    }
-
-    impl Mul<CSSFloat> for LengthAndPercentage {
-        type Output = LengthAndPercentage;
-
-        fn mul(self, scalar: CSSFloat) -> LengthAndPercentage {
-            LengthAndPercentage {
-                length: Au::from_f32_px(self.length.to_f32_px() * scalar),
-                percentage: self.percentage * scalar,
+    impl ::cssparser::ToCss for LengthOrNone {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self {
+                &LengthOrNone::Length(length) => length.to_css(dest),
+                &LengthOrNone::None => dest.write_str("none"),
             }
         }
     }
@@ -1236,6 +1157,19 @@ pub mod computed {
         pub stops: Vec<ColorStop>,
     }
 
+    impl ::cssparser::ToCss for LinearGradient {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(dest.write_str("linear-gradient("));
+            try!(self.angle_or_corner.to_css(dest));
+            for stop in self.stops.iter() {
+                try!(dest.write_str(", "));
+                try!(stop.to_css(dest));
+            }
+            try!(dest.write_str(")"));
+            Ok(())
+        }
+    }
+
     impl fmt::Debug for LinearGradient {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             let _ = write!(f, "{:?}", self.angle_or_corner);
@@ -1255,6 +1189,17 @@ pub mod computed {
         /// The position of this stop. If not specified, this stop is placed halfway between the
         /// point that precedes it and the point that follows it per CSS-IMAGES § 3.4.
         pub position: Option<LengthOrPercentage>,
+    }
+
+    impl ::cssparser::ToCss for ColorStop {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.color.to_css(dest));
+            if let Some(position) = self.position {
+                try!(dest.write_str(" "));
+                try!(position.to_css(dest));
+            }
+            Ok(())
+        }
     }
 
     impl fmt::Debug for ColorStop {

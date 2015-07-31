@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head>
+  <title>CSS Test: CSSOM Media Query Serialization</title>
+  <link href="mailto:ben@codeforamerica.org" rel="author" title="Ben Sheldon">
+  <link href="mailto:chapman.shoop@gmail.com" rel="author" title="Chapman Shoop">
+  <link href="http://www.w3.org/TR/cssom/#serializing-media-queries" rel="help">
+  <meta content="dom" name="flags">
+  <meta content="Media Queries are serialized according to the specification" name="assert">
+  <script src="/resources/testharness.js" type="text/javascript"></script>
+  <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+ <script id="metadata_cache">/*
+ {
+   "mediatest_mediaquery_serialize_1": {
+     "assert": ["First explicit example input (first column) and output (second column) in specification."]
+   },
+   "mediatest_mediaquery_serialize_2": {
+     "assert": ["Second explicit example input (first column) and output (second column) in specification."]
+   }
+ }
+ */</script></head>
+ 
+ <body>
+  <noscript>Test not run - javascript required.</noscript>
+  <div id="log"></div>
+  <script type="text/javascript">
+  
+    var styleElement;
+    var styleSheet;
+    var mediaList;
+        
+    // Setup - accepts media value for style element, e.g. <style media=???">
+    function setupMedia(media) {
+      styleElement = document.getElementById("styleElement");
+      
+      if (styleElement) {
+        // teardown
+        document.getElementsByTagName("head")[0].removeChild(styleElement);
+        styleElement = undefined;
+        styleSheet = undefined;
+        mediaList = undefined;
+      }
+      
+      styleElement = document.createElement("style");
+      styleElement.id = "styleElement";
+      styleElement.type = "text/css";
+      styleElement.media = media;
+      document.getElementsByTagName("head")[0].appendChild(styleElement);  
+      styleSheet = styleElement.sheet;
+      mediaList = styleSheet.media;
+    }
+  
+      
+    test(function() {
+        setupMedia('not screen and (min-WIDTH:5px) AND (max-width:40px )');
+        
+        assert_equals(mediaList.mediaText, "not screen and (max-width: 40px) and (min-width: 5px)"); 
+                
+    }, "mediatest_mediaquery_serialize_1",
+    {  assert: ["First explicit example input (first column) and output (second column) in specification."] });
+
+    test(function() {
+        setupMedia('all and (color) and (color)	');
+
+        assert_equals(mediaList.mediaText, "(color)"); 
+
+    }, "mediatest_mediaquery_serialize_2",
+    { assert: ["Second explicit example input (first column) and output (second column) in specification."] });      
+        
+  </script>
+ 
+</body></html>

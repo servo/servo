@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: line-breaking-rules</title>
+<link href="shinsuke.matsuki@access-company.com" rel="author" title="Shinsuke Matsuki">
+<link href="kojiishi@gmail.com" rel="author" title="Koji Ishii">
+<style>
+.vrl {
+    border:solid;
+    font-size:20pt;
+    height:2.5em;
+    margin:.2em;
+    writing-mode:vertical-rl;
+}
+.tcy {
+    text-combine-upright:all;
+}
+</style>
+</head>
+<body>
+<p>Test passes two blocks look identical.</p>
+<div class="vrl">あ<br>「<span class="tcy">12</span></div>
+<div class="vrl">あ<br>「<span class="tcy">12</span></div>
+
+
+</body></html>

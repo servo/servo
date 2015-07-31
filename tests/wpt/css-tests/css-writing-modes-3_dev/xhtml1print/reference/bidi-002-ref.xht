@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+
+  <title>CSS Reftest Reference</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS Writing Modes Module Level 3 CR Test Suite"; }
+            @top-right { content: "Test bidi-002-ref"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div > p 
+  {
+  background-color: #FFC;
+  border: solid;
+  color: black;
+  margin: 1em;
+  padding: 0.5em; 
+  width: 17em;
+  }
+  
+  span 
+  {
+  color: navy;
+  line-height: 3em;
+  }
+
+  span.top-left-bottom
+  {
+  border-style: solid none solid solid;
+  padding: 0.4em 0 0.4em 1em;
+  }
+
+  span.top-right-bottom
+  {
+  border-style: solid solid solid none;
+  padding: 0.4em 1em 0.4em 0;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following two blocks should be identical, including overflow. (Force bidi: א)</p>
+
+  <div>
+   <p><span class="top-left-bottom">AAABBBCCC</span>DDDEEEFFF<span class="top-right-bottom">GGGHHHIII</span> JJJKKKLLLMMMNNNOOO</p>
+
+   <p><span class="top-left-bottom">AAABBBCCC</span>DDDEEEFFF<span class="top-right-bottom">GGGHHHIII</span> JJJKKKLLLMMMNNNOOO</p>
+  </div>
+
+ </body>
+</html>

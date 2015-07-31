@@ -38,7 +38,6 @@ use msg::constellation_msg::ConstellationChan;
 use util::str::DOMString;
 use string_cache::Atom;
 
-use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 
@@ -158,7 +157,6 @@ pub trait RawLayoutHTMLInputElementHelpers {
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
         #[allow(unsafe_code)]

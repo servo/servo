@@ -6,56 +6,51 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help" />
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley" />
 <meta content="font" name="flags" />
-<meta content="Setting list-style-type to hebrew will produce list numbering after 9 as described in the CSS3 Counter Styles module." name="assert" />
+<meta content="list-style: hebrew produces numbers after 9 items per the spec." name="assert" />
 <style type="text/css">
+ol li { list-style-type: hebrew;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: hebrew;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
-<div class="test"><ol start="10"><li title="10">י.</li></ol>
-<ol start="11"><li title="11">יא.</li></ol>
-<ol start="12"><li title="12">יב.</li></ol>
-<ol start="13"><li title="13">יג.</li></ol>
-<ol start="14"><li title="14">יד.</li></ol>
-<ol start="15"><li title="15">טו.</li></ol>
-<ol start="16"><li title="16">טז.</li></ol>
-<ol start="17"><li title="17">יז.</li></ol>
-<ol start="18"><li title="18">יח.</li></ol>
-<ol start="43"><li title="43">מג.</li></ol>
-<ol start="77"><li title="77">עז.</li></ol>
-<ol start="80"><li title="80">פ.</li></ol>
-<ol start="99"><li title="99">צט.</li></ol>
-<ol start="100"><li title="100">ק.</li></ol>
-<ol start="101"><li title="101">קא.</li></ol>
-<ol start="222"><li title="222">רכב.</li></ol>
-<ol start="400"><li title="400">ת.</li></ol>
-<ol start="401"><li title="401">תא.</li></ol>
-<ol start="499"><li title="499">תצט.</li></ol>
-<ol start="500"><li title="500">תק.</li></ol>
-<ol start="555"><li title="555">תקנה.</li></ol>
-<ol start="997"><li title="997">תתקצז.</li></ol>
-<ol start="1000"><li title="1000">א׳.</li></ol>
-<ol start="1001"><li title="1001">א׳א.</li></ol>
-<ol start="3256"><li title="3256">ג׳רנו.</li></ol>
-<ol start="7998"><li title="7998">ז׳תתקצח.</li></ol>	
-<ol start="9999"><li title="9999">ט׳תתקצט.</li></ol>
-<ol start="10000"><li title="10000">י׳.</li></ol>
-<ol start="10997"><li title="10997">י׳תתקצז.</li></ol>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="10"><li title="10">י</li></ol>
+<ol start="11"><li title="11">יא</li></ol>
+<ol start="12"><li title="12">יב</li></ol>
+<ol start="13"><li title="13">יג</li></ol>
+<ol start="14"><li title="14">יד</li></ol>
+<ol start="15"><li title="15">טו</li></ol>
+<ol start="16"><li title="16">טז</li></ol>
+<ol start="17"><li title="17">יז</li></ol>
+<ol start="18"><li title="18">יח</li></ol>
+<ol start="43"><li title="43">מג</li></ol>
+<ol start="77"><li title="77">עז</li></ol>
+<ol start="80"><li title="80">פ</li></ol>
+<ol start="99"><li title="99">צט</li></ol>
+<ol start="100"><li title="100">ק</li></ol>
+<ol start="101"><li title="101">קא</li></ol>
+<ol start="222"><li title="222">רכב</li></ol>
+<ol start="400"><li title="400">ת</li></ol>
+<ol start="401"><li title="401">תא</li></ol>
+<ol start="499"><li title="499">תצט</li></ol>
+<ol start="500"><li title="500">תק</li></ol>
+<ol start="555"><li title="555">תקנה</li></ol>
+<ol start="997"><li title="997">תתקצז</li></ol>
+<ol start="1000"><li title="1000">א׳</li></ol>
+<ol start="1001"><li title="1001">א׳א</li></ol>
+<ol start="3256"><li title="3256">ג׳רנו</li></ol>
+<ol start="7998"><li title="7998">ז׳תתקצח</li></ol>	
+<ol start="9999"><li title="9999">ט׳תתקצט</li></ol>
+<ol start="10000"><li title="10000">י׳</li></ol>
+<ol start="10997"><li title="10997">י׳תתקצז</li></ol>
 </div>
-
-
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

@@ -32,12 +32,12 @@
 
 use canvas_traits::CanvasMsg;
 use context::SharedLayoutContext;
-use css::node_style::StyledNode;
 use incremental::RestyleDamage;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
+use ipc_channel::ipc::IpcSender;
 use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
@@ -53,7 +53,7 @@ use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
 use script::dom::node::{Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
+use script::dom::node::{LayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
 use script::dom::text::Text;
 use smallvec::VecLike;
@@ -63,16 +63,16 @@ use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
 use std::mem;
-use std::sync::mpsc::Sender;
+use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
-use selectors::Node as SelectorsNode;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::ComputedValues;
 use url::Url;
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -144,12 +144,6 @@ impl<'ln> LayoutNode<'ln> {
         LayoutTreeIterator::new(self)
     }
 
-    fn last_child(self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.get_jsmanaged().last_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
     /// Returns an iterator over this node's children.
     pub fn children(self) -> LayoutNodeChildrenIterator<'ln> {
         LayoutNodeChildrenIterator {
@@ -209,9 +203,11 @@ impl<'ln> LayoutNode<'ln> {
     pub fn debug_id(self) -> usize {
         self.opaque().to_untrusted_node_address().0 as usize
     }
-}
 
-impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
+    pub fn as_element(&self) -> Option<LayoutElement<'ln>> {
+        as_element(self.node)
+    }
+
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -239,24 +235,6 @@ impl<'ln> ::selectors::Node<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    /// If this is an element, accesses the element data.
-    #[inline]
-    fn as_element(&self) -> Option<LayoutElement<'ln>> {
-        ElementCast::to_layout_js(&self.node).map(|element| {
-            LayoutElement {
-                element: element,
-                chain: self.chain,
-            }
-        })
-    }
-
-    fn is_document(&self) -> bool {
-        match self.type_id() {
-            NodeTypeId::Document(..) => true,
-            _ => false
         }
     }
 }
@@ -371,44 +349,97 @@ pub struct LayoutElement<'le> {
 
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
-        use script::dom::element::ElementHelpers;
-        let style: &Option<PropertyDeclarationBlock> = unsafe {
-            &*(*self.element.unsafe_get()).style_attribute().borrow_for_layout()
-        };
-        style
+        unsafe {
+            &*self.element.style_attribute()
+        }
     }
-}
 
-impl<'le> ::selectors::Element for LayoutElement<'le> {
-    type Node = LayoutNode<'le>;
-
-    #[inline]
-    fn as_node(&self) -> LayoutNode<'le> {
+    pub fn as_node(&self) -> LayoutNode<'le> {
         LayoutNode {
             node: NodeCast::from_layout_js(&self.element),
             chain: PhantomData,
         }
     }
+}
+
+fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
+    ElementCast::to_layout_js(&node).map(|element| {
+        LayoutElement {
+            element: element,
+            chain: PhantomData,
+        }
+    })
+}
+
+
+impl<'le> ::selectors::Element for LayoutElement<'le> {
+    fn parent_element(&self) -> Option<LayoutElement<'le>> {
+        unsafe {
+            NodeCast::from_layout_js(&self.element).parent_node_ref().and_then(as_element)
+        }
+    }
+
+    fn first_child_element(&self) -> Option<LayoutElement<'le>> {
+        self.as_node().children().filter_map(|n| n.as_element()).next()
+    }
+
+    fn last_child_element(&self) -> Option<LayoutElement<'le>> {
+        self.as_node().rev_children().filter_map(|n| n.as_element()).next()
+    }
+
+    fn prev_sibling_element(&self) -> Option<LayoutElement<'le>> {
+        let mut node = self.as_node();
+        while let Some(sibling) = node.prev_sibling() {
+            if let Some(element) = sibling.as_element() {
+                return Some(element)
+            }
+            node = sibling;
+        }
+        None
+    }
+
+    fn next_sibling_element(&self) -> Option<LayoutElement<'le>> {
+        let mut node = self.as_node();
+        while let Some(sibling) = node.next_sibling() {
+            if let Some(element) = sibling.as_element() {
+                return Some(element)
+            }
+            node = sibling;
+        }
+        None
+    }
+
+    fn is_root(&self) -> bool {
+        match self.as_node().parent_node() {
+            None => false,
+            Some(node) => node.type_id() == NodeTypeId::Document,
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.as_node().children().all(|node| match node.type_id() {
+            NodeTypeId::Element(..) => false,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
+                CharacterDataCast::to_layout_js(&node.node).unwrap().data_for_layout().is_empty()
+            },
+            _ => true
+        })
+    }
 
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a Atom {
-        unsafe {
-            (*self.element.unsafe_get()).local_name()
-        }
+        self.element.local_name()
     }
 
     #[inline]
     fn get_namespace<'a>(&'a self) -> &'a Namespace {
-        use script::dom::element::ElementHelpers;
-        unsafe {
-            (*self.element.unsafe_get()).namespace()
-        }
+        self.element.namespace()
     }
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node = NodeCast::from_layout_js(&self.element);
-        match unsafe { (*node.unsafe_get()).type_id_for_layout() } {
+        let node = self.as_node();
+        match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
@@ -434,17 +465,13 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_hover_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_hover_state_for_layout()
-        }
+        node.get_hover_state_for_layout()
     }
 
     #[inline]
     fn get_focus_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_focus_state_for_layout()
-        }
+        node.get_focus_state_for_layout()
     }
 
     #[inline]
@@ -457,31 +484,23 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_disabled_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_disabled_state_for_layout()
-        }
+        node.get_disabled_state_for_layout()
     }
 
     #[inline]
     fn get_enabled_state(&self) -> bool {
         let node = NodeCast::from_layout_js(&self.element);
-        unsafe {
-            (*node.unsafe_get()).get_enabled_state_for_layout()
-        }
+        node.get_enabled_state_for_layout()
     }
 
     #[inline]
     fn get_checked_state(&self) -> bool {
-        unsafe {
-            (*self.element.unsafe_get()).get_checked_state_for_layout()
-        }
+        self.element.get_checked_state_for_layout()
     }
 
     #[inline]
     fn get_indeterminate_state(&self) -> bool {
-        unsafe {
-            (*self.element.unsafe_get()).get_indeterminate_state_for_layout()
-        }
+        self.element.get_indeterminate_state_for_layout()
     }
 
     #[inline]
@@ -656,35 +675,9 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         self.node.flow_debug_id()
     }
 
-    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo != PseudoElementType::Normal {
-            return None
-        }
-
-        if self.has_before_pseudo() {
-            return Some(self.with_pseudo(PseudoElementType::Before(self.get_before_display())));
-        }
-
-        unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
-    unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo.is_before() {
-            return self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-
-        self.get_jsmanaged().next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-    }
-
     /// Returns an iterator over this node's children.
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
-        ThreadSafeLayoutNodeChildrenIterator {
-            current_node: self.first_child(),
-            parent_node: Some(self.clone()),
-        }
+        ThreadSafeLayoutNodeChildrenIterator::new(*self)
     }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
@@ -709,41 +702,21 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     #[inline]
-    pub fn get_normal_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.shared_data.style.as_ref().unwrap();
-        style.get_box().display
+    pub fn get_before_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
+        })
     }
 
     #[inline]
-    pub fn get_before_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
-        style.get_box().display
-    }
-
-    #[inline]
-    pub fn get_after_display(&self) -> display::T {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
-        let style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
-        style.get_box().display
-    }
-
-    #[inline]
-    pub fn has_before_pseudo(&self) -> bool {
-        let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
-        layout_data_wrapper_ref.data.before_style.is_some()
-    }
-
-    #[inline]
-    pub fn has_after_pseudo(&self) -> bool {
-        let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
-        layout_data_wrapper_ref.data.after_style.is_some()
+    pub fn get_after_pseudo(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::After(style.get_box().display))
+        })
     }
 
     /// Borrows the layout data without checking.
@@ -770,26 +743,34 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         self.node.mutate_layout_data()
     }
 
-    /// Traverses the tree in postorder.
-    ///
-    /// TODO(pcwalton): Offer a parallel version with a compatible API.
-    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(&mut self, traversal: &mut T)
-                                  -> bool {
-        if traversal.should_prune(self) {
-            return true
-        }
+    /// Returns the style results for the given node. If CSS selector matching
+    /// has not yet been performed, fails.
+    #[inline]
+    pub fn style<'a>(&'a self) -> Ref<'a, Arc<ComputedValues>> {
+        Ref::map(self.borrow_layout_data(), |layout_data_ref| {
+            let layout_data = layout_data_ref.as_ref().expect("no layout data");
+            let style = match self.get_pseudo_element_type() {
+                PseudoElementType::Before(_) => &layout_data.data.before_style,
+                PseudoElementType::After(_) => &layout_data.data.after_style,
+                PseudoElementType::Normal => &layout_data.shared_data.style,
+            };
+            style.as_ref().unwrap()
+        })
+    }
 
-        let mut opt_kid = self.first_child();
-        while let Some(mut kid) = opt_kid {
-            if !kid.traverse_postorder_mut(traversal) {
-                return false
-            }
-            unsafe {
-                opt_kid = kid.next_sibling()
-            }
-        }
+    /// Removes the style from this node.
+    pub fn unstyle(self) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        let layout_data = layout_data_ref.as_mut().expect("no layout data");
 
-        traversal.process(self)
+        let style =
+            match self.get_pseudo_element_type() {
+                PseudoElementType::Before(_) => &mut layout_data.data.before_style,
+                PseudoElementType::After (_) => &mut layout_data.data.after_style,
+                PseudoElementType::Normal    => &mut layout_data.shared_data.style,
+            };
+
+        *style = None;
     }
 
     pub fn is_ignorable_whitespace(&self) -> bool {
@@ -954,10 +935,17 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn renderer(&self) -> Option<Sender<CanvasMsg>> {
+    pub fn canvas_renderer_id(&self) -> Option<usize> {
         unsafe {
             let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
-            canvas_element.and_then(|elem| elem.get_renderer())
+            canvas_element.and_then(|elem| elem.get_renderer_id())
+        }
+    }
+
+    pub fn canvas_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
+        unsafe {
+            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.and_then(|elem| elem.get_ipc_renderer())
         }
     }
 
@@ -989,7 +977,30 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
     current_node: Option<ThreadSafeLayoutNode<'a>>,
-    parent_node: Option<ThreadSafeLayoutNode<'a>>,
+    parent_node: ThreadSafeLayoutNode<'a>,
+}
+
+impl<'a> ThreadSafeLayoutNodeChildrenIterator<'a> {
+    fn new(parent: ThreadSafeLayoutNode<'a>) -> ThreadSafeLayoutNodeChildrenIterator<'a> {
+        fn first_child<'a>(parent: ThreadSafeLayoutNode<'a>)
+                           -> Option<ThreadSafeLayoutNode<'a>> {
+            if parent.pseudo != PseudoElementType::Normal {
+                return None
+            }
+
+            parent.get_before_pseudo().or_else(|| {
+                unsafe {
+                    parent.get_jsmanaged().first_child_ref()
+                          .map(|node| parent.new_with_this_lifetime(&node))
+                }
+            })
+        }
+
+        ThreadSafeLayoutNodeChildrenIterator {
+            current_node: first_child(parent),
+            parent_node: parent,
+        }
+    }
 }
 
 impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
@@ -997,44 +1008,32 @@ impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<ThreadSafeLayoutNode<'a>> {
         let node = self.current_node.clone();
 
-        match node {
-            Some(ref node) => {
-                if node.pseudo.is_after() {
-                    return None
-                }
-
-                match self.parent_node {
-                    Some(ref parent_node) => {
-                        self.current_node = if parent_node.pseudo == PseudoElementType::Normal {
-                            self.current_node.clone().and_then(|node| {
-                                unsafe {
-                                    node.next_sibling()
-                                }
+        if let Some(ref node) = node {
+            self.current_node = match node.pseudo {
+                PseudoElementType::Before(_) => {
+                    match unsafe { self.parent_node.get_jsmanaged().first_child_ref() } {
+                        Some(first) => {
+                            Some(unsafe {
+                                self.parent_node.new_with_this_lifetime(&first)
                             })
-                        } else {
-                            None
-                        };
+                        },
+                        None => self.parent_node.get_after_pseudo(),
                     }
-                    None => {}
-                }
-            }
-            None => {
-                match self.parent_node {
-                    Some(ref parent_node) => {
-                        if parent_node.has_after_pseudo() {
-                            let pseudo_after_node = if parent_node.pseudo == PseudoElementType::Normal {
-                                let pseudo = PseudoElementType::After(parent_node.get_after_display());
-                                Some(parent_node.with_pseudo(pseudo))
-                            } else {
-                                None
-                            };
-                            self.current_node = pseudo_after_node;
-                            return self.current_node.clone()
-                        }
-                   }
-                   None => {}
-                }
-            }
+                },
+                PseudoElementType::Normal => {
+                    match unsafe { node.get_jsmanaged().next_sibling_ref() } {
+                        Some(next) => {
+                            Some(unsafe {
+                                self.parent_node.new_with_this_lifetime(&next)
+                            })
+                        },
+                        None => self.parent_node.get_after_pseudo(),
+                    }
+                },
+                PseudoElementType::After(_) => {
+                    None
+                },
+            };
         }
 
         node
@@ -1056,19 +1055,6 @@ impl<'le> ThreadSafeLayoutElement<'le> {
     }
 }
 
-/// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeMutTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune<'a>(&'a self, _node: &ThreadSafeLayoutNode<'a>) -> bool {
-        false
-    }
-}
-
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from LayoutNode.
 pub type UnsafeLayoutNode = (usize, usize);
@@ -1085,16 +1071,4 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
 pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode<'static> {
     let (node, _) = *node;
     mem::transmute(node)
-}
-
-/// A top-down traversal.
-pub trait PreorderDomTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
-}
-
-/// A bottom-up traversal, with a optional in-order pass.
-pub trait PostorderDomTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rendering requirements test (suggested default rendering): fieldset min-width is overridable</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-fieldset-and-legend-elements">
+    <link rel="help" href="http://drafts.csswg.org/css2/visudet.html#min-max-widths">
+    <link rel="help" href="http://drafts.csswg.org/css-sizing/#width-height-keywords">
+    <link rel="match" href="ref.html">
+    <meta name="flags" content="">
+    <meta name="assert" content="fieldset's default min-width should be overridable since it's not !important and not spec'd to be non-overridable">
+    <style>
+body {
+    margin: 10px;
+}
+#cover {
+    background-color: green;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    height: 100px;
+    width: 100px;
+    z-index: 2;
+}
+fieldset {
+    min-width: 0;/* property under test */
+    /* zero these out so it renders more like a div element */
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+.outer {
+    width: 100px;
+}
+.inner {
+    background-color: red;
+    color: red;
+    height: 100px;
+    overflow: scroll;
+    white-space: nowrap;
+}
+    </style>
+</head>
+<body>
+    <div class="outer">
+        <fieldset>
+            <div class="inner">a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a</div>
+        </fieldset>
+    </div>
+    <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+    <div id="cover"></div>
+</body>
+</html>

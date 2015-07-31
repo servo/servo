@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#1/8, 2048 code points in U+0020-0B35).</title>
+<link href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" rel="help" />
+<meta content="Test orientation of characters where vo=R (#1/8, 2048 code points in U+0020-0B35)" name="assert" />
+<meta content="dom font" name="flags" />
+<link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "orientation";
+    src: url("support/adobe-fonts/CSSHWOrientationTest.otf");
+}
+.test {
+    font: 16px/1 "orientation";
+    height: 17em;
+    writing-mode: vertical-rl;
+}
+.line {
+    white-space: pre;
+}
+.U {
+    text-orientation: upright;
+}
+.R {
+    text-orientation: sideways-right;
+}
+#details {
+    margin: 1em .5em;
+}
+summary {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: .5em;
+}
+</style>
+</head><body><div id="log"></div>
+<div id="details"></div>
+<div id="container">
+<div data-vo="R" class="test">
+<div data-block="Basic">
+<div class="line"> !"#$%&amp;'()*+,-./0123456789:;&amp;lt;=&amp;gt;?</div>
+<div class="line">@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_</div>
+<div class="line">`abcdefghijklmnopqrstuvwxyz{|}~</div>
+</div>
+<div data-block="Latin">
+<div class="line">&#xA0;¡¢£¤¥¦¨ª«¬¯°²³´µ¶·¸¹º»¿ÀÁÂÃÄÅÆÇ</div>
+<div class="line">ÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçè</div>
+<div class="line">éêëìíîïðñòóôõöøùúûüýþÿĀāĂăĄąĆćĈĉ</div>
+<div class="line">ĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩ</div>
+<div class="line">ĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉ</div>
+<div class="line">ŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũ</div>
+<div class="line">ŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſƀƁƂƃƄƅƆƇƈƉ</div>
+<div class="line">ƊƋƌƍƎƏƐƑƒƓƔƕƖƗƘƙƚƛƜƝƞƟƠơƢƣƤƥƦƧƨƩ</div>
+<div class="line">ƪƫƬƭƮƯưƱƲƳƴƵƶƷƸƹƺƻƼƽƾƿǀǁǂǃǄǅǆǇǈǉ</div>
+<div class="line">ǊǋǌǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜǝǞǟǠǡǢǣǤǥǦǧǨǩ</div>
+<div class="line">ǪǫǬǭǮǯǰǱǲǳǴǵǶǷǸǹǺǻǼǽǾǿȀȁȂȃȄȅȆȇȈȉ</div>
+<div class="line">ȊȋȌȍȎȏȐȑȒȓȔȕȖȗȘșȚțȜȝȞȟȠȡȢȣȤȥȦȧȨȩ</div>
+<div class="line">ȪȫȬȭȮȯȰȱȲȳȴȵȶȷȸȹȺȻȼȽȾȿɀɁɂɃɄɅɆɇɈɉ</div>
+<div class="line">ɊɋɌɍɎɏ</div>
+</div>
+<div data-block="IPA">
+<div class="line">ɐɑɒɓɔɕɖɗɘəɚɛɜɝɞɟɠɡɢɣɤɥɦɧɨɩɪɫɬɭɮɯ</div>
+<div class="line">ɰɱɲɳɴɵɶɷɸɹɺɻɼɽɾɿʀʁʂʃʄʅʆʇʈʉʊʋʌʍʎʏ</div>
+<div class="line">ʐʑʒʓʔʕʖʗʘʙʚʛʜʝʞʟʠʡʢʣʤʥʦʧʨʩʪʫʬʭʮʯ</div>
+</div>
+<div data-block="Spacing">
+<div class="line">ʰʱʲʳʴʵʶʷʸʹʺʻʼʽʾʿˀˁ˂˃˄˅ˆˇˈˉˊˋˌˍˎˏ</div>
+<div class="line">ːˑ˒˓˔˕˖˗˘˙˚˛˜˝˞˟ˠˡˢˣˤ˥˦˧˨˩ˬ˭ˮ˯˰˱</div>
+<div class="line">˲˳˴˵˶˷˸˹˺˻˼˽˾˿</div>
+</div>
+<div data-block="Greek">
+<div class="line">ͰͱͲͳʹ͵Ͷͷͺͻͼͽ;Ϳ΄΅Ά·ΈΉΊΌΎΏΐΑΒΓΔΕΖΗ</div>
+<div class="line">ΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩΪΫάέήίΰαβγδεζηθ</div>
+<div class="line">ικλμνξοπρςστυφχψωϊϋόύώϏϐϑϒϓϔϕϖϗϘ</div>
+<div class="line">ϙϚϛϜϝϞϟϠϡϢϣϤϥϦϧϨϩϪϫϬϭϮϯϰϱϲϳϴϵ϶Ϸϸ</div>
+<div class="line">ϹϺϻϼϽϾϿ</div>
+</div>
+<div data-block="Cyrillic">
+<div class="line">ЀЁЂЃЄЅІЇЈЉЊЋЌЍЎЏАБВГДЕЖЗИЙКЛМНОП</div>
+<div class="line">РСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмноп</div>
+<div class="line">рстуфхцчшщъыьэюяѐёђѓєѕіїјљњћќѝўџ</div>
+<div class="line">ѠѡѢѣѤѥѦѧѨѩѪѫѬѭѮѯѰѱѲѳѴѵѶѷѸѹѺѻѼѽѾѿ</div>
+<div class="line">Ҁҁ҂ҊҋҌҍҎҏҐґҒғҔҕҖҗҘҙҚқҜҝҞҟҠҡҢңҤҥҦ</div>
+<div class="line">ҧҨҩҪҫҬҭҮүҰұҲҳҴҵҶҷҸҹҺһҼҽҾҿӀӁӂӃӄӅӆ</div>
+<div class="line">ӇӈӉӊӋӌӍӎӏӐӑӒӓӔӕӖӗӘәӚӛӜӝӞӟӠӡӢӣӤӥӦ</div>
+<div class="line">ӧӨөӪӫӬӭӮӯӰӱӲӳӴӵӶӷӸӹӺӻӼӽӾӿԀԁԂԃԄԅԆ</div>
+<div class="line">ԇԈԉԊԋԌԍԎԏԐԑԒԓԔԕԖԗԘԙԚԛԜԝԞԟԠԡԢԣԤԥԦ</div>
+<div class="line">ԧԨԩԪԫԬԭԮԯ</div>
+</div>
+<div data-block="Armenian">
+<div class="line">ԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐ</div>
+<div class="line">ՑՒՓՔՕՖՙ՚՛՜՝՞՟աբգդեզէըթժիլխծկհձղճ</div>
+<div class="line">մյնշոչպջռսվտրցւփքօֆև։֊֍֎֏</div>
+</div>
+<div data-block="Hebrew">
+<div class="line">־׀׃׆אבגדהוזחטיךכלםמןנסעףפץצקרשתװ</div>
+<div class="line">ױײ׳״</div>
+</div>
+<div data-block="Arabic">
+<div class="line">؆؇؈؉؊؋،؍؎؏؛؞؟ؠءآأؤإئابةتثجحخدذرز</div>
+<div class="line">سشصضطظعغػؼؽؾؿـفقكلمنهوىي٠١٢٣٤٥٦٧</div>
+<div class="line">٨٩٪٫٬٭ٮٯٱٲٳٴٵٶٷٸٹٺٻټٽپٿڀځڂڃڄڅچڇڈ</div>
+<div class="line">ډڊڋڌڍڎڏڐڑڒړڔڕږڗژڙښڛڜڝڞڟڠڡڢڣڤڥڦڧڨ</div>
+<div class="line">کڪګڬڭڮگڰڱڲڳڴڵڶڷڸڹںڻڼڽھڿۀہۂۃۄۅۆۇۈ</div>
+<div class="line">ۉۊۋیۍێۏېۑےۓ۔ە۞ۥۦ۩ۮۯ۰۱۲۳۴۵۶۷۸۹ۺۻۼ</div>
+<div class="line">۽۾ۿ</div>
+</div>
+<div data-block="Syriac">
+<div class="line">܀܁܂܃܄܅܆܇܈܉܊܋܌܍ܐܒܓܔܕܖܗܘܙܚܛܜܝܞܟܠܡܢ</div>
+<div class="line">ܣܤܥܦܧܨܩܪܫܬܭܮܯݍݎݏ</div>
+</div>
+<div data-block="Arabic">
+<div class="line">ݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡݢݣݤݥݦݧݨݩݪݫݬݭݮݯ</div>
+<div class="line">ݰݱݲݳݴݵݶݷݸݹݺݻݼݽݾݿ</div>
+</div>
+<div data-block="Thaana">
+<div class="line">ހށނރބޅކއވމފދތލގޏސޑޒޓޔޕޖޗޘޙޚޛޜޝޞޟ</div>
+<div class="line">ޠޡޢޣޤޥޱ</div>
+</div>
+<div data-block="NKo">
+<div class="line">߀߁߂߃߄߅߆߇߈߉ߊߋߌߍߎߏߐߑߒߓߔߕߖߗߘߙߚߛߜߝߞߟ</div>
+<div class="line">ߠߡߢߣߤߥߦߧߨߩߪߴߵ߶߷߸߹ߺ</div>
+</div>
+<div data-block="Samaritan">
+<div class="line">ࠀࠁࠂࠃࠄࠅࠆࠇࠈࠉࠊࠋࠌࠍࠎࠏࠐࠑࠒࠓࠔࠕࠚࠤࠨ࠰࠱࠲࠳࠴࠵࠶</div>
+<div class="line">࠷࠸࠹࠺࠻࠼࠽࠾</div>
+</div>
+<div data-block="Mandaic">
+<div class="line">ࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ࡞</div>
+</div>
+<div data-block="Arabic">
+<div class="line">ࢠࢡࢢࢣࢤࢥࢦࢧࢨࢩࢪࢫࢬࢭࢮࢯࢰࢱࢲ</div>
+</div>
+<div data-block="Devanagari">
+<div class="line">ऄअआइईउऊऋऌऍऎएऐऑऒओऔकखगघङचछजझञटठडढण</div>
+<div class="line">तथदधनऩपफबभमयरऱलळऴवशषसहऽॐक़ख़ग़ज़ड़ढ़फ़य़</div>
+<div class="line">ॠॡ।॥०१२३४५६७८९॰ॱॲॳॴॵॶॷॸॹॺॻॼॽॾॿ</div>
+</div>
+<div data-block="Bengali">
+<div class="line">ঀঅআইঈউঊঋঌএঐওঔকখগঘঙচছজঝঞটঠডঢণতথদধ</div>
+<div class="line">নপফবভমযরলশষসহঽৎড়ঢ়য়ৠৡ০১২৩৪৫৬৭৮৯ৰৱ</div>
+<div class="line">৲৳৴৵৶৷৸৹৺৻</div>
+</div>
+<div data-block="Gurmukhi">
+<div class="line">ਅਆਇਈਉਊਏਐਓਔਕਖਗਘਙਚਛਜਝਞਟਠਡਢਣਤਥਦਧਨਪਫ</div>
+<div class="line">ਬਭਮਯਰਲਲ਼ਵਸ਼ਸਹਖ਼ਗ਼ਜ਼ੜਫ਼੦੧੨੩੪੫੬੭੮੯ੲੳੴ</div>
+</div>
+<div data-block="Gujarati">
+<div class="line">અઆઇઈઉઊઋઌઍએઐઑઓઔકખગઘઙચછજઝઞટઠડઢણતથદ</div>
+<div class="line">ધનપફબભમયરલળવશષસહઽૐૠૡ૦૧૨૩૪૫૬૭૮૯૰૱</div>
+</div>
+<div data-block="Oriya">
+<div class="line">ଅଆଇଈଉଊଋଌଏଐଓଔକଖଗଘଙଚଛଜଝଞଟଠଡଢଣତଥଦଧନ</div>
+<div class="line">ପଫବଭମଯରଲଳଵ</div>
+</div>
+</div>
+</div>
+<script src="support/text-orientation.js"></script>
+</body></html>

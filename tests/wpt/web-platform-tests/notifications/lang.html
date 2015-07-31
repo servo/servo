@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification.lang</title>
+<link rel="author" title="Apple Inc." href="http://www.apple.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true });
+
+/* Validity and well-formedness was determined by using the BCP 47
+   Validator at http://schneegans.de/lv/ */
+
+/* The empty string is valid, as well as any valid BCP 47 language tag. */
+var valid_langs = ["", "en", "en-US-x-hixie", "de-DE", "de-de", "de-De",
+                   "de-dE", "de-DE-1996", "de-Latn-DE", "de-Latf-DE",
+                   "de-Latn-DE-1996", "de-CH", "it-CH", "fr-CH",
+                   "rm-CH", "es-CH"];
+
+/* Well-formed but invalid BCP 47 language tags should not round-trip;
+   they should come back as the empty string. */
+var well_formed_langs = ["Latn-de", "Latf-de", "tic-tac-tac-toe",
+                         "cocoa-1-bar", "cocoa-a-bar"];
+
+/* Invalid BCP 47 language tags should not round-trip; they should come
+   back as the empty string. */
+var invalid_langs = ["en-", "en-\-", "foo-\-bar", "id-\-\-Java", "fr-x",
+                     "fr-xenomorph", "fr-x-xenomorph", "a", "a-fr-lang",
+                     "b-fr-lang", "es1-KK-aa-bb-cc-dd",
+                     "es2-KL-aa-bb-cc-dd", "es3-KM-aa-bb-cc-dd", "fooÉ",
+                     "foöÉ-bÁr", "foöÉbÁr"];
+
+function test_lang(language, should_passthrough) {
+    var expected = should_passthrough ? language : "";
+    test(function() {
+        if (Notification.permission != "granted") {
+            this.force_timeout()
+            this.set_status(this.NOTRUN, "You must allow notifications for this origin before running this test.")
+        }
+        var notification = new Notification("This is a notification.", {
+            lang: language
+        });
+        assert_equals(notification.lang, expected, "notification.lang");
+        notification.onshow = function() {
+            notification.close();
+        };
+    },
+    "Roundtripping lang \"" + language + "\". Expecting \"" + expected + "\".");
+}
+
+for (var i=0; i<valid_langs.length; i++) {
+    test_lang(valid_langs[i], true);
+}
+
+for (var i=0; i<well_formed_langs.length; i++) {
+    test_lang(well_formed_langs[i], false);
+}
+
+for (var i=0; i<invalid_langs.length; i++) {
+    test_lang(invalid_langs[i], false);
+}
+
+done();
+</script>

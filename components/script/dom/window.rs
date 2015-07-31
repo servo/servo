@@ -17,12 +17,14 @@ use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
-use dom::browsercontext::BrowserContext;
+use dom::browsercontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::htmlelement::HTMLElement;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers};
@@ -30,7 +32,7 @@ use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
-use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ScriptReflow};
+use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use page::Page;
 use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
 use script_task::ScriptMsg;
@@ -38,35 +40,41 @@ use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
-use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, TracingMetadata};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{TracingMetadata};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
+use profile_traits::mem;
+use string_cache::Atom;
 use util::geometry::{self, Au, MAX_RECT};
-use util::opts;
+use util::{breakpoint, opts};
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
 use js::rust::Runtime;
 use js::rust::CompileOptionsWrapper;
+use selectors::parser::PseudoElement;
 use url::{Url, UrlParser};
 
 use libc;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
-use std::mem;
+use std::mem as std_mem;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
@@ -106,7 +114,7 @@ pub struct Window {
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
     compositor: DOMRefCell<ScriptListener>,
-    browser_context: DOMRefCell<Option<BrowserContext>>,
+    browsing_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -118,12 +126,15 @@ pub struct Window {
 
     next_worker_id: Cell<WorkerId>,
 
+    /// For sending messages to the memory profiler.
+    mem_profiler_chan: mem::ProfilerChan,
+
     /// For providing instructions to an optional devtools server.
-    devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
-    devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
+    devtools_marker_sender: RefCell<Option<IpcSender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
@@ -181,7 +192,7 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    webdriver_script_chan: RefCell<Option<Sender<WebDriverJSResult>>>,
+    webdriver_script_chan: RefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -192,7 +203,7 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            *self.browser_context.borrow_for_script_deallocation() = None;
+            *self.browsing_context.borrow_for_script_deallocation() = None;
             self.current_state.set(WindowState::Zombie);
         }
     }
@@ -245,8 +256,8 @@ impl Window {
         self.compositor.borrow_mut()
     }
 
-    pub fn browser_context<'a>(&'a self) -> Ref<'a, Option<BrowserContext>> {
-        self.browser_context.borrow()
+    pub fn browsing_context<'a>(&'a self) -> Ref<'a, Option<BrowsingContext>> {
+        self.browsing_context.borrow()
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
@@ -333,12 +344,14 @@ impl<'a> WindowMethods for &'a Window {
         println!("ALERT: {}", s);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(self) {
         self.script_chan.send(ScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-0
     fn Document(self) -> Root<Document> {
-        self.browser_context().as_ref().unwrap().active_document()
+        self.browsing_context().as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
@@ -356,17 +369,19 @@ impl<'a> WindowMethods for &'a Window {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console
     fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
+    // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(self) -> Root<Crypto> {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
     }
 
     // https://html.spec.whatwg.org/#dom-frameelement
     fn GetFrameElement(self) -> Option<Root<Element>> {
-        self.browser_context().as_ref().unwrap().frame_element()
+        self.browsing_context().as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
@@ -424,10 +439,12 @@ impl<'a> WindowMethods for &'a Window {
         self.ClearTimeout(handle);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window
     fn Window(self) -> Root<Window> {
         Root::from_ref(self)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-self
     fn Self_(self) -> Root<Window> {
         self.Window()
     }
@@ -451,6 +468,8 @@ impl<'a> WindowMethods for &'a Window {
         window
     }
 
+    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
+    // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(self) -> Root<Performance> {
         self.performance.or_init(|| {
             Performance::new(self, self.navigation_start,
@@ -462,25 +481,17 @@ impl<'a> WindowMethods for &'a Window {
     event_handler!(unload, GetOnunload, SetOnunload);
     error_event_handler!(error, GetOnerror, SetOnerror);
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(self) -> Root<Screen> {
         self.screen.or_init(|| Screen::new(self))
     }
 
-    fn Debug(self, message: DOMString) {
-        debug!("{}", message);
-    }
-
-    #[allow(unsafe_code)]
-    fn Gc(self) {
-        unsafe {
-            JS_GC(JS_GetRuntime(self.get_cx()));
-        }
-    }
-
+    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob
     fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
@@ -503,6 +514,22 @@ impl<'a> WindowMethods for &'a Window {
         doc.r().cancel_animation_frame(ident);
     }
 
+    // check-tidy: no specs after this line
+    fn Debug(self, message: DOMString) {
+        debug!("{}", message);
+    }
+
+    #[allow(unsafe_code)]
+    fn Gc(self) {
+        unsafe {
+            JS_GC(JS_GetRuntime(self.get_cx()));
+        }
+    }
+
+    fn Trap(self) {
+        breakpoint();
+    }
+
     fn WebdriverCallback(self, cx: *mut JSContext, val: HandleValue) {
         let rv = jsval_to_webdriver(cx, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
@@ -517,11 +544,28 @@ impl<'a> WindowMethods for &'a Window {
             chan.send(Err(WebDriverJSError::Timeout)).unwrap();
         }
     }
+
+    // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
+    fn GetComputedStyle(self,
+                        element: &HTMLElement,
+                        pseudo: Option<DOMString>) -> Root<CSSStyleDeclaration> {
+        // Steps 1-4.
+        let pseudo = match pseudo.map(|s| s.to_ascii_lowercase()) {
+            Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" =>
+                Some(PseudoElement::Before),
+            Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" =>
+                Some(PseudoElement::After),
+            _ => None
+        };
+
+        // Step 5.
+        CSSStyleDeclaration::new(self, element, pseudo, CSSModificationAccess::Readonly)
+    }
 }
 
 pub trait WindowHelpers {
     fn clear_js_runtime(self);
-    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>);
+    fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
@@ -530,15 +574,18 @@ pub trait WindowHelpers {
     fn layout(&self) -> &LayoutRPC;
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au>;
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32>;
+    fn resolved_style_query(self, element: TrustedNodeAddress,
+                            pseudo: Option<PseudoElement>, property: &Atom) -> Option<String>;
     fn handle_reflow_complete_msg(self, reflow_id: u32);
-    fn handle_resize_inactive_msg(self, new_size: WindowSizeData);
     fn set_fragment_name(self, fragment: Option<String>);
     fn steal_fragment_name(self) -> Option<String>;
     fn set_window_size(self, size: WindowSizeData);
     fn window_size(self) -> Option<WindowSizeData>;
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
-    fn devtools_chan(self) -> Option<DevtoolsControlChan>;
+    fn mem_profiler_chan(self) -> mem::ProfilerChan;
+    fn devtools_chan(self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>>;
     fn layout_chan(self) -> LayoutChan;
     fn constellation_chan(self) -> ConstellationChan;
     fn windowproxy_handler(self) -> WindowProxyHandler;
@@ -555,9 +602,11 @@ pub trait WindowHelpers {
     fn freeze(self);
     fn need_emit_timeline_marker(self, timeline_type: TimelineMarkerType) -> bool;
     fn emit_timeline_marker(self, marker: TimelineMarker);
-    fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
+    fn set_devtools_timeline_marker(self,
+                                    marker: TimelineMarkerType,
+                                    reply: IpcSender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
-    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>);
+    fn set_webdriver_script_chan(self, chan: Option<IpcSender<WebDriverJSResult>>);
     fn is_alive(self) -> bool;
     fn parent(self) -> Option<Root<Window>>;
 }
@@ -617,7 +666,7 @@ impl<'a> WindowHelpers for &'a Window {
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-        *self.browser_context.borrow_mut() = None;
+        *self.browsing_context.borrow_mut() = None;
     }
 
     /// Reflows the page unconditionally. This method will wait for the layout thread to complete
@@ -721,7 +770,7 @@ impl<'a> WindowHelpers for &'a Window {
     /// layout task has finished any pending request messages.
     fn join_layout(self) {
         let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = mem::replace(&mut *layout_join_port, None) {
+        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
             match join_port.try_recv() {
                 Err(Empty) => {
                     info!("script: waiting on layout");
@@ -759,6 +808,24 @@ impl<'a> WindowHelpers for &'a Window {
         rects
     }
 
+    fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeGeometryQuery(node_geometry_request),
+                    ReflowReason::Query);
+        self.layout_rpc.node_geometry().client_rect
+    }
+
+    fn resolved_style_query(self,
+                            element: TrustedNodeAddress,
+                            pseudo: Option<PseudoElement>,
+                            property: &Atom) -> Option<String> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
+                    ReflowReason::Query);
+        let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
+        resolved
+    }
+
     fn handle_reflow_complete_msg(self, reflow_id: u32) {
         let last_reflow_id = self.last_reflow_id.get();
         if last_reflow_id == reflow_id {
@@ -766,14 +833,10 @@ impl<'a> WindowHelpers for &'a Window {
         }
     }
 
-    fn handle_resize_inactive_msg(self, new_size: WindowSizeData) {
-        self.window_size.set(Some(new_size));
-    }
-
-    fn init_browser_context(self, doc: &Document, frame_element: Option<&Element>) {
-        let mut browser_context = self.browser_context.borrow_mut();
-        *browser_context = Some(BrowserContext::new(doc, frame_element));
-        (*browser_context).as_mut().unwrap().create_window_proxy();
+    fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>) {
+        let mut browsing_context = self.browsing_context.borrow_mut();
+        *browsing_context = Some(BrowsingContext::new(doc, frame_element));
+        (*browsing_context).as_mut().unwrap().create_window_proxy();
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -823,7 +886,11 @@ impl<'a> WindowHelpers for &'a Window {
         self.resource_task.clone()
     }
 
-    fn devtools_chan(self) -> Option<DevtoolsControlChan> {
+    fn mem_profiler_chan(self) -> mem::ProfilerChan {
+        self.mem_profiler_chan.clone()
+    }
+
+    fn devtools_chan(self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
     }
 
@@ -926,7 +993,9 @@ impl<'a> WindowHelpers for &'a Window {
         sender.send(marker).unwrap();
     }
 
-    fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
+    fn set_devtools_timeline_marker(self,
+                                    marker: TimelineMarkerType,
+                                    reply: IpcSender<TimelineMarker>) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
         self.devtools_markers.borrow_mut().insert(marker);
     }
@@ -936,7 +1005,7 @@ impl<'a> WindowHelpers for &'a Window {
         *self.devtools_marker_sender.borrow_mut() = None;
     }
 
-    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>) {
+    fn set_webdriver_script_chan(self, chan: Option<IpcSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
 
@@ -945,14 +1014,14 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn parent(self) -> Option<Root<Window>> {
-        let browser_context = self.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
+        let browsing_context = self.browsing_context();
+        let browsing_context = browsing_context.as_ref().unwrap();
 
-        browser_context.frame_element().map(|frame_element| {
+        browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element.r());
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
-            let context = r.browser_context();
+            let context = r.browsing_context();
             context.as_ref().unwrap().active_window()
         })
     }
@@ -968,7 +1037,8 @@ impl Window {
                image_cache_task: ImageCacheTask,
                resource_task: ResourceTask,
                storage_task: StorageTask,
-               devtools_chan: Option<DevtoolsControlChan>,
+               mem_profiler_chan: mem::ProfilerChan,
+               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan,
                layout_chan: LayoutChan,
                id: PipelineId,
@@ -993,8 +1063,9 @@ impl Window {
             page: page,
             navigator: Default::default(),
             image_cache_task: image_cache_task,
+            mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
-            browser_context: DOMRefCell::new(None),
+            browsing_context: DOMRefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_ns() as f64,
@@ -1061,6 +1132,8 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::NoQuery => "\tNoQuery",
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+        ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+        ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
     });
 
     debug_msg.push_str(match *reason {

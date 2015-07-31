@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+ <head>
+
+  <title>CSS Writing Modes Test: height and width - inline non-replaced element in vertical writing-mode</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes">
+  <link rel="help" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/visudet.html#inline-width" title="10.3.1 Inline, non-replaced elements">
+  <link rel="help" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/visudet.html#inline-non-replaced" title="10.6.1 Inline, non-replaced elements">
+  <link rel="match" href="reference/abs-pos-non-replaced-icb-vrl-008-ref.htm">
+
+  <meta content="ahem" name="flags">
+  <meta content="This test checks that height and width declarations do not apply to inline non-replaced elements in vertical writing-modes." name="assert">
+
+  <style type="text/css">
+  div#block
+    {
+      font: 6.25em/1 Ahem; /* computes to 100px/100px */
+      height: 2em;
+      width: 4em;
+      writing-mode: vertical-rl;
+    }
+
+  div#inline
+    {
+      background-color: red;
+      color: red;
+      display: inline;
+      height: 2em;
+      width: 4em;
+    }
+
+  div#overlapping-green
+    {
+      background-color: green;
+      bottom: 200px;
+      height: 100px;
+      left: 300px;
+      position: relative;
+      width: 100px;
+    }
+  </style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="block">
+    <div id="inline">A</div>
+  </div>
+
+  <div id="overlapping-green"></div>
+
+ </body>
+</html>

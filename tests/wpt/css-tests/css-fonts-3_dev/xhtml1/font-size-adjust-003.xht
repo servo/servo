@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <title>CSS Fonts Test: font-size-adjust - first available and installed font</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop" title="3.6 Relative sizing: the font-size-adjust property" />
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2013May/0384.html" title="[css3-fonts] font-size-adjust and em/ex values" />
+  <link rel="bookmark" href="https://code.google.com/p/chromium/issues/detail?id=451346" title="Issue 451346: Add support for font-size-adjust" />
+
+  <!-- last update: 2015-03-19 -->
+
+  <!--
+  font-relative lengths are calculated against
+  the [computed? used?] font-size.
+
+  In situations where font fallback occurs, fallback fonts
+  may not share the same aspect ratio as the desired font
+  family and will thus appear less readable. The
+  font-size-adjust property is a way to preserve the
+  readability of text when font fallback occurs. It does
+  this by adjusting the font-size so that the x-height
+  is the same regardless of the font used.
+  http://lists.w3.org/Archives/Public/www-style/2013May/0384.html
+
+  "May I include your sample to my patch as a blink test case?"
+  https://code.google.com/p/chromium/issues/detail?id=451346#c6
+  Yes you can ... as long as my name is listed somewhere as the original author.
+  Gérard
+
+  It's "Oxygen-Sans" (with a hyphen!) and not "Oxygen Sans"
+  http://packages.ubuntu.com/vivid/amd64/ttf-oxygen-font-family/filelist
+  -->
+
+  <meta content="font" name="flags" />
+  <meta content="In this test, span.test's first 3 fallback fonts are unavailable and the next fallback fonts have a relatively big aspect value with regards to each fonts listed, declared in span.reference rule (0.450). This test checks that 'font-size-adjust' property adjusts the relative height of lowercase letters of available, installed fallback fonts listed, declared in span.test rule (0.530-0.545) to match the relative height of lowercase letters of fonts listed, declared in span.reference rule (0.450)." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div.wrapper
+  {
+  font-size: 200px;
+  line-height: 1;
+  }
+  /*
+  The 'line-height: 1' declaration
+  is not part of the test. Its
+  sole purpose is to not increase
+  document box height unneedlessly.
+  */
+
+  img
+  {
+  height: 1px;
+  margin-right: -100%;
+  width: 100%;
+  }
+
+  img.top-x-height {vertical-align: 90px;}
+  /*  200px mult by 0.450 == 90px  */
+
+  img.baseline {vertical-align: -1px;}
+  /*
+  We want the bottom green line to be flush with the bottom of
+  glyphs and not be overlapped by the bottom of glyphs. Therefore
+  this 'vertical-align: -1px' declaration.
+  */
+
+  span.test
+  {
+  font-family: uninstalled, notavailable, bogus, "DejaVu Sans", "Oxygen-Sans", "Liberation Sans", Verdana, Tahoma;
+  /*
+  This test presumes that the tester will have at least
+  one of the following font installed on his/her operating system:
+  "DejaVu Sans", "Oxygen-Sans", "Liberation Sans", Verdana, Tahoma
+  */
+  font-size-adjust: 0.450;
+  }
+
+  /*
+  List of 5 font faces with relatively big aspect values
+
+  DejaVu Sans' aspect value     == 0.547
+  Oxygen-Sans' aspect value     == 0.540
+  Liberation Sans' aspect value == 0.530
+  (DejaVu Sans, Oxygen-Sans and Liberation Sans are font
+  faces very often installed under Linux Debian-distributions)
+
+  Verdana's aspect value        == 0.545
+  Tahoma's aspect value         == 0.545
+  (Verdana and Tahoma are font faces very often pre-installed
+  under Windows operating systems.)
+  */
+
+  span.reference {font-family: Rachana, "Nimbus Roman No9 L", "Times New Roman";}
+
+  /*
+  Rachana's aspect value            == 0.450
+  Nimbus Roman No9 L's aspect value == 0.450
+  (Rachana and Nimbus Roman No9 L are font
+  faces often installed under Linux Debian-distributions)
+
+  Times New Roman's aspect value    == 0.448
+  (Times New Roman is a font face is very often pre-installed
+  under Windows operating systems.)
+  */
+
+  /*
+  This test presumes that the tester will have at least
+  one of the following font installed on his/her operating system:
+  Rachana, "Nimbus Roman No9 L", "Times New Roman"
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if each pair of "x" and "z" <strong>letters have the same height</strong>; the thin wide and bright green horizontal lines are not part of this test and only serve to help visually compare the height of tested pairs of letters.</p>
+
+  <div class="wrapper">
+    <img class="top-x-height" src="support/1x1-lime.png" alt="Image download support must be enabled" /><img class="baseline" src="support/1x1-lime.png" alt="Image download support must be enabled" />
+    <span class="test">x</span>
+
+    <span class="reference">x</span>
+  </div>
+
+  <div class="wrapper">
+    <img class="top-x-height" src="support/1x1-lime.png" alt="Image download support must be enabled" /><img class="baseline" src="support/1x1-lime.png" alt="Image download support must be enabled" />
+    <span class="test">z</span>
+
+    <span class="reference">z</span>
+  </div>
+
+ </body>
+</html>

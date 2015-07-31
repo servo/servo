@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Introduction to Vertical Text (76 tests)</h2>
+  <h2>Introduction to Vertical Text (80 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -40,7 +40,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode">3.1 Block Flow Direction: the writing-mode property</a></th></tr>
-      <!-- 65 tests -->
+      <!-- 66 tests -->
       <tr id="block-flow-direction-001-3.1" class="primary ahem">
         <td><strong>
             <a href="block-flow-direction-001.xht">block-flow-direction-001</a></strong></td>
@@ -591,17 +591,6 @@
           </ul>
         </td>
       </tr>
-      <tr id="list-items-vert-rl-005-3.1" class="primary image">
-        <td><strong>
-            <a href="list-items-vert-rl-005.xht">list-items-vert-rl-005</a></strong></td>
-        <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>order, orientation and layout of list items in a 'vertical-rl' writing-mode
-          <ul class="assert">
-            <li>This test checks the order, the orientation and layout of list items when in a 'vertical-rl' writing mode as illustrated by and according to Example 5 of section 3.1.</li>
-          </ul>
-        </td>
-      </tr>
       <tr id="page-flow-direction-002-3.1" class="primary image paged">
         <td><strong>
             <a href="page-flow-direction-002.xht">page-flow-direction-002</a></strong></td>
@@ -734,6 +723,28 @@
           </ul>
         </td>
       </tr>
+      <tr id="table-progression-001-vlr-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-001-vlr.xht">table-progression-001-vlr</a></strong></td>
+        <td><a href="reference/table-progression-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>vertical-lr Table Row/Rowgroup/Cell Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-lr tables order rows/rowgroups left to right and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-progression-001-vrl-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-001-vrl.xht">table-progression-001-vrl</a></strong></td>
+        <td><a href="reference/table-progression-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>vertical-rl Table Row/Rowgroup/Cell Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-rl tables order rows/rowgroups right to left and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="writing-mode-stretch-001-3.1" class="primary">
         <td><strong>
             <a href="writing-mode-stretch-001.xht">writing-mode-stretch-001</a></strong></td>
@@ -761,7 +772,7 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s3.1.#propdef-writing-mode">
-      <!-- 11 tests -->
+      <!-- 14 tests -->
       <tr id="autoheight-regions-in-autoheight-flexbox-002-3.1.#propdef-writing-mode" class="ahem">
         <td>
             <a href="autoheight-regions-in-autoheight-flexbox-002.xht">autoheight-regions-in-autoheight-flexbox-002</a></td>
@@ -848,6 +859,30 @@
           <ul class="assert">
             <li>The flow-into property can be applied to elements that have different text directions and writing modes. This tests that the rendering for lists that use different text directions/writing modes are not affected when they are extracted in a named flow and rendered in a region.</li>
           </ul>
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-007-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="flexbox-writing-mode-007.xht">flexbox-writing-mode-007</a></td>
+        <td><a href="reference/flexbox-writing-mode-007-ref.xht">=</a> </td>
+        <td></td>
+        <td>Verify that explicit sizes are honored on flex items whose writing-mode may differ from the flex container's writing-mode
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-008-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="flexbox-writing-mode-008.xht">flexbox-writing-mode-008</a></td>
+        <td><a href="reference/flexbox-writing-mode-008-ref.xht">=</a> </td>
+        <td></td>
+        <td>Verify that explicit sizes are honored on flex items whose writing-mode may differ from the flex container's writing-mode
+        </td>
+      </tr>
+      <tr id="flexbox-writing-mode-009-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="flexbox-writing-mode-009.xht">flexbox-writing-mode-009</a></td>
+        <td><a href="reference/flexbox-writing-mode-009-ref.xht">=</a> </td>
+        <td></td>
+        <td>Verify that explicit sizes are honored on flex items whose writing-mode may differ from the flex container's writing-mode
         </td>
       </tr>
       <tr id="writing-mode-vertical-lr-002-3.1.#propdef-writing-mode" class="primary ahem">

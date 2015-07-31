@@ -233,7 +233,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
         let constructor = RootedObject::new(cx, create_constructor(cx, cnative, cnargs, cs.as_ptr()));
         assert!(!constructor.ptr.is_null());
         unsafe {
-            assert!(JS_DefineProperty1(cx, constructor.handle(), "prototype".as_ptr() as *const i8,
+            assert!(JS_DefineProperty1(cx, constructor.handle(), b"prototype\0".as_ptr() as *const libc::c_char,
                                        rval.handle(),
                                        JSPROP_PERMANENT | JSPROP_READONLY,
                                        None, None) != 0);
@@ -381,8 +381,8 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PrototypeList::ID::Count as usize];
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
-    let proto_array: Box<ProtoOrIfaceArray> = box ()
-        ([0 as *mut JSObject; PrototypeList::ID::Count as usize]);
+    let proto_array: Box<ProtoOrIfaceArray> =
+        box [0 as *mut JSObject; PrototypeList::ID::Count as usize];
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         let box_ = Box::into_raw(proto_array);
@@ -413,8 +413,7 @@ pub fn reflect_dom_object<T: Reflectable>
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-// Allowing unused_attribute because the lint sometimes doesn't run in order
-#[allow(raw_pointer_derive, unrooted_must_root, unused_attributes)]
+#[allow(raw_pointer_derive, unrooted_must_root)]
 #[must_root]
 #[servo_lang = "reflector"]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
@@ -702,7 +701,7 @@ pub unsafe extern fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> 
     let win: Root<window::Window> = native_from_handleobject(obj).unwrap();
     // FIXME(https://github.com/rust-lang/rust/issues/23338)
     let win = win.r();
-    let context = win.browser_context();
+    let context = win.browsing_context();
     context.as_ref().unwrap().window_proxy()
 }
 
@@ -820,6 +819,7 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
     (domclass.dom_class.interface_chain[depth as usize] as u32 == proto_id) as u8
 }
 
+#[allow(missing_docs)]  // FIXME
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };

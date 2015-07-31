@@ -4,25 +4,28 @@
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
-use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use hsts::{HSTSList, secure_url};
 
 use log;
 use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem};
+use hyper::header::{Quality, QualityItem};
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::HttpConnector;
+use hyper::net::{HttpConnector, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
-use openssl::ssl::{SslContext, SSL_VERIFY_PEER};
+use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use std::io::{self, Read, Write};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
@@ -33,11 +36,13 @@ use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>)
+pub fn factory(cookies_chan: Sender<ControlMsg>,
+               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+               hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
         spawn_named("http_loader".to_owned(),
-                    move || load(load_data, senders, classifier, cookies_chan, devtools_chan))
+                    move || load(load_data, senders, classifier, cookies_chan, devtools_chan, hsts_list))
     }
 }
 
@@ -69,8 +74,21 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>,
-        cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
+    match url.domain() {
+        Some(ref h) => {
+            hsts_list.is_host_secure(h)
+        },
+        _ => false
+    }
+}
+
+fn load(mut load_data: LoadData,
+        start_chan: LoadConsumer,
+        classifier: Arc<MIMEClassifier>,
+        cookies_chan: Sender<ControlMsg>,
+        devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+        hsts_list: Arc<Mutex<HSTSList>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -101,6 +119,11 @@ fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
     loop {
         iters = iters + 1;
 
+        if &*url.scheme != "https" && request_must_be_secured(&hsts_list.lock().unwrap(), &url) {
+            info!("{} is in the strict transport security list, requesting secure host", url);
+            url = secure_url(&url);
+        }
+
         if iters > max_redirects {
             send_error(url, "too many redirects".to_string(), start_chan);
             return;
@@ -117,24 +140,20 @@ fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
 
         info!("requesting {}", url.serialize());
 
-        fn verifier(ssl: &mut SslContext) {
-            ssl.set_verify(SSL_VERIFY_PEER, None);
-            let mut certs = resources_dir_path();
-            certs.push("certs");
-            ssl.set_CA_file(&certs).unwrap();
-        };
-
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]))";
 
-        let mut connector = if opts::get().nossl {
-            HttpConnector(None)
+        let req = if opts::get().nossl {
+            Request::with_connector(load_data.method.clone(), url.clone(), &HttpConnector)
         } else {
-            HttpConnector(Some(box verifier as Box<Fn(&mut SslContext) + Send>))
+            let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+            context.set_verify(SSL_VERIFY_PEER, None);
+            context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+            Request::with_connector(load_data.method.clone(), url.clone(),
+                &HttpsConnector::new(Openssl { context: Arc::new(context) }))
         };
-
-        let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
+        let mut req = match req {
             Ok(req) => req,
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
@@ -244,7 +263,9 @@ reason: \"certificate verify failed\" }]))";
                                                       load_data.method.clone(),
                                                       load_data.headers.clone(),
                                                       load_data.data.clone());
-            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event)).unwrap();
+            chan.send(DevtoolsControlMsg::FromChrome(
+                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
+                                                                    net_event))).unwrap();
         }
 
         let mut response = match writer.send() {
@@ -350,9 +371,13 @@ reason: \"certificate verify failed\" }]))";
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         if let Some(ref chan) = devtools_chan {
-            let net_event_response = NetworkEvent::HttpResponse(
-                metadata.headers.clone(), metadata.status.clone(), None);
-            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)).unwrap();
+            let net_event_response =
+                NetworkEvent::HttpResponse(metadata.headers.clone(),
+                                           metadata.status.clone(),
+                                           None);
+            chan.send(DevtoolsControlMsg::FromChrome(
+                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id,
+                                                                    net_event_response))).unwrap();
         }
 
         match encoding_str {

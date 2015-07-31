@@ -47,8 +47,8 @@ event firing. In some cases it is necessary to delay the screenshot
 later than this, for example becase some DOM manipulation is
 required to set up the desired test conditions. To enable this, the
 test may have a `class="reftest-wait"` attribute specified on the root
-element. This will cause the screenshot to be delayed until the load
-event has fired and the reftest-wait class has been removed from the
+element. This will cause the screenshot to be delayed until the `load`
+event has fired and the `reftest-wait` class has been removed from the
 root element (technical note: the implementation in wptrunner uses
 mutation observers so the screenshot will be triggered in the
 microtask checkpoint after the class is removed. Because the harness
@@ -66,12 +66,12 @@ Multiple references linked from a single file are interpreted as
 multiple possible renderings for that file. `<link rel=[mis]match>`
 elements in a reference create further conditions that must be met in
 order for the test to pass. For example, consider a situation where
-a.html has `<link rel=match href=b.html>` and `<link rel=match
-href=c.html>`, b.html has `<link rel=match href=b1.html>` and c.html
+`a.html` has `<link rel=match href=b.html>` and `<link rel=match
+href=c.html>`, `b.html` has `<link rel=match href=b1.html>` and `c.html`
 has `<link rel=mismatch href=c1.html>`. In this case, to pass we must
-either have a.html, b.html and b1.html all rendering identically, or
-a.html and c.html rendering identically, but c.html rendering
-differently from c1.html.
+either have `a.html`, `b.html` and `b1.html` all rendering identically, or
+`a.html` and `c.html` rendering identically, but `c.html` rendering
+differently from `c1.html`.
 
 ## Fuzzy Matching
 

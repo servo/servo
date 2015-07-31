@@ -803,6 +803,9 @@ impl WindowMethods for Window {
     fn set_page_url(&self, _: Url) {
     }
 
+    fn status(&self, _: Option<String>) {
+    }
+
     fn load_start(&self, _: bool, _: bool) {
     }
 
@@ -857,7 +860,7 @@ struct GonkCompositorProxy {
 }
 
 impl CompositorProxy for GonkCompositorProxy {
-    fn send(&mut self, msg: compositor_task::Msg) {
+    fn send(&self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg).ok().unwrap();
         self.event_sender.send(WindowEvent::Idle).ok().unwrap();

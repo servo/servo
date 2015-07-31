@@ -4,26 +4,30 @@
 
 //! Memory profiling functions.
 
-use profile_traits::mem::{ProfilerChan, ProfilerMsg, Reporter, ReportsChan};
-use self::system_reporter::SystemReporter;
+use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::router::ROUTER;
+use profile_traits::mem::{ProfilerChan, ProfilerMsg, Reporter, ReporterRequest, ReportKind};
+use profile_traits::mem::ReportsChan;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread::sleep_ms;
-use std::sync::mpsc::{channel, Receiver};
 use util::task::spawn_named;
 
 pub struct Profiler {
     /// The port through which messages are received.
-    pub port: Receiver<ProfilerMsg>,
+    pub port: IpcReceiver<ProfilerMsg>,
 
     /// Registered memory reporters.
-    reporters: HashMap<String, Box<Reporter + Send>>,
+    reporters: HashMap<String, Reporter>,
 }
+
+const JEMALLOC_HEAP_ALLOCATED_STR: &'static str = "jemalloc-heap-allocated";
+const SYSTEM_HEAP_ALLOCATED_STR: &'static str = "system-heap-allocated";
 
 impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
-        let (chan, port) = channel();
+        let (chan, port) = ipc::channel().unwrap();
 
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
@@ -48,16 +52,21 @@ impl Profiler {
 
         let mem_profiler_chan = ProfilerChan(chan);
 
-        // Register the system memory reporter, which will run on the memory profiler's own thread.
-        // It never needs to be unregistered, because as long as the memory profiler is running the
-        // system memory reporter can make measurements.
-        let system_reporter = box SystemReporter;
-        mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(), system_reporter));
+        // Register the system memory reporter, which will run on its own thread. It never needs to
+        // be unregistered, because as long as the memory profiler is running the system memory
+        // reporter can make measurements.
+        let (system_reporter_sender, system_reporter_receiver) = ipc::channel().unwrap();
+        ROUTER.add_route(system_reporter_receiver.to_opaque(), box |message| {
+            let request: ReporterRequest = message.to().unwrap();
+            system_reporter::collect_reports(request)
+        });
+        mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(),
+                                                             Reporter(system_reporter_sender)));
 
         mem_profiler_chan
     }
 
-    pub fn new(port: Receiver<ProfilerMsg>) -> Profiler {
+    pub fn new(port: IpcReceiver<ProfilerMsg>) -> Profiler {
         Profiler {
             port: port,
             reporters: HashMap::new(),
@@ -117,17 +126,72 @@ impl Profiler {
         // each reporter once we have enough of them.
         //
         // If anything goes wrong with a reporter, we just skip it.
+        //
+        // We also track the total memory reported on the jemalloc heap and the system heap, and
+        // use that to compute the special "jemalloc-heap-unclassified" and
+        // "system-heap-unclassified" values.
+
         let mut forest = ReportsForest::new();
+
+        let mut jemalloc_heap_reported_size = 0;
+        let mut system_heap_reported_size = 0;
+
+        let mut jemalloc_heap_allocated_size: Option<usize> = None;
+        let mut system_heap_allocated_size: Option<usize> = None;
+
         for reporter in self.reporters.values() {
-            let (chan, port) = channel();
-            if reporter.collect_reports(ReportsChan(chan)) {
-                if let Ok(reports) = port.recv() {
-                    for report in reports.iter() {
-                        forest.insert(&report.path, report.size);
+            let (chan, port) = ipc::channel().unwrap();
+            reporter.collect_reports(ReportsChan(chan));
+            if let Ok(mut reports) = port.recv() {
+
+                for report in reports.iter_mut() {
+
+                    // Add "explicit" to the start of the path, when appropriate.
+                    match report.kind {
+                        ReportKind::ExplicitJemallocHeapSize |
+                        ReportKind::ExplicitSystemHeapSize |
+                        ReportKind::ExplicitNonHeapSize |
+                        ReportKind::ExplicitUnknownLocationSize =>
+                            report.path.insert(0, String::from("explicit")),
+                        ReportKind::NonExplicitSize => {},
                     }
+
+                    // Update the reported fractions of the heaps, when appropriate.
+                    match report.kind {
+                        ReportKind::ExplicitJemallocHeapSize =>
+                            jemalloc_heap_reported_size += report.size,
+                        ReportKind::ExplicitSystemHeapSize =>
+                            system_heap_reported_size += report.size,
+                        _ => {},
+                    }
+
+                    // Record total size of the heaps, when we see them.
+                    if report.path.len() == 1 {
+                        if report.path[0] == JEMALLOC_HEAP_ALLOCATED_STR {
+                            assert!(jemalloc_heap_allocated_size.is_none());
+                            jemalloc_heap_allocated_size = Some(report.size);
+                        } else if report.path[0] == SYSTEM_HEAP_ALLOCATED_STR {
+                            assert!(system_heap_allocated_size.is_none());
+                            system_heap_allocated_size = Some(report.size);
+                        }
+                    }
+
+                    // Insert the report.
+                    forest.insert(&report.path, report.size);
                 }
             }
         }
+
+        // Compute and insert the heap-unclassified values.
+        if let Some(jemalloc_heap_allocated_size) = jemalloc_heap_allocated_size {
+            forest.insert(&path!["explicit", "jemalloc-heap-unclassified"],
+                          jemalloc_heap_allocated_size - jemalloc_heap_reported_size);
+        }
+        if let Some(system_heap_allocated_size) = system_heap_allocated_size {
+            forest.insert(&path!["explicit", "system-heap-unclassified"],
+                          system_heap_allocated_size - system_heap_reported_size);
+        }
+
         forest.print();
 
         println!("|");
@@ -249,14 +313,15 @@ impl ReportsForest {
 
     // Insert the path and size into the forest, adding any trees and nodes as necessary.
     fn insert(&mut self, path: &[String], size: usize) {
+        let (head, tail) = path.split_first().unwrap();
         // Get the right tree, creating it if necessary.
-        if !self.trees.contains_key(&path[0]) {
-            self.trees.insert(path[0].clone(), ReportsTree::new(path[0].clone()));
+        if !self.trees.contains_key(head) {
+            self.trees.insert(head.clone(), ReportsTree::new(head.clone()));
         }
-        let t = self.trees.get_mut(&path[0]).unwrap();
+        let t = self.trees.get_mut(head).unwrap();
 
-        // Use tail() because the 0th path segment was used to find the right tree in the forest.
-        t.insert(path.tail(), size);
+        // Use tail because the 0th path segment was used to find the right tree in the forest.
+        t.insert(tail, size);
     }
 
     fn print(&mut self) {
@@ -297,60 +362,60 @@ impl ReportsForest {
 
 mod system_reporter {
     use libc::{c_char, c_int, c_void, size_t};
-    use profile_traits::mem::{Report, Reporter, ReportsChan};
+    use profile_traits::mem::{Report, ReporterRequest, ReportKind};
     use std::borrow::ToOwned;
     use std::ffi::CString;
     use std::mem::size_of;
     use std::ptr::null_mut;
+    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os="macos")]
     use task_info::task_basic_info::{virtual_size, resident_size};
 
     /// Collects global measurements from the OS and heap allocators.
-    pub struct SystemReporter;
-
-    impl Reporter for SystemReporter {
-        fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-            let mut reports = vec![];
-            {
-                let mut report = |path, size| {
-                    if let Some(size) = size {
-                        reports.push(Report { path: path, size: size });
-                    }
-                };
-
-                // Virtual and physical memory usage, as reported by the OS.
-                report(path!["vsize"], get_vsize());
-                report(path!["resident"], get_resident());
-
-                // Memory segments, as reported by the OS.
-                for seg in get_resident_segments().iter() {
-                    report(path!["resident-according-to-smaps", seg.0], Some(seg.1));
+    pub fn collect_reports(request: ReporterRequest) {
+        let mut reports = vec![];
+        {
+            let mut report = |path, size| {
+                if let Some(size) = size {
+                    reports.push(Report {
+                        path: path,
+                        kind: ReportKind::NonExplicitSize,
+                        size: size,
+                    });
                 }
+            };
 
-                // Total number of bytes allocated by the application on the system
-                // heap.
-                report(path!["system-heap-allocated"], get_system_heap_allocated());
+            // Virtual and physical memory usage, as reported by the OS.
+            report(path!["vsize"], get_vsize());
+            report(path!["resident"], get_resident());
 
-                // The descriptions of the following jemalloc measurements are taken
-                // directly from the jemalloc documentation.
-
-                // "Total number of bytes allocated by the application."
-                report(path!["jemalloc-heap-allocated"], get_jemalloc_stat("stats.allocated"));
-
-                // "Total number of bytes in active pages allocated by the application.
-                // This is a multiple of the page size, and greater than or equal to
-                // |stats.allocated|."
-                report(path!["jemalloc-heap-active"], get_jemalloc_stat("stats.active"));
-
-                // "Total number of bytes in chunks mapped on behalf of the application.
-                // This is a multiple of the chunk size, and is at least as large as
-                // |stats.active|. This does not include inactive chunks."
-                report(path!["jemalloc-heap-mapped"], get_jemalloc_stat("stats.mapped"));
+            // Memory segments, as reported by the OS.
+            for seg in get_resident_segments().iter() {
+                report(path!["resident-according-to-smaps", seg.0], Some(seg.1));
             }
-            reports_chan.send(reports);
 
-            true
+            // Total number of bytes allocated by the application on the system
+            // heap.
+            report(path![SYSTEM_HEAP_ALLOCATED_STR], get_system_heap_allocated());
+
+            // The descriptions of the following jemalloc measurements are taken
+            // directly from the jemalloc documentation.
+
+            // "Total number of bytes allocated by the application."
+            report(path![JEMALLOC_HEAP_ALLOCATED_STR], get_jemalloc_stat("stats.allocated"));
+
+            // "Total number of bytes in active pages allocated by the application.
+            // This is a multiple of the page size, and greater than or equal to
+            // |stats.allocated|."
+            report(path!["jemalloc-heap-active"], get_jemalloc_stat("stats.active"));
+
+            // "Total number of bytes in chunks mapped on behalf of the application.
+            // This is a multiple of the chunk size, and is at least as large as
+            // |stats.active|. This does not include inactive chunks."
+            report(path!["jemalloc-heap-mapped"], get_jemalloc_stat("stats.mapped"));
         }
+
+        request.reports_channel.send(reports);
     }
 
     #[cfg(target_os="linux")]
@@ -375,10 +440,9 @@ mod system_reporter {
 
     #[cfg(target_os="linux")]
     fn get_system_heap_allocated() -> Option<usize> {
-        let mut info: struct_mallinfo;
-        unsafe {
-            info = mallinfo();
-        }
+        let info: struct_mallinfo = unsafe {
+            mallinfo()
+        };
         // The documentation in the glibc man page makes it sound like |uordblks|
         // would suffice, but that only gets the small allocations that are put in
         // the brk heap. We need |hblkhd| as well to get the larger allocations
@@ -437,6 +501,13 @@ mod system_reporter {
     );
 
     #[cfg(target_os="linux")]
+    fn page_size() -> usize {
+        unsafe {
+            ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
+        }
+    }
+
+    #[cfg(target_os="linux")]
     fn get_proc_self_statm_field(field: usize) -> Option<usize> {
         use std::fs::File;
         use std::io::Read;
@@ -446,7 +517,7 @@ mod system_reporter {
         option_try!(f.read_to_string(&mut contents).ok());
         let s = option_try!(contents.split_whitespace().nth(field));
         let npages = option_try!(s.parse::<usize>().ok());
-        Some(npages * ::std::env::page_size())
+        Some(npages * page_size())
     }
 
     #[cfg(target_os="linux")]

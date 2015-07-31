@@ -4,11 +4,11 @@
 
 #![feature(box_syntax)]
 #![feature(iter_arith)]
-#![cfg_attr(target_os="linux", feature(page_size))]
-#![feature(slice_extras)]
+#![feature(slice_splits)]
 
 #[macro_use] extern crate log;
 
+extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
 extern crate profile_traits;

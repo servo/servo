@@ -11,17 +11,21 @@
 extern crate log;
 
 extern crate azure;
+extern crate canvas;
+extern crate canvas_traits;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx;
 extern crate ipc_channel;
 extern crate layers;
 extern crate layout_traits;
+extern crate offscreen_gl_context;
 extern crate png;
 extern crate script_traits;
 extern crate msg;
 extern crate net;
 extern crate num;
+#[macro_use]
 extern crate profile_traits;
 extern crate net_traits;
 extern crate gfx_traits;
@@ -45,7 +49,7 @@ pub use constellation::Constellation;
 
 pub mod compositor_task;
 
-mod buffer_map;
+mod surface_map;
 mod compositor_layer;
 mod compositor;
 mod headless;

@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
+<title>CSS Writing Modes: Layout rules of text-combine-upright</title>
+<link href="https://google.com/+MasatakaYakura" rel="author" title="Masataka Yakura" />
+<link href="kojiishi@gmail.com" rel="author" title="Koji Ishii" />
+<link href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-layout" rel="help" />
+<meta content="Anything outside the 1em-composition does not affect layout." name="assert" />
+<meta content="ahem" name="flags" />
+<style>
+#container {
+  writing-mode: vertical-rl;
+  font: 50px/1 Ahem;
+}
+#container &gt; div {
+  margin:.2em;
+}
+.tcy {
+  text-combine-upright: all;
+  color:transparent;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there are 2 <strong>identical</strong> hollow squares.</p>
+<div id="container">
+  <div>AAA<br />A A<br />AAA</div>
+  <div>AAA<br />A A<br />AAA</div>
+</div>
+
+
+</body></html>

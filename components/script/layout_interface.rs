@@ -10,17 +10,21 @@ use dom::node::LayoutData;
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::uintptr_t;
 use msg::compositor_msg::LayerId;
-use msg::constellation_msg::{PipelineExitType, WindowSizeData};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{WindowSizeData};
 use msg::compositor_msg::Epoch;
+use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::PendingAsyncLoad;
-use profile_traits::mem::{Reporter, ReportsChan};
-use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
-use script_traits::StylesheetLoadResponder;
+use profile_traits::mem::ReportsChan;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
+use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
+use selectors::parser::PseudoElement;
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use string_cache::Atom;
 use style::animation::PropertyAnimation;
 use style::media_queries::MediaQueryList;
 use style::stylesheets::Stylesheet;
@@ -72,7 +76,12 @@ pub enum Msg {
     ExitNow(PipelineExitType),
 
     /// Get the last epoch counter for this layout task.
-    GetCurrentEpoch(IpcSender<Epoch>)
+    GetCurrentEpoch(IpcSender<Epoch>),
+
+    /// Creates a new layout task.
+    ///
+    /// This basically exists to keep the script-layout dependency one-way.
+    CreateLayoutTask(NewLayoutTaskInfo),
 }
 
 /// Synchronous messages that script can send to layout.
@@ -88,15 +97,24 @@ pub trait LayoutRPC {
     fn content_box(&self) -> ContentBoxResponse;
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     fn content_boxes(&self) -> ContentBoxesResponse;
+    /// Requests the geometry of this node. Used by APIs such as `clientTop`.
+    fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the node containing the point of interest
     fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
     fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
+    /// Query layout for the resolved value of a given CSS property
+    fn resolved_style(&self) -> ResolvedStyleResponse;
 }
+
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
+pub struct NodeGeometryResponse {
+    pub client_rect: Rect<i32>,
+}
 pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
+pub struct ResolvedStyleResponse(pub Option<String>);
 
 /// Why we're doing reflow.
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -113,6 +131,8 @@ pub enum ReflowQueryType {
     NoQuery,
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
+    NodeGeometryQuery(TrustedNodeAddress),
+    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
 }
 
 /// Information needed for a reflow.
@@ -149,14 +169,6 @@ impl LayoutChan {
     pub fn new() -> (Receiver<Msg>, LayoutChan) {
         let (chan, port) = channel();
         (port, LayoutChan(chan))
-    }
-}
-
-impl Reporter for LayoutChan {
-    // Just injects an appropriate event into the layout task's queue.
-    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
-        let LayoutChan(ref c) = *self;
-        c.send(Msg::CollectReports(reports_chan)).is_ok()
     }
 }
 
@@ -207,5 +219,19 @@ impl Animation {
     pub fn duration(&self) -> f32 {
         self.end_time - self.start_time
     }
+}
+
+pub struct NewLayoutTaskInfo {
+    pub id: PipelineId,
+    pub url: Url,
+    pub is_parent: bool,
+    pub layout_pair: OpaqueScriptLayoutChannel,
+    pub pipeline_port: IpcReceiver<LayoutControlMsg>,
+    pub constellation_chan: ConstellationChan,
+    pub failure: Failure,
+    pub script_chan: Sender<ConstellationControlMsg>,
+    pub image_cache_task: ImageCacheTask,
+    pub paint_chan: Box<Any + Send>,
+    pub layout_shutdown_chan: Sender<()>,
 }
 

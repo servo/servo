@@ -345,7 +345,7 @@ impl Window {
         // When writing to a file then exiting, use event
         // polling so that we don't block on a GUI event
         // such as mouse click.
-        if opts::get().output_file.is_some() {
+        if opts::get().output_file.is_some() || opts::get().exit_after_load {
             while let Some(event) = self.window.poll_events().next() {
                 close_event = self.handle_window_event(event) || close_event;
             }
@@ -552,6 +552,9 @@ impl WindowMethods for Window {
     }
 
     fn set_page_url(&self, _: Url) {
+    }
+
+    fn status(&self, _: Option<String>) {
     }
 
     fn load_start(&self, _: bool, _: bool) {
@@ -778,6 +781,9 @@ impl WindowMethods for Window {
     fn set_favicon(&self, _: Url) {
     }
 
+    fn status(&self, _: Option<String>) {
+    }
+
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
         true
     }
@@ -805,7 +811,7 @@ struct GlutinCompositorProxy {
 unsafe impl Send for GlutinCompositorProxy {}
 
 impl CompositorProxy for GlutinCompositorProxy {
-    fn send(&mut self, msg: compositor_task::Msg) {
+    fn send(&self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg).unwrap();
         if let Some(ref window_proxy) = self.window_proxy {

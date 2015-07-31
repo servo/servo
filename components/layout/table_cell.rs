@@ -8,7 +8,6 @@
 
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};

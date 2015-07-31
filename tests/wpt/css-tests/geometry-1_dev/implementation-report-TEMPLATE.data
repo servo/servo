@@ -2,12 +2,12 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/geometry-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/dommatrix-001.htm	?	
-xhtml1/dommatrix-001.xht	?	
-html4/dompoint-001.htm	?	
-xhtml1/dompoint-001.xht	?	
-html4/domquad-001.htm	?	
-xhtml1/domquad-001.xht	?	
-html4/domrect-001.htm	?	
-xhtml1/domrect-001.xht	?	
+testname	revision	result	comment
+html/dommatrix-001.htm	9ef5062544554f66a8c941d084bf9fd707277436	?
+xhtml1/dommatrix-001.xht	9ef5062544554f66a8c941d084bf9fd707277436	?
+html/dompoint-001.htm	4eab429b2c693c8262acc9c9e4b8fe388ccefe7d	?
+xhtml1/dompoint-001.xht	4eab429b2c693c8262acc9c9e4b8fe388ccefe7d	?
+html/domquad-001.htm	55abae26ff2b8b770ae585a4373ca850270f920b	?
+xhtml1/domquad-001.xht	55abae26ff2b8b770ae585a4373ca850270f920b	?
+html/domrect-001.htm	1e80e3a9f2498b6395bad44875ad8ecb31fb76e4	?
+xhtml1/domrect-001.xht	1e80e3a9f2498b6395bad44875ad8ecb31fb76e4	?

@@ -1,8 +1,8 @@
 /* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- *
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
  * The origin of this IDL file is
  * https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-KeyboardEvent
  *
@@ -30,7 +30,9 @@ interface KeyboardEvent : UIEvent {
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-interface-KeyboardEvent-initializers
 partial interface KeyboardEvent {
     // Originally introduced (and deprecated) in DOM Level 3
-    void initKeyboardEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg, DOMString keyArg, unsigned long locationArg, DOMString modifiersListArg, boolean repeat, DOMString locale);
+    void initKeyboardEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg,
+                            DOMString keyArg, unsigned long locationArg, DOMString modifiersListArg,
+                            boolean repeat, DOMString locale);
 };
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#KeyboardEvent-supplemental-interface

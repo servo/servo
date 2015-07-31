@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>CSS Writing Modes Test: Shrink-to-fit table-cell with a child of orthogonal inline with borders</title>
+<link href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows" rel="help" />
+<meta content="Shrink-to-fit table-cell with a child of orthogonal inline with borders" name="assert" />
+<meta content="ahem" name="flags" />
+<link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link href="/resources/testharness.css" rel="stylesheet" />
+<style>
+.test {
+    border:thin solid;
+    font:20px/1 Ahem;
+}
+.target {
+    color:blue;
+    height:3em;
+    writing-mode:vertical-rl;
+}
+.border {
+    border-right:blue solid .5em;
+}
+.next {
+    color:orange;
+}
+.inline-block {
+    display:inline-block;
+}
+.float {
+    float:left;
+}
+h3 {
+    clear:both;
+}
+h3.fail {
+    color:red;
+}
+table {
+    border-spacing:0px;
+}
+td {
+    padding:0px;
+}
+</style>
+</head><body><div id="log"></div>
+<div id="container">
+<p>Test passes if the <b>left</b> edge of the orange box <b>touches</b> the <b>right</b> edge of the blue box.
+    There should be no spaces nor overlaps.
+</p><p>The blue box must be <b>tall</b>, the height should be as twice as the width.
+</p><p>If script is enabled, there should be one or more PASS and no FAIL.
+</p><h3>20: Shrink-to-fit table-cell with a child of orthogonal inline with borders</h3>
+<div class="test">
+    <table><tbody><tr><td><span class="target border">XXX</span></td><td class="next">YY</td></tr></tbody></table>
+</div>
+</div>
+<script>
+if (window.location.search == "?wait") {
+    console.log("Sleeping 5 secs for debug");
+    setup({explicit_done:true});
+    window.setTimeout(run, 5000);
+} else {
+    run();
+}
+
+function run() {
+    Array.prototype.forEach.call(document.querySelectorAll(".test"), function (node) {
+        var title = node.previousElementSibling.innerText;
+        test(function () {
+            try {
+                var targetNode = node.querySelector(".target");
+                var fontSize = parseFloat(getComputedStyle(targetNode).fontSize);
+                var targetBounds = targetNode.getBoundingClientRect();
+                assert_less_than_equal(targetBounds.width, fontSize * 2.01, "writing-mode is vertical")
+                var nextNode = node.querySelector(".next");
+                var nextBounds = nextNode.getBoundingClientRect();
+                assert_equals(nextBounds.left - targetBounds.right, 0, "the left edge of the orange box touches the right edge of the blue box");
+            } catch (e) {
+                node.previousElementSibling.classList.add("fail");
+                throw e;
+            }
+        }, title);
+    });
+    if (window.testRunner)
+        container.style.display = "none";
+    done();
+}
+</script>
+</body></html>

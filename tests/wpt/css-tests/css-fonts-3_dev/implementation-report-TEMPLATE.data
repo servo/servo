@@ -2,766 +2,776 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-fonts-3_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/alternates-order.htm	?	
-xhtml1/alternates-order.xht	?	
-html4/background-position-001.htm	?	
-xhtml1/background-position-001.xht	?	
-html4/background-position-002.htm	?	
-xhtml1/background-position-002.xht	?	
-html4/c522-font-family-000.htm	?	
-xhtml1/c522-font-family-000.xht	?	
-html4/c523-font-style-000.htm	?	
-xhtml1/c523-font-style-000.xht	?	
-html4/c524-font-var-000.htm	?	
-xhtml1/c524-font-var-000.xht	?	
-html4/c525-font-wt-000.htm	?	
-xhtml1/c525-font-wt-000.xht	?	
-html4/c526-font-sz-000.htm	?	
-xhtml1/c526-font-sz-000.xht	?	
-html4/c526-font-sz-001.htm	?	
-xhtml1/c526-font-sz-001.xht	?	
-html4/c526-font-sz-002.htm	?	
-xhtml1/c526-font-sz-002.xht	?	
-html4/c526-font-sz-003.htm	?	
-xhtml1/c526-font-sz-003.xht	?	
-html4/c527-font-000.htm	?	
-xhtml1/c527-font-000.xht	?	
-html4/c527-font-001.htm	?	
-xhtml1/c527-font-001.xht	?	
-html4/c527-font-002.htm	?	
-xhtml1/c527-font-002.xht	?	
-html4/c527-font-003.htm	?	
-xhtml1/c527-font-003.xht	?	
-html4/c527-font-004.htm	?	
-xhtml1/c527-font-004.xht	?	
-html4/c527-font-005.htm	?	
-xhtml1/c527-font-005.xht	?	
-html4/c527-font-006.htm	?	
-xhtml1/c527-font-006.xht	?	
-html4/c527-font-007.htm	?	
-xhtml1/c527-font-007.xht	?	
-html4/c527-font-008.htm	?	
-xhtml1/c527-font-008.xht	?	
-html4/c527-font-009.htm	?	
-xhtml1/c527-font-009.xht	?	
-html4/c527-font-10.htm	?	
-xhtml1/c527-font-10.xht	?	
-html4/c543-txt-decor-000.htm	?	
-xhtml1/c543-txt-decor-000.xht	?	
-html4/font-001.htm	?	
-xhtml1/font-001.xht	?	
-html4/font-002.htm	?	
-xhtml1/font-002.xht	?	
-html4/font-003.htm	?	
-xhtml1/font-003.xht	?	
-html4/font-004.htm	?	
-xhtml1/font-004.xht	?	
-html4/font-005.htm	?	
-xhtml1/font-005.xht	?	
-html4/font-006.htm	?	
-xhtml1/font-006.xht	?	
-html4/font-007.htm	?	
-xhtml1/font-007.xht	?	
-html4/font-008.htm	?	
-xhtml1/font-008.xht	?	
-html4/font-009.htm	?	
-xhtml1/font-009.xht	?	
-html4/font-010.htm	?	
-xhtml1/font-010.xht	?	
-html4/font-011.htm	?	
-xhtml1/font-011.xht	?	
-html4/font-012.htm	?	
-xhtml1/font-012.xht	?	
-html4/font-013.htm	?	
-xhtml1/font-013.xht	?	
-html4/font-014.htm	?	
-xhtml1/font-014.xht	?	
-html4/font-015.htm	?	
-xhtml1/font-015.xht	?	
-html4/font-016.htm	?	
-xhtml1/font-016.xht	?	
-html4/font-017.htm	?	
-xhtml1/font-017.xht	?	
-html4/font-018.htm	?	
-xhtml1/font-018.xht	?	
-html4/font-019.htm	?	
-xhtml1/font-019.xht	?	
-html4/font-020.htm	?	
-xhtml1/font-020.xht	?	
-html4/font-021.htm	?	
-xhtml1/font-021.xht	?	
-html4/font-022.htm	?	
-xhtml1/font-022.xht	?	
-html4/font-023.htm	?	
-xhtml1/font-023.xht	?	
-html4/font-024.htm	?	
-xhtml1/font-024.xht	?	
-html4/font-025.htm	?	
-xhtml1/font-025.xht	?	
-html4/font-026.htm	?	
-xhtml1/font-026.xht	?	
-html4/font-027.htm	?	
-xhtml1/font-027.xht	?	
-html4/font-028.htm	?	
-xhtml1/font-028.xht	?	
-html4/font-029.htm	?	
-xhtml1/font-029.xht	?	
-html4/font-030.htm	?	
-xhtml1/font-030.xht	?	
-html4/font-031.htm	?	
-xhtml1/font-031.xht	?	
-html4/font-032.htm	?	
-xhtml1/font-032.xht	?	
-html4/font-033.htm	?	
-xhtml1/font-033.xht	?	
-html4/font-034.htm	?	
-xhtml1/font-034.xht	?	
-html4/font-035.htm	?	
-xhtml1/font-035.xht	?	
-html4/font-036.htm	?	
-xhtml1/font-036.xht	?	
-html4/font-037.htm	?	
-xhtml1/font-037.xht	?	
-html4/font-038.htm	?	
-xhtml1/font-038.xht	?	
-html4/font-039.htm	?	
-xhtml1/font-039.xht	?	
-html4/font-040.htm	?	
-xhtml1/font-040.xht	?	
-html4/font-041.htm	?	
-xhtml1/font-041.xht	?	
-html4/font-042.htm	?	
-xhtml1/font-042.xht	?	
-html4/font-043.htm	?	
-xhtml1/font-043.xht	?	
-html4/font-044.htm	?	
-xhtml1/font-044.xht	?	
-html4/font-045.htm	?	
-xhtml1/font-045.xht	?	
-html4/font-046.htm	?	
-xhtml1/font-046.xht	?	
-html4/font-047.htm	?	
-xhtml1/font-047.xht	?	
-html4/font-048.htm	?	
-xhtml1/font-048.xht	?	
-html4/font-049.htm	?	
-xhtml1/font-049.xht	?	
-html4/font-050.htm	?	
-xhtml1/font-050.xht	?	
-html4/font-051.htm	?	
-xhtml1/font-051.xht	?	
-html4/font-052.htm	?	
-xhtml1/font-052.xht	?	
-html4/font-144.htm	?	
-xhtml1/font-144.xht	?	
-html4/font-145.htm	?	
-xhtml1/font-145.xht	?	
-html4/font-146.htm	?	
-xhtml1/font-146.xht	?	
-html4/font-147.htm	?	
-xhtml1/font-147.xht	?	
-html4/font-applies-to-001.htm	?	
-xhtml1/font-applies-to-001.xht	?	
-html4/font-applies-to-002.htm	?	
-xhtml1/font-applies-to-002.xht	?	
-html4/font-applies-to-003.htm	?	
-xhtml1/font-applies-to-003.xht	?	
-html4/font-applies-to-004.htm	?	
-xhtml1/font-applies-to-004.xht	?	
-html4/font-applies-to-005.htm	?	
-xhtml1/font-applies-to-005.xht	?	
-html4/font-applies-to-006.htm	?	
-xhtml1/font-applies-to-006.xht	?	
-html4/font-applies-to-007.htm	?	
-xhtml1/font-applies-to-007.xht	?	
-html4/font-applies-to-008.htm	?	
-xhtml1/font-applies-to-008.xht	?	
-html4/font-applies-to-009.htm	?	
-xhtml1/font-applies-to-009.xht	?	
-html4/font-applies-to-010.htm	?	
-xhtml1/font-applies-to-010.xht	?	
-html4/font-applies-to-011.htm	?	
-xhtml1/font-applies-to-011.xht	?	
-html4/font-applies-to-014.htm	?	
-xhtml1/font-applies-to-014.xht	?	
-html4/font-applies-to-015.htm	?	
-xhtml1/font-applies-to-015.xht	?	
-html4/font-applies-to-016.htm	?	
-xhtml1/font-applies-to-016.xht	?	
-html4/font-applies-to-017.htm	?	
-xhtml1/font-applies-to-017.xht	?	
-html4/font-face-unicode-range.htm	?	
-xhtml1/font-face-unicode-range.xht	?	
-html4/font-family-001.htm	?	
-xhtml1/font-family-001.xht	?	
-html4/font-family-002.htm	?	
-xhtml1/font-family-002.xht	?	
-html4/font-family-003.htm	?	
-xhtml1/font-family-003.xht	?	
-html4/font-family-004.htm	?	
-xhtml1/font-family-004.xht	?	
-html4/font-family-005.htm	?	
-xhtml1/font-family-005.xht	?	
-html4/font-family-006.htm	?	
-xhtml1/font-family-006.xht	?	
-html4/font-family-007.htm	?	
-xhtml1/font-family-007.xht	?	
-html4/font-family-008.htm	?	
-xhtml1/font-family-008.xht	?	
-html4/font-family-009.htm	?	
-xhtml1/font-family-009.xht	?	
-html4/font-family-011.htm	?	
-xhtml1/font-family-011.xht	?	
-html4/font-family-012.htm	?	
-xhtml1/font-family-012.xht	?	
-html4/font-family-013.htm	?	
-xhtml1/font-family-013.xht	?	
-html4/font-family-014.htm	?	
-xhtml1/font-family-014.xht	?	
-html4/font-family-015.htm	?	
-xhtml1/font-family-015.xht	?	
-html4/font-family-016.htm	?	
-xhtml1/font-family-016.xht	?	
-html4/font-family-applies-to-001.htm	?	
-xhtml1/font-family-applies-to-001.xht	?	
-html4/font-family-applies-to-002.htm	?	
-xhtml1/font-family-applies-to-002.xht	?	
-html4/font-family-applies-to-003.htm	?	
-xhtml1/font-family-applies-to-003.xht	?	
-html4/font-family-applies-to-005.htm	?	
-xhtml1/font-family-applies-to-005.xht	?	
-html4/font-family-applies-to-007.htm	?	
-xhtml1/font-family-applies-to-007.xht	?	
-html4/font-family-applies-to-008.htm	?	
-xhtml1/font-family-applies-to-008.xht	?	
-html4/font-family-applies-to-009.htm	?	
-xhtml1/font-family-applies-to-009.xht	?	
-html4/font-family-applies-to-010.htm	?	
-xhtml1/font-family-applies-to-010.xht	?	
-html4/font-family-applies-to-011.htm	?	
-xhtml1/font-family-applies-to-011.xht	?	
-html4/font-family-applies-to-014.htm	?	
-xhtml1/font-family-applies-to-014.xht	?	
-html4/font-family-applies-to-015.htm	?	
-xhtml1/font-family-applies-to-015.xht	?	
-html4/font-family-applies-to-016.htm	?	
-xhtml1/font-family-applies-to-016.xht	?	
-html4/font-family-applies-to-017.htm	?	
-xhtml1/font-family-applies-to-017.xht	?	
-html4/font-family-invalid-characters-001.htm	?	
-xhtml1/font-family-invalid-characters-001.xht	?	
-html4/font-family-invalid-characters-002.htm	?	
-xhtml1/font-family-invalid-characters-002.xht	?	
-html4/font-family-invalid-characters-003.htm	?	
-xhtml1/font-family-invalid-characters-003.xht	?	
-html4/font-family-invalid-characters-004.htm	?	
-xhtml1/font-family-invalid-characters-004.xht	?	
-html4/font-family-invalid-characters-005.htm	?	
-xhtml1/font-family-invalid-characters-005.xht	?	
-html4/font-family-invalid-characters-006.htm	?	
-xhtml1/font-family-invalid-characters-006.xht	?	
-html4/font-family-name-001.htm	?	
-xhtml1/font-family-name-001.xht	?	
-html4/font-family-name-002.htm	?	
-xhtml1/font-family-name-002.xht	?	
-html4/font-family-name-003.htm	?	
-xhtml1/font-family-name-003.xht	?	
-html4/font-family-name-004.htm	?	
-xhtml1/font-family-name-004.xht	?	
-html4/font-family-name-005.htm	?	
-xhtml1/font-family-name-005.xht	?	
-html4/font-family-name-006.htm	?	
-xhtml1/font-family-name-006.xht	?	
-html4/font-family-name-007.htm	?	
-xhtml1/font-family-name-007.xht	?	
-html4/font-family-name-008.htm	?	
-xhtml1/font-family-name-008.xht	?	
-html4/font-family-name-009.htm	?	
-xhtml1/font-family-name-009.xht	?	
-html4/font-family-name-010.htm	?	
-xhtml1/font-family-name-010.xht	?	
-html4/font-family-name-011.htm	?	
-xhtml1/font-family-name-011.xht	?	
-html4/font-family-name-012.htm	?	
-xhtml1/font-family-name-012.xht	?	
-html4/font-family-name-013.htm	?	
-xhtml1/font-family-name-013.xht	?	
-html4/font-family-name-014.htm	?	
-xhtml1/font-family-name-014.xht	?	
-html4/font-family-name-015.htm	?	
-xhtml1/font-family-name-015.xht	?	
-html4/font-family-name-016.htm	?	
-xhtml1/font-family-name-016.xht	?	
-html4/font-family-name-017.htm	?	
-xhtml1/font-family-name-017.xht	?	
-html4/font-family-name-018.htm	?	
-xhtml1/font-family-name-018.xht	?	
-html4/font-family-name-019.htm	?	
-xhtml1/font-family-name-019.xht	?	
-html4/font-family-name-020.htm	?	
-xhtml1/font-family-name-020.xht	?	
-html4/font-family-name-021.htm	?	
-xhtml1/font-family-name-021.xht	?	
-html4/font-family-name-022.htm	?	
-xhtml1/font-family-name-022.xht	?	
-html4/font-family-name-023.htm	?	
-xhtml1/font-family-name-023.xht	?	
-html4/font-family-name-024.htm	?	
-xhtml1/font-family-name-024.xht	?	
-html4/font-family-rule-001.htm	?	
-xhtml1/font-family-rule-001.xht	?	
-html4/font-family-rule-002.htm	?	
-xhtml1/font-family-rule-002.xht	?	
-html4/font-family-rule-002a.htm	?	
-xhtml1/font-family-rule-002a.xht	?	
-html4/font-family-rule-003.htm	?	
-xhtml1/font-family-rule-003.xht	?	
-html4/font-family-rule-004.htm	?	
-xhtml1/font-family-rule-004.xht	?	
-html4/font-family-rule-004a.htm	?	
-xhtml1/font-family-rule-004a.xht	?	
-html4/font-family-rule-005.htm	?	
-xhtml1/font-family-rule-005.xht	?	
-html4/font-family-rule-006.htm	?	
-xhtml1/font-family-rule-006.xht	?	
-html4/font-family-rule-007.htm	?	
-xhtml1/font-family-rule-007.xht	?	
-html4/font-family-rule-009.htm	?	
-xhtml1/font-family-rule-009.xht	?	
-html4/font-family-rule-010.htm	?	
-xhtml1/font-family-rule-010.xht	?	
-html4/font-family-rule-011.htm	?	
-xhtml1/font-family-rule-011.xht	?	
-html4/font-family-rule-012.htm	?	
-xhtml1/font-family-rule-012.xht	?	
-html4/font-family-rule-013.htm	?	
-xhtml1/font-family-rule-013.xht	?	
-html4/font-family-rule-014.htm	?	
-xhtml1/font-family-rule-014.xht	?	
-html4/font-family-rule-015.htm	?	
-xhtml1/font-family-rule-015.xht	?	
-html4/font-family-rule-016.htm	?	
-xhtml1/font-family-rule-016.xht	?	
-html4/font-family-rule-017.htm	?	
-xhtml1/font-family-rule-017.xht	?	
-html4/font-family-valid-characters-001.htm	?	
-xhtml1/font-family-valid-characters-001.xht	?	
-html4/font-family-valid-characters-002.htm	?	
-xhtml1/font-family-valid-characters-002.xht	?	
-html4/font-features-across-space-1.htm	?	
-xhtml1/font-features-across-space-1.xht	?	
-html4/font-features-across-space-2.htm	?	
-xhtml1/font-features-across-space-2.xht	?	
-html4/font-features-across-space-3.htm	?	
-xhtml1/font-features-across-space-3.xht	?	
-html4/font-matching-rule-001.htm	?	
-xhtml1/font-matching-rule-001.xht	?	
-html4/font-matching-rule-006.htm	?	
-xhtml1/font-matching-rule-006.xht	?	
-html4/font-matching-rule-009.htm	?	
-xhtml1/font-matching-rule-009.xht	?	
-html4/font-matching-rule-010.htm	?	
-xhtml1/font-matching-rule-010.xht	?	
-html4/font-matching-rule-012.htm	?	
-xhtml1/font-matching-rule-012.xht	?	
-html4/font-matching-rule-014.htm	?	
-xhtml1/font-matching-rule-014.xht	?	
-html4/font-size-001.htm	?	
-xhtml1/font-size-001.xht	?	
-html4/font-size-002.htm	?	
-xhtml1/font-size-002.xht	?	
-html4/font-size-003.htm	?	
-xhtml1/font-size-003.xht	?	
-html4/font-size-004.htm	?	
-xhtml1/font-size-004.xht	?	
-html4/font-size-005.htm	?	
-xhtml1/font-size-005.xht	?	
-html4/font-size-006.htm	?	
-xhtml1/font-size-006.xht	?	
-html4/font-size-007.htm	?	
-xhtml1/font-size-007.xht	?	
-html4/font-size-012.htm	?	
-xhtml1/font-size-012.xht	?	
-html4/font-size-013.htm	?	
-xhtml1/font-size-013.xht	?	
-html4/font-size-014.htm	?	
-xhtml1/font-size-014.xht	?	
-html4/font-size-015.htm	?	
-xhtml1/font-size-015.xht	?	
-html4/font-size-016.htm	?	
-xhtml1/font-size-016.xht	?	
-html4/font-size-017.htm	?	
-xhtml1/font-size-017.xht	?	
-html4/font-size-018.htm	?	
-xhtml1/font-size-018.xht	?	
-html4/font-size-023.htm	?	
-xhtml1/font-size-023.xht	?	
-html4/font-size-024.htm	?	
-xhtml1/font-size-024.xht	?	
-html4/font-size-025.htm	?	
-xhtml1/font-size-025.xht	?	
-html4/font-size-026.htm	?	
-xhtml1/font-size-026.xht	?	
-html4/font-size-027.htm	?	
-xhtml1/font-size-027.xht	?	
-html4/font-size-028.htm	?	
-xhtml1/font-size-028.xht	?	
-html4/font-size-029.htm	?	
-xhtml1/font-size-029.xht	?	
-html4/font-size-034.htm	?	
-xhtml1/font-size-034.xht	?	
-html4/font-size-035.htm	?	
-xhtml1/font-size-035.xht	?	
-html4/font-size-036.htm	?	
-xhtml1/font-size-036.xht	?	
-html4/font-size-037.htm	?	
-xhtml1/font-size-037.xht	?	
-html4/font-size-038.htm	?	
-xhtml1/font-size-038.xht	?	
-html4/font-size-039.htm	?	
-xhtml1/font-size-039.xht	?	
-html4/font-size-040.htm	?	
-xhtml1/font-size-040.xht	?	
-html4/font-size-045.htm	?	
-xhtml1/font-size-045.xht	?	
-html4/font-size-046.htm	?	
-xhtml1/font-size-046.xht	?	
-html4/font-size-047.htm	?	
-xhtml1/font-size-047.xht	?	
-html4/font-size-048.htm	?	
-xhtml1/font-size-048.xht	?	
-html4/font-size-049.htm	?	
-xhtml1/font-size-049.xht	?	
-html4/font-size-050.htm	?	
-xhtml1/font-size-050.xht	?	
-html4/font-size-051.htm	?	
-xhtml1/font-size-051.xht	?	
-html4/font-size-056.htm	?	
-xhtml1/font-size-056.xht	?	
-html4/font-size-057.htm	?	
-xhtml1/font-size-057.xht	?	
-html4/font-size-058.htm	?	
-xhtml1/font-size-058.xht	?	
-html4/font-size-059.htm	?	
-xhtml1/font-size-059.xht	?	
-html4/font-size-060.htm	?	
-xhtml1/font-size-060.xht	?	
-html4/font-size-061.htm	?	
-xhtml1/font-size-061.xht	?	
-html4/font-size-062.htm	?	
-xhtml1/font-size-062.xht	?	
-html4/font-size-067.htm	?	
-xhtml1/font-size-067.xht	?	
-html4/font-size-068.htm	?	
-xhtml1/font-size-068.xht	?	
-html4/font-size-069.htm	?	
-xhtml1/font-size-069.xht	?	
-html4/font-size-070.htm	?	
-xhtml1/font-size-070.xht	?	
-html4/font-size-071.htm	?	
-xhtml1/font-size-071.xht	?	
-html4/font-size-072.htm	?	
-xhtml1/font-size-072.xht	?	
-html4/font-size-073.htm	?	
-xhtml1/font-size-073.xht	?	
-html4/font-size-078.htm	?	
-xhtml1/font-size-078.xht	?	
-html4/font-size-079.htm	?	
-xhtml1/font-size-079.xht	?	
-html4/font-size-080.htm	?	
-xhtml1/font-size-080.xht	?	
-html4/font-size-081.htm	?	
-xhtml1/font-size-081.xht	?	
-html4/font-size-082.htm	?	
-xhtml1/font-size-082.xht	?	
-html4/font-size-083.htm	?	
-xhtml1/font-size-083.xht	?	
-html4/font-size-084.htm	?	
-xhtml1/font-size-084.xht	?	
-html4/font-size-089.htm	?	
-xhtml1/font-size-089.xht	?	
-html4/font-size-090.htm	?	
-xhtml1/font-size-090.xht	?	
-html4/font-size-091.htm	?	
-xhtml1/font-size-091.xht	?	
-html4/font-size-092.htm	?	
-xhtml1/font-size-092.xht	?	
-html4/font-size-093.htm	?	
-xhtml1/font-size-093.xht	?	
-html4/font-size-094.htm	?	
-xhtml1/font-size-094.xht	?	
-html4/font-size-095.htm	?	
-xhtml1/font-size-095.xht	?	
-html4/font-size-100.htm	?	
-xhtml1/font-size-100.xht	?	
-html4/font-size-101.htm	?	
-xhtml1/font-size-101.xht	?	
-html4/font-size-102.htm	?	
-xhtml1/font-size-102.xht	?	
-html4/font-size-103.htm	?	
-xhtml1/font-size-103.xht	?	
-html4/font-size-104.htm	?	
-xhtml1/font-size-104.xht	?	
-html4/font-size-105.htm	?	
-xhtml1/font-size-105.xht	?	
-html4/font-size-106.htm	?	
-xhtml1/font-size-106.xht	?	
-html4/font-size-107.htm	?	
-xhtml1/font-size-107.xht	?	
-html4/font-size-108.htm	?	
-xhtml1/font-size-108.xht	?	
-html4/font-size-109.htm	?	
-xhtml1/font-size-109.xht	?	
-html4/font-size-110.htm	?	
-xhtml1/font-size-110.xht	?	
-html4/font-size-111.htm	?	
-xhtml1/font-size-111.xht	?	
-html4/font-size-112.htm	?	
-xhtml1/font-size-112.xht	?	
-html4/font-size-113.htm	?	
-xhtml1/font-size-113.xht	?	
-html4/font-size-114.htm	?	
-xhtml1/font-size-114.xht	?	
-html4/font-size-115.htm	?	
-xhtml1/font-size-115.xht	?	
-html4/font-size-116.htm	?	
-xhtml1/font-size-116.xht	?	
-html4/font-size-117.htm	?	
-xhtml1/font-size-117.xht	?	
-html4/font-size-118.htm	?	
-xhtml1/font-size-118.xht	?	
-html4/font-size-119.htm	?	
-xhtml1/font-size-119.xht	?	
-html4/font-size-120.htm	?	
-xhtml1/font-size-120.xht	?	
-html4/font-size-121.htm	?	
-xhtml1/font-size-121.xht	?	
-html4/font-size-122.htm	?	
-xhtml1/font-size-122.xht	?	
-html4/font-size-123.htm	?	
-xhtml1/font-size-123.xht	?	
-html4/font-size-adjust-001.htm	?	
-xhtml1/font-size-adjust-001.xht	?	
-html4/font-size-adjust-002.htm	?	
-xhtml1/font-size-adjust-002.xht	?	
-html4/font-size-applies-to-001.htm	?	
-xhtml1/font-size-applies-to-001.xht	?	
-html4/font-size-applies-to-002.htm	?	
-xhtml1/font-size-applies-to-002.xht	?	
-html4/font-size-applies-to-003.htm	?	
-xhtml1/font-size-applies-to-003.xht	?	
-html4/font-size-applies-to-004.htm	?	
-xhtml1/font-size-applies-to-004.xht	?	
-html4/font-size-applies-to-005.htm	?	
-xhtml1/font-size-applies-to-005.xht	?	
-html4/font-size-applies-to-006.htm	?	
-xhtml1/font-size-applies-to-006.xht	?	
-html4/font-size-applies-to-007.htm	?	
-xhtml1/font-size-applies-to-007.xht	?	
-html4/font-size-applies-to-008.htm	?	
-xhtml1/font-size-applies-to-008.xht	?	
-html4/font-size-applies-to-009.htm	?	
-xhtml1/font-size-applies-to-009.xht	?	
-html4/font-size-applies-to-010.htm	?	
-xhtml1/font-size-applies-to-010.xht	?	
-html4/font-size-applies-to-011.htm	?	
-xhtml1/font-size-applies-to-011.xht	?	
-html4/font-size-applies-to-014.htm	?	
-xhtml1/font-size-applies-to-014.xht	?	
-html4/font-size-applies-to-015.htm	?	
-xhtml1/font-size-applies-to-015.xht	?	
-html4/font-size-applies-to-016.htm	?	
-xhtml1/font-size-applies-to-016.xht	?	
-html4/font-size-applies-to-017.htm	?	
-xhtml1/font-size-applies-to-017.xht	?	
-html4/font-size-rule-001.htm	?	
-xhtml1/font-size-rule-001.xht	?	
-html4/font-size-rule-002.htm	?	
-xhtml1/font-size-rule-002.xht	?	
-html4/font-size-rule-003.htm	?	
-xhtml1/font-size-rule-003.xht	?	
-html4/font-size-rule-004.htm	?	
-xhtml1/font-size-rule-004.xht	?	
-html4/font-style-001.htm	?	
-xhtml1/font-style-001.xht	?	
-html4/font-style-002.htm	?	
-xhtml1/font-style-002.xht	?	
-html4/font-style-003.htm	?	
-xhtml1/font-style-003.xht	?	
-html4/font-style-004.htm	?	
-xhtml1/font-style-004.xht	?	
-html4/font-style-applies-to-001.htm	?	
-xhtml1/font-style-applies-to-001.xht	?	
-html4/font-style-applies-to-002.htm	?	
-xhtml1/font-style-applies-to-002.xht	?	
-html4/font-style-applies-to-003.htm	?	
-xhtml1/font-style-applies-to-003.xht	?	
-html4/font-style-applies-to-004.htm	?	
-xhtml1/font-style-applies-to-004.xht	?	
-html4/font-style-applies-to-005.htm	?	
-xhtml1/font-style-applies-to-005.xht	?	
-html4/font-style-applies-to-006.htm	?	
-xhtml1/font-style-applies-to-006.xht	?	
-html4/font-style-applies-to-007.htm	?	
-xhtml1/font-style-applies-to-007.xht	?	
-html4/font-style-applies-to-008.htm	?	
-xhtml1/font-style-applies-to-008.xht	?	
-html4/font-style-applies-to-009.htm	?	
-xhtml1/font-style-applies-to-009.xht	?	
-html4/font-style-applies-to-010.htm	?	
-xhtml1/font-style-applies-to-010.xht	?	
-html4/font-style-applies-to-011.htm	?	
-xhtml1/font-style-applies-to-011.xht	?	
-html4/font-style-applies-to-014.htm	?	
-xhtml1/font-style-applies-to-014.xht	?	
-html4/font-style-applies-to-015.htm	?	
-xhtml1/font-style-applies-to-015.xht	?	
-html4/font-style-applies-to-016.htm	?	
-xhtml1/font-style-applies-to-016.xht	?	
-html4/font-style-applies-to-017.htm	?	
-xhtml1/font-style-applies-to-017.xht	?	
-html4/font-style-rule-001.htm	?	
-xhtml1/font-style-rule-001.xht	?	
-html4/font-systemfont-rule-003.htm	?	
-xhtml1/font-systemfont-rule-003.xht	?	
-html4/font-systemfont-rule-004.htm	?	
-xhtml1/font-systemfont-rule-004.xht	?	
-html4/font-variant-001.htm	?	
-xhtml1/font-variant-001.xht	?	
-html4/font-variant-002.htm	?	
-xhtml1/font-variant-002.xht	?	
-html4/font-variant-003.htm	?	
-xhtml1/font-variant-003.xht	?	
-html4/font-variant-004.htm	?	
-xhtml1/font-variant-004.xht	?	
-html4/font-variant-applies-to-001.htm	?	
-xhtml1/font-variant-applies-to-001.xht	?	
-html4/font-variant-applies-to-002.htm	?	
-xhtml1/font-variant-applies-to-002.xht	?	
-html4/font-variant-applies-to-003.htm	?	
-xhtml1/font-variant-applies-to-003.xht	?	
-html4/font-variant-applies-to-004.htm	?	
-xhtml1/font-variant-applies-to-004.xht	?	
-html4/font-variant-applies-to-005.htm	?	
-xhtml1/font-variant-applies-to-005.xht	?	
-html4/font-variant-applies-to-006.htm	?	
-xhtml1/font-variant-applies-to-006.xht	?	
-html4/font-variant-applies-to-007.htm	?	
-xhtml1/font-variant-applies-to-007.xht	?	
-html4/font-variant-applies-to-008.htm	?	
-xhtml1/font-variant-applies-to-008.xht	?	
-html4/font-variant-applies-to-009.htm	?	
-xhtml1/font-variant-applies-to-009.xht	?	
-html4/font-variant-applies-to-010.htm	?	
-xhtml1/font-variant-applies-to-010.xht	?	
-html4/font-variant-applies-to-011.htm	?	
-xhtml1/font-variant-applies-to-011.xht	?	
-html4/font-variant-applies-to-014.htm	?	
-xhtml1/font-variant-applies-to-014.xht	?	
-html4/font-variant-applies-to-015.htm	?	
-xhtml1/font-variant-applies-to-015.xht	?	
-html4/font-variant-applies-to-016.htm	?	
-xhtml1/font-variant-applies-to-016.xht	?	
-html4/font-variant-applies-to-017.htm	?	
-xhtml1/font-variant-applies-to-017.xht	?	
-html4/font-variant-caps.htm	?	
-xhtml1/font-variant-caps.xht	?	
-html4/font-variant-east-asian.htm	?	
-xhtml1/font-variant-east-asian.xht	?	
-html4/font-variant-ligatures.htm	?	
-xhtml1/font-variant-ligatures.xht	?	
-html4/font-variant-numeric.htm	?	
-xhtml1/font-variant-numeric.xht	?	
-html4/font-variant-position.htm	?	
-xhtml1/font-variant-position.xht	?	
-html4/font-weight-001.htm	?	
-xhtml1/font-weight-001.xht	?	
-html4/font-weight-002.htm	?	
-xhtml1/font-weight-002.xht	?	
-html4/font-weight-003.htm	?	
-xhtml1/font-weight-003.xht	?	
-html4/font-weight-008.htm	?	
-xhtml1/font-weight-008.xht	?	
-html4/font-weight-010.htm	?	
-xhtml1/font-weight-010.xht	?	
-html4/font-weight-011.htm	?	
-xhtml1/font-weight-011.xht	?	
-html4/font-weight-012.htm	?	
-xhtml1/font-weight-012.xht	?	
-html4/font-weight-013.htm	?	
-xhtml1/font-weight-013.xht	?	
-html4/font-weight-014.htm	?	
-xhtml1/font-weight-014.xht	?	
-html4/font-weight-015.htm	?	
-xhtml1/font-weight-015.xht	?	
-html4/font-weight-016.htm	?	
-xhtml1/font-weight-016.xht	?	
-html4/font-weight-017.htm	?	
-xhtml1/font-weight-017.xht	?	
-html4/font-weight-018.htm	?	
-xhtml1/font-weight-018.xht	?	
-html4/font-weight-applies-to-001.htm	?	
-xhtml1/font-weight-applies-to-001.xht	?	
-html4/font-weight-applies-to-002.htm	?	
-xhtml1/font-weight-applies-to-002.xht	?	
-html4/font-weight-applies-to-003.htm	?	
-xhtml1/font-weight-applies-to-003.xht	?	
-html4/font-weight-applies-to-004.htm	?	
-xhtml1/font-weight-applies-to-004.xht	?	
-html4/font-weight-applies-to-005.htm	?	
-xhtml1/font-weight-applies-to-005.xht	?	
-html4/font-weight-applies-to-006.htm	?	
-xhtml1/font-weight-applies-to-006.xht	?	
-html4/font-weight-applies-to-007.htm	?	
-xhtml1/font-weight-applies-to-007.xht	?	
-html4/font-weight-applies-to-008.htm	?	
-xhtml1/font-weight-applies-to-008.xht	?	
-html4/font-weight-applies-to-009.htm	?	
-xhtml1/font-weight-applies-to-009.xht	?	
-html4/font-weight-applies-to-010.htm	?	
-xhtml1/font-weight-applies-to-010.xht	?	
-html4/font-weight-applies-to-011.htm	?	
-xhtml1/font-weight-applies-to-011.xht	?	
-html4/font-weight-applies-to-014.htm	?	
-xhtml1/font-weight-applies-to-014.xht	?	
-html4/font-weight-applies-to-015.htm	?	
-xhtml1/font-weight-applies-to-015.xht	?	
-html4/font-weight-applies-to-016.htm	?	
-xhtml1/font-weight-applies-to-016.xht	?	
-html4/font-weight-applies-to-017.htm	?	
-xhtml1/font-weight-applies-to-017.xht	?	
-html4/font-weight-rule-001.htm	?	
-xhtml1/font-weight-rule-001.xht	?	
-html4/font-weight-rule-002.htm	?	
-xhtml1/font-weight-rule-002.xht	?	
-html4/font-weight-rule-003.htm	?	
-xhtml1/font-weight-rule-003.xht	?	
-html4/font-weight-rule-004.htm	?	
-xhtml1/font-weight-rule-004.xht	?	
-html4/font-weight-rule-005.htm	?	
-xhtml1/font-weight-rule-005.xht	?	
-html4/font-weight-rule-006.htm	?	
-xhtml1/font-weight-rule-006.xht	?	
-html4/font-weight-rule-007.htm	?	
-xhtml1/font-weight-rule-007.xht	?	
-html4/font-weight-rule-008.htm	?	
-xhtml1/font-weight-rule-008.xht	?	
-html4/fonts-010.htm	?	
-xhtml1/fonts-010.xht	?	
-html4/fonts-011.htm	?	
-xhtml1/fonts-011.xht	?	
-html4/fonts-012.htm	?	
-xhtml1/fonts-012.xht	?	
-html4/fonts-013.htm	?	
-xhtml1/fonts-013.xht	?	
-html4/fonts-014.htm	?	
-xhtml1/fonts-014.xht	?	
-html4/test-synthetic-bold.htm	?	
-xhtml1/test-synthetic-bold.xht	?	
-html4/test-synthetic-italic.htm	?	
-xhtml1/test-synthetic-italic.xht	?	
-html4/test_font_family_parsing.htm	?	
-xhtml1/test_font_family_parsing.xht	?	
-html4/test_font_feature_values_parsing.htm	?	
-xhtml1/test_font_feature_values_parsing.xht	?	
+testname	revision	result	comment
+html/alternates-order.htm	490f5ce8e26479b2394e04c822052391d39a9626	?
+xhtml1/alternates-order.xht	490f5ce8e26479b2394e04c822052391d39a9626	?
+html/background-position-001.htm	8766d172948ccf1ae3fa825a91db3d26e8242b06	?
+xhtml1/background-position-001.xht	8766d172948ccf1ae3fa825a91db3d26e8242b06	?
+html/background-position-002.htm	235598f13ca1c4bfd7dd7434ca76bb2d46f989aa	?
+xhtml1/background-position-002.xht	235598f13ca1c4bfd7dd7434ca76bb2d46f989aa	?
+html/c522-font-family-000.htm	0a4fdf813c76a72df80bb83d74c92e2df982143b	?
+xhtml1/c522-font-family-000.xht	0a4fdf813c76a72df80bb83d74c92e2df982143b	?
+html/c523-font-style-000.htm	9e3289b2886e512c5b5002f298c0f9d8e73129d6	?
+xhtml1/c523-font-style-000.xht	9e3289b2886e512c5b5002f298c0f9d8e73129d6	?
+html/c524-font-var-000.htm	968d1fb4fa9b99f2d3cf7f3462281a22b586694b	?
+xhtml1/c524-font-var-000.xht	968d1fb4fa9b99f2d3cf7f3462281a22b586694b	?
+html/c525-font-wt-000.htm	a382dc0e981320df7ed0bcccece5f0cd209e073c	?
+xhtml1/c525-font-wt-000.xht	a382dc0e981320df7ed0bcccece5f0cd209e073c	?
+html/c526-font-sz-000.htm	17fa14b3326e2aec247addf83e984533221b873b	?
+xhtml1/c526-font-sz-000.xht	17fa14b3326e2aec247addf83e984533221b873b	?
+html/c526-font-sz-001.htm	752c5b7a6da9b23d84d3b52daee006479504545d	?
+xhtml1/c526-font-sz-001.xht	752c5b7a6da9b23d84d3b52daee006479504545d	?
+html/c526-font-sz-002.htm	fc7a6f5b23991dcda8483e31a4ef1d4afbec5554	?
+xhtml1/c526-font-sz-002.xht	fc7a6f5b23991dcda8483e31a4ef1d4afbec5554	?
+html/c526-font-sz-003.htm	4082735c7d71325b6118757a7fb545639a055ebb	?
+xhtml1/c526-font-sz-003.xht	4082735c7d71325b6118757a7fb545639a055ebb	?
+html/c527-font-000.htm	7d961592e57689cbcfcf98561e0f8427540e03e8	?
+xhtml1/c527-font-000.xht	7d961592e57689cbcfcf98561e0f8427540e03e8	?
+html/c527-font-001.htm	91af66674c3b8ebadc04a960a6a6379de30e258d	?
+xhtml1/c527-font-001.xht	91af66674c3b8ebadc04a960a6a6379de30e258d	?
+html/c527-font-002.htm	0d0badd6669b33dadfd90d50ded67387f743b3e4	?
+xhtml1/c527-font-002.xht	0d0badd6669b33dadfd90d50ded67387f743b3e4	?
+html/c527-font-003.htm	3d7e6ccaea1315f0407f812aba3ec9fff1c8bbc6	?
+xhtml1/c527-font-003.xht	3d7e6ccaea1315f0407f812aba3ec9fff1c8bbc6	?
+html/c527-font-004.htm	96b4306158f64c15068cc999653cb1d2db3d0ad3	?
+xhtml1/c527-font-004.xht	96b4306158f64c15068cc999653cb1d2db3d0ad3	?
+html/c527-font-005.htm	d156cbdf4e8c4938446089c1ca900e2bcd0c1260	?
+xhtml1/c527-font-005.xht	d156cbdf4e8c4938446089c1ca900e2bcd0c1260	?
+html/c527-font-006.htm	3c088c876bd9992e7471cca19e6e88ebef104097	?
+xhtml1/c527-font-006.xht	3c088c876bd9992e7471cca19e6e88ebef104097	?
+html/c527-font-007.htm	5e66a8ab8aefd3f342e7572a2a9f82d53cb88648	?
+xhtml1/c527-font-007.xht	5e66a8ab8aefd3f342e7572a2a9f82d53cb88648	?
+html/c527-font-008.htm	8e5e4af00827ca8b24bbfaa0f12dcc21ceba1ebc	?
+xhtml1/c527-font-008.xht	8e5e4af00827ca8b24bbfaa0f12dcc21ceba1ebc	?
+html/c527-font-009.htm	51defeec30680cccda536637acf591d34d576df9	?
+xhtml1/c527-font-009.xht	51defeec30680cccda536637acf591d34d576df9	?
+html/c527-font-10.htm	d2525e5a7d5846d6367fd8f718a977cf668e62eb	?
+xhtml1/c527-font-10.xht	d2525e5a7d5846d6367fd8f718a977cf668e62eb	?
+html/c543-txt-decor-000.htm	ba273f4cbe5bc2d4408a06a035991f6786773649	?
+xhtml1/c543-txt-decor-000.xht	ba273f4cbe5bc2d4408a06a035991f6786773649	?
+html/font-001.htm	8889134bb1f75baf43015bc225d539d0092294a4	?
+xhtml1/font-001.xht	8889134bb1f75baf43015bc225d539d0092294a4	?
+html/font-002.htm	4dcfd00bcbbdd26f5e7eca463d89838ed0ade6f3	?
+xhtml1/font-002.xht	4dcfd00bcbbdd26f5e7eca463d89838ed0ade6f3	?
+html/font-003.htm	4d89f1e19902d328eb1c51227ca4d90cc51335c0	?
+xhtml1/font-003.xht	4d89f1e19902d328eb1c51227ca4d90cc51335c0	?
+html/font-004.htm	3a63d876bb7ee941e91a669580e0aabbd2fa9d2c	?
+xhtml1/font-004.xht	3a63d876bb7ee941e91a669580e0aabbd2fa9d2c	?
+html/font-005.htm	1b72ac925feb8d0f82cb01b095a30b146b151280	?
+xhtml1/font-005.xht	1b72ac925feb8d0f82cb01b095a30b146b151280	?
+html/font-006.htm	8a0d7315355d136e4195cdbb76a9a65206eb9921	?
+xhtml1/font-006.xht	8a0d7315355d136e4195cdbb76a9a65206eb9921	?
+html/font-007.htm	f727502a02b6224de4f200ec312eb68388c1fedd	?
+xhtml1/font-007.xht	f727502a02b6224de4f200ec312eb68388c1fedd	?
+html/font-008.htm	2830a97216eee7f33eee3ce87c586f819129038d	?
+xhtml1/font-008.xht	2830a97216eee7f33eee3ce87c586f819129038d	?
+html/font-009.htm	ff2cfc0a13b9c1cc89e50b7c8253173da584efc3	?
+xhtml1/font-009.xht	ff2cfc0a13b9c1cc89e50b7c8253173da584efc3	?
+html/font-010.htm	ebc0689c624b43f91703168d2732d14298e1b8e6	?
+xhtml1/font-010.xht	ebc0689c624b43f91703168d2732d14298e1b8e6	?
+html/font-011.htm	a1e66669e66bdc04b4cf04f94780ff686418b1a0	?
+xhtml1/font-011.xht	a1e66669e66bdc04b4cf04f94780ff686418b1a0	?
+html/font-012.htm	907595e2aabb0701d55856d448285439f93a7948	?
+xhtml1/font-012.xht	907595e2aabb0701d55856d448285439f93a7948	?
+html/font-013.htm	31cec8118faa8adf6c2853f4fc3898ea1f429880	?
+xhtml1/font-013.xht	31cec8118faa8adf6c2853f4fc3898ea1f429880	?
+html/font-014.htm	5a518be5612f980be4fae22b66f4f49958ca7d0c	?
+xhtml1/font-014.xht	5a518be5612f980be4fae22b66f4f49958ca7d0c	?
+html/font-015.htm	5b598dbf7bbb777d183fbd2dc28fa0c2b2d72659	?
+xhtml1/font-015.xht	5b598dbf7bbb777d183fbd2dc28fa0c2b2d72659	?
+html/font-016.htm	f51c4cbeb89753f2340f0de6b89e51416fccbaf2	?
+xhtml1/font-016.xht	f51c4cbeb89753f2340f0de6b89e51416fccbaf2	?
+html/font-017.htm	a2e4322d231ba626e7d7e149f826f880d3b70b94	?
+xhtml1/font-017.xht	a2e4322d231ba626e7d7e149f826f880d3b70b94	?
+html/font-018.htm	4227d77d949f1ba58bb659ca04e777d4840b225b	?
+xhtml1/font-018.xht	4227d77d949f1ba58bb659ca04e777d4840b225b	?
+html/font-019.htm	c71774ddbe57466fab744a467ac7e92428f16f9b	?
+xhtml1/font-019.xht	c71774ddbe57466fab744a467ac7e92428f16f9b	?
+html/font-020.htm	5f836c0821cff123287a59b5daabbe388bacd5cb	?
+xhtml1/font-020.xht	5f836c0821cff123287a59b5daabbe388bacd5cb	?
+html/font-021.htm	db659000696c47c0a51a02be085919d3963c7844	?
+xhtml1/font-021.xht	db659000696c47c0a51a02be085919d3963c7844	?
+html/font-022.htm	7e02dcf02aa1ed0e27aa08101d6cb39bc617c163	?
+xhtml1/font-022.xht	7e02dcf02aa1ed0e27aa08101d6cb39bc617c163	?
+html/font-023.htm	838e90e8d818d1fcaee33fda7f15769377596856	?
+xhtml1/font-023.xht	838e90e8d818d1fcaee33fda7f15769377596856	?
+html/font-024.htm	a220202c9d59273321858ef9e109b52a544a44a2	?
+xhtml1/font-024.xht	a220202c9d59273321858ef9e109b52a544a44a2	?
+html/font-025.htm	fab7176b9dc14edc3743cd6380d384f9cda9c8dc	?
+xhtml1/font-025.xht	fab7176b9dc14edc3743cd6380d384f9cda9c8dc	?
+html/font-026.htm	baffa71a3f258d072ecd174479dd8f67bb3e162f	?
+xhtml1/font-026.xht	baffa71a3f258d072ecd174479dd8f67bb3e162f	?
+html/font-027.htm	bdfb0cd77ef319315fed45939e0a1a5af575e6cf	?
+xhtml1/font-027.xht	bdfb0cd77ef319315fed45939e0a1a5af575e6cf	?
+html/font-028.htm	e421ccdcd740e4e99339b68b975ae71a736b24f4	?
+xhtml1/font-028.xht	e421ccdcd740e4e99339b68b975ae71a736b24f4	?
+html/font-029.htm	6153fdbccb1c3833c23ebf489859b870e908f527	?
+xhtml1/font-029.xht	6153fdbccb1c3833c23ebf489859b870e908f527	?
+html/font-030.htm	3c1f08e73586ae61148f1ac41204a4c10a3cf765	?
+xhtml1/font-030.xht	3c1f08e73586ae61148f1ac41204a4c10a3cf765	?
+html/font-031.htm	9fa6b3df0ecda7f0b5de90037a7b7a226a2e4b97	?
+xhtml1/font-031.xht	9fa6b3df0ecda7f0b5de90037a7b7a226a2e4b97	?
+html/font-032.htm	43ce583f8b56f7553d31ec80044de5e1b3b3a62b	?
+xhtml1/font-032.xht	43ce583f8b56f7553d31ec80044de5e1b3b3a62b	?
+html/font-033.htm	b6abe782b9b8a104c20c82d6b923931bd92f2ef8	?
+xhtml1/font-033.xht	b6abe782b9b8a104c20c82d6b923931bd92f2ef8	?
+html/font-034.htm	ba724dc1616d461f918f3ea3c3027aa5c350018b	?
+xhtml1/font-034.xht	ba724dc1616d461f918f3ea3c3027aa5c350018b	?
+html/font-035.htm	84ae48b7b87df6241f2f1c915f19180b9bfec309	?
+xhtml1/font-035.xht	84ae48b7b87df6241f2f1c915f19180b9bfec309	?
+html/font-036.htm	358d74a315d71706d12e54efd17b9b3d23d963aa	?
+xhtml1/font-036.xht	358d74a315d71706d12e54efd17b9b3d23d963aa	?
+html/font-037.htm	2d3e8fd68fb7fbb5352383358530de215fb5a363	?
+xhtml1/font-037.xht	2d3e8fd68fb7fbb5352383358530de215fb5a363	?
+html/font-038.htm	583faeed33c7736f76876f4598d49825d60ba870	?
+xhtml1/font-038.xht	583faeed33c7736f76876f4598d49825d60ba870	?
+html/font-039.htm	7cf540cb79cfe4739a2528d772f049114f8dd8ab	?
+xhtml1/font-039.xht	7cf540cb79cfe4739a2528d772f049114f8dd8ab	?
+html/font-040.htm	8e62756f1187e0dbb050ea94ef8f97aed77a149e	?
+xhtml1/font-040.xht	8e62756f1187e0dbb050ea94ef8f97aed77a149e	?
+html/font-041.htm	7ebc140b3608119013aeb42473009306a2c8817c	?
+xhtml1/font-041.xht	7ebc140b3608119013aeb42473009306a2c8817c	?
+html/font-042.htm	c1c34570080b5683108e5ebac598c8a220e71582	?
+xhtml1/font-042.xht	c1c34570080b5683108e5ebac598c8a220e71582	?
+html/font-043.htm	de8b7274e7f1a1d32aeb3beea545621d23d1f0ee	?
+xhtml1/font-043.xht	de8b7274e7f1a1d32aeb3beea545621d23d1f0ee	?
+html/font-044.htm	168e08ca6ec7555833e131d12f6af1e5b791d0e4	?
+xhtml1/font-044.xht	168e08ca6ec7555833e131d12f6af1e5b791d0e4	?
+html/font-045.htm	6f0ff0264d0f9d98e364b0de39590ad298bfd788	?
+xhtml1/font-045.xht	6f0ff0264d0f9d98e364b0de39590ad298bfd788	?
+html/font-046.htm	6bcf943d3e37de4ee461eddcb19ab7b898761cff	?
+xhtml1/font-046.xht	6bcf943d3e37de4ee461eddcb19ab7b898761cff	?
+html/font-047.htm	912807740bf05479b0b5760493102c2ff33bba2f	?
+xhtml1/font-047.xht	912807740bf05479b0b5760493102c2ff33bba2f	?
+html/font-048.htm	ad6babb2366df300a73afdd729912f30a8bdb567	?
+xhtml1/font-048.xht	ad6babb2366df300a73afdd729912f30a8bdb567	?
+html/font-049.htm	3868ecd063bbe2be584045ba320756a4ee5609ef	?
+xhtml1/font-049.xht	3868ecd063bbe2be584045ba320756a4ee5609ef	?
+html/font-050.htm	7362a5438af7422edbe4049cda397478138b3f40	?
+xhtml1/font-050.xht	7362a5438af7422edbe4049cda397478138b3f40	?
+html/font-051.htm	efef7a582c311ae29c7c42700bc85c3eadfc8862	?
+xhtml1/font-051.xht	efef7a582c311ae29c7c42700bc85c3eadfc8862	?
+html/font-052.htm	5fd698891b31ef820b576a6fb55d235064abeac3	?
+xhtml1/font-052.xht	5fd698891b31ef820b576a6fb55d235064abeac3	?
+html/font-144.htm	9ecc9ca06cc5fe8b32dea107611e45e64e32a19d	?
+xhtml1/font-144.xht	9ecc9ca06cc5fe8b32dea107611e45e64e32a19d	?
+html/font-145.htm	e1e0b21507f2adf30d09bb26281ba2c4241f0684	?
+xhtml1/font-145.xht	e1e0b21507f2adf30d09bb26281ba2c4241f0684	?
+html/font-146.htm	09f8e5a5c1e8bc5e8f5acdc3729df3154429f934	?
+xhtml1/font-146.xht	09f8e5a5c1e8bc5e8f5acdc3729df3154429f934	?
+html/font-147.htm	97b8d1c30c3b48eb1cee906dc3e9370c5e973e37	?
+xhtml1/font-147.xht	97b8d1c30c3b48eb1cee906dc3e9370c5e973e37	?
+html/font-applies-to-001.htm	9837460b6c48d5f3dd65912e9f53609bfe1f9962	?
+xhtml1/font-applies-to-001.xht	9837460b6c48d5f3dd65912e9f53609bfe1f9962	?
+html/font-applies-to-002.htm	740243c756525db0e0afd3613a64a0d57a054cf8	?
+xhtml1/font-applies-to-002.xht	740243c756525db0e0afd3613a64a0d57a054cf8	?
+html/font-applies-to-003.htm	648d64112df6e8ec302a83f307049b6c6b9d5cf4	?
+xhtml1/font-applies-to-003.xht	648d64112df6e8ec302a83f307049b6c6b9d5cf4	?
+html/font-applies-to-004.htm	def600122d8982e5b6466ff7dcbe5a0507940066	?
+xhtml1/font-applies-to-004.xht	def600122d8982e5b6466ff7dcbe5a0507940066	?
+html/font-applies-to-005.htm	d1cebd9eb3e4c9b1ccb46407504ac4ddb52f3e34	?
+xhtml1/font-applies-to-005.xht	d1cebd9eb3e4c9b1ccb46407504ac4ddb52f3e34	?
+html/font-applies-to-006.htm	c61968fa2b4d731646564a0e379bed4999c4939d	?
+xhtml1/font-applies-to-006.xht	c61968fa2b4d731646564a0e379bed4999c4939d	?
+html/font-applies-to-007.htm	b893dcfa3e3c51b071160d52dacd398bbd77d5e7	?
+xhtml1/font-applies-to-007.xht	b893dcfa3e3c51b071160d52dacd398bbd77d5e7	?
+html/font-applies-to-008.htm	6f730281590b6480dd0e821a4fc5df1ef452406e	?
+xhtml1/font-applies-to-008.xht	6f730281590b6480dd0e821a4fc5df1ef452406e	?
+html/font-applies-to-009.htm	d265144d7ff06a149f699d246fed03530c18f8e6	?
+xhtml1/font-applies-to-009.xht	d265144d7ff06a149f699d246fed03530c18f8e6	?
+html/font-applies-to-010.htm	35720fe1f8ab07b36821d8f3ca78da1a5f3af277	?
+xhtml1/font-applies-to-010.xht	35720fe1f8ab07b36821d8f3ca78da1a5f3af277	?
+html/font-applies-to-011.htm	79eb6443ff19b260bd19acd32930a13390b40b49	?
+xhtml1/font-applies-to-011.xht	79eb6443ff19b260bd19acd32930a13390b40b49	?
+html/font-applies-to-014.htm	749fce008661fd305ba9aafa3f9542e90f285363	?
+xhtml1/font-applies-to-014.xht	749fce008661fd305ba9aafa3f9542e90f285363	?
+html/font-applies-to-015.htm	235fa92b4a06f870e4150a92e7da7c1b699c88b3	?
+xhtml1/font-applies-to-015.xht	235fa92b4a06f870e4150a92e7da7c1b699c88b3	?
+html/font-applies-to-016.htm	bf37c948fee9069d8f9e2251a62b124d8f91ae41	?
+xhtml1/font-applies-to-016.xht	bf37c948fee9069d8f9e2251a62b124d8f91ae41	?
+html/font-applies-to-017.htm	5c6babde73ca802852bdda91425e540b48589941	?
+xhtml1/font-applies-to-017.xht	5c6babde73ca802852bdda91425e540b48589941	?
+html/font-face-unicode-range.htm	fb9d5d8783d57aef35f79c941abedffdfe5350ed	?
+xhtml1/font-face-unicode-range.xht	fb9d5d8783d57aef35f79c941abedffdfe5350ed	?
+html/font-family-001.htm	bba29a131bbbc012b700948f820334dc00cbeddb	?
+xhtml1/font-family-001.xht	bba29a131bbbc012b700948f820334dc00cbeddb	?
+html/font-family-002.htm	782d2daafa3481835f4e229312577b0213557098	?
+xhtml1/font-family-002.xht	782d2daafa3481835f4e229312577b0213557098	?
+html/font-family-003.htm	3dd563d8faccaed2ea5dec5faf37044720d0523f	?
+xhtml1/font-family-003.xht	3dd563d8faccaed2ea5dec5faf37044720d0523f	?
+html/font-family-004.htm	e457f8ff1042ed60a97d74c63ababe37c90091d3	?
+xhtml1/font-family-004.xht	e457f8ff1042ed60a97d74c63ababe37c90091d3	?
+html/font-family-005.htm	8d6378570d095f1dde6276ecb1d49e9310e7e172	?
+xhtml1/font-family-005.xht	8d6378570d095f1dde6276ecb1d49e9310e7e172	?
+html/font-family-006.htm	847b8943eb97478caff285e0dd1d07a84442bb6b	?
+xhtml1/font-family-006.xht	847b8943eb97478caff285e0dd1d07a84442bb6b	?
+html/font-family-007.htm	cfdad79f6c9d68eeeda137cf8a1438c4c4c5614c	?
+xhtml1/font-family-007.xht	cfdad79f6c9d68eeeda137cf8a1438c4c4c5614c	?
+html/font-family-008.htm	6e9c17f4ef0e925310f80eb74ec41fd20bf28069	?
+xhtml1/font-family-008.xht	6e9c17f4ef0e925310f80eb74ec41fd20bf28069	?
+html/font-family-009.htm	6e1eb7c11acd544a0172d6474e189a8202ba41de	?
+xhtml1/font-family-009.xht	6e1eb7c11acd544a0172d6474e189a8202ba41de	?
+html/font-family-011.htm	5471da1e5e17ad318b8a45bf1fa736d7918d6e59	?
+xhtml1/font-family-011.xht	5471da1e5e17ad318b8a45bf1fa736d7918d6e59	?
+html/font-family-012.htm	8a6b4b286212509383d856d40e20b8b8fe185a9f	?
+xhtml1/font-family-012.xht	8a6b4b286212509383d856d40e20b8b8fe185a9f	?
+html/font-family-013.htm	fc593bda6ea8d62656f5c416fe867883acc2406f	?
+xhtml1/font-family-013.xht	fc593bda6ea8d62656f5c416fe867883acc2406f	?
+html/font-family-014.htm	17454241fe05b9518c1f665b35e9b49093b7878f	?
+xhtml1/font-family-014.xht	17454241fe05b9518c1f665b35e9b49093b7878f	?
+html/font-family-015.htm	890485f157992fa8164c001e7bbc84dddaf8ba69	?
+xhtml1/font-family-015.xht	890485f157992fa8164c001e7bbc84dddaf8ba69	?
+html/font-family-016.htm	b44297d2a2a5627ad747d9b269bc7a654f016927	?
+xhtml1/font-family-016.xht	b44297d2a2a5627ad747d9b269bc7a654f016927	?
+html/font-family-applies-to-001.htm	edc447c8a504b62f4b5f372d73cfae049f5c2997	?
+xhtml1/font-family-applies-to-001.xht	edc447c8a504b62f4b5f372d73cfae049f5c2997	?
+html/font-family-applies-to-002.htm	83f05d717d54d735a1b946dbbb0e1b738ee231a7	?
+xhtml1/font-family-applies-to-002.xht	83f05d717d54d735a1b946dbbb0e1b738ee231a7	?
+html/font-family-applies-to-003.htm	3eecc4f10ba8d61f51260724ed52365191abdec4	?
+xhtml1/font-family-applies-to-003.xht	3eecc4f10ba8d61f51260724ed52365191abdec4	?
+html/font-family-applies-to-005.htm	34f7665e46737ec4288382489521676f85e206b3	?
+xhtml1/font-family-applies-to-005.xht	34f7665e46737ec4288382489521676f85e206b3	?
+html/font-family-applies-to-007.htm	ffd2760838e86d9176f74dc748d7cbfb19749dd8	?
+xhtml1/font-family-applies-to-007.xht	ffd2760838e86d9176f74dc748d7cbfb19749dd8	?
+html/font-family-applies-to-008.htm	69ae9c3bedb8ed791bcc709e22417a4b56a71134	?
+xhtml1/font-family-applies-to-008.xht	69ae9c3bedb8ed791bcc709e22417a4b56a71134	?
+html/font-family-applies-to-009.htm	db2e2bd00b2f638bc4e62f9a1b7e362b4bb15f4e	?
+xhtml1/font-family-applies-to-009.xht	db2e2bd00b2f638bc4e62f9a1b7e362b4bb15f4e	?
+html/font-family-applies-to-010.htm	74959ca2b3b22bec48528a01e428f1b8b23026f2	?
+xhtml1/font-family-applies-to-010.xht	74959ca2b3b22bec48528a01e428f1b8b23026f2	?
+html/font-family-applies-to-011.htm	cdb8433eb6ca17c1e1ffc356040c58d26fad18de	?
+xhtml1/font-family-applies-to-011.xht	cdb8433eb6ca17c1e1ffc356040c58d26fad18de	?
+html/font-family-applies-to-014.htm	121e917bf28a2c74ac312cc0f36b2b4970048fa5	?
+xhtml1/font-family-applies-to-014.xht	121e917bf28a2c74ac312cc0f36b2b4970048fa5	?
+html/font-family-applies-to-015.htm	ac8b7a6cc5b92daa3ca6ba694be87289da431ad9	?
+xhtml1/font-family-applies-to-015.xht	ac8b7a6cc5b92daa3ca6ba694be87289da431ad9	?
+html/font-family-applies-to-016.htm	18b4158ecb043f6625b6d063b7b993d2bb1903c6	?
+xhtml1/font-family-applies-to-016.xht	18b4158ecb043f6625b6d063b7b993d2bb1903c6	?
+html/font-family-applies-to-017.htm	734651906fb3bf28776c9a9acf53bf5acd5714be	?
+xhtml1/font-family-applies-to-017.xht	734651906fb3bf28776c9a9acf53bf5acd5714be	?
+html/font-family-invalid-characters-001.htm	449eb0f3295627f65a6386400d771ca86f454c6c	?
+xhtml1/font-family-invalid-characters-001.xht	449eb0f3295627f65a6386400d771ca86f454c6c	?
+html/font-family-invalid-characters-002.htm	3d59693705c06a2105e9c32be950462108394a47	?
+xhtml1/font-family-invalid-characters-002.xht	3d59693705c06a2105e9c32be950462108394a47	?
+html/font-family-invalid-characters-003.htm	836b64a69397022366fd721fcab1aedbd869340c	?
+xhtml1/font-family-invalid-characters-003.xht	836b64a69397022366fd721fcab1aedbd869340c	?
+html/font-family-invalid-characters-004.htm	81c2353fba8bbbb408acbc6272951d9a22e9d0b5	?
+xhtml1/font-family-invalid-characters-004.xht	81c2353fba8bbbb408acbc6272951d9a22e9d0b5	?
+html/font-family-invalid-characters-005.htm	e8cd099e08c9e29876015789d990e1a41126c7c7	?
+xhtml1/font-family-invalid-characters-005.xht	e8cd099e08c9e29876015789d990e1a41126c7c7	?
+html/font-family-invalid-characters-006.htm	cbf2d4c8d6741038958506728525039b584cedf9	?
+xhtml1/font-family-invalid-characters-006.xht	cbf2d4c8d6741038958506728525039b584cedf9	?
+html/font-family-name-001.htm	7b14f6d140576152871525a8f532383679e60e50	?
+xhtml1/font-family-name-001.xht	7b14f6d140576152871525a8f532383679e60e50	?
+html/font-family-name-002.htm	4d882507a40bb4db9fd5acc74fc6b725e7053ef8	?
+xhtml1/font-family-name-002.xht	4d882507a40bb4db9fd5acc74fc6b725e7053ef8	?
+html/font-family-name-003.htm	bf19d1e16a163cc0db548a07af065b1d40895864	?
+xhtml1/font-family-name-003.xht	bf19d1e16a163cc0db548a07af065b1d40895864	?
+html/font-family-name-004.htm	f45477d42c9701b38ae090381c961d82e949b1f0	?
+xhtml1/font-family-name-004.xht	f45477d42c9701b38ae090381c961d82e949b1f0	?
+html/font-family-name-005.htm	8cf6e1513b1dbad977e731123e34929669afa48d	?
+xhtml1/font-family-name-005.xht	8cf6e1513b1dbad977e731123e34929669afa48d	?
+html/font-family-name-006.htm	92b0edcde7be4289136f744abdeb95c15731e820	?
+xhtml1/font-family-name-006.xht	92b0edcde7be4289136f744abdeb95c15731e820	?
+html/font-family-name-007.htm	5b24c7fc6857f3f4843cab78df89a6aed1ce4e1e	?
+xhtml1/font-family-name-007.xht	5b24c7fc6857f3f4843cab78df89a6aed1ce4e1e	?
+html/font-family-name-008.htm	0e22e1628b230fd9da8d6b9c03f5b6ddd5f06698	?
+xhtml1/font-family-name-008.xht	0e22e1628b230fd9da8d6b9c03f5b6ddd5f06698	?
+html/font-family-name-009.htm	6fce87188eafbf5aaa92fa430c5174793a6edf3d	?
+xhtml1/font-family-name-009.xht	6fce87188eafbf5aaa92fa430c5174793a6edf3d	?
+html/font-family-name-010.htm	7ef40f2287215787d33579f361646ef4be09d093	?
+xhtml1/font-family-name-010.xht	7ef40f2287215787d33579f361646ef4be09d093	?
+html/font-family-name-011.htm	b56f5e9c572853ea35224481e18615d8b02c802d	?
+xhtml1/font-family-name-011.xht	b56f5e9c572853ea35224481e18615d8b02c802d	?
+html/font-family-name-012.htm	9f248932189fac02419b5e3f755999093f242903	?
+xhtml1/font-family-name-012.xht	9f248932189fac02419b5e3f755999093f242903	?
+html/font-family-name-013.htm	bf606585391c938adeed2dd3f8dc6c1158e3077d	?
+xhtml1/font-family-name-013.xht	bf606585391c938adeed2dd3f8dc6c1158e3077d	?
+html/font-family-name-014.htm	3c82f06487971b8a669eb00f468b72e33bf3669f	?
+xhtml1/font-family-name-014.xht	3c82f06487971b8a669eb00f468b72e33bf3669f	?
+html/font-family-name-015.htm	959972678b22c9de65caba8526d3c33cc0b5cedd	?
+xhtml1/font-family-name-015.xht	959972678b22c9de65caba8526d3c33cc0b5cedd	?
+html/font-family-name-016.htm	06930f981ccab4664e94a357e18bd9e36398f1c6	?
+xhtml1/font-family-name-016.xht	06930f981ccab4664e94a357e18bd9e36398f1c6	?
+html/font-family-name-017.htm	0204210017872055b3d8557d28c10701140025ad	?
+xhtml1/font-family-name-017.xht	0204210017872055b3d8557d28c10701140025ad	?
+html/font-family-name-018.htm	59ffa3fc455d203143151fff759dac0c13c2fe09	?
+xhtml1/font-family-name-018.xht	59ffa3fc455d203143151fff759dac0c13c2fe09	?
+html/font-family-name-019.htm	35802a64de1de3eeb1457a041d05de683743791f	?
+xhtml1/font-family-name-019.xht	35802a64de1de3eeb1457a041d05de683743791f	?
+html/font-family-name-020.htm	5da54c44cab5e21d5b187684bc386c13b9135d6b	?
+xhtml1/font-family-name-020.xht	5da54c44cab5e21d5b187684bc386c13b9135d6b	?
+html/font-family-name-021.htm	7ae6026fdc1fff856ee8eb458b31ad8b72166c30	?
+xhtml1/font-family-name-021.xht	7ae6026fdc1fff856ee8eb458b31ad8b72166c30	?
+html/font-family-name-022.htm	7ca5f1e0a9acef659af2ce40037c140e66328c0b	?
+xhtml1/font-family-name-022.xht	7ca5f1e0a9acef659af2ce40037c140e66328c0b	?
+html/font-family-name-023.htm	e59370c7c5e3a6e51ed677176431a1c5f9f0518b	?
+xhtml1/font-family-name-023.xht	e59370c7c5e3a6e51ed677176431a1c5f9f0518b	?
+html/font-family-name-024.htm	cf55b937593d3c275df2d669bcaa2c1aaf9c71a6	?
+xhtml1/font-family-name-024.xht	cf55b937593d3c275df2d669bcaa2c1aaf9c71a6	?
+html/font-family-rule-001.htm	c27f72d7ecbfc2da15606fea47d4154d2f9cbe56	?
+xhtml1/font-family-rule-001.xht	c27f72d7ecbfc2da15606fea47d4154d2f9cbe56	?
+html/font-family-rule-002.htm	93cfd915e9fbe142abcc2e736c7881b8efa35669	?
+xhtml1/font-family-rule-002.xht	93cfd915e9fbe142abcc2e736c7881b8efa35669	?
+html/font-family-rule-002a.htm	df25a60c4824b8963ac6e1245ee1170f48621a0d	?
+xhtml1/font-family-rule-002a.xht	df25a60c4824b8963ac6e1245ee1170f48621a0d	?
+html/font-family-rule-003.htm	bda9c4984d051cdc2f4c583843cabd4105a42158	?
+xhtml1/font-family-rule-003.xht	bda9c4984d051cdc2f4c583843cabd4105a42158	?
+html/font-family-rule-004.htm	8d0e709ba88461c8d8f3d033321b2ac215132987	?
+xhtml1/font-family-rule-004.xht	8d0e709ba88461c8d8f3d033321b2ac215132987	?
+html/font-family-rule-004a.htm	00c14ac17d4c2794348d56bbb4f4b56b79e7be6b	?
+xhtml1/font-family-rule-004a.xht	00c14ac17d4c2794348d56bbb4f4b56b79e7be6b	?
+html/font-family-rule-005.htm	6db6b5638fb2acc0ad428cc4b6d0010693b14b76	?
+xhtml1/font-family-rule-005.xht	6db6b5638fb2acc0ad428cc4b6d0010693b14b76	?
+html/font-family-rule-006.htm	7a988f92dfeab19f62d907c58d598046abcab63e	?
+xhtml1/font-family-rule-006.xht	7a988f92dfeab19f62d907c58d598046abcab63e	?
+html/font-family-rule-007.htm	f9de90c680fd8b3fb6bd68fe3ea5e4ad82e811e8	?
+xhtml1/font-family-rule-007.xht	f9de90c680fd8b3fb6bd68fe3ea5e4ad82e811e8	?
+html/font-family-rule-009.htm	b82abee0ebbd51b1d25d6ff83f30e2e0b65fbc1a	?
+xhtml1/font-family-rule-009.xht	b82abee0ebbd51b1d25d6ff83f30e2e0b65fbc1a	?
+html/font-family-rule-010.htm	95c0cc4543d6a00275adf5f90e3381a7fcd53c73	?
+xhtml1/font-family-rule-010.xht	95c0cc4543d6a00275adf5f90e3381a7fcd53c73	?
+html/font-family-rule-011.htm	1481a315216a04441daa58821f5a1c16e1ac770a	?
+xhtml1/font-family-rule-011.xht	1481a315216a04441daa58821f5a1c16e1ac770a	?
+html/font-family-rule-012.htm	bdd2cf2eb53726f97f291e69f2363c7e6e3aee6a	?
+xhtml1/font-family-rule-012.xht	bdd2cf2eb53726f97f291e69f2363c7e6e3aee6a	?
+html/font-family-rule-013.htm	c518fb15edf1f91f5207b0524508c96bcfd10b46	?
+xhtml1/font-family-rule-013.xht	c518fb15edf1f91f5207b0524508c96bcfd10b46	?
+html/font-family-rule-014.htm	f9efbe2df766f66b5e360cfaaa9a410a0564aa47	?
+xhtml1/font-family-rule-014.xht	f9efbe2df766f66b5e360cfaaa9a410a0564aa47	?
+html/font-family-rule-015.htm	de8edf9d66f9fc6a637e9540d3c0ffb7cbcd9f27	?
+xhtml1/font-family-rule-015.xht	de8edf9d66f9fc6a637e9540d3c0ffb7cbcd9f27	?
+html/font-family-rule-016.htm	8efffa2d553e19512b776272fee0c64504081671	?
+xhtml1/font-family-rule-016.xht	8efffa2d553e19512b776272fee0c64504081671	?
+html/font-family-rule-017.htm	d44da0866c8b6ed9faab637ba7427c36290c4a82	?
+xhtml1/font-family-rule-017.xht	d44da0866c8b6ed9faab637ba7427c36290c4a82	?
+html/font-family-valid-characters-001.htm	6c6e0c75da20281ee26b454bff947243ad1bcf8f	?
+xhtml1/font-family-valid-characters-001.xht	6c6e0c75da20281ee26b454bff947243ad1bcf8f	?
+html/font-family-valid-characters-002.htm	5d422e60fba991e9147200c924998c04e6c2b55b	?
+xhtml1/font-family-valid-characters-002.xht	5d422e60fba991e9147200c924998c04e6c2b55b	?
+html/font-features-across-space-1.htm	8f02bb0962de42a55f4d0fa85286e6840b15950e	?
+xhtml1/font-features-across-space-1.xht	8f02bb0962de42a55f4d0fa85286e6840b15950e	?
+html/font-features-across-space-2.htm	afbb76f56b9e239c95943e9f758089c57449a5ca	?
+xhtml1/font-features-across-space-2.xht	afbb76f56b9e239c95943e9f758089c57449a5ca	?
+html/font-features-across-space-3.htm	738ba1c1da8cfa4109f7986f3f6357b985c8d038	?
+xhtml1/font-features-across-space-3.xht	738ba1c1da8cfa4109f7986f3f6357b985c8d038	?
+html/font-matching-rule-001.htm	d44efa1e3c46ed8a1a05f310423ad15e90f07c92	?
+xhtml1/font-matching-rule-001.xht	d44efa1e3c46ed8a1a05f310423ad15e90f07c92	?
+html/font-matching-rule-006.htm	794e5d52f34a93d24372ec52ffd6986f93f1f4f7	?
+xhtml1/font-matching-rule-006.xht	794e5d52f34a93d24372ec52ffd6986f93f1f4f7	?
+html/font-matching-rule-009.htm	8505b0d1463aab5d2b7e4b7b048a5c04fd5c1777	?
+xhtml1/font-matching-rule-009.xht	8505b0d1463aab5d2b7e4b7b048a5c04fd5c1777	?
+html/font-matching-rule-010.htm	fdfce0416561d5fca7b0c260cf06af44cc2c7a9d	?
+xhtml1/font-matching-rule-010.xht	fdfce0416561d5fca7b0c260cf06af44cc2c7a9d	?
+html/font-matching-rule-012.htm	edfc041bbe696e48ee66ffe0bae43b330a370a11	?
+xhtml1/font-matching-rule-012.xht	edfc041bbe696e48ee66ffe0bae43b330a370a11	?
+html/font-matching-rule-014.htm	f27261394688f5c3e5554bbb281681c2b507750e	?
+xhtml1/font-matching-rule-014.xht	f27261394688f5c3e5554bbb281681c2b507750e	?
+html/font-size-001.htm	bb143e10d513added7d2ea6e332b6a516d06afd9	?
+xhtml1/font-size-001.xht	bb143e10d513added7d2ea6e332b6a516d06afd9	?
+html/font-size-002.htm	85d2cbe0a3b188cab66f9acc79ddbf02e7401064	?
+xhtml1/font-size-002.xht	85d2cbe0a3b188cab66f9acc79ddbf02e7401064	?
+html/font-size-003.htm	a00ceabffd7b226ecb761bb7e1eca4eb9aa942c3	?
+xhtml1/font-size-003.xht	a00ceabffd7b226ecb761bb7e1eca4eb9aa942c3	?
+html/font-size-004.htm	59c88a2dd5fbcae03e0383925ffb7ceeb21dd7c1	?
+xhtml1/font-size-004.xht	59c88a2dd5fbcae03e0383925ffb7ceeb21dd7c1	?
+html/font-size-005.htm	66f406e5c8384be46455bf80f3c0ac1ab41d184e	?
+xhtml1/font-size-005.xht	66f406e5c8384be46455bf80f3c0ac1ab41d184e	?
+html/font-size-006.htm	bf9e1c8a38742f24146a01cde2dfd9a0920f1317	?
+xhtml1/font-size-006.xht	bf9e1c8a38742f24146a01cde2dfd9a0920f1317	?
+html/font-size-007.htm	0fba432d2256fd123227c9e5d244cd611949bda4	?
+xhtml1/font-size-007.xht	0fba432d2256fd123227c9e5d244cd611949bda4	?
+html/font-size-012.htm	e8ebf9f3b11f5abe0ff807bb476baf811dd7c283	?
+xhtml1/font-size-012.xht	e8ebf9f3b11f5abe0ff807bb476baf811dd7c283	?
+html/font-size-013.htm	893b764f22c702eddfbf3f28f4783da519cebaec	?
+xhtml1/font-size-013.xht	893b764f22c702eddfbf3f28f4783da519cebaec	?
+html/font-size-014.htm	d73034c9112580435692b9849786c31c41126859	?
+xhtml1/font-size-014.xht	d73034c9112580435692b9849786c31c41126859	?
+html/font-size-015.htm	6d0c52c823e2f2668b1891a8d8357095cf81ced4	?
+xhtml1/font-size-015.xht	6d0c52c823e2f2668b1891a8d8357095cf81ced4	?
+html/font-size-016.htm	705a096572a87e7f8946fc297a646ead351f60c2	?
+xhtml1/font-size-016.xht	705a096572a87e7f8946fc297a646ead351f60c2	?
+html/font-size-017.htm	702b137bd4f133c788859077f8eacbb18697b08a	?
+xhtml1/font-size-017.xht	702b137bd4f133c788859077f8eacbb18697b08a	?
+html/font-size-018.htm	9d8abb16a0bc617c872d70f468e1adcce5100172	?
+xhtml1/font-size-018.xht	9d8abb16a0bc617c872d70f468e1adcce5100172	?
+html/font-size-023.htm	35a9ba8fb29b07e3eecb9dfa134065ff4b992f6f	?
+xhtml1/font-size-023.xht	35a9ba8fb29b07e3eecb9dfa134065ff4b992f6f	?
+html/font-size-024.htm	80694993dc671bf23b68313e461e47b9aed9ac53	?
+xhtml1/font-size-024.xht	80694993dc671bf23b68313e461e47b9aed9ac53	?
+html/font-size-025.htm	ad10c5f96f6109b0487f43fc16b277d180b14745	?
+xhtml1/font-size-025.xht	ad10c5f96f6109b0487f43fc16b277d180b14745	?
+html/font-size-026.htm	da9dd3d5e6952e753bcf101d9ac64e6155c21719	?
+xhtml1/font-size-026.xht	da9dd3d5e6952e753bcf101d9ac64e6155c21719	?
+html/font-size-027.htm	5e34635adae536afe139f201fcf1b5715fcd52f1	?
+xhtml1/font-size-027.xht	5e34635adae536afe139f201fcf1b5715fcd52f1	?
+html/font-size-028.htm	cdaaaa8dbd1672b9e0b55b0113fc219e0e09ce39	?
+xhtml1/font-size-028.xht	cdaaaa8dbd1672b9e0b55b0113fc219e0e09ce39	?
+html/font-size-029.htm	a00ff61b84e5b23e456602243b79fe42c6c740d1	?
+xhtml1/font-size-029.xht	a00ff61b84e5b23e456602243b79fe42c6c740d1	?
+html/font-size-034.htm	309dee8a3244ac7f698ebac04157a733311d2efa	?
+xhtml1/font-size-034.xht	309dee8a3244ac7f698ebac04157a733311d2efa	?
+html/font-size-035.htm	891b4b170ba17c2f276547a2b2aad9eb9e745fd9	?
+xhtml1/font-size-035.xht	891b4b170ba17c2f276547a2b2aad9eb9e745fd9	?
+html/font-size-036.htm	a891dbd01e6d76bc85c1995f0cf3580f9bca6ef5	?
+xhtml1/font-size-036.xht	a891dbd01e6d76bc85c1995f0cf3580f9bca6ef5	?
+html/font-size-037.htm	21e3897a01ade597822bce3cb0438a8c9f1aa3b7	?
+xhtml1/font-size-037.xht	21e3897a01ade597822bce3cb0438a8c9f1aa3b7	?
+html/font-size-038.htm	b3bb288ff9ebc0a5c39113bcb90159fbc7b35b71	?
+xhtml1/font-size-038.xht	b3bb288ff9ebc0a5c39113bcb90159fbc7b35b71	?
+html/font-size-039.htm	6148f550ab728d5676453a6557aecd47c8aebb6d	?
+xhtml1/font-size-039.xht	6148f550ab728d5676453a6557aecd47c8aebb6d	?
+html/font-size-040.htm	56ad057b413b0864cb587a2501bc9cb7c8d79f12	?
+xhtml1/font-size-040.xht	56ad057b413b0864cb587a2501bc9cb7c8d79f12	?
+html/font-size-045.htm	3e02b1e53b83938e4162edcaf4a462ad174e89c8	?
+xhtml1/font-size-045.xht	3e02b1e53b83938e4162edcaf4a462ad174e89c8	?
+html/font-size-046.htm	864ac9ad5e946bb6e44b1496ca9cd84962789f6e	?
+xhtml1/font-size-046.xht	864ac9ad5e946bb6e44b1496ca9cd84962789f6e	?
+html/font-size-047.htm	e04a8bb29099d223bf581e5e539e8534a2e1e335	?
+xhtml1/font-size-047.xht	e04a8bb29099d223bf581e5e539e8534a2e1e335	?
+html/font-size-048.htm	86dc5c636a145d75d9925f254fa8a8dc98d9909a	?
+xhtml1/font-size-048.xht	86dc5c636a145d75d9925f254fa8a8dc98d9909a	?
+html/font-size-049.htm	5c03975d86198c3f15de663095d32168827fef03	?
+xhtml1/font-size-049.xht	5c03975d86198c3f15de663095d32168827fef03	?
+html/font-size-050.htm	08aeb5c6d34b5680af9b82b8aa11964eb51ed88f	?
+xhtml1/font-size-050.xht	08aeb5c6d34b5680af9b82b8aa11964eb51ed88f	?
+html/font-size-051.htm	3646cdb80c5779cacd3a9aee18a62a8dd5440106	?
+xhtml1/font-size-051.xht	3646cdb80c5779cacd3a9aee18a62a8dd5440106	?
+html/font-size-056.htm	d4e4b2e973066da5c6ebeb91e7bef3057df0260e	?
+xhtml1/font-size-056.xht	d4e4b2e973066da5c6ebeb91e7bef3057df0260e	?
+html/font-size-057.htm	7798b8a88c20d8dfcaaadac3316dd654ccae8b9a	?
+xhtml1/font-size-057.xht	7798b8a88c20d8dfcaaadac3316dd654ccae8b9a	?
+html/font-size-058.htm	e00266250826d509c781a981ef2f0e3e7083d0f7	?
+xhtml1/font-size-058.xht	e00266250826d509c781a981ef2f0e3e7083d0f7	?
+html/font-size-059.htm	a063b273dd427d07967cb9a7feb37d026c0096ee	?
+xhtml1/font-size-059.xht	a063b273dd427d07967cb9a7feb37d026c0096ee	?
+html/font-size-060.htm	19d913c594b86ea20b27dad412e8fe36bacf7b57	?
+xhtml1/font-size-060.xht	19d913c594b86ea20b27dad412e8fe36bacf7b57	?
+html/font-size-061.htm	49098c745bbc643f5ac2293096bca10b1a185126	?
+xhtml1/font-size-061.xht	49098c745bbc643f5ac2293096bca10b1a185126	?
+html/font-size-062.htm	1157d49c7d81f55694638d7fd8804c4053f0d0d3	?
+xhtml1/font-size-062.xht	1157d49c7d81f55694638d7fd8804c4053f0d0d3	?
+html/font-size-067.htm	58827c877ddb2f586eed06563cd46d6b7ab5bb74	?
+xhtml1/font-size-067.xht	58827c877ddb2f586eed06563cd46d6b7ab5bb74	?
+html/font-size-068.htm	ccb4e3b20088bdbc8c8ccf7ad90c2e6866bf4f70	?
+xhtml1/font-size-068.xht	ccb4e3b20088bdbc8c8ccf7ad90c2e6866bf4f70	?
+html/font-size-069.htm	017b304959d0a7fbc46f3cf3c4dd80004536cf9f	?
+xhtml1/font-size-069.xht	017b304959d0a7fbc46f3cf3c4dd80004536cf9f	?
+html/font-size-070.htm	22b4c75553a4d07d595848b42b7fb2e153507abb	?
+xhtml1/font-size-070.xht	22b4c75553a4d07d595848b42b7fb2e153507abb	?
+html/font-size-071.htm	f7677ad2f40fcf10cd108f1bc9888b17750df45c	?
+xhtml1/font-size-071.xht	f7677ad2f40fcf10cd108f1bc9888b17750df45c	?
+html/font-size-072.htm	1ac98d74c989e5923afee2ee5b8f2bf6c35dbab0	?
+xhtml1/font-size-072.xht	1ac98d74c989e5923afee2ee5b8f2bf6c35dbab0	?
+html/font-size-073.htm	658f9b8ef14b51af9443f47ef67d28ec88659818	?
+xhtml1/font-size-073.xht	658f9b8ef14b51af9443f47ef67d28ec88659818	?
+html/font-size-078.htm	5f2f59bdab3f0ca50f7c12725e98f32b2a57d0b8	?
+xhtml1/font-size-078.xht	5f2f59bdab3f0ca50f7c12725e98f32b2a57d0b8	?
+html/font-size-079.htm	37d5be353e0963aecf5bfabc85389d88a5ba0ee4	?
+xhtml1/font-size-079.xht	37d5be353e0963aecf5bfabc85389d88a5ba0ee4	?
+html/font-size-080.htm	673aad2a3e80d5d3d894abe8da745d465b71c749	?
+xhtml1/font-size-080.xht	673aad2a3e80d5d3d894abe8da745d465b71c749	?
+html/font-size-081.htm	6ce8de9ab5b97dd0387e7477723fc297d93061ec	?
+xhtml1/font-size-081.xht	6ce8de9ab5b97dd0387e7477723fc297d93061ec	?
+html/font-size-082.htm	73415ac783c8a5a1831fe40edba3670fd5b0addc	?
+xhtml1/font-size-082.xht	73415ac783c8a5a1831fe40edba3670fd5b0addc	?
+html/font-size-083.htm	62a685763cb9204599a8a1c27b925a92efd6e3a8	?
+xhtml1/font-size-083.xht	62a685763cb9204599a8a1c27b925a92efd6e3a8	?
+html/font-size-084.htm	71dc514fb75aff734b63a3da9f64bcbe62c7cc94	?
+xhtml1/font-size-084.xht	71dc514fb75aff734b63a3da9f64bcbe62c7cc94	?
+html/font-size-089.htm	babdc8d8a410175b47e5e1b543973ac162b79c0d	?
+xhtml1/font-size-089.xht	babdc8d8a410175b47e5e1b543973ac162b79c0d	?
+html/font-size-090.htm	2ec8165a700069606a10a94a65778727de46f573	?
+xhtml1/font-size-090.xht	2ec8165a700069606a10a94a65778727de46f573	?
+html/font-size-091.htm	a467f0bc0486ee7c9debea634ee87dadf164e732	?
+xhtml1/font-size-091.xht	a467f0bc0486ee7c9debea634ee87dadf164e732	?
+html/font-size-092.htm	a2dc662e1a3c2342b69ae9982c205931d3aecafe	?
+xhtml1/font-size-092.xht	a2dc662e1a3c2342b69ae9982c205931d3aecafe	?
+html/font-size-093.htm	fcacc0927196606476f1874134c18682bd74a1f4	?
+xhtml1/font-size-093.xht	fcacc0927196606476f1874134c18682bd74a1f4	?
+html/font-size-094.htm	c895c3639630a69b8c7ebd5676286e5ee47b29ff	?
+xhtml1/font-size-094.xht	c895c3639630a69b8c7ebd5676286e5ee47b29ff	?
+html/font-size-095.htm	f36e23a002faffc1625273cc91abdad504d16a04	?
+xhtml1/font-size-095.xht	f36e23a002faffc1625273cc91abdad504d16a04	?
+html/font-size-100.htm	7abc55fbd308d2fbef019ec45081b4f7d603e221	?
+xhtml1/font-size-100.xht	7abc55fbd308d2fbef019ec45081b4f7d603e221	?
+html/font-size-101.htm	1b9cf84d13a39056e977a97ee5af00158774d55e	?
+xhtml1/font-size-101.xht	1b9cf84d13a39056e977a97ee5af00158774d55e	?
+html/font-size-102.htm	43f30190565e4f4daf1942d9a05b053fa1c0f0ce	?
+xhtml1/font-size-102.xht	43f30190565e4f4daf1942d9a05b053fa1c0f0ce	?
+html/font-size-103.htm	0b5d0577e19acc96afcea17c9e89bab2489df5da	?
+xhtml1/font-size-103.xht	0b5d0577e19acc96afcea17c9e89bab2489df5da	?
+html/font-size-104.htm	51c520fc70b34b20b49122ed8a558aa98dd1e498	?
+xhtml1/font-size-104.xht	51c520fc70b34b20b49122ed8a558aa98dd1e498	?
+html/font-size-105.htm	9b4992137f8e9d12dff2244f5fe3bc3e8dd8e3b0	?
+xhtml1/font-size-105.xht	9b4992137f8e9d12dff2244f5fe3bc3e8dd8e3b0	?
+html/font-size-106.htm	b900c27b2e2fd6e592d04a57a23d55777a3af1ce	?
+xhtml1/font-size-106.xht	b900c27b2e2fd6e592d04a57a23d55777a3af1ce	?
+html/font-size-107.htm	c3ccdbcaeda7c785ef86a549732459ddc217982b	?
+xhtml1/font-size-107.xht	c3ccdbcaeda7c785ef86a549732459ddc217982b	?
+html/font-size-108.htm	957c9287fc327e38b44d52ffc6f1118fb6781786	?
+xhtml1/font-size-108.xht	957c9287fc327e38b44d52ffc6f1118fb6781786	?
+html/font-size-109.htm	346e1dfb9b7434865e191fc058092798b2794ddb	?
+xhtml1/font-size-109.xht	346e1dfb9b7434865e191fc058092798b2794ddb	?
+html/font-size-110.htm	8df5e36d53412ca5797470f9c81845c9998afda0	?
+xhtml1/font-size-110.xht	8df5e36d53412ca5797470f9c81845c9998afda0	?
+html/font-size-111.htm	2414cb11d5b9d3dbac0a3d35e1cf660ebdc65730	?
+xhtml1/font-size-111.xht	2414cb11d5b9d3dbac0a3d35e1cf660ebdc65730	?
+html/font-size-112.htm	86f30b0c1fda9ee8fc22605b9dca230c5fb94217	?
+xhtml1/font-size-112.xht	86f30b0c1fda9ee8fc22605b9dca230c5fb94217	?
+html/font-size-113.htm	6123b9d5416c420b6d2a4c927e908b800d2133f6	?
+xhtml1/font-size-113.xht	6123b9d5416c420b6d2a4c927e908b800d2133f6	?
+html/font-size-114.htm	720dd7cc93dd8a6d2b61d9302df8a072a3d011e7	?
+xhtml1/font-size-114.xht	720dd7cc93dd8a6d2b61d9302df8a072a3d011e7	?
+html/font-size-115.htm	772df5f4d6c3c5993347f794b1585cc9f5a35222	?
+xhtml1/font-size-115.xht	772df5f4d6c3c5993347f794b1585cc9f5a35222	?
+html/font-size-116.htm	e7288ca1c666a186759b148bc777cef2d60f17b5	?
+xhtml1/font-size-116.xht	e7288ca1c666a186759b148bc777cef2d60f17b5	?
+html/font-size-117.htm	7086b10d62926c9db343e071c2a9de43db094093	?
+xhtml1/font-size-117.xht	7086b10d62926c9db343e071c2a9de43db094093	?
+html/font-size-118.htm	771249dfadd2a58eadd9bf8b3583a9cfa3e3a10b	?
+xhtml1/font-size-118.xht	771249dfadd2a58eadd9bf8b3583a9cfa3e3a10b	?
+html/font-size-119.htm	8c39013170fd366c25a6f9897d4e543abb6426bd	?
+xhtml1/font-size-119.xht	8c39013170fd366c25a6f9897d4e543abb6426bd	?
+html/font-size-120.htm	265881012941e68d9555eab683138ebb37936fea	?
+xhtml1/font-size-120.xht	265881012941e68d9555eab683138ebb37936fea	?
+html/font-size-121.htm	58ca4b9cfd885038f2f08e04afb843003a68103b	?
+xhtml1/font-size-121.xht	58ca4b9cfd885038f2f08e04afb843003a68103b	?
+html/font-size-122.htm	679f70d7aefd15226b73addf66d86b3cdf69c1bd	?
+xhtml1/font-size-122.xht	679f70d7aefd15226b73addf66d86b3cdf69c1bd	?
+html/font-size-123.htm	06096caf4458d82b8b227730c5b4f9b3bcfc6f37	?
+xhtml1/font-size-123.xht	06096caf4458d82b8b227730c5b4f9b3bcfc6f37	?
+html/font-size-adjust-001.htm	46f5fd861c048d4b7623e050749230b0fef45685	?
+xhtml1/font-size-adjust-001.xht	46f5fd861c048d4b7623e050749230b0fef45685	?
+html/font-size-adjust-002.htm	e23b1613f315bb08db2dd889eea82327952536f6	?
+xhtml1/font-size-adjust-002.xht	e23b1613f315bb08db2dd889eea82327952536f6	?
+html/font-size-adjust-003.htm	76bdd71fdd1aef6fb668dbe98db2fe362e10cdb4	?
+xhtml1/font-size-adjust-003.xht	76bdd71fdd1aef6fb668dbe98db2fe362e10cdb4	?
+html/font-size-adjust-005.htm	c361d896c578739e5e4156b5719e61078bb20f64	?
+xhtml1/font-size-adjust-005.xht	c361d896c578739e5e4156b5719e61078bb20f64	?
+html/font-size-adjust-006.htm	e79aabc31e4259a2e1fc2ab86cc67661dbd62d52	?
+xhtml1/font-size-adjust-006.xht	e79aabc31e4259a2e1fc2ab86cc67661dbd62d52	?
+html/font-size-adjust-007.htm	82940e561311c597d72c9eb0ed4895d782e1db9b	?
+xhtml1/font-size-adjust-007.xht	82940e561311c597d72c9eb0ed4895d782e1db9b	?
+html/font-size-adjust-008.htm	a04f6a4f97ac33c54ef6cf477de640c8cba97693	?
+xhtml1/font-size-adjust-008.xht	a04f6a4f97ac33c54ef6cf477de640c8cba97693	?
+html/font-size-applies-to-001.htm	fbc00023abeebe442c9719bfc2530c367045ad7c	?
+xhtml1/font-size-applies-to-001.xht	fbc00023abeebe442c9719bfc2530c367045ad7c	?
+html/font-size-applies-to-002.htm	8994461fab45e1672a00ecfc2d88ba252286a795	?
+xhtml1/font-size-applies-to-002.xht	8994461fab45e1672a00ecfc2d88ba252286a795	?
+html/font-size-applies-to-003.htm	7ff24c35c0bc48157db513b72230516e9bf37e86	?
+xhtml1/font-size-applies-to-003.xht	7ff24c35c0bc48157db513b72230516e9bf37e86	?
+html/font-size-applies-to-004.htm	090d49dd76f245dbbed943fc6c2604abc4c7e502	?
+xhtml1/font-size-applies-to-004.xht	090d49dd76f245dbbed943fc6c2604abc4c7e502	?
+html/font-size-applies-to-005.htm	fb51d5fab8feac3129b4882acf83bbe24f51021a	?
+xhtml1/font-size-applies-to-005.xht	fb51d5fab8feac3129b4882acf83bbe24f51021a	?
+html/font-size-applies-to-006.htm	5c050697439a7cb7d2381809fd78f9d492ec61cd	?
+xhtml1/font-size-applies-to-006.xht	5c050697439a7cb7d2381809fd78f9d492ec61cd	?
+html/font-size-applies-to-007.htm	4566f1460beb5d8e6ea0737a39f42291710a015a	?
+xhtml1/font-size-applies-to-007.xht	4566f1460beb5d8e6ea0737a39f42291710a015a	?
+html/font-size-applies-to-008.htm	6f9065f344562a7e832e48bd30d68ea6047d5e34	?
+xhtml1/font-size-applies-to-008.xht	6f9065f344562a7e832e48bd30d68ea6047d5e34	?
+html/font-size-applies-to-009.htm	a2f6530958663159e487aada7a67bac913ca9dd5	?
+xhtml1/font-size-applies-to-009.xht	a2f6530958663159e487aada7a67bac913ca9dd5	?
+html/font-size-applies-to-010.htm	623cc6fa46bc6195fd0a9267d37f454c3cb36c97	?
+xhtml1/font-size-applies-to-010.xht	623cc6fa46bc6195fd0a9267d37f454c3cb36c97	?
+html/font-size-applies-to-011.htm	06adde1fde7e899e907096877e9f203f8b437d2b	?
+xhtml1/font-size-applies-to-011.xht	06adde1fde7e899e907096877e9f203f8b437d2b	?
+html/font-size-applies-to-014.htm	7273c1c9b71c3aae9d08591e492fa0d82266f8ea	?
+xhtml1/font-size-applies-to-014.xht	7273c1c9b71c3aae9d08591e492fa0d82266f8ea	?
+html/font-size-applies-to-015.htm	ba5ee7b790bd429b57a352fbf96ff4e785048cc0	?
+xhtml1/font-size-applies-to-015.xht	ba5ee7b790bd429b57a352fbf96ff4e785048cc0	?
+html/font-size-applies-to-016.htm	a0c3d05fa389dbc9fa28ee7b749b4b77521445fb	?
+xhtml1/font-size-applies-to-016.xht	a0c3d05fa389dbc9fa28ee7b749b4b77521445fb	?
+html/font-size-applies-to-017.htm	d0df3fde083bf94cbb2f4e86314144b5480ccc5a	?
+xhtml1/font-size-applies-to-017.xht	d0df3fde083bf94cbb2f4e86314144b5480ccc5a	?
+html/font-size-rule-001.htm	d01a038a43fc6275ab588974fecb6ba0915eca88	?
+xhtml1/font-size-rule-001.xht	d01a038a43fc6275ab588974fecb6ba0915eca88	?
+html/font-size-rule-002.htm	89851367afda5ce3a328a3cb91777ca5aec7c266	?
+xhtml1/font-size-rule-002.xht	89851367afda5ce3a328a3cb91777ca5aec7c266	?
+html/font-size-rule-003.htm	d73c20c945997e6929b7d5d9b42e461400817c00	?
+xhtml1/font-size-rule-003.xht	d73c20c945997e6929b7d5d9b42e461400817c00	?
+html/font-size-rule-004.htm	2df7e8557553d6186dca33f6ca74ff15fd5aed91	?
+xhtml1/font-size-rule-004.xht	2df7e8557553d6186dca33f6ca74ff15fd5aed91	?
+html/font-style-001.htm	5e9cfc4256e42b67419c5fd9886c1698aaf96b1e	?
+xhtml1/font-style-001.xht	5e9cfc4256e42b67419c5fd9886c1698aaf96b1e	?
+html/font-style-002.htm	89478db22a2ad975329b98640bdec06c8f26ec0b	?
+xhtml1/font-style-002.xht	89478db22a2ad975329b98640bdec06c8f26ec0b	?
+html/font-style-003.htm	e64ada885f3060632005a222a5474ddcc33967fd	?
+xhtml1/font-style-003.xht	e64ada885f3060632005a222a5474ddcc33967fd	?
+html/font-style-004.htm	b93daad8ba667f628472006547f96e7d6f592722	?
+xhtml1/font-style-004.xht	b93daad8ba667f628472006547f96e7d6f592722	?
+html/font-style-applies-to-001.htm	aa458eeb7e7576a7b47cffac8dab1a402e1eacd3	?
+xhtml1/font-style-applies-to-001.xht	aa458eeb7e7576a7b47cffac8dab1a402e1eacd3	?
+html/font-style-applies-to-002.htm	b3f8c5b4591814ddf986bcaf25096c7a614d8f05	?
+xhtml1/font-style-applies-to-002.xht	b3f8c5b4591814ddf986bcaf25096c7a614d8f05	?
+html/font-style-applies-to-003.htm	c9091676173e2404c0dbdfe21f34464fa6489e63	?
+xhtml1/font-style-applies-to-003.xht	c9091676173e2404c0dbdfe21f34464fa6489e63	?
+html/font-style-applies-to-004.htm	7b87677e6d553a6ee41fb07d2cc75bb2782bcd90	?
+xhtml1/font-style-applies-to-004.xht	7b87677e6d553a6ee41fb07d2cc75bb2782bcd90	?
+html/font-style-applies-to-005.htm	bdfa4966cbd90fe8acdd194f997502ad57fe100c	?
+xhtml1/font-style-applies-to-005.xht	bdfa4966cbd90fe8acdd194f997502ad57fe100c	?
+html/font-style-applies-to-006.htm	9d33295ec76dfae16f29d8b68c07891a36fd1722	?
+xhtml1/font-style-applies-to-006.xht	9d33295ec76dfae16f29d8b68c07891a36fd1722	?
+html/font-style-applies-to-007.htm	831fbcff9281cf698f0b6809b6596dd125b7d7bf	?
+xhtml1/font-style-applies-to-007.xht	831fbcff9281cf698f0b6809b6596dd125b7d7bf	?
+html/font-style-applies-to-008.htm	31484c5ed8d80460a5d48e35fdfce7678dd79567	?
+xhtml1/font-style-applies-to-008.xht	31484c5ed8d80460a5d48e35fdfce7678dd79567	?
+html/font-style-applies-to-009.htm	80b5ae9337efa282fee5e9d3c09fb6f2342de4e5	?
+xhtml1/font-style-applies-to-009.xht	80b5ae9337efa282fee5e9d3c09fb6f2342de4e5	?
+html/font-style-applies-to-010.htm	24ba8541e2ffef3b804dd50f67ff000df11c5159	?
+xhtml1/font-style-applies-to-010.xht	24ba8541e2ffef3b804dd50f67ff000df11c5159	?
+html/font-style-applies-to-011.htm	eca13bc600d5373147c2277f3b372963e03e9db5	?
+xhtml1/font-style-applies-to-011.xht	eca13bc600d5373147c2277f3b372963e03e9db5	?
+html/font-style-applies-to-014.htm	4d7d254c33a96c9317abc0a708a43362edc7a28e	?
+xhtml1/font-style-applies-to-014.xht	4d7d254c33a96c9317abc0a708a43362edc7a28e	?
+html/font-style-applies-to-015.htm	3f2814a722eec5d10a064d2e65eb05080fbcabfc	?
+xhtml1/font-style-applies-to-015.xht	3f2814a722eec5d10a064d2e65eb05080fbcabfc	?
+html/font-style-applies-to-016.htm	11e16c3b23019820c04b7c86c0e6226c29c8679a	?
+xhtml1/font-style-applies-to-016.xht	11e16c3b23019820c04b7c86c0e6226c29c8679a	?
+html/font-style-applies-to-017.htm	0a4335e429e30d115196d5d60443d010da91443a	?
+xhtml1/font-style-applies-to-017.xht	0a4335e429e30d115196d5d60443d010da91443a	?
+html/font-style-rule-001.htm	138d00ba47bc5aaaf042718b371af7a3677a1e61	?
+xhtml1/font-style-rule-001.xht	138d00ba47bc5aaaf042718b371af7a3677a1e61	?
+html/font-systemfont-rule-003.htm	08b860b882c9df2843ad08593d8135c850ceed1b	?
+xhtml1/font-systemfont-rule-003.xht	08b860b882c9df2843ad08593d8135c850ceed1b	?
+html/font-systemfont-rule-004.htm	0effff99232e2c47e78f92d4eb94304d35335ce7	?
+xhtml1/font-systemfont-rule-004.xht	0effff99232e2c47e78f92d4eb94304d35335ce7	?
+html/font-variant-001.htm	e21e789fc4a9b9bd02bdf52465d84a8a484261c9	?
+xhtml1/font-variant-001.xht	e21e789fc4a9b9bd02bdf52465d84a8a484261c9	?
+html/font-variant-002.htm	04e2a998ef5a2d6c6d319c324a09e5f0ba280a76	?
+xhtml1/font-variant-002.xht	04e2a998ef5a2d6c6d319c324a09e5f0ba280a76	?
+html/font-variant-003.htm	5db965a65cec8e7cb068e92de247d4a3f54c0114	?
+xhtml1/font-variant-003.xht	5db965a65cec8e7cb068e92de247d4a3f54c0114	?
+html/font-variant-004.htm	5ab9088902dd638f43281076b96bbcd7554ccc2f	?
+xhtml1/font-variant-004.xht	5ab9088902dd638f43281076b96bbcd7554ccc2f	?
+html/font-variant-applies-to-001.htm	656733b5ba5bad9aa86f1a688971362a2c3f23aa	?
+xhtml1/font-variant-applies-to-001.xht	656733b5ba5bad9aa86f1a688971362a2c3f23aa	?
+html/font-variant-applies-to-002.htm	d8adefeee67dda24ff86bb6e24a2559fa7972eb7	?
+xhtml1/font-variant-applies-to-002.xht	d8adefeee67dda24ff86bb6e24a2559fa7972eb7	?
+html/font-variant-applies-to-003.htm	952f8e8b67cdf1c7779279123d84d79c97292316	?
+xhtml1/font-variant-applies-to-003.xht	952f8e8b67cdf1c7779279123d84d79c97292316	?
+html/font-variant-applies-to-004.htm	d1861573bc10c7ea30e6395d9495f3f3622a03a1	?
+xhtml1/font-variant-applies-to-004.xht	d1861573bc10c7ea30e6395d9495f3f3622a03a1	?
+html/font-variant-applies-to-005.htm	ad06fdd6cb3d32bc7a8a18bcb91c3374a672a0ca	?
+xhtml1/font-variant-applies-to-005.xht	ad06fdd6cb3d32bc7a8a18bcb91c3374a672a0ca	?
+html/font-variant-applies-to-006.htm	25536400b6bc4baa04240b024472bfcbbeb0bb6d	?
+xhtml1/font-variant-applies-to-006.xht	25536400b6bc4baa04240b024472bfcbbeb0bb6d	?
+html/font-variant-applies-to-007.htm	81ef2690fbb05da46e15306c3a04654830016fab	?
+xhtml1/font-variant-applies-to-007.xht	81ef2690fbb05da46e15306c3a04654830016fab	?
+html/font-variant-applies-to-008.htm	16922da0c59c118aea2462482e9652bceda5f131	?
+xhtml1/font-variant-applies-to-008.xht	16922da0c59c118aea2462482e9652bceda5f131	?
+html/font-variant-applies-to-009.htm	a4c344c7db3710b7e646ae40eaaf28c9687cbbc4	?
+xhtml1/font-variant-applies-to-009.xht	a4c344c7db3710b7e646ae40eaaf28c9687cbbc4	?
+html/font-variant-applies-to-010.htm	dfb149653afbc62c337aba3c40d150f239780abd	?
+xhtml1/font-variant-applies-to-010.xht	dfb149653afbc62c337aba3c40d150f239780abd	?
+html/font-variant-applies-to-011.htm	368d56ebe03b323cdad33462cb96d933a0b703c7	?
+xhtml1/font-variant-applies-to-011.xht	368d56ebe03b323cdad33462cb96d933a0b703c7	?
+html/font-variant-applies-to-014.htm	2f70565ce0c440d9005e8ccbff5f090e096eb2ee	?
+xhtml1/font-variant-applies-to-014.xht	2f70565ce0c440d9005e8ccbff5f090e096eb2ee	?
+html/font-variant-applies-to-015.htm	48b5107b50f7d3395ffee03ad8f0bae83bdd26a4	?
+xhtml1/font-variant-applies-to-015.xht	48b5107b50f7d3395ffee03ad8f0bae83bdd26a4	?
+html/font-variant-applies-to-016.htm	41b6baeca79f278c4985763ac09507b7ba1a421b	?
+xhtml1/font-variant-applies-to-016.xht	41b6baeca79f278c4985763ac09507b7ba1a421b	?
+html/font-variant-applies-to-017.htm	c3498a16768a3413a76c13da712fa37d346f604c	?
+xhtml1/font-variant-applies-to-017.xht	c3498a16768a3413a76c13da712fa37d346f604c	?
+html/font-variant-caps.htm	1afeaaa66f5115223ede6e1074df565b92200a22	?
+xhtml1/font-variant-caps.xht	1afeaaa66f5115223ede6e1074df565b92200a22	?
+html/font-variant-east-asian.htm	ee9b6d2902a6ae4274c4050e3ee634d0e08f4e80	?
+xhtml1/font-variant-east-asian.xht	ee9b6d2902a6ae4274c4050e3ee634d0e08f4e80	?
+html/font-variant-ligatures.htm	d3de8b05343a4ee20946ecb92ddfae7cb736fd72	?
+xhtml1/font-variant-ligatures.xht	d3de8b05343a4ee20946ecb92ddfae7cb736fd72	?
+html/font-variant-numeric.htm	55dc12263fcdeb03b6d038401cb74388aef28715	?
+xhtml1/font-variant-numeric.xht	55dc12263fcdeb03b6d038401cb74388aef28715	?
+html/font-variant-position.htm	a51d043facdab128a48ec53ee046abce5f0b064d	?
+xhtml1/font-variant-position.xht	a51d043facdab128a48ec53ee046abce5f0b064d	?
+html/font-weight-001.htm	79718877ce3dcb940242fbbaffe5075ba8776807	?
+xhtml1/font-weight-001.xht	79718877ce3dcb940242fbbaffe5075ba8776807	?
+html/font-weight-002.htm	a741d61478f82ec29f00513803977f805d677e17	?
+xhtml1/font-weight-002.xht	a741d61478f82ec29f00513803977f805d677e17	?
+html/font-weight-003.htm	5bef24858ed5d186c3f011ccd4c3ad39d05c69e8	?
+xhtml1/font-weight-003.xht	5bef24858ed5d186c3f011ccd4c3ad39d05c69e8	?
+html/font-weight-008.htm	bdbabd673a91e8d964784bffc0a04aafd317c5bd	?
+xhtml1/font-weight-008.xht	bdbabd673a91e8d964784bffc0a04aafd317c5bd	?
+html/font-weight-010.htm	c026c4b492506e198e6a301b7f7d5c400f585344	?
+xhtml1/font-weight-010.xht	c026c4b492506e198e6a301b7f7d5c400f585344	?
+html/font-weight-011.htm	7a7b3dd69602c77851253a2896632e207431cf01	?
+xhtml1/font-weight-011.xht	7a7b3dd69602c77851253a2896632e207431cf01	?
+html/font-weight-012.htm	8656bff46c17e955d78ab1a6675bfe99011f2db7	?
+xhtml1/font-weight-012.xht	8656bff46c17e955d78ab1a6675bfe99011f2db7	?
+html/font-weight-013.htm	6e51e4f671344b94205617c3683721ff89ccaba2	?
+xhtml1/font-weight-013.xht	6e51e4f671344b94205617c3683721ff89ccaba2	?
+html/font-weight-014.htm	a80968366a11a351c1c3f8d0f3945a4ceb99f106	?
+xhtml1/font-weight-014.xht	a80968366a11a351c1c3f8d0f3945a4ceb99f106	?
+html/font-weight-015.htm	9a89e2c644694708386bff85064eabc0cdea3d8c	?
+xhtml1/font-weight-015.xht	9a89e2c644694708386bff85064eabc0cdea3d8c	?
+html/font-weight-016.htm	615aab0bd1f84269447b21898ce2667470b2b2f1	?
+xhtml1/font-weight-016.xht	615aab0bd1f84269447b21898ce2667470b2b2f1	?
+html/font-weight-017.htm	a7628a97eeb84c0c655cd55c2ddca0a852340610	?
+xhtml1/font-weight-017.xht	a7628a97eeb84c0c655cd55c2ddca0a852340610	?
+html/font-weight-018.htm	b8309dccc0cfa43b28b25dfb9452525d7ff5768f	?
+xhtml1/font-weight-018.xht	b8309dccc0cfa43b28b25dfb9452525d7ff5768f	?
+html/font-weight-applies-to-001.htm	a9460e7a33ae49ba7abeef5da1d65cbff894ef1e	?
+xhtml1/font-weight-applies-to-001.xht	a9460e7a33ae49ba7abeef5da1d65cbff894ef1e	?
+html/font-weight-applies-to-002.htm	896ff8cd8776ef1519956caebbc7f02ed3329918	?
+xhtml1/font-weight-applies-to-002.xht	896ff8cd8776ef1519956caebbc7f02ed3329918	?
+html/font-weight-applies-to-003.htm	749fa594faca5609f49bcbb82b8edb918609548b	?
+xhtml1/font-weight-applies-to-003.xht	749fa594faca5609f49bcbb82b8edb918609548b	?
+html/font-weight-applies-to-004.htm	51756b848f1e0b6379e7f1adb990f5a4136fdd82	?
+xhtml1/font-weight-applies-to-004.xht	51756b848f1e0b6379e7f1adb990f5a4136fdd82	?
+html/font-weight-applies-to-005.htm	7321f10bd09e13cb8a89eff56ac810fffa5bd388	?
+xhtml1/font-weight-applies-to-005.xht	7321f10bd09e13cb8a89eff56ac810fffa5bd388	?
+html/font-weight-applies-to-006.htm	cc87946383707e6ed132b0b2bd3dfe2676aa66db	?
+xhtml1/font-weight-applies-to-006.xht	cc87946383707e6ed132b0b2bd3dfe2676aa66db	?
+html/font-weight-applies-to-007.htm	290e2ae87d71b135c25a71fb60a05e0a6907dfe6	?
+xhtml1/font-weight-applies-to-007.xht	290e2ae87d71b135c25a71fb60a05e0a6907dfe6	?
+html/font-weight-applies-to-008.htm	e5538fede23b83907193c48aa23f815d6efd216e	?
+xhtml1/font-weight-applies-to-008.xht	e5538fede23b83907193c48aa23f815d6efd216e	?
+html/font-weight-applies-to-009.htm	e19eb1bb3ba66c6cce5c1aa2de3c9cc4cfd7085a	?
+xhtml1/font-weight-applies-to-009.xht	e19eb1bb3ba66c6cce5c1aa2de3c9cc4cfd7085a	?
+html/font-weight-applies-to-010.htm	11ab49e88d4c30f91863436cb1ad15c6c97fd1c1	?
+xhtml1/font-weight-applies-to-010.xht	11ab49e88d4c30f91863436cb1ad15c6c97fd1c1	?
+html/font-weight-applies-to-011.htm	d4bbf73416b81d859c1db2e0943f4ad2079d2fc3	?
+xhtml1/font-weight-applies-to-011.xht	d4bbf73416b81d859c1db2e0943f4ad2079d2fc3	?
+html/font-weight-applies-to-014.htm	7672376a6aeabaa3c2f535ad226dc313ac10312f	?
+xhtml1/font-weight-applies-to-014.xht	7672376a6aeabaa3c2f535ad226dc313ac10312f	?
+html/font-weight-applies-to-015.htm	12006a0b2752fa5a555c026fe7ad419dcc13dff0	?
+xhtml1/font-weight-applies-to-015.xht	12006a0b2752fa5a555c026fe7ad419dcc13dff0	?
+html/font-weight-applies-to-016.htm	3071b42ffbdcd1070bf32c87f7524d9735024648	?
+xhtml1/font-weight-applies-to-016.xht	3071b42ffbdcd1070bf32c87f7524d9735024648	?
+html/font-weight-applies-to-017.htm	6f2008e03d434c243e0591d22a33be5910465dfc	?
+xhtml1/font-weight-applies-to-017.xht	6f2008e03d434c243e0591d22a33be5910465dfc	?
+html/font-weight-rule-001.htm	0ffb510c75391452627049488ca9182ddab1d309	?
+xhtml1/font-weight-rule-001.xht	0ffb510c75391452627049488ca9182ddab1d309	?
+html/font-weight-rule-002.htm	5a9f3c67f651c1dfbbaebe3131612cf7dbd26d6e	?
+xhtml1/font-weight-rule-002.xht	5a9f3c67f651c1dfbbaebe3131612cf7dbd26d6e	?
+html/font-weight-rule-003.htm	6f84c5dc543e274b1f81276b7c04e13735efae48	?
+xhtml1/font-weight-rule-003.xht	6f84c5dc543e274b1f81276b7c04e13735efae48	?
+html/font-weight-rule-004.htm	a2c457817d34570b962287ed474e0f1bebb042f6	?
+xhtml1/font-weight-rule-004.xht	a2c457817d34570b962287ed474e0f1bebb042f6	?
+html/font-weight-rule-005.htm	599293f059e0493785e061a17c31609e523d47f0	?
+xhtml1/font-weight-rule-005.xht	599293f059e0493785e061a17c31609e523d47f0	?
+html/font-weight-rule-006.htm	aeef174a780327b258ec08bf6103929b865744b5	?
+xhtml1/font-weight-rule-006.xht	aeef174a780327b258ec08bf6103929b865744b5	?
+html/font-weight-rule-007.htm	9e914a72e88f1bee3dce40dfd5ff285f99f10ed9	?
+xhtml1/font-weight-rule-007.xht	9e914a72e88f1bee3dce40dfd5ff285f99f10ed9	?
+html/font-weight-rule-008.htm	b0a1dd691052021e73d386ebcad7bda3cc784fb7	?
+xhtml1/font-weight-rule-008.xht	b0a1dd691052021e73d386ebcad7bda3cc784fb7	?
+html/fonts-010.htm	2ff277b5316792da739b900fb83276087480d445	?
+xhtml1/fonts-010.xht	2ff277b5316792da739b900fb83276087480d445	?
+html/fonts-011.htm	ce0ec507ab570baa8ea5bafc80a6fe51bd8c147e	?
+xhtml1/fonts-011.xht	ce0ec507ab570baa8ea5bafc80a6fe51bd8c147e	?
+html/fonts-012.htm	10efb829d07875bf446f238fbe57f66c5c244ec3	?
+xhtml1/fonts-012.xht	10efb829d07875bf446f238fbe57f66c5c244ec3	?
+html/fonts-013.htm	bb2258aee8f64bb518b5942e4a94f0454ad0314f	?
+xhtml1/fonts-013.xht	bb2258aee8f64bb518b5942e4a94f0454ad0314f	?
+html/fonts-014.htm	cdc86fb310dd906083ff09fb4a1810ff147cf41b	?
+xhtml1/fonts-014.xht	cdc86fb310dd906083ff09fb4a1810ff147cf41b	?
+html/test-synthetic-bold.htm	289bc51877159287975be633c2ee2118b87f6421	?
+xhtml1/test-synthetic-bold.xht	289bc51877159287975be633c2ee2118b87f6421	?
+html/test-synthetic-italic.htm	7311bf5ca7d29f6ddc86d73fbbcb4be6bb8b6977	?
+xhtml1/test-synthetic-italic.xht	7311bf5ca7d29f6ddc86d73fbbcb4be6bb8b6977	?
+html/test_font_family_parsing.htm	0f4348c7537386fd469849455ac3f7d5e703d251	?
+xhtml1/test_font_family_parsing.xht	0f4348c7537386fd469849455ac3f7d5e703d251	?
+html/test_font_feature_values_parsing.htm	9e4503458118aeb85201c8af2a9016f94d57232b	?
+xhtml1/test_font_feature_values_parsing.xht	9e4503458118aeb85201c8af2a9016f94d57232b	?

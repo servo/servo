@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">	
+<html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		<title>CSS Writing Modes Test: text-orientation - sideways</title>
   <style type="text/css">
@@ -16,7 +16,7 @@
 		<link rel="match" href="reference/text-orientation-015-ref.xht"/>
 		<meta http-equiv="content-language" content="en"/>
 		<meta name="flags" content="ahem"/>
-		<meta name="assert" content="This test checks that 'text-orientation: sideways' is equivalent to‘sideways-left’in‘vertical-lr’writing mode. This is effective to verify 1.block flow direction, 2.inline direction, but not effetive to verify 3.glyph orientation."/>	
+		<meta name="assert" content="This test checks that 'text-orientation: sideways' is equivalent to‘sideways-left’in‘vertical-lr’writing mode. This is effective to verify 1.block flow direction, 2.inline direction, but not effetive to verify 3.glyph orientation."/>
 		<style type="text/css">
 				.view_ahem
 				{
@@ -25,13 +25,13 @@
 					color: blue;
 					font: 20px/1 "Ahem";
 					height: 3em;
-					margin: 10px;        
+					margin: 10px;
 					width: 3em;
 					white-space: pre;
 				}
 				#test_ahem
 				{
-					text-orientation: sideways;				//The property to be tested
+					text-orientation: sideways;				/* The property to be tested */
 					-webkit-text-orientation:sideways;
 					writing-mode: vertical-lr;
 					-webkit-writing-mode: vertical-lr;
@@ -45,11 +45,11 @@
 	</head>
 	<body lang="en">
 		<!--
-			Here, the "Ahem" sub-test is in place and checks 1.block flow direction and 2.inline direction, 
+			Here, the "Ahem" sub-test is in place and checks 1.block flow direction and 2.inline direction,
 			but not cheks 3.glyph orientation.
 		-->
 		<p>Test passes if a pair of rectangles is <strong>identical</strong> including <strong>layout</strong>.</p>
-		<div class="view_ahem"><span id="test_ahem">123 
+		<div class="view_ahem"><span id="test_ahem">123
  56
 7  </span></div>
 		<div class="view_ahem"><span id="control_ahem">36

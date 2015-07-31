@@ -2,120 +2,120 @@
 # UA string (if applicable)
 # http://test.csswg.org/suites/css-masking-1_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
-testname    result  comment
-html4/clip-absolute-positioned-001.htm	?	
-xhtml1/clip-absolute-positioned-001.xht	?	
-html4/clip-absolute-positioned-002.htm	?	
-xhtml1/clip-absolute-positioned-002.xht	?	
-html4/clip-negative-values-001.htm	?	
-xhtml1/clip-negative-values-001.xht	?	
-html4/clip-negative-values-002.htm	?	
-xhtml1/clip-negative-values-002.xht	?	
-html4/clip-negative-values-003.htm	?	
-xhtml1/clip-negative-values-003.xht	?	
-html4/clip-negative-values-004.htm	?	
-xhtml1/clip-negative-values-004.xht	?	
-html4/clip-no-clipping-001.htm	?	
-xhtml1/clip-no-clipping-001.xht	?	
-html4/clip-no-clipping-002.htm	?	
-xhtml1/clip-no-clipping-002.xht	?	
-html4/clip-not-absolute-positioned-001.htm	?	
-xhtml1/clip-not-absolute-positioned-001.xht	?	
-html4/clip-not-absolute-positioned-002.htm	?	
-xhtml1/clip-not-absolute-positioned-002.xht	?	
-html4/clip-not-absolute-positioned-003.htm	?	
-xhtml1/clip-not-absolute-positioned-003.xht	?	
-html4/clip-not-absolute-positioned-004.htm	?	
-xhtml1/clip-not-absolute-positioned-004.xht	?	
-html4/clip-path-circle-001.htm	?	
-xhtml1/clip-path-circle-001.xht	?	
-html4/clip-path-circle-002.htm	?	
-xhtml1/clip-path-circle-002.xht	?	
-html4/clip-path-circle-003.htm	?	
-xhtml1/clip-path-circle-003.xht	?	
-html4/clip-path-circle-004.htm	?	
-xhtml1/clip-path-circle-004.xht	?	
-html4/clip-path-circle-005.htm	?	
-xhtml1/clip-path-circle-005.xht	?	
-html4/clip-path-circle-006.htm	?	
-xhtml1/clip-path-circle-006.xht	?	
-html4/clip-path-circle-007.htm	?	
-xhtml1/clip-path-circle-007.xht	?	
-html4/clip-path-circle-008.htm	?	
-xhtml1/clip-path-circle-008.xht	?	
-html4/clip-path-element-userspaceonuse-001.htm	?	
-xhtml1/clip-path-element-userspaceonuse-001.xht	?	
-html4/clip-path-element-userspaceonuse-002.htm	?	
-xhtml1/clip-path-element-userspaceonuse-002.xht	?	
-html4/clip-path-element-userspaceonuse-003.htm	?	
-xhtml1/clip-path-element-userspaceonuse-003.xht	?	
-html4/clip-path-element-userspaceonuse-004.htm	?	
-xhtml1/clip-path-element-userspaceonuse-004.xht	?	
-html4/clip-path-ellipse-001.htm	?	
-xhtml1/clip-path-ellipse-001.xht	?	
-html4/clip-path-ellipse-002.htm	?	
-xhtml1/clip-path-ellipse-002.xht	?	
-html4/clip-path-ellipse-003.htm	?	
-xhtml1/clip-path-ellipse-003.xht	?	
-html4/clip-path-ellipse-004.htm	?	
-xhtml1/clip-path-ellipse-004.xht	?	
-html4/clip-path-ellipse-005.htm	?	
-xhtml1/clip-path-ellipse-005.xht	?	
-html4/clip-path-ellipse-006.htm	?	
-xhtml1/clip-path-ellipse-006.xht	?	
-html4/clip-path-ellipse-007.htm	?	
-xhtml1/clip-path-ellipse-007.xht	?	
-html4/clip-path-ellipse-008.htm	?	
-xhtml1/clip-path-ellipse-008.xht	?	
-html4/clip-path-polygon-001.htm	?	
-xhtml1/clip-path-polygon-001.xht	?	
-html4/clip-path-polygon-002.htm	?	
-xhtml1/clip-path-polygon-002.xht	?	
-html4/clip-path-polygon-003.htm	?	
-xhtml1/clip-path-polygon-003.xht	?	
-html4/clip-path-polygon-004.htm	?	
-xhtml1/clip-path-polygon-004.xht	?	
-html4/clip-path-polygon-005.htm	?	
-xhtml1/clip-path-polygon-005.xht	?	
-html4/clip-path-polygon-006.htm	?	
-xhtml1/clip-path-polygon-006.xht	?	
-html4/clip-path-polygon-007.htm	?	
-xhtml1/clip-path-polygon-007.xht	?	
-html4/clip-path-polygon-008.htm	?	
-xhtml1/clip-path-polygon-008.xht	?	
-html4/clip-path-polygon-009.htm	?	
-xhtml1/clip-path-polygon-009.xht	?	
-html4/clip-path-polygon-010.htm	?	
-xhtml1/clip-path-polygon-010.xht	?	
-html4/clip-path-polygon-011.htm	?	
-xhtml1/clip-path-polygon-011.xht	?	
-html4/clip-path-polygon-012.htm	?	
-xhtml1/clip-path-polygon-012.xht	?	
-html4/clip-path-polygon-013.htm	?	
-xhtml1/clip-path-polygon-013.xht	?	
-html4/clip-rect-auto-001.htm	?	
-xhtml1/clip-rect-auto-001.xht	?	
-html4/clip-rect-auto-002.htm	?	
-xhtml1/clip-rect-auto-002.xht	?	
-html4/clip-rect-auto-003.htm	?	
-xhtml1/clip-rect-auto-003.xht	?	
-html4/clip-rect-auto-004.htm	?	
-xhtml1/clip-rect-auto-004.xht	?	
-html4/clip-rect-auto-005.htm	?	
-xhtml1/clip-rect-auto-005.xht	?	
-html4/clip-rect-auto-006.htm	?	
-xhtml1/clip-rect-auto-006.xht	?	
-html4/clip-rect-comma-001.htm	?	
-xhtml1/clip-rect-comma-001.xht	?	
-html4/clip-rect-comma-002.htm	?	
-xhtml1/clip-rect-comma-002.xht	?	
-html4/clip-rect-comma-003.htm	?	
-xhtml1/clip-rect-comma-003.xht	?	
-html4/clip-rect-comma-004.htm	?	
-xhtml1/clip-rect-comma-004.xht	?	
-html4/clip-rule-001.htm	?	
-xhtml1/clip-rule-001.xht	?	
-html4/clip-rule-002.htm	?	
-xhtml1/clip-rule-002.xht	?	
-html4/test-mask.htm	?	
-xhtml1/test-mask.xht	?	
+testname	revision	result	comment
+html/clip-absolute-positioned-001.htm	409173b5030dca2e730a5178cfe96aa39318eafd	?
+xhtml1/clip-absolute-positioned-001.xht	409173b5030dca2e730a5178cfe96aa39318eafd	?
+html/clip-absolute-positioned-002.htm	a1d85c1f0fe74ac0be4b7e80f91ce06ea6448f8c	?
+xhtml1/clip-absolute-positioned-002.xht	a1d85c1f0fe74ac0be4b7e80f91ce06ea6448f8c	?
+html/clip-negative-values-001.htm	d1e93d5b38c68a6baeab8e97660c9bc0889f816f	?
+xhtml1/clip-negative-values-001.xht	d1e93d5b38c68a6baeab8e97660c9bc0889f816f	?
+html/clip-negative-values-002.htm	735e876f76beb14687a30216a3c2e3900b23a450	?
+xhtml1/clip-negative-values-002.xht	735e876f76beb14687a30216a3c2e3900b23a450	?
+html/clip-negative-values-003.htm	a86ea0edfa9599ebb1c0f77ef66bbaf066ab979f	?
+xhtml1/clip-negative-values-003.xht	a86ea0edfa9599ebb1c0f77ef66bbaf066ab979f	?
+html/clip-negative-values-004.htm	2ba4b26ac53090ed12a58e8df45722b711d60f8a	?
+xhtml1/clip-negative-values-004.xht	2ba4b26ac53090ed12a58e8df45722b711d60f8a	?
+html/clip-no-clipping-001.htm	7912958fe93cbfee4813df84880a44d631a3b240	?
+xhtml1/clip-no-clipping-001.xht	7912958fe93cbfee4813df84880a44d631a3b240	?
+html/clip-no-clipping-002.htm	6ff66041ca2cbd712ea96f3d5341d6ee725ed246	?
+xhtml1/clip-no-clipping-002.xht	6ff66041ca2cbd712ea96f3d5341d6ee725ed246	?
+html/clip-not-absolute-positioned-001.htm	57e6de156814d186fcffb74693eef632e5f16ea0	?
+xhtml1/clip-not-absolute-positioned-001.xht	57e6de156814d186fcffb74693eef632e5f16ea0	?
+html/clip-not-absolute-positioned-002.htm	a6f6d6754d24efc6c66a83e4cac2f4375c7f12c2	?
+xhtml1/clip-not-absolute-positioned-002.xht	a6f6d6754d24efc6c66a83e4cac2f4375c7f12c2	?
+html/clip-not-absolute-positioned-003.htm	80b26530bb6e33ba2315e02ad4917fd3f4ddb5b6	?
+xhtml1/clip-not-absolute-positioned-003.xht	80b26530bb6e33ba2315e02ad4917fd3f4ddb5b6	?
+html/clip-not-absolute-positioned-004.htm	7f2d07caa51146f7f6fe33880a518a5cfeed73a3	?
+xhtml1/clip-not-absolute-positioned-004.xht	7f2d07caa51146f7f6fe33880a518a5cfeed73a3	?
+html/clip-path-circle-001.htm	6551513b2e9c688ba790a5034cf56375b251c2c8	?
+xhtml1/clip-path-circle-001.xht	6551513b2e9c688ba790a5034cf56375b251c2c8	?
+html/clip-path-circle-002.htm	5f834cbdfb22a1b7ead2a6601aa031c9b6e1b74b	?
+xhtml1/clip-path-circle-002.xht	5f834cbdfb22a1b7ead2a6601aa031c9b6e1b74b	?
+html/clip-path-circle-003.htm	9e5bd98775ead8fe688f521be1e25ff899e98672	?
+xhtml1/clip-path-circle-003.xht	9e5bd98775ead8fe688f521be1e25ff899e98672	?
+html/clip-path-circle-004.htm	3cc1f0658ce477570d8dbe4836a4fe0456494a91	?
+xhtml1/clip-path-circle-004.xht	3cc1f0658ce477570d8dbe4836a4fe0456494a91	?
+html/clip-path-circle-005.htm	a59b8266454be39aa922b148836bf5a741169bf6	?
+xhtml1/clip-path-circle-005.xht	a59b8266454be39aa922b148836bf5a741169bf6	?
+html/clip-path-circle-006.htm	ad47ecb4deda995ea69dec7ade4eeaec7f66651f	?
+xhtml1/clip-path-circle-006.xht	ad47ecb4deda995ea69dec7ade4eeaec7f66651f	?
+html/clip-path-circle-007.htm	84a1adff0763b0c5793d4a7910f66481747b961b	?
+xhtml1/clip-path-circle-007.xht	84a1adff0763b0c5793d4a7910f66481747b961b	?
+html/clip-path-circle-008.htm	1e853c7eb2dd8220110fd26fa80e079587244fd9	?
+xhtml1/clip-path-circle-008.xht	1e853c7eb2dd8220110fd26fa80e079587244fd9	?
+html/clip-path-element-userspaceonuse-001.htm	675bc45a4da73f355ae54d1b371bc680e4d2e72e	?
+xhtml1/clip-path-element-userspaceonuse-001.xht	675bc45a4da73f355ae54d1b371bc680e4d2e72e	?
+html/clip-path-element-userspaceonuse-002.htm	26e3cc0e8acd806489c4731cf5a284621884efe6	?
+xhtml1/clip-path-element-userspaceonuse-002.xht	26e3cc0e8acd806489c4731cf5a284621884efe6	?
+html/clip-path-element-userspaceonuse-003.htm	2f3f54dc854f6446db4f32e5feb72d3cefe04efb	?
+xhtml1/clip-path-element-userspaceonuse-003.xht	2f3f54dc854f6446db4f32e5feb72d3cefe04efb	?
+html/clip-path-element-userspaceonuse-004.htm	4e27c11182a66d338d7144fdb48c427355371381	?
+xhtml1/clip-path-element-userspaceonuse-004.xht	4e27c11182a66d338d7144fdb48c427355371381	?
+html/clip-path-ellipse-001.htm	012b35e9240dc2d23fc883bc66465468645963a9	?
+xhtml1/clip-path-ellipse-001.xht	012b35e9240dc2d23fc883bc66465468645963a9	?
+html/clip-path-ellipse-002.htm	01e03a3bb41b0e8366aba15f90aead78162a25b4	?
+xhtml1/clip-path-ellipse-002.xht	01e03a3bb41b0e8366aba15f90aead78162a25b4	?
+html/clip-path-ellipse-003.htm	a08442647cf371223db13dfe554e10c802709b67	?
+xhtml1/clip-path-ellipse-003.xht	a08442647cf371223db13dfe554e10c802709b67	?
+html/clip-path-ellipse-004.htm	0ca0f3e14b0c9f17d22de8de547bbf9c292bdb04	?
+xhtml1/clip-path-ellipse-004.xht	0ca0f3e14b0c9f17d22de8de547bbf9c292bdb04	?
+html/clip-path-ellipse-005.htm	1d9b5e7dcc68d4d8a987bdd2875beae0745a2e74	?
+xhtml1/clip-path-ellipse-005.xht	1d9b5e7dcc68d4d8a987bdd2875beae0745a2e74	?
+html/clip-path-ellipse-006.htm	e9f87ec9c0074f594df20b97307f7606927bdb15	?
+xhtml1/clip-path-ellipse-006.xht	e9f87ec9c0074f594df20b97307f7606927bdb15	?
+html/clip-path-ellipse-007.htm	b36748b51ddf5bdcb7d74b184c0c4160485e44cc	?
+xhtml1/clip-path-ellipse-007.xht	b36748b51ddf5bdcb7d74b184c0c4160485e44cc	?
+html/clip-path-ellipse-008.htm	e1bc5feb5b0e8a7234ef94a33d8521d8e60ad245	?
+xhtml1/clip-path-ellipse-008.xht	e1bc5feb5b0e8a7234ef94a33d8521d8e60ad245	?
+html/clip-path-polygon-001.htm	ce40772a228f478895d17f511ede902285b20c9e	?
+xhtml1/clip-path-polygon-001.xht	ce40772a228f478895d17f511ede902285b20c9e	?
+html/clip-path-polygon-002.htm	a26883e8648b91eb54278dc34910fd08fd768066	?
+xhtml1/clip-path-polygon-002.xht	a26883e8648b91eb54278dc34910fd08fd768066	?
+html/clip-path-polygon-003.htm	fccf23845d5ec85f017a3e9785363549f51c6d4b	?
+xhtml1/clip-path-polygon-003.xht	fccf23845d5ec85f017a3e9785363549f51c6d4b	?
+html/clip-path-polygon-004.htm	2d89915ec42470d0b282de73f171792540055f2c	?
+xhtml1/clip-path-polygon-004.xht	2d89915ec42470d0b282de73f171792540055f2c	?
+html/clip-path-polygon-005.htm	a23e6116b898f98d581ed671fab1d8eb7a2b2ff4	?
+xhtml1/clip-path-polygon-005.xht	a23e6116b898f98d581ed671fab1d8eb7a2b2ff4	?
+html/clip-path-polygon-006.htm	46ade91baef9cd493a1d1006e63506901ecef137	?
+xhtml1/clip-path-polygon-006.xht	46ade91baef9cd493a1d1006e63506901ecef137	?
+html/clip-path-polygon-007.htm	ababd340338c3a00f475253d3e70c68a46afa757	?
+xhtml1/clip-path-polygon-007.xht	ababd340338c3a00f475253d3e70c68a46afa757	?
+html/clip-path-polygon-008.htm	9f1f5e861afb82ce4535efa1e5e37c85bb961001	?
+xhtml1/clip-path-polygon-008.xht	9f1f5e861afb82ce4535efa1e5e37c85bb961001	?
+html/clip-path-polygon-009.htm	dbf06de6ee649d816c7f91522ba4c4991a96be1c	?
+xhtml1/clip-path-polygon-009.xht	dbf06de6ee649d816c7f91522ba4c4991a96be1c	?
+html/clip-path-polygon-010.htm	1794303787a34ef7c061a247a9076fc9fd1adb49	?
+xhtml1/clip-path-polygon-010.xht	1794303787a34ef7c061a247a9076fc9fd1adb49	?
+html/clip-path-polygon-011.htm	f2b7330ea6d4bb428d6c5e630e0c42ec523a7223	?
+xhtml1/clip-path-polygon-011.xht	f2b7330ea6d4bb428d6c5e630e0c42ec523a7223	?
+html/clip-path-polygon-012.htm	618f339a009ce4209c17b1199aee514292a5e4ce	?
+xhtml1/clip-path-polygon-012.xht	618f339a009ce4209c17b1199aee514292a5e4ce	?
+html/clip-path-polygon-013.htm	3371a1258a8d2ddbbf18dd93ea937a86c3d06f6f	?
+xhtml1/clip-path-polygon-013.xht	3371a1258a8d2ddbbf18dd93ea937a86c3d06f6f	?
+html/clip-rect-auto-001.htm	0845a592f963c525c4169d8b66eb69d7ae8db937	?
+xhtml1/clip-rect-auto-001.xht	0845a592f963c525c4169d8b66eb69d7ae8db937	?
+html/clip-rect-auto-002.htm	eb938b4e7c5f4edb9bbb50eacc26a21f829be761	?
+xhtml1/clip-rect-auto-002.xht	eb938b4e7c5f4edb9bbb50eacc26a21f829be761	?
+html/clip-rect-auto-003.htm	0ba846e7e0e584887b770c790a2016d7e40278cf	?
+xhtml1/clip-rect-auto-003.xht	0ba846e7e0e584887b770c790a2016d7e40278cf	?
+html/clip-rect-auto-004.htm	6dfa81d38d978cb65068eeb81cf71fbc4196ba58	?
+xhtml1/clip-rect-auto-004.xht	6dfa81d38d978cb65068eeb81cf71fbc4196ba58	?
+html/clip-rect-auto-005.htm	f29b3392463a2840769e61470829ce662c322ce1	?
+xhtml1/clip-rect-auto-005.xht	f29b3392463a2840769e61470829ce662c322ce1	?
+html/clip-rect-auto-006.htm	25fbea228b18a140d1bf55975d17dbc9a5162468	?
+xhtml1/clip-rect-auto-006.xht	25fbea228b18a140d1bf55975d17dbc9a5162468	?
+html/clip-rect-comma-001.htm	26f2f7ab6c17b15238c81a3c15e80a5b7d045c39	?
+xhtml1/clip-rect-comma-001.xht	26f2f7ab6c17b15238c81a3c15e80a5b7d045c39	?
+html/clip-rect-comma-002.htm	bb2798d9908b1650562b5549ea0f510483a60fd8	?
+xhtml1/clip-rect-comma-002.xht	bb2798d9908b1650562b5549ea0f510483a60fd8	?
+html/clip-rect-comma-003.htm	bb6037be9d575eeadccf5960a6334f6c82fb1a72	?
+xhtml1/clip-rect-comma-003.xht	bb6037be9d575eeadccf5960a6334f6c82fb1a72	?
+html/clip-rect-comma-004.htm	38b542cefdad3a69bbb2c9161784112bfdbb0565	?
+xhtml1/clip-rect-comma-004.xht	38b542cefdad3a69bbb2c9161784112bfdbb0565	?
+html/clip-rule-001.htm	685b1c6b98405699db11621e3739893d03bb287f	?
+xhtml1/clip-rule-001.xht	685b1c6b98405699db11621e3739893d03bb287f	?
+html/clip-rule-002.htm	060477805299dce5079f7940f4140876d0d2d33e	?
+xhtml1/clip-rule-002.xht	060477805299dce5079f7940f4140876d0d2d33e	?
+html/test-mask.htm	88975f14709774f1e76ca280b63c9bfbb8cad710	?
+xhtml1/test-mask.xht	88975f14709774f1e76ca280b63c9bfbb8cad710	?

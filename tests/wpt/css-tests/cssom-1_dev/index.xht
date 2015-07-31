@@ -1,0 +1,147 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+ <head>
+  <title>CSS Object Model  Level 1 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "indices.css";
+  </style>
+ </head>
+ <body>
+
+
+  <h1>CSS Object Model  Level 1 CR Test Suite</h1>
+  <dt>Test Coordinator:</dt>
+   	<dd>None Yet</dd>
+  
+  <p>This is a <strong>Development</strong>
+     version of the CSS Object Model  Level 1 CR Test Suite.</p>
+
+   <p>You can provide test data or review the testing results for this test suite:</p>
+   <dt><a href="http://test.csswg.org/harness/suite/cssom-1_dev">Enter Data</a></dt>
+   <dt><a href="http://test.csswg.org/harness/review/cssom-1_dev">Review Results</a></dt>
+       
+
+ <p>Some tests in the test suite may contain errors.
+   Please check the latest version of the
+   <a href="http://www.w3.org/TR/cssom/">CSSOM 1 specification</a>
+   <strong>and its errata</strong>
+   before assuming a failure is due to an implementation bug and
+   not a test suite bug.</p>
+
+
+  <p>
+  In time we hope to correct all errors and extend this test suite to
+  cover all of CSSOM 1. Your help is welcome in this effort.
+  The appropriate mailing list for submitting tests and bug reports is
+  <a href="http://lists.w3.org/Archives/Public/public-css-testsuite/">public-css-testsuite@w3.org</a>.
+  More information on the contribution process and test guidelines is
+  available on the <a href="http://wiki.csswg.org/test">wiki
+  page</a>.</p>
+
+ <p>Tests are currently available in these formats:</p>
+
+ <dl>
+   <dt><a href="html/toc.htm">HTML 5</a></dt>
+     <dd>HTML 5 tests sent as <code>text/html</code></dd>
+   <dt><a href="xhtml1/toc.xht">XHTML 1.1</a></dt>
+     <dd>XHTML 1.1 tests sent as <code>application/xhtml+xml</code></dd>
+   <dt><a href="xhtml1print/toc.xht">XHTML 1.1 for Printers</a></dt>
+     <dd>XHTML 1.1 tests with all images converted from PNG to JPEG
+       and formatted with headers and footers to ease testing of
+       embedded printer software. This is not a canonical format,
+       and some tests may fail due to the format conversion that
+       would otherwise pass in the above XHTML 1.1 format.</dd>
+  </dl>
+
+  
+  <p>Unless the test instructions explicitly indicate otherwise,
+    any occurrence of red in a test indicates test failure.</p>
+
+<h2 id="implement">Implementation Reports</h2>
+  <p>An <a href="implementation-report-TEMPLATE.data">implementation report template</a>
+    is available to help with creating implementation reports. See also the
+    <a href="http://lists.w3.org/Archives/Public/public-css-testsuite/2010Aug/0020.html">explanation</a>
+    of its format.</p>
+
+<h2 id="common">Common Assumptions</h2>
+
+  <p>Most of the test suite makes the following assumptions:</p>
+  <ul>
+    <li>The X/HTML <code>div</code> element is assigned <code>display: block;</code>
+      and no other property declaration.</li>
+    <li>The X/HTML <code>span</code> element is assigned <code>display: inline;</code>
+      and no other property declaration.</li>
+    <li>The X/HTML <code>p</code> element is assigned <code>display: block;</code></li>
+    <li>The X/HTML <code>li</code> element is assigned <code>display: list-item;</code></li>
+    <li>The X/HTML table elements <code>table</code>, <code>tbody</code>,
+      <code>tr</code>, and <code>td</code> are assigned the <code>display</code>
+      values <code>table</code>, <code>table-row-group</code>,
+      <code>table-row</code>, and <code>table-cell</code>, respectively.</li>
+    <li>The device can display the sixteen color values associated with the color
+      keywords <code>black</code>, <code>white</code>, <code>gray</code>,
+      <code>silver</code>, <code>red</code>, <code>green</code>, <code>blue</code>,
+      <code>purple</code>, <code>yellow</code>, <code>orange</code>, <code>teal</code>,
+      <code>fuchsia</code>, <code>maroon</code>, <code>navy</code>, <code>aqua</code>,
+      and <code>lime</code> as distinct colors.</li>
+    <li>The UA is set to print background colors and, if it supports graphics,
+      background images.</li>
+    <li>The UA implements reasonable page-breaking behavior; e.g., it is assumed
+      that UAs will not break at every opportunity, but only near the end of
+      a page unless a page break is forced.</li>
+    <li>The UA implements reasonable line-breaking behavior; e.g., it is assumed
+      that spaces between alphanumeric characters provide line breaking
+      opportunities and that UAs will not break at every opportunity, but only
+      near the end of a line unless a line break is forced.</li>
+  </ul>
+
+<h2 id="uncommon">Uncommon Assumptions</h2>
+
+  <p>In addition, some of the tests make one or more of the following
+   assumptions:</p>
+
+  <ul>
+    <li>The device is a full-color device.</li>
+    <li>The device has a viewport width of at least 640px (approx).</li>
+    <li>The resolution of the device is 96 CSS pixels per inch.</li>
+    <li>The UA imposes no minimum font size.</li>
+    <li>The 'medium' font-size computes to 16px.</li>
+    <li>The initial value of 'color' is black.</li>
+    <li>The canvas background is white.</li>
+    <li>The user stylesheet is empty (except where indicated by the tests).</li>
+    <li>The device is interactive and uses scroll bars.</li>
+  </ul>
+
+  <p>The tests that need these assumptions to be true have not yet been
+  marked, but it is likely that we will add a way to identify these
+  tests in due course. Tests should avoid relying on these assumptions
+  unless necessary.</p>
+
+<h2>License</h2>
+
+  <p>This test suite is licensed under both the
+  <a href="http://www.w3.org/Consortium/Legal/2008/04-testsuite-license">W3C
+  Test Suite License</a> and the <a href="http://www.w3.org/Consortium/Legal/2008/03-bsd-license">W3C
+  3-clause BSD License</a>. See W3C Legal's <a href="http://www.w3.org/Consortium/Legal/2008/04-testsuite-copyright">explanation
+  of the licenses</a>.</p>
+
+<h2>Acknowledgements</h2>
+
+  <p>Many thanks to the following for their contributions:</p>
+  <ul>
+    <li>Adobe</li>
+    <li>Bear Travis</li>
+    <li>Ben Sheldon</li>
+    <li>Chapman Shoop</li>
+    <li>Divya Manian</li>
+    <li>Jesse Bounds</li>
+    <li>Letitia Lew</li>
+    <li>Ms2ger</li>
+    <li>Paul Irish</li>
+    <li>Rune Lillesveen</li>
+  </ul>
+
+</body>
+</html>

@@ -316,6 +316,9 @@ impl WindowMethods for Window {
         browser.downcast().favicons.borrow_mut().push(url.to_string().clone());
     }
 
+    fn status(&self, _: Option<String>) {
+    }
+
     fn load_start(&self, back: bool, forward: bool) {
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
@@ -474,7 +477,7 @@ struct CefCompositorProxy {
 }
 
 impl CompositorProxy for CefCompositorProxy {
-    fn send(&mut self, msg: compositor_task::Msg) {
+    fn send(&self, msg: compositor_task::Msg) {
         self.sender.send(msg).unwrap();
         app_wakeup();
     }

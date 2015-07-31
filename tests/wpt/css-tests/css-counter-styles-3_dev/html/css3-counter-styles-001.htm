@@ -6,40 +6,31 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help">
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley">
 <meta content="font" name="flags">
-<meta content="Setting list-style-type to cjk-decimal will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module." name="assert">
+<meta content="list-style-type: cjk-decimal produces numbers up to 9 items per the spec." name="assert">
 <style type="text/css">
+ol li { list-style-type: cjk-decimal;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: cjk-decimal;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
 <div class="test"><ol>
-				<li title="1">一、</li>
-				<li title="2">二、</li>
-				<li title="3">三、</li>
-
-				<li title="4">四、</li>
-				<li title="5">五、</li>
-				<li title="6">六、</li>
-				<li title="7">七、</li>
-				<li title="8">八、</li>
-
-				<li title="9">九、</li>
-			</ol>
-			</div>
-
-
+<li title="1">一</li>
+<li title="2">二</li>
+<li title="3">三</li>
+<li title="4">四</li>
+<li title="5">五</li>
+<li title="6">六</li>
+<li title="7">七</li>
+<li title="8">八</li>
+<li title="9">九</li>
+</ol></div>
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

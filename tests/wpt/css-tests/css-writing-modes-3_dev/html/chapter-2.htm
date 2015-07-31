@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Inline Direction and Bidirectionality (101 tests)</h2>
+  <h2>Inline Direction and Bidirectionality (162 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -772,7 +772,7 @@
       <tr id="bidi-plaintext-011-2" class="primary">
         <td><strong>
             <a href="bidi-plaintext-011.htm">bidi-plaintext-011</a></strong></td>
-        <td><a href="reference/bidi-plaintext-002.htm">=</a> </td>
+        <td><a href="reference/bidi-plaintext-011.htm">=</a> </td>
         <td></td>
         <td>direction/unicode-bidi: span unicode-bidi plaintext, no strong (1)
           <ul class="assert">
@@ -1102,7 +1102,194 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s2.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#direction">2.1 Specifying Directionality: the direction property</a></th></tr>
-      <!-- 5 tests -->
+      <!-- 22 tests -->
+      <tr id="direction-001-2.1" class="primary">
+        <td><strong>
+            <a href="direction-001.htm">direction-001</a></strong></td>
+        <td><a href="reference/direction-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>Direction set to 'ltr'
+          <ul class="assert">
+            <li>The 'direction' property set to 'ltr' sets the direction of an element to left-to-right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-002-2.1" class="primary">
+        <td><strong>
+            <a href="direction-002.htm">direction-002</a></strong></td>
+        <td><a href="reference/direction-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Direction set to 'rtl'
+          <ul class="assert">
+            <li>The 'direction' property set to 'rtl' sets the direction of an element to right-to-left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-003-2.1" class="primary">
+        <td><strong>
+            <a href="direction-003.htm">direction-003</a></strong></td>
+        <td><a href="reference/direction-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Direction set to 'inherit' sets a value that is inherited from parent element
+          <ul class="assert">
+            <li>The 'direction' property set to 'inherit' sets a direction value to the same as the parent element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-001-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-001.htm">direction-applies-to-001</a></strong></td>
+        <td><a href="reference/direction-applies-to-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-row-group'
+          <ul class="assert">
+            <li>The 'direction' property does not apply to elements with a display of 'table-row-group'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-002-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-002.htm">direction-applies-to-002</a></strong></td>
+        <td><a href="reference/direction-applies-to-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-header-group'
+          <ul class="assert">
+            <li>The 'direction' property does not apply to elements with a display of 'table-header-group'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-003-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-003.htm">direction-applies-to-003</a></strong></td>
+        <td><a href="reference/direction-applies-to-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-footer-group'
+          <ul class="assert">
+            <li>The 'direction' property does not apply to elements with a display of 'table-footer-group'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-004-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-004.htm">direction-applies-to-004</a></strong></td>
+        <td><a href="reference/direction-applies-to-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-row'
+          <ul class="assert">
+            <li>The 'direction' property does not apply to elements with a display of 'table-row'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-005-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-005.htm">direction-applies-to-005</a></strong></td>
+        <td><a href="reference/direction-applies-to-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-column-group'
+          <ul class="assert">
+            <li>The 'direction' property does not apply to elements with a display of 'table-column-group'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-006-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-006.htm">direction-applies-to-006</a></strong></td>
+        <td><a href="reference/direction-applies-to-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-column'
+          <ul class="assert">
+            <li>The 'direction' property does not apply to elements with a display of 'table-column'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-007-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-007.htm">direction-applies-to-007</a></strong></td>
+        <td><a href="reference/direction-applies-to-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-cell'
+          <ul class="assert">
+            <li>The 'direction' property applies to elements with a display of 'table-cell'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-008-2.1" class="primary">
+        <td><strong>
+            <a href="direction-applies-to-008.htm">direction-applies-to-008</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Direction applied to element with 'display' set to inline
+          <ul class="assert">
+            <li>The 'direction' property applies to elements with a display of inline as it can set the direction of embeddings and overrides.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-009-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-009.htm">direction-applies-to-009</a></strong></td>
+        <td><a href="reference/direction-applies-to-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to block
+          <ul class="assert">
+            <li>The 'direction' property applies to elements with a display of block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-010-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-010.htm">direction-applies-to-010</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to list-item
+          <ul class="assert">
+            <li>The 'direction' property applies to elements with a display of list-item.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-012-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-012.htm">direction-applies-to-012</a></strong></td>
+        <td><a href="reference/direction-applies-to-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to inline-block
+          <ul class="assert">
+            <li>The 'direction' property applies to elements with a display of inline-block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-013-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-013.htm">direction-applies-to-013</a></strong></td>
+        <td><a href="reference/direction-applies-to-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table'
+          <ul class="assert">
+            <li>The 'direction' property can apply to elements with a display of 'table' as it specifies the direction of table column layout.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-014-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-014.htm">direction-applies-to-014</a></strong></td>
+        <td><a href="reference/direction-applies-to-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'inline-table'
+          <ul class="assert">
+            <li>The 'direction' property can apply to elements with a display of 'inline-table' as it specifies the direction of table column layout.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="direction-applies-to-015-2.1" class="primary ahem">
+        <td><strong>
+            <a href="direction-applies-to-015.htm">direction-applies-to-015</a></strong></td>
+        <td><a href="reference/direction-applies-to-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Direction applied to element with 'display' set to 'table-caption'
+          <ul class="assert">
+            <li>The 'direction' property applies to elements with a display of 'table-caption'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="extract-ordered-list-direction-and-writing-modes-2.1" class="">
         <td>
             <a href="extract-ordered-list-direction-and-writing-modes.htm">extract-ordered-list-direction-and-writing-modes</a></td>
@@ -1172,7 +1359,216 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s2.2">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#unicode-bidi">2.2 Embeddings and Overrides: the unicode-bidi property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 19 tests -->
+      <tr id="bidi-alt-001-2.2" class="primary">
+        <td><strong>
+            <a href="bidi-alt-001.htm">bidi-alt-001</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>unicode-bidi: bidi-override in alt text
+          <ul class="assert">
+            <li>If alt text is not treated as replaced content, then unicode-bidi applies to image alt text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-001-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-001.htm">unicode-bidi-001</a></strong></td>
+        <td><a href="reference/direction-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi set to 'normal'
+          <ul class="assert">
+            <li>The property 'unicode-bidi' set to 'normal' doesn't modify the directionality of text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-002-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-002.htm">unicode-bidi-002</a></strong></td>
+        <td><a href="reference/unicode-bidi-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi set to 'embed'
+          <ul class="assert">
+            <li>The property 'unicode-bidi' set to 'embed' opens a new level of embedding in the Unicode bi-directional algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-003-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-003.htm">unicode-bidi-003</a></strong></td>
+        <td><a href="reference/direction-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi set to 'bidi-override'
+          <ul class="assert">
+            <li>The property 'unicode-bidi' set to 'bidi-override' overrides the directionality of text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-004-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-004.htm">unicode-bidi-004</a></strong></td>
+        <td><a href="reference/direction-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi set to 'inherit'
+          <ul class="assert">
+            <li>The property 'unicode-bidi' set to 'inherit' sets a value the same as parent element's value.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-001-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-001.htm">unicode-bidi-applies-to-001</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-row-group'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'table-row-group'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-002-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-002.htm">unicode-bidi-applies-to-002</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-header-group'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'table-header-group'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-003-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-003.htm">unicode-bidi-applies-to-003</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-footer-group'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'table-footer-group'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-004-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-004.htm">unicode-bidi-applies-to-004</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-row'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'table-row'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-005-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-005.htm">unicode-bidi-applies-to-005</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-column-group'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'table-column-group'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-006-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-006.htm">unicode-bidi-applies-to-006</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-column'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'table-column'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-007-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-007.htm">unicode-bidi-applies-to-007</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-cell'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property applies to elements with a display of 'table-cell'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-008-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-008.htm">unicode-bidi-applies-to-008</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to inline
+          <ul class="assert">
+            <li>The 'unicode-bidi' property applies to elements with a display of inline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-009-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-009.htm">unicode-bidi-applies-to-009</a></strong></td>
+        <td><a href="reference/unicode-bidi-applies-to-009-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to block
+          <ul class="assert">
+            <li>The 'unicode-bidi' property applies to elements with a display of block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-010-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-010.htm">unicode-bidi-applies-to-010</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to list-item
+          <ul class="assert">
+            <li>The 'unicode-bidi' property applies to elements with a display of list-item.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-012-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-012.htm">unicode-bidi-applies-to-012</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to inline-block
+          <ul class="assert">
+            <li>The 'unicode-bidi' property applies to elements with a display of inline-block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-013-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-013.htm">unicode-bidi-applies-to-013</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'table'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-014-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-014.htm">unicode-bidi-applies-to-014</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'inline-table'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property does not apply to elements with a display of 'inline-table'. 'unicode-bidi' property only applies to inline elements or block containers' immediate inline-level descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-applies-to-015-2.2" class="primary">
+        <td><strong>
+            <a href="unicode-bidi-applies-to-015.htm">unicode-bidi-applies-to-015</a></strong></td>
+        <td><a href="reference/direction-applies-to-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Unicode-bidi applied to element with 'display' set to 'table-caption'
+          <ul class="assert">
+            <li>The 'unicode-bidi' property applies to elements with a display of 'table-caption'.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s2.2.#bidi-isolate">
       <!-- 0 tests -->
@@ -1217,7 +1613,261 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s2.4">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model">2.4 Box model for inline boxes in bidirectional context</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 25 tests -->
+      <tr id="bidi-001-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-001.htm">bidi-001</a></strong></td>
+        <td><a href="reference/bidi-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>RLO/PDF bidi reordering across closing inline element boundary
+          <ul class="assert">
+            <li>Tests that RLO + closing inline element boundary + PDF reorders text, splitting inline and rendering borders and padding appropriately.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-002-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-002.htm">bidi-002</a></strong></td>
+        <td><a href="reference/bidi-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>RLO/PDF bidi reordering across closing inline element boundary + soft line break
+          <ul class="assert">
+            <li>Tests that RLO + closing inline element boundary + soft line break + PDF reorders text, placing text correctly on each line while also splitting inline and rendering borders and padding appropriately.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-003-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-003.htm">bidi-003</a></strong></td>
+        <td><a href="reference/bidi-003-ref.htm">=</a> </td>
+        <td></td>
+        <td>RLO/PDF bidi reordering across closing inline element boundary + opening inline boundary
+          <ul class="assert">
+            <li>Tests that RLO + closing inline element boundary + opening inline element boundary + PDF reorders text, splitting inlines and rendering their borders and padding appropriately.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-005-2.4" class="">
+        <td>
+            <a href="bidi-005.htm">bidi-005</a></td>
+        <td></td>
+        <td></td>
+        <td>The bidi algorithm and inlines in CSS: embed levels and white-space: pre;
+        </td>
+      </tr>
+      <tr id="bidi-006-2.4" class="">
+        <td>
+            <a href="bidi-006.htm">bidi-006</a></td>
+        <td></td>
+        <td></td>
+        <td>The bidi algorithm and inlines in CSS: embed levels and white-space: nowrap;
+        </td>
+      </tr>
+      <tr id="bidi-007-2.4" class="">
+        <td>
+            <a href="bidi-007.htm">bidi-007</a></td>
+        <td></td>
+        <td></td>
+        <td>The bidi algorithm and inlines in CSS: embed levels and float: left;
+        </td>
+      </tr>
+      <tr id="bidi-008-2.4" class="">
+        <td>
+            <a href="bidi-008.htm">bidi-008</a></td>
+        <td></td>
+        <td></td>
+        <td>The bidi algorithm and inlines in CSS: embed levels and display: table;
+        </td>
+      </tr>
+      <tr id="bidi-009-2.4" class="">
+        <td>
+            <a href="bidi-009.htm">bidi-009</a></td>
+        <td></td>
+        <td></td>
+        <td>The bidi algorithm and inlines in CSS: embed levels and display: table-row;
+        </td>
+      </tr>
+      <tr id="bidi-010-2.4" class="">
+        <td>
+            <a href="bidi-010.htm">bidi-010</a></td>
+        <td></td>
+        <td></td>
+        <td>The bidi algorithm and inlines in CSS: embed levels and position: absolute
+        </td>
+      </tr>
+      <tr id="bidi-011-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-011.htm">bidi-011</a></strong></td>
+        <td><a href="reference/bidi-011-ref.htm">=</a> </td>
+        <td></td>
+        <td>The bidi algorithm and inlines in CSS wrapping bidi formatting characters
+        </td>
+      </tr>
+      <tr id="bidi-box-model-001-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-001.htm">bidi-box-model-001</a></strong></td>
+        <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on inline in normal block
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-002-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-002.htm">bidi-box-model-002</a></strong></td>
+        <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on inline in embed block
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-003-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-003.htm">bidi-box-model-003</a></strong></td>
+        <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on inline in bidi-override block
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-004-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-004.htm">bidi-box-model-004</a></strong></td>
+        <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on normal inline
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-005-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-005.htm">bidi-box-model-005</a></strong></td>
+        <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on embed inline
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-006-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-006.htm">bidi-box-model-006</a></strong></td>
+        <td><a href="reference/bidi-box-model-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on bidi-override inline
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-007-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-007.htm">bidi-box-model-007</a></strong></td>
+        <td><a href="reference/bidi-box-model-007-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on normal block
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-008-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-008.htm">bidi-box-model-008</a></strong></td>
+        <td><a href="reference/bidi-box-model-007-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on embed block
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-009-2.4" class="primary">
+        <td><strong>
+            <a href="bidi-box-model-009.htm">bidi-box-model-009</a></strong></td>
+        <td><a href="reference/bidi-box-model-007-ref.htm">=</a> </td>
+        <td></td>
+        <td>bidirection box model - borders on bidi-override block
+          <ul class="assert">
+            <li>Border sides should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-034-2.4" class="primary ahem">
+        <td><strong>
+            <a href="bidi-box-model-034.htm">bidi-box-model-034</a></strong></td>
+        <td><a href="reference/bidi-box-model-034-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>bidirection box model - padding-left on bidi-override block
+          <ul class="assert">
+            <li>Side padding should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-035-2.4" class="primary ahem">
+        <td><strong>
+            <a href="bidi-box-model-035.htm">bidi-box-model-035</a></strong></td>
+        <td><a href="reference/bidi-box-model-034-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>bidirection box model - padding-left on normal block
+          <ul class="assert">
+            <li>Side padding should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-036-2.4" class="primary ahem">
+        <td><strong>
+            <a href="bidi-box-model-036.htm">bidi-box-model-036</a></strong></td>
+        <td><a href="reference/bidi-box-model-034-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>bidirection box model - padding-left on embed block
+          <ul class="assert">
+            <li>Side padding should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-043-2.4" class="primary ahem">
+        <td><strong>
+            <a href="bidi-box-model-043.htm">bidi-box-model-043</a></strong></td>
+        <td><a href="reference/bidi-box-model-043-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>bidirection box model - padding-right on bidi-override block
+          <ul class="assert">
+            <li>Side padding should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-044-2.4" class="primary ahem">
+        <td><strong>
+            <a href="bidi-box-model-044.htm">bidi-box-model-044</a></strong></td>
+        <td><a href="reference/bidi-box-model-043-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>bidirection box model - padding-right on normal block
+          <ul class="assert">
+            <li>Side padding should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-box-model-045-2.4" class="primary ahem">
+        <td><strong>
+            <a href="bidi-box-model-045.htm">bidi-box-model-045</a></strong></td>
+        <td><a href="reference/bidi-box-model-043-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>bidirection box model - padding-right on embed block
+          <ul class="assert">
+            <li>Side padding should be unaffected by directionality</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
   </table>
 

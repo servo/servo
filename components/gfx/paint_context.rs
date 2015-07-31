@@ -783,7 +783,7 @@ impl<'a> PaintContext<'a> {
                 _ =>  panic!("invalid border style")
         };
 
-        let mut lighter_color;
+        let lighter_color;
         let mut darker_color = color::black();
         if color != darker_color {
             darker_color = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
@@ -1294,7 +1294,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let mut azglyphs = vec!();
         azglyphs.reserve(range.length().to_usize());
 
-        for slice in run.natural_word_slices_in_range(range) {
+        for slice in run.natural_word_slices_in_visual_order(range) {
             for (_i, glyph) in slice.glyphs.iter_glyphs_for_char_range(&slice.range) {
                 let glyph_advance = glyph.advance();
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());

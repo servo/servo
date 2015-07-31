@@ -22,10 +22,11 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
 
-use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 
 use util::str::DOMString;
 
+use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue, RootedValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
@@ -70,6 +71,7 @@ impl Worker {
         };
 
         let resource_task = global.resource_task();
+        let constellation_chan = global.constellation_chan();
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
@@ -77,21 +79,21 @@ impl Worker {
 
         if let Some(ref chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline();
-            let (devtools_sender, _) = channel();
+            let (devtools_sender, _) = ipc::channel().unwrap();
             let title = format!("Worker for {}", worker_url);
             let page_info = DevtoolsPageInfo {
                 title: title,
                 url: worker_url.clone(),
             };
             let worker_id = global.get_next_worker_id();
-            chan.send(
-                DevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)), devtools_sender.clone(), page_info)
-            ).unwrap();
+            chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
+                                                            devtools_sender.clone(),
+                                                            page_info)).unwrap();
         }
 
         DedicatedWorkerGlobalScope::run_worker_scope(
-            worker_url, global.pipeline(), global.devtools_chan(), worker_ref, resource_task, global.script_chan(),
-            sender, receiver);
+            worker_url, global.pipeline(), global.mem_profiler_chan(), global.devtools_chan(),
+            worker_ref, resource_task, constellation_chan, global.script_chan(), sender, receiver);
 
         Ok(worker)
     }
@@ -136,6 +138,7 @@ impl Worker {
 }
 
 impl<'a> WorkerMethods for &'a Worker {
+    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());

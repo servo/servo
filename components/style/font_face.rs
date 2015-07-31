@@ -10,13 +10,13 @@ use std::ascii::AsciiExt;
 use string_cache::Atom;
 use url::{Url, UrlParser};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Source {
     Url(UrlSource),
     Local(Atom),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct UrlSource {
     pub url: Url,
     pub format_hints: Vec<String>,

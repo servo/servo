@@ -35,7 +35,7 @@ A_04_04_01_T2.step(function () {
 
             //make shadow tree
             var ul = d.querySelector('ul.stories');
-            var s = createSR(ul);
+            var s = ul.createShadowRoot();
             var subdiv1 = d.createElement('div');
             subdiv1.innerHTML = '<ul><content select="li"></content></ul>';
             s.appendChild(subdiv1);

@@ -13,7 +13,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{ChildrenMutation, Node, NodeHelpers, NodeTypeId};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
@@ -75,15 +75,13 @@ impl<'a> VirtualMethods for &'a HTMLTitleElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn child_inserted(&self, child: &Node) {
+    fn children_changed(&self, mutation: &ChildrenMutation) {
         if let Some(ref s) = self.super_type() {
-            s.child_inserted(child);
+            s.children_changed(mutation);
         }
-
         let node = NodeCast::from_ref(*self);
         if node.is_in_doc() {
-            let document = node.owner_doc();
-            document.r().title_changed();
+            node.owner_doc().title_changed();
         }
     }
 

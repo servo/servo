@@ -11,9 +11,10 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentHelpers;
 use dom::element::{ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
-use dom::node::{window_from_node, document_from_node, NodeDamage};
+use dom::node::{window_from_node, document_from_node, NodeDamage, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use util::str::DOMString;
+use selectors::parser::PseudoElement;
 use string_cache::Atom;
 use style::properties::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
 use style::properties::PropertyDeclaration;
@@ -27,6 +28,7 @@ pub struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: JS<HTMLElement>,
     readonly: bool,
+    pseudo: Option<PseudoElement>,
 }
 
 #[derive(PartialEq)]
@@ -56,17 +58,20 @@ fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
 
 impl CSSStyleDeclaration {
     pub fn new_inherited(owner: &HTMLElement,
+                         pseudo: Option<PseudoElement>,
                          modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: JS::from_ref(owner),
+            pseudo: pseudo,
             readonly: modification_access == CSSModificationAccess::Readonly,
         }
     }
 
     pub fn new(global: &Window, owner: &HTMLElement,
+               pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess) -> Root<CSSStyleDeclaration> {
-        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, modification_access),
+        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access),
                            GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
     }
@@ -75,6 +80,7 @@ impl CSSStyleDeclaration {
 trait PrivateCSSStyleDeclarationHelpers {
     fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn get_computed_style(self, property: &Atom) -> Option<DOMString>;
 }
 
 impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
@@ -89,10 +95,22 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
         let element = ElementCast::from_ref(owner.r());
         element.get_important_inline_style_declaration(property).map(|decl| decl.clone())
     }
+
+    fn get_computed_style(self, property: &Atom) -> Option<DOMString> {
+        let owner = self.owner.root();
+        let node = NodeCast::from_ref(owner.r());
+        if !node.is_in_doc() {
+            // TODO: Node should be matched against the style rules of this window.
+            // Firefox is currently the only browser to implement this.
+            return None;
+        }
+        let addr = node.to_trusted_node_address();
+        window_from_node(owner.r()).resolved_style_query(addr, self.pseudo.clone(), property)
+    }
 }
 
 impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(self) -> u32 {
         let owner = self.owner.root();
         let elem = ElementCast::from_ref(owner.r());
@@ -103,7 +121,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         len as u32
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
     fn Item(self, index: u32) -> DOMString {
         let index = index as usize;
         let owner = self.owner.root();
@@ -124,10 +142,15 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         result.unwrap_or("".to_owned())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
+
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            return self.get_computed_style(&property).unwrap_or("".to_owned());
+        }
 
         // Step 2
         let longhand_properties = longhands_from_shorthand(&property);
@@ -159,7 +182,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(self, property: DOMString) -> DOMString {
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
@@ -183,7 +206,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         "".to_owned()
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
     fn SetProperty(self, property: DOMString, value: DOMString,
                    priority: DOMString) -> ErrorResult {
         // Step 1
@@ -244,7 +267,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         Ok(())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
     fn SetPropertyPriority(self, property: DOMString, priority: DOMString) -> ErrorResult {
         // Step 1
         if self.readonly {
@@ -287,12 +310,12 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         Ok(())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
         self.SetProperty(property, value, "".to_owned())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
     fn RemoveProperty(self, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
@@ -326,17 +349,17 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         Ok(value)
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(self) -> DOMString {
         self.GetPropertyValue("float".to_owned())
     }
 
-    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(self, value: DOMString) -> ErrorResult {
         self.SetPropertyValue("float".to_owned(), value)
     }
 
-    // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
+    // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
         let rval = self.Item(index);
         *found = index < self.Length();

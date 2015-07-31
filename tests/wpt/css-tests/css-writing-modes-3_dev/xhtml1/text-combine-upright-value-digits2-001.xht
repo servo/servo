@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
+<title>CSS Writing Modes: text-combine-upright: digits 2</title>
+<link href="https://google.com/+MasatakaYakura" rel="author" title="Masataka Yakura" />
+<link href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright" rel="help" />
+<link href="reference/text-combine-upright-value-single-character.xht" rel="match" />
+<meta content="the 'digits' values in text-combine-upright rotates the composition even if there is only one character inside tate-chu-yoko." name="assert" />
+<meta content="font" name="flags" />
+<style>
+@font-face {
+  font-family: tcu-font;
+  src: url("support/tcu-font.woff");
+}
+
+.test {
+  writing-mode: vertical-rl;
+  font-size: 5em;
+  font-family: tcu-font;
+}
+
+.tcy {
+  text-combine-upright: digits 2;
+}
+</style>
+</head>
+<body>
+
+<p>Test passes if there are 2 <strong>identical</strong> white triangles.</p>
+
+<div class="test">
+  <p><span class="tcy">2</span></p>
+  <p>3</p>
+</div>
+
+
+
+</body></html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><head>
+    <title>CSSOM - Extensions to the Document Interface: StyleSheetList length is 0 when no sheets loaded</title>
+    <link href="mailto:jesse@codeforamerica.org" rel="author" title="Jesse Bounds">
+    <link href="mailto:ms2ger@gmail.com" rel="reviewer" title="Ms2ger"> <!-- 2012-06-17 -->
+    <link href="http://www.w3.org/TR/cssom/#extensions-to-the-document-interface" rel="help">
+    <link href="http://www.w3.org/TR/cssom/#the-stylesheetlist-sequence" rel="help">
+    <meta content="dom" name="flags">
+    <meta content="The styleSheets attribute must return a StyleSheetList sequence representing the document style sheets." name="assert">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="log"></div>
+    <script>
+        // Get the Document's styleSheets attribute
+        var styleSheets = document.styleSheets;
+        // Verify that the styleSheets list length is 0 because no stylesheets have been loaded
+        test(function() {
+          assert_equals(styleSheets.length, 0, "styleSheets.length is incorrect:");
+        })
+    </script>
+
+
+</body></html>

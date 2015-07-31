@@ -16,10 +16,10 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
   <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#logical-direction-layout" title="7.4 Flow-Relative Mappings" />
-  <link rel="match" href="reference/ref-if-there-is-no-red.xht" />
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
 
   <!--
-  Test adapted from
+  Test adapted and modified from
   http://test.csswg.org/suites/css2.1/nightly-unstable/html4/margin-collapse-009.htm
 
   "
@@ -28,7 +28,7 @@
   -->
 
   <meta content="ahem image" name="flags" />
-  <meta name="assert" content="This test checks that elements with 'overflow' set to 'hidden' do not collapse margin with in-flow children in 'vertical-lr' writing-mode." />
+  <meta name="assert" content="This test checks that elements with 'overflow' set to 'hidden' do not collapse margin with in-flow children in 'vertical-lr' writing-mode. In this test, we are testing and checking that 'margin-left' of div#overflow does not collapse with 'margin-left' of div#nested." />
 
   <style type="text/css"><![CDATA[
   div
@@ -39,21 +39,23 @@
 
   div#wrapper
     {
+      background-color: green;
+      width: 8em;
       writing-mode: vertical-lr;
-      width: 4em;
     }
 
   div#overflow
     {
-      margin-left: 2em; /* block-start margin of overflowed block */
+      background-color: white;
+      margin-left: 4em; /* block-start margin of overflowed block */
       overflow: hidden;
-      width: 2em;
+      width: 4em;
     }
 
   div#nested
     {
       background-color: red;
-      margin-left: 2em; /* block-start margin of sub-block */
+      margin-left: 4em; /* block-start margin of sub-block */
       width: 4em;
     }
   ]]></style>
@@ -62,7 +64,7 @@
 
  <body>
 
-  <p>Test passes if there is <strong>no red</strong>.</p>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 
   <div id="wrapper">
     <div id="overflow">

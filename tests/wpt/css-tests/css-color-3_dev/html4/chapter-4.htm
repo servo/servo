@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Color Module Level 3 Conformance Test Suite</h1>
-  <h2>Color units (45 tests)</h2>
+  <h2>Color units (59 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -151,7 +151,7 @@
       <tr id="t421-rgb-func-int-a-4.2.1" class="primary">
         <td><strong>
             <a href="t421-rgb-func-int-a.htm">t421-rgb-func-int-a</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-int-a-ref.htm">=</a> </td>
         <td></td>
         <td>rgb() colors
           <ul class="assert">
@@ -162,7 +162,7 @@
       <tr id="t421-rgb-func-no-mixed-f-4.2.1" class="primary invalid">
         <td><strong>
             <a href="t421-rgb-func-no-mixed-f.htm">t421-rgb-func-no-mixed-f</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-no-mixed-f-ref.htm">=</a> </td>
         <td><abbr class="invalid" title="Tests invalid CSS">Invalid</abbr></td>
         <td>no mixed rgb() values
           <ul class="assert">
@@ -173,7 +173,7 @@
       <tr id="t421-rgb-func-pct-a-4.2.1" class="primary">
         <td><strong>
             <a href="t421-rgb-func-pct-a.htm">t421-rgb-func-pct-a</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-int-a-ref.htm">=</a> </td>
         <td></td>
         <td>rgb() colors
           <ul class="assert">
@@ -184,7 +184,7 @@
       <tr id="t421-rgb-func-whitespace-b-4.2.1" class="primary">
         <td><strong>
             <a href="t421-rgb-func-whitespace-b.htm">t421-rgb-func-whitespace-b</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-whitespace-b-ref.htm">=</a> </td>
         <td></td>
         <td>whitespace in rgb() values
           <ul class="assert">
@@ -195,7 +195,7 @@
       <tr id="t421-rgb-hex-parsing-f-4.2.1" class="primary invalid">
         <td><strong>
             <a href="t421-rgb-hex-parsing-f.htm">t421-rgb-hex-parsing-f</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-no-mixed-f-ref.htm">=</a> </td>
         <td><abbr class="invalid" title="Tests invalid CSS">Invalid</abbr></td>
         <td>parsing of hexidecimal color values
           <ul class="assert">
@@ -206,7 +206,7 @@
       <tr id="t421-rgb-hex3-a-4.2.1" class="primary">
         <td><strong>
             <a href="t421-rgb-hex3-a.htm">t421-rgb-hex3-a</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-int-a-ref.htm">=</a> </td>
         <td></td>
         <td>#rgb colors
           <ul class="assert">
@@ -228,7 +228,7 @@
       <tr id="t421-rgb-hex6-a-4.2.1" class="primary">
         <td><strong>
             <a href="t421-rgb-hex6-a.htm">t421-rgb-hex6-a</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-int-a-ref.htm">=</a> </td>
         <td></td>
         <td>#rrggbb colors
           <ul class="assert">
@@ -301,7 +301,7 @@
       <tr id="t422-rgba-a1.0-a-4.2.2" class="primary">
         <td><strong>
             <a href="t422-rgba-a1.0-a.htm">t422-rgba-a1.0-a</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-a1.0-a-ref.htm">=</a> </td>
         <td></td>
         <td>rgba() colors
           <ul class="assert">
@@ -367,7 +367,7 @@
       <tr id="t422-rgba-func-pct-a-4.2.2" class="primary">
         <td><strong>
             <a href="t422-rgba-func-pct-a.htm">t422-rgba-func-pct-a</a></strong></td>
-        <td></td>
+        <td><a href="reference/t422-rgba-func-int-a-ref.htm">=</a> </td>
         <td></td>
         <td>rgba() colors
           <ul class="assert">
@@ -461,7 +461,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s4.2.4">+</a>
         <a href="http://www.w3.org/TR/css3-color/#hsl-color">4.2.4 HSL color values</a></th></tr>
-      <!-- 6 tests -->
+      <!-- 20 tests -->
       <tr id="t424-hsl-basic-a-4.2.4" class="primary">
         <td><strong>
             <a href="t424-hsl-basic-a.htm">t424-hsl-basic-a</a></strong></td>
@@ -506,10 +506,164 @@
           </ul>
         </td>
       </tr>
-      <tr id="t424-hsl-values-b-4.2.4" class="primary">
+      <tr id="t424-hsl-values-b-1-4.2.4" class="primary">
         <td><strong>
-            <a href="t424-hsl-values-b.htm">t424-hsl-values-b</a></strong></td>
-        <td><a href="reference/t424-hsl-values-b-ref.htm">=</a> </td>
+            <a href="t424-hsl-values-b-1.htm">t424-hsl-values-b-1</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-1-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-10-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-10.htm">t424-hsl-values-b-10</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-10-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-11-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-11.htm">t424-hsl-values-b-11</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-11-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-12-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-12.htm">t424-hsl-values-b-12</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-12-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-13-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-13.htm">t424-hsl-values-b-13</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-13-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-14-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-14.htm">t424-hsl-values-b-14</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-14-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-15-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-15.htm">t424-hsl-values-b-15</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-15-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-2-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-2.htm">t424-hsl-values-b-2</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-2-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-3-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-3.htm">t424-hsl-values-b-3</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-3-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-4-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-4.htm">t424-hsl-values-b-4</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-4-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-5-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-5.htm">t424-hsl-values-b-5</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-5-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-6-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-6.htm">t424-hsl-values-b-6</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-6-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-7-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-7.htm">t424-hsl-values-b-7</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-7-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-8-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-8.htm">t424-hsl-values-b-8</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-8-ref.htm">=</a> </td>
+        <td></td>
+        <td>hsl() values
+          <ul class="assert">
+            <li>Implementation of algorithm for converting hsl() colors to rgb() colors.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t424-hsl-values-b-9-4.2.4" class="primary">
+        <td><strong>
+            <a href="t424-hsl-values-b-9.htm">t424-hsl-values-b-9</a></strong></td>
+        <td><a href="reference/t424-hsl-values-b-9-ref.htm">=</a> </td>
         <td></td>
         <td>hsl() values
           <ul class="assert">
@@ -1082,7 +1236,7 @@
       <tr id="t31-color-currentcolor-b-4.4" class="">
         <td>
             <a href="t31-color-currentColor-b.htm">t31-color-currentcolor-b</a></td>
-        <td></td>
+        <td><a href="reference/t31-color-currentColor-b-ref.htm">=</a> </td>
         <td></td>
         <td>color
           <ul class="assert">

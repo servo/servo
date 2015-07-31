@@ -23,9 +23,12 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
+use script_task::{Runnable, ScriptChan, ScriptMsg};
 use util::str::DOMString;
 use string_cache::Atom;
 
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponder, ImageResponse};
 use url::{Url, UrlParser};
@@ -62,27 +65,27 @@ trait PrivateHTMLImageElementHelpers {
     fn update_image(self, value: Option<(DOMString, &Url)>);
 }
 
-/// This is passed to the image cache when the src attribute
-/// changes. It is returned via a message to the script task,
-/// which marks the element as dirty and triggers a reflow.
-struct Responder {
+struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
+    image: ImageResponse,
 }
 
-impl Responder {
-    fn new(element: Trusted<HTMLImageElement>) -> Responder {
-        Responder {
-            element: element
+impl ImageResponseHandlerRunnable {
+    fn new(element: Trusted<HTMLImageElement>, image: ImageResponse)
+           -> ImageResponseHandlerRunnable {
+        ImageResponseHandlerRunnable {
+            element: element,
+            image: image,
         }
     }
 }
 
-impl ImageResponder for Responder {
-    fn respond(&self, image: ImageResponse) {
+impl Runnable for ImageResponseHandlerRunnable {
+    fn handler(self: Box<Self>) {
         // Update the image field
         let element = self.element.root();
         let element_ref = element.r();
-        *element_ref.image.borrow_mut() = match image {
+        *element_ref.image.borrow_mut() = match self.image {
             ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
                 Some(image)
             }
@@ -130,8 +133,20 @@ impl<'a> PrivateHTMLImageElementHelpers for &'a HTMLImageElement {
                 *self.url.borrow_mut() = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(window.get_cx(), self, window.script_chan());
-                let responder = box Responder::new(trusted_node);
-                image_cache.request_image(img_url, window.image_cache_chan(), Some(responder));
+                let (responder_sender, responder_receiver) = ipc::channel().unwrap();
+                let script_chan = window.script_chan();
+                ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
+                    // Return the image via a message to the script task, which marks the element
+                    // as dirty and triggers a reflow.
+                    let image_response = message.to().unwrap();
+                    script_chan.send(ScriptMsg::RunnableMsg(box ImageResponseHandlerRunnable::new(
+                                trusted_node.clone(),
+                                image_response))).unwrap();
+                });
+
+                image_cache.request_image(img_url,
+                                          window.image_cache_chan(),
+                                          Some(ImageResponder::new(responder_sender)));
             }
         }
     }
@@ -205,33 +220,39 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
 
     make_bool_getter!(IsMap);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     fn SetIsMap(self, is_map: bool) {
         let element = ElementCast::from_ref(self);
         element.set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(self) -> u32 {
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(self, width: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(self) -> u32 {
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(self, height: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(self) -> u32 {
         let image = self.image.borrow();
 
@@ -241,6 +262,7 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(self) -> u32 {
         let image = self.image.borrow();
 
@@ -250,6 +272,7 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(self) -> bool {
         let image = self.image.borrow();
         image.is_some()

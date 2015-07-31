@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Counter Styles Level 3 CR Test Suite</h1>
-  <h2>Simple Predefined Counter Styles (39 tests)</h2>
+  <h2>Simple Predefined Counter Styles (108 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -37,7 +37,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.1">+</a>
         <a href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric">6.1 Numeric: decimal, decimal-leading-zero, arabic-indic, armenian, upper-armenian, lower-armenian, bengali, cambodian, khmer, cjk-decimal, devanagari, georgian, gujarati, gurmukhi, hebrew, kannada, lao, malayalam, mongolian, myanmar, oriya, persian, lower...</a></th></tr>
-      <!-- 24 tests -->
+      <!-- 93 tests -->
       <tr id="css3-counter-styles-001-6.1" class="primary font">
         <td><strong>
             <a href="css3-counter-styles-001.xht">css3-counter-styles-001</a></strong></td>
@@ -45,7 +45,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>cjk-decimal, 0-9
           <ul class="assert">
-            <li>Setting list-style-type to cjk-decimal will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: cjk-decimal produces numbers up to 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -56,7 +56,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>cjk-decimal, 10+
           <ul class="assert">
-            <li>Setting list-style-type to cjk-decimal will produce list numbering after 9 as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: cjk-decimal produces numbers after 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -67,7 +67,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>cjk-decimal, suffix
           <ul class="assert">
-            <li>Setting list-style-type to cjk-decimal will produce a suffix as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: cjk-decimal will produce a suffix as described in the CSS3 Counter Styles module.</li>
           </ul>
         </td>
       </tr>
@@ -78,7 +78,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>armenian, 0-9
           <ul class="assert">
-            <li>Setting list-style-type to armenian will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: armenian produces numbers up to 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -89,7 +89,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>armenian, 10+
           <ul class="assert">
-            <li>Setting list-style-type to armenian will produce list numbering after 9 as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: armenian produces numbers after 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -100,7 +100,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>armenian, outside range
           <ul class="assert">
-            <li>With list-style-type set to armenian, list markers above the limit specified in CSS3 will be rendered in the fallback counter style.</li>
+            <li>list-style-type: armenian produces counter values outside its ranges using its fallback style.</li>
           </ul>
         </td>
       </tr>
@@ -111,7 +111,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>armenian, suffix
           <ul class="assert">
-            <li>Setting list-style-type to armenian will produce a suffix as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: armenian will produce a suffix per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -122,7 +122,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>georgian, 0-9
           <ul class="assert">
-            <li>Setting list-style-type to georgian will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: georgian produces numbers up to 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -133,7 +133,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>georgian, 10+
           <ul class="assert">
-            <li>Setting list-style-type to georgian will produce list numbering after 9 as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: georgian produces numbers after 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -144,7 +144,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>georgian, outside range
           <ul class="assert">
-            <li>With list-style-type set to georgian, list markers above the limit specified in CSS3 will be rendered in the fallback counter style.</li>
+            <li>list-style-type: georgian produces numbers in the fallback counter style above the limit per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -155,7 +155,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>georgian, suffix
           <ul class="assert">
-            <li>Setting list-style-type to georgian will produce a suffix as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: georgian produces a suffix per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -166,7 +166,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>hebrew, 0-9
           <ul class="assert">
-            <li>Setting list-style-type to hebrew will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: hebrew produces numbers up to 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -177,7 +177,18 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>hebrew, 10+
           <ul class="assert">
-            <li>Setting list-style-type to hebrew will produce list numbering after 9 as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: hebrew produces numbers after 9 items per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-016a-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-016a.xht">css3-counter-styles-016a</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>hebrew, outside range
+          <ul class="assert">
+            <li>list-style-type: hebrew produces numbers in the fallback counter style above the limit per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -188,7 +199,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>hebrew, suffix
           <ul class="assert">
-            <li>Setting list-style-type to hebrew will produce a suffix as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: hebrew produces a suffix per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -199,7 +210,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>lower-roman, 0-9
           <ul class="assert">
-            <li>Setting list-style-type to lower-roman will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: lower-roman produces numbers up to 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -210,7 +221,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>lower-roman, 10-3999
           <ul class="assert">
-            <li>Setting list-style-type to lower-roman will produce list numbering after 9 as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: lower-roman produces numbers after 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -232,7 +243,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>lower-roman, outside range
           <ul class="assert">
-            <li>With list-style-type set to lower-roman, list markers above the limit specified in CSS3 will be rendered in the fallback counter style.</li>
+            <li>list-style-type: lower-roman produces numbers in the fallback counter style above the limit per the spec</li>
           </ul>
         </td>
       </tr>
@@ -243,7 +254,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>lower-roman, suffix
           <ul class="assert">
-            <li>Setting list-style-type to lower-roman will produce a suffix as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: lower-roman produces a suffix per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -254,7 +265,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>upper-roman, 0-9
           <ul class="assert">
-            <li>Setting list-style-type to upper-roman will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: upper-roman produces numbers up to 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -265,7 +276,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>upper-roman, 10-3999
           <ul class="assert">
-            <li>Setting list-style-type to upper-roman will produce list numbering after 9 as described in the CSS3 Counter Styles module.</li>
+            <li>list-style: upper-roman produces numbers after 9 items per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -287,7 +298,7 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>upper-roman, outside range
           <ul class="assert">
-            <li>With list-style-type set to upper-roman, list markers above the limit specified in CSS3 will be rendered in the fallback counter style.</li>
+            <li>list-style-type: upper-roman produces numbers in the fallback counter style above the limit per the spec</li>
           </ul>
         </td>
       </tr>
@@ -298,7 +309,755 @@
         <td><abbr class="font" title="Requires a special font">Font</abbr></td>
         <td>upper-roman, suffix
           <ul class="assert">
-            <li>Setting list-style-type to upper-roman will produce a suffix as described in the CSS3 Counter Styles module.</li>
+            <li>list-style-type: upper-roman produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-101-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-101.xht">css3-counter-styles-101</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>arabic-indic, 0-9
+          <ul class="assert">
+            <li>list-style: arabic-indic produces numbers up to 9 items per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-102-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-102.xht">css3-counter-styles-102</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>arabic-indic, 10+
+          <ul class="assert">
+            <li>list-style-type: arabic-indic produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-103-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-103.xht">css3-counter-styles-103</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>arabic-indic, suffix
+          <ul class="assert">
+            <li>list-style-type: arabic-indic produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-104-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-104.xht">css3-counter-styles-104</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>persian, 0-9
+          <ul class="assert">
+            <li>list-style: persian produces numbers up to 9 items per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-105-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-105.xht">css3-counter-styles-105</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>persian, 10+
+          <ul class="assert">
+            <li>list-style-type: persian produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-106-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-106.xht">css3-counter-styles-106</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>persian, suffix
+          <ul class="assert">
+            <li>list-style-type: persian produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-107-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-107.xht">css3-counter-styles-107</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>upper-armenian, 0-9
+          <ul class="assert">
+            <li>list-style-type: upper-armenian produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-108-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-108.xht">css3-counter-styles-108</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>upper-armenian, 10+
+          <ul class="assert">
+            <li>list-style-type: upper-armenian produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-109-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-109.xht">css3-counter-styles-109</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>upper-armenian, outside range
+          <ul class="assert">
+            <li>list-style-type: upper-armenian produces numbers in the fallback counter style above the limit per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-110-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-110.xht">css3-counter-styles-110</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>upper-armenian, suffix
+          <ul class="assert">
+            <li>list-style-type: upper-armenian produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-111-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-111.xht">css3-counter-styles-111</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>lower-armenian, 0-9
+          <ul class="assert">
+            <li>list-style-type: lower-armenian produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-112-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-112.xht">css3-counter-styles-112</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>lower-armenian, 10+
+          <ul class="assert">
+            <li>list-style-type: lower-armenian produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-114-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-114.xht">css3-counter-styles-114</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>lower-armenian, outside range
+          <ul class="assert">
+            <li>list-style-type: lower-armenian produces numbers in the fallback counter style above the limit per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-115-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-115.xht">css3-counter-styles-115</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>lower-armenian, suffix
+          <ul class="assert">
+            <li>list-style-type: lower-armenian produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-116-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-116.xht">css3-counter-styles-116</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>bengali, 0-9
+          <ul class="assert">
+            <li>list-style-type:bengali produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-117-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-117.xht">css3-counter-styles-117</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>bengali, 10+
+          <ul class="assert">
+            <li>list-style-type: bengali produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-118-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-118.xht">css3-counter-styles-118</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>bengali, suffix
+          <ul class="assert">
+            <li>list-style-type: bengali produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-119-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-119.xht">css3-counter-styles-119</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>devanagari, 0-9
+          <ul class="assert">
+            <li>list-style-type:devanagari produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-120-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-120.xht">css3-counter-styles-120</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>devanagari, 10+
+          <ul class="assert">
+            <li>list-style-type: devanagari produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-121-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-121.xht">css3-counter-styles-121</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>devanagari, suffix
+          <ul class="assert">
+            <li>list-style-type: devanagari produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-122-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-122.xht">css3-counter-styles-122</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>gujarati, 0-9
+          <ul class="assert">
+            <li>list-style-type:gujarati produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-123-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-123.xht">css3-counter-styles-123</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>gujarati, 10+
+          <ul class="assert">
+            <li>list-style-type: gujarati produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-124-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-124.xht">css3-counter-styles-124</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>gujarati, suffix
+          <ul class="assert">
+            <li>list-style-type: gujarati produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-125-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-125.xht">css3-counter-styles-125</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>gurmukhi, 0-9
+          <ul class="assert">
+            <li>list-style-type:gurmukhi produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-126-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-126.xht">css3-counter-styles-126</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>gurmukhi, 10+
+          <ul class="assert">
+            <li>list-style-type: gurmukhi produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-127-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-127.xht">css3-counter-styles-127</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>gurmukhi, suffix
+          <ul class="assert">
+            <li>list-style-type: gurmukhi produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-128-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-128.xht">css3-counter-styles-128</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>kannada, 0-9
+          <ul class="assert">
+            <li>list-style-type:kannada produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-129-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-129.xht">css3-counter-styles-129</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>kannada, 10+
+          <ul class="assert">
+            <li>list-style-type: kannada produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-130-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-130.xht">css3-counter-styles-130</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>kannada, suffix
+          <ul class="assert">
+            <li>list-style-type: kannada produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-131-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-131.xht">css3-counter-styles-131</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>lao, 0-9
+          <ul class="assert">
+            <li>list-style-type:lao produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-132-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-132.xht">css3-counter-styles-132</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>lao, 10+
+          <ul class="assert">
+            <li>list-style-type: lao produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-133-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-133.xht">css3-counter-styles-133</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>lao, suffix
+          <ul class="assert">
+            <li>list-style-type: lao produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-134-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-134.xht">css3-counter-styles-134</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>malayalam, 0-9
+          <ul class="assert">
+            <li>list-style-type:malayalam produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-135-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-135.xht">css3-counter-styles-135</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>malayalam, 10+
+          <ul class="assert">
+            <li>list-style-type: malayalam produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-136-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-136.xht">css3-counter-styles-136</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>malayalam, suffix
+          <ul class="assert">
+            <li>list-style-type: malayalam produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-137-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-137.xht">css3-counter-styles-137</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>mongolian, 0-9
+          <ul class="assert">
+            <li>list-style-type:mongolian produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-138-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-138.xht">css3-counter-styles-138</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>mongolian, 10+
+          <ul class="assert">
+            <li>list-style-type: mongolian produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-139-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-139.xht">css3-counter-styles-139</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>mongolian, suffix
+          <ul class="assert">
+            <li>list-style-type: mongolian produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-140-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-140.xht">css3-counter-styles-140</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>myanmar, 0-9
+          <ul class="assert">
+            <li>list-style-type:myanmar produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-141-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-141.xht">css3-counter-styles-141</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>myanmar, 10+
+          <ul class="assert">
+            <li>list-style-type: myanmar produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-142-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-142.xht">css3-counter-styles-142</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>myanmar, suffix
+          <ul class="assert">
+            <li>list-style-type: myanmar produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-143-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-143.xht">css3-counter-styles-143</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>oriya, 0-9
+          <ul class="assert">
+            <li>list-style-type:oriya produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-144-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-144.xht">css3-counter-styles-144</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>oriya, 10+
+          <ul class="assert">
+            <li>list-style-type: oriya produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-145-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-145.xht">css3-counter-styles-145</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>oriya, suffix
+          <ul class="assert">
+            <li>list-style-type: oriya produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-146-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-146.xht">css3-counter-styles-146</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>tamil, 0-9
+          <ul class="assert">
+            <li>list-style-type:tamil produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-147-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-147.xht">css3-counter-styles-147</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>tamil, 10+
+          <ul class="assert">
+            <li>list-style-type: tamil produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-148-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-148.xht">css3-counter-styles-148</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>tamil, suffix
+          <ul class="assert">
+            <li>list-style-type: tamil produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-149-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-149.xht">css3-counter-styles-149</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>telugu, 0-9
+          <ul class="assert">
+            <li>list-style-type:telugu produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-150-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-150.xht">css3-counter-styles-150</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>telugu, 10+
+          <ul class="assert">
+            <li>list-style-type: telugu produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-151-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-151.xht">css3-counter-styles-151</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>telugu, suffix
+          <ul class="assert">
+            <li>list-style-type: telugu produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-152-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-152.xht">css3-counter-styles-152</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>thai, 0-9
+          <ul class="assert">
+            <li>list-style-type:thai produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-153-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-153.xht">css3-counter-styles-153</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>thai, 10+
+          <ul class="assert">
+            <li>list-style-type: thai produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-154-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-154.xht">css3-counter-styles-154</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>thai, suffix
+          <ul class="assert">
+            <li>list-style-type: thai produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-155-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-155.xht">css3-counter-styles-155</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>tibetan, 0-9
+          <ul class="assert">
+            <li>list-style-type:tibetan produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-156-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-156.xht">css3-counter-styles-156</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>tibetan, 10+
+          <ul class="assert">
+            <li>list-style-type: tibetan produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-157-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-157.xht">css3-counter-styles-157</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>tibetan, suffix
+          <ul class="assert">
+            <li>list-style-type: tibetan produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-158-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-158.xht">css3-counter-styles-158</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cambodian, 0-9
+          <ul class="assert">
+            <li>list-style-type: cambodian produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-159-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-159.xht">css3-counter-styles-159</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cambodian, 10+
+          <ul class="assert">
+            <li>list-style-type: cambodian produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-160-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-160.xht">css3-counter-styles-160</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cambodian, suffix
+          <ul class="assert">
+            <li>list-style-type: cambodian produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-161-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-161.xht">css3-counter-styles-161</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>khmer, 0-9
+          <ul class="assert">
+            <li>list-style-type: khmer produces numbers up to 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-162-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-162.xht">css3-counter-styles-162</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>khmer, 10+
+          <ul class="assert">
+            <li>list-style-type: khmer produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-163-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-163.xht">css3-counter-styles-163</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>khmer, suffix
+          <ul class="assert">
+            <li>list-style-type: khmer produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-201-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-201.xht">css3-counter-styles-201</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cjk-earthly-branch, 0-12
+          <ul class="assert">
+            <li>list-style-type:cjk-earthly-branch produces numbers up to 12 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-202-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-202.xht">css3-counter-styles-202</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cjk-earthly-branch, 13+
+          <ul class="assert">
+            <li>list-style-type: cjk-earthly-branch produces numbers after 12 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-203-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-203.xht">css3-counter-styles-203</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cjk-earthly-branch, suffix
+          <ul class="assert">
+            <li>list-style-type: cjk-earthly-branch produces a suffix per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-204-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-204.xht">css3-counter-styles-204</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cjk-heavenly-stem, 0-9
+          <ul class="assert">
+            <li>list-style-type:cjk-heavenly-stem produces numbers up to 12 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-205-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-205.xht">css3-counter-styles-205</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cjk-heavenly-stem, 10+
+          <ul class="assert">
+            <li>list-style-type: cjk-heavenly-stem produces numbers after 9 per the spec.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css3-counter-styles-206-6.1" class="primary font">
+        <td><strong>
+            <a href="css3-counter-styles-206.xht">css3-counter-styles-206</a></strong></td>
+        <td></td>
+        <td><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td>cjk-heavenly-stem, suffix
+          <ul class="assert">
+            <li>list-style-type: cjk-heavenly-stem produces a suffix per the spec.</li>
           </ul>
         </td>
       </tr>
@@ -354,7 +1113,7 @@
     <tbody id="s6.1.#valdef-counter-style-name-lao">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s6.1.#valdef-counter-style-name-lower-armeniam">
+    <tbody id="s6.1.#valdef-counter-style-name-lower-armenian">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s6.1.#valdef-counter-style-name-malayalam">

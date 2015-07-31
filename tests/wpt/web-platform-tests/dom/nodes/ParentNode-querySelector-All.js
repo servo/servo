@@ -3,7 +3,7 @@
 /*
  * Create and append special elements that cannot be created correctly with HTML markup alone.
  */
-function setupSpecialElements(parent) {
+function setupSpecialElements(doc, parent) {
   // Setup null and undefined tests
   parent.appendChild(doc.createElement("null"));
   parent.appendChild(doc.createElement("undefined"));
@@ -75,7 +75,7 @@ function interfaceCheck(type, obj) {
  * Verify that the NodeList returned by querySelectorAll is static and and that a new list is created after
  * each call. A static list should not be affected by subsequent changes to the DOM.
  */
-function verifyStaticList(type, root) {
+function verifyStaticList(type, doc, root) {
   var pre, post, preLength;
 
   test(function() {

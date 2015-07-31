@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head>
+    <title>CSS Writing Modes Test: text-combine-upright :all </title>
+    <link href="mailto:shinsuke.matsuki@access-company.com" rel="author" title="Shinsuke Matsuki">
+    <meta charset="utf-8">
+    <style type="text/css">
+    #container {
+        font-size:50px;
+    }
+    .vrl {
+        writing-mode:vertical-rl;
+    }
+    .tcy {
+        text-combine-upright:all;
+    }
+    </style>
+</head>
+<body>
+    <p>Test passes if the <b>line breaks</b> before <q>56</q>, and all digits are in<b>upright</b> in <b>horizontal</b> flow.
+    </p><div id="container">
+        <div class="vrl tcy">
+            <table>
+                <tbody><tr>
+                    <td>
+                        <div style="display: inline-table">
+                            <div style="display: inline-block">
+                                <span class="tcy">12</span><span class="tcy">56</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody></table>
+        </div>
+    </div>
+
+
+</body></html>

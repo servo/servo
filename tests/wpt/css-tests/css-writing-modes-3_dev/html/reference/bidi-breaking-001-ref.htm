@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style type="text/css">
+  p + .set {border-top: solid orange;}
+
+  .set
+  {
+  border-bottom: solid orange;
+  clear: both;
+  float: left;
+  }
+
+  .control
+  {
+  border: silver solid;
+  color: blue;
+  float: left;
+  font: bold larger monospace;
+  margin: 1em;
+  padding: 0.25em;
+  }
+
+  /* ensure BDO processing */
+  bdo
+  {
+  direction: ltr;
+  unicode-bidi: bidi-override;
+  }
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>In each pair of silver boxes below, the two patterns must be identical.</p>
+
+  <!--  
+  &#x05D0; א is hebrew letter alef
+  &#x05EA; ת is hebrew letter tav
+  -->
+
+  <!-- control for bidi support -->
+  <div class="set">
+    <div class="control">
+      <div><bdo dir="ltr">א &divide; &times; - + &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; &divide; &times; - + ת</bdo></div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א &divide; &times; - + &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; &divide; &times; - + ת</bdo></div>
+    </div>
+  </div>
+
+  <!-- sibling boxes -->
+  <div class="set">
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+  </div>
+
+  <!-- anonymous boxes -->
+  <div class="set">
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+  </div>
+
+  <!-- anonymous boxes -->
+  <div class="set">
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">א + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; ת</bdo></div>
+    </div>
+  </div>
+<!--
+PS &#x2029; Paragraph separator
+LS &#x2028; Line separator
+-->
+
+ </body>
+</html>

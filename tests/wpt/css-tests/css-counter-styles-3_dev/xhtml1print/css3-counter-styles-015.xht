@@ -6,36 +6,31 @@
 <link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help" />
 <link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley" />
 <meta content="font" name="flags" />
-<meta content="Setting list-style-type to hebrew will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module." name="assert" />
+<meta content="list-style: hebrew produces numbers up to 9 items per the spec." name="assert" />
 <style type="text/css">
+ol li { list-style-type: hebrew;  }
+/* the following CSS is not part of the test */
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: hebrew;  }
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
-
-
-<div class="test"><ol start="1"><li title="1">א.</li></ol>
-<ol start="2"><li title="2">ב.</li></ol>
-<ol start="3"><li title="3">ג.</li></ol>
-<ol start="4"><li title="4">ד.</li></ol>
-<ol start="5"><li title="5">ה.</li></ol>
-<ol start="6"><li title="6">ו.</li></ol>
-<ol start="7"><li title="7">ז.</li></ol>
-<ol start="8"><li title="8">ח.</li></ol>
-<ol start="9"><li title="9">ט.</li></ol>
-</div>
-
-
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test"><ol>
+<li title="1">א</li>
+<li title="2">ב</li>
+<li title="3">ג</li>
+<li title="4">ד</li>
+<li title="5">ה</li>
+<li title="6">ו</li>
+<li title="7">ז</li>
+<li title="8">ח</li>
+<li title="9">ט</li>
+</ol></div>
 <!--Notes:
 You will need an appropriate font to run this test.
-
 To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
 -->
-
-
 
 
 </body></html>

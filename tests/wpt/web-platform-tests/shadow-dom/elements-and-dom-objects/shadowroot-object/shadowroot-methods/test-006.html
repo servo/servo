@@ -24,7 +24,7 @@ policies and contribution forms [3].
 <script>
 test(function () {
 
-	var d = newHTMLDocument();
+    var d = newHTMLDocument();
 
     var el = d.createElement('div');
     d.body.appendChild(el);
@@ -37,6 +37,22 @@ test(function () {
     }
 
 }, 'A_10_01_02_06_01_T01');
+
+// Added test for checking if elementFromPoint() method is existing on Shadowroot.
+test(function () {
+
+    var d = newHTMLDocument();
+
+    var el = d.createElement('div');
+
+    var s = el.createShadowRoot();
+    d.body.appendChild(el);
+
+    if (typeof(s) == 'undefined' || typeof (s.elementFromPoint(1, 1)) != 'object') {
+        assert_true(false, 'Shadowroot doesn\'t have elementFromPoint() method.' );
+    }
+
+}, 'A_10_01_02_06_01_T02');
 </script>
 </body>
 </html>

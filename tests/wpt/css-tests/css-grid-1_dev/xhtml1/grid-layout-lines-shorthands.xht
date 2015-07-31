@@ -2,9 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
     <title>CSS Grid Layout Test: grid lines shorthands</title>
     <link href="mailto:myst.dg@gmail.com" rel="author" title="Leo Deng" />
-    <link href="http://www.w3.org/TR/css-grid-1/#grid-line" rel="help" />
+    <link href="http://www.w3.org/TR/css-grid-1/#common-uses-named-lines" rel="help" />
     <link href="reference/grid-layout-basic-ref.xht" rel="match" />
-    <meta content="the subgrid layout should behave the same as reference." name="assert" />
+    <meta content="the layout should behave the same as reference." name="assert" />
     <style>
       body {
         margin: 0;
@@ -18,15 +18,15 @@
         width: 150px;
         background: #eee;
         display: grid;
-        grid-definition-columns: "left" 100px "center" 50px "right";
+        grid-template-columns: [left] 100px [center] 50px [right];
       }
       .a {
         background: blue;
-        grid-column: "left" / "center";
+        grid-column: left / center;
       }
       .b {
         background: yellow;
-        grid-column: "center" / "right";
+        grid-column: center / right;
       }
     </style>
   </head>
@@ -37,4 +37,5 @@
       <div class="b">&#xA0;</div>
     </div>
   
+
 </body></html>

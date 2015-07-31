@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><head>
+  <title>CSS Test: CSSOM StyleSheet Modify Rule List</title>
+  <link href="mailto:betravis@adobe.com" rel="author" title="Bear Travis">
+  <link href="mailto:ms2ger@gmail.com" rel="reviewer" title="Ms2ger"> <!-- 2012-06-17 -->
+  <link href="http://www.w3.org/TR/cssom/#the-cssstylesheet-interface" rel="help">
+  <link href="http://www.w3.org/TR/cssom/#the-cssrule-interface" rel="help">
+  <meta content="dom" name="flags">
+  <meta content="StyleSheet and CSSStyleSheet objects have the properties specified in their interfaces" name="assert">
+  <script src="/resources/testharness.js" type="text/javascript"></script>
+  <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+  <style disabled="disabled" media="all" type="text/css" id="styleElement" title="internal style sheet">
+    * { margin: 0; padding: 0; }
+  </style>
+  <script id="metadata_cache">/*
+{
+  "add_rule": {
+    "assert": ["Initial rule list is of size 1",
+               "Can add a rule at first index"]
+  },
+  "delete_rule": { "assert": "Can delete rules until rule list is empty" }
+}
+*/</script>
+ </head>
+ <body>
+  <noscript>Test not run - javascript required.</noscript>
+  <div id="log"></div>
+  <script type="text/javascript">
+  var sheet = document.getElementById("styleElement").sheet;
+  test(function() {
+    assert_equals(sheet.cssRules.length, 1);
+    sheet.insertRule("p { color: green; }", 0);
+    assert_equals(sheet.cssRules.length, 2);
+    assert_equals(sheet.cssRules.item(0).cssText, "p { color: green; }");
+  }, "add_rule", {
+    assert: [   "Initial rule list is of size 1",
+                "Can add a rule at first index" ]
+  });
+  
+  test(function() {
+    sheet.deleteRule(0);
+    assert_equals(sheet.cssRules.length, 1);
+    sheet.deleteRule(0);
+    assert_equals(sheet.cssRules.length, 0);
+  }, "delete_rule", {
+    assert: "Can delete rules until rule list is empty"
+  });
+  </script>
+ 
+
+</body></html>

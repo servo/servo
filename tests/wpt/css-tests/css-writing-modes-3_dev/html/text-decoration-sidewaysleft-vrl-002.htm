@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'text-decoration: underline' and 'text-orientation: sideways-left' in a 'vertical-rl' writing-mode</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings" title="7.5 Line-Relative Mappings">
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#logical-to-physical" title="6.4 Abstract-to-Physical Mappings">
+
+  <meta name="flags" content="">
+  <meta content="This test checks that 'text-decoration: underline' generates a line on the righthand side of text when 'text-orientation' is set to 'sideways-left' in a 'vertical-rl' writing-mode." name="assert">
+
+  <style type="text/css">
+  div
+    {
+      color: blue;
+      font: 2.5em/1.5 serif; /* computes to 40px/60px */
+      text-decoration: underline;
+      text-orientation: sideways-left;
+      writing-mode: vertical-rl;
+    }
+
+  span
+    {
+      color: orange;
+    }
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if glyphs of the words "Text sample" are rotated 90° counter-clockwise and if a vertical straight blue line is on their <strong>righthand side</strong>.</p>
+
+  <div><span>Text sample</span></div>
+
+ </body>
+</html>

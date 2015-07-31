@@ -13,6 +13,7 @@ use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use dom::window::WindowHelpers;
+use ipc_channel::ipc;
 use util::str::DOMString;
 use page::IterablePage;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
@@ -57,36 +58,34 @@ impl Storage {
 }
 
 impl<'a> StorageMethods for &'a Storage {
+    // https://html.spec.whatwg.org/multipage/#dom-storage-length
     fn Length(self) -> u32 {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url(), self.storage_type)).unwrap();
         receiver.recv().unwrap() as u32
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storage-key
     fn Key(self, index: u32) -> Option<DOMString> {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), self.storage_type, index)).unwrap();
         receiver.recv().unwrap()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-storage-getitem
     fn GetItem(self, name: DOMString) -> Option<DOMString> {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         let msg = StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name);
         self.get_storage_task().send(msg).unwrap();
         receiver.recv().unwrap()
     }
 
-    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
-        let item = self.GetItem(name);
-        *found = item.is_some();
-        item
-    }
-
+    // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
     fn SetItem(self, name: DOMString, value: DOMString) {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
 
         let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
         self.get_storage_task().send(msg).unwrap();
@@ -94,6 +93,34 @@ impl<'a> StorageMethods for &'a Storage {
         if changed {
             self.broadcast_change_notification(Some(name), old_value, Some(value));
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-storage-removeitem
+    fn RemoveItem(self, name: DOMString) {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let msg = StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
+        self.get_storage_task().send(msg).unwrap();
+        if let Some(old_value) = receiver.recv().unwrap() {
+            self.broadcast_change_notification(Some(name), Some(old_value), None);
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-storage-clear
+    fn Clear(self) {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url(), self.storage_type)).unwrap();
+        if receiver.recv().unwrap() {
+            self.broadcast_change_notification(None, None, None);
+        }
+    }
+
+    // check-tidy: no specs after this line
+    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
+        let item = self.GetItem(name);
+        *found = item.is_some();
+        item
     }
 
     fn NamedSetter(self, name: DOMString, value: DOMString) {
@@ -104,27 +131,8 @@ impl<'a> StorageMethods for &'a Storage {
         self.SetItem(name, value);
     }
 
-    fn RemoveItem(self, name: DOMString) {
-        let (sender, receiver) = channel();
-
-        let msg = StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
-        self.get_storage_task().send(msg).unwrap();
-        if let Some(old_value) = receiver.recv().unwrap() {
-            self.broadcast_change_notification(Some(name), Some(old_value), None);
-        }
-    }
-
     fn NamedDeleter(self, name: DOMString) {
         self.RemoveItem(name);
-    }
-
-    fn Clear(self) {
-        let (sender, receiver) = channel();
-
-        self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url(), self.storage_type)).unwrap();
-        if receiver.recv().unwrap() {
-            self.broadcast_change_notification(None, None, None);
-        }
     }
 }
 

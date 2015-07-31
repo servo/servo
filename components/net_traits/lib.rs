@@ -3,15 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
+#![feature(custom_derive)]
+#![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(vec_push_all)]
+#![plugin(serde_macros)]
+
+#![plugin(serde_macros)]
 
 extern crate euclid;
 extern crate hyper;
+extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 extern crate png;
+extern crate serde;
 extern crate stb_image;
 extern crate url;
 extern crate util;
@@ -115,6 +122,12 @@ pub enum LoadConsumer {
 /// Handle to a resource task
 pub type ResourceTask = Sender<ControlMsg>;
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum IncludeSubdomains {
+    Included,
+    NotIncluded
+}
+
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer),
@@ -122,6 +135,8 @@ pub enum ControlMsg {
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, Sender<Option<String>>, CookieSource),
+    /// Store a domain's STS information
+    SetHSTSEntryForHost(String, IncludeSubdomains, Option<u64>),
     Exit
 }
 

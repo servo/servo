@@ -38,7 +38,8 @@
   //readonly attribute WindowProxy parent;
   readonly attribute Window parent;
   readonly attribute Element? frameElement;
-  //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank", optional DOMString features = "", optional boolean replace = false);
+  //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
+  //                 optional DOMString features = "", optional boolean replace = false);
   //getter WindowProxy (unsigned long index);
   //getter object (DOMString name);
 
@@ -89,6 +90,13 @@ partial interface Window {
   /*[Replaceable]*/ readonly attribute Performance performance;
 };
 
+// https://drafts.csswg.org/cssom/#extensions-to-the-window-interface
+partial interface Window {
+   //CSSStyleDeclaration getComputedStyle(Element elt, optional DOMString? pseudoElt);
+   [NewObject]
+   CSSStyleDeclaration getComputedStyle(HTMLElement elt, optional DOMString pseudoElt);
+};
+
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
 partial interface Window {
   //MediaQueryList matchMedia(DOMString query);
@@ -126,6 +134,7 @@ partial interface Window {
   readonly attribute Console console;
   void debug(DOMString arg);
   void gc();
+  void trap();
 };
 Window implements OnErrorEventHandlerForWindow;
 

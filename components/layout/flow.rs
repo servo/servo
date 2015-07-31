@@ -25,7 +25,6 @@
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
 
-use css::node_style::StyledNode;
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildingResult;
