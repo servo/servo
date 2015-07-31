@@ -37,8 +37,7 @@ use gfx_traits::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use gfx::display_list::StackingContext;
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::Msg as PaintMsg;
-use gfx::paint_task::{PaintChan, PaintLayer};
+use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutTaskFactory;
@@ -79,6 +78,7 @@ use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{Au, MAX_RECT, ZERO_POINT};
+use util::ipc::OptionalIpcSender;
 use util::logical_geometry::{LogicalPoint, WritingMode};
 use util::mem::HeapSizeOf;
 use util::opts;
@@ -188,7 +188,7 @@ pub struct LayoutTask {
     pub script_chan: ScriptControlChan,
 
     /// The channel on which messages can be sent to the painting task.
-    pub paint_chan: PaintChan,
+    pub paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
     pub time_profiler_chan: time::ProfilerChan,
@@ -228,7 +228,7 @@ impl LayoutTaskFactory for LayoutTask {
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,
-              paint_chan: PaintChan,
+              paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
@@ -318,7 +318,7 @@ impl LayoutTask {
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
            script_chan: ScriptControlChan,
-           paint_chan: PaintChan,
+           paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
            time_profiler_chan: time::ProfilerChan,
@@ -647,7 +647,9 @@ impl LayoutTask {
                                   info.constellation_chan,
                                   info.failure,
                                   ScriptControlChan(info.script_chan.clone()),
-                                  *info.paint_chan.downcast::<PaintChan>().unwrap(),
+                                  *info.paint_chan
+                                       .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
+                                       .unwrap(),
                                   self.image_cache_task.clone(),
                                   self.font_cache_task.clone(),
                                   self.time_profiler_chan.clone(),
@@ -689,7 +691,7 @@ impl LayoutTask {
     fn exit_now<'a>(&'a self,
                     possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
                     exit_type: PipelineExitType) {
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = ipc::channel().unwrap();
 
         {
             let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
@@ -699,7 +701,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
+        self.paint_chan.send(LayoutToPaintMsg::Exit(Some(response_chan), exit_type)).unwrap();
         response_port.recv().unwrap()
     }
 
@@ -1071,7 +1073,9 @@ impl LayoutTask {
                 debug!("Layout done!");
 
                 rw_data.epoch.next();
-                self.paint_chan.send(PaintMsg::PaintInit(rw_data.epoch, stacking_context));
+                self.paint_chan
+                    .send(LayoutToPaintMsg::PaintInit(rw_data.epoch, stacking_context))
+                    .unwrap();
             }
         });
     }
@@ -1175,7 +1179,7 @@ impl LayoutTask {
         // Send new canvas renderers to the paint task
         while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
             // Just send if there's an actual renderer
-            self.paint_chan.send(PaintMsg::CanvasLayer(layer_id, renderer));
+            self.paint_chan.send(LayoutToPaintMsg::CanvasLayer(layer_id, renderer)).unwrap();
         }
 
         // Perform post-style recalculation layout passes.

@@ -200,7 +200,7 @@ dependencies = [
 [[package]]
 name = "core-text"
 version = "0.1.0"
-source = "git+https://github.com/servo/core-text-rs#c12e41b35141e094bf784017ca4a6f71d90c9877"
+source = "git+https://github.com/servo/core-text-rs#d97cd4ae33509857f956e64c71f43cc71c98430f"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1368,6 +1368,7 @@ dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",

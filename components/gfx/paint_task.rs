@@ -32,7 +32,7 @@ use skia::gl_context::GLContext;
 use std::borrow::ToOwned;
 use std::mem as std_mem;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::collections::HashMap;
 use url::Url;
 use util::geometry::{Au, ZERO_POINT};
@@ -72,38 +72,30 @@ pub struct PaintRequest {
 }
 
 pub enum Msg {
+    FromLayout(LayoutToPaintMsg),
+    FromChrome(ChromeToPaintMsg),
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum LayoutToPaintMsg {
     PaintInit(Epoch, Arc<StackingContext>),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
+    Exit(Option<IpcSender<()>>, PipelineExitType),
+}
+
+pub enum ChromeToPaintMsg {
     Paint(Vec<PaintRequest>, FrameTreeId),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     CollectReports(ReportsChan),
-    Exit(Option<Sender<()>>, PipelineExitType),
-}
-
-#[derive(Clone)]
-pub struct PaintChan(Sender<Msg>);
-
-impl PaintChan {
-    pub fn new() -> (Receiver<Msg>, PaintChan) {
-        let (chan, port) = channel();
-        (port, PaintChan(chan))
-    }
-
-    pub fn send(&self, msg: Msg) {
-        assert!(self.send_opt(msg).is_ok(), "PaintChan.send: paint port closed")
-    }
-
-    pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
-        let &PaintChan(ref chan) = self;
-        chan.send(msg).map_err(|e| e.0)
-    }
+    Exit(Option<IpcSender<()>>, PipelineExitType),
 }
 
 pub struct PaintTask<C> {
     id: PipelineId,
     _url: Url,
-    port: Receiver<Msg>,
+    layout_to_paint_port: Receiver<LayoutToPaintMsg>,
+    chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
     compositor: C,
     constellation_chan: ConstellationChan,
 
@@ -137,8 +129,9 @@ macro_rules! native_display(
 impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
     pub fn create(id: PipelineId,
                   url: Url,
-                  chan: PaintChan,
-                  port: Receiver<Msg>,
+                  chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
+                  layout_to_paint_port: Receiver<LayoutToPaintMsg>,
+                  chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   compositor: C,
                   constellation_chan: ConstellationChan,
                   font_cache_task: FontCacheTask,
@@ -162,7 +155,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 let mut paint_task = PaintTask {
                     id: id,
                     _url: url,
-                    port: port,
+                    layout_to_paint_port: layout_to_paint_port,
+                    chrome_to_paint_port: chrome_to_paint_port,
                     compositor: compositor,
                     constellation_chan: constellation_chan,
                     time_profiler_chan: time_profiler_chan,
@@ -177,12 +171,12 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 let reporter_name = format!("paint-reporter-{}", id.0);
                 let (reporter_sender, reporter_receiver) =
                     ipc::channel::<ReporterRequest>().unwrap();
-                let paint_chan_for_reporter = chan.clone();
+                let paint_chan_for_reporter = chrome_to_paint_chan.clone();
                 ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
                     // Just injects an appropriate event into the paint task's queue.
                     let request: ReporterRequest = message.to().unwrap();
-                    paint_chan_for_reporter.0.send(Msg::CollectReports(request.reports_channel))
-                                             .unwrap();
+                    paint_chan_for_reporter.send(ChromeToPaintMsg::CollectReports(
+                            request.reports_channel)).unwrap();
                 });
                 mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
                         reporter_name.clone(),
@@ -208,8 +202,26 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         debug!("PaintTask: beginning painting loop");
 
         loop {
-            match self.port.recv().unwrap() {
-                Msg::PaintInit(epoch, stacking_context) => {
+            let message = {
+                let select = Select::new();
+                let mut layout_to_paint_handle = select.handle(&self.layout_to_paint_port);
+                let mut chrome_to_paint_handle = select.handle(&self.chrome_to_paint_port);
+                unsafe {
+                    layout_to_paint_handle.add();
+                    chrome_to_paint_handle.add();
+                }
+                let result = select.wait();
+                if result == layout_to_paint_handle.id() {
+                    Msg::FromLayout(self.layout_to_paint_port.recv().unwrap())
+                } else if result == chrome_to_paint_handle.id() {
+                    Msg::FromChrome(self.chrome_to_paint_port.recv().unwrap())
+                } else {
+                    panic!("unexpected select result")
+                }
+            };
+
+            match message {
+                Msg::FromLayout(LayoutToPaintMsg::PaintInit(epoch, stacking_context)) => {
                     self.current_epoch = Some(epoch);
                     self.root_stacking_context = Some(stacking_context.clone());
 
@@ -223,11 +235,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.initialize_layers();
                 }
                 // Inserts a new canvas renderer to the layer map
-                Msg::CanvasLayer(layer_id, canvas_renderer) => {
+                Msg::FromLayout(LayoutToPaintMsg::CanvasLayer(layer_id, canvas_renderer)) => {
                     debug!("Renderer received for canvas with layer {:?}", layer_id);
                     self.canvas_map.insert(layer_id, canvas_renderer);
                 }
-                Msg::Paint(requests, frame_tree_id) => {
+                Msg::FromChrome(ChromeToPaintMsg::Paint(requests, frame_tree_id)) => {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
@@ -254,27 +266,28 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                            replies,
                                                            frame_tree_id);
                 }
-                Msg::PaintPermissionGranted => {
+                Msg::FromChrome(ChromeToPaintMsg::PaintPermissionGranted) => {
                     self.paint_permission = true;
 
                     if self.root_stacking_context.is_some() {
                         self.initialize_layers();
                     }
                 }
-                Msg::PaintPermissionRevoked => {
+                Msg::FromChrome(ChromeToPaintMsg::PaintPermissionRevoked) => {
                     self.paint_permission = false;
                 }
-                Msg::CollectReports(ref channel) => {
+                Msg::FromChrome(ChromeToPaintMsg::CollectReports(ref channel)) => {
                     // FIXME(njn): should eventually measure the paint task.
                     channel.send(Vec::new())
                 }
-                Msg::Exit(response_channel, _) => {
+                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel, _)) |
+                Msg::FromChrome(ChromeToPaintMsg::Exit(ref response_channel, _)) => {
                     // Ask the compositor to remove any layers it is holding for this paint task.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
                     self.compositor.notify_paint_task_exiting(self.id);
 
                     debug!("PaintTask: Exiting.");
-                    response_channel.map(|channel| channel.send(()));
+                    response_channel.as_ref().map(|channel| channel.send(()));
                     break;
                 }
             }

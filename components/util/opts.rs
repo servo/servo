@@ -132,6 +132,9 @@ pub struct Opts {
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: Option<String>,
 
+    /// Whether to run in multiprocess mode.
+    pub multiprocess: bool,
+
     /// Dumps the flow tree after a layout.
     pub dump_flow_tree: bool,
 
@@ -251,6 +254,7 @@ pub fn default_opts() -> Opts {
         webdriver_port: None,
         initial_window_size: Size2D::typed(800, 600),
         user_agent: None,
+        multiprocess: false,
         dump_flow_tree: false,
         dump_display_list: false,
         dump_display_list_json: false,
@@ -291,6 +295,7 @@ pub fn from_cmdline_args(args: &[String]) {
         getopts::optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000"),
         getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
         getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
+        getopts::optflag("M", "multiprocess", "Run in multiprocess mode"),
         getopts::optopt("Z", "debug",
                         "A comma-separated string of debug options. Pass help to show available options.", ""),
         getopts::optflag("h", "help", "Print this message"),
@@ -421,6 +426,7 @@ pub fn from_cmdline_args(args: &[String]) {
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
         user_agent: opt_match.opt_str("u"),
+        multiprocess: opt_match.opt_present("M"),
         show_debug_borders: debug_options.contains(&"show-compositor-borders"),
         show_debug_fragment_borders: debug_options.contains(&"show-fragment-borders"),
         show_debug_parallel_paint: debug_options.contains(&"show-parallel-paint"),
