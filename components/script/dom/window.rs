@@ -74,8 +74,9 @@ use std::default::Default;
 use std::ffi::CString;
 use std::mem as std_mem;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::Arc;
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
+use std::sync::mpsc::{channel, Receiver};
 use time;
 
 /// Current state of the window object
@@ -173,7 +174,7 @@ pub struct Window {
     window_size: Cell<Option<WindowSizeData>>,
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
-    resource_task: ResourceTask,
+    resource_task: Arc<ResourceTask>,
 
     /// A handle for communicating messages to the storage task.
     storage_task: StorageTask,
@@ -883,7 +884,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn resource_task(self) -> ResourceTask {
-        self.resource_task.clone()
+        (*self.resource_task).clone()
     }
 
     fn mem_profiler_chan(self) -> mem::ProfilerChan {
@@ -1035,7 +1036,7 @@ impl Window {
                control_chan: ScriptControlChan,
                compositor: ScriptListener,
                image_cache_task: ImageCacheTask,
-               resource_task: ResourceTask,
+               resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
