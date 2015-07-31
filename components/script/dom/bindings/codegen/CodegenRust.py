@@ -3314,7 +3314,7 @@ class CGEnum(CGThing):
 
         decl = """\
 #[repr(usize)]
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 pub enum %s {
     %s
 }

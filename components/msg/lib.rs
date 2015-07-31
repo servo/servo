@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
+#![plugin(serde_macros, plugins)]
 
 extern crate azure;
 #[macro_use] extern crate bitflags;

@@ -109,6 +109,7 @@ pub enum IsHTMLDocument {
 
 // https://dom.spec.whatwg.org/#document
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Document {
     node: Node,
     window: JS<Window>,
@@ -120,6 +121,7 @@ pub struct Document {
     encoding_name: DOMRefCell<DOMString>,
     is_html_document: bool,
     url: Url,
+    #[ignore_heap_size_of = "FIXME defined in html5ever"]
     quirks_mode: Cell<QuirksMode>,
     images: MutNullableHeap<JS<HTMLCollection>>,
     embeds: MutNullableHeap<JS<HTMLCollection>>,
@@ -143,6 +145,7 @@ pub struct Document {
     animation_frame_ident: Cell<i32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
+    #[ignore_heap_size_of = "FIXME closures are hard"]
     animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,

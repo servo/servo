@@ -24,6 +24,7 @@ use std::cell::Ref;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct CharacterData {
     node: Node,
     data: DOMRefCell<DOMString>,
@@ -150,7 +151,7 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
 }
 
 /// The different types of CharacterData.
-#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
+#[derive(JSTraceable, Copy, Clone, PartialEq, Debug, HeapSizeOf)]
 pub enum CharacterDataTypeId {
     Comment,
     Text,

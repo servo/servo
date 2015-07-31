@@ -31,6 +31,7 @@ use js::jsapi::{JSObject, Heap, JSTracer};
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
+use util::mem::HeapSizeOf;
 
 use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
@@ -42,6 +43,13 @@ use std::ops::Deref;
 #[must_root]
 pub struct JS<T> {
     ptr: NonZero<*const T>
+}
+
+
+impl<T> HeapSizeOf for JS<T> {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
 }
 
 impl<T> JS<T> {
@@ -229,6 +237,12 @@ impl<T: HeapGCValue+Copy> MutHeap<T> {
 #[derive(JSTraceable)]
 pub struct MutNullableHeap<T: HeapGCValue+Copy> {
     ptr: Cell<Option<T>>
+}
+
+impl<T: HeapSizeOf + HeapGCValue + Copy> HeapSizeOf for MutNullableHeap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        self.ptr.get().heap_size_of_children()
+    }
 }
 
 impl<T: HeapGCValue+Copy> MutNullableHeap<T> {

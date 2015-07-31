@@ -41,6 +41,9 @@ git = "https://github.com/pcwalton/ipc-channel"
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 features = ["texture_surface"]
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies]
 bitflags = "0.3"
 rustc-serialize = "0.3.4"

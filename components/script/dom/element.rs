@@ -120,7 +120,7 @@ impl PartialEq for Element {
     }
 }
 
-#[derive(JSTraceable, Copy, Clone, PartialEq, Debug)]
+#[derive(JSTraceable, Copy, Clone, PartialEq, Debug, HeapSizeOf)]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
     Element,

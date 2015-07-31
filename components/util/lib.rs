@@ -32,6 +32,8 @@ extern crate alloc;
 extern crate euclid;
 extern crate getopts;
 extern crate ipc_channel;
+extern crate js;
+extern crate layers;
 extern crate libc;
 extern crate num as num_lib;
 extern crate num_cpus;
@@ -39,6 +41,7 @@ extern crate rand;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate smallvec;
+extern crate string_cache;
 extern crate url;
 
 use std::sync::Arc;

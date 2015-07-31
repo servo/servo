@@ -486,7 +486,7 @@ pub mod longhands {
             use cssparser::ToCss;
             use std::fmt;
 
-            #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+            #[derive(PartialEq, Clone, Eq, Copy, Debug, HeapSizeOf)]
             pub enum T {
                 Auto,
                 Number(i32),
@@ -639,7 +639,7 @@ pub mod longhands {
             use values::CSSFloat;
             use util::geometry::Au;
             use std::fmt;
-            #[derive(PartialEq, Copy, Clone)]
+            #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
                 Normal,
                 Length(Au),
@@ -739,7 +739,7 @@ pub mod longhands {
             use util::geometry::Au;
             use std::fmt;
             #[allow(non_camel_case_types)]
-            #[derive(PartialEq, Copy, Clone)]
+            #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
@@ -847,7 +847,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            #[derive(Clone, Copy, PartialEq)]
+            #[derive(Clone, Copy, PartialEq, HeapSizeOf)]
             pub struct T(pub super::super::overflow_x::computed_value::T);
         }
 
@@ -900,7 +900,7 @@ pub mod longhands {
             use cssparser::{self, ToCss};
             use std::fmt;
 
-            #[derive(PartialEq, Eq, Clone)]
+            #[derive(PartialEq, Eq, Clone, HeapSizeOf)]
             pub enum ContentItem {
                 /// Literal string content.
                 String(String),
@@ -949,7 +949,7 @@ pub mod longhands {
             }
 
             #[allow(non_camel_case_types)]
-            #[derive(PartialEq, Eq, Clone)]
+            #[derive(PartialEq, Eq, Clone, HeapSizeOf)]
             pub enum T {
                 normal,
                 none,
@@ -1090,7 +1090,7 @@ pub mod longhands {
             use cssparser::{ToCss, Token};
             use std::fmt;
 
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Url>);
 
             impl ToCss for T {
@@ -1138,7 +1138,7 @@ pub mod longhands {
         pub use self::computed_value::T as SpecifiedValue;
 
         pub mod computed_value {
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<(String,String)>);
         }
 
@@ -1207,7 +1207,7 @@ pub mod longhands {
         pub use self::computed_value::T as SpecifiedValue;
 
         pub mod computed_value {
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<(String,i32)>);
         }
 
@@ -1282,7 +1282,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use values::computed;
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<computed::Image>);
         }
 
@@ -1343,7 +1343,7 @@ pub mod longhands {
             pub mod computed_value {
                 use values::computed::LengthOrPercentage;
 
-                #[derive(PartialEq, Copy, Clone, Debug)]
+                #[derive(PartialEq, Copy, Clone, Debug, HeapSizeOf)]
                 pub struct T {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
@@ -1466,13 +1466,13 @@ pub mod longhands {
         pub mod computed_value {
             use values::computed::LengthOrPercentageOrAuto;
 
-            #[derive(PartialEq, Clone, Debug)]
+            #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
             pub struct ExplicitSize {
                 pub width: LengthOrPercentageOrAuto,
                 pub height: LengthOrPercentageOrAuto,
             }
 
-            #[derive(PartialEq, Clone, Debug)]
+            #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
             pub enum T {
                 Explicit(ExplicitSize),
                 Cover,
@@ -1648,7 +1648,7 @@ pub mod longhands {
             use string_cache::Atom;
             use std::fmt;
 
-            #[derive(PartialEq, Eq, Clone, Hash)]
+            #[derive(PartialEq, Eq, Clone, Hash, HeapSizeOf)]
             pub enum FontFamily {
                 FamilyName(Atom),
                 // Generic
@@ -1684,7 +1684,7 @@ pub mod longhands {
                     Ok(())
                 }
             }
-            #[derive(Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, PartialEq, Eq, Hash, HeapSizeOf)]
             pub struct T(pub Vec<FontFamily>);
         }
 
@@ -1776,7 +1776,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use std::fmt;
-            #[derive(PartialEq, Eq, Copy, Clone, Hash, Deserialize, Serialize)]
+            #[derive(PartialEq, Eq, Copy, Clone, Hash, Deserialize, Serialize, HeapSizeOf)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight} = ${weight},
@@ -1993,7 +1993,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2055,7 +2055,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2118,7 +2118,7 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        #[derive(PartialEq, Eq, Copy, Clone, Debug)]
+        #[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -2211,7 +2211,7 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        #[derive(Clone, PartialEq, Copy, Debug)]
+        #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -2319,7 +2319,7 @@ pub mod longhands {
         pub mod computed_value {
             use util::geometry::Au;
 
-            #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable)]
+            #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable, HeapSizeOf)]
             pub struct T {
                 pub horizontal: Au,
                 pub vertical: Au,
@@ -2431,7 +2431,7 @@ pub mod longhands {
             use std::fmt;
             use util::cursor::Cursor;
 
-            #[derive(Clone, PartialEq, Eq, Copy, Debug)]
+            #[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
             pub enum T {
                 AutoCursor,
                 SpecifiedCursor(Cursor),
@@ -2493,7 +2493,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2554,7 +2554,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<u32>);
         }
 
@@ -2621,7 +2621,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2767,10 +2767,10 @@ pub mod longhands {
             use values::computed;
             use std::fmt;
 
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<BoxShadow>);
 
-            #[derive(Clone, PartialEq, Copy)]
+            #[derive(Clone, PartialEq, Copy, HeapSizeOf)]
             pub struct BoxShadow {
                 pub offset_x: Au,
                 pub offset_y: Au,
@@ -2936,7 +2936,7 @@ pub mod longhands {
         pub mod computed_value {
             use util::geometry::Au;
 
-            #[derive(Clone, PartialEq, Eq, Copy, Debug)]
+            #[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
             pub struct ClipRect {
                 pub top: Au,
                 pub right: Option<Au>,
@@ -2944,7 +2944,7 @@ pub mod longhands {
                 pub left: Au,
             }
 
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<ClipRect>);
         }
 
@@ -3114,10 +3114,10 @@ pub mod longhands {
             use cssparser::Color;
             use util::geometry::Au;
 
-            #[derive(Clone, PartialEq, Debug)]
+            #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
             pub struct T(pub Vec<TextShadow>);
 
-            #[derive(Clone, PartialEq, Debug)]
+            #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
             pub struct TextShadow {
                 pub offset_x: Au,
                 pub offset_y: Au,
@@ -3517,7 +3517,7 @@ pub mod longhands {
             use values::CSSFloat;
             use values::computed;
 
-            #[derive(Clone, Copy, Debug, PartialEq)]
+            #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
             pub struct ComputedMatrix {
                 pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
                 pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
@@ -3536,7 +3536,7 @@ pub mod longhands {
                 }
             }
 
-            #[derive(Clone, Debug, PartialEq)]
+            #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
             pub enum ComputedOperation {
                 Matrix(ComputedMatrix),
                 Skew(CSSFloat, CSSFloat),
@@ -3548,7 +3548,7 @@ pub mod longhands {
                 Perspective(computed::Length),
             }
 
-            #[derive(Clone, Debug, PartialEq)]
+            #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Vec<ComputedOperation>>);
         }
 
@@ -3967,7 +3967,7 @@ pub mod longhands {
         pub mod computed_value {
             use values::computed::{Length, LengthOrPercentage};
 
-            #[derive(Clone, Copy, Debug, PartialEq)]
+            #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
             pub struct T {
                 pub horizontal: LengthOrPercentage,
                 pub vertical: LengthOrPercentage,
@@ -4115,7 +4115,7 @@ pub mod longhands {
         pub mod computed_value {
             use values::computed::LengthOrPercentage;
 
-            #[derive(Clone, Copy, Debug, PartialEq)]
+            #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
             pub struct T {
                 pub horizontal: LengthOrPercentage,
                 pub vertical: LengthOrPercentage,
@@ -4308,7 +4308,7 @@ pub mod longhands {
 
             pub use values::computed::Time as SingleComputedValue;
 
-            #[derive(Clone, PartialEq)]
+            #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<SingleComputedValue>);
 
             impl ToComputedValue for T {
@@ -4415,7 +4415,7 @@ pub mod longhands {
 
             pub use self::TransitionTimingFunction as SingleComputedValue;
 
-            #[derive(Copy, Clone, Debug, PartialEq)]
+            #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
             pub enum TransitionTimingFunction {
                 CubicBezier(Point2D<f32>, Point2D<f32>),
                 Steps(u32, StartEnd),
@@ -4446,7 +4446,7 @@ pub mod longhands {
                 }
             }
 
-            #[derive(Copy, Clone, Debug, PartialEq)]
+            #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
             pub enum StartEnd {
                 Start,
                 End,
@@ -4461,7 +4461,7 @@ pub mod longhands {
                 }
             }
 
-            #[derive(Clone, Debug, PartialEq)]
+            #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<TransitionTimingFunction>);
 
             impl ToCss for T {
@@ -4568,7 +4568,7 @@ pub mod longhands {
 
             pub use self::TransitionProperty as SingleComputedValue;
 
-            #[derive(Copy, Clone, Debug, PartialEq)]
+            #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
             pub enum TransitionProperty {
                 All,
                 BackgroundColor,
@@ -4719,7 +4719,7 @@ pub mod longhands {
                 }
             }
 
-            #[derive(Clone, Debug, PartialEq)]
+            #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<SingleComputedValue>);
 
             impl ToCss for T {
@@ -5805,7 +5805,7 @@ pub mod style_structs {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
-        #[derive(PartialEq, Clone)]
+        #[derive(PartialEq, Clone, HeapSizeOf)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
@@ -5817,7 +5817,7 @@ pub mod style_structs {
     % endfor
 }
 
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
