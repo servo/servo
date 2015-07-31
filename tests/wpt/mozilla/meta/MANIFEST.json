@@ -737,6 +737,12 @@
             "url": "/_mozilla/mozilla/window_performance.html"
           }
         ],
+        "mozilla/window_requestAnimationFrame.html": [
+          {
+            "path": "mozilla/window_requestAnimationFrame.html",
+            "url": "/_mozilla/mozilla/window_requestAnimationFrame.html"
+          }
+        ],
         "mozilla/window_setInterval.html": [
           {
             "path": "mozilla/window_setInterval.html",

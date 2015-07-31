@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>Test throwing an error inside requestAnimationFrame callback</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    var stepCalled = false;
+    function step() {
+        if (stepCalled) {
+          setTimeout(done, 0);
+        } else {
+          stepCalled = true;
+          window.requestAnimationFrame(step);
+        }
+        throw new Error();
+    }
+    window.requestAnimationFrame(step);
+    assert_equals(true, true, "rAF should not throw errors");
+    </script>
+  </body>
+</html>
