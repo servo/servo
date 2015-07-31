@@ -205,6 +205,8 @@ pub enum ScriptMsg {
     /// Requests that the script task measure its memory usage. The results are sent back via the
     /// supplied channel.
     CollectReports(ReportsChan),
+
+    ScrollPoint(PipelineId, Point2D<f32>)
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -838,6 +840,8 @@ impl ScriptTask {
                 self.handle_loads_complete(id),
             ScriptMsg::CollectReports(reports_chan) =>
                 self.collect_reports(reports_chan),
+            ScriptMsg::ScrollPoint(id, point) =>
+                self.handle_scroll_point(id, point),
         }
     }
 
@@ -1488,6 +1492,10 @@ impl ScriptTask {
                             page_info)).unwrap();
             }
         }
+    }
+
+    fn handle_scroll_point(&self, id: PipelineId, point: Point2D<f32>) {
+        self.compositor.borrow_mut().scroll_fragment_point(id, LayerId::null(), point);
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: &Element) {

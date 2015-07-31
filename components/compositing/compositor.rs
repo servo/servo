@@ -418,6 +418,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }
 
+            (Msg::MoveTo(point),
+             ShutdownState::NotShuttingDown) => {
+                self.window.set_position(point);
+            }
+
+            (Msg::ResizeTo(size),
+             ShutdownState::NotShuttingDown) => {
+                self.window.set_inner_size(size);
+            }
+
+            (Msg::GetClientWindow(send), ShutdownState::NotShuttingDown) => {
+                let rect = self.window.client_window();
+                send.send(rect).unwrap();
+            }
+
             (Msg::Status(message), ShutdownState::NotShuttingDown) => {
                 self.window.status(message);
             }
@@ -1750,4 +1765,3 @@ pub enum CompositingReason {
     /// The window has been zoomed.
     Zoom,
 }
-

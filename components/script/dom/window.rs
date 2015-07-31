@@ -7,7 +7,8 @@ use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
+use dom::bindings::codegen::Bindings::WindowBinding::{self,
+    WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions};
 use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
@@ -39,15 +40,15 @@ use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
-
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{TracingMetadata};
-use msg::compositor_msg::ScriptListener;
+use msg::compositor_msg::{ScriptListener, LayerId};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
+use num::traits::ToPrimitive;
 use profile_traits::mem;
 use string_cache::Atom;
 use util::geometry::{self, Au, MAX_RECT};
@@ -55,7 +56,7 @@ use util::{breakpoint, opts};
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
@@ -103,6 +104,8 @@ pub enum ReflowReason {
     ImageLoaded,
     RequestAnimationFrame,
 }
+
+pub type ScrollPoint = Point2D<Au>;
 
 #[dom_struct]
 pub struct Window {
@@ -197,6 +200,8 @@ pub struct Window {
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
+
+    current_scroll_position: Cell<Rect<Au>>
 }
 
 impl Window {
@@ -562,6 +567,186 @@ impl<'a> WindowMethods for &'a Window {
         // Step 5.
         CSSStyleDeclaration::new(self, element, pseudo, CSSModificationAccess::Readonly)
     }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
+    //TODO Include Scrollbar
+    fn InnerHeight(self) -> i32 {
+        let size = self.window_size.get();
+        match size {
+            Some(e) => e.visible_viewport.height.get().to_i32().unwrap_or(0),
+            None => 0
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
+    //TODO Include Scrollbar
+    fn InnerWidth(self) -> i32 {
+        let size = self.window_size.get();
+        match size {
+            Some(e) => e.visible_viewport.width.get().to_i32().unwrap_or(0),
+            None => 0
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
+    fn ScrollX(self) -> i32 {
+        self.current_scroll_position.get().origin.x.to_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
+    fn PageXOffset(self) -> i32{
+        self.ScrollX()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scrolly
+    fn ScrollY(self) -> i32 {
+        self.current_scroll_position.get().origin.y.to_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
+    fn PageYOffset(self) -> i32 {
+        self.ScrollY()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scroll
+    fn Scroll(self, options: &ScrollToOptions) {
+        // Step 1
+        let left = options.left.unwrap_or(0.0f64);
+        let top = options.top.unwrap_or(0.0f64);
+        self.Scroll_(left, top, &options.parent);
+
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scroll
+    fn Scroll_(self, x: f64, y: f64, _: &ScrollOptions) {
+        // Step 4
+        if self.window_size.get().is_none() {
+            return;
+        }
+
+        // Step 5 remove scrollbar width
+        let width = self.InnerWidth() as f64;
+        // Step 6 remove scrollbar height
+        let height = self.InnerHeight() as f64;
+
+        // Step 7 & 8
+        // TODO use overflow direction
+        let body = self.Document().GetBody();
+        let (rangedx,rangedy) = match body {
+            Some(e) => {
+                let node = NodeCast::from_ref(e.r());
+                let content_size = node.get_bounding_content_box();
+
+                let content_height = content_size.size.height.to_f64_px();
+                let content_width = content_size.size.width.to_f64_px();
+                (x.max(0.0f64).min(content_width - width),
+                y.max(0.0f64).min(content_height - height))
+            },
+            None => {
+                (x.max(0.0f64), y.max(0.0f64))
+            }
+        };
+
+        // Step 10
+        // TODO handling ongoing smoth scrolling
+        if rangedx == self.ScrollX() as f64 && rangedy == self.ScrollX() as f64 {
+            return;
+        }
+
+        // TODO Step 11
+
+        // Step 12 Perform Scroll
+        let point = Point2D::new(rangedx.to_f32().unwrap_or(0.0f32), rangedy.to_f32().unwrap_or(0.0f32));
+        self.compositor.borrow_mut().scroll_fragment_point(self.pipeline(), LayerId::null(), point)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
+    fn ScrollTo(self, options: &ScrollToOptions) {
+        self.Scroll(options);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
+    fn ScrollTo_(self, x: f64, y: f64, options: &ScrollOptions) {
+        self.Scroll_(x, y, options);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
+    fn ScrollBy(self, options: &ScrollToOptions)  {
+        // Step 1
+        let x = options.left.unwrap_or(0.0f64);
+        let y = options.top.unwrap_or(0.0f64);
+        self.ScrollBy_(x, y, &options.parent);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
+    fn ScrollBy_(self, x: f64, y: f64, options: &ScrollOptions)  {
+        // Step 3
+        let left = x + self.ScrollX() as f64;
+        // Step 4
+        let top =  y + self.ScrollY() as f64;
+
+        // Step 5
+        self.Scroll_(left, top, options);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
+    fn ResizeTo(self, x: i32, y: i32) {
+        // Step 1
+        let size = Size2D::new(x,y);
+        self.compositor.borrow_mut().resize_window(size)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
+    fn ResizeBy(self, x: i32, y: i32) {
+        let client = self.client_window();
+        // Step 1
+        self.MoveTo(x + client.size.width, y + client.size.height)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-moveto
+    fn MoveTo(self, x: i32, y: i32) {
+        // Step 1
+        let point = Point2D::new(x,y);
+        self.compositor.borrow_mut().move_window(point)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-moveby
+    fn MoveBy(self, x: i32, y: i32) {
+        let client = self.client_window();
+        // Step 1
+        self.MoveTo(x + client.origin.x, y + client.origin.y)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-screenx
+    fn ScreenX(self) -> i32 {
+        let client = self.client_window();
+        client.origin.x
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-screeny
+    fn ScreenY(self) -> i32 {
+        let client = self.client_window();
+        client.origin.y
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-outerheight
+    fn OuterHeight(self) -> i32 {
+        let client = self.client_window();
+        client.size.height
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-outerwidth
+    fn OuterWidth(self) -> i32 {
+        let client = self.client_window();
+        client.size.width
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio
+    fn DevicePixelRatio(self) -> Finite<f64> {
+        Finite::wrap(0.0f64)
+    }
+
+
 }
 
 pub trait WindowHelpers {
@@ -583,6 +768,7 @@ pub trait WindowHelpers {
     fn steal_fragment_name(self) -> Option<String>;
     fn set_window_size(self, size: WindowSizeData);
     fn window_size(self) -> Option<WindowSizeData>;
+    fn client_window(self) -> Rect<i32>;
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
     fn mem_profiler_chan(self) -> mem::ProfilerChan;
@@ -787,6 +973,20 @@ impl<'a> WindowHelpers for &'a Window {
         }
     }
 
+    fn client_window(self) -> Rect<i32> {
+        let channel = ipc::channel::<Rect<i32>>();
+        match channel {
+            Ok((send,recv)) => {
+                self.compositor.borrow_mut().client_window(send);
+                recv.recv().unwrap_or(Rect::zero())
+            }
+            Err(_) =>{
+                Rect::zero()
+            }
+        }
+
+    }
+
     fn layout(&self) -> &LayoutRPC {
         &*self.layout_rpc
     }
@@ -937,28 +1137,30 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn set_page_clip_rect_with_new_viewport(self, viewport: Rect<f32>) -> bool {
+        let rect = geometry::f32_rect_to_au_rect(viewport.clone());
+        self.current_scroll_position.set(rect);
         // We use a clipping rectangle that is five times the size of the of the viewport,
         // so that we don't collect display list items for areas too far outside the viewport,
         // but also don't trigger reflows every time the viewport changes.
         static VIEWPORT_EXPANSION: f32 = 2.0; // 2 lengths on each side plus original length is 5 total.
-       let proposed_clip_rect = geometry::f32_rect_to_au_rect(
-           viewport.inflate(viewport.size.width * VIEWPORT_EXPANSION,
-           viewport.size.height * VIEWPORT_EXPANSION));
-       let clip_rect = self.page_clip_rect.get();
-       if proposed_clip_rect == clip_rect {
-           return false;
-       }
+        let proposed_clip_rect = geometry::f32_rect_to_au_rect(
+            viewport.inflate(viewport.size.width * VIEWPORT_EXPANSION,
+            viewport.size.height * VIEWPORT_EXPANSION));
+        let clip_rect = self.page_clip_rect.get();
+        if proposed_clip_rect == clip_rect {
+            return false;
+        }
 
-       let had_clip_rect = clip_rect != MAX_RECT;
-       if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
-           return false;
-       }
+        let had_clip_rect = clip_rect != MAX_RECT;
+        if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
+            return false;
+        }
 
-       self.page_clip_rect.set(proposed_clip_rect);
+        self.page_clip_rect.set(proposed_clip_rect);
 
-       // If we didn't have a clip rect, the previous display doesn't need rebuilding
-       // because it was built for infinite clip (MAX_RECT).
-       had_clip_rect
+        // If we didn't have a clip rect, the previous display doesn't need rebuilding
+        // because it was built for infinite clip (MAX_RECT).
+        had_clip_rect
     }
 
     fn set_devtools_wants_updates(self, value: bool) {
@@ -1091,6 +1293,7 @@ impl Window {
             layout_rpc: layout_rpc,
             layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
+            current_scroll_position: Cell::new(Rect::zero()),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
 

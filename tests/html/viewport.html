@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test innerHeight</title>
+    <script type="text/javascript">
+      function show(){
+        console.log("innerHeight: "+ window.innerHeight);
+        console.log("innerWidth: "+ window.innerWidth);
+        console.log("ScrollY: "+ window.scrollY);
+        console.log("ScrollX: "+ window.scrollX);
+        console.log("outerHeight: "+ window.outerHeight);
+        console.log("outerWidth: "+ window.outerWidth);
+        console.log("screenY: "+ window.screenY);
+        console.log("screenX: "+ window.screenX);
+      }
+      function test_scroll(){
+        window.scroll(0,100);
+      }
+    </script>
+  </head>
+  <body>
+    <button onclick="show();">Test</button>
+    <div style="background-color: #b0c4de; height:1000px; width:800px;"/>
+    <button onclick="test_scroll();">Scroll</button>
+    <button onclick="window.moveTo(100,10);">Move</button>
+  </body>
+</html>

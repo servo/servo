@@ -19,6 +19,8 @@ use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
+use euclid::point::Point2D;
+use euclid::rect::Rect;
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
@@ -144,16 +146,16 @@ impl Window {
                 Cursor::TextCursor => msg_send![class("NSCursor"), IBeamCursor],
                 Cursor::GrabCursor | Cursor::AllScrollCursor =>
                     msg_send![class("NSCursor"), openHandCursor],
-                Cursor::NoDropCursor | Cursor::NotAllowedCursor => 
+                Cursor::NoDropCursor | Cursor::NotAllowedCursor =>
                     msg_send![class("NSCursor"), operationNotAllowedCursor],
                 Cursor::PointerCursor => msg_send![class("NSCursor"), pointingHandCursor],
                 Cursor::SResizeCursor => msg_send![class("NSCursor"), resizeDownCursor],
                 Cursor::WResizeCursor => msg_send![class("NSCursor"), resizeLeftCursor],
-                Cursor::EwResizeCursor | Cursor::ColResizeCursor => 
+                Cursor::EwResizeCursor | Cursor::ColResizeCursor =>
                     msg_send![class("NSCursor"), resizeLeftRightCursor],
                 Cursor::EResizeCursor => msg_send![class("NSCursor"), resizeRightCursor],
                 Cursor::NResizeCursor => msg_send![class("NSCursor"), resizeUpCursor],
-                Cursor::NsResizeCursor | Cursor::RowResizeCursor => 
+                Cursor::NsResizeCursor | Cursor::RowResizeCursor =>
                     msg_send![class("NSCursor"), resizeUpDownCursor],
                 Cursor::VerticalTextCursor => msg_send![class("NSCursor"), IBeamCursorForVerticalLayout],
                 _ => msg_send![class("NSCursor"), arrowCursor],
@@ -218,6 +220,18 @@ impl WindowMethods for Window {
                 Size2D::typed(rect.width as f32, rect.height as f32)
             }
         }
+    }
+
+    fn client_window(&self) -> Rect<i32> {
+        Rect::zero()
+    }
+
+    fn set_inner_size(&self, size: Size2D<i32>) {
+
+    }
+
+    fn set_position(&self, point: Point2D<i32>) {
+
     }
 
     fn present(&self) {

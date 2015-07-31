@@ -109,6 +109,9 @@ impl CompositorEventListener for NullCompositor {
             Msg::ViewportConstrained(..) => {}
             Msg::CreatePng(..) |
             Msg::PaintTaskExited(..) |
+            Msg::GetClientWindow(..) |
+            Msg::MoveTo(..) |
+            Msg::ResizeTo(..) |
             Msg::IsReadyToSaveImageReply(..) => {}
             Msg::NewFavicon(..) => {}
             Msg::HeadParsed => {}
