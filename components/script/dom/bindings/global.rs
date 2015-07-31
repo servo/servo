@@ -122,6 +122,14 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
+    /// Get the current worker id.
+    pub fn get_worker_id(&self) -> Option<WorkerId> {
+        match *self {
+            GlobalRef::Window(ref window) => None,
+            GlobalRef::Worker(ref worker) => worker.get_worker_id(),
+        }
+    }
+
     /// Get next worker id.
     pub fn get_next_worker_id(&self) -> WorkerId {
         match *self {

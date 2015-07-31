@@ -103,12 +103,12 @@ fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
             let pipelineId = window_ref.pipeline();
             console.global.root().r().as_window().devtools_chan().as_ref().map(|chan| {
                 chan.send(ScriptToDevtoolsControlMsg::SendConsoleMessage(
-                    pipelineId, console_message.clone())).unwrap();
+                    pipelineId, console_message.clone(), None)).unwrap();
             });
         },
 
-        GlobalRef::Worker(_) => {
-            // TODO: support worker console logs
+        GlobalRef::Worker(worker_ref) => {
+
         }
     }
 }
