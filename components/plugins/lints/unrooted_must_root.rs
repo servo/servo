@@ -121,9 +121,9 @@ impl LintPass for UnrootedPass {
                 block: &ast::Block, _span: codemap::Span, id: ast::NodeId) {
         match kind {
             visit::FkItemFn(i, _, _, _, _, _) |
-            visit::FkMethod(i, _, _) if i.as_str() == "new"
-                                        || i.as_str() == "new_inherited"
-                                        || i.as_str() == "new_initialized" => {
+            visit::FkMethod(i, _, _) if i.name.as_str() == "new"
+                                        || i.name.as_str() == "new_inherited"
+                                        || i.name.as_str() == "new_initialized" => {
                 self.in_new_function = true;
                 return;
             },
@@ -150,6 +150,25 @@ impl LintPass for UnrootedPass {
                 }
             }
             _ => () // fn is `unsafe`
+        }
+    }
+
+    /// Trait casts from #[must_root] types are not allowed
+    fn check_expr(&mut self, cx: &Context, expr: &ast::Expr) {
+        fn require_rooted(cx: &Context, in_new_function: bool, subexpr: &ast::Expr) {
+            let ty = cx.tcx.expr_ty(&*subexpr);
+            if is_unrooted_ty(cx, ty, in_new_function) {
+                cx.span_lint(UNROOTED_MUST_ROOT,
+                             subexpr.span,
+                             &format!("Expression of type {:?} must be rooted", ty))
+            }
+        };
+
+        match expr.node {
+            ast::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            _ => {
+                // TODO(pcwalton): Check generics with a whitelist of allowed generics.
+            }
         }
     }
 

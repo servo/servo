@@ -64,9 +64,12 @@ fn test_heap_size() {
     assert_eq!(x.heap_size_of_children(), 8);
 
     // An ascii string with 16 chars is 16 bytes in UTF-8.
+    assert_eq!(String::from("0123456789abcdef").heap_size_of_children(), 16);
+
+    // … but RawVec::reserve gives twice the requested capacity.
     let mut x = String::new();
     x.push_str("0123456789abcdef");
-    assert_eq!(x.heap_size_of_children(), 16);
+    assert_eq!(x.heap_size_of_children(), 32);
 
     // Not on the heap.
     let x: Option<i32> = None;

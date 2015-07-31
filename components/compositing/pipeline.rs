@@ -123,7 +123,7 @@ impl Pipeline {
                     new_pipeline_id: id,
                     subpage_id: subpage_id,
                     load_data: load_data.clone(),
-                    paint_chan: box() (paint_chan.clone()) as Box<Any + Send>,
+                    paint_chan: box paint_chan.clone() as Box<Any + Send>,
                     failure: failure,
                     pipeline_port: mem::replace(&mut pipeline_port, None).unwrap(),
                     layout_shutdown_chan: layout_shutdown_chan.clone(),

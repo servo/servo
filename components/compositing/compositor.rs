@@ -420,6 +420,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }
 
+            (Msg::Status(message), ShutdownState::NotShuttingDown) => {
+                self.window.status(message);
+            }
+
             (Msg::LoadStart(back, forward), ShutdownState::NotShuttingDown) => {
                 self.window.load_start(back, forward);
             }
@@ -1320,7 +1324,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // have not requested a paint of the current epoch.
         // If a layer has sent a request for the current epoch, but it hasn't
         // arrived yet then this layer is waiting for a paint message.
-        if layer_data.requested_epoch == current_epoch && layer_data.painted_epoch != current_epoch {
+        //
+        // Also don't check the root layer, because the paint task won't paint
+        // anything for it after first layout.
+        if layer_data.id != LayerId::null() &&
+                layer_data.requested_epoch == current_epoch &&
+                layer_data.painted_epoch != current_epoch {
             return true;
         }
 

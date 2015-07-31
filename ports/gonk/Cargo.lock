@@ -9,7 +9,7 @@ dependencies = [
  "errno 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout 0.0.1",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -35,13 +35,13 @@ dependencies = [
 
 [[package]]
 name = "aster"
-version = "0.3.3"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#5d2baca5fbbe3924a76b57b4b98dbbefd62cea99"
+source = "git+https://github.com/servo/rust-azure#53ac8495ca2618a4e795c402ab24ec96d5d6f596"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -59,11 +59,6 @@ dependencies = [
 
 [[package]]
 name = "bitflags"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "bitflags"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
@@ -78,10 +73,10 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
- "cssparser 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -95,7 +90,7 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
- "cssparser 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
@@ -110,7 +105,7 @@ name = "cgl"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -145,7 +140,7 @@ dependencies = [
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout_traits 0.0.1",
@@ -170,7 +165,7 @@ name = "cookie"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -205,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -220,11 +215,19 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "debug_unreachable"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "unreachable 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "devtools"
 version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -241,7 +244,7 @@ name = "devtools_traits"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "msg 0.0.1",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -443,7 +446,7 @@ dependencies = [
  "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -477,7 +480,7 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.1.4"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -523,8 +526,8 @@ dependencies = [
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_macros 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "tendril 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -545,7 +548,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "hyper"
-version = "0.6.4"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cookie 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -554,7 +557,7 @@ dependencies = [
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "solicit 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -573,7 +576,7 @@ dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -623,14 +626,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#251c48b7a3c0d563acd96397679c114add2c4fd7"
+source = "git+https://github.com/servo/rust-layers#e2283b8ec3d3eb2e10afa8a318deda71dd59d11a"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "io-surface 0.1.0 (git+https://github.com/servo/io-surface-rs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -649,7 +652,7 @@ dependencies = [
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "clock_ticks 0.0.6 (git+https://github.com/tomaka/clock_ticks)",
- "cssparser 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -670,8 +673,8 @@ dependencies = [
  "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "unicode-bidi 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -770,7 +773,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "io-surface 0.1.0 (git+https://github.com/servo/io-surface-rs)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
@@ -792,11 +795,11 @@ dependencies = [
  "devtools_traits 0.0.1",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "net_traits 0.0.1",
- "openssl 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "regex 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex_macros 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -812,7 +815,7 @@ name = "net_traits"
 version = "0.0.1"
 dependencies = [
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -850,7 +853,7 @@ dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -862,18 +865,18 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.6.2"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl-sys 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl-sys 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "openssl-sys"
-version = "0.6.2"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gcc 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -888,6 +891,15 @@ version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug-builders 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "phf_codegen"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "phf_generator 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_shared 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -986,7 +998,7 @@ name = "quasi_codegen"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1045,13 +1057,13 @@ dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
- "cssparser 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1068,8 +1080,8 @@ dependencies = [
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
  "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "tendril 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1100,16 +1112,16 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-selectors#625734e1e8d70c012672b248adca302d0276fe08"
+source = "git+https://github.com/servo/rust-selectors#5d5c2ec6c9e703cb3d231b92fc962b330d2f67d5"
 dependencies = [
- "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quicksort 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1125,7 +1137,7 @@ name = "serde_codegen"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi_macros 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1166,14 +1178,14 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#4569e30e308f33f45ee773e73393d769feaf8494"
+source = "git+https://github.com/servo/skia#6eddb1b798c8f1fa9182a4ebfe38f2a84c7ef418"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
- "gleam 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "io-surface 0.1.0 (git+https://github.com/servo/io-surface-rs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1204,39 +1216,41 @@ dependencies = [
 
 [[package]]
 name = "string_cache"
-version = "0.1.6"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_macros 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_shared 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_shared 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "string_cache_plugin"
-version = "0.1.2"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_shared 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_shared 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "string_cache_shared"
-version = "0.1.3"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "debug_unreachable 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_codegen 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "style"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1250,8 +1264,8 @@ dependencies = [
  "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1319,6 +1333,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "unreachable"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "void 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "url"
 version = "0.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1335,7 +1357,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1361,11 +1383,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "void"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "webdriver"
 version = "0.2.0"
 source = "git+https://github.com/jgraham/webdriver-rust.git#caf906e67d818f2db5d4f31b08abb0fee561ec43"
 dependencies = [
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1394,8 +1421,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",

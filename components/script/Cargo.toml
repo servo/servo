@@ -80,7 +80,7 @@ websocket = "0.12"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = "0.2"
-string_cache = "0.1"
+string_cache = { version = "0.1.9", features = ["unstable"] }
 string_cache_plugin = "0.1"
 euclid = "0.1"
 tendril = "0.1.1"

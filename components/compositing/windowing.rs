@@ -107,6 +107,8 @@ pub trait WindowMethods {
     fn set_page_title(&self, title: Option<String>);
     /// Sets the load data for the current page.
     fn set_page_url(&self, url: Url);
+    /// Called when the browser chrome should display a status message.
+    fn status(&self, Option<String>);
     /// Called when the browser has started loading a frame.
     fn load_start(&self, back: bool, forward: bool);
     /// Called when the browser is done loading a frame.

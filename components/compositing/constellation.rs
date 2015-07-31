@@ -514,6 +514,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got create-WebGL-paint-task message");
                 self.handle_create_webgl_paint_task_msg(&size, attributes, sender)
             }
+            ConstellationMsg::NodeStatus(message) => {
+                debug!("constellation got NodeStatus message");
+                self.compositor_proxy.send(CompositorMsg::Status(message));
+            }
         }
         true
     }

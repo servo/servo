@@ -210,6 +210,10 @@ impl Flow for TableFlow {
         &self.block_flow
     }
 
+    fn mark_as_root(&mut self) {
+        self.block_flow.mark_as_root();
+    }
+
     fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
         &mut self.column_intrinsic_inline_sizes
     }

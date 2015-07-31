@@ -1,6 +1,3 @@
 [target.arm-linux-androideabi]
 ar = "arm-linux-androideabi-ar"
 linker = "./fake-ld.sh"
-
-[target.arm-linux-androideabi.openssl]
-rustc-flags = "-l crypto -l ssl"

@@ -199,6 +199,8 @@ pub enum Msg {
     ReturnUnusedNativeSurfaces(Vec<NativeSurface>),
     /// Collect memory reports and send them back to the given mem::ReportsChan.
     CollectMemoryReports(mem::ReportsChan),
+    /// A status message to be displayed by the browser chrome.
+    Status(Option<String>),
 }
 
 impl Debug for Msg {
@@ -229,6 +231,7 @@ impl Debug for Msg {
             Msg::HeadParsed => write!(f, "HeadParsed"),
             Msg::ReturnUnusedNativeSurfaces(..) => write!(f, "ReturnUnusedNativeSurfaces"),
             Msg::CollectMemoryReports(..) => write!(f, "CollectMemoryReports"),
+            Msg::Status(..) => write!(f, "Status"),
         }
     }
 }

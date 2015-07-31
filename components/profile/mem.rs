@@ -313,14 +313,15 @@ impl ReportsForest {
 
     // Insert the path and size into the forest, adding any trees and nodes as necessary.
     fn insert(&mut self, path: &[String], size: usize) {
+        let (head, tail) = path.split_first().unwrap();
         // Get the right tree, creating it if necessary.
-        if !self.trees.contains_key(&path[0]) {
-            self.trees.insert(path[0].clone(), ReportsTree::new(path[0].clone()));
+        if !self.trees.contains_key(head) {
+            self.trees.insert(head.clone(), ReportsTree::new(head.clone()));
         }
-        let t = self.trees.get_mut(&path[0]).unwrap();
+        let t = self.trees.get_mut(head).unwrap();
 
-        // Use tail() because the 0th path segment was used to find the right tree in the forest.
-        t.insert(path.tail(), size);
+        // Use tail because the 0th path segment was used to find the right tree in the forest.
+        t.insert(tail, size);
     }
 
     fn print(&mut self) {
@@ -500,6 +501,13 @@ mod system_reporter {
     );
 
     #[cfg(target_os="linux")]
+    fn page_size() -> usize {
+        unsafe {
+            ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
+        }
+    }
+
+    #[cfg(target_os="linux")]
     fn get_proc_self_statm_field(field: usize) -> Option<usize> {
         use std::fs::File;
         use std::io::Read;
@@ -509,7 +517,7 @@ mod system_reporter {
         option_try!(f.read_to_string(&mut contents).ok());
         let s = option_try!(contents.split_whitespace().nth(field));
         let npages = option_try!(s.parse::<usize>().ok());
-        Some(npages * ::std::env::page_size())
+        Some(npages * page_size())
     }
 
     #[cfg(target_os="linux")]

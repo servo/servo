@@ -22,7 +22,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_fr
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use std::ascii::OwnedAsciiExt;
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use util::str::DOMString;
 use std::cell::Cell;
@@ -87,7 +87,8 @@ impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(self) -> DOMString {
         let elem = ElementCast::from_ref(self);
-        let ty = elem.get_string_attribute(&atom!("type")).into_ascii_lowercase();
+        let mut ty = elem.get_string_attribute(&atom!("type"));
+        ty.make_ascii_lowercase();
         // https://html.spec.whatwg.org/multipage/#attr-button-type
         match &*ty {
             "reset" | "button" | "menu" => ty,

@@ -273,6 +273,14 @@ impl Flow for TableWrapperFlow {
         &mut self.block_flow
     }
 
+    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+        &self.block_flow
+    }
+
+    fn mark_as_root(&mut self) {
+        self.block_flow.mark_as_root();
+    }
+
     fn bubble_inline_sizes(&mut self) {
         // Get the intrinsic column inline-sizes info from the table flow.
         for kid in self.block_flow.base.child_iter() {

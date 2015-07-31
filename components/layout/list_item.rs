@@ -74,6 +74,10 @@ impl Flow for ListItemFlow {
         &mut self.block_flow
     }
 
+    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+        &self.block_flow
+    }
+
     fn bubble_inline_sizes(&mut self) {
         // The marker contributes no intrinsic inline-size, so…
         self.block_flow.bubble_inline_sizes()

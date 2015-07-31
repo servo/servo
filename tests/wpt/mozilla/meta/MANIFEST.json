@@ -63,18 +63,6 @@
             "url": "/_mozilla/css/absolute_hypothetical_float.html"
           }
         ],
-        "css/empty_pseudo_selector.html": [
-          {
-            "path": "css/empty_pseudo_selector.html",
-            "references": [
-              [
-                "/_mozilla/css/empty_pseudo_selector_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/empty_pseudo_selector.html"
-          }
-        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -453,12 +441,6 @@
           {
             "path": "mozilla/element_attributes.html",
             "url": "/_mozilla/mozilla/element_attributes.html"
-          }
-        ],
-        "mozilla/element_classList.html": [
-          {
-            "path": "mozilla/element_classList.html",
-            "url": "/_mozilla/mozilla/element_classList.html"
           }
         ],
         "mozilla/element_className.html": [
