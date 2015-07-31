@@ -119,7 +119,7 @@ partial interface Window {
   // browsing context
   //void moveTo(double x, double y);
   //void moveBy(double x, double y);
-  void resizeTo(double x, double y);
+  //void resizeTo(double x, double y);
   //void resizeBy(double x, double y);
 
   // viewport

@@ -97,6 +97,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::AssignPaintedBuffers(..) |
             Msg::ChangeRunningAnimationsState(..) |
             Msg::ScrollFragmentPoint(..) |
+            Msg::ScrollDelta(..) |
             Msg::Status(..) |
             Msg::LoadStart(..) |
             Msg::LoadComplete(..) |

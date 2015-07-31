@@ -7,7 +7,7 @@ use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions};
+use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions, ScrollBehavior};
 use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
@@ -626,20 +626,22 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
     fn Scroll_(self, x: f64, y: f64, options: &ScrollOptions) {
+        println!("test");
         // Step 4
-        if self.window_size.get.is_none() {
+        if self.window_size.get().is_none() {
             return;
         }
 
-        // Step 5
-        //TODO Exclude Scrollbar
-        let width = self.InnerWidth();
-        // Step 6
-        //TODO Exclude Scrollbar
-        let height = self.InnerHeight();
+        let width = (*self.ScrollX());
+        let height = (*self.ScrollY());
 
+        let offsetx = width - x;
+        let offsety = height - y;
 
-
+        println!("offsetx: {}, offsety: {}", offsetx, offsety);
+        let delta = Point2D::new(offsetx.to_f32().unwrap_or(0.0f32), offsety.to_f32().unwrap_or(0.0f32));
+        //let script_chan = self.script_chan.clone();
+        //script_chan.send(ScriptMsg::ScrollDelta(self.pipeline(), delta)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
@@ -671,9 +673,9 @@ impl<'a> WindowMethods for &'a Window {
         self.Scroll_(left, top, options);
     }
 
-    fn ResizeTo(self, x: Finite<f64>, y: Finite<f64>) {
-        // Step 1
-    }
+    //fn ResizeTo(self, x: Finite<f64>, y: Finite<f64>) {
+    //    // Step 1
+    //}
 
     // https://drafts.csswg.org/cssom-view/#dom-window-screenx
     //fn ScreenX(self) -> Finite<f64> {

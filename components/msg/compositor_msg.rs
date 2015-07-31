@@ -119,6 +119,7 @@ pub trait PaintListener {
 #[derive(Deserialize, Serialize)]
 pub enum ScriptToCompositorMsg {
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
+    ScrollDelta(PipelineId, LayerId, Point2D<f32>),
     SetTitle(PipelineId, Option<String>),
     SendKeyEvent(Key, KeyState, KeyModifiers),
     Exit,
@@ -143,6 +144,11 @@ impl ScriptListener {
             .unwrap()
     }
 
+    pub fn scroll_delta(&mut self, id: PipelineId, layer: LayerId, delta: Point2D<f32>) {
+        self.0.send(ScriptToCompositorMsg::ScrollDelta(id, layer, delta))
+            .unwrap()
+    }
+
     pub fn close(&mut self) {
         self.0.send(ScriptToCompositorMsg::Exit).unwrap()
     }
@@ -159,4 +165,3 @@ impl ScriptListener {
         self.0.send(ScriptToCompositorMsg::SendKeyEvent(key, state, modifiers)).unwrap()
     }
 }
-

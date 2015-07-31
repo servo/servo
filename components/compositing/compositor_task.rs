@@ -83,6 +83,10 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
             ScriptToCompositorMsg::SendKeyEvent(key, key_state, key_modifiers) => {
                 compositor_proxy.send(Msg::KeyEvent(key, key_state, key_modifiers))
             }
+
+            ScriptToCompositorMsg::ScrollDelta(pipeline_id, layer_id, delta) => {
+
+            }
         }
     }
 }
@@ -160,6 +164,9 @@ pub enum Msg {
     SetLayerRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
+
+
+    ScrollDelta(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor assign the painted buffers to the given layers.
     AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>, FrameTreeId),
     /// Alerts the compositor that the current page has changed its title.
@@ -220,6 +227,7 @@ impl Debug for Msg {
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
             Msg::LoadStart(..) => write!(f, "LoadStart"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+            Msg::ScrollDelta(..) => write!(f, "ScrollDelta"),
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),

@@ -23,6 +23,7 @@ use document_loader::{LoadType, DocumentLoader, NotifierData};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::WindowBinding::ScrollOptions;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
@@ -204,6 +205,8 @@ pub enum ScriptMsg {
     /// Requests that the script task measure its memory usage. The results are sent back via the
     /// supplied channel.
     CollectReports(ReportsChan),
+
+    ScrollDelta(PipelineId, Point2D<f32>)
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -836,7 +839,13 @@ impl ScriptTask {
                 self.handle_loads_complete(id),
             ScriptMsg::CollectReports(reports_chan) =>
                 self.collect_reports(reports_chan),
+            ScriptMsg::ScrollDelta(id, delta) =>
+                self.handle_scroll_delta(id, delta),
         }
+    }
+
+    fn handle_scroll_delta(&self, id: PipelineId, delta: Point2D<f32>) {
+        self.compositor.borrow_mut().scroll_delta(id, LayerId::null(), delta);
     }
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {

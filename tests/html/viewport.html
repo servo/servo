@@ -9,10 +9,14 @@
         console.log("ScrollY: "+ window.scrollY);
         console.log("ScrollX: "+ window.scrollX);
       }
+      function scroll(){
+        window.scroll(0,0);
+      }
     </script>
   </head>
   <body>
     <button onclick="show();">test</button>
-    <div style="background-color: #b0c4de; height:600px; width:800px;"/>
+    <div style="background-color: #b0c4de; height:1000px; width:800px;"/>
+    <button onclick="scroll();">test</button>
   </body>
 </html>

@@ -420,6 +420,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }
 
+            (Msg::ScrollDelta(pipeline_id, layer_id, delta),
+             ShutdownState::NotShuttingDown) => {
+                self.scroll_delta(pipeline_id, layer_id, delta);
+            }
+
             (Msg::Status(message), ShutdownState::NotShuttingDown) => {
                 self.window.status(message);
             }
@@ -875,6 +880,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         } else {
             self.fragment_point = Some(point)
         }
+    }
+
+    fn scroll_delta(&mut self, id: PipelineId, layer: LayerId, delta: Point2D<f32>) {
+        println!("test");
     }
 
     fn handle_window_message(&mut self, event: WindowEvent) {
@@ -1752,4 +1761,3 @@ pub enum CompositingReason {
     /// The window has been zoomed.
     Zoom,
 }
-
