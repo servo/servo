@@ -11,7 +11,7 @@
 
 use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptChan;
-use net_traits::{AsyncResponseTarget, AsyncResponseListener, ResponseAction, Metadata};
+use net_traits::{AsyncResponseListener, ResponseAction, Metadata};
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -144,7 +144,7 @@ impl CORSRequest {
             let mut context = listener.context.lock();
             let context = context.as_mut().unwrap();
             *context.response.borrow_mut() = Some(response);
-            listener.invoke_with_listener(ResponseAction::ResponseComplete(Ok(())));
+            listener.notify(ResponseAction::ResponseComplete(Ok(())));
         });
     }
 

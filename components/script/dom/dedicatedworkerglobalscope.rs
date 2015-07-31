@@ -181,8 +181,8 @@ impl DedicatedWorkerGlobalScope {
             let serialized_url = url.serialize();
             let parent_sender_for_reporter = parent_sender.clone();
             let global = DedicatedWorkerGlobalScope::new(
-                url, id, mem_profiler_chan.clone(), devtools_chan, runtime.clone(), resource_task,
-                constellation_chan, parent_sender, own_sender, receiver);
+                url, id, mem_profiler_chan.clone(), devtools_chan, runtime.clone(),
+                resource_task, constellation_chan, parent_sender, own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let reporter_name = format!("worker-reporter-{}", random::<u64>());

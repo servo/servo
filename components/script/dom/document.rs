@@ -83,6 +83,7 @@ use layout_interface::{ReflowGoal, ReflowQueryType};
 
 use euclid::point::Point2D;
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
+use ipc_channel::ipc;
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
 use url::Url;
@@ -283,7 +284,7 @@ pub trait DocumentHelpers<'a> {
     /// https://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self);
     fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
-    fn load_async(self, load: LoadType, listener: Box<AsyncResponseTarget + Send>);
+    fn load_async(self, load: LoadType, listener: AsyncResponseTarget);
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
     fn finish_load(self, load: LoadType);
     fn set_current_parser(self, script: Option<&ServoHTMLParser>);
@@ -968,7 +969,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         loader.prepare_async_load(load)
     }
 
-    fn load_async(self, load: LoadType, listener: Box<AsyncResponseTarget + Send>) {
+    fn load_async(self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
         loader.load_async(load, listener)
     }
@@ -1720,7 +1721,7 @@ impl<'a> DocumentMethods for &'a Document {
             return Err(Security);
         }
         let window = self.window.root();
-        let (tx, rx) = channel();
+        let (tx, rx) = ipc::channel().unwrap();
         let _ = window.r().resource_task().send(GetCookiesForUrl(url, tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.unwrap_or("".to_owned()))

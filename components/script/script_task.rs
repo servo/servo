@@ -67,8 +67,8 @@ use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, W
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::WebDriverScriptCommand;
-use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
+use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
@@ -287,8 +287,9 @@ pub struct ScriptTask {
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A handle to the image cache task.
     image_cache_task: ImageCacheTask,
-    /// A handle to the resource task.
-    resource_task: ResourceTask,
+    /// A handle to the resource task. This is an `Arc` to avoid running out of file descriptors if
+    /// there are many iframes.
+    resource_task: Arc<ResourceTask>,
     /// A handle to the storage task.
     storage_task: StorageTask,
 
@@ -418,7 +419,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               control_chan,
                                               control_port,
                                               constellation_chan,
-                                              resource_task,
+                                              Arc::new(resource_task),
                                               storage_task,
                                               image_cache_task,
                                               mem_profiler_chan.clone(),
@@ -504,7 +505,7 @@ impl ScriptTask {
                control_chan: ScriptControlChan,
                control_port: Receiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
-               resource_task: ResourceTask,
+               resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
                image_cache_task: ImageCacheTask,
                mem_profiler_chan: mem::ProfilerChan,
@@ -1415,7 +1416,9 @@ impl ScriptTask {
         });
 
         let content_type = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => Some("text/plain".to_owned()),
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
+                Some("text/plain".to_owned())
+            }
             _ => None
         };
 
@@ -1680,9 +1683,16 @@ impl ScriptTask {
 
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
                                                              load_data.url.clone())));
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan.clone(),
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify(message.to().unwrap());
+        });
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
         };
 
         if load_data.url.scheme == "javascript" {
@@ -1697,7 +1707,7 @@ impl ScriptTask {
             data: load_data.data,
             cors: None,
             pipeline_id: Some(id),
-        }, LoadConsumer::Listener(listener))).unwrap();
+        }, LoadConsumer::Listener(response_target))).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }

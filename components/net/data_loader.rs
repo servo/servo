@@ -34,15 +34,16 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
         _ => panic!("Expected a non-relative scheme URL.")
     };
     match url.query {
-        Some(query) => {
+        Some(ref query) => {
             scheme_data.push_str("?");
-            scheme_data.push_str(&query);
+            scheme_data.push_str(query);
         },
         None => ()
     }
     let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
     if parts.len() != 2 {
-        start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
+        start_sending(start_chan,
+                      metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
         return;
     }
 

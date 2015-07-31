@@ -9,6 +9,7 @@ use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 use hsts::{HSTSList, secure_url};
 
+use ipc_channel::ipc::{self, IpcSender};
 use log;
 use std::collections::HashSet;
 use file_loader;
@@ -36,7 +37,7 @@ use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>,
+pub fn factory(cookies_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
@@ -86,7 +87,7 @@ fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
 fn load(mut load_data: LoadData,
         start_chan: LoadConsumer,
         classifier: Arc<MIMEClassifier>,
-        cookies_chan: Sender<ControlMsg>,
+        cookies_chan: IpcSender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
@@ -153,6 +154,7 @@ reason: \"certificate verify failed\" }]))";
             Request::with_connector(load_data.method.clone(), url.clone(),
                 &HttpsConnector::new(Openssl { context: Arc::new(context) }))
         };
+
         let mut req = match req {
             Ok(req) => req,
             Err(HttpError::Io(ref io_error)) if (
@@ -201,8 +203,10 @@ reason: \"certificate verify failed\" }]))";
             req.headers_mut().set(accept);
         }
 
-        let (tx, rx) = channel();
-        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP)).unwrap();
+        let (tx, rx) = ipc::channel().unwrap();
+        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
+                                                       tx,
+                                                       CookieSource::HTTP)).unwrap();
         if let Some(cookie_list) = rx.recv().unwrap() {
             let mut v = Vec::new();
             v.push(cookie_list.into_bytes());

@@ -116,7 +116,7 @@ impl<'a> GlobalRef<'a> {
                 let doc = window.Document();
                 let doc = doc.r();
                 let loader = doc.loader();
-                loader.resource_task.clone()
+                (*loader.resource_task).clone()
             }
             GlobalRef::Worker(ref worker) => worker.resource_task().clone(),
         }
