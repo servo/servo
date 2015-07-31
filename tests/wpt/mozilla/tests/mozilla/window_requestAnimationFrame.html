@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    function step() {
+        setTimeout(t.done, 0);
+        throw new Error();
+    }
+    var t = async_test(function() {
+        window.requestAnimationFrame(step);
+        assert_reached("rAF should not throw errors");
+    });
+    </script>
+  </body>
+</html>
