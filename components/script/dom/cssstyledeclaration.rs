@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::ToCss;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -15,10 +16,11 @@ use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::cell::Ref;
 use std::slice;
+use std::sync::Arc;
 use string_cache::Atom;
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, Shorthand};
-use style::properties::{is_supported_property, parse_one_declaration};
+use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
 use style::selector_impl::PseudoElement;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -340,6 +342,46 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         rval
     }
 
-    // https://drafts.csswg.org/cssom/#cssstyledeclaration
+    // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
+    fn CssText(&self) -> DOMString {
+        let elem = self.owner.upcast::<Element>();
+        let style_attribute = elem.style_attribute().borrow();
+
+        if let Some(declarations) = style_attribute.as_ref() {
+            DOMString::from(declarations.to_css_string())
+        } else {
+            DOMString::new()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
+    fn SetCssText(&self, value: DOMString) -> ErrorResult {
+        let window = window_from_node(self.owner.upcast::<Node>());
+        let element = self.owner.upcast::<Element>();
+
+        // Step 1
+        if self.readonly {
+            return Err(Error::NoModificationAllowed);
+        }
+
+        // Step 2
+        element.update_inline_style(vec![], StylePriority::Normal);
+        element.update_inline_style(vec![], StylePriority::Important);
+
+        // Step 3
+        let decl_block = parse_style_attribute(&value, &window.get_url(), window.css_error_reporter(),
+                                               ParserContextExtraData::default());
+        if decl_block.normal.len() == 0 && decl_block.important.len() == 0 {
+            return Ok(());
+        }
+        let normal_declarations = Arc::try_unwrap(decl_block.normal)
+                                       .expect("Unwrapping normal CssText declarations failed.");
+        let important_declarations = Arc::try_unwrap(decl_block.important)
+                                          .expect("Unwrapping important CssText declarations failed.");
+        element.update_inline_style(normal_declarations, StylePriority::Normal);
+        element.update_inline_style(important_declarations, StylePriority::Important);
+        Ok(())
+    }
+
     css_properties_accessors!(css_properties);
 }
