@@ -46,7 +46,7 @@ use url::Url;
 use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
 use util::range::*;
-use util::str::is_whitespace;
+use util::str::{is_whitespace, slice_chars};
 use util;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -204,8 +204,8 @@ impl fmt::Debug for SpecificFragmentInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             SpecificFragmentInfo::ScannedText(ref info) => {
-                write!(f, " \"{}\"", info.run.text.slice_chars(info.range.begin().get() as usize,
-                                                               info.range.end().get() as usize))
+                write!(f, " \"{}\"", slice_chars(&*info.run.text, info.range.begin().get() as usize,
+                                                 info.range.end().get() as usize))
             }
             _ => Ok(())
         }
@@ -2094,7 +2094,8 @@ impl Fragment {
 
         let mut leading_whitespace_character_count = 0;
         {
-            let text = scanned_text_fragment_info.run.text.slice_chars(
+            let text = slice_chars(
+                &*scanned_text_fragment_info.run.text,
                 scanned_text_fragment_info.range.begin().to_usize(),
                 scanned_text_fragment_info.range.end().to_usize());
             for character in text.chars() {
