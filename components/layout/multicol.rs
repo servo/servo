@@ -48,6 +48,10 @@ impl Flow for MulticolFlow {
         &mut self.block_flow
     }
 
+    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+        &self.block_flow
+    }
+
     fn bubble_inline_sizes(&mut self) {
         // FIXME(SimonSapin) http://dev.w3.org/csswg/css-sizing/#multicol-intrinsic
         self.block_flow.bubble_inline_sizes();
