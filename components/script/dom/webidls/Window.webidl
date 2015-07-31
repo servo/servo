@@ -98,6 +98,20 @@ partial interface Window {
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
+enum ScrollBehavior { "auto", "instant", "smooth" };
+
+// http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
+dictionary ScrollOptions {
+    ScrollBehavior behavior = "auto";
+};
+
+// http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
+dictionary ScrollToOptions : ScrollOptions {
+    unrestricted double left;
+    unrestricted double top;
+};
+
+// http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
 partial interface Window {
   //MediaQueryList matchMedia(DOMString query);
   [SameObject] readonly attribute Screen screen;
@@ -105,21 +119,24 @@ partial interface Window {
   // browsing context
   //void moveTo(double x, double y);
   //void moveBy(double x, double y);
-  //void resizeTo(double x, double y);
+  void resizeTo(double x, double y);
   //void resizeBy(double x, double y);
 
   // viewport
-  //readonly attribute double innerWidth;
-  //readonly attribute double innerHeight;
+  readonly attribute double innerWidth;
+  readonly attribute double innerHeight;
 
   // viewport scrolling
-  //readonly attribute double scrollX;
-  //readonly attribute double pageXOffset;
-  //readonly attribute double scrollY;
-  //readonly attribute double pageYOffset;
-  //void scroll(double x, double y, optional ScrollOptions options);
-  //void scrollTo(double x, double y, optional ScrollOptions options);
-  //void scrollBy(double x, double y, optional ScrollOptions options);
+  readonly attribute double scrollX;
+  readonly attribute double pageXOffset;
+  readonly attribute double scrollY;
+  readonly attribute double pageYOffset;
+  void scroll(optional ScrollToOptions options);
+  void scroll(unrestricted double x, unrestricted double y, optional ScrollOptions options);
+  void scrollTo(optional ScrollToOptions options);
+  void scrollTo(unrestricted double x, unrestricted double y, optional ScrollOptions options);
+  void scrollBy(optional ScrollToOptions options);
+  void scrollBy(unrestricted double x, unrestricted double y, optional ScrollOptions options);
 
   // client
   //readonly attribute double screenX;
