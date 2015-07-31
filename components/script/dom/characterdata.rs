@@ -17,7 +17,7 @@ use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 
-use util::str::DOMString;
+use util::str::{DOMString, slice_chars};
 
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -74,7 +74,7 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
         }
         // Steps 3-4.
         let end = if length - offset < count { length } else { offset + count };
-        Ok(data.slice_chars(offset as usize, end as usize).to_owned())
+        Ok(slice_chars(&*data, offset as usize, end as usize).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
@@ -107,9 +107,9 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
         };
         // Step 4: Mutation observers.
         // Step 5.
-        let mut data = self.data.borrow().slice_chars(0, offset as usize).to_owned();
+        let mut data = slice_chars(&*self.data.borrow(), 0, offset as usize).to_owned();
         data.push_str(&arg);
-        data.push_str(&self.data.borrow().slice_chars((offset + count) as usize, length as usize));
+        data.push_str(slice_chars(&*self.data.borrow(), (offset + count) as usize, length as usize));
         *self.data.borrow_mut() = data;
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())

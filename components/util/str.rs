@@ -335,3 +335,27 @@ pub fn str_join<T: AsRef<str>>(strs: &[T], join: &str) -> String {
         acc
     })
 }
+
+// Lifted from Rust's StrExt implementation, which is being removed.
+pub fn slice_chars(s: &str, begin: usize, end: usize) -> &str {
+    assert!(begin <= end);
+    let mut count = 0;
+    let mut begin_byte = None;
+    let mut end_byte = None;
+
+    // This could be even more efficient by not decoding,
+    // only finding the char boundaries
+    for (idx, _) in s.char_indices() {
+        if count == begin { begin_byte = Some(idx); }
+        if count == end { end_byte = Some(idx); break; }
+        count += 1;
+    }
+    if begin_byte.is_none() && count == begin { begin_byte = Some(s.len()) }
+    if end_byte.is_none() && count == end { end_byte = Some(s.len()) }
+
+    match (begin_byte, end_byte) {
+        (None, _) => panic!("slice_chars: `begin` is beyond end of string"),
+        (_, None) => panic!("slice_chars: `end` is beyond end of string"),
+        (Some(a), Some(b)) => unsafe { s.slice_unchecked(a, b) }
+    }
+}
