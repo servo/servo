@@ -120,4 +120,3 @@ pub fn init() {
 
     perform_platform_specific_initialization();
 }
-

@@ -26,6 +26,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
 use dom::bindings::js::{RootCollectionPtr, Root, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
@@ -136,7 +137,7 @@ struct InProgressLoad {
     window_size: Option<WindowSizeData>,
     /// Channel to the layout task associated with this pipeline.
     layout_chan: LayoutChan,
-    /// The current viewport clipping rectangle applying to this pipelie, if any.
+    /// The current viewport clipping rectangle applying to this pipeline, if any.
     clip_rect: Option<Rect<f32>>,
     /// The requested URL of the load.
     url: Url,
@@ -843,8 +844,11 @@ impl ScriptTask {
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
         let page = self.root_page();
         match msg {
-            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) =>
-                devtools::handle_evaluate_js(&page, id, s, reply),
+            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => {
+                let window = get_page(&page, id).window();
+                let global_ref = GlobalRef::Window(window.r());
+                devtools::handle_evaluate_js(&global_ref, s, reply)
+            },
             DevtoolScriptControlMsg::GetRootNode(id, reply) =>
                 devtools::handle_get_root_node(&page, id, reply),
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) =>
@@ -857,8 +861,11 @@ impl ScriptTask {
                 devtools::handle_get_cached_messages(pipeline_id, message_types, reply),
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&page, id, node_id, modifications),
-            DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id, to_send) =>
-                devtools::handle_wants_live_notifications(&page, pipeline_id, to_send),
+            DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
+                let window = get_page(&page, id).window();
+                let global_ref = GlobalRef::Window(window.r());
+                devtools::handle_wants_live_notifications(&global_ref, to_send)
+            },
             DevtoolScriptControlMsg::SetTimelineMarkers(_pipeline_id, marker_types, reply) =>
                 devtools::handle_set_timeline_markers(&page, self, marker_types, reply),
             DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
@@ -1827,7 +1834,6 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
         chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
     }
 }
-
 
 pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
     page.find(pipeline_id).expect("ScriptTask: received an event \
