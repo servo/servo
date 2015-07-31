@@ -12,7 +12,7 @@ use net_traits::AsyncResponseTarget;
 use std::sync::Arc;
 use url::Url;
 
-#[derive(JSTraceable, PartialEq, Clone, Debug)]
+#[derive(JSTraceable, PartialEq, Clone, Debug, HeapSizeOf)]
 pub enum LoadType {
     Image(Url),
     Script(Url),
@@ -33,17 +33,19 @@ impl LoadType {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub struct DocumentLoader {
     /// We use an `Arc<ResourceTask>` here in order to avoid file descriptor exhaustion when there
     /// are lots of iframes.
+    #[ignore_heap_size_of = "channels are hard"]
     pub resource_task: Arc<ResourceTask>,
     notifier_data: Option<NotifierData>,
     blocking_loads: Vec<LoadType>,
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub struct NotifierData {
+    #[ignore_heap_size_of = "trait objects are hard"]
     pub script_chan: Box<ScriptChan + Send>,
     pub pipeline: PipelineId,
 }

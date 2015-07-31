@@ -37,7 +37,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
 
-#[derive(JSTraceable, Copy, Clone, PartialEq)]
+#[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }

@@ -110,6 +110,7 @@ pub enum IsHTMLDocument {
 
 // https://dom.spec.whatwg.org/#document
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Document {
     node: Node,
     window: JS<Window>,
@@ -144,6 +145,7 @@ pub struct Document {
     animation_frame_ident: Cell<i32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
+    #[ignore_heap_size_of = "closures are hard"]
     animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
