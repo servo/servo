@@ -17,6 +17,7 @@ path = "../util"
 
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
+features = ["unstable"]
 
 [dependencies.cssparser]
 version = "0.3"

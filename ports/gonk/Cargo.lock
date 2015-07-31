@@ -1012,9 +1012,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "quicksort"
+name = "quickersort"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unreachable 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "rand"
@@ -1121,13 +1125,13 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-selectors#5d5c2ec6c9e703cb3d231b92fc962b330d2f67d5"
+source = "git+https://github.com/servo/rust-selectors#e4d0af9115b82e47890a67a678aaa27aa270f083"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "quicksort 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quickersort 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
