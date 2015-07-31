@@ -20,7 +20,7 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource, ScriptPort, ScriptMsg};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use profile_traits::mem;
@@ -35,6 +35,7 @@ use url::{Url, UrlParser};
 use std::default::Default;
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::mpsc::Receiver;
 
 #[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
@@ -56,6 +57,10 @@ pub struct WorkerGlobalScope {
     timers: TimerManager,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    // optional sender for processing devtools control messages from within the worker
+    // receiver will be ignored if the channel doesn't exists
+    devtools_receiver: Receiver<DevtoolScriptControlMsg>,
     constellation_chan: ConstellationChan,
 }
 
@@ -66,6 +71,8 @@ impl WorkerGlobalScope {
                          resource_task: ResourceTask,
                          mem_profiler_chan: mem::ProfilerChan,
                          devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+                         devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+                         devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          constellation_chan: ConstellationChan)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
@@ -81,6 +88,8 @@ impl WorkerGlobalScope {
             timers: TimerManager::new(),
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
+            devtools_sender: devtools_sender,
+            devtools_receiver: devtools_receiver,
             constellation_chan: constellation_chan,
         }
     }
@@ -91,6 +100,14 @@ impl WorkerGlobalScope {
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
+    }
+
+    pub fn devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
+        self.devtools_sender.clone()
+    }
+
+    pub fn devtools_port(&self) -> &Receiver<DevtoolScriptControlMsg> {
+        &self.devtools_receiver
     }
 
     pub fn constellation_chan(&self) -> ConstellationChan {
@@ -298,4 +315,3 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
         self.runtime.cx()
     }
 }
-

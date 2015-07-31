@@ -45,7 +45,7 @@ use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcReceiver};
 use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
 use js::jsval::JSVal;
@@ -334,6 +334,13 @@ impl<A,B> JSTraceable for fn(A) -> B {
 }
 
 impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
