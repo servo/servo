@@ -71,10 +71,10 @@ if __name__ == '__main__':
         n = 0
         l = 0
         for test in data:
-            n = max(n, len(test) + len(data[test]) + 3)
+            n = max(n, len(data[test]))
             l = max(l, len(test))
         print("\n Test{0} | Time".format(" " * (l - len("Test"))))
-        print("-" * (n + 2))
+        print("-{0}-|-{1}-".format("-" * l, "-" * n))
         for test in data:
             print(" {0}{1} | {2}".format(test, " " * (l - len(test)), data[test]))
         proc.kill()
