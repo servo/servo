@@ -146,6 +146,16 @@ function testNode(create, type) {
     node.replaceData(44, 2, "文字");
     assert_equals(node.data, "This is the character data test, other 資料，更多文字");
   }, type + ".replaceData() with non-ASCII data")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.data = "🌠 test 🌠 TEST"
+
+    node.replaceData(5, 8, "--");  // Counting UTF-16 code units
+    assert_equals(node.data, "🌠 te--ST");
+  }, type + ".replaceData() with non-BMP data")
 }
 
 testNode(function() { return document.createTextNode("test") }, "Text")
