@@ -73,6 +73,16 @@ function testNode(create, type) {
     node.insertData(48, "更多");
     assert_equals(node.data, "This is the character data test, append more 資料，更多測試資料");
   }, type + ".insertData() with non-ascii data")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.data = "🌠 test 🌠 TEST"
+
+    node.insertData(5, "--");  // Counting UTF-16 code units
+    assert_equals(node.data, "🌠 te--st 🌠 TEST");
+  }, type + ".insertData() with non-BMP data")
 }
 
 testNode(function() { return document.createTextNode("test") }, "Text")
