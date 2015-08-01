@@ -20,7 +20,7 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource, ScriptPort, ScriptMsg};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use profile_traits::mem;
@@ -35,6 +35,7 @@ use url::{Url, UrlParser};
 use std::default::Default;
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::mpsc::Receiver;
 
 #[derive(JSTraceable, Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
@@ -56,6 +57,19 @@ pub struct WorkerGlobalScope {
     timers: TimerManager,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+
+    /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
+    /// to the server from within the worker
+    devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+
+    /// This `Receiver` will be ignored later if the corresponding
+    /// `IpcSender` doesn't exist
+    devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+
+    /// A flag to indicate whether the developer tools has requested live updates
+    /// from the worker
+    devtools_wants_updates: Cell<bool>,
+
     constellation_chan: ConstellationChan,
 }
 
@@ -66,6 +80,8 @@ impl WorkerGlobalScope {
                          resource_task: ResourceTask,
                          mem_profiler_chan: mem::ProfilerChan,
                          devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+                         devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+                         devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          constellation_chan: ConstellationChan)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
@@ -81,6 +97,9 @@ impl WorkerGlobalScope {
             timers: TimerManager::new(),
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
+            devtools_sender: devtools_sender,
+            devtools_receiver: devtools_receiver,
+            devtools_wants_updates: Cell::new(false),
             constellation_chan: constellation_chan,
         }
     }
@@ -91,6 +110,14 @@ impl WorkerGlobalScope {
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
+    }
+
+    pub fn devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
+        self.devtools_sender.clone()
+    }
+
+    pub fn devtools_port(&self) -> &Receiver<DevtoolScriptControlMsg> {
+        &self.devtools_receiver
     }
 
     pub fn constellation_chan(&self) -> ConstellationChan {
@@ -251,6 +278,7 @@ pub trait WorkerGlobalScopeHelpers {
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
     fn process_event(self, msg: ScriptMsg);
     fn get_cx(self) -> *mut JSContext;
+    fn set_devtools_wants_updates(self, value: bool);
 }
 
 impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
@@ -297,5 +325,8 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
     fn get_cx(self) -> *mut JSContext {
         self.runtime.cx()
     }
-}
 
+    fn set_devtools_wants_updates(self, value: bool) {
+        self.devtools_wants_updates.set(value);
+    }
+}
