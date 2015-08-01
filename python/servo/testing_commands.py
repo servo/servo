@@ -274,12 +274,14 @@ class MachCommands(CommandBase):
     @Command('test-dromaeo',
              description='Run the Dromaeo test suite',
              category='testing')
+    @CommandArgument('tests', default=["recommended"], nargs="...",
+                     help="Specific tests to run")
     @CommandArgument('--release', '-r', action='store_true',
                      help='Run the release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Run the dev build')
-    def test_dromaeo(self, release, dev):
-        return self.dromaeo_test_runner("test", release, dev)
+    def test_dromaeo(self, tests, release, dev):
+        return self.dromaeo_test_runner(tests, release, dev)
 
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
@@ -378,7 +380,7 @@ class MachCommands(CommandBase):
         return subprocess.check_call(
             [run_file, cmd, bin_path, base_dir])
 
-    def dromaeo_test_runner(self, cmd, release, dev):
+    def dromaeo_test_runner(self, tests, release, dev):
         self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
@@ -401,5 +403,5 @@ class MachCommands(CommandBase):
         bin_path = path.abspath(self.get_binary_path(release, dev))
 
         return subprocess.check_call(
-            [run_file, cmd, bin_path, base_dir])
+            [run_file, "|".join(tests), bin_path, base_dir])
 
