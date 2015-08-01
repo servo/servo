@@ -844,7 +844,7 @@ impl ScriptTask {
         let page = self.root_page();
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) =>
-                devtools::handle_evaluate_js(&page, id, s, reply),
+               devtools::handle_evaluate_js(&page, id, s, reply),
             DevtoolScriptControlMsg::GetRootNode(id, reply) =>
                 devtools::handle_get_root_node(&page, id, reply),
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) =>
@@ -865,6 +865,7 @@ impl ScriptTask {
                 devtools::handle_drop_timeline_markers(&page, self, marker_types),
             DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, callback) =>
                 devtools::handle_request_animation_frame(&page, pipeline_id, callback),
+            
         }
     }
 

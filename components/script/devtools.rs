@@ -46,13 +46,11 @@ pub fn handle_evaluate_js(
             FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap()
         )
     } else if rval.ptr.is_string() {
-        //FIXME: use jsstring_to_str when jsval grows to_jsstring
         EvaluateJSReply::StringValue(
             FromJSValConvertible::from_jsval(cx, rval.handle(), StringificationBehavior::Default).unwrap())
     } else if rval.ptr.is_null() {
         EvaluateJSReply::NullValue
     } else {
-        //FIXME: jsvals don't have an is_int32/is_number yet
         assert!(rval.ptr.is_object());
         panic!("object values unimplemented")
     }).unwrap();
