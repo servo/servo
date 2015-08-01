@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -26,7 +27,7 @@ use script_task::StackRootTLS;
 
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
 
 use net_traits::{load_whole_resource, ResourceTask};
 use profile_traits::mem::{self, Reporter, ReporterRequest};
@@ -34,7 +35,7 @@ use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
@@ -45,7 +46,7 @@ use url::Url;
 use rand::random;
 use std::mem::replace;
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{Sender, Receiver, channel, Select};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
@@ -110,6 +111,8 @@ impl DedicatedWorkerGlobalScope {
                      id: PipelineId,
                      mem_profiler_chan: mem::ProfilerChan,
                      devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+                     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+                     devtools_port: Receiver<DevtoolScriptControlMsg>,
                      runtime: Rc<Runtime>,
                      resource_task: ResourceTask,
                      constellation_chan: ConstellationChan,
@@ -119,8 +122,8 @@ impl DedicatedWorkerGlobalScope {
                      -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url,
-                runtime, resource_task, mem_profiler_chan, devtools_chan, constellation_chan),
+                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, runtime, resource_task,
+                mem_profiler_chan, devtools_chan, devtools_sender, devtools_port, constellation_chan),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -133,6 +136,8 @@ impl DedicatedWorkerGlobalScope {
                id: PipelineId,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+               devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+               devtools_port: Receiver<DevtoolScriptControlMsg>,
                runtime: Rc<Runtime>,
                resource_task: ResourceTask,
                constellation_chan: ConstellationChan,
@@ -141,17 +146,20 @@ impl DedicatedWorkerGlobalScope {
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            worker_url, id, mem_profiler_chan, devtools_chan, runtime.clone(), resource_task,
-            constellation_chan, parent_sender, own_sender, receiver);
+            worker_url, id, mem_profiler_chan, devtools_chan, devtools_sender, devtools_port,
+            runtime.clone(), resource_task, constellation_chan, parent_sender, own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 }
 
 impl DedicatedWorkerGlobalScope {
+    #[allow(unsafe_code)]
     pub fn run_worker_scope(worker_url: Url,
                             id: PipelineId,
                             mem_profiler_chan: mem::ProfilerChan,
                             devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+                            devtools_ipc_chan: Option<IpcSender<DevtoolScriptControlMsg>>,
+                            devtools_ipc_port: IpcReceiver<DevtoolScriptControlMsg>,
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
                             constellation_chan: ConstellationChan,
@@ -180,11 +188,16 @@ impl DedicatedWorkerGlobalScope {
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let serialized_url = url.serialize();
             let parent_sender_for_reporter = parent_sender.clone();
+
+            let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
+            ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_ipc_port, devtools_mpsc_chan);
+
             let global = DedicatedWorkerGlobalScope::new(
-                url, id, mem_profiler_chan.clone(), devtools_chan, runtime.clone(),
-                resource_task, constellation_chan, parent_sender, own_sender, receiver);
+                url, id, mem_profiler_chan.clone(), devtools_chan, devtools_ipc_chan, devtools_mpsc_port,
+                runtime.clone(), resource_task, constellation_chan, parent_sender, own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
+            let scope = WorkerGlobalScopeCast::from_ref(global.r());
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
 
             {
@@ -216,13 +229,58 @@ impl DedicatedWorkerGlobalScope {
                         Reporter(reporter_sender)));
             }
 
+            enum MixedMessage {
+                FromWorker((TrustedWorkerAddress, ScriptMsg)),
+                FromDevtools(DevtoolScriptControlMsg),
+            }
+
             loop {
-                match global.r().receiver.recv() {
-                    Ok((linked_worker, msg)) => {
+                let worker_port = &global.r().receiver;
+                let devtools_port = scope.devtools_port();
+
+                let event = {
+                    let sel = Select::new();
+                    let mut worker_handle = sel.handle(worker_port);
+                    let mut devtools_handle = sel.handle(devtools_port);
+                    unsafe {
+                        worker_handle.add();
+                        if scope.devtools_sender().is_some() {
+                            devtools_handle.add();
+                        }
+                    }
+                    let ret = sel.wait();
+                    if ret == worker_handle.id() {
+                        match worker_port.recv() {
+                            Ok(stuff) => MixedMessage::FromWorker(stuff),
+                            Err(_) => break,
+                        }
+                    } else if ret == devtools_handle.id() {
+                        match devtools_port.recv() {
+                            Ok(stuff) => MixedMessage::FromDevtools(stuff),
+                            Err(_) => break,
+                        }
+                    } else {
+                        panic!("unexpected select result!")
+                    }
+                };
+
+                match event {
+                    MixedMessage::FromDevtools(msg) => {
+                        let global_ref = GlobalRef::Worker(scope);
+                        match msg {
+                            DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
+                                devtools::handle_evaluate_js(&global_ref, string, sender),
+                            DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) =>
+                                devtools::handle_get_cached_messages(pipe_id, message_types, sender),
+                            DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) =>
+                                devtools::handle_wants_live_notifications(&global_ref, bool_val),
+                            _ => debug!("got an unusable devtools control message inside the worker!"),
+                        }
+                    },
+                    MixedMessage::FromWorker((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
-                    }
-                    Err(_) => break,
+                    },
                 }
             }
 
