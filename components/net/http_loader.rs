@@ -11,6 +11,9 @@ use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, Inc
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
 use file_loader;
+use ipc_channel::ipc::{self, IpcSender};
+use log;
+use std::collections::HashSet;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::Error as HttpError;
 use hyper::client::Request;
@@ -37,14 +40,15 @@ use util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use uuid;
+use std::fs::File;
 
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-    box move |load_data: LoadData, senders, classifier| {
+    box move |load_data, senders, classifier| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()),
-                    move || load(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
+                    move || load_for_consumer(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
     }
 }
 
@@ -85,12 +89,54 @@ fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
     }
 }
 
-fn load(mut load_data: LoadData,
+fn inner_url(url: &Url) -> Url {
+    let inner_url = url.non_relative_scheme_data().unwrap();
+    Url::parse(inner_url).unwrap()
+}
+
+fn load_for_consumer(load_data: LoadData,
         start_chan: LoadConsumer,
         classifier: Arc<MIMEClassifier>,
         resource_mgr_chan: IpcSender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
+    match load(load_data, resource_mgr_chan, devtools_chan, hsts_list) {
+        Err(LoadError::UnsupportedScheme(url)) => {
+            let s = format!("{} request, but we don't support that scheme", &*url.scheme);
+            send_error(url, s, start_chan)
+        }
+        Err(LoadError::Client(url, e)) => {
+            send_error(url, e, start_chan)
+        }
+        Err(LoadError::MaxRedirects(url)) => {
+            send_error(url, "too many redirects".to_string(), start_chan)
+        }
+        Err(LoadError::Cors(url, msg)) |
+        Err(LoadError::InvalidRedirect(url, msg)) |
+        Err(LoadError::Decoding(url, msg)) |
+        Err(LoadError::InvalidFile(url, msg)) => {
+            send_error(url, msg, start_chan)
+        }
+        Ok((mut response_reader, metadata)) => {
+            send_data(&mut response_reader, start_chan, metadata, classifier);
+        }
+    }
+}
+
+enum LoadError {
+    UnsupportedScheme(Url),
+    Client(Url, String),
+    Cors(Url, String),
+    InvalidRedirect(Url, String),
+    Decoding(Url, String),
+    InvalidFile(Url, String),
+    MaxRedirects(Url)
+}
+
+fn load(mut load_data: LoadData,
+        resource_mgr_chan: IpcSender<ControlMsg>,
+        devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+        hsts_list: Arc<Mutex<HSTSList>>) -> Result<(Box<Read>, Metadata), LoadError> {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -109,17 +155,13 @@ fn load(mut load_data: LoadData,
     // the source rather than rendering the contents of the URL.
     let viewing_source = url.scheme == "view-source";
     if viewing_source {
-        let inner_url = load_data.url.non_relative_scheme_data().unwrap();
-        doc_url = Url::parse(inner_url).unwrap();
-        url = replace_hosts(&doc_url);
-        match &*url.scheme {
-            "http" | "https" => {}
-            _ => {
-                let s = format!("The {} scheme with view-source is not supported", url.scheme);
-                send_error(url, s, start_chan);
-                return;
-            }
-        };
+        let inner_url = replace_hosts(&inner_url(&load_data.url));
+        doc_url = inner_url.clone();
+        if &*inner_url.scheme != "http" && &*inner_url.scheme != "https" {
+            return Err(LoadError::UnsupportedScheme(inner_url));
+        } else {
+            url = inner_url;
+        }
     }
 
     // Loop to handle redirects.
@@ -132,21 +174,16 @@ fn load(mut load_data: LoadData,
         }
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), start_chan);
-            return;
+            return Err(LoadError::MaxRedirects(url));
         }
 
-        match &*url.scheme {
-            "http" | "https" => {}
-            _ => {
-                let s = format!("{} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, start_chan);
-                return;
-            }
+        if &*url.scheme != "http" && &*url.scheme != "https" {
+            return Err(LoadError::UnsupportedScheme(url));
         }
 
         info!("requesting {}", url.serialize());
 
+        // TODO - Is no ssl still needed?
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]))";
@@ -171,14 +208,15 @@ reason: \"certificate verify failed\" }]))";
             ) => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
-                file_loader::factory(load_data, start_chan, classifier);
-                return;
+                let file_url = Url::from_file_path(&*image).unwrap();
+
+                match File::open(image.clone()) {
+                    Ok(f) => return Ok((Box::new(f), Metadata::default(file_url))),
+                    Err(_) => return Err(LoadError::InvalidFile(file_url, image.to_str().unwrap().to_string()))
+                }
             },
             Err(e) => {
-                println!("{:?}", e);
-                send_error(url, e.description().to_string(), start_chan);
-                return;
+                return Err(LoadError::Client(url, e.description().to_string()));
             }
         };
 
@@ -237,17 +275,17 @@ reason: \"certificate verify failed\" }]))";
         let writer = match load_data.data {
             Some(ref data) if iters == 1 => {
                 req.headers_mut().set(ContentLength(data.len() as u64));
+
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
+                        return Err(LoadError::Client(url, e.description().to_string()));
                     }
                 };
+
                 match writer.write_all(&*data) {
                     Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
+                        return Err(LoadError::Client(url, e.description().to_string()));
                     }
                     _ => {}
                 };
@@ -261,8 +299,7 @@ reason: \"certificate verify failed\" }]))";
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
+                        return Err(LoadError::Client(url, e.description().to_string()));
                     }
                 }
             }
@@ -281,11 +318,10 @@ reason: \"certificate verify failed\" }]))";
                                                              net_event))).unwrap();
         }
 
-        let mut response = match writer.send() {
+        let response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                send_error(url, e.description().to_string(), start_chan);
-                return;
+                return Err(LoadError::Client(url, e.description().to_string()));
             }
         };
 
@@ -337,11 +373,7 @@ reason: \"certificate verify failed\" }]))";
                     match load_data.cors {
                         Some(ref c) => {
                             if c.preflight {
-                                // The preflight lied
-                                send_error(url,
-                                           "Preflight fetch inconsistent with main fetch".to_string(),
-                                           start_chan);
-                                return;
+                                return Err(LoadError::Cors(url, "Preflight fetch inconsistent with main fetch".to_string()));
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
                                 // but they don't seem necessary until credentials are implemented
@@ -352,8 +384,7 @@ reason: \"certificate verify failed\" }]))";
                     let new_doc_url = match UrlParser::new().base_url(&doc_url).parse(&new_url) {
                         Ok(u) => u,
                         Err(e) => {
-                            send_error(doc_url, e.to_string(), start_chan);
-                            return;
+                            return Err(LoadError::InvalidRedirect(doc_url, e.to_string()));
                         }
                     };
                     info!("redirecting to {}", new_doc_url);
@@ -368,9 +399,8 @@ reason: \"certificate verify failed\" }]))";
                         load_data.method = Method::Get;
                     }
 
-                    if redirected_to.contains(&doc_url) {
-                        send_error(doc_url, "redirect loop".to_string(), start_chan);
-                        return;
+                    if redirected_to.contains(&url) {
+                        return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_string()));
                     }
 
                     redirected_to.insert(doc_url.clone());
@@ -384,7 +414,7 @@ reason: \"certificate verify failed\" }]))";
         if viewing_source {
             adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
         }
-        let mut metadata: Metadata = Metadata::default(doc_url);
+        let mut metadata: Metadata = Metadata::default(doc_url.clone());
         metadata.set_content_type(match adjusted_headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
@@ -422,26 +452,22 @@ reason: \"certificate verify failed\" }]))";
                 if encoding == "gzip" {
                     let result = GzDecoder::new(response);
                     match result {
-                        Ok(mut response_decoding) => {
-                            send_data(&mut response_decoding, start_chan, metadata, classifier);
+                        Ok(response_decoding) => {
+                            return Ok((Box::new(response_decoding), metadata));
                         }
                         Err(err) => {
-                            send_error(metadata.final_url, err.to_string(), start_chan);
-                            return;
+                            return Err(LoadError::Decoding(metadata.final_url, err.to_string()));
                         }
                     }
                 } else if encoding == "deflate" {
-                    let mut response_decoding = DeflateDecoder::new(response);
-                    send_data(&mut response_decoding, start_chan, metadata, classifier);
+                    let response_decoding = DeflateDecoder::new(response);
+                    return Ok((Box::new(response_decoding), metadata));
                 }
             },
             None => {
-                send_data(&mut response, start_chan, metadata, classifier);
+                return Ok((Box::new(response), metadata));
             }
         }
-
-        // We didn't get redirected.
-        break;
     }
 }
 
