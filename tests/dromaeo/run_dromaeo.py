@@ -20,8 +20,8 @@ TEST_SERVER_PORT = 8192
 # Run servo and print / parse the results for a specific jQuery test module.
 def run_servo(servo_exe):
     url = "http://localhost:{0}/dromaeo/web/?recommended&automated&post_json".format(TEST_SERVER_PORT)
-    #args = [servo_exe, url, "-z", "-f"] 
-    args = [servo_exe, url, "-z"] 
+    #url = "http://localhost:{0}/dromaeo/web/?sunspider-string-validate-input&automated&post_json".format(TEST_SERVER_PORT)
+    args = [servo_exe, url, "-z", "-f"] 
     return subprocess.Popen(args)
 
 # Print usage if command line args are incorrect
@@ -29,56 +29,8 @@ def print_usage():
     print("USAGE: {0} test servo_binary dromaeo_base_dir".format(sys.argv[0]))
 
 
-# A simple HTTP server to serve up the test suite
-class Server(SocketServer.ThreadingMixIn,
-                   BaseHTTPServer.HTTPServer):
-    allow_reuse_address = True
-    got_post = False
-
+# Handle the POST at the end
 class RequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
-    # TODO(gw): HACK copy the fixed version from python
-    # main repo - due to https://bugs.python.org/issue23112
-    def send_head(self):
-        path = self.translate_path(self.path)
-        f = None
-        if os.path.isdir(path):
-            parts = urlparse.urlsplit(self.path)
-            if not parts.path.endswith('/'):
-                # redirect browser - doing basically what apache does
-                self.send_response(301)
-                new_parts = (parts[0], parts[1], parts[2] + '/',
-                             parts[3], parts[4])
-                new_url = urlparse.urlunsplit(new_parts)
-                self.send_header("Location", new_url)
-                self.end_headers()
-                return None
-            for index in "index.html", "index.htm":
-                index = os.path.join(path, index)
-                if os.path.exists(index):
-                    path = index
-                    break
-            else:
-                return self.list_directory(path)
-        ctype = self.guess_type(path)
-        try:
-            # Always read in binary mode. Opening files in text mode may cause
-            # newline translations, making the actual size of the content
-            # transmitted *less* than the content-length!
-            f = open(path, 'rb')
-        except IOError:
-            self.send_error(404, "File not found")
-            return None
-        try:
-            self.send_response(200)
-            self.send_header("Content-type", ctype)
-            fs = os.fstat(f.fileno())
-            self.send_header("Content-Length", str(fs[6]))
-            self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
-            self.end_headers()
-            return f
-        except:
-            f.close()
-            raise
     def do_POST(self):
         self.send_response(200)
         self.end_headers()
@@ -103,11 +55,12 @@ if __name__ == '__main__':
             sys.exit(1)
 
         # Start the test server
-        server = Server(('', TEST_SERVER_PORT), RequestHandler)
+        server = BaseHTTPServer.HTTPServer(('', TEST_SERVER_PORT), RequestHandler)
 
         if cmd == "test":
             print("Testing Dromaeo on Servo!")
             proc = run_servo(servo_exe)
+            server.got_post = False
             while not server.got_post:
                 server.handle_request()
             print("dromaeo: %s" % server.post_data)
