@@ -132,7 +132,7 @@ impl PropertyAnimation {
             [FontSize; get_font; font_size],
             [FontWeight; get_font; font_weight],
             [Height; get_box; height],
-            [Left; get_positionoffsets; bottom],
+            [Left; get_positionoffsets; left],
             [LineHeight; get_inheritedbox; line_height],
             [MarginBottom; get_margin; margin_bottom],
             [MarginLeft; get_margin; margin_left],
@@ -145,10 +145,10 @@ impl PropertyAnimation {
             [Opacity; get_effects; opacity],
             [OutlineColor; get_outline; outline_color],
             [OutlineWidth; get_outline; outline_width],
-            [PaddingBottom; get_margin; margin_bottom],
-            [PaddingLeft; get_margin; margin_left],
-            [PaddingRight; get_margin; margin_right],
-            [PaddingTop; get_margin; margin_top],
+            [PaddingBottom; get_padding; padding_bottom],
+            [PaddingLeft; get_padding; padding_left],
+            [PaddingRight; get_padding; padding_right],
+            [PaddingTop; get_padding; padding_top],
             [Right; get_positionoffsets; right],
             [TextIndent; get_inheritedtext; text_indent],
             [Top; get_positionoffsets; top],
@@ -229,7 +229,7 @@ impl PropertyAnimation {
             [FontSize; mutate_font; font_size],
             [FontWeight; mutate_font; font_weight],
             [Height; mutate_box; height],
-            [Left; mutate_positionoffsets; bottom],
+            [Left; mutate_positionoffsets; left],
             [LineHeight; mutate_inheritedbox; line_height],
             [MarginBottom; mutate_margin; margin_bottom],
             [MarginLeft; mutate_margin; margin_left],
@@ -242,10 +242,10 @@ impl PropertyAnimation {
             [Opacity; mutate_effects; opacity],
             [OutlineColor; mutate_outline; outline_color],
             [OutlineWidth; mutate_outline; outline_width],
-            [PaddingBottom; mutate_margin; margin_bottom],
-            [PaddingLeft; mutate_margin; margin_left],
-            [PaddingRight; mutate_margin; margin_right],
-            [PaddingTop; mutate_margin; margin_top],
+            [PaddingBottom; mutate_padding; padding_bottom],
+            [PaddingLeft; mutate_padding; padding_left],
+            [PaddingRight; mutate_padding; padding_right],
+            [PaddingTop; mutate_padding; padding_top],
             [Right; mutate_positionoffsets; right],
             [TextIndent; mutate_inheritedtext; text_indent],
             [TextShadow; mutate_effects; text_shadow],
@@ -296,10 +296,10 @@ enum AnimatedProperty {
     Opacity(CSSFloat, CSSFloat),
     OutlineColor(Color, Color),
     OutlineWidth(Length, Length),
-    PaddingBottom(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    PaddingLeft(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    PaddingRight(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    PaddingTop(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    PaddingBottom(LengthOrPercentage, LengthOrPercentage),
+    PaddingLeft(LengthOrPercentage, LengthOrPercentage),
+    PaddingRight(LengthOrPercentage, LengthOrPercentage),
+    PaddingTop(LengthOrPercentage, LengthOrPercentage),
     Right(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
     TextIndent(LengthOrPercentage, LengthOrPercentage),
     TextShadow(TextShadowList, TextShadowList),
@@ -324,10 +324,6 @@ impl AnimatedProperty {
             AnimatedProperty::MarginRight(ref a, ref b) |
             AnimatedProperty::MarginBottom(ref a, ref b) |
             AnimatedProperty::MarginLeft(ref a, ref b) |
-            AnimatedProperty::PaddingTop(ref a, ref b) |
-            AnimatedProperty::PaddingRight(ref a, ref b) |
-            AnimatedProperty::PaddingBottom(ref a, ref b) |
-            AnimatedProperty::PaddingLeft(ref a, ref b) |
             AnimatedProperty::Width(ref a, ref b) |
             AnimatedProperty::Height(ref a, ref b) => a == b,
             AnimatedProperty::MaxWidth(ref a, ref b) |
@@ -346,6 +342,10 @@ impl AnimatedProperty {
             AnimatedProperty::BorderLeftColor(ref a, ref b) |
             AnimatedProperty::OutlineColor(ref a, ref b) |
             AnimatedProperty::BackgroundColor(ref a, ref b) => a == b,
+            AnimatedProperty::PaddingTop(ref a, ref b) |
+            AnimatedProperty::PaddingRight(ref a, ref b) |
+            AnimatedProperty::PaddingBottom(ref a, ref b) |
+            AnimatedProperty::PaddingLeft(ref a, ref b) => a == b,
             AnimatedProperty::LineHeight(ref a, ref b) => a == b,
             AnimatedProperty::LetterSpacing(ref a, ref b) => a == b,
             AnimatedProperty::BackgroundPosition(ref a, ref b) => a == b,
