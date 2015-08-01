@@ -404,4 +404,3 @@ class MachCommands(CommandBase):
 
         return subprocess.check_call(
             [run_file, "|".join(tests), bin_path, base_dir])
-

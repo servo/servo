@@ -15,14 +15,17 @@ import threading
 import urlparse
 import json
 
+
 # Port to run the HTTP server on for Dromaeo.
 TEST_SERVER_PORT = 8192
+
 
 # Run servo and print / parse the results for a specific Dromaeo module.
 def run_servo(servo_exe, tests):
     url = "http://localhost:{0}/dromaeo/web/?{1}&automated&post_json".format(TEST_SERVER_PORT, tests)
-    args = [servo_exe, url, "-z", "-f"] 
+    args = [servo_exe, url, "-z", "-f"]
     return subprocess.Popen(args)
+
 
 # Print usage if command line args are incorrect
 def print_usage():
@@ -34,13 +37,15 @@ class RequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_POST(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write("<HTML>POST OK.<BR><BR>");
+        self.wfile.write("<HTML>POST OK.<BR><BR>")
         length = int(self.headers.getheader('content-length'))
         parameters = urlparse.parse_qs(self.rfile.read(length))
         self.server.got_post = True
         self.server.post_data = parameters['data']
+
     def log_message(self, format, *args):
         return
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:
@@ -69,7 +74,7 @@ if __name__ == '__main__':
             n = max(n, len(test) + len(data[test]) + 3)
             l = max(l, len(test))
         print("\n Test{0} | Time".format(" " * (l - len("Test"))))
-        print("-" * (n+2))
+        print("-" * (n + 2))
         for test in data:
             print(" {0}{1} | {2}".format(test, " " * (l - len(test)), data[test]))
         proc.kill()
