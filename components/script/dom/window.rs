@@ -501,9 +501,8 @@ impl<'a> WindowMethods for &'a Window {
     fn RequestAnimationFrame(self, callback: Rc<FrameRequestCallback>) -> i32 {
         let doc = self.Document();
 
-        let callback  = move |now: f64| {
-            // TODO: @jdm The spec says that any exceptions should be suppressed;
-            callback.Call__(Finite::wrap(now), ExceptionHandling::Report).unwrap();
+        let callback = move |now: f64| {
+            let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
         };
 
         doc.r().request_animation_frame(Box::new(callback))
