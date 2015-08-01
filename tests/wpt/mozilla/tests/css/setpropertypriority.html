@@ -1,0 +1,9 @@
+<link rel=match href=setpropertypriority_ref.html>
+<body>
+<p id="hello" style="color: green">This text should be green.</p>
+<style>
+  #hello { color: red !important }
+</style>
+<script>
+  document.getElementById("hello").style.setPropertyPriority("color", "important");
+</script>

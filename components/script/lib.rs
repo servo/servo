@@ -10,6 +10,7 @@
 #![feature(borrow_state)]
 #![feature(box_raw)]
 #![feature(box_syntax)]
+#![feature(cell_extras)]
 #![feature(core)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]

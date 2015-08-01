@@ -5,12 +5,12 @@
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, exit};
 use std::path::Path;
 
 
 fn main() {
-    let python = if Command::new("python2.7").arg("--version").status().unwrap().success() {
+    let python = if Command::new("python2.7").arg("--version").output().unwrap().status.success() {
         "python2.7"
     } else {
         "python"
@@ -22,14 +22,23 @@ fn main() {
         .env("PYTHONPATH", &mako)
         .env("TEMPLATE", &template)
         .arg("-c")
-        .arg("from os import environ; from mako.template import Template; \
-              from mako import exceptions; \n\
-              try:\n    print(Template(filename=environ['TEMPLATE']).render());\n\
-              except:\n    print exceptions.html_error_template().render()")
+        .arg(r#"
+import os
+import sys
+from mako.template import Template
+from mako import exceptions
+try:
+    print(Template(filename=os.environ['TEMPLATE'], input_encoding='utf8').render().encode('utf8'))
+except:
+    sys.stderr.write(exceptions.text_error_template().render().encode('utf8'))
+    sys.exit(1)
+"#)
         .stderr(Stdio::inherit())
         .output()
         .unwrap();
-    assert!(result.status.success());
+    if !result.status.success() {
+        exit(1)
+    }
     let out = env::var("OUT_DIR").unwrap();
     File::create(&Path::new(&out).join("properties.rs")).unwrap().write_all(&result.stdout).unwrap();
 }
