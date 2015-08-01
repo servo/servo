@@ -28877,6 +28877,12 @@
             "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html",
             "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html"
           }
+        ],
+        "dom/nodes/CharacterData-surrogates.html": [
+          {
+            "path": "dom/nodes/CharacterData-surrogates.html",
+            "url": "/dom/nodes/CharacterData-surrogates.html"
+          }
         ]
       }
     },
