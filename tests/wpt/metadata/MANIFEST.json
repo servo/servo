@@ -29106,6 +29106,12 @@
       "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
     ],
     "items": {},
+        ],
+        "dom/nodes/CharacterData-surrogates.html": [
+          {
+            "path": "dom/nodes/CharacterData-surrogates.html",
+            "url": "/dom/nodes/CharacterData-surrogates.html"
+          }
     "reftest_nodes": {}
   },
   "reftest_nodes": {
