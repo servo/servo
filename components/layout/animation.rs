@@ -13,7 +13,8 @@ use layout_task::{LayoutTask, LayoutTaskData};
 use msg::constellation_msg::{AnimationState, Msg, PipelineId};
 use script::layout_interface::Animation;
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
-use std::mem;
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use style::animation::{GetMod, PropertyAnimation};
@@ -50,8 +51,30 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 
 /// Processes any new animations that were discovered after style recalculation.
 pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: PipelineId) {
+    let mut new_running_animations = Vec::new();
     while let Ok(animation) = rw_data.new_animations_receiver.try_recv() {
-        rw_data.running_animations.push(animation)
+        new_running_animations.push(animation)
+    }
+    if !new_running_animations.is_empty() {
+        let mut running_animations = (*rw_data.running_animations).clone();
+
+        // Expire old running animations.
+        let now = clock_ticks::precise_time_s();
+        for (_, running_animations) in running_animations.iter_mut() {
+            running_animations.retain(|running_animation| now < running_animation.end_time);
+        }
+
+        // Add new running animations.
+        for new_running_animation in new_running_animations.into_iter() {
+            match running_animations.entry(OpaqueNode(new_running_animation.node)) {
+                Entry::Vacant(entry) => {
+                    entry.insert(vec![new_running_animation]);
+                }
+                Entry::Occupied(mut entry) => entry.get_mut().push(new_running_animation),
+            }
+        }
+
+        rw_data.running_animations = Arc::new(running_animations);
     }
 
     let animation_state;
@@ -68,48 +91,42 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
 
 }
 
-/// Recalculates style for an animation. This does *not* run with the DOM lock held.
-pub fn recalc_style_for_animation(flow: &mut Flow, animation: &Animation) {
+/// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
+pub fn recalc_style_for_animations(flow: &mut Flow,
+                                   animations: &HashMap<OpaqueNode,Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
-        if fragment.node.id() != animation.node {
-            return
-        }
+        if let Some(ref animations) = animations.get(&OpaqueNode(fragment.node.id())) {
+            for animation in animations.iter() {
+                let now = clock_ticks::precise_time_s();
+                let mut progress = (now - animation.start_time) / animation.duration();
+                if progress > 1.0 {
+                    progress = 1.0
+                }
+                if progress <= 0.0 {
+                    continue
+                }
 
-        let now = clock_ticks::precise_time_s() as f64;
-        let mut progress = (now - animation.start_time) / animation.duration();
-        if progress > 1.0 {
-            progress = 1.0
+                let mut new_style = fragment.style.clone();
+                animation.property_animation.update(&mut *Arc::make_unique(&mut new_style),
+                                                    progress);
+                damage.insert(incremental::compute_damage(&Some(fragment.style.clone()),
+                                                          &new_style));
+                fragment.style = new_style
+            }
         }
-        if progress <= 0.0 {
-            return
-        }
-
-        let mut new_style = fragment.style.clone();
-        animation.property_animation.update(&mut *Arc::make_unique(&mut new_style), progress);
-        damage.insert(incremental::compute_damage(&Some(fragment.style.clone()), &new_style));
-        fragment.style = new_style
     });
 
     let base = flow::mut_base(flow);
     base.restyle_damage.insert(damage);
     for kid in base.children.iter_mut() {
-        recalc_style_for_animation(kid, animation)
+        recalc_style_for_animations(kid, animations)
     }
 }
 
 /// Handles animation updates.
 pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskData) {
-    let running_animations = mem::replace(&mut rw_data.running_animations, Vec::new());
-    let now = clock_ticks::precise_time_s() as f64;
-    for running_animation in running_animations.into_iter() {
-        layout_task.tick_animation(&running_animation, rw_data);
-
-        if now < running_animation.end_time {
-            // Keep running the animation if it hasn't expired.
-            rw_data.running_animations.push(running_animation)
-        }
-    }
+    layout_task.tick_animations(rw_data);
 
     let ScriptControlChan(ref chan) = layout_task.script_chan;
     chan.send(ConstellationControlMsg::TickAllAnimations(layout_task.id)).unwrap();
