@@ -242,7 +242,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 name: actors.new_name("worker"),
                 console: console.name(),
                 id: id,
-
             };
             actor_workers.insert((pipeline, id), worker.name.clone());
             actors.register(box worker);
@@ -257,10 +256,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
                               id: PipelineId,
+                              worker_id: Option<WorkerId>,
                               console_message: ConsoleMessage,
                               actor_pipelines: &HashMap<PipelineId, String>,
                               actor_workers: &HashMap<(PipelineId, WorkerId), String>) {
-        let console_actor_name = match find_console_actor(actors.clone(), id, None, actor_workers,
+        let console_actor_name = match find_console_actor(actors.clone(), id, worker_id, actor_workers,
                                                           actor_pipelines) {
             Some(name) => name,
             None => return,
@@ -293,11 +293,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
                           id: PipelineId,
                           worker_id: Option<WorkerId>,
-                          worker_actors: &HashMap<(PipelineId, WorkerId), String>,
+                          actor_workers: &HashMap<(PipelineId, WorkerId), String>,
                           actor_pipelines: &HashMap<PipelineId, String>) -> Option<String> {
         let actors = actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
-            let actor_name = match (*worker_actors).get(&(id, worker_id)) {
+            let actor_name = match (*actor_workers).get(&(id, worker_id)) {
                 Some(name) => name,
                 None => return None,
             };
@@ -415,15 +415,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::SendConsoleMessage(
                         id,
                         console_message,
-                        Some(_)))) =>
-                handle_console_message(actors.clone(), id, console_message,
+                        worker_id))) =>
+                handle_console_message(actors.clone(), id, worker_id, console_message,
                                        &actor_pipelines, &actor_workers),
-           Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::SendConsoleMessage(
-                       id,
-                       console_message,
-                       None))) =>
-               handle_console_message(actors.clone(), id, console_message,
-                                      &actor_pipelines, &actor_workers),
             Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEventMessage(
                         request_id, network_event))) => {
                 // copy the accepted_connections vector

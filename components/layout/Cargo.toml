@@ -62,11 +62,14 @@ features = [ "serde-serialization" ]
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
+
 [dependencies]
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
-url = "0.2.36"
 bitflags = "0.3"
 rustc-serialize = "0.3"
 libc = "0.1"

@@ -46,12 +46,14 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use net_traits::ControlMsg::Load;
 use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
-use net_traits::{AsyncResponseListener, Metadata};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
 use cors::CORSResponse;
 use util::str::DOMString;
 use util::task::spawn_named;
 
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
@@ -270,11 +272,18 @@ impl XMLHttpRequest {
             }
         }
 
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan,
         };
-        resource_task.send(Load(load_data, LoadConsumer::Listener(listener))).unwrap();
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify(message.to().unwrap());
+        });
+        resource_task.send(Load(load_data, LoadConsumer::Listener(response_target))).unwrap();
     }
 }
 
@@ -558,8 +567,11 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
         };
         let mut combined_headers = load_data.headers.clone();
         combined_headers.extend(load_data.preserved_headers.iter());
-        let cors_request = CORSRequest::maybe_new(referer_url.clone(), load_data.url.clone(), mode,
-                                                  load_data.method.clone(), combined_headers);
+        let cors_request = CORSRequest::maybe_new(referer_url.clone(),
+                                                  load_data.url.clone(),
+                                                  mode,
+                                                  load_data.method.clone(),
+                                                  combined_headers);
         match cors_request {
             Ok(None) => {
                 let mut buf = String::new();
@@ -781,7 +793,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         };
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(gen_id,
-            metadata.headers, metadata.status));
+                                                                   metadata.headers,
+                                                                   metadata.status));
         Ok(())
     }
 

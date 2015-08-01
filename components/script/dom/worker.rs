@@ -76,25 +76,29 @@ impl Worker {
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
         let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
+        let worker_id = global.get_next_worker_id();
 
-        if let Some(ref chan) = global.devtools_chan() {
-            let pipeline_id = global.pipeline();
-            let (devtools_sender, _) = ipc::channel().unwrap();
-            let title = format!("Worker for {}", worker_url);
-            let page_info = DevtoolsPageInfo {
-                title: title,
-                url: worker_url.clone(),
-            };
-            let worker_id = global.get_next_worker_id();
-            chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
-                                                            devtools_sender.clone(),
-                                                            page_info)).unwrap();
-        }
+        let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
+        let optional_sender = match global.devtools_chan() {
+            Some(ref chan) => {
+                let pipeline_id = global.pipeline();
+                let title = format!("Worker for {}", worker_url);
+                let page_info = DevtoolsPageInfo {
+                    title: title,
+                    url: worker_url.clone(),
+                };
+                chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
+                                                                devtools_sender.clone(),
+                                                                page_info)).unwrap();
+                Some(devtools_sender)
+            },
+            None => None,
+        };
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             worker_url, global.pipeline(), global.mem_profiler_chan(), global.devtools_chan(),
-            worker_ref, resource_task, constellation_chan, global.script_chan(), sender, receiver,
-            global.get_worker_id());
+            optional_sender, devtools_receiver, worker_ref, resource_task,
+            constellation_chan, global.script_chan(), sender, receiver, Some(worker_id));
 
         Ok(worker)
     }

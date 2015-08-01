@@ -9,6 +9,7 @@ use script_task::{ScriptMsg, ScriptChan};
 use msg::constellation_msg::{PipelineId};
 use net_traits::{Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
 use net_traits::AsyncResponseTarget;
+use std::sync::Arc;
 use url::Url;
 
 #[derive(JSTraceable, PartialEq, Clone, Debug)]
@@ -34,7 +35,9 @@ impl LoadType {
 
 #[derive(JSTraceable)]
 pub struct DocumentLoader {
-    pub resource_task: ResourceTask,
+    /// We use an `Arc<ResourceTask>` here in order to avoid file descriptor exhaustion when there
+    /// are lots of iframes.
+    pub resource_task: Arc<ResourceTask>,
     notifier_data: Option<NotifierData>,
     blocking_loads: Vec<LoadType>,
 }
@@ -50,7 +53,9 @@ impl DocumentLoader {
         DocumentLoader::new_with_task(existing.resource_task.clone(), None, None)
     }
 
-    pub fn new_with_task(resource_task: ResourceTask,
+    /// We use an `Arc<ResourceTask>` here in order to avoid file descriptor exhaustion when there
+    /// are lots of iframes.
+    pub fn new_with_task(resource_task: Arc<ResourceTask>,
                          data: Option<NotifierData>,
                          initial_load: Option<Url>,)
                          -> DocumentLoader {
@@ -69,11 +74,11 @@ impl DocumentLoader {
         let url = load.url().clone();
         self.blocking_loads.push(load);
         let pipeline = self.notifier_data.as_ref().map(|data| data.pipeline);
-        PendingAsyncLoad::new(self.resource_task.clone(), url, pipeline)
+        PendingAsyncLoad::new((*self.resource_task).clone(), url, pipeline)
     }
 
     /// Create and initiate a new network request.
-    pub fn load_async(&mut self, load: LoadType, listener: Box<AsyncResponseTarget + Send>) {
+    pub fn load_async(&mut self, load: LoadType, listener: AsyncResponseTarget) {
         let pending = self.prepare_async_load(load);
         pending.load_async(listener)
     }

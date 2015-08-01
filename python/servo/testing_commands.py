@@ -271,6 +271,18 @@ class MachCommands(CommandBase):
     def test_jquery(self, release, dev):
         return self.jquery_test_runner("test", release, dev)
 
+    @Command('test-dromaeo',
+             description='Run the Dromaeo test suite',
+             category='testing')
+    @CommandArgument('tests', default=["recommended"], nargs="...",
+                     help="Specific tests to run")
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Run the release build')
+    @CommandArgument('--dev', '-d', action='store_true',
+                     help='Run the dev build')
+    def test_dromaeo(self, tests, release, dev):
+        return self.dromaeo_test_runner(tests, release, dev)
+
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
              category='testing')
@@ -367,3 +379,28 @@ class MachCommands(CommandBase):
 
         return subprocess.check_call(
             [run_file, cmd, bin_path, base_dir])
+
+    def dromaeo_test_runner(self, tests, release, dev):
+        self.ensure_bootstrapped()
+        base_dir = path.abspath(path.join("tests", "dromaeo"))
+        dromaeo_dir = path.join(base_dir, "dromaeo")
+        run_file = path.join(base_dir, "run_dromaeo.py")
+
+        # Clone the Dromaeo repository if it doesn't exist
+        if not os.path.isdir(dromaeo_dir):
+            subprocess.check_call(
+                ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/notriddle/dromaeo", dromaeo_dir])
+
+        # Run pull in case the Dromaeo repo was updated since last test run
+        subprocess.check_call(
+            ["git", "-C", dromaeo_dir, "pull"])
+
+        # Compile test suite
+        subprocess.check_call(
+            ["make", "-C", dromaeo_dir, "web"])
+
+        # Check that a release servo build exists
+        bin_path = path.abspath(self.get_binary_path(release, dev))
+
+        return subprocess.check_call(
+            [run_file, "|".join(tests), bin_path, base_dir])

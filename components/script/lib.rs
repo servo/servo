@@ -21,7 +21,6 @@
 #![feature(plugin)]
 #![feature(ref_slice)]
 #![feature(rc_unique)]
-#![feature(slice_chars)]
 #![feature(str_utf16)]
 #![feature(unicode)]
 #![feature(vec_push_all)]
@@ -121,4 +120,3 @@ pub fn init() {
 
     perform_platform_specific_initialization();
 }
-

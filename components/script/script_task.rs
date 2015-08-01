@@ -26,6 +26,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
 use dom::bindings::js::{RootCollectionPtr, Root, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
@@ -67,8 +68,8 @@ use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, W
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::WebDriverScriptCommand;
-use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
+use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
@@ -136,7 +137,7 @@ struct InProgressLoad {
     window_size: Option<WindowSizeData>,
     /// Channel to the layout task associated with this pipeline.
     layout_chan: LayoutChan,
-    /// The current viewport clipping rectangle applying to this pipelie, if any.
+    /// The current viewport clipping rectangle applying to this pipeline, if any.
     clip_rect: Option<Rect<f32>>,
     /// The requested URL of the load.
     url: Url,
@@ -287,8 +288,9 @@ pub struct ScriptTask {
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A handle to the image cache task.
     image_cache_task: ImageCacheTask,
-    /// A handle to the resource task.
-    resource_task: ResourceTask,
+    /// A handle to the resource task. This is an `Arc` to avoid running out of file descriptors if
+    /// there are many iframes.
+    resource_task: Arc<ResourceTask>,
     /// A handle to the storage task.
     storage_task: StorageTask,
 
@@ -418,7 +420,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               control_chan,
                                               control_port,
                                               constellation_chan,
-                                              resource_task,
+                                              Arc::new(resource_task),
                                               storage_task,
                                               image_cache_task,
                                               mem_profiler_chan.clone(),
@@ -504,7 +506,7 @@ impl ScriptTask {
                control_chan: ScriptControlChan,
                control_port: Receiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
-               resource_task: ResourceTask,
+               resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
                image_cache_task: ImageCacheTask,
                mem_profiler_chan: mem::ProfilerChan,
@@ -842,8 +844,11 @@ impl ScriptTask {
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
         let page = self.root_page();
         match msg {
-            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) =>
-                devtools::handle_evaluate_js(&page, id, s, reply),
+            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => {
+                let window = get_page(&page, id).window();
+                let global_ref = GlobalRef::Window(window.r());
+                devtools::handle_evaluate_js(&global_ref, s, reply)
+            },
             DevtoolScriptControlMsg::GetRootNode(id, reply) =>
                 devtools::handle_get_root_node(&page, id, reply),
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) =>
@@ -856,8 +861,11 @@ impl ScriptTask {
                 devtools::handle_get_cached_messages(pipeline_id, message_types, reply),
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&page, id, node_id, modifications),
-            DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id, to_send) =>
-                devtools::handle_wants_live_notifications(&page, pipeline_id, to_send),
+            DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
+                let window = get_page(&page, id).window();
+                let global_ref = GlobalRef::Window(window.r());
+                devtools::handle_wants_live_notifications(&global_ref, to_send)
+            },
             DevtoolScriptControlMsg::SetTimelineMarkers(_pipeline_id, marker_types, reply) =>
                 devtools::handle_set_timeline_markers(&page, self, marker_types, reply),
             DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
@@ -1415,7 +1423,9 @@ impl ScriptTask {
         });
 
         let content_type = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => Some("text/plain".to_owned()),
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
+                Some("text/plain".to_owned())
+            }
             _ => None
         };
 
@@ -1680,9 +1690,16 @@ impl ScriptTask {
 
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
                                                              load_data.url.clone())));
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
             context: context,
             script_chan: script_chan.clone(),
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify(message.to().unwrap());
+        });
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
         };
 
         if load_data.url.scheme == "javascript" {
@@ -1697,7 +1714,7 @@ impl ScriptTask {
             data: load_data.data,
             cors: None,
             pipeline_id: Some(id),
-        }, LoadConsumer::Listener(listener))).unwrap();
+        }, LoadConsumer::Listener(response_target))).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
@@ -1817,7 +1834,6 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
         chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
     }
 }
-
 
 pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
     page.find(pipeline_id).expect("ScriptTask: received an event \

@@ -4,6 +4,7 @@
 
 extern crate hyper;
 
+use ipc_channel::ipc;
 use net_traits::LoadConsumer::Channel;
 use net_traits::LoadData;
 use net_traits::ProgressMsg::{Payload, Done};
@@ -19,7 +20,7 @@ fn assert_parse(url:          &'static str,
     use url::Url;
     use net::data_loader::load;
 
-    let (start_chan, start_port) = channel();
+    let (start_chan, start_port) = ipc::channel().unwrap();
     load(LoadData::new(Url::parse(url).unwrap(), None), Channel(start_chan));
 
     let response = start_port.recv().unwrap();
