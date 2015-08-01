@@ -316,7 +316,24 @@ impl WindowMethods for Window {
         browser.downcast().favicons.borrow_mut().push(url.to_string().clone());
     }
 
-    fn status(&self, _: Option<String>) {
+    fn status(&self, info: Option<String>) {
+        let browser = self.cef_browser.borrow();
+        let browser = match *browser {
+            None => return,
+            Some(ref browser) => browser,
+        };
+        let str = match info {
+            Some(s) => {
+                let utf16_chars: Vec<u16> = Utf16Encoder::new(s.chars()).collect();
+                utf16_chars
+            }
+            None => vec![]
+        };
+
+        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_status_message) {
+            browser.get_host().get_client().get_display_handler().on_status_message((*browser).clone(), str.as_slice());
+        }
     }
 
     fn load_start(&self, back: bool, forward: bool) {
