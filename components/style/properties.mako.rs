@@ -534,45 +534,10 @@ pub mod longhands {
     ${predefined_type("width", "LengthOrPercentageOrAuto",
                       "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
-    <%self:longhand name="height">
-        use values::computed::Context;
-        use cssparser::ToCss;
-        use std::fmt;
 
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
-
-        #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::LengthOrPercentageOrAuto);
-        pub mod computed_value {
-            pub use values::computed::LengthOrPercentageOrAuto as T;
-        }
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T { computed::LengthOrPercentageOrAuto::Auto }
-        #[inline]
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            specified::LengthOrPercentageOrAuto::parse_non_negative(input).map(SpecifiedValue)
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                match (self.0, context.inherited_height) {
-                    (specified::LengthOrPercentageOrAuto::Percentage(_),
-                     computed::LengthOrPercentageOrAuto::Auto)
-                    if !context.is_root_element && !context.positioned => {
-                        computed::LengthOrPercentageOrAuto::Auto
-                    },
-                    _ => self.0.to_computed_value(context)
-                }
-            }
-        }
-    </%self:longhand>
+    ${predefined_type("height", "LengthOrPercentageOrAuto",
+                      "computed::LengthOrPercentageOrAuto::Auto",
+                      "parse_non_negative")}
 
     ${predefined_type("min-width", "LengthOrPercentage",
                       "computed::LengthOrPercentage::Length(Au(0))",
@@ -6217,7 +6182,6 @@ pub fn cascade(viewport_size: Size2D<Au>,
             viewport_size: viewport_size,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
-            inherited_height: inherited_style.get_box().height,
             inherited_text_decorations_in_effect:
                 inherited_style.get_inheritedtext()._servo_text_decorations_in_effect,
             // To be overridden by applicable declarations:
