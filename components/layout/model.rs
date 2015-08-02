@@ -126,13 +126,16 @@ impl MarginCollapseInfo {
 
     pub fn finish_and_compute_collapsible_margins(mut self,
                                                   fragment: &Fragment,
+                                                  containing_block_size: Option<Au>,
                                                   can_collapse_block_end_margin_with_kids: bool)
                                                   -> (CollapsibleMargins, Au) {
         let state = match self.state {
             MarginCollapseState::AccumulatingCollapsibleTopMargin => {
                 match fragment.style().content_block_size() {
-                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(Au(0)) |
-                    LengthOrPercentageOrAuto::Percentage(0.) => {
+                    LengthOrPercentageOrAuto::Auto |
+                    LengthOrPercentageOrAuto::Length(Au(0)) |
+                    LengthOrPercentageOrAuto::Percentage(0.) |
+                    LengthOrPercentageOrAuto::Percentage(_) if containing_block_size.is_none() => {
                         match fragment.style().min_block_size() {
                             LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
                                 FinalMarginState::MarginsCollapseThrough

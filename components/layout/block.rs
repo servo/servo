@@ -929,6 +929,7 @@ impl BlockFlow {
             let (collapsible_margins, delta) =
                 margin_collapse_info.finish_and_compute_collapsible_margins(
                 &self.fragment,
+                self.base.block_container_explicit_block_size,
                 can_collapse_block_end_margin_with_kids);
             self.base.collapsible_margins = collapsible_margins;
             translate_including_floats(&mut cur_b, delta, &mut floats);
