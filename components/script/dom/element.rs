@@ -390,15 +390,15 @@ impl RawLayoutElementHelpers for Element {
         match height {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
-                hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
-                                height::SpecifiedValue(width_value)))));
+                let height_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                hints.push(from_declaration(
+                    PropertyDeclaration::Height(SpecifiedValue(height_value))));
             }
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Length(
+                let height_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::Length::Absolute(length));
-                hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
-                                height::SpecifiedValue(width_value)))));
+                hints.push(from_declaration(
+                    PropertyDeclaration::Height(SpecifiedValue(height_value))));
             }
         }
 
@@ -443,8 +443,7 @@ impl RawLayoutElementHelpers for Element {
             let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
                 PropertyDeclaration::Height(SpecifiedValue(
-                    longhands::height::SpecifiedValue(
-                        specified::LengthOrPercentageOrAuto::Length(value))))));
+                        specified::LengthOrPercentageOrAuto::Length(value)))));
         }
 
 

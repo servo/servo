@@ -216,10 +216,10 @@ impl fmt::Debug for SpecificFragmentInfo {
 fn clamp_size(size: Au,
               min_size: LengthOrPercentage,
               max_size: LengthOrPercentageOrNone,
-              container_inline_size: Au)
+              container_size: Au)
               -> Au {
-    let min_size = model::specified(min_size, container_inline_size);
-    let max_size = model::specified_or_none(max_size, container_inline_size);
+    let min_size = model::specified(min_size, container_size);
+    let max_size = model::specified_or_none(max_size, container_size);
 
     max(min_size, match max_size {
         None => size,
@@ -442,11 +442,15 @@ impl ReplacedImageFragmentInfo {
     // `style_length`: inline-size as given in the CSS
     pub fn style_length(style_length: LengthOrPercentageOrAuto,
                         dom_length: Option<Au>,
-                        container_inline_size: Au) -> MaybeAuto {
-        match (MaybeAuto::from_style(style_length,container_inline_size), dom_length) {
-            (MaybeAuto::Specified(length), _) => MaybeAuto::Specified(length),
-            (MaybeAuto::Auto, Some(length)) => MaybeAuto::Specified(length),
-            (MaybeAuto::Auto, None) => MaybeAuto::Auto,
+                        container_size: Option<Au>) -> MaybeAuto {
+        match (style_length, dom_length, container_size) {
+            (LengthOrPercentageOrAuto::Length(length), _, _) => MaybeAuto::Specified(length),
+            (LengthOrPercentageOrAuto::Percentage(pc), _, Some(container_size)) => {
+                MaybeAuto::Specified(container_size.scale_by(pc))
+            }
+            (LengthOrPercentageOrAuto::Percentage(_), _, None) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Auto, Some(dom_length), _) => MaybeAuto::Specified(dom_length),
+            (LengthOrPercentageOrAuto::Auto, None, _) => MaybeAuto::Auto,
         }
     }
 
@@ -468,7 +472,7 @@ impl ReplacedImageFragmentInfo {
         let inline_size = ReplacedImageFragmentInfo::style_length(
             style_inline_size,
             self.dom_inline_size,
-            container_inline_size);
+            Some(container_inline_size));
 
         let inline_size = match inline_size {
             MaybeAuto::Auto => {
@@ -483,7 +487,7 @@ impl ReplacedImageFragmentInfo {
                     let specified_height = ReplacedImageFragmentInfo::style_length(
                         style_block_size,
                         self.dom_block_size,
-                        Au(0));
+                        None);
                     let specified_height = match specified_height {
                         MaybeAuto::Auto => intrinsic_height,
                         MaybeAuto::Specified(h) => h,
@@ -510,7 +514,7 @@ impl ReplacedImageFragmentInfo {
     pub fn calculate_replaced_block_size(&mut self,
                                          style: &ComputedValues,
                                          noncontent_block_size: Au,
-                                         containing_block_block_size: Au,
+                                         containing_block_block_size: Option<Au>,
                                          fragment_inline_size: Au,
                                          fragment_block_size: Au)
                                          -> Au {
@@ -574,12 +578,12 @@ impl IframeFragmentInfo {
         IframeFragmentInfo::calculate_replaced_size(style.content_inline_size(),
                                                     style.min_inline_size(),
                                                     style.max_inline_size(),
-                                                    containing_size,
+                                                    Some(containing_size),
                                                     Au::from_px(300))
     }
 
     #[inline]
-    pub fn calculate_replaced_block_size(&self, style: &ComputedValues, containing_size: Au)
+    pub fn calculate_replaced_block_size(&self, style: &ComputedValues, containing_size: Option<Au>)
                                          -> Au {
         // Calculate the replaced block size (or default) as per CSS 2.1 § 10.3.2
         IframeFragmentInfo::calculate_replaced_size(style.content_block_size(),
@@ -593,13 +597,16 @@ impl IframeFragmentInfo {
     fn calculate_replaced_size(content_size: LengthOrPercentageOrAuto,
                                style_min_size: LengthOrPercentage,
                                style_max_size: LengthOrPercentageOrNone,
-                               containing_size: Au,
+                               containing_size: Option<Au>,
                                default_size: Au) -> Au {
-        let computed_size = match MaybeAuto::from_style(content_size, containing_size) {
-            MaybeAuto::Specified(length) => length,
-            MaybeAuto::Auto => default_size,
+        let computed_size = match (content_size, containing_size) {
+            (LengthOrPercentageOrAuto::Length(length), _) => length,
+            (LengthOrPercentageOrAuto::Percentage(pc), Some(container_size)) => container_size.scale_by(pc),
+            (LengthOrPercentageOrAuto::Percentage(_), None) => default_size,
+            (LengthOrPercentageOrAuto::Auto, _) => default_size,
         };
 
+        let containing_size = containing_size.unwrap_or(Au(0));
         let size = clamp_size(computed_size,
                               style_min_size,
                               style_max_size,
@@ -1714,7 +1721,7 @@ impl Fragment {
     /// been assigned first.
     ///
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
-    pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Au) {
+    pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Option<Au>) {
         match self.specific {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |

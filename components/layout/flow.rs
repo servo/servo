@@ -1389,13 +1389,31 @@ impl ContainingBlockLink {
     }
 
     #[inline]
-    pub fn generated_containing_block_size(&mut self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
+    pub fn generated_containing_block_size(&self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
         match self.link {
             None => {
                 panic!("Link to containing block not established; perhaps you forgot to call \
                         `set_absolute_descendants`?")
             }
             Some(ref link) => link.upgrade().unwrap().generated_containing_block_size(for_flow),
+        }
+    }
+
+    #[inline]
+    pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
+        match self.link {
+            None => {
+                panic!("Link to containing block not established; perhaps you forgot to call \
+                        `set_absolute_descendants`?")
+            }
+            Some(ref link) => {
+                let flow = link.upgrade().unwrap();
+                if flow.is_block_like() {
+                    flow.as_immutable_block().explicit_block_containing_size(layout_context)
+                } else {
+                    None
+                }
+            }
         }
     }
 }

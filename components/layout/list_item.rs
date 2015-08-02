@@ -106,7 +106,7 @@ impl Flow for ListItemFlow {
 
         if let Some(ref mut marker) = self.marker {
             let containing_block_block_size =
-                self.block_flow.base.block_container_explicit_block_size.unwrap_or(Au(0));
+                self.block_flow.base.block_container_explicit_block_size;
             marker.assign_replaced_block_size_if_necessary(containing_block_block_size);
 
             let font_metrics =
