@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+		<title>
+			 display/box/float/clear test 
+		</title>
+ 	<style type="text/css">
+/* last modified: 1 Dec 98 */ 	
+
+html {
+font: 10px/1 Verdana, sans-serif;
+background-color: blue;
+color: white;
+}
+
+body {
+margin: 1.5em;
+border: .5em solid black;
+padding: 0;
+width: 48em;
+background-color: white;
+}
+
+dl {
+/* overflow: hidden; disable margin collapse, but incorrectly doesn't work in servo --pcwalton */
+margin: 0;
+border: 0;
+padding: .5em;
+}
+
+dt { 
+background-color: rgb(204,0,0);
+margin: 0; 
+padding: 1em;
+width: 10.638%; /* refers to parent element's width of 47em. = 5em or 50px */
+height: 28em;
+border: .5em solid black;
+float: left;
+}
+
+dd {
+float: right;
+margin: 0 0 0 1em;
+border: 1em solid black;
+padding: 1em;
+width: 34em;
+height: 27em;
+}
+
+ul {
+margin: 0;
+border: 0;
+padding: 0;
+}
+
+li {
+display: block; /* i.e., suppress marker */
+color: black;
+height: 9em;
+width: 5em;
+margin: 0;
+border: .5em solid black;
+padding: 1em;
+float: left;
+background-color: #FC0;
+}
+
+#bar {
+background-color: black;
+color: white;
+width: 41.17%; /* = 14em */
+border: 0;
+margin: 0 1em;
+}
+
+#baz {
+margin: 1em 0;
+border: 0;
+padding: 1em;
+width: 10em;
+height: 10em;
+background-color: black;
+color: white;
+}
+
+form { 
+margin: 0;
+display: inline;
+}
+
+p { 
+margin: 0;
+}
+
+form p {
+line-height: 1.9;
+}
+
+blockquote {
+margin: 1em 1em 1em 2em;
+border-width: 1em 1.5em 2em .5em;
+border-style: solid;
+border-color: black;
+padding: 1em 0;
+width: 5em;
+height: 9em;
+float: left;
+background-color: #FC0;
+color: black;
+}
+
+address {
+font-style: normal;
+}
+
+h1 {
+background-color: black;
+color: white;
+float: left;
+margin: 1em 0;
+border: 0;
+padding: 1em;
+width: 10em;
+height: 10em;
+font-weight: normal;
+font-size: 1em;
+}
+  </style>
+	</head>
+	<body>
+		<dl>
+			<dt>
+			 
+			</dt>
+			<dd>
+			<ul>
+				<li>
+				 
+				</li>
+				<li id="bar">
+				<p>
+				 
+				</p>
+				<form action="./" method="get">
+					<p>
+					 
+					</p>
+					<p>
+					 
+					</p>
+				</form>
+				</li>
+				<li>
+				 
+				</li>
+				<li id="baz">
+				 
+				</li>
+			</ul>
+			<blockquote>
+				<address>
+					 
+				</address>
+			</blockquote>
+			<h1>
+				 
+			</h1>
+			</dd>
+		</dl>
+		<p style="color: black; font-size: 1em; line-height: 1.3em; clear: both">
+		</p>
+	
+
+</body></html>
