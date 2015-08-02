@@ -9,6 +9,7 @@ use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEve
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 use hsts::{HSTSList, secure_url};
+use file_loader;
 
 use ipc_channel::ipc::{self, IpcSender};
 use log;
@@ -20,7 +21,7 @@ use hyper::header::StrictTransportSecurity;
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{HttpStream, HttpConnector, HttpsConnector, Openssl, NetworkConnector, NetworkStream};
+use hyper::net::{Fresh, HttpsConnector, Openssl, NetworkConnector, NetworkStream};
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
@@ -30,13 +31,11 @@ use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
-use util::opts;
 use url::{Url, UrlParser};
 
 use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::fs::File;
 
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -100,7 +99,7 @@ fn load_for_consumer(load_data: LoadData,
     let connector = {
         // TODO: Is this still necessary? The type system is making it really hard to support both
         // connectors. SSL is working, so it's not clear to me if the original rationale still
-        // stands
+        // stands?
         // if opts::get().nossl {
         //     &HttpConnector
         let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
@@ -115,7 +114,7 @@ fn load_for_consumer(load_data: LoadData,
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
         }
-        Err(LoadError::Client(url, e)) => {
+        Err(LoadError::Connection(url, e)) => {
             send_error(url, e, start_chan)
         }
         Err(LoadError::MaxRedirects(url)) => {
@@ -123,23 +122,66 @@ fn load_for_consumer(load_data: LoadData,
         }
         Err(LoadError::Cors(url, msg)) |
         Err(LoadError::InvalidRedirect(url, msg)) |
-        Err(LoadError::Decoding(url, msg)) |
-        Err(LoadError::InvalidFile(url, msg)) => {
+        Err(LoadError::Decoding(url, msg)) => {
             send_error(url, msg, start_chan)
         }
+        Err(LoadError::Ssl(url, msg)) => {
+            info!("ssl validation error {}, '{}'", url.serialize(), msg);
+
+            let mut image = resources_dir_path();
+            image.push("badcert.html");
+            let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
+
+            file_loader::factory(load_data, start_chan, classifier)
+
+        }
         Ok((mut response_reader, metadata)) => {
-            send_data(&mut response_reader, start_chan, metadata, classifier);
+            send_data(&mut response_reader, start_chan, metadata, classifier)
+        }
+    }
+}
+
+#[inline(always)]
+fn connect<C, S>(url: Url,
+                 method: Method,
+                 connector: &C) -> Result<Request<Fresh>, LoadError> where
+            C: NetworkConnector<Stream=S>,
+            S: Into<Box<NetworkStream + Send>> {
+    let connection = Request::with_connector(method, url.clone(), connector);
+
+    let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
+function: \"SSL3_GET_SERVER_CERTIFICATE\", \
+reason: \"certificate verify failed\" }]))";
+
+    match connection {
+        Ok(req) => Ok(req),
+
+        Err(HttpError::Io(ref io_error)) if (
+            io_error.kind() == io::ErrorKind::Other &&
+            io_error.description() == "Error in OpenSSL" &&
+            // FIXME: This incredibly hacky. Make it more robust, and at least test it.
+            format!("{:?}", io_error.cause()) == ssl_err_string
+        ) => {
+            Err(
+                LoadError::Ssl(
+                    url.clone(),
+                    format!("ssl error {:?}: {:?} {:?}", io_error.kind(), io_error.description(), io_error.cause())
+                )
+            )
+        },
+        Err(e) => {
+             Err(LoadError::Connection(url, e.description().to_string()))
         }
     }
 }
 
 enum LoadError {
     UnsupportedScheme(Url),
-    Client(Url, String),
+    Connection(Url, String),
     Cors(Url, String),
+    Ssl(Url, String),
     InvalidRedirect(Url, String),
     Decoding(Url, String),
-    InvalidFile(Url, String),
     MaxRedirects(Url)
 }
 
@@ -197,33 +239,7 @@ fn load<C, S>(mut load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
-function: \"SSL3_GET_SERVER_CERTIFICATE\", \
-reason: \"certificate verify failed\" }]))";
-
-        let req = Request::with_connector(load_data.method.clone(), url.clone(), connector);
-
-        let mut req = match req {
-            Ok(req) => req,
-            Err(HttpError::Io(ref io_error)) if (
-                io_error.kind() == io::ErrorKind::Other &&
-                io_error.description() == "Error in OpenSSL" &&
-                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-                format!("{:?}", io_error.cause()) == ssl_err_string
-            ) => {
-                let mut image = resources_dir_path();
-                image.push("badcert.html");
-                let file_url = Url::from_file_path(&*image).unwrap();
-
-                match File::open(image.clone()) {
-                    Ok(f) => return Ok((Box::new(f), Metadata::default(file_url))),
-                    Err(_) => return Err(LoadError::InvalidFile(file_url, image.to_str().unwrap().to_string()))
-                }
-            },
-            Err(e) => {
-                return Err(LoadError::Client(url, e.description().to_string()));
-            }
-        };
+        let mut req = try!(connect(url.clone(), load_data.method.clone(), connector));
 
         //Ensure that the host header is set from the original url
         let host = Host {
@@ -284,13 +300,13 @@ reason: \"certificate verify failed\" }]))";
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        return Err(LoadError::Client(url, e.description().to_string()));
+                        return Err(LoadError::Connection(url, e.description().to_string()));
                     }
                 };
 
                 match writer.write_all(&*data) {
                     Err(e) => {
-                        return Err(LoadError::Client(url, e.description().to_string()));
+                        return Err(LoadError::Connection(url, e.description().to_string()));
                     }
                     _ => {}
                 };
@@ -304,7 +320,7 @@ reason: \"certificate verify failed\" }]))";
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        return Err(LoadError::Client(url, e.description().to_string()));
+                        return Err(LoadError::Connection(url, e.description().to_string()));
                     }
                 }
             }
@@ -326,7 +342,7 @@ reason: \"certificate verify failed\" }]))";
         let response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                return Err(LoadError::Client(url, e.description().to_string()));
+                return Err(LoadError::Connection(url, e.description().to_string()));
             }
         };
 
