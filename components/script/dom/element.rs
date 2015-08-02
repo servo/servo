@@ -660,7 +660,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                Arc::get_mut(&mut declarations.normal).unwrap().remove(index);
+                Arc::make_unique(&mut declarations.normal).remove(index);
                 return;
             }
 
@@ -668,7 +668,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                Arc::get_mut(&mut declarations.important).unwrap().remove(index);
+                Arc::make_unique(&mut declarations.important).remove(index);
                 return;
             }
         }
@@ -682,11 +682,10 @@ impl<'a> ElementHelpers<'a> for &'a Element {
             } else {
                 &mut declarations.normal
             };
-            // Element is the only owner of the Arc’s for its style attribute,
-            // except during selector matching.
-            // But selector matching does not run concurrently with script.
-            let existing_declarations = Arc::get_mut(existing_declarations).unwrap();
 
+            // Usually, the reference count will be 1 here. But transitions could make it greater
+            // than that.
+            let existing_declarations = Arc::make_unique(existing_declarations);
             for declaration in existing_declarations.iter_mut() {
                 if declaration.name() == property_decl.name() {
                     *declaration = property_decl;
@@ -717,11 +716,11 @@ impl<'a> ElementHelpers<'a> for &'a Element {
             } else {
                 (&mut declarations.normal, &mut declarations.important)
             };
-            // Element is the only owner of the Arc’s for its style attribute,
-            // except during selector matching.
-            // But selector matching does not run concurrently with script.
-            let from = Arc::get_mut(from).unwrap();
-            let to = Arc::get_mut(to).unwrap();
+
+            // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
+            // could make them greater than that.
+            let from = Arc::make_unique(from);
+            let to = Arc::make_unique(to);
             let mut new_from = Vec::new();
             for declaration in from.drain(..) {
                 if properties.contains(&declaration.name()) {
