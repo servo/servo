@@ -11,17 +11,17 @@ use euclid::point::Point2D;
 const NEWTON_METHOD_ITERATIONS: u8 = 8;
 
 pub struct Bezier {
-    ax: f32,
-    bx: f32,
-    cx: f32,
-    ay: f32,
-    by: f32,
-    cy: f32,
+    ax: f64,
+    bx: f64,
+    cx: f64,
+    ay: f64,
+    by: f64,
+    cy: f64,
 }
 
 impl Bezier {
     #[inline]
-    pub fn new(p1: Point2D<f32>, p2: Point2D<f32>) -> Bezier {
+    pub fn new(p1: Point2D<f64>, p2: Point2D<f64>) -> Bezier {
         let cx = 3.0 * p1.x;
         let bx = 3.0 * (p2.x - p1.x) - cx;
 
@@ -39,23 +39,23 @@ impl Bezier {
     }
 
     #[inline]
-    fn sample_curve_x(&self, t: f32) -> f32 {
+    fn sample_curve_x(&self, t: f64) -> f64 {
         // ax * t^3 + bx * t^2 + cx * t
         ((self.ax * t + self.bx) * t + self.cx) * t
     }
 
     #[inline]
-    fn sample_curve_y(&self, t: f32) -> f32 {
+    fn sample_curve_y(&self, t: f64) -> f64 {
         ((self.ay * t + self.by) * t + self.cy) * t
     }
 
     #[inline]
-    fn sample_curve_derivative_x(&self, t: f32) -> f32 {
+    fn sample_curve_derivative_x(&self, t: f64) -> f64 {
         (3.0 * self.ax * t + 2.0 * self.bx) * t + self.cx
     }
 
     #[inline]
-    fn solve_curve_x(&self, x: f32, epsilon: f32) -> f32 {
+    fn solve_curve_x(&self, x: f64, epsilon: f64) -> f64 {
         // Fast path: Use Newton's method.
         let mut t = x;
         for _ in 0..NEWTON_METHOD_ITERATIONS {
@@ -97,7 +97,7 @@ impl Bezier {
     }
 
     #[inline]
-    pub fn solve(&self, x: f32, epsilon: f32) -> f32 {
+    pub fn solve(&self, x: f64, epsilon: f64) -> f64 {
         self.sample_curve_y(self.solve_curve_x(x, epsilon))
     }
 }
@@ -106,9 +106,9 @@ trait ApproxEq {
     fn approx_eq(self, value: Self, epsilon: Self) -> bool;
 }
 
-impl ApproxEq for f32 {
+impl ApproxEq for f64 {
     #[inline]
-    fn approx_eq(self, value: f32, epsilon: f32) -> bool {
+    fn approx_eq(self, value: f64, epsilon: f64) -> bool {
         (self - value).abs() < epsilon
     }
 }
