@@ -5669,7 +5669,7 @@ impl<T: ToCss> DeclaredValue<T> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
