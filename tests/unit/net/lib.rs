@@ -10,9 +10,11 @@ extern crate net_traits;
 extern crate url;
 extern crate util;
 extern crate time;
+extern crate hyper;
 
 #[cfg(test)] mod cookie;
 #[cfg(test)] mod data_loader;
 #[cfg(test)] mod mime_classifier;
 #[cfg(test)] mod resource_task;
 #[cfg(test)] mod hsts;
+#[cfg(test)] mod http_loader;
