@@ -138,7 +138,7 @@ pub struct LayoutTaskData {
     pub resolved_style_response: Option<String>,
 
     /// The list of currently-running animations.
-    pub running_animations: Vec<Animation>,
+    pub running_animations: Arc<HashMap<OpaqueNode,Vec<Animation>>>,
 
     /// Receives newly-discovered animations.
     pub new_animations_receiver: Receiver<Animation>,
@@ -381,7 +381,7 @@ impl LayoutTask {
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
                     resolved_style_response: None,
-                    running_animations: Vec::new(),
+                    running_animations: Arc::new(HashMap::new()),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
                     new_animations_sender: new_animations_sender,
@@ -423,6 +423,7 @@ impl LayoutTask {
             generation: rw_data.generation,
             new_animations_sender: rw_data.new_animations_sender.clone(),
             goal: goal,
+            running_animations: rw_data.running_animations.clone(),
         }
     }
 
@@ -1275,23 +1276,27 @@ impl LayoutTask {
         animation::tick_all_animations(self, &mut rw_data)
     }
 
-    pub fn tick_animation<'a>(&'a self, animation: &Animation, rw_data: &mut LayoutTaskData) {
+    pub fn tick_animations<'a>(&'a self, rw_data: &mut LayoutTaskData) {
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
 
-        // Perform an abbreviated style recalc that operates without access to the DOM.
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
                                                                   &self.url,
                                                                   reflow_info.goal);
-        let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
-        profile(time::ProfilerCategory::LayoutStyleRecalc,
-                self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
-                || animation::recalc_style_for_animation(root_flow.deref_mut(), &animation));
+
+        {
+            // Perform an abbreviated style recalc that operates without access to the DOM.
+            let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
+            let animations = &*rw_data.running_animations;
+            profile(time::ProfilerCategory::LayoutStyleRecalc,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || animation::recalc_style_for_animations(root_flow.deref_mut(), animations));
+        }
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      &mut *rw_data,

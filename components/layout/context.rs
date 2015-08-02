@@ -126,6 +126,9 @@ pub struct SharedLayoutContext {
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 
+    /// The animations that are currently running.
+    pub running_animations: Arc<HashMap<OpaqueNode,Vec<Animation>>>,
+
     /// Why is this reflow occurring
     pub goal: ReflowGoal,
 }
