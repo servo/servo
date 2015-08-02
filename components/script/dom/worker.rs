@@ -76,6 +76,7 @@ impl Worker {
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
         let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
+        let worker_id = global.get_next_worker_id();
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
         let optional_sender = match global.devtools_chan() {
@@ -86,7 +87,6 @@ impl Worker {
                     title: title,
                     url: worker_url.clone(),
                 };
-                let worker_id = global.get_next_worker_id();
                 chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
                                                                 devtools_sender.clone(),
                                                                 page_info)).unwrap();
@@ -98,7 +98,7 @@ impl Worker {
         DedicatedWorkerGlobalScope::run_worker_scope(
             worker_url, global.pipeline(), global.mem_profiler_chan(), global.devtools_chan(),
             optional_sender, devtools_receiver, worker_ref, resource_task,
-            constellation_chan, global.script_chan(), sender, receiver);
+            constellation_chan, global.script_chan(), sender, receiver, Some(worker_id));
 
         Ok(worker)
     }

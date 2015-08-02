@@ -9,6 +9,7 @@ use std::net::TcpStream;
 
 pub struct WorkerActor {
     pub name: String,
+    pub console: String,
     pub id: WorkerId,
 }
 

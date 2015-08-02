@@ -69,7 +69,7 @@ pub enum ScriptToDevtoolsControlMsg {
     NewGlobal((PipelineId, Option<WorkerId>),
               IpcSender<DevtoolScriptControlMsg>,
               DevtoolsPageInfo),
-    SendConsoleMessage(PipelineId, ConsoleMessage),
+    SendConsoleMessage(PipelineId, ConsoleMessage, Option<WorkerId>),
 }
 
 /// Serialized JS return values
@@ -268,4 +268,3 @@ impl PreciseTime {
         Duration::nanoseconds((later.0 - self.0) as i64)
     }
 }
-
