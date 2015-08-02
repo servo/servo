@@ -175,7 +175,7 @@ reason: \"certificate verify failed\" }]))";
     }
 }
 
-enum LoadError {
+pub enum LoadError {
     UnsupportedScheme(Url),
     Connection(Url, String),
     Cors(Url, String),
@@ -211,13 +211,8 @@ fn load<C, S>(mut load_data: LoadData,
     // the source rather than rendering the contents of the URL.
     let viewing_source = url.scheme == "view-source";
     if viewing_source {
-        let inner_url = replace_hosts(&inner_url(&load_data.url));
-        doc_url = inner_url.clone();
-        if &*inner_url.scheme != "http" && &*inner_url.scheme != "https" {
-            return Err(LoadError::UnsupportedScheme(inner_url));
-        } else {
-            url = inner_url;
-        }
+        url = inner_url(&load_data.url);
+        doc_url = url.clone();
     }
 
     // Loop to handle redirects.
@@ -261,6 +256,8 @@ fn load<C, S>(mut load_data: LoadData,
 
         req.headers_mut().set(host);
 
+
+        // --- Set default accept header
         if !req.headers().has::<Accept>() {
             let accept = Accept(vec![
                 qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
@@ -271,6 +268,7 @@ fn load<C, S>(mut load_data: LoadData,
             req.headers_mut().set(accept);
         }
 
+        // --- Fetch cookies
         let (tx, rx) = ipc::channel().unwrap();
         resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(doc_url.clone(),
                                                             tx,
@@ -281,9 +279,11 @@ fn load<C, S>(mut load_data: LoadData,
             req.headers_mut().set_raw("Cookie".to_owned(), v);
         }
 
+        // --- Set default accept encoding
         if !req.headers().has::<AcceptEncoding>() {
             req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
         }
+
         if log_enabled!(log::LogLevel::Info) {
             info!("{}", load_data.method);
             for header in req.headers().iter() {
@@ -292,6 +292,7 @@ fn load<C, S>(mut load_data: LoadData,
             info!("{:?}", load_data.data);
         }
 
+        // --- Start sending the request
         // Avoid automatically sending request body if a redirect has occurred.
         let writer = match load_data.data {
             Some(ref data) if iters == 1 => {
@@ -326,6 +327,7 @@ fn load<C, S>(mut load_data: LoadData,
             }
         };
 
+        // --- Tell devtools we've made a request
         // Send an HttpRequest message to devtools with a unique request_id
         // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
         let request_id = uuid::Uuid::new_v4().to_simple_string();
@@ -339,6 +341,7 @@ fn load<C, S>(mut load_data: LoadData,
                                                                     net_event))).unwrap();
         }
 
+        // --- Finish writing the request and read the response
         let response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
@@ -354,6 +357,7 @@ fn load<C, S>(mut load_data: LoadData,
             }
         }
 
+        // --- Update the resource manager that we've gotten a cookie
         if let Some(cookies) = response.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
@@ -386,7 +390,7 @@ fn load<C, S>(mut load_data: LoadData,
             }
         }
 
-
+        // --- Loop if there's a redirect
         if response.status.class() == StatusClass::Redirection {
             match response.headers.get::<Location>() {
                 Some(&Location(ref new_url)) => {
@@ -432,10 +436,12 @@ fn load<C, S>(mut load_data: LoadData,
         }
 
         let mut adjusted_headers = response.headers.clone();
+
         if viewing_source {
             adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
         }
         let mut metadata: Metadata = Metadata::default(doc_url.clone());
+
         metadata.set_content_type(match adjusted_headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
@@ -444,6 +450,8 @@ fn load<C, S>(mut load_data: LoadData,
         metadata.status = Some(response.status_raw().clone());
 
         let mut encoding_str: Option<String> = None;
+
+        //TODO: This is now in hyper, just need to implement
         //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
         if let Some(encodings) = response.headers.get_raw("content-encoding") {
             for encoding in encodings.iter() {
@@ -456,6 +464,7 @@ fn load<C, S>(mut load_data: LoadData,
             }
         }
 
+        // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         if let Some(ref chan) = devtools_chan {
@@ -468,6 +477,7 @@ fn load<C, S>(mut load_data: LoadData,
                                                                     net_event_response))).unwrap();
         }
 
+        // --- Stream the results depending on the encoding type.
         match encoding_str {
             Some(encoding) => {
                 if encoding == "gzip" {
