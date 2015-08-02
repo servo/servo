@@ -22,7 +22,7 @@ use hyper::header::StrictTransportSecurity;
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{HttpConnector, HttpsConnector, Openssl};
+use hyper::net::{HttpStream, HttpConnector, HttpsConnector, Openssl, NetworkConnector, NetworkStream};
 use hyper::status::{StatusCode, StatusClass};
 use ipc_channel::ipc::{self, IpcSender};
 use log;
@@ -101,7 +101,21 @@ fn load_for_consumer(load_data: LoadData,
         resource_mgr_chan: IpcSender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
-    match load(load_data, resource_mgr_chan, devtools_chan, hsts_list) {
+
+    let connector = {
+        // TODO: Is this still necessary? The type system is making it really hard to support both
+        // connectors. SSL is working, so it's not clear to me if the original rationale still
+        // stands
+        // if opts::get().nossl {
+        //     &HttpConnector
+        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+        context.set_verify(SSL_VERIFY_PEER, None);
+        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+
+        &HttpsConnector::new(Openssl { context: Arc::new(context) })
+    };
+
+    match load(load_data, resource_mgr_chan, devtools_chan, hsts_list, connector) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -134,10 +148,14 @@ enum LoadError {
     MaxRedirects(Url)
 }
 
-fn load(mut load_data: LoadData,
+fn load<C, S>(mut load_data: LoadData,
         resource_mgr_chan: IpcSender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-        hsts_list: Arc<Mutex<HSTSList>>) -> Result<(Box<Read>, Metadata), LoadError> {
+        hsts_list: Arc<Mutex<HSTSList>>,
+        connector: &C) -> Result<(Box<Read>, Metadata), LoadError> where
+            C: NetworkConnector<Stream=S>,
+            S: Into<Box<NetworkStream + Send>> {
+
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -184,20 +202,11 @@ fn load(mut load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        // TODO - Is no ssl still needed?
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]))";
 
-        let req = if opts::get().nossl {
-            Request::with_connector(load_data.method.clone(), url.clone(), &HttpConnector)
-        } else {
-            let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-            context.set_verify(SSL_VERIFY_PEER, None);
-            context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
-            Request::with_connector(load_data.method.clone(), url.clone(),
-                &HttpsConnector::new(Openssl { context: Arc::new(context) }))
-        };
+        let req = Request::with_connector(load_data.method.clone(), url.clone(), connector);
 
         let mut req = match req {
             Ok(req) => req,
