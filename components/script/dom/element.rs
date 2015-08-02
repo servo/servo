@@ -601,12 +601,11 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         &self.local_name
     }
 
-    fn parsed_name(self, name: DOMString) -> Atom {
+    fn parsed_name(self, mut name: DOMString) -> Atom {
         if self.html_element_in_html_document() {
-            Atom::from_slice(&name.to_ascii_lowercase())
-        } else {
-            Atom::from_slice(&name)
+            name.make_ascii_lowercase();
         }
+        Atom::from_slice(&name)
     }
 
     fn namespace(self) -> &'a Namespace {
