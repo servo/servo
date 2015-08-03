@@ -1349,8 +1349,7 @@ impl Flow for InlineFlow {
             self.base.block_container_explicit_block_size;
         for fragment in self.fragments.fragments.iter_mut() {
             fragment.update_late_computed_replaced_inline_size_if_necessary();
-            fragment.assign_replaced_block_size_if_necessary(
-                containing_block_block_size);
+            fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
         }
 
         // Reset our state, so that we handle incremental reflow correctly.

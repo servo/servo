@@ -17,7 +17,7 @@ use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
-use wrapper::ThreadSafeLayoutNode;
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -106,6 +106,9 @@ pub struct Fragment {
 
     /// How damaged this fragment is since last reflow.
     pub restyle_damage: RestyleDamage,
+
+    /// The pseudo-element that this fragment represents.
+    pub pseudo: PseudoElementType<()>,
 
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     pub debug_id: u16,
@@ -752,6 +755,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
+            pseudo: node.get_pseudo_element_type().strip(),
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
@@ -782,12 +786,14 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
+            pseudo: node.get_pseudo_element_type().strip(),
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
 
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
+                                      pseudo: PseudoElementType<()>,
                                       style: Arc<ComputedValues>,
                                       restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
@@ -802,6 +808,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
+            pseudo: pseudo,
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
@@ -834,6 +841,7 @@ impl Fragment {
             margin: self.margin,
             specific: info,
             inline_context: self.inline_context.clone(),
+            pseudo: self.pseudo.clone(),
             debug_id: self.debug_id,
         }
     }

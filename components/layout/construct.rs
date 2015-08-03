@@ -105,7 +105,7 @@ pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragments(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
-    Whitespace(OpaqueNode, Arc<ComputedValues>, RestyleDamage),
+    Whitespace(OpaqueNode, PseudoElementType<()>, Arc<ComputedValues>, RestyleDamage),
     /// TableColumn Fragment
     TableColumnFragment(Fragment),
 }
@@ -552,6 +552,7 @@ impl<'a> FlowConstructor<'a> {
             }
             ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                     whitespace_node,
+                    whitespace_pseudo,
                     mut whitespace_style,
                     whitespace_damage)) => {
                 // Add whitespace results. They will be stripped out later on when
@@ -560,6 +561,7 @@ impl<'a> FlowConstructor<'a> {
                     UnscannedTextFragmentInfo::from_text(" ".to_owned()));
                 properties::modify_style_for_replaced_content(&mut whitespace_style);
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
+                                                                    whitespace_pseudo,
                                                                     whitespace_style,
                                                                     whitespace_damage,
                                                                     fragment_info);
@@ -691,6 +693,8 @@ impl<'a> FlowConstructor<'a> {
 
             fragments.fragments
                      .push_back(Fragment::from_opaque_node_and_style(node.opaque(),
+                                                                     node.get_pseudo_element_type()
+                                                                         .strip(),
                                                                      style.clone(),
                                                                      node.restyle_damage(),
                                                                      specific))
@@ -770,12 +774,14 @@ impl<'a> FlowConstructor<'a> {
                     } else {
                         // Push the absolutely-positioned kid as an inline containing block.
                         let kid_node = flow.as_block().fragment.node;
+                        let kid_pseudo = flow.as_block().fragment.pseudo.clone();
                         let kid_style = flow.as_block().fragment.style.clone();
                         let kid_restyle_damage = flow.as_block().fragment.restyle_damage;
                         let fragment_info = SpecificFragmentInfo::InlineAbsolute(
                             InlineAbsoluteFragmentInfo::new(flow));
                         fragment_accumulator.push(Fragment::from_opaque_node_and_style(
                                 kid_node,
+                                kid_pseudo,
                                 kid_style,
                                 kid_restyle_damage,
                                 fragment_info));
@@ -803,6 +809,7 @@ impl<'a> FlowConstructor<'a> {
                 }
                 ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                         whitespace_node,
+                        whitespace_pseudo,
                         mut whitespace_style,
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
@@ -810,6 +817,7 @@ impl<'a> FlowConstructor<'a> {
                         UnscannedTextFragmentInfo::from_text(" ".to_owned()));
                     properties::modify_style_for_replaced_content(&mut whitespace_style);
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
+                                                                        whitespace_pseudo,
                                                                         whitespace_style,
                                                                         whitespace_damage,
                                                                         fragment_info);
@@ -852,6 +860,7 @@ impl<'a> FlowConstructor<'a> {
         if node.is_ignorable_whitespace() {
             return ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                 node.opaque(),
+                node.get_pseudo_element_type().strip(),
                 node.style().clone(),
                 node.restyle_damage()))
         }
@@ -1272,8 +1281,12 @@ impl<'a> FlowConstructor<'a> {
                 for fragment in inline_fragments_construction_result.fragments
                                                                     .fragments
                                                                     .iter_mut() {
-                    // Only mutate the styles of fragments that represent the dirty node.
+                    // Only mutate the styles of fragments that represent the dirty node (including
+                    // pseudo-element).
                     if fragment.node != node.opaque() {
+                        continue
+                    }
+                    if fragment.pseudo != node.get_pseudo_element_type().strip() {
                         continue
                     }
 
