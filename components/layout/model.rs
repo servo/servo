@@ -126,29 +126,34 @@ impl MarginCollapseInfo {
 
     pub fn finish_and_compute_collapsible_margins(mut self,
                                                   fragment: &Fragment,
+                                                  containing_block_size: Option<Au>,
                                                   can_collapse_block_end_margin_with_kids: bool)
                                                   -> (CollapsibleMargins, Au) {
         let state = match self.state {
             MarginCollapseState::AccumulatingCollapsibleTopMargin => {
-                match fragment.style().content_block_size() {
-                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(Au(0)) |
-                    LengthOrPercentageOrAuto::Percentage(0.) => {
-                        match fragment.style().min_block_size() {
-                            LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
-                                FinalMarginState::MarginsCollapseThrough
-                            },
-                            _ => {
-                                // If the fragment has non-zero min-block-size, margins may not
-                                // collapse through it.
-                                FinalMarginState::BottomMarginCollapses
-                            }
+                let may_collapse_through = match fragment.style().content_block_size() {
+                    LengthOrPercentageOrAuto::Auto => true,
+                    LengthOrPercentageOrAuto::Length(Au(0)) => true,
+                    LengthOrPercentageOrAuto::Percentage(0.) => true,
+                    LengthOrPercentageOrAuto::Percentage(_) if containing_block_size.is_none() => true,
+                    _ => false,
+                };
+
+                if may_collapse_through {
+                    match fragment.style().min_block_size() {
+                        LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
+                            FinalMarginState::MarginsCollapseThrough
+                        },
+                        _ => {
+                            // If the fragment has non-zero min-block-size, margins may not
+                            // collapse through it.
+                            FinalMarginState::BottomMarginCollapses
                         }
-                    },
-                    _ => {
-                        // If the fragment has an explicitly specified block-size, margins may not
-                        // collapse through it.
-                        FinalMarginState::BottomMarginCollapses
                     }
+                } else {
+                    // If the fragment has an explicitly specified block-size, margins may not
+                    // collapse through it.
+                    FinalMarginState::BottomMarginCollapses
                 }
             }
             MarginCollapseState::AccumulatingMarginIn => FinalMarginState::BottomMarginCollapses,

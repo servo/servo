@@ -75,6 +75,18 @@
             "url": "/_mozilla/css/class-namespaces.html"
           }
         ],
+        "css/setpropertypriority.html": [
+          {
+            "path": "css/setpropertypriority.html",
+            "references": [
+              [
+                "/_mozilla/css/setpropertypriority_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/setpropertypriority.html"
+          }
+        ],
         "mozilla/canvas/drawimage_html_image_1.html": [
           {
             "path": "mozilla/canvas/drawimage_html_image_1.html",
@@ -443,12 +455,6 @@
             "url": "/_mozilla/mozilla/element_attributes.html"
           }
         ],
-        "mozilla/element_classList.html": [
-          {
-            "path": "mozilla/element_classList.html",
-            "url": "/_mozilla/mozilla/element_classList.html"
-          }
-        ],
         "mozilla/element_className.html": [
           {
             "path": "mozilla/element_className.html",
@@ -804,6 +810,18 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/setpropertypriority.html": [
+        {
+          "path": "css/setpropertypriority.html",
+          "references": [
+            [
+              "/_mozilla/css/setpropertypriority_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/setpropertypriority.html"
         }
       ],
       "mozilla/canvas/drawimage_html_image_1.html": [

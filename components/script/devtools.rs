@@ -5,6 +5,7 @@
 use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{ConsoleAPI, PageError};
+use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
@@ -12,6 +13,7 @@ use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
 use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
+use dom::bindings::global::GlobalRef;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{WindowHelpers, ScriptHelpers};
 use dom::document::DocumentHelpers;
@@ -24,18 +26,10 @@ use js::jsval::UndefinedValue;
 
 use std::rc::Rc;
 
-
-pub fn handle_evaluate_js(
-        page: &Rc<Page>,
-        pipeline: PipelineId,
-        eval: String,
-        reply: IpcSender<EvaluateJSReply>
-    ) {
-    let page = get_page(&*page, pipeline);
-    let window = page.window();
-    let cx = window.r().get_cx();
+pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<EvaluateJSReply>) {
+    let cx = global.get_cx();
     let mut rval = RootedValue::new(cx, UndefinedValue());
-    window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+    global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
     reply.send(if rval.ptr.is_undefined() {
         EvaluateJSReply::VoidValue
@@ -43,12 +37,9 @@ pub fn handle_evaluate_js(
         EvaluateJSReply::BooleanValue(rval.ptr.to_boolean())
     } else if rval.ptr.is_double() || rval.ptr.is_int32() {
         EvaluateJSReply::NumberValue(
-            FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap()
-        )
+            FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap())
     } else if rval.ptr.is_string() {
-        //FIXME: use jsstring_to_str when jsval grows to_jsstring
-        EvaluateJSReply::StringValue(
-            FromJSValConvertible::from_jsval(cx, rval.handle(), StringificationBehavior::Default).unwrap())
+        EvaluateJSReply::StringValue(jsstring_to_str(cx, rval.ptr.to_string()))
     } else if rval.ptr.is_null() {
         EvaluateJSReply::NullValue
     } else {
@@ -165,10 +156,8 @@ pub fn handle_modify_attribute(page: &Rc<Page>,
     }
 }
 
-pub fn handle_wants_live_notifications(page: &Rc<Page>, pipeline_id: PipelineId, send_notifications: bool) {
-    let page = get_page(&*page, pipeline_id);
-    let window = page.window();
-    window.r().set_devtools_wants_updates(send_notifications);
+pub fn handle_wants_live_notifications(global: &GlobalRef, send_notifications: bool) {
+    global.set_devtools_wants_updates(send_notifications);
 }
 
 pub fn handle_set_timeline_markers(page: &Rc<Page>,

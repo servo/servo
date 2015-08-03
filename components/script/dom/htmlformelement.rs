@@ -448,13 +448,12 @@ impl<'a> FormSubmitter<'a> {
         match *self {
             FormSubmitter::FormElement(form) => form.Action(),
             FormSubmitter::InputElement(input_element) => {
-                // FIXME(pcwalton): Make this a static atom.
-                input_element.get_form_attribute(&Atom::from_slice("formaction"),
+                input_element.get_form_attribute(&atom!("formaction"),
                                                  |i| i.FormAction(),
                                                  |f| f.Action())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&Atom::from_slice("formaction"),
+                button_element.get_form_attribute(&atom!("formaction"),
                                                   |i| i.FormAction(),
                                                   |f| f.Action())
             }
@@ -465,13 +464,12 @@ impl<'a> FormSubmitter<'a> {
         let attr = match *self {
             FormSubmitter::FormElement(form) => form.Enctype(),
             FormSubmitter::InputElement(input_element) => {
-                // FIXME(pcwalton): Make this a static atom.
-                input_element.get_form_attribute(&Atom::from_slice("formenctype"),
+                input_element.get_form_attribute(&atom!("formenctype"),
                                                  |i| i.FormEnctype(),
                                                  |f| f.Enctype())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&Atom::from_slice("formenctype"),
+                button_element.get_form_attribute(&atom!("formenctype"),
                                                   |i| i.FormAction(),
                                                   |f| f.Action())
             }
@@ -489,13 +487,12 @@ impl<'a> FormSubmitter<'a> {
         let attr = match *self {
             FormSubmitter::FormElement(form) => form.Method(),
             FormSubmitter::InputElement(input_element) => {
-                // FIXME(pcwalton): Make this a static atom.
-                input_element.get_form_attribute(&Atom::from_slice("formmethod"),
+                input_element.get_form_attribute(&atom!("formmethod"),
                                                  |i| i.FormMethod(),
                                                  |f| f.Method())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&Atom::from_slice("formmethod"),
+                button_element.get_form_attribute(&atom!("formmethod"),
                                                   |i| i.FormAction(),
                                                   |f| f.Action())
             }
@@ -511,13 +508,12 @@ impl<'a> FormSubmitter<'a> {
         match *self {
             FormSubmitter::FormElement(form) => form.Target(),
             FormSubmitter::InputElement(input_element) => {
-                // FIXME(pcwalton): Make this a static atom.
-                input_element.get_form_attribute(&Atom::from_slice("formtarget"),
+                input_element.get_form_attribute(&atom!("formtarget"),
                                                  |i| i.FormTarget(),
                                                  |f| f.Target())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&Atom::from_slice("formtarget"),
+                button_element.get_form_attribute(&atom!("formtarget"),
                                                   |i| i.FormAction(),
                                                   |f| f.Action())
             }

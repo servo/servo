@@ -4,8 +4,7 @@
 
 use surface_map::SurfaceMap;
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
-use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
-use compositor_task::Msg;
+use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver, Msg};
 use constellation::SendableFrameTree;
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
@@ -18,8 +17,7 @@ use euclid::rect::{Rect, TypedRect};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use gfx_traits::color;
-use gfx::paint_task::Msg as PaintMsg;
-use gfx::paint_task::PaintRequest;
+use gfx::paint_task::{ChromeToPaintMsg, PaintRequest};
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
 use ipc_channel::ipc;
@@ -1306,8 +1304,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.convert_buffer_requests_to_pipeline_requests_map(layers_and_requests);
 
         for (pipeline_id, requests) in pipeline_requests.into_iter() {
-            let msg = PaintMsg::Paint(requests, self.frame_tree_id);
-            let _ = self.get_pipeline(pipeline_id).paint_chan.send(msg);
+            let msg = ChromeToPaintMsg::Paint(requests, self.frame_tree_id);
+            let _ = self.get_pipeline(pipeline_id).chrome_to_paint_chan.send(msg);
         }
 
         true
@@ -1324,7 +1322,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // have not requested a paint of the current epoch.
         // If a layer has sent a request for the current epoch, but it hasn't
         // arrived yet then this layer is waiting for a paint message.
-        if layer_data.requested_epoch == current_epoch && layer_data.painted_epoch != current_epoch {
+        //
+        // Also don't check the root layer, because the paint task won't paint
+        // anything for it after first layout.
+        if layer_data.id != LayerId::null() &&
+                layer_data.requested_epoch == current_epoch &&
+                layer_data.painted_epoch != current_epoch {
             return true;
         }
 

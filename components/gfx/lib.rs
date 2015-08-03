@@ -9,6 +9,7 @@
 #![feature(custom_derive)]
 #![feature(hashmap_hasher)]
 #![cfg_attr(any(target_os="linux", target_os = "android"), feature(heap_api))]
+#![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(str_char)]
 #![feature(vec_push_all)]

@@ -295,7 +295,10 @@ pub trait Flow: fmt::Debug + Sync {
     }
 
     /// Marks this flow as the root flow. The default implementation is a no-op.
-    fn mark_as_root(&mut self) {}
+    fn mark_as_root(&mut self) {
+        debug!("called mark_as_root() on a flow of type {:?}", self.class());
+        panic!("called mark_as_root() on an unhandled flow");
+    }
 
     // Note that the following functions are mostly called using static method
     // dispatch, so it's ok to have them in this trait. Plus, they have
@@ -1386,13 +1389,31 @@ impl ContainingBlockLink {
     }
 
     #[inline]
-    pub fn generated_containing_block_size(&mut self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
+    pub fn generated_containing_block_size(&self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
         match self.link {
             None => {
                 panic!("Link to containing block not established; perhaps you forgot to call \
                         `set_absolute_descendants`?")
             }
             Some(ref link) => link.upgrade().unwrap().generated_containing_block_size(for_flow),
+        }
+    }
+
+    #[inline]
+    pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
+        match self.link {
+            None => {
+                panic!("Link to containing block not established; perhaps you forgot to call \
+                        `set_absolute_descendants`?")
+            }
+            Some(ref link) => {
+                let flow = link.upgrade().unwrap();
+                if flow.is_block_like() {
+                    flow.as_immutable_block().explicit_block_containing_size(layout_context)
+                } else {
+                    None
+                }
+            }
         }
     }
 }

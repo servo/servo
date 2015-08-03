@@ -534,45 +534,10 @@ pub mod longhands {
     ${predefined_type("width", "LengthOrPercentageOrAuto",
                       "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
-    <%self:longhand name="height">
-        use values::computed::Context;
-        use cssparser::ToCss;
-        use std::fmt;
 
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
-
-        #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::LengthOrPercentageOrAuto);
-        pub mod computed_value {
-            pub use values::computed::LengthOrPercentageOrAuto as T;
-        }
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T { computed::LengthOrPercentageOrAuto::Auto }
-        #[inline]
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            specified::LengthOrPercentageOrAuto::parse_non_negative(input).map(SpecifiedValue)
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                match (self.0, context.inherited_height) {
-                    (specified::LengthOrPercentageOrAuto::Percentage(_),
-                     computed::LengthOrPercentageOrAuto::Auto)
-                    if !context.is_root_element && !context.positioned => {
-                        computed::LengthOrPercentageOrAuto::Auto
-                    },
-                    _ => self.0.to_computed_value(context)
-                }
-            }
-        }
-    </%self:longhand>
+    ${predefined_type("height", "LengthOrPercentageOrAuto",
+                      "computed::LengthOrPercentageOrAuto::Auto",
+                      "parse_non_negative")}
 
     ${predefined_type("min-width", "LengthOrPercentage",
                       "computed::LengthOrPercentage::Length(Au(0))",
@@ -5534,6 +5499,15 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
+pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url)
+                             -> Result<Vec<PropertyDeclaration>, ()> {
+    let context = ParserContext::new(Origin::Author, base_url);
+    let mut results = vec![];
+    match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results) {
+        PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
+        _ => Err(())
+    }
+}
 
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
@@ -5574,9 +5548,9 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
         match declaration {
             Ok((results, important)) => {
                 if important {
-                    important_declarations.push_all(&results);
+                    important_declarations.extend(results);
                 } else {
-                    normal_declarations.push_all(&results);
+                    normal_declarations.extend(results);
                 }
             }
             Err(range) => {
@@ -5660,7 +5634,7 @@ impl<T: ToCss> DeclaredValue<T> {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -6208,7 +6182,6 @@ pub fn cascade(viewport_size: Size2D<Au>,
             viewport_size: viewport_size,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
-            inherited_height: inherited_style.get_box().height,
             inherited_text_decorations_in_effect:
                 inherited_style.get_inheritedtext()._servo_text_decorations_in_effect,
             // To be overridden by applicable declarations:
@@ -6543,11 +6516,12 @@ pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
 }
 
 pub fn is_supported_property(property: &str) -> bool {
-    match property {
-        % for property in SHORTHANDS + LONGHANDS:
+    match_ignore_ascii_case! { property,
+        % for property in SHORTHANDS + LONGHANDS[:-1]:
             "${property.name}" => true,
         % endfor
-        _ => false,
+        "${LONGHANDS[-1].name}" => true
+        _ => false
     }
 }
 
@@ -6579,16 +6553,24 @@ macro_rules! longhand_properties_idents {
     }
 }
 
-pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
-    match shorthand {
-        % for property in SHORTHANDS:
-            "${property.name}" => Some(vec!(
+// Extra space here because < seems to be removed by Mako when immediately followed by &.
+//                                                         ↓
+pub fn longhands_from_shorthand(shorthand: &str) -> Option< &'static [&'static str]> {
+    % for property in SHORTHANDS:
+        static ${property.ident.upper()}: &'static [&'static str] = &[
             % for sub in property.sub_properties:
-                "${sub.name}".to_owned(),
+                "${sub.name}",
             % endfor
-            )),
+        ];
+    % endfor
+    match_ignore_ascii_case!{ shorthand,
+        % for property in SHORTHANDS[:-1]:
+            "${property.name}" => Some(${property.ident.upper()}),
         % endfor
-        _ => None,
+        % for property in SHORTHANDS[-1:]:
+            "${property.name}" => Some(${property.ident.upper()})
+        % endfor
+        _ => None
     }
 }
 

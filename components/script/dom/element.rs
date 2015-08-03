@@ -390,15 +390,15 @@ impl RawLayoutElementHelpers for Element {
         match height {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
-                hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
-                                height::SpecifiedValue(width_value)))));
+                let height_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                hints.push(from_declaration(
+                    PropertyDeclaration::Height(SpecifiedValue(height_value))));
             }
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Length(
+                let height_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::Length::Absolute(length));
-                hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
-                                height::SpecifiedValue(width_value)))));
+                hints.push(from_declaration(
+                    PropertyDeclaration::Height(SpecifiedValue(height_value))));
             }
         }
 
@@ -443,8 +443,7 @@ impl RawLayoutElementHelpers for Element {
             let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
                 PropertyDeclaration::Height(SpecifiedValue(
-                    longhands::height::SpecifiedValue(
-                        specified::LengthOrPercentageOrAuto::Length(value))))));
+                        specified::LengthOrPercentageOrAuto::Length(value)))));
         }
 
 
@@ -564,7 +563,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum StylePriority {
     Important,
     Normal,
@@ -581,10 +580,11 @@ pub trait ElementHelpers<'a> {
     fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
-    fn remove_inline_style_property(self, property: DOMString);
+    fn remove_inline_style_property(self, property: &str);
     fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority);
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority);
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
     fn get_root_element(self) -> Root<Element>;
     fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString>;
@@ -652,7 +652,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn remove_inline_style_property(self, property: DOMString) {
+    fn remove_inline_style_property(self, property: &str) {
         let mut inline_declarations = self.style_attribute.borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
@@ -677,11 +677,14 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
-                Arc::make_unique(&mut declarations.important)
+                &mut declarations.important
             } else {
-                Arc::make_unique(&mut declarations.normal)
+                &mut declarations.normal
             };
 
+            // Usually, the reference count will be 1 here. But transitions could make it greater
+            // than that.
+            let existing_declarations = Arc::make_unique(existing_declarations);
             for declaration in existing_declarations.iter_mut() {
                 if declaration.name() == property_decl.name() {
                     *declaration = property_decl;
@@ -704,24 +707,49 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         });
     }
 
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let inline_declarations = self.style_attribute.borrow();
-        inline_declarations.as_ref().and_then(|declarations| {
-            declarations.normal
-                        .iter()
-                        .chain(declarations.important.iter())
-                        .find(|decl| decl.matches(&property))
-                        .map(|decl| decl.clone())
+    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority) {
+        let mut inline_declarations = self.style_attribute().borrow_mut();
+        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+            let (from, to) = if style_priority == StylePriority::Important {
+                (&mut declarations.normal, &mut declarations.important)
+            } else {
+                (&mut declarations.normal, &mut declarations.important)
+            };
+
+            // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
+            // could make them greater than that.
+            let from = Arc::make_unique(from);
+            let to = Arc::make_unique(to);
+            let mut new_from = Vec::new();
+            for declaration in from.drain(..) {
+                if properties.contains(&declaration.name()) {
+                    to.push(declaration)
+                } else {
+                    new_from.push(declaration)
+                }
+            }
+            mem::replace(from, new_from);
+        }
+    }
+
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
+            inline_declarations.as_ref().and_then(|declarations| {
+                declarations.normal
+                            .iter()
+                            .chain(declarations.important.iter())
+                            .find(|decl| decl.matches(&property))
+            })
         })
     }
 
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let inline_declarations = self.style_attribute.borrow();
-        inline_declarations.as_ref().and_then(|declarations| {
-            declarations.important
-                        .iter()
-                        .find(|decl| decl.matches(&property))
-                        .map(|decl| decl.clone())
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
+            inline_declarations.as_ref().and_then(|declarations| {
+                declarations.important
+                            .iter()
+                            .find(|decl| decl.matches(&property))
+            })
         })
     }
 

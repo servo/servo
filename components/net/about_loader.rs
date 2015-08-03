@@ -39,7 +39,8 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
         }
         _ => {
             start_sending(start_chan, Metadata::default(load_data.url))
-                .send(Done(Err("Unknown about: URL.".to_string()))).unwrap();
+                .send(Done(Err("Unknown about: URL.".to_string())))
+                .unwrap();
             return
         }
     };

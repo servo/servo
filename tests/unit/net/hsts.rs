@@ -7,6 +7,7 @@ use net::hsts::HSTSEntry;
 use net_traits::IncludeSubdomains;
 use net::hsts::{secure_url, preload_hsts_domains};
 use net::resource_task::ResourceManager;
+use ipc_channel::ipc;
 use std::sync::mpsc::channel;
 use url::Url;
 use time;
@@ -17,7 +18,7 @@ fn test_add_hsts_entry_to_resource_manager_adds_an_hsts_entry() {
         entries: Vec::new()
     };
 
-    let (tx, _) = channel();
+    let (tx, _) = ipc::channel().unwrap();
     let mut manager = ResourceManager::new(None, tx, list, None);
 
     let entry = HSTSEntry::new(

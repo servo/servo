@@ -35,6 +35,7 @@ use unicode_bidi;
 use util::geometry::{Au, MAX_AU, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
+use util::str::slice_chars;
 use util;
 
 // From gfxFontConstants.h in Firefox
@@ -1345,7 +1346,7 @@ impl Flow for InlineFlow {
 
         // Assign the block-size and late-computed inline-sizes for the inline fragments.
         let containing_block_block_size =
-            self.base.block_container_explicit_block_size.unwrap_or(Au(0));
+            self.base.block_container_explicit_block_size;
         for fragment in self.fragments.fragments.iter_mut() {
             fragment.update_late_computed_replaced_inline_size_if_necessary();
             fragment.assign_replaced_block_size_if_necessary(
@@ -1801,7 +1802,7 @@ fn strip_trailing_whitespace_if_necessary(text_run: &TextRun, range: &mut Range<
     debug!("stripping trailing whitespace: range={:?}, len={}",
            range,
            text_run.text.chars().count());
-    let text = text_run.text.slice_chars(range.begin().to_usize(), range.end().to_usize());
+    let text = slice_chars(&*text_run.text, range.begin().to_usize(), range.end().to_usize());
     let mut trailing_whitespace_character_count = 0;
     for ch in text.chars().rev() {
         if util::str::char_is_whitespace(ch) {
