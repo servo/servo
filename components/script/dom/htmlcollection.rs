@@ -18,6 +18,7 @@ use util::str::{DOMString, StaticStringVec, split_html_space_chars};
 
 use std::ascii::AsciiExt;
 use std::iter::{FilterMap, Skip};
+use std::cell::{Cell, RefCell};
 use string_cache::{Atom, Namespace};
 
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
@@ -95,11 +96,26 @@ impl CollectionFilter {
     }
 }
 
+#[derive(Copy, Clone, JSTraceable, PartialEq)]
+pub enum CollectionState {
+    Dirty,
+    Updated,
+}
+
+#[derive(JSTraceable)]
+#[must_root]
+pub struct LiveCollection {
+    root: JS<Node>,
+    filter: CollectionFilter,
+    state: Cell<CollectionState>,
+    elements: RefCell<Option<Vec<JS<Element>>>>,
+}
+
 #[derive(JSTraceable)]
 #[must_root]
 pub enum CollectionTypeId {
     Static(Vec<JS<Element>>),
-    Live(JS<Node>, CollectionFilter)
+    Live(LiveCollection)
 }
 
 #[dom_struct]
@@ -130,7 +146,15 @@ impl HTMLCollection {
             Some(existing) => existing,
             _ => {
                 let collection =
-                    HTMLCollection::new(window, CollectionTypeId::Live(JS::from_ref(root), filter));
+                    HTMLCollection::new(window,
+                                        CollectionTypeId::Live(
+                                            LiveCollection {
+                                                root: JS::from_ref(root),
+                                                filter: filter,
+                                                state: Cell::new(CollectionState::Dirty),
+                                                elements: RefCell::new(None),
+                                            }
+                                         ));
                 window.Document().add_collection(key, collection.r());
                 collection
             }
@@ -200,11 +224,19 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     fn Length(self) -> u32 {
         match self.collection {
             CollectionTypeId::Static(ref elems) => elems.len() as u32,
-            CollectionTypeId::Live(ref root, ref filter) => {
-                let root = root.root();
-                HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(element.r(), root.r()))
-                    .count() as u32
+            CollectionTypeId::Live(ref collection) => {
+                if collection.state.get() == CollectionState::Dirty {
+                    let root = collection.root.root();
+                    *collection.elements.borrow_mut() = Some(HTMLCollection::traverse(root.r())
+                        .filter(|element| collection.filter.filter(element.r(), root.r()))
+                        .map(|e| JS::from_ref(e.r()))
+                        .collect());
+                    collection.state.set(CollectionState::Updated);
+                }
+                match *collection.elements.borrow() {
+                    Some(ref elements) => elements.len() as u32,
+                    _ => unreachable!("Should have elements")
+                }
             }
         }
     }
@@ -215,11 +247,19 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         match self.collection {
             CollectionTypeId::Static(ref elems) => elems
                 .get(index).map(|t| t.root()),
-            CollectionTypeId::Live(ref root, ref filter) => {
-                let root = root.root();
-                HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(element.r(), root.r()))
-                    .nth(index)
+            CollectionTypeId::Live(ref collection) => {
+                if collection.state.get() == CollectionState::Dirty {
+                    let root = collection.root.root();
+                    *collection.elements.borrow_mut() = Some(HTMLCollection::traverse(root.r())
+                        .filter(|element| collection.filter.filter(element.r(), root.r()))
+                        .map(|e| JS::from_ref(e.r()))
+                        .collect());
+                    collection.state.set(CollectionState::Updated);
+                }
+                match *collection.elements.borrow() {
+                    Some(ref elements) => elements.get(index).map(|e| e.root()),
+                    _ => unreachable!("Should have elements")
+                }
             }
         }
     }
@@ -238,13 +278,26 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
                 .find(|elem| {
                     elem.r().get_string_attribute(&atom!("name")) == key ||
                     elem.r().get_string_attribute(&atom!("id")) == key }),
-            CollectionTypeId::Live(ref root, ref filter) => {
-                let root = root.root();
-                HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(element.r(), root.r()))
-                    .find(|elem| {
-                        elem.r().get_string_attribute(&atom!("name")) == key ||
-                        elem.r().get_string_attribute(&atom!("id")) == key })
+            CollectionTypeId::Live(ref collection) => {
+                if collection.state.get() == CollectionState::Dirty {
+                    let root = collection.root.root();
+                    *collection.elements.borrow_mut() = Some(HTMLCollection::traverse(root.r())
+                        .filter(|element| collection.filter.filter(element.r(), root.r()))
+                        .map(|e| JS::from_ref(e.r()))
+                        .collect());
+                    collection.state.set(CollectionState::Updated);
+                }
+                match *collection.elements.borrow() {
+                    Some(ref elements) => {
+                        elements.iter()
+                                .find(|elem| {
+                                    let elem = elem.root();
+                                    elem.r().get_string_attribute(&atom!("name")) == key ||
+                                    elem.r().get_string_attribute(&atom!("id")) == key })
+                                .map(|e| e.root())
+                    },
+                    _ => unreachable!("Should have elements")
+                }
             }
         }
     }
