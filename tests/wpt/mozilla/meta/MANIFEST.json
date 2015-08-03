@@ -4559,6 +4559,12 @@
             "url": "/_mozilla/mozilla/MouseEvent.html"
           }
         ],
+        "mozilla/bad_cert_detected.html": [
+          {
+            "path": "mozilla/bad_cert_detected.html",
+            "url": "/_mozilla/mozilla/bad_cert_detected.html"
+          }
+        ],
         "mozilla/blob.html": [
           {
             "path": "mozilla/blob.html",
