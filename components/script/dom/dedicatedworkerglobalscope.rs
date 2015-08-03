@@ -224,25 +224,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok(event) => event,
                     Err(_) => break,
                 };
-
-                match event {
-                    MixedMessage::FromDevtools(msg) => {
-                        let global_ref = GlobalRef::Worker(scope);
-                        match msg {
-                            DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
-                                devtools::handle_evaluate_js(&global_ref, string, sender),
-                            DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) =>
-                                devtools::handle_get_cached_messages(pipe_id, message_types, sender),
-                            DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) =>
-                                devtools::handle_wants_live_notifications(&global_ref, bool_val),
-                            _ => debug!("got an unusable devtools control message inside the worker!"),
-                        }
-                    },
-                    MixedMessage::FromWorker((linked_worker, msg)) => {
-                        let _ar = AutoWorkerReset::new(global.r(), linked_worker);
-                        global.r().handle_script_event(msg);
-                    },
-                }
+                global.handle_event(event);
             }
 
             // Unregister this task as a memory reporter.
@@ -289,6 +271,7 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
     fn handle_script_event(self, msg: ScriptMsg);
     fn dispatch_error_to_worker(self, &ErrorEvent);
     fn receive_event(self) -> Result<MixedMessage, RecvError>;
+    fn handle_event(self, event: MixedMessage);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
@@ -346,6 +329,27 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
                 reports_chan.send(reports);
             }
             _ => panic!("Unexpected message"),
+        }
+    }
+
+    fn handle_event(self, event: MixedMessage) {
+        match event {
+            MixedMessage::FromDevtools(msg) => {
+                let global_ref = GlobalRef::Worker(WorkerGlobalScopeCast::from_ref(self));
+                match msg {
+                    DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
+                        devtools::handle_evaluate_js(&global_ref, string, sender),
+                    DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) =>
+                        devtools::handle_get_cached_messages(pipe_id, message_types, sender),
+                    DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) =>
+                        devtools::handle_wants_live_notifications(&global_ref, bool_val),
+                    _ => debug!("got an unusable devtools control message inside the worker!"),
+                }
+            },
+            MixedMessage::FromWorker((linked_worker, msg)) => {
+                let _ar = AutoWorkerReset::new(self, linked_worker);
+                self.handle_script_event(msg);
+            },
         }
     }
 
