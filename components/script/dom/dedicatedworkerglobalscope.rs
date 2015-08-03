@@ -119,7 +119,7 @@ impl DedicatedWorkerGlobalScope {
                      parent_sender: Box<ScriptChan+Send>,
                      own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                      receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
-                     worker_id: Option<WorkerId>)
+                     worker_id: WorkerId)
                      -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -146,7 +146,7 @@ impl DedicatedWorkerGlobalScope {
                parent_sender: Box<ScriptChan+Send>,
                own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
-               worker_id: Option<WorkerId>)
+               worker_id: WorkerId)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             worker_url, id, mem_profiler_chan, devtools_chan, devtools_sender, devtools_port,
@@ -170,7 +170,7 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
-                            worker_id: Option<WorkerId>) {
+                            worker_id: WorkerId) {
         let serialized_worker_url = worker_url.serialize();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             task_state::initialize(SCRIPT | IN_WORKER);

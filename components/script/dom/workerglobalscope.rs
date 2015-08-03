@@ -46,7 +46,7 @@ pub enum WorkerGlobalScopeTypeId {
 #[dom_struct]
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
-    worker_id: Option<WorkerId>,
+    worker_id: WorkerId,
     worker_url: Url,
     runtime: Rc<Runtime>,
     next_worker_id: Cell<WorkerId>,
@@ -84,7 +84,7 @@ impl WorkerGlobalScope {
                          devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
                          devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          constellation_chan: ConstellationChan,
-                         worker_id: Option<WorkerId>)
+                         worker_id: WorkerId)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
@@ -144,7 +144,7 @@ impl WorkerGlobalScope {
         &self.worker_url
     }
 
-    pub fn get_worker_id(&self) -> Option<WorkerId> {
+    pub fn get_worker_id(&self) -> WorkerId {
         self.worker_id.clone()
     }
 

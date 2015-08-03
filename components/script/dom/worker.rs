@@ -98,7 +98,7 @@ impl Worker {
         DedicatedWorkerGlobalScope::run_worker_scope(
             worker_url, global.pipeline(), global.mem_profiler_chan(), global.devtools_chan(),
             optional_sender, devtools_receiver, worker_ref, resource_task,
-            constellation_chan, global.script_chan(), sender, receiver, Some(worker_id));
+            constellation_chan, global.script_chan(), sender, receiver, worker_id);
 
         Ok(worker)
     }
