@@ -20,6 +20,7 @@ use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
+use dom::workerglobalscope::WorkerGlobalScopeInit;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
@@ -95,10 +96,17 @@ impl Worker {
             None => None,
         };
 
+        let init = WorkerGlobalScopeInit {
+            resource_task: resource_task,
+            mem_profiler_chan: global.mem_profiler_chan(),
+            devtools_chan: global.devtools_chan(),
+            devtools_sender: optional_sender,
+            constellation_chan: constellation_chan,
+            worker_id: worker_id,
+        };
         DedicatedWorkerGlobalScope::run_worker_scope(
-            worker_url, global.pipeline(), global.mem_profiler_chan(), global.devtools_chan(),
-            optional_sender, devtools_receiver, worker_ref, resource_task,
-            constellation_chan, global.script_chan(), sender, receiver, Some(worker_id));
+            init, worker_url, global.pipeline(), devtools_receiver, worker_ref,
+            global.script_chan(), sender, receiver);
 
         Ok(worker)
     }

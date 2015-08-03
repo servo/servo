@@ -42,11 +42,20 @@ pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }
 
+pub struct WorkerGlobalScopeInit {
+    pub resource_task: ResourceTask,
+    pub mem_profiler_chan: mem::ProfilerChan,
+    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    pub constellation_chan: ConstellationChan,
+    pub worker_id: WorkerId,
+}
+
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
-    worker_id: Option<WorkerId>,
+    worker_id: WorkerId,
     worker_url: Url,
     runtime: Rc<Runtime>,
     next_worker_id: Cell<WorkerId>,
@@ -76,34 +85,29 @@ pub struct WorkerGlobalScope {
 
 impl WorkerGlobalScope {
     pub fn new_inherited(type_id: WorkerGlobalScopeTypeId,
+                         init: WorkerGlobalScopeInit,
                          worker_url: Url,
                          runtime: Rc<Runtime>,
-                         resource_task: ResourceTask,
-                         mem_profiler_chan: mem::ProfilerChan,
-                         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-                         devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
-                         devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-                         constellation_chan: ConstellationChan,
-                         worker_id: Option<WorkerId>)
+                         devtools_receiver: Receiver<DevtoolScriptControlMsg>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             next_worker_id: Cell::new(WorkerId(0)),
-            worker_id: worker_id,
+            worker_id: init.worker_id,
             worker_url: worker_url,
             runtime: runtime,
-            resource_task: resource_task,
+            resource_task: init.resource_task,
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
             crypto: Default::default(),
             timers: TimerManager::new(),
-            mem_profiler_chan: mem_profiler_chan,
-            devtools_chan: devtools_chan,
-            devtools_sender: devtools_sender,
+            mem_profiler_chan: init.mem_profiler_chan,
+            devtools_chan: init.devtools_chan,
+            devtools_sender: init.devtools_sender,
             devtools_receiver: devtools_receiver,
             devtools_wants_updates: Cell::new(false),
-            constellation_chan: constellation_chan,
+            constellation_chan: init.constellation_chan,
         }
     }
 
@@ -144,7 +148,7 @@ impl WorkerGlobalScope {
         &self.worker_url
     }
 
-    pub fn get_worker_id(&self) -> Option<WorkerId> {
+    pub fn get_worker_id(&self) -> WorkerId {
         self.worker_id.clone()
     }
 
