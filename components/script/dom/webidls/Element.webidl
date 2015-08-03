@@ -33,7 +33,9 @@ interface Element : Node {
 
   [Constant]
   readonly attribute NamedNodeMap attributes;
+  [Pure]
   DOMString? getAttribute(DOMString name);
+  [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
   [Throws]
   void setAttribute(DOMString name, DOMString value);
@@ -41,7 +43,9 @@ interface Element : Node {
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
   void removeAttribute(DOMString name);
   void removeAttributeNS(DOMString? namespace, DOMString localName);
+  [Pure]
   boolean hasAttribute(DOMString name);
+  [Pure]
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
   [Throws]
@@ -50,8 +54,11 @@ interface Element : Node {
   [Throws]
   boolean matches(DOMString selectors);
 
+  [Pure]
   HTMLCollection getElementsByTagName(DOMString localName);
+  [Pure]
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
+  [Pure]
   HTMLCollection getElementsByClassName(DOMString classNames);
 };
 
