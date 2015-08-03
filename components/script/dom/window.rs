@@ -839,8 +839,8 @@ impl<'a> WindowHelpers for &'a Window {
             Some(parent_node_address) => {
                 let node = from_untrusted_node_address(js_runtime.rt(),
                                                        parent_node_address);
-                let element = ElementCast::to_ref(node.r()).unwrap();
-                Some(Root::from_ref(element))
+                let element = ElementCast::to_ref(node.r());
+                element.map(Root::from_ref)
             }
             None => {
                 None
