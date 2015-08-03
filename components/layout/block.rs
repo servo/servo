@@ -699,7 +699,7 @@ impl BlockFlow {
     /// Right now, this only gets the containing block size for absolutely positioned elements.
     /// Note: We assume this is called in a top-down traversal, so it is ok to reference the CB.
     #[inline]
-    pub fn containing_block_size(&mut self, viewport_size: &Size2D<Au>, descendant: OpaqueFlow)
+    pub fn containing_block_size(&self, viewport_size: &Size2D<Au>, descendant: OpaqueFlow)
                                  -> LogicalSize<Au> {
         debug_assert!(self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
         if self.is_fixed() {
@@ -929,6 +929,7 @@ impl BlockFlow {
             let (collapsible_margins, delta) =
                 margin_collapse_info.finish_and_compute_collapsible_margins(
                 &self.fragment,
+                self.base.block_container_explicit_block_size,
                 can_collapse_block_end_margin_with_kids);
             self.base.collapsible_margins = collapsible_margins;
             translate_including_floats(&mut cur_b, delta, &mut floats);
@@ -1095,14 +1096,69 @@ impl BlockFlow {
                                                           self.base.position.size);
     }
 
+    pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
+        if self.is_root() || self.is_fixed() {
+            let screen_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
+                                                         layout_context.shared.screen_size);
+            Some(screen_size.block)
+        } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            self.base.absolute_cb.explicit_block_containing_size(layout_context)
+        } else {
+            self.base.block_container_explicit_block_size
+        }
+    }
 
-    /// Calculate and set the block-size, offsets, etc. for absolutely positioned flow.
-    ///
-    /// The layout for its in-flow children has been done during normal layout.
-    /// This is just the calculation of:
-    /// + block-size for the flow
-    /// + position in the block direction of the flow with respect to its Containing Block.
-    /// + block-size, vertical margins, and y-coordinate for the flow's box.
+    fn explicit_block_size(&self, containing_block_size: Option<Au>) -> Option<Au> {
+        let content_block_size = self.fragment.style().content_block_size();
+
+        match (content_block_size, containing_block_size) {
+            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
+            (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
+                Some(container_size.scale_by(percent))
+            }
+            (LengthOrPercentageOrAuto::Percentage(_), None) => {
+                None
+            }
+            (LengthOrPercentageOrAuto::Auto, None) => {
+                None
+            }
+            (LengthOrPercentageOrAuto::Auto, Some(container_size)) => {
+                let (block_start, block_end) = {
+                    let position = self.fragment.style().logical_position();
+                    (MaybeAuto::from_style(position.block_start, container_size),
+                     MaybeAuto::from_style(position.block_end, container_size))
+                };
+
+                match (block_start, block_end) {
+                    (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end)) => {
+                        let available_block_size = container_size - self.fragment.border_padding.block_start_end();
+
+                        // Non-auto margin-block-start and margin-block-end values have already been
+                        // calculated during assign-inline-size.
+                        let margin = self.fragment.style().logical_margin();
+                        let margin_block_start = match margin.block_start {
+                            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                            _ => MaybeAuto::Specified(self.fragment.margin.block_start)
+                        };
+                        let margin_block_end = match margin.block_end {
+                            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                            _ => MaybeAuto::Specified(self.fragment.margin.block_end)
+                        };
+
+                        let margin_block_start = margin_block_start.specified_or_zero();
+                        let margin_block_end = margin_block_end.specified_or_zero();
+                        let sum = block_start + block_end + margin_block_start + margin_block_end;
+                        Some(available_block_size - sum)
+                    }
+
+                    (_, _) => {
+                        None
+                    }
+                }
+            }
+        }
+    }
+
     fn calculate_absolute_block_size_and_margins(&mut self, layout_context: &LayoutContext) {
         let opaque_self = OpaqueFlow::from_flow(self);
         let containing_block_block_size =
@@ -1140,7 +1196,7 @@ impl BlockFlow {
                 // Calculate used value of block-size just like we do for inline replaced elements.
                 // TODO: Pass in the containing block block-size when Fragment's
                 // assign-block-size can handle it correctly.
-                self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
+                self.fragment.assign_replaced_block_size_if_necessary(Some(containing_block_block_size));
                 // TODO: Right now, this content block-size value includes the
                 // margin because of erroneous block-size calculation in fragment.
                 // Check this when that has been fixed.
@@ -1248,28 +1304,13 @@ impl BlockFlow {
             inline_size_of_preceding_right_floats = self.inline_size_of_preceding_right_floats;
         }
 
+        let opaque_self = OpaqueFlow::from_flow(self);
+
         // Calculate non-auto block size to pass to children.
-        let content_block_size = self.fragment.style().content_block_size();
-
-        let parent_container_size = if self.is_root() {
-            let screen_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                                         layout_context.shared.screen_size);
-            Some(screen_size.block)
-        } else {
-            self.base.block_container_explicit_block_size
-        };
-
-        let explicit_content_size = match (content_block_size, parent_container_size) {
-            (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
-                Some(container_size.scale_by(percent))
-            }
-            (LengthOrPercentageOrAuto::Percentage(_), None) |
-            (LengthOrPercentageOrAuto::Auto, _) => None,
-            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
-        };
+        let parent_container_size = self.explicit_block_containing_size(layout_context);
+        let explicit_content_size = self.explicit_block_size(parent_container_size);
 
         // Calculate containing block inline size.
-        let opaque_self = OpaqueFlow::from_flow(self);
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.containing_block_size(&layout_context.shared.screen_size, opaque_self).inline
         } else {
@@ -1286,7 +1327,9 @@ impl BlockFlow {
         while let Some((i, kid)) = iterator.next() {
             {
                 let kid_base = flow::mut_base(kid);
-                kid_base.block_container_explicit_block_size = explicit_content_size;
+                if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                    kid_base.block_container_explicit_block_size = explicit_content_size;
+                }
             }
 
             // Determine float impaction, and update the inline size speculations if necessary.
@@ -1675,7 +1718,7 @@ impl Flow for BlockFlow {
 
             // Assign block-size for fragment if it is an image fragment.
             let containing_block_block_size =
-                self.base.block_container_explicit_block_size.unwrap_or(Au(0));
+                self.base.block_container_explicit_block_size;
             self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
