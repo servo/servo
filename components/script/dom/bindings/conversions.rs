@@ -394,8 +394,9 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
 
 impl ToJSValConvertible for str {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let mut string_utf16: Vec<u16> = Vec::with_capacity(self.len());
         unsafe {
-            let string_utf16: Vec<u16> = self.utf16_units().collect();
+            string_utf16.extend(self.utf16_units());
             let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr() as *const i16,
                                             string_utf16.len() as libc::size_t);
             if jsstr.is_null() {
