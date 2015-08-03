@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast}
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementHelpers};
+use dom::element::{AttributeHandlers, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::element::ElementTypeId;
@@ -19,7 +19,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use util::str::{DOMString, StaticStringVec};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
@@ -56,17 +56,8 @@ impl HTMLFieldSetElement {
 impl<'a> HTMLFieldSetElementMethods for &'a HTMLFieldSetElement {
     // https://www.whatwg.org/html/#dom-fieldset-elements
     fn Elements(self) -> Root<HTMLCollection> {
-        #[derive(JSTraceable)]
-        struct ElementsFilter;
-        impl CollectionFilter for ElementsFilter {
-            fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
-                static TAG_NAMES: StaticStringVec = &["button", "fieldset", "input",
-                    "keygen", "object", "output", "select", "textarea"];
-                TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
-            }
-        }
         let node = NodeCast::from_ref(self);
-        let filter = box ElementsFilter;
+        let filter = CollectionFilter::FieldSetElements;
         let window = window_from_node(node);
         HTMLCollection::create(window.r(), node, filter)
     }

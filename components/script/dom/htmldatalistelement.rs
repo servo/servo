@@ -4,11 +4,10 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLOptionElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::element::ElementTypeId;
@@ -51,15 +50,8 @@ impl HTMLDataListElement {
 impl<'a> HTMLDataListElementMethods for &'a HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
     fn Options(self) -> Root<HTMLCollection> {
-        #[derive(JSTraceable)]
-        struct HTMLDataListOptionsFilter;
-        impl CollectionFilter for HTMLDataListOptionsFilter {
-            fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                elem.is_htmloptionelement()
-            }
-        }
         let node = NodeCast::from_ref(self);
-        let filter = box HTMLDataListOptionsFilter;
+        let filter = CollectionFilter::DataListOptions;
         let window = window_from_node(node);
         HTMLCollection::create(window.r(), node, filter)
     }
