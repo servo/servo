@@ -5,6 +5,7 @@
 use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{ConsoleAPI, PageError};
+use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
@@ -38,9 +39,7 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
         EvaluateJSReply::NumberValue(
             FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap())
     } else if rval.ptr.is_string() {
-        //FIXME: use jsstring_to_str when jsval grows to_jsstring
-        EvaluateJSReply::StringValue(
-            FromJSValConvertible::from_jsval(cx, rval.handle(), StringificationBehavior::Default).unwrap())
+        EvaluateJSReply::StringValue(jsstring_to_str(cx, rval.ptr.to_string()))
     } else if rval.ptr.is_null() {
         EvaluateJSReply::NullValue
     } else {
