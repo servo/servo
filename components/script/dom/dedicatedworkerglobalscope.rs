@@ -44,7 +44,7 @@ use url::Url;
 use rand::random;
 use std::mem::replace;
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, Receiver, channel, Select};
+use std::sync::mpsc::{Sender, Receiver, channel, Select, RecvError};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
@@ -90,6 +90,11 @@ impl<'a> Drop for AutoWorkerReset<'a> {
     fn drop(&mut self) {
         *self.workerscope.worker.borrow_mut() = self.old_worker.clone();
     }
+}
+
+enum MixedMessage {
+    FromWorker((TrustedWorkerAddress, ScriptMsg)),
+    FromDevtools(DevtoolScriptControlMsg),
 }
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
@@ -143,7 +148,6 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    #[allow(unsafe_code)]
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: Url,
                             id: PipelineId,
@@ -215,39 +219,10 @@ impl DedicatedWorkerGlobalScope {
                         Reporter(reporter_sender)));
             }
 
-            enum MixedMessage {
-                FromWorker((TrustedWorkerAddress, ScriptMsg)),
-                FromDevtools(DevtoolScriptControlMsg),
-            }
-
             loop {
-                let worker_port = &global.r().receiver;
-                let devtools_port = scope.devtools_port();
-
-                let event = {
-                    let sel = Select::new();
-                    let mut worker_handle = sel.handle(worker_port);
-                    let mut devtools_handle = sel.handle(devtools_port);
-                    unsafe {
-                        worker_handle.add();
-                        if scope.devtools_sender().is_some() {
-                            devtools_handle.add();
-                        }
-                    }
-                    let ret = sel.wait();
-                    if ret == worker_handle.id() {
-                        match worker_port.recv() {
-                            Ok(stuff) => MixedMessage::FromWorker(stuff),
-                            Err(_) => break,
-                        }
-                    } else if ret == devtools_handle.id() {
-                        match devtools_port.recv() {
-                            Ok(stuff) => MixedMessage::FromDevtools(stuff),
-                            Err(_) => break,
-                        }
-                    } else {
-                        panic!("unexpected select result!")
-                    }
+                let event = match global.receive_event() {
+                    Ok(event) => event,
+                    Err(_) => break,
                 };
 
                 match event {
@@ -313,9 +288,35 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
     fn handle_event(self, msg: ScriptMsg);
     fn dispatch_error_to_worker(self, &ErrorEvent);
+    fn receive_event(self) -> Result<MixedMessage, RecvError>;
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
+    #[allow(unsafe_code)]
+    fn receive_event(self) -> Result<MixedMessage, RecvError> {
+        let scope = WorkerGlobalScopeCast::from_ref(self);
+        let worker_port = &self.receiver;
+        let devtools_port = scope.devtools_port();
+
+        let sel = Select::new();
+        let mut worker_handle = sel.handle(worker_port);
+        let mut devtools_handle = sel.handle(devtools_port);
+        unsafe {
+            worker_handle.add();
+            if scope.devtools_sender().is_some() {
+                devtools_handle.add();
+            }
+        }
+        let ret = sel.wait();
+        if ret == worker_handle.id() {
+            Ok(MixedMessage::FromWorker(try!(worker_port.recv())))
+        } else if ret == devtools_handle.id() {
+            Ok(MixedMessage::FromDevtools(try!(devtools_port.recv())))
+        } else {
+            panic!("unexpected select result!")
+        }
+    }
+
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::DOMMessage(data) => {
