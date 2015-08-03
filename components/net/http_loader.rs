@@ -24,7 +24,8 @@ use hyper::net::{HttpConnector, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
-use std::io::{self, Read, Write};
+use openssl::ssl::error::{SslError, OpensslError};
+use std::io::{Read, Write};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
@@ -141,10 +142,6 @@ fn load(mut load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
-function: \"SSL3_GET_SERVER_CERTIFICATE\", \
-reason: \"certificate verify failed\" }]))";
-
         let req = if opts::get().nossl {
             Request::with_connector(load_data.method.clone(), url.clone(), &HttpConnector)
         } else {
@@ -155,20 +152,21 @@ reason: \"certificate verify failed\" }]))";
                 &HttpsConnector::new(Openssl { context: Arc::new(context) }))
         };
 
+        if let Err(HttpError::Ssl(ref error)) = req {
+            let error: &(Error + Send + 'static) = &**error;
+            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
+                if errors.iter().any(is_cert_verify_error) {
+                    let mut image = resources_dir_path();
+                    image.push("badcert.html");
+                    let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
+                    file_loader::factory(load_data, start_chan, classifier);
+                    return;
+                }
+            }
+        }
+
         let mut req = match req {
             Ok(req) => req,
-            Err(HttpError::Io(ref io_error)) if (
-                io_error.kind() == io::ErrorKind::Other &&
-                io_error.description() == "Error in OpenSSL" &&
-                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-                format!("{:?}", io_error.cause()) == ssl_err_string
-            ) => {
-                let mut image = resources_dir_path();
-                image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
-                file_loader::factory(load_data, start_chan, classifier);
-                return;
-            },
             Err(e) => {
                 println!("{:?}", e);
                 send_error(url, e.description().to_string(), start_chan);
@@ -466,4 +464,15 @@ fn send_data<R: Read>(reader: &mut R,
     }
 
     let _ = progress_chan.send(Done(Ok(())));
+}
+
+// FIXME: This incredibly hacky. Make it more robust, and at least test it.
+fn is_cert_verify_error(error: &OpensslError) -> bool {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            library == "SSL routines" &&
+            function == "SSL3_GET_SERVER_CERTIFICATE" &&
+            reason == "certificate verify failed"
+        }
+    }
 }

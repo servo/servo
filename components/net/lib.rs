@@ -4,6 +4,7 @@
 
 #![feature(box_raw)]
 #![feature(box_syntax)]
+#![feature(error_downcast)]
 #![feature(fnbox)]
 #![feature(mpsc_select)]
 #![feature(path_ext)]
