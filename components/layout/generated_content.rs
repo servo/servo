@@ -15,6 +15,7 @@ use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTe
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use smallvec::SmallVec;
 use text::TextRunScanner;
+use wrapper::PseudoElementType;
 
 use gfx::display_list::OpaqueNode;
 use std::collections::{LinkedList, HashMap};
@@ -174,6 +175,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                 GeneratedContentInfo::ListItem => {
                     new_info = self.traversal.list_item.render(self.traversal.layout_context,
                                                                fragment.node,
+                                                               fragment.pseudo.clone(),
                                                                fragment.style.clone(),
                                                                list_style_type,
                                                                RenderingMode::Suffix(".\u{00a0}"))
@@ -190,6 +192,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                                       .unwrap_or(&mut temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
+                                              fragment.pseudo.clone(),
                                               fragment.style.clone(),
                                               counter_style,
                                               RenderingMode::Plain)
@@ -204,6 +207,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                                       .unwrap_or(&mut temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
+                                              fragment.pseudo,
                                               fragment.style.clone(),
                                               counter_style,
                                               RenderingMode::All(&separator));
@@ -211,6 +215,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                 GeneratedContentInfo::ContentItem(ContentItem::OpenQuote) => {
                     new_info = Some(render_text(self.traversal.layout_context,
                                                 fragment.node,
+                                                fragment.pseudo,
                                                 fragment.style.clone(),
                                                 self.quote(&*fragment.style, false)));
                     self.traversal.quote += 1
@@ -222,6 +227,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
 
                     new_info = Some(render_text(self.traversal.layout_context,
                                                 fragment.node,
+                                                fragment.pseudo,
                                                 fragment.style.clone(),
                                                 self.quote(&*fragment.style, true)));
                 }
@@ -356,6 +362,7 @@ impl Counter {
     fn render(&self,
               layout_context: &LayoutContext,
               node: OpaqueNode,
+              pseudo: PseudoElementType<()>,
               style: Arc<ComputedValues>,
               list_style_type: list_style_type::T,
               mode: RenderingMode)
@@ -392,7 +399,7 @@ impl Counter {
         if string.is_empty() {
             None
         } else {
-            Some(render_text(layout_context, node, style, string))
+            Some(render_text(layout_context, node, pseudo, style, string))
         }
     }
 }
@@ -418,12 +425,14 @@ struct CounterValue {
 /// Creates fragment info for a literal string.
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
+               pseudo: PseudoElementType<()>,
                style: Arc<ComputedValues>,
                string: String)
                -> SpecificFragmentInfo {
     let mut fragments = LinkedList::new();
     let info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(string));
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
+                                                             pseudo,
                                                              style,
                                                              incremental::rebuild_and_reflow(),
                                                              info));

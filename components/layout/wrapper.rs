@@ -588,13 +588,13 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
 }
 
 #[derive(Copy, PartialEq, Clone)]
-pub enum PseudoElementType {
+pub enum PseudoElementType<T> {
     Normal,
-    Before(display::T),
-    After(display::T),
+    Before(T),
+    After(T),
 }
 
-impl PseudoElementType {
+impl<T> PseudoElementType<T> {
     pub fn is_before(&self) -> bool {
         match *self {
             PseudoElementType::Before(_) => true,
@@ -608,6 +608,14 @@ impl PseudoElementType {
             _ => false,
         }
     }
+
+    pub fn strip(&self) -> PseudoElementType<()> {
+        match *self {
+            PseudoElementType::Normal => PseudoElementType::Normal,
+            PseudoElementType::Before(_) => PseudoElementType::Before(()),
+            PseudoElementType::After(_) => PseudoElementType::After(()),
+        }
+    }
 }
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
@@ -617,7 +625,7 @@ pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     node: LayoutNode<'ln>,
 
-    pseudo: PseudoElementType,
+    pseudo: PseudoElementType<display::T>,
 }
 
 impl<'ln> ThreadSafeLayoutNode<'ln> {
@@ -639,7 +647,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
     /// with a different pseudo-element type.
-    fn with_pseudo(&self, pseudo: PseudoElementType) -> ThreadSafeLayoutNode<'ln> {
+    fn with_pseudo(&self, pseudo: PseudoElementType<display::T>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: self.node.clone(),
             pseudo: pseudo,
@@ -697,7 +705,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     #[inline]
-    pub fn get_pseudo_element_type(&self) -> PseudoElementType {
+    pub fn get_pseudo_element_type(&self) -> PseudoElementType<display::T> {
         self.pseudo
     }
 
