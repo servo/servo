@@ -2076,6 +2076,8 @@ pub mod longhands {
 
     ${new_style_struct("Text", is_inherited=False)}
 
+    ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
+
     <%self:longhand name="text-decoration" custom_cascade="True">
         use cssparser::ToCss;
         use std::fmt;

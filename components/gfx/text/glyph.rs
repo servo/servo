@@ -512,6 +512,7 @@ pub struct GlyphStore {
     detail_store: DetailedGlyphStore,
 
     is_whitespace: bool,
+    is_rtl: bool,
 }
 
 int_range_index! {
@@ -526,13 +527,14 @@ impl<'a> GlyphStore {
     /// Initializes the glyph store, but doesn't actually shape anything.
     ///
     /// Use the `add_*` methods to store glyph data.
-    pub fn new(length: usize, is_whitespace: bool) -> GlyphStore {
+    pub fn new(length: usize, is_whitespace: bool, is_rtl: bool) -> GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
             entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
             is_whitespace: is_whitespace,
+            is_rtl: is_rtl,
         }
     }
 
@@ -633,8 +635,8 @@ impl<'a> GlyphStore {
 
         GlyphIterator {
             store:       self,
-            char_index:  rang.begin(),
-            char_range:  rang.each_index(),
+            char_index:  if self.is_rtl { rang.end() } else { rang.begin() - CharIndex(1) },
+            char_range:  *rang,
             glyph_range: None,
         }
     }
@@ -736,7 +738,7 @@ impl<'a> GlyphStore {
 pub struct GlyphIterator<'a> {
     store: &'a GlyphStore,
     char_index: CharIndex,
-    char_range: EachIndex<isize, CharIndex>,
+    char_range: Range<CharIndex>,
     glyph_range: Option<EachIndex<isize, CharIndex>>,
 }
 
@@ -776,23 +778,28 @@ impl<'a> Iterator for GlyphIterator<'a> {
     // `next_complex_glyph()`.
     #[inline(always)]
     fn next(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
-        // Would use 'match' here but it borrows contents in a way that
-        // interferes with mutation.
+        // Would use 'match' here but it borrows contents in a way that interferes with mutation.
         if self.glyph_range.is_some() {
-            self.next_glyph_range()
+            return self.next_glyph_range()
+        }
+
+        // No glyph range. Look at next character.
+        self.char_index = self.char_index + if self.store.is_rtl {
+            CharIndex(-1)
         } else {
-            // No glyph range. Look at next character.
-            self.char_range.next().and_then(|i| {
-                self.char_index = i;
-                assert!(i < self.store.char_len());
-                let entry = self.store.entry_buffer[i.to_usize()];
-                if entry.is_simple() {
-                    Some((self.char_index, GlyphInfo::Simple(self.store, i)))
-                } else {
-                    // Fall back to the slow path.
-                    self.next_complex_glyph(&entry, i)
-                }
-            })
+            CharIndex(1)
+        };
+        let i = self.char_index;
+        if !self.char_range.contains(i) {
+            return None
+        }
+        debug_assert!(i < self.store.char_len());
+        let entry = self.store.entry_buffer[i.to_usize()];
+        if entry.is_simple() {
+            Some((i, GlyphInfo::Simple(self.store, i)))
+        } else {
+            // Fall back to the slow path.
+            self.next_complex_glyph(&entry, i)
         }
     }
 }
