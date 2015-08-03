@@ -219,11 +219,7 @@ impl DedicatedWorkerGlobalScope {
                         Reporter(reporter_sender)));
             }
 
-            loop {
-                let event = match global.receive_event() {
-                    Ok(event) => event,
-                    Err(_) => break,
-                };
+            while let Ok(event) = global.receive_event() {
                 global.handle_event(event);
             }
 
