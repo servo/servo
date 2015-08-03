@@ -5,25 +5,25 @@
 //! Servo's experimental layout system builds a tree of `Flow` and `Fragment` objects and solves
 //! layout constraints to obtain positions and display attributes of tree nodes. Positions are
 //! computed in several tree traversals driven by the fundamental data dependencies required by
-/// inline and block layout.
-///
-/// Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
-/// CSS specification. Flows are responsible for positioning their child flow contexts and
-/// fragments. Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow
-/// child lists, and so on.
-///
-/// Currently, the important types of flows are:
-///
-/// * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
-///   which are positioned according to block formatting context rules (CSS block boxes). Block
-///   flows also contain a single box to represent their rendered borders, padding, etc.
-///   The BlockFlow at the root of the tree has special behavior: it stretches to the boundaries of
-///   the viewport.
-///
-/// * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
-///   fragments/flows that are subject to inline layout and line breaking and structs to represent
-///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
-///   similar methods.
+//! inline and block layout.
+//!
+//! Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
+//! CSS specification. Flows are responsible for positioning their child flow contexts and
+//! fragments. Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow
+//! child lists, and so on.
+//!
+//! Currently, the important types of flows are:
+//!
+//! * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
+//!   which are positioned according to block formatting context rules (CSS block boxes). Block
+//!   flows also contain a single box to represent their rendered borders, padding, etc.
+//!   The BlockFlow at the root of the tree has special behavior: it stretches to the boundaries of
+//!   the viewport.
+//!
+//! * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
+//!   fragments/flows that are subject to inline layout and line breaking and structs to represent
+//!   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
+//!   similar methods.
 
 use block::BlockFlow;
 use context::LayoutContext;
@@ -1436,4 +1436,3 @@ impl OpaqueFlow {
         OpaqueFlow(base_flow as *const BaseFlow as usize)
     }
 }
-

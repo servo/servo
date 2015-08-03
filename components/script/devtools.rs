@@ -43,7 +43,6 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
     } else if rval.ptr.is_null() {
         EvaluateJSReply::NullValue
     } else {
-        //FIXME: jsvals don't have an is_int32/is_number yet
         assert!(rval.ptr.is_object());
         panic!("object values unimplemented")
     }).unwrap();
