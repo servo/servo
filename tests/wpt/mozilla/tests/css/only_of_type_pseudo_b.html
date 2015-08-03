@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:only-of-type test</title>
+    <style type="text/css">
+      div > p,
+      div > div,
+      div > address {
+          float: left;
+          width: 20px;
+          height: 20px;
+          margin: 0px;
+          margin-right: 10px;
+          padding: 0px;
+      }
+      div > div,
+      div > p {
+          background: black;
+      }
+      body > div { clear: both; margin-bottom: 10px; }
+
+      #d1 > .ok { background: green; }
+    </style>
+  </head>
+  <body>
+    <div id="d1">
+      <p> </p>
+      <div> </div>
+      <div> </div>
+      <p> </p>
+      <address class="ok"> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+    </div>
+  </body>
+</html>
