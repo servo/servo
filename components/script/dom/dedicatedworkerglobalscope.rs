@@ -240,7 +240,7 @@ impl DedicatedWorkerGlobalScope {
                     },
                     MixedMessage::FromWorker((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
-                        global.r().handle_event(msg);
+                        global.r().handle_script_event(msg);
                     },
                 }
             }
@@ -281,12 +281,12 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
     }
 
     fn process_event(self, msg: ScriptMsg) {
-        self.handle_event(msg);
+        self.handle_script_event(msg);
     }
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn handle_event(self, msg: ScriptMsg);
+    fn handle_script_event(self, msg: ScriptMsg);
     fn dispatch_error_to_worker(self, &ErrorEvent);
     fn receive_event(self) -> Result<MixedMessage, RecvError>;
 }
@@ -317,7 +317,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
         }
     }
 
-    fn handle_event(self, msg: ScriptMsg) {
+    fn handle_script_event(self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::DOMMessage(data) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
