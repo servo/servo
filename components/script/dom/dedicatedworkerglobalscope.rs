@@ -177,14 +177,13 @@ impl DedicatedWorkerGlobalScope {
 
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let serialized_url = url.serialize();
-            let parent_sender_for_reporter = parent_sender.clone();
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_ipc_port, devtools_mpsc_chan);
 
             let global = DedicatedWorkerGlobalScope::new(
                 init, url, id, devtools_mpsc_port, runtime.clone(),
-                parent_sender, own_sender, receiver);
+                parent_sender.clone(), own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = WorkerGlobalScopeCast::from_ref(global.r());
@@ -211,7 +210,7 @@ impl DedicatedWorkerGlobalScope {
             ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
                 // Just injects an appropriate event into the worker task's queue.
                 let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-                parent_sender_for_reporter.send(ScriptMsg::CollectReports(
+                parent_sender.send(ScriptMsg::CollectReports(
                         reporter_request.reports_channel)).unwrap()
             });
             scope.mem_profiler_chan().send(mem::ProfilerMsg::RegisterReporter(
