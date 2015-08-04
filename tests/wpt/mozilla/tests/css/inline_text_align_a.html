@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <style>
+      .right {
+        text-align: right;
+      }
+      .left {
+        text-align: left;
+      }
+      .inline {
+        display: inline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="right">
+      <span class="left"> <!-- should ignore 'text-align' of inline elements -->
+        <div class="inline left"> <!-- ... and those explicitly defined as inline -->
+          <span>hello, wide world</span>
+        </span>
+      </span>
+    </div>
+  </body>
+</html>
