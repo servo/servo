@@ -103,6 +103,8 @@ impl<T: HeapSizeOf> HeapSizeOf for Option<T> {
 
 impl HeapSizeOf for url::Url {
     fn heap_size_of_children(&self) -> usize {
+        // Using a struct pattern without `..` rather than `foo.bar` field access
+        // makes sure this will be updated if a field is added.
         let &url::Url { ref scheme, ref scheme_data, ref query, ref fragment } = self;
         scheme.heap_size_of_children() +
         scheme_data.heap_size_of_children() +
@@ -122,6 +124,8 @@ impl HeapSizeOf for url::SchemeData {
 
 impl HeapSizeOf for url::RelativeSchemeData {
     fn heap_size_of_children(&self) -> usize {
+        // Using a struct pattern without `..` rather than `foo.bar` field access
+        // makes sure this will be updated if a field is added.
         let &url::RelativeSchemeData { ref username, ref password, ref host,
                                        ref port, ref default_port, ref path } = self;
         username.heap_size_of_children() +
