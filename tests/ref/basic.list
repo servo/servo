@@ -157,6 +157,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 == inline_block_stacking_context_a.html inline_block_stacking_context_ref.html
 == inline_block_with_margin_a.html inline_block_with_margin_ref.html
 # inline_border_a.html inline_border_b.html
+== inline_border_baseline_a.html inline_border_baseline_ref.html
 == inline_element_border_a.html inline_element_border_ref.html
 == inline_hypothetical_box_a.html inline_hypothetical_box_ref.html
 == inline_margin_multiple_fragments_a.html inline_margin_multiple_fragments_ref.html
