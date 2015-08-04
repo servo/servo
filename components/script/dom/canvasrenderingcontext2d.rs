@@ -985,7 +985,21 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
             .unwrap();
-        let data = receiver.recv().unwrap();
+        let mut data = receiver.recv().unwrap();
+
+        // Un-premultiply alpha
+        // TODO: may want a precomputed un-premultiply table to make this fast.
+        let mut i = 0;
+        loop {
+            if i >= data.len() {
+                break;
+            }
+            let alpha = data[i + 3] as f32 / 255.;
+            data[i] = (data[i] as f32 / alpha) as u8;
+            data[i + 1] = (data[i + 1] as f32 / alpha) as u8;
+            data[i + 2] = (data[i + 2] as f32 / alpha) as u8;
+            i += 4;
+        }
         Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
     }
 
@@ -1019,10 +1033,13 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
     fn CreateRadialGradient(self, x0: Finite<f64>, y0: Finite<f64>, r0: Finite<f64>,
                             x1: Finite<f64>, y1: Finite<f64>, r1: Finite<f64>)
-                            -> Root<CanvasGradient> {
-        CanvasGradient::new(self.global.root().r(),
-                            CanvasGradientStyle::Radial(
-                                RadialGradientStyle::new(*x0, *y0, *r0, *x1, *y1, *r1, Vec::new())))
+                            -> Fallible<Root<CanvasGradient>> {
+        if *r0 < 0 as f64|| *r1 < 0 as f64 {
+            return Err(IndexSize);
+        }
+        Ok(CanvasGradient::new(self.global.root().r(),
+                               CanvasGradientStyle::Radial(
+                                   RadialGradientStyle::new(*x0, *y0, *r0, *x1, *y1, *r1, Vec::new()))))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
