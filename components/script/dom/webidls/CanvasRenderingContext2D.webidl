@@ -58,9 +58,7 @@ interface CanvasRenderingContext2D {
   // colours and styles (see also the CanvasDrawingStyles interface)
            attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
            attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
-  [Throws]
   CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
-  [Throws]
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
   [Throws]
   CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
@@ -126,7 +124,7 @@ interface CanvasRenderingContext2D {
 
   // pixel manipulation
   [Throws]
-  ImageData createImageData(unrestricted double sw, unrestricted double sh);
+  ImageData createImageData(double sw, double sh);
   [Throws]
   ImageData createImageData(ImageData imagedata);
   [Throws]
@@ -185,8 +183,8 @@ interface CanvasPathMethods {
   void rect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 
   [Throws]
-  void arc(double x, double y, double radius, double startAngle, double endAngle,
-           optional boolean anticlockwise = false);
+  void arc(unrestricted double x, unrestricted double y, unrestricted double radius,
+           unrestricted double startAngle, unrestricted double endAngle, optional boolean anticlockwise = false);
   // [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY,
   //                             double rotation, double startAngle, double endAngle,
   //                             boolean anticlockwise);
