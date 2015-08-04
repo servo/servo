@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that reversed linear gradients are equivalent. -->
+<style>
+nav {
+    display: block;
+    width: 100px;
+    height: 100px;
+    border: solid black 1px;
+}
+#a {
+    background: linear-gradient(0deg, green, #008000 50%, red 50%, red);
+}
+#b {
+    background: linear-gradient(to left, #ffffff, black);
+}
+#c {
+    background: linear-gradient(225deg, purple, purple 50%, yellow 50%, yellow);
+}
+#d {
+    background: linear-gradient(315deg, pink, pink 50%, lime 50%, lime);
+}
+</style>
+</head>
+<body>
+<nav id=a></nav>
+<nav id=b></nav>
+<nav id=c></nav>
+<nav id=d></nav>
+</body>
+</html>
+

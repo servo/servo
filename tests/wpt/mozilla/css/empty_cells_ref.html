@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `empty-cells` works—in particular, that the definition of emptiness is correct. -->
+<style>
+.empty {
+    border: none;
+}
+</style>
+</head>
+<body>
+<table border=3>
+    <tr><td>Yo</td><td>Howdy</td><td></td><td class=empty></td></tr>
+    <tr><td>Later</td><td class=empty></td><td>See ya</td><td>Aloha</td></tr>
+    <tr><td class=empty></td><td>Sayonara</td><td class=empty></td><td></td></tr>
+</table>
+</body>
+</html>
+

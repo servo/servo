@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:nth-last-of-type test</title>
+    <style type="text/css">
+
+      div > p,
+      div > div,
+      div > address {
+          float: left;
+          width: 20px;
+          height: 20px;
+          margin: 0px;
+          margin-right: 10px;
+          padding: 0px;
+      }
+      div > p {
+          background: white;
+      }
+      div > div,
+      div > address {
+          background: black;
+      }
+      body > div { clear: both; margin-bottom: 10px; }
+
+      .odd, .even, .nth, .nth2, .negativen { background: green; }
+    </style>
+  </head>
+  <body>
+    <div id="odd">
+      <p> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p class="odd"> </p>
+      <p> </p>
+      <div> </div>
+      <p class="odd"> </p>
+      <p> </p>
+      <address> </address>
+      <address> </address>
+      <p class="odd"> </p>
+      <div> </div>
+      <p> </p>
+      <p class="odd"> </p>
+    </div>
+    <div id="even">
+      <p class="even"> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p> </p>
+      <p class="even"> </p>
+      <div> </div>
+      <p> </p>
+      <p class="even"> </p>
+      <address> </address>
+      <address> </address>
+      <p> </p>
+      <div> </div>
+      <p class="even"> </p>
+      <p> </p>
+    </div>
+    <div id="nth">
+      <p class="nth"> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+      <div> </div>
+      <p class="nth"> </p>
+      <p> </p>
+      <address> </address>
+      <address> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+    </div>
+    <div id="nth2">
+      <p> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p class="nth2"> </p>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p class="nth2"> </p>
+      <address> </address>
+      <address> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p class="nth2"> </p>
+    </div>
+    <div id="negativen">
+      <p> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+      <div> </div>
+      <p class="negativen"> </p>
+      <p> </p>
+      <address> </address>
+      <address> </address>
+      <p class="negativen"> </p>
+      <div> </div>
+      <p> </p>
+      <p class="negativen"> </p>
+    </div>
+  </body>
+</html>

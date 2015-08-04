@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>'visibility: hidden' test</title>
+    <style type="text/css">
+      body { color: black; background: white }
+      .hidden { visibility: hidden; }
+      .visible { visibility: visible; }
+    </style>
+  </head>
+  <body>
+    <p>This should be visible.</p>
+    <div class="hidden">
+      <p>This should NOT be visible.</p>
+      <p class="visible">This should be visible.</p>
+    </div>
+  </body>
+</html>

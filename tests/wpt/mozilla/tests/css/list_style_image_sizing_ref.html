@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+    Tests that the list style image doesn't get stretched vertically. It should be completely
+    covered up by the black absolutely-positioned div.
+-->
+<link rel="stylesheet" type="text/css" href="css/ahem.css">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+}
+li {
+    margin-left: 128px;
+    list-style-image: none;
+    font-size: 256px;
+    font-family: Ahem, monospace;
+}
+#coverup {
+    position: absolute;
+    background: black;
+    top: 176px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+</style>
+</head>
+<body>
+<ul>
+    <li>x</li>
+</ul>
+<div id=coverup></div>
+</body>
+</html>
+

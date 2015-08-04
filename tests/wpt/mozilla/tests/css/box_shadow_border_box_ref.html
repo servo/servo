@@ -1,0 +1,30 @@
+<head>
+<!-- Tests that the entire border-box is shadowed, not just the content box. -->
+<style>
+section {
+    position: absolute;
+}
+#a {
+    width: 120px;
+    height: 100px;
+    top: 110px;
+    left: 120px;
+    background: black;
+}
+#b {
+    width: 100px;
+    height: 100px;
+    top: 100px;
+    left: 100px;
+    border-left: solid green 10px;
+    border-right: solid green 10px;
+    background: white;
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+</body>
+
+

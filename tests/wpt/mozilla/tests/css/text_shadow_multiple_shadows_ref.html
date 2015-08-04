@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that multiple `text-shadow`s paint in the right order. -->
+<style>
+section {
+    position: absolute;
+    width: 300px;
+    font-size: 96px;
+}
+#a {
+    top: 100px;
+    left: 100px;
+    color: red;
+}
+#b {
+    top: 106px;
+    left: 106px;
+    color: black;
+}
+#c {
+    top: 112px;
+    left: 112px;
+    color: blue;
+}
+</style>
+</head>
+<body>
+<section id=c>Foo</section>
+<section id=b>Foo</section>
+<section id=a>Foo</section>
+</body>
+</html>
+
