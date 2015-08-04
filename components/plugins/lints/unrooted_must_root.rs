@@ -202,10 +202,12 @@ impl LintPass for UnrootedPass {
                 // We need not check arms individually since enum/struct fields are already
                 // linted in `check_struct_def` and `check_variant`
                 // (so there is no way of destructuring out a `#[must_root]` field)
-                ast::ExprMatch(ref e, _, _) |
-                // For loops allow you to bind a return value locally
-                ast::ExprForLoop(_, ref e, _, _) => &**e,
-                // XXXManishearth look into `if let` once it lands in our rustc
+                ast::ExprMatch(ref e, _, _) => &**e,
+                // These are able to bind local variables, but are desugared into
+                // loops and matches pre-lint so should not be encountered
+                ast::ExprForLoop(..) => unreachable!(),
+                ast::ExprIfLet(..) => unreachable!(),
+                ast::ExprWhileLet(..) => unreachable!(),
                 _ => return
             },
             _ => return
