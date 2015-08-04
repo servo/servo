@@ -72,6 +72,9 @@ pub struct Opts {
     /// See https://github.com/servo/servo/issues/6564
     pub replace_surrogates: bool,
 
+    /// Log GC passes and their durations.
+    pub gc_profile: bool,
+
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -202,6 +205,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("parallel-display-list-building", "Build display lists in parallel.");
     print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
                                         See https://github.com/servo/servo/issues/6564");
+    print_option("gc-profile", "Log GC passes and their durations.");
 
     println!("");
 
@@ -239,6 +243,7 @@ pub fn default_opts() -> Opts {
         userscripts: None,
         output_file: None,
         replace_surrogates: false,
+        gc_profile: false,
         headless: true,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
@@ -417,6 +422,7 @@ pub fn from_cmdline_args(args: &[String]) {
         userscripts: opt_match.opt_default("userscripts", ""),
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.contains(&"replace-surrogates"),
+        gc_profile: debug_options.contains(&"gc-profile"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
