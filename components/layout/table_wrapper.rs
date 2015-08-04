@@ -216,6 +216,12 @@ impl TableWrapperFlow {
                                                   |accumulator, intermediate_column_inline_sizes| {
                 accumulator + intermediate_column_inline_sizes.size
             });
+        let preferred_width_of_all_columns =
+            self.column_intrinsic_inline_sizes.iter()
+                                              .fold(border_padding + spacing,
+                                                    |accumulator, column_intrinsic_inline_sizes| {
+                accumulator + column_intrinsic_inline_sizes.preferred
+            });
 
         // Delegate to the appropriate inline size computer to find the constraint inputs and write
         // the constraint solutions in.
@@ -223,6 +229,7 @@ impl TableWrapperFlow {
         if self.block_flow.base.flags.is_float() {
             let inline_size_computer = FloatedTable {
                 minimum_width_of_all_columns: minimum_width_of_all_columns,
+                preferred_width_of_all_columns: preferred_width_of_all_columns,
                 border_collapse: border_collapse,
             };
             let input =
@@ -241,6 +248,7 @@ impl TableWrapperFlow {
 
         let inline_size_computer = Table {
             minimum_width_of_all_columns: minimum_width_of_all_columns,
+            preferred_width_of_all_columns: preferred_width_of_all_columns,
             border_collapse: border_collapse,
         };
         let input =
@@ -703,13 +711,14 @@ struct IntermediateColumnInlineSize {
 
 fn initial_computed_inline_size(block: &mut BlockFlow,
                                 containing_block_inline_size: Au,
-                                minimum_width_of_all_columns: Au)
+                                minimum_width_of_all_columns: Au,
+                                preferred_width_of_all_columns: Au)
                                 -> MaybeAuto {
     let inline_size_from_style = MaybeAuto::from_style(block.fragment.style.content_inline_size(),
                                                        containing_block_inline_size);
     match inline_size_from_style {
         MaybeAuto::Auto => {
-            MaybeAuto::Specified(max(containing_block_inline_size, minimum_width_of_all_columns))
+            MaybeAuto::Specified(min(containing_block_inline_size, preferred_width_of_all_columns))
         }
         MaybeAuto::Specified(inline_size_from_style) => {
             MaybeAuto::Specified(max(inline_size_from_style, minimum_width_of_all_columns))
@@ -719,6 +728,7 @@ fn initial_computed_inline_size(block: &mut BlockFlow,
 
 struct Table {
     minimum_width_of_all_columns: Au,
+    preferred_width_of_all_columns: Au,
     border_collapse: border_collapse::T,
 }
 
@@ -739,7 +749,8 @@ impl ISizeAndMarginsComputer for Table {
                                               layout_context);
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
-                                     self.minimum_width_of_all_columns)
+                                     self.minimum_width_of_all_columns,
+                                     self.preferred_width_of_all_columns)
     }
 
     fn solve_inline_size_constraints(&self,
@@ -752,6 +763,7 @@ impl ISizeAndMarginsComputer for Table {
 
 struct FloatedTable {
     minimum_width_of_all_columns: Au,
+    preferred_width_of_all_columns: Au,
     border_collapse: border_collapse::T,
 }
 
@@ -772,7 +784,8 @@ impl ISizeAndMarginsComputer for FloatedTable {
                                               layout_context);
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
-                                     self.minimum_width_of_all_columns)
+                                     self.minimum_width_of_all_columns,
+                                     self.preferred_width_of_all_columns)
     }
 
     fn solve_inline_size_constraints(&self,
