@@ -16,6 +16,7 @@ use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::window;
+use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 use libc;
@@ -61,10 +62,18 @@ use js;
 use string_cache::{Atom, Namespace};
 
 /// Proxy handler for a WindowProxy.
+#[allow(raw_pointer_derive)]
 pub struct WindowProxyHandler(pub *const libc::c_void);
 
+impl HeapSizeOf for WindowProxyHandler {
+    fn heap_size_of_children(&self) -> usize {
+        //FIXME(#6907) this is a pointer to memory allocated by `new` in NewProxyHandler in rust-mozjs.
+        0
+    }
+}
+
 #[allow(raw_pointer_derive)]
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {
     /// The WindowProxy proxy handler for this global.
@@ -416,8 +425,10 @@ pub fn reflect_dom_object<T: Reflectable>
 #[allow(raw_pointer_derive, unrooted_must_root)]
 #[must_root]
 #[servo_lang = "reflector"]
+#[derive(HeapSizeOf)]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
+    #[ignore_heap_size_of = "defined and measured in rust-mozjs"]
     object: UnsafeCell<*mut JSObject>,
 }
 

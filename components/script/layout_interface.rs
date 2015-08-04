@@ -104,6 +104,7 @@ pub trait LayoutRPC {
     fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
+    fn offset_parent(&self) -> OffsetParentResponse;
 }
 
 
@@ -115,6 +116,21 @@ pub struct NodeGeometryResponse {
 pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 pub struct ResolvedStyleResponse(pub Option<String>);
+
+#[derive(Clone)]
+pub struct OffsetParentResponse {
+    pub node_address: Option<UntrustedNodeAddress>,
+    pub rect: Rect<Au>,
+}
+
+impl OffsetParentResponse {
+    pub fn empty() -> OffsetParentResponse {
+        OffsetParentResponse {
+            node_address: None,
+            rect: Rect::zero(),
+        }
+    }
+}
 
 /// Why we're doing reflow.
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -133,6 +149,7 @@ pub enum ReflowQueryType {
     ContentBoxesQuery(TrustedNodeAddress),
     NodeGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
+    OffsetParentQuery(TrustedNodeAddress),
 }
 
 /// Information needed for a reflow.

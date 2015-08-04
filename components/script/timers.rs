@@ -13,6 +13,7 @@ use dom::window::ScriptHelpers;
 use script_task::{ScriptChan, ScriptMsg, TimerSource};
 use horribly_inefficient_timers;
 
+use util::mem::HeapSizeOf;
 use util::task::spawn_named;
 use util::str::DOMString;
 
@@ -29,14 +30,15 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::default::Default;
 
-#[derive(JSTraceable, PartialEq, Eq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf)]
 pub struct TimerId(i32);
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
 struct TimerHandle {
     handle: TimerId,
     data: TimerData,
+    #[ignore_heap_size_of = "channels are hard"]
     control_chan: Option<Sender<TimerControlMsg>>,
 }
 
@@ -44,6 +46,13 @@ struct TimerHandle {
 pub enum TimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(Rc<Function>)
+}
+
+impl HeapSizeOf for TimerCallback {
+    fn heap_size_of_children(&self) -> usize {
+        // FIXME: Rc<T> isn't HeapSizeOf and we can't ignore it due to #6870 and #6871
+        0
+    }
 }
 
 impl Hash for TimerId {
@@ -65,7 +74,7 @@ impl TimerHandle {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
 pub struct TimerManager {
     active_timers: DOMRefCell<HashMap<TimerId, TimerHandle>>,
@@ -82,7 +91,7 @@ impl Drop for TimerManager {
 }
 
 // Enum allowing more descriptive values for the is_interval field
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 pub enum IsInterval {
     Interval,
     NonInterval,
@@ -100,7 +109,7 @@ pub enum TimerControlMsg {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 // TODO: Handle rooting during fire_timer when movable GC is turned on
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
 struct TimerData {
     is_interval: IsInterval,

@@ -125,7 +125,7 @@ impl<'a> GlobalRef<'a> {
     pub fn get_worker_id(&self) -> Option<WorkerId> {
         match *self {
             GlobalRef::Window(_) => None,
-            GlobalRef::Worker(ref worker) => worker.get_worker_id(),
+            GlobalRef::Worker(ref worker) => Some(worker.get_worker_id()),
         }
     }
 

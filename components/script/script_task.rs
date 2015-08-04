@@ -46,6 +46,7 @@ use dom::worker::TrustedWorkerAddress;
 use parse::html::{ParseContext, parse_html};
 use layout_interface::{self, NewLayoutTaskInfo, ScriptLayoutChan, LayoutChan, ReflowGoal};
 use layout_interface::{ReflowQueryType};
+use mem::heap_size_of_eventtarget;
 use network_listener::NetworkListener;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
@@ -1104,11 +1105,28 @@ impl ScriptTask {
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
         let mut urls = vec![];
+        let mut dom_tree_size = 0;
+        let mut reports = vec![];
         for it_page in self.root_page().iter() {
-            urls.push(it_page.document().url().serialize());
+            let current_url = it_page.document().url().serialize();
+            urls.push(current_url.clone());
+
+            for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
+                let target = EventTargetCast::from_ref(&*child);
+                dom_tree_size += heap_size_of_eventtarget(target);
+            }
+            let window = it_page.window();
+            let target = EventTargetCast::from_ref(&*window);
+            dom_tree_size += heap_size_of_eventtarget(target);
+
+            reports.push(Report {
+                path: path![format!("url({})", current_url), "dom-tree"],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: dom_tree_size,
+            })
         }
         let path_seg = format!("url({})", urls.join(", "));
-        let reports = ScriptTask::get_reports(self.get_cx(), path_seg);
+        reports.extend(ScriptTask::get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
 
