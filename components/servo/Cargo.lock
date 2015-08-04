@@ -872,6 +872,7 @@ dependencies = [
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1502,7 +1503,10 @@ dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
+ "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1514,6 +1518,7 @@ dependencies = [
  "serde 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

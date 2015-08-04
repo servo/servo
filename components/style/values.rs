@@ -103,7 +103,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
     pub struct CSSColor {
         pub parsed: cssparser::Color,
         pub authored: Option<String>,
@@ -147,7 +147,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum FontRelativeLength {
         Em(CSSFloat),
         Ex(CSSFloat),
@@ -181,7 +181,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum ViewportPercentageLength {
         Vw(CSSFloat),
         Vh(CSSFloat),
@@ -222,7 +222,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub struct CharacterWidth(pub i32);
 
     impl CharacterWidth {
@@ -237,7 +237,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum Length {
         Absolute(Au),  // application units
         FontRelative(FontRelativeLength),
@@ -354,7 +354,7 @@ pub mod specified {
     }
 
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -398,7 +398,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrPercentageOrAuto {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -442,7 +442,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrPercentageOrNone {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -486,7 +486,7 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrNone {
         Length(Length),
         None,
@@ -617,7 +617,7 @@ pub mod specified {
     }
 
     /// Specified values for an image according to CSS-IMAGES.
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
@@ -658,7 +658,7 @@ pub mod specified {
     }
 
     /// Specified values for a CSS linear gradient.
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
     pub struct LinearGradient {
         /// The angle or corner of the gradient.
         pub angle_or_corner: AngleOrCorner,
@@ -681,7 +681,7 @@ pub mod specified {
     }
 
     /// Specified values for an angle or a corner in a linear gradient.
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum AngleOrCorner {
         Angle(Angle),
         Corner(HorizontalDirection, VerticalDirection),
@@ -703,7 +703,7 @@ pub mod specified {
     }
 
     /// Specified values for one color stop in a linear gradient.
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,
@@ -810,7 +810,7 @@ pub mod specified {
     }
 
     /// A time in seconds according to CSS-VALUES § 6.2.
-    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, HeapSizeOf)]
     pub struct Time(pub CSSFloat);
 
     impl Time {
@@ -938,7 +938,7 @@ pub mod computed {
         }
     }
 
-    #[derive(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
@@ -984,7 +984,7 @@ pub mod computed {
         }
     }
 
-    #[derive(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
     pub enum LengthOrPercentageOrAuto {
         Length(Au),
         Percentage(CSSFloat),
@@ -1030,7 +1030,7 @@ pub mod computed {
         }
     }
 
-    #[derive(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),
@@ -1076,7 +1076,7 @@ pub mod computed {
         }
     }
 
-    #[derive(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
     pub enum LengthOrNone {
         Length(Au),
         None,
@@ -1131,7 +1131,7 @@ pub mod computed {
 
 
     /// Computed values for an image according to CSS-IMAGES.
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, PartialEq, HeapSizeOf)]
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
@@ -1147,7 +1147,7 @@ pub mod computed {
     }
 
     /// Computed values for a CSS linear gradient.
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, PartialEq, HeapSizeOf)]
     pub struct LinearGradient {
         /// The angle or corner of the gradient.
         pub angle_or_corner: AngleOrCorner,
@@ -1180,7 +1180,7 @@ pub mod computed {
     }
 
     /// Computed values for one color stop in a linear gradient.
-    #[derive(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy, HeapSizeOf)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,

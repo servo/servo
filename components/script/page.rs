@@ -13,7 +13,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 /// Encapsulates a handle to a frame in a frame tree.
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[allow(unrooted_must_root)] // FIXME(#6687) this is wrong
 pub struct Page {
     /// Pipeline id associated with this page.
@@ -127,7 +127,7 @@ impl Page {
 }
 
 /// Information for one frame in the browsing context.
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
 pub struct Frame {
     /// The document for this frame.

@@ -27,7 +27,7 @@ use js::{JSTrue, JSFalse};
 use std::ptr;
 use std::default::Default;
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
 #[allow(raw_pointer_derive)]
 #[must_root]
@@ -88,7 +88,7 @@ impl BrowsingContext {
 // without a reflector, so we don't mark this as #[dom_struct]
 #[must_root]
 #[privatize]
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
     children: Vec<BrowsingContext>
