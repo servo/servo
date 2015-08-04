@@ -17,7 +17,6 @@ use generated_content;
 use incremental::RESOLVE_GENERATED_CONTENT;
 use inline::InlineMetrics;
 use text;
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
@@ -39,13 +38,12 @@ pub struct ListItemFlow {
 }
 
 impl ListItemFlow {
-    pub fn from_node_fragments_and_flotation(node: &ThreadSafeLayoutNode,
-                                             main_fragment: Fragment,
-                                             marker_fragment: Option<Fragment>,
-                                             flotation: Option<FloatKind>)
-                                             -> ListItemFlow {
+    pub fn from_fragments_and_flotation(main_fragment: Fragment,
+                                        marker_fragment: Option<Fragment>,
+                                        flotation: Option<FloatKind>)
+                                        -> ListItemFlow {
         let mut this = ListItemFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, main_fragment, flotation),
+            block_flow: BlockFlow::from_fragment(main_fragment, flotation),
             marker: marker_fragment,
         };
 

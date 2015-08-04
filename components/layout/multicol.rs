@@ -11,7 +11,6 @@ use context::LayoutContext;
 use floats::FloatKind;
 use flow::{FlowClass, Flow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect};
 use util::geometry::Au;
@@ -25,12 +24,9 @@ pub struct MulticolFlow {
 }
 
 impl MulticolFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment,
-                                  float_kind: Option<FloatKind>)
-                                  -> MulticolFlow {
+    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> MulticolFlow {
         MulticolFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment, float_kind)
+            block_flow: BlockFlow::from_fragment(fragment, float_kind)
         }
     }
 }

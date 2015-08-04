@@ -19,7 +19,6 @@ use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_row::{TableRowFlow};
 use table_wrapper::TableLayout;
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
@@ -61,10 +60,8 @@ pub struct TableFlow {
 }
 
 impl TableFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment)
-                                  -> TableFlow {
-        let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment, None);
+    pub fn from_fragment(fragment: Fragment) -> TableFlow {
+        let mut block_flow = BlockFlow::from_fragment(fragment, None);
         let table_layout =
             if block_flow.fragment().style().get_table().table_layout == table_layout::T::fixed {
                 TableLayout::Fixed

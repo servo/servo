@@ -23,7 +23,6 @@ use fragment::{Fragment, FragmentBorderBoxIterator};
 use model::MaybeAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect};
 use util::geometry::Au;
@@ -56,11 +55,8 @@ pub struct TableWrapperFlow {
 }
 
 impl TableWrapperFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment,
-                                  float_kind: Option<FloatKind>)
-                                  -> TableWrapperFlow {
-        let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment, float_kind);
+    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> TableWrapperFlow {
+        let mut block_flow = BlockFlow::from_fragment(fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::T::fixed {
             TableLayout::Fixed

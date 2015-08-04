@@ -363,27 +363,41 @@ impl<'a> FlowConstructor<'a> {
         }
 
         if child.is_table_cell() {
-            let fragment = Fragment::new(child_node, SpecificFragmentInfo::TableRow);
-            let mut new_child = FlowRef::new(box TableRowFlow::from_node_and_fragment(child_node,
-                                                                                      fragment));
+            let mut style = child_node.style().clone();
+            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table_row);
+            let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
+                                                                PseudoElementType::Normal,
+                                                                style,
+                                                                child_node.restyle_damage(),
+                                                                SpecificFragmentInfo::TableRow);
+            let mut new_child = FlowRef::new(box TableRowFlow::from_fragment(fragment));
             new_child.add_new_child(child.clone());
             child.finish();
             *child = new_child
         }
         if child.is_table_row() || child.is_table_rowgroup() {
-            let fragment = Fragment::new(child_node, SpecificFragmentInfo::Table);
-            let mut new_child = FlowRef::new(box TableFlow::from_node_and_fragment(child_node,
-                                                                                   fragment));
+            let mut style = child_node.style().clone();
+            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
+            let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
+                                                                PseudoElementType::Normal,
+                                                                style,
+                                                                child_node.restyle_damage(),
+                                                                SpecificFragmentInfo::Table);
+            let mut new_child = FlowRef::new(box TableFlow::from_fragment(fragment));
             new_child.add_new_child(child.clone());
             child.finish();
             *child = new_child
         }
         if child.is_table() {
-            let fragment = Fragment::new(child_node, SpecificFragmentInfo::TableWrapper);
-            let mut new_child =
-                FlowRef::new(box TableWrapperFlow::from_node_and_fragment(child_node,
-                                                                          fragment,
-                                                                          None));
+            let mut style = child_node.style().clone();
+            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
+            let fragment =
+                Fragment::from_opaque_node_and_style(child_node.opaque(),
+                                                     PseudoElementType::Normal,
+                                                     style,
+                                                     child_node.restyle_damage(),
+                                                     SpecificFragmentInfo::TableWrapper);
+            let mut new_child = FlowRef::new(box TableWrapperFlow::from_fragment(fragment, None));
             new_child.add_new_child(child.clone());
             child.finish();
             *child = new_child
@@ -467,7 +481,8 @@ impl<'a> FlowConstructor<'a> {
 
 
             let (ascent, descent) =
-                inline_flow.compute_minimum_ascent_and_descent(&mut self.layout_context.font_context(),
+                inline_flow.compute_minimum_ascent_and_descent(&mut self.layout_context
+                                                                        .font_context(),
                                                                &**node.style());
             inline_flow.minimum_block_size_above_baseline = ascent;
             inline_flow.minimum_depth_below_baseline = descent;
@@ -482,15 +497,15 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    fn build_block_flow_using_construction_result_of_child(&mut self,
-                                                           flow: &mut FlowRef,
-                                                           consecutive_siblings: &mut Vec<FlowRef>,
-                                                           node: &ThreadSafeLayoutNode,
-                                                           kid: ThreadSafeLayoutNode,
-                                                           inline_fragment_accumulator:
-                                                           &mut InlineFragmentsAccumulator,
-                                                           abs_descendants: &mut Descendants,
-                                                           first_fragment: &mut bool) {
+    fn build_block_flow_using_construction_result_of_child(
+            &mut self,
+            flow: &mut FlowRef,
+            consecutive_siblings: &mut Vec<FlowRef>,
+            node: &ThreadSafeLayoutNode,
+            kid: ThreadSafeLayoutNode,
+            inline_fragment_accumulator: &mut InlineFragmentsAccumulator,
+            abs_descendants: &mut Descendants,
+            first_fragment: &mut bool) {
         match kid.swap_out_construction_result() {
             ConstructionResult::None => {}
             ConstructionResult::Flow(mut kid_flow, kid_abs_descendants) => {
@@ -731,9 +746,9 @@ impl<'a> FlowConstructor<'a> {
                             -> ConstructionResult {
         let fragment = self.build_fragment_for_block(node);
         let flow = if node.style().is_multicol() {
-            box MulticolFlow::from_node_and_fragment(node, fragment, float_kind) as Box<Flow>
+            box MulticolFlow::from_fragment(fragment, float_kind) as Box<Flow>
         } else {
-            box BlockFlow::from_node_and_fragment(node, fragment, float_kind) as Box<Flow>
+            box BlockFlow::from_fragment(fragment, float_kind) as Box<Flow>
         };
         self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
@@ -1039,12 +1054,12 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode, float_value: float::T)
                                     -> ConstructionResult {
         let fragment = Fragment::new(node, SpecificFragmentInfo::TableWrapper);
-        let wrapper_flow = box TableWrapperFlow::from_node_and_fragment(
-            node, fragment, FloatKind::from_property(float_value));
+        let wrapper_flow =
+            box TableWrapperFlow::from_fragment(fragment, FloatKind::from_property(float_value));
         let mut wrapper_flow = FlowRef::new(wrapper_flow as Box<Flow>);
 
         let table_fragment = Fragment::new(node, SpecificFragmentInfo::Table);
-        let table_flow = box TableFlow::from_node_and_fragment(node, table_fragment);
+        let table_flow = box TableFlow::from_fragment(table_fragment);
         let table_flow = FlowRef::new(table_flow as Box<Flow>);
 
         // First populate the table flow with its children.
@@ -1102,7 +1117,7 @@ impl<'a> FlowConstructor<'a> {
     /// with possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_caption(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let fragment = self.build_fragment_for_block(node);
-        let flow = box TableCaptionFlow::from_node_and_fragment(node, fragment) as Box<Flow>;
+        let flow = box TableCaptionFlow::from_fragment(fragment) as Box<Flow>;
         self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
@@ -1111,8 +1126,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_rowgroup(&mut self, node: &ThreadSafeLayoutNode)
                                      -> ConstructionResult {
         let fragment = Fragment::new(node, SpecificFragmentInfo::TableRow);
-        let flow = box TableRowGroupFlow::from_node_and_fragment(node, fragment);
-        let flow = flow as Box<Flow>;
+        let flow = box TableRowGroupFlow::from_fragment(fragment) as Box<Flow>;
         self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
@@ -1120,7 +1134,7 @@ impl<'a> FlowConstructor<'a> {
     /// possibly other `TableCellFlow`s underneath it.
     fn build_flow_for_table_row(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let fragment = Fragment::new(node, SpecificFragmentInfo::TableRow);
-        let flow = box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>;
+        let flow = box TableRowFlow::from_fragment(fragment) as Box<Flow>;
         self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
@@ -1191,19 +1205,15 @@ impl<'a> FlowConstructor<'a> {
         let main_fragment = self.build_fragment_for_block(node);
         let flow = match node.style().get_list().list_style_position {
             list_style_position::T::outside => {
-                box ListItemFlow::from_node_fragments_and_flotation(node,
-                                                                    main_fragment,
-                                                                    marker_fragment,
-                                                                    flotation)
+                box ListItemFlow::from_fragments_and_flotation(main_fragment,
+                                                               marker_fragment,
+                                                               flotation)
             }
             list_style_position::T::inside => {
                 if let Some(marker_fragment) = marker_fragment {
                     initial_fragments.fragments.push_back(marker_fragment)
                 }
-                box ListItemFlow::from_node_fragments_and_flotation(node,
-                                                                    main_fragment,
-                                                                    None,
-                                                                    flotation)
+                box ListItemFlow::from_fragments_and_flotation(main_fragment, None, flotation)
             }
         };
 
@@ -1250,7 +1260,7 @@ impl<'a> FlowConstructor<'a> {
             let specific = SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node));
             col_fragments.push(Fragment::new(node, specific));
         }
-        let flow = box TableColGroupFlow::from_node_and_fragments(node, fragment, col_fragments);
+        let flow = box TableColGroupFlow::from_fragments(fragment, col_fragments);
         let mut flow = FlowRef::new(flow as Box<Flow>);
         flow.finish();
 

@@ -51,7 +51,7 @@ impl TableCellFlow {
                                                   visible: bool)
                                                   -> TableCellFlow {
         TableCellFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment, None),
+            block_flow: BlockFlow::from_fragment(fragment, None),
             collapsed_borders: CollapsedBordersForCell::new(),
             column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpan)
                              .unwrap_or(1),
