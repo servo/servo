@@ -159,8 +159,12 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
+<<<<<<< HEAD
     pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId,
                             data: ReadMetaData, blob_contents: Vec<u8>) {
+=======
+    pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId, data: ReadMetaData, blob_contents: Vec<u8>) {
+>>>>>>> 28c404aa70317b76220d736a4cc92da706f575d8
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
