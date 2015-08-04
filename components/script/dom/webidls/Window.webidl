@@ -123,16 +123,6 @@ partial interface Window {
   void resizeBy(long x, long y);
 
   // viewport
-<<<<<<< HEAD
-  readonly attribute double innerWidth;
-  readonly attribute double innerHeight;
-
-  // viewport scrolling
-  readonly attribute double scrollX;
-  readonly attribute double pageXOffset;
-  readonly attribute double scrollY;
-  readonly attribute double pageYOffset;
-=======
   readonly attribute long innerWidth;
   readonly attribute long innerHeight;
 
@@ -141,7 +131,6 @@ partial interface Window {
   readonly attribute long pageXOffset;
   readonly attribute long scrollY;
   readonly attribute long pageYOffset;
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
   void scroll(optional ScrollToOptions options);
   void scroll(unrestricted double x, unrestricted double y, optional ScrollOptions options);
   void scrollTo(optional ScrollToOptions options);

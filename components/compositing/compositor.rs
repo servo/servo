@@ -417,7 +417,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
              ShutdownState::NotShuttingDown) => {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }
-            
+
             (Msg::MoveTo(point),
              ShutdownState::NotShuttingDown) => {
                 self.window.set_position(point);
@@ -888,10 +888,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         } else {
             self.fragment_point = Some(point)
         }
-    }
-
-    fn scroll_delta(&mut self, id: PipelineId, layer: LayerId, delta: Point2D<f32>) {
-        println!("test");
     }
 
     fn handle_window_message(&mut self, event: WindowEvent) {
