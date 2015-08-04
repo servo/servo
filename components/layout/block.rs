@@ -1300,8 +1300,10 @@ impl BlockFlow {
         let mut inline_size_of_preceding_left_floats = Au(0);
         let mut inline_size_of_preceding_right_floats = Au(0);
         if self.formatting_context_type() == FormattingContextType::None {
-            inline_size_of_preceding_left_floats = self.inline_size_of_preceding_left_floats;
-            inline_size_of_preceding_right_floats = self.inline_size_of_preceding_right_floats;
+            inline_size_of_preceding_left_floats =
+                max(self.inline_size_of_preceding_left_floats - inline_start_content_edge, Au(0));
+            inline_size_of_preceding_right_floats =
+                max(self.inline_size_of_preceding_right_floats - inline_end_content_edge, Au(0));
         }
 
         let opaque_self = OpaqueFlow::from_flow(self);
@@ -1319,7 +1321,6 @@ impl BlockFlow {
         // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.base.writing_mode;
 
-        // This value is used only for table cells.
         let mut inline_start_margin_edge = inline_start_content_edge;
         let mut inline_end_margin_edge = inline_end_content_edge;
 
