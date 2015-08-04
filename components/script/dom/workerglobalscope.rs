@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::error::Error::{Syntax, Network, JSFailed};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, MutNullableHeap};
@@ -28,7 +28,7 @@ use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::{JSContext, HandleValue, JSAutoRequest};
 use js::rust::Runtime;
 use url::{Url, UrlParser};
 
@@ -283,6 +283,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
 }
 
 pub trait WorkerGlobalScopeHelpers {
+    fn execute_script(self, source: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn script_chan(self) -> Box<ScriptChan+Send>;
     fn pipeline(self) -> PipelineId;
@@ -293,6 +294,20 @@ pub trait WorkerGlobalScopeHelpers {
 }
 
 impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
+    fn execute_script(self, source: DOMString) {
+        match self.runtime.evaluate_script(
+            self.reflector().get_jsobject(), source, self.worker_url.serialize(), 1) {
+            Ok(_) => (),
+            Err(_) => {
+                // TODO: An error needs to be dispatched to the parent.
+                // https://github.com/servo/servo/issues/6422
+                println!("evaluate_script failed");
+                let _ar = JSAutoRequest::new(self.runtime.cx());
+                report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
+            }
+        }
+    }
+
     fn script_chan(self) -> Box<ScriptChan+Send> {
         let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
