@@ -188,7 +188,6 @@ impl DedicatedWorkerGlobalScope {
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = WorkerGlobalScopeCast::from_ref(global.r());
-            let reporter_name = format!("worker-reporter-{}", random::<u64>());
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
@@ -204,20 +203,20 @@ impl DedicatedWorkerGlobalScope {
                         report_pending_exception(runtime.cx(), global.r().reflector().get_jsobject().get());
                     }
                 }
-
-                // Register this task as a memory reporter. This needs to be done within the
-                // scope of `_ar` otherwise script_chan_as_reporter() will panic.
-                let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-                ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
-                    // Just injects an appropriate event into the worker task's queue.
-                    let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-                    parent_sender_for_reporter.send(ScriptMsg::CollectReports(
-                            reporter_request.reports_channel)).unwrap()
-                });
-                scope.mem_profiler_chan().send(mem::ProfilerMsg::RegisterReporter(
-                        reporter_name.clone(),
-                        Reporter(reporter_sender)));
             }
+
+            // Register this task as a memory reporter.
+            let reporter_name = format!("worker-reporter-{}", random::<u64>());
+            let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+            ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
+                // Just injects an appropriate event into the worker task's queue.
+                let reporter_request: ReporterRequest = reporter_request.to().unwrap();
+                parent_sender_for_reporter.send(ScriptMsg::CollectReports(
+                        reporter_request.reports_channel)).unwrap()
+            });
+            scope.mem_profiler_chan().send(mem::ProfilerMsg::RegisterReporter(
+                    reporter_name.clone(),
+                    Reporter(reporter_sender)));
 
             while let Ok(event) = global.receive_event() {
                 global.handle_event(event);
