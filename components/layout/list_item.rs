@@ -116,8 +116,9 @@ impl Flow for ListItemFlow {
             let item_inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
             let marker_inline_metrics = marker.inline_metrics(layout_context);
             marker.border_box.start.b = item_inline_metrics.block_size_above_baseline -
-                marker_inline_metrics.block_size_above_baseline;
-            marker.border_box.size.block = marker_inline_metrics.block_size_above_baseline;
+                marker_inline_metrics.ascent;
+            marker.border_box.size.block = marker_inline_metrics.ascent +
+                marker_inline_metrics.depth_below_baseline;
         }
     }
 
