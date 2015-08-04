@@ -524,8 +524,7 @@ impl<'a> WindowMethods for &'a Window {
         let doc = self.Document();
 
         let callback  = move |now: f64| {
-            // TODO: @jdm The spec says that any exceptions should be suppressed;
-            callback.Call__(Finite::wrap(now), ExceptionHandling::Report).unwrap();
+            let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Suppress);
         };
 
         doc.r().request_animation_frame(Box::new(callback))

@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script>
+        RequestAnimationFrameException = function() {
+            //
+        };
+        RequestAnimationFrameException.prototype.toString = function() {
+            document.getElementById("body").style.background = "red";
+            return "NOT SUPPRESSED";
+        };
+        runTest = function() {
+            window.requestAnimationFrame(function() {
+                document.getElementById("body").style.background = "green";
+                throw new RequestAnimationFrameException();
+            });
+        };
+    </script>
+  </head>
+
+  <body onload="runTest()" id="body">
+  </body>
+</html>

@@ -8,7 +8,7 @@ use dom::bindings::error::{Fallible, Error};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, IsCallable};
-use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
+use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException, JS_ClearPendingException};
 use js::jsapi::{RootedObject, RootedValue, MutableHandleObject, Heap};
 use js::jsapi::{JSAutoCompartment};
 use js::jsapi::{JS_BeginRequest, JS_EndRequest};
@@ -28,8 +28,10 @@ use std::default::Default;
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
+    /// Don't report any exception and don't throw it to the caller code.
+    Suppress,
     /// Throw any exception to the caller code.
-    Rethrow
+    Rethrow,
 }
 
 /// A common base class for representing IDL callback function types.
@@ -198,7 +200,7 @@ impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe { JS_LeaveCompartment(self.cx, self.old_compartment); }
         let need_to_deal_with_exception =
-            self.handling == ExceptionHandling::Report &&
+            self.handling != ExceptionHandling::Rethrow &&
             unsafe { JS_IsExceptionPending(self.cx) } != 0;
         if need_to_deal_with_exception {
             unsafe {
@@ -206,7 +208,11 @@ impl Drop for CallSetup {
                 let saved = JS_SaveFrameChain(self.cx) != 0;
                 {
                     let _ac = JSAutoCompartment::new(self.cx, old_global.ptr);
-                    JS_ReportPendingException(self.cx);
+                    if self.handling == ExceptionHandling::Report {
+                        JS_ReportPendingException(self.cx);
+                    } else {
+                        JS_ClearPendingException(self.cx);
+                    }
                 }
                 if saved {
                     JS_RestoreFrameChain(self.cx);
