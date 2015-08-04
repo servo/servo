@@ -7,7 +7,6 @@ use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, T
 use devtools_traits::{ConsoleAPI, PageError};
 use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
