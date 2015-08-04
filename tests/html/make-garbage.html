@@ -1,0 +1,21 @@
+<script>
+var i = 0, j;
+function K() {
+    window.gc();
+    window.onload = [];
+    i += 1;
+    for (j = 0; j <= i; ++j) {
+        window.onload[window.onload.length] = {
+            x: window.onload,
+            i: j,
+            toString: function() {
+                return "{x:" + window.onload + ", i: " + j + "}";
+            }
+        };
+    }
+    if (i <= 999999) {
+        setTimeout(K, 0);
+    }
+}
+window.onload = K;
+</script>
