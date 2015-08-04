@@ -1295,6 +1295,11 @@ impl<'a> FlowConstructor<'a> {
                 for fragment in inline_fragments_construction_result.fragments
                                                                     .fragments
                                                                     .iter_mut() {
+                    // Only mutate the styles of fragments that represent the dirty node.
+                    if fragment.node != node.opaque() {
+                        continue
+                    }
+
                     match fragment.specific {
                         SpecificFragmentInfo::InlineBlock(ref mut inline_block_fragment) => {
                             flow::mut_base(&mut *inline_block_fragment.flow_ref).restyle_damage
