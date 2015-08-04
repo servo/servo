@@ -7,12 +7,8 @@ use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-<<<<<<< HEAD
-use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions, ScrollBehavior};
-=======
 use dom::bindings::codegen::Bindings::WindowBinding::{self,
     WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions};
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
 use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
@@ -44,10 +40,6 @@ use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
-<<<<<<< HEAD
-use core::ops::Deref;
-=======
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{TracingMetadata};
 use msg::compositor_msg::{ScriptListener, LayerId};
@@ -578,83 +570,41 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
-<<<<<<< HEAD
-    fn InnerHeight(self) -> Finite<f64> {
-        let size = self.window_size.get();
-        match size {
-            Some(e) => {
-                let height = e.visible_viewport.height.get().to_f64().unwrap_or(0.0f64);
-                Finite::wrap(height)
-            }
-            None => Finite::wrap(0.0f64)
-=======
     fn InnerHeight(self) -> i32 {
         let size = self.window_size.get();
         match size {
             Some(e) => e.visible_viewport.height.get().to_i32().unwrap_or(0),
             None => 0
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         }
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
     //TODO Include Scrollbar
-<<<<<<< HEAD
-    fn InnerWidth(self) -> Finite<f64> {
-        let size = self.window_size.get();
-        match size {
-            Some(e) => {
-                let width = e.visible_viewport.width.get().to_f64().unwrap_or(0.0f64);
-                Finite::wrap(width)
-            }
-            None => Finite::wrap(0.0f64)
-=======
     fn InnerWidth(self) -> i32 {
         let size = self.window_size.get();
         match size {
             Some(e) => e.visible_viewport.width.get().to_i32().unwrap_or(0),
             None => 0
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         }
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
-<<<<<<< HEAD
-    fn ScrollX(self) -> Finite<f64> {
-        let origin = self.current_scroll_position.get().origin;
-        Finite::wrap(origin.x.to_f64_px())
-    }
-
-    // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
-    fn PageXOffset(self) -> Finite<f64> {
-=======
     fn ScrollX(self) -> i32 {
         self.current_scroll_position.get().origin.x.to_px()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
     fn PageXOffset(self) -> i32{
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         self.ScrollX()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrolly
-<<<<<<< HEAD
-    fn ScrollY(self) -> Finite<f64> {
-        let origin = self.current_scroll_position.get().origin;
-        Finite::wrap(origin.y.to_f64_px())
-    }
-
-    // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
-    fn PageYOffset(self) -> Finite<f64> {
-=======
     fn ScrollY(self) -> i32 {
         self.current_scroll_position.get().origin.y.to_px()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
     fn PageYOffset(self) -> i32 {
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         self.ScrollY()
     }
 
@@ -668,29 +618,12 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
-<<<<<<< HEAD
-    fn Scroll_(self, x: f64, y: f64, options: &ScrollOptions) {
-        println!("test");
-=======
     fn Scroll_(self, x: f64, y: f64, _: &ScrollOptions) {
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         // Step 4
         if self.window_size.get().is_none() {
             return;
         }
 
-<<<<<<< HEAD
-        let width = (*self.ScrollX());
-        let height = (*self.ScrollY());
-
-        let offsetx = width - x;
-        let offsety = height - y;
-
-        println!("offsetx: {}, offsety: {}", offsetx, offsety);
-        let delta = Point2D::new(offsetx.to_f32().unwrap_or(0.0f32), offsety.to_f32().unwrap_or(0.0f32));
-        //let script_chan = self.script_chan.clone();
-        //script_chan.send(ScriptMsg::ScrollDelta(self.pipeline(), delta)).unwrap()
-=======
         // Step 5 remove scrollbar width
         let width = self.InnerWidth() as f64;
         // Step 6 remove scrollbar height
@@ -725,7 +658,6 @@ impl<'a> WindowMethods for &'a Window {
         // Step 12 Perform Scroll
         let point = Point2D::new(rangedx.to_f32().unwrap_or(0.0f32), rangedy.to_f32().unwrap_or(0.0f32));
         self.compositor.borrow_mut().scroll_fragment_point(self.pipeline(), LayerId::null(), point)
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
@@ -749,45 +681,14 @@ impl<'a> WindowMethods for &'a Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
     fn ScrollBy_(self, x: f64, y: f64, options: &ScrollOptions)  {
         // Step 3
-<<<<<<< HEAD
-        let left = x + self.ScrollX().deref();
-        // Step 4
-        let top =  y + self.ScrollY().deref();
-=======
         let left = x + self.ScrollX() as f64;
         // Step 4
         let top =  y + self.ScrollY() as f64;
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
 
         // Step 5
         self.Scroll_(left, top, options);
     }
 
-<<<<<<< HEAD
-    //fn ResizeTo(self, x: Finite<f64>, y: Finite<f64>) {
-    //    // Step 1
-    //}
-
-    // https://drafts.csswg.org/cssom-view/#dom-window-screenx
-    //fn ScreenX(self) -> Finite<f64> {
-    //    Finite::wrap(0.0f64)
-    //}
-
-    // https://drafts.csswg.org/cssom-view/#dom-window-screeny
-    //fn ScreenY(self) -> Finite<f64> {
-    //    Finite::wrap(0.0f64)
-    //}
-
-    // https://drafts.csswg.org/cssom-view/#dom-window-outerwidth
-    //fn OuterHeight(self) -> Finite<f64> {
-    //    Finite::wrap(0.0f64)
-    //}
-
-    // https://drafts.csswg.org/cssom-view/#dom-window-outerheight
-    //fn OuterWidth(self) -> Finite<f64> {
-    //    Finite::wrap(0.0f64)
-    //}
-=======
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
     fn ResizeTo(self, x: i32, y: i32) {
         // Step 1
@@ -844,9 +745,6 @@ impl<'a> WindowMethods for &'a Window {
     fn DevicePixelRatio(self) -> Finite<f64> {
         Finite::wrap(0.0f64)
     }
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
-
-
 }
 
 pub trait WindowHelpers {

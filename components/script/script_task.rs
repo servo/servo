@@ -840,18 +840,9 @@ impl ScriptTask {
                 self.handle_loads_complete(id),
             ScriptMsg::CollectReports(reports_chan) =>
                 self.collect_reports(reports_chan),
-<<<<<<< HEAD
-            ScriptMsg::ScrollDelta(id, delta) =>
-                self.handle_scroll_delta(id, delta),
-=======
             ScriptMsg::ScrollPoint(id, point) =>
                 self.handle_scroll_point(id, point),
->>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         }
-    }
-
-    fn handle_scroll_delta(&self, id: PipelineId, delta: Point2D<f32>) {
-        self.compositor.borrow_mut().scroll_delta(id, LayerId::null(), delta);
     }
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
