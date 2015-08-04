@@ -15,6 +15,7 @@ use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
+use wrapper::PseudoElementType;
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
@@ -1349,8 +1350,7 @@ impl Flow for InlineFlow {
             self.base.block_container_explicit_block_size;
         for fragment in self.fragments.fragments.iter_mut() {
             fragment.update_late_computed_replaced_inline_size_if_necessary();
-            fragment.assign_replaced_block_size_if_necessary(
-                containing_block_block_size);
+            fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
         }
 
         // Reset our state, so that we handle incremental reflow correctly.
@@ -1687,6 +1687,7 @@ impl fmt::Debug for InlineFlow {
 pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
     pub style: Arc<ComputedValues>,
+    pub pseudo: PseudoElementType<()>,
 }
 
 #[derive(Clone)]
