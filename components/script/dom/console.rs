@@ -98,17 +98,9 @@ fn prepare_message(logLevel: LogLevel, message: String) -> ConsoleMessage {
 
 fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
     let global = console.global.root();
-    match global.r() {
-        GlobalRef::Window(window_ref) => {
-            let pipelineId = window_ref.pipeline();
-            console.global.root().r().as_window().devtools_chan().as_ref().map(|chan| {
-                chan.send(ScriptToDevtoolsControlMsg::SendConsoleMessage(
-                    pipelineId, console_message.clone())).unwrap();
-            });
-        },
-
-        GlobalRef::Worker(_) => {
-            // TODO: support worker console logs
-        }
-    }
+    let pipelineId = global.r().pipeline();
+    global.r().devtools_chan().as_ref().map(|chan| {
+        chan.send(ScriptToDevtoolsControlMsg::SendConsoleMessage(
+            pipelineId, console_message.clone(), global.r().get_worker_id())).unwrap();
+    });
 }

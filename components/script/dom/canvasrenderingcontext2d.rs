@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::Error::{IndexSize, NotSupported, Type, InvalidState, Syntax};
+use dom::bindings::error::Error::{IndexSize, InvalidState, Syntax};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
@@ -820,13 +820,11 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
-    fn Arc(self, x: Finite<f64>, y: Finite<f64>, r: Finite<f64>,
-           start: Finite<f64>, end: Finite<f64>, ccw: bool) -> Fallible<()> {
-        let x = *x;
-        let y = *y;
-        let r = *r;
-        let start = *start;
-        let end = *end;
+    fn Arc(self, x: f64, y: f64, r: f64,
+           start: f64, end: f64, ccw: bool) -> Fallible<()> {
+        if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
+            return Ok(());
+        }
 
         if r < 0.0 {
             return Err(IndexSize);
@@ -928,15 +926,12 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     fn SetFillStyle(self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
-                match parse_color(&string) {
-                    Ok(rgba) => {
-                        self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
-                        self.ipc_renderer
-                            .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
-                                        FillOrStrokeStyle::Color(rgba))))
-                            .unwrap()
-                    }
-                    _ => {}
+                if let Ok(rgba) = parse_color(&string) {
+                    self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
+                    self.ipc_renderer
+                        .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
+                                    FillOrStrokeStyle::Color(rgba))))
+                        .unwrap()
                 }
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
@@ -954,12 +949,8 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    fn CreateImageData(self, sw: f64, sh: f64) -> Fallible<Root<ImageData>> {
-        if !(sw.is_finite() && sh.is_finite()) {
-            return Err(NotSupported);
-        }
-
-        if sw == 0.0 || sh == 0.0 {
+    fn CreateImageData(self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<Root<ImageData>> {
+        if *sw == 0.0 || *sh == 0.0 {
             return Err(IndexSize)
         }
 
@@ -1000,49 +991,19 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>) {
-        let dx = *dx;
-        let dy = *dy;
-
-        // XXX:
-        // By the spec: http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#dom-context-2d-putimagedata
-        // "If any of the arguments to the method are infinite or NaN, the method must throw a NotSupportedError
-        // exception"
-        // But this arguments are stricted value, so if they are not finite values,
-        // they will be TypeError by WebIDL spec before call this methods.
-
-        let data = imagedata.get_data_array(&self.global.root().r());
-        let image_data_size = imagedata.get_size();
-        let image_data_size = Size2D::new(image_data_size.width as f64, image_data_size.height as f64);
-        let image_data_rect = Rect::new(Point2D::new(dx, dy), image_data_size);
-        let dirty_rect = None;
-        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
-        self.ipc_renderer.send(msg).unwrap();
-        self.mark_as_dirty();
+        self.PutImageData_(imagedata, dx, dy, Finite::wrap(0f64), Finite::wrap(0f64),
+                           Finite::wrap(imagedata.Width() as f64), Finite::wrap(imagedata.Height() as f64))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData_(self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>,
                      dirtyX: Finite<f64>, dirtyY: Finite<f64>, dirtyWidth: Finite<f64>, dirtyHeight: Finite<f64>) {
-        let dx = *dx;
-        let dy = *dy;
-        let dirtyX = *dirtyX;
-        let dirtyY = *dirtyY;
-        let dirtyWidth = *dirtyWidth;
-        let dirtyHeight = *dirtyHeight;
-
-        // XXX:
-        // By the spec: http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#dom-context-2d-putimagedata
-        // "If any of the arguments to the method are infinite or NaN, the method must throw a NotSupportedError
-        // exception"
-        // But this arguments are stricted value, so if they are not finite values,
-        // they will be TypeError by WebIDL spec before call this methods.
-
         let data = imagedata.get_data_array(&self.global.root().r());
-        let image_data_rect = Rect::new(Point2D::new(dx, dy),
+        let image_data_rect = Rect::new(Point2D::new(*dx, *dy),
                                         Size2D::new(imagedata.Width() as f64,
                                                     imagedata.Height() as f64));
-        let dirty_rect = Some(Rect::new(Point2D::new(dirtyX, dirtyY),
-                                        Size2D::new(dirtyWidth, dirtyHeight)));
+        let dirty_rect = Some(Rect::new(Point2D::new(*dirtyX, *dirtyY),
+                                        Size2D::new(*dirtyWidth, *dirtyHeight)));
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
         self.ipc_renderer.send(msg).unwrap();
         self.mark_as_dirty();
@@ -1050,38 +1011,18 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
     fn CreateLinearGradient(self, x0: Finite<f64>, y0: Finite<f64>,
-                                  x1: Finite<f64>, y1: Finite<f64>) -> Fallible<Root<CanvasGradient>> {
-        let x0 = *x0;
-        let y0 = *y0;
-        let x1 = *x1;
-        let y1 = *y1;
-
-        if [x0, y0, x1, y1].iter().any(|x| x.is_nan() || x.is_infinite()) {
-            return Err(Type("One of the arguments of createLinearGradient() is not a finite \
-                            floating-point value.".to_owned()));
-        }
-        Ok(CanvasGradient::new(self.global.root().r(),
-                               CanvasGradientStyle::Linear(LinearGradientStyle::new(x0, y0, x1, y1, Vec::new()))))
+                                  x1: Finite<f64>, y1: Finite<f64>) -> Root<CanvasGradient> {
+        CanvasGradient::new(self.global.root().r(),
+                            CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0, *y0, *x1, *y1, Vec::new())))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
     fn CreateRadialGradient(self, x0: Finite<f64>, y0: Finite<f64>, r0: Finite<f64>,
                             x1: Finite<f64>, y1: Finite<f64>, r1: Finite<f64>)
-                            -> Fallible<Root<CanvasGradient>> {
-        let x0 = *x0;
-        let y0 = *y0;
-        let r0 = *r0;
-        let x1 = *x1;
-        let y1 = *y1;
-        let r1 = *r1;
-
-        if [x0, y0, r0, x1, y1, r1].iter().any(|x| x.is_nan() || x.is_infinite()) {
-            return Err(Type("One of the arguments of createRadialGradient() is not a \
-                            finite floating-point value.".to_owned()));
-        }
-        Ok(CanvasGradient::new(self.global.root().r(),
-                               CanvasGradientStyle::Radial(
-                                   RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))
+                            -> Root<CanvasGradient> {
+        CanvasGradient::new(self.global.root().r(),
+                            CanvasGradientStyle::Radial(
+                                RadialGradientStyle::new(*x0, *y0, *r0, *x1, *y1, *r1, Vec::new())))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern

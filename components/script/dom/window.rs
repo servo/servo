@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{self,
     WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions};
-use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, WindowDerived};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
@@ -28,7 +28,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers};
+use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers, from_untrusted_node_address};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -73,6 +73,7 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
+use std::io::{stdout, Write};
 use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -81,7 +82,7 @@ use std::sync::mpsc::{channel, Receiver};
 use time;
 
 /// Current state of the window object
-#[derive(JSTraceable, Copy, Clone, Debug, PartialEq)]
+#[derive(JSTraceable, Copy, Clone, Debug, PartialEq, HeapSizeOf)]
 enum WindowState {
     Alive,
     Zombie,     // Pipeline is closed, but the window hasn't been GCed yet.
@@ -108,15 +109,21 @@ pub enum ReflowReason {
 pub type ScrollPoint = Point2D<Au>;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Window {
     eventtarget: EventTarget,
+    #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: Box<ScriptChan+Send>,
+    #[ignore_heap_size_of = "channels are hard"]
     control_chan: ScriptControlChan,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
+    #[ignore_heap_size_of = "channels are hard"]
     image_cache_task: ImageCacheTask,
+    #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
+    #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
     compositor: DOMRefCell<ScriptListener>,
     browsing_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
@@ -131,13 +138,17 @@ pub struct Window {
     next_worker_id: Cell<WorkerId>,
 
     /// For sending messages to the memory profiler.
+    #[ignore_heap_size_of = "channels are hard"]
     mem_profiler_chan: mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
+    #[ignore_heap_size_of = "channels are hard"]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
+    #[ignore_heap_size_of = "TODO(#6909) need to measure HashSet"]
     devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    #[ignore_heap_size_of = "channels are hard"]
     devtools_marker_sender: RefCell<Option<IpcSender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
@@ -162,27 +173,34 @@ pub struct Window {
     dom_static: GlobalStaticData,
 
     /// The JavaScript runtime.
+    #[ignore_heap_size_of = "Rc<T> is hard"]
     js_runtime: DOMRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout task.
+    #[ignore_heap_size_of = "channels are hard"]
     layout_chan: LayoutChan,
 
     /// A handle to perform RPC calls into the layout, quickly.
+    #[ignore_heap_size_of = "trait objects are hard"]
     layout_rpc: Box<LayoutRPC+'static>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
+    #[ignore_heap_size_of = "channels are hard"]
     layout_join_port: DOMRefCell<Option<Receiver<()>>>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
+    #[ignore_heap_size_of = "channels are hard"]
     resource_task: Arc<ResourceTask>,
 
     /// A handle for communicating messages to the storage task.
+    #[ignore_heap_size_of = "channels are hard"]
     storage_task: StorageTask,
 
     /// A handle for communicating messages to the constellation task.
+    #[ignore_heap_size_of = "channels are hard"]
     constellation_chan: ConstellationChan,
 
     /// Pending scroll to fragment event, if any
@@ -196,6 +214,7 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
+    #[ignore_heap_size_of = "channels are hard"]
     webdriver_script_chan: RefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
@@ -347,7 +366,10 @@ impl<'a> WindowMethods for &'a Window {
     // https://html.spec.whatwg.org/#dom-alert
     fn Alert(self, s: DOMString) {
         // Right now, just print to the console
-        println!("ALERT: {}", s);
+        let stdout = stdout();
+        let mut stdout = stdout.lock();
+        writeln!(&mut stdout, "ALERT: {}", s).unwrap();
+        stdout.flush().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
@@ -761,6 +783,7 @@ pub trait WindowHelpers {
     fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32>;
     fn resolved_style_query(self, element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>, property: &Atom) -> Option<String>;
+    fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>);
     fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn set_fragment_name(self, fragment: Option<String>);
     fn steal_fragment_name(self) -> Option<String>;
@@ -1023,6 +1046,27 @@ impl<'a> WindowHelpers for &'a Window {
                     ReflowReason::Query);
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
         resolved
+    }
+
+    fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::OffsetParentQuery(node),
+                    ReflowReason::Query);
+        let response = self.layout_rpc.offset_parent();
+        let js_runtime = self.js_runtime.borrow();
+        let js_runtime = js_runtime.as_ref().unwrap();
+        let element = match response.node_address {
+            Some(parent_node_address) => {
+                let node = from_untrusted_node_address(js_runtime.rt(),
+                                                       parent_node_address);
+                let element = ElementCast::to_ref(node.r());
+                element.map(Root::from_ref)
+            }
+            None => {
+                None
+            }
+        };
+        (element, response.rect)
     }
 
     fn handle_reflow_complete_msg(self, reflow_id: u32) {
@@ -1336,6 +1380,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
+        ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
     });
 
     debug_msg.push_str(match *reason {
@@ -1355,4 +1400,10 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
     });
 
     println!("{}", debug_msg);
+}
+
+impl WindowDerived for EventTarget {
+    fn is_window(&self) -> bool {
+        self.type_id() == &EventTargetTypeId::Window
+    }
 }

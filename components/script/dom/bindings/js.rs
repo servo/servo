@@ -31,6 +31,7 @@ use js::jsapi::{JSObject, Heap, JSTracer};
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
+use util::mem::HeapSizeOf;
 
 use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
@@ -42,6 +43,14 @@ use std::ops::Deref;
 #[must_root]
 pub struct JS<T> {
     ptr: NonZero<*const T>
+}
+
+// JS<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
+// For now, we choose not to follow any such pointers.
+impl<T> HeapSizeOf for JS<T> {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
 }
 
 impl<T> JS<T> {
@@ -226,7 +235,7 @@ impl<T: HeapGCValue+Copy> MutHeap<T> {
 /// place of traditional internal mutability to ensure that the proper GC
 /// barriers are enforced.
 #[must_root]
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub struct MutNullableHeap<T: HeapGCValue+Copy> {
     ptr: Cell<Option<T>>
 }

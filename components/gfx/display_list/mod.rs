@@ -65,11 +65,12 @@ const MIN_INDENTATION_LENGTH: usize = 4;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf, Hash, Eq, Deserialize, Serialize)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
     /// Returns the address of this node, for debugging purposes.
+    #[inline]
     pub fn id(&self) -> uintptr_t {
         let OpaqueNode(pointer) = *self;
         pointer

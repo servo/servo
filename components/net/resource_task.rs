@@ -238,7 +238,7 @@ impl ResourceChannelManager {
                   consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
               ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
-                  if let Some(entry) = HSTSEntry::new(host, include_subdomains, max_age) {
+                  if let Some(entry) = HSTSEntry::new(host, include_subdomains, Some(max_age)) {
                       self.resource_manager.add_hsts_entry(entry)
                   }
               }

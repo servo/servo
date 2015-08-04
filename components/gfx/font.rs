@@ -146,7 +146,8 @@ impl Font {
         }
 
         let mut glyphs = GlyphStore::new(text.chars().count(),
-                                         options.flags.contains(IS_WHITESPACE_SHAPING_FLAG));
+                                         options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
+                                         options.flags.contains(RTL_FLAG));
         shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 
         let glyphs = Arc::new(glyphs);

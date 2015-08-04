@@ -240,6 +240,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         if let Some(id) = worker_id {
             let worker = WorkerActor {
                 name: actors.new_name("worker"),
+                console: console.name(),
                 id: id,
             };
             actor_workers.insert((pipeline, id), worker.name.clone());
@@ -255,9 +256,12 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
                               id: PipelineId,
+                              worker_id: Option<WorkerId>,
                               console_message: ConsoleMessage,
-                              actor_pipelines: &HashMap<PipelineId, String>) {
-        let console_actor_name = match find_console_actor(actors.clone(), id, actor_pipelines) {
+                              actor_pipelines: &HashMap<PipelineId, String>,
+                              actor_workers: &HashMap<(PipelineId, WorkerId), String>) {
+        let console_actor_name = match find_console_actor(actors.clone(), id, worker_id, actor_workers,
+                                                          actor_pipelines) {
             Some(name) => name,
             None => return,
         };
@@ -288,27 +292,36 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
                           id: PipelineId,
+                          worker_id: Option<WorkerId>,
+                          actor_workers: &HashMap<(PipelineId, WorkerId), String>,
                           actor_pipelines: &HashMap<PipelineId, String>) -> Option<String> {
         let actors = actors.lock().unwrap();
-        let tab_actor_name = match (*actor_pipelines).get(&id) {
-            Some(name) => name,
-            None => return None,
-        };
-        let tab_actor = actors.find::<TabActor>(tab_actor_name);
-        let console_actor_name = tab_actor.console.clone();
-        return Some(console_actor_name);
+        if let Some(worker_id) = worker_id {
+            let actor_name = match (*actor_workers).get(&(id, worker_id)) {
+                Some(name) => name,
+                None => return None,
+            };
+            Some(actors.find::<WorkerActor>(actor_name).console.clone())
+        } else {
+            let actor_name = match (*actor_pipelines).get(&id) {
+                Some(name) => name,
+                None => return None,
+            };
+            Some(actors.find::<TabActor>(actor_name).console.clone())
+        }
     }
 
     fn handle_network_event(actors: Arc<Mutex<ActorRegistry>>,
                             mut connections: Vec<TcpStream>,
                             actor_pipelines: &HashMap<PipelineId, String>,
                             actor_requests: &mut HashMap<String, String>,
+                            actor_workers: &HashMap<(PipelineId, WorkerId), String>,
                             pipeline_id: PipelineId,
                             request_id: String,
                             network_event: NetworkEvent) {
 
-        let console_actor_name = match find_console_actor(actors.clone(), pipeline_id,
-                                                          actor_pipelines) {
+        let console_actor_name = match find_console_actor(actors.clone(), pipeline_id, None,
+                                                          actor_workers, actor_pipelines) {
             Some(name) => name,
             None => return,
         };
@@ -401,9 +414,10 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                                   &mut actor_workers, pageinfo),
             Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::SendConsoleMessage(
                         id,
-                        console_message))) =>
-                handle_console_message(actors.clone(), id, console_message,
-                                       &actor_pipelines),
+                        console_message,
+                        worker_id))) =>
+                handle_console_message(actors.clone(), id, worker_id, console_message,
+                                       &actor_pipelines, &actor_workers),
             Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEventMessage(
                         request_id, network_event))) => {
                 // copy the accepted_connections vector
@@ -414,7 +428,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 //TODO: Get pipeline_id from NetworkEventMessage after fixing the send in http_loader
                 // For now, the id of the first pipeline is passed
                 handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests,
-                                     PipelineId(0), request_id, network_event);
+                                     &actor_workers, PipelineId(0), request_id, network_event);
             },
             Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg)) |
             Err(RecvError) => break

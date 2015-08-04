@@ -420,7 +420,8 @@ trait PrivateMatchMethods {
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache,
                                    new_animations_sender: &Sender<Animation>,
-                                   shareable: bool)
+                                   shareable: bool,
+                                   animate_properties: bool)
                                    -> RestyleDamage;
 
     fn share_style_with_candidate_if_possible(&self,
@@ -438,8 +439,21 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache,
                                    new_animations_sender: &Sender<Animation>,
-                                   shareable: bool)
+                                   shareable: bool,
+                                   animate_properties: bool)
                                    -> RestyleDamage {
+        // Finish any transitions.
+        if animate_properties {
+            if let Some(ref mut style) = *style {
+                let this_opaque = self.opaque();
+                if let Some(ref animations) = layout_context.running_animations.get(&this_opaque) {
+                    for animation in animations.iter() {
+                        animation.property_animation.update(&mut *Arc::make_unique(style), 1.0);
+                    }
+                }
+            }
+        }
+
         let mut this_style;
         let cacheable;
         match parent_style {
@@ -470,11 +484,8 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
 
         // Trigger transitions if necessary. This will reset `this_style` back to its old value if
         // it did trigger a transition.
-        match *style {
-            None => {
-                // This is a newly-created node; we've nothing to transition from!
-            }
-            Some(ref style) => {
+        if animate_properties {
+            if let Some(ref style) = *style {
                 animation::start_transitions_if_applicable(new_animations_sender,
                                                            self.opaque(),
                                                            &**style,
@@ -488,7 +499,8 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
-            applicable_declarations_cache.insert(applicable_declarations.to_vec(), this_style.clone());
+            applicable_declarations_cache.insert(applicable_declarations.to_vec(),
+                                                 this_style.clone());
         }
 
         // Write in the final style and return the damage done to our caller.
@@ -686,7 +698,8 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                             &mut layout_data.shared_data.style,
                             applicable_declarations_cache,
                             new_animations_sender,
-                            applicable_declarations.normal_shareable);
+                            applicable_declarations.normal_shareable,
+                            true);
                         if applicable_declarations.before.len() > 0 {
                             damage = damage | self.cascade_node_pseudo_element(
                                 layout_context,
@@ -695,6 +708,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                 &mut layout_data.data.before_style,
                                 applicable_declarations_cache,
                                 new_animations_sender,
+                                false,
                                 false);
                         }
                         if applicable_declarations.after.len() > 0 {
@@ -705,6 +719,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                 &mut layout_data.data.after_style,
                                 applicable_declarations_cache,
                                 new_animations_sender,
+                                false,
                                 false);
                         }
                         layout_data.data.restyle_damage = damage;
