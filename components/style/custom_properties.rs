@@ -196,7 +196,7 @@ fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
                     if let Some(references) = value.references {
                         stack.push(name);
                         for next in references {
-                            if let Some(position) = stack.position_elem(&next) {
+                            if let Some(position) = stack.iter().position(|&x| x == next) {
                                 // Found a cycle
                                 for &in_cycle in &stack[position..] {
                                     to_remove.insert(in_cycle.clone());
