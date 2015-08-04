@@ -21,21 +21,19 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
-use dom::workerglobalscope::WorkerGlobalScopeTypeId;
+use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
 use script_task::StackRootTLS;
 
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
-
-use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
-
-use net_traits::{load_whole_resource, ResourceTask};
+use devtools_traits::DevtoolScriptControlMsg;
+use msg::constellation_msg::PipelineId;
+use net_traits::load_whole_resource;
 use profile_traits::mem::{self, Reporter, ReporterRequest};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
@@ -107,25 +105,19 @@ pub struct DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    fn new_inherited(worker_url: Url,
+    fn new_inherited(init: WorkerGlobalScopeInit,
+                     worker_url: Url,
                      id: PipelineId,
-                     mem_profiler_chan: mem::ProfilerChan,
-                     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-                     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
                      devtools_port: Receiver<DevtoolScriptControlMsg>,
                      runtime: Rc<Runtime>,
-                     resource_task: ResourceTask,
-                     constellation_chan: ConstellationChan,
                      parent_sender: Box<ScriptChan+Send>,
                      own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
-                     worker_id: Option<WorkerId>)
+                     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                      -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, runtime, resource_task,
-                mem_profiler_chan, devtools_chan, devtools_sender, devtools_port, constellation_chan,
-                worker_id),
+                WorkerGlobalScopeTypeId::DedicatedGlobalScope, init, worker_url,
+                runtime, devtools_port),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -134,43 +126,32 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    pub fn new(worker_url: Url,
+    pub fn new(init: WorkerGlobalScopeInit,
+               worker_url: Url,
                id: PipelineId,
-               mem_profiler_chan: mem::ProfilerChan,
-               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-               devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
                devtools_port: Receiver<DevtoolScriptControlMsg>,
                runtime: Rc<Runtime>,
-               resource_task: ResourceTask,
-               constellation_chan: ConstellationChan,
                parent_sender: Box<ScriptChan+Send>,
                own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-               receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
-               worker_id: Option<WorkerId>)
+               receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            worker_url, id, mem_profiler_chan, devtools_chan, devtools_sender, devtools_port,
-            runtime.clone(), resource_task, constellation_chan, parent_sender, own_sender, receiver,
-            worker_id);
+            init, worker_url, id, devtools_port, runtime.clone(), parent_sender,
+            own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 }
 
 impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
-    pub fn run_worker_scope(worker_url: Url,
+    pub fn run_worker_scope(init: WorkerGlobalScopeInit,
+                            worker_url: Url,
                             id: PipelineId,
-                            mem_profiler_chan: mem::ProfilerChan,
-                            devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-                            devtools_ipc_chan: Option<IpcSender<DevtoolScriptControlMsg>>,
                             devtools_ipc_port: IpcReceiver<DevtoolScriptControlMsg>,
                             worker: TrustedWorkerAddress,
-                            resource_task: ResourceTask,
-                            constellation_chan: ConstellationChan,
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
-                            worker_id: Option<WorkerId>) {
+                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
         let serialized_worker_url = worker_url.serialize();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
@@ -178,7 +159,7 @@ impl DedicatedWorkerGlobalScope {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
-            let (url, source) = match load_whole_resource(&resource_task, worker_url) {
+            let (url, source) = match load_whole_resource(&init.resource_task, worker_url) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(ScriptMsg::RunnableMsg(
@@ -198,9 +179,8 @@ impl DedicatedWorkerGlobalScope {
             ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_ipc_port, devtools_mpsc_chan);
 
             let global = DedicatedWorkerGlobalScope::new(
-                url, id, mem_profiler_chan.clone(), devtools_chan, devtools_ipc_chan, devtools_mpsc_port,
-                runtime.clone(), resource_task, constellation_chan, parent_sender, own_sender, receiver,
-                worker_id);
+                init, url, id, devtools_mpsc_port, runtime.clone(),
+                parent_sender, own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = WorkerGlobalScopeCast::from_ref(global.r());
@@ -230,7 +210,7 @@ impl DedicatedWorkerGlobalScope {
                     parent_sender_for_reporter.send(ScriptMsg::CollectReports(
                             reporter_request.reports_channel)).unwrap()
                 });
-                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
+                scope.mem_profiler_chan().send(mem::ProfilerMsg::RegisterReporter(
                         reporter_name.clone(),
                         Reporter(reporter_sender)));
             }
@@ -292,7 +272,7 @@ impl DedicatedWorkerGlobalScope {
 
             // Unregister this task as a memory reporter.
             let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
-            mem_profiler_chan.send(msg);
+            scope.mem_profiler_chan().send(msg);
         });
     }
 }

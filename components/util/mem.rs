@@ -5,17 +5,31 @@
 //! Data structure measurement.
 
 use libc::{c_void, size_t};
-use std::cell::RefCell;
-use std::collections::LinkedList;
-use std::mem::transmute;
+use std::cell::{Cell, RefCell};
+use std::collections::{HashMap, LinkedList, hash_state};
+use std::hash::Hash;
+use std::mem::{size_of, transmute};
 use std::sync::Arc;
+use std::rc::Rc;
 
 
 use azure::azure_hl::Color;
+use cssparser::Color as CSSParserColor;
+use cssparser::RGBA;
 use cursor::Cursor;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
-use geometry::Au;
+use euclid::length::Length;
+use euclid::scale_factor::ScaleFactor;
+use geometry::{PagePx, ViewportPx, Au};
+use html5ever::tree_builder::QuirksMode;
+use layers::geometry::DevicePixel;
+use js::jsapi::Heap;
+use js::rust::GCMethods;
+use js::jsval::JSVal;
+use logical_geometry::WritingMode;
 use range::Range;
+use string_cache::atom::Atom;
+use url;
 
 extern {
     // Get the size of a heap block.
@@ -87,6 +101,57 @@ impl<T: HeapSizeOf> HeapSizeOf for Option<T> {
     }
 }
 
+impl HeapSizeOf for url::Url {
+    fn heap_size_of_children(&self) -> usize {
+        // Using a struct pattern without `..` rather than `foo.bar` field access
+        // makes sure this will be updated if a field is added.
+        let &url::Url { ref scheme, ref scheme_data, ref query, ref fragment } = self;
+        scheme.heap_size_of_children() +
+        scheme_data.heap_size_of_children() +
+        query.heap_size_of_children() +
+        fragment.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for url::SchemeData {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &url::SchemeData::Relative(ref data) => data.heap_size_of_children(),
+            &url::SchemeData::NonRelative(ref str) => str.heap_size_of_children()
+        }
+    }
+}
+
+impl HeapSizeOf for url::RelativeSchemeData {
+    fn heap_size_of_children(&self) -> usize {
+        // Using a struct pattern without `..` rather than `foo.bar` field access
+        // makes sure this will be updated if a field is added.
+        let &url::RelativeSchemeData { ref username, ref password, ref host,
+                                       ref port, ref default_port, ref path } = self;
+        username.heap_size_of_children() +
+        password.heap_size_of_children() +
+        host.heap_size_of_children() +
+        port.heap_size_of_children() +
+        default_port.heap_size_of_children() +
+        path.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for url::Host {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &url::Host::Domain(ref str) => str.heap_size_of_children(),
+            &url::Host::Ipv6(_) => 0
+        }
+    }
+}
+
+impl<T: HeapSizeOf, U: HeapSizeOf> HeapSizeOf for (T, U) {
+    fn heap_size_of_children(&self) -> usize {
+        self.0.heap_size_of_children() + self.1.heap_size_of_children()
+    }
+}
+
 impl<T: HeapSizeOf> HeapSizeOf for Arc<T> {
     fn heap_size_of_children(&self) -> usize {
         (**self).heap_size_of_children()
@@ -99,10 +164,35 @@ impl<T: HeapSizeOf> HeapSizeOf for RefCell<T> {
     }
 }
 
+impl<T: HeapSizeOf + Copy> HeapSizeOf for Cell<T> {
+    fn heap_size_of_children(&self) -> usize {
+        self.get().heap_size_of_children()
+    }
+}
+
 impl<T: HeapSizeOf> HeapSizeOf for Vec<T> {
     fn heap_size_of_children(&self) -> usize {
         heap_size_of(self.as_ptr() as *const c_void) +
             self.iter().fold(0, |n, elem| n + elem.heap_size_of_children())
+    }
+}
+
+impl<T> HeapSizeOf for Vec<Rc<T>> {
+    fn heap_size_of_children(&self) -> usize {
+        // The fate of measuring Rc<T> is still undecided, but we still want to measure
+        // the space used for storing them.
+        heap_size_of(self.as_ptr() as *const c_void)
+    }
+}
+
+impl<K: HeapSizeOf, V: HeapSizeOf, S> HeapSizeOf for HashMap<K, V, S>
+    where K: Eq + Hash, S: hash_state::HashState {
+    fn heap_size_of_children(&self) -> usize {
+        //TODO(#6908) measure actual bucket memory usage instead of approximating
+        let size = self.capacity() * (size_of::<V>() + size_of::<K>());
+        self.iter().fold(size, |n, (key, value)| {
+            n + key.heap_size_of_children() + value.heap_size_of_children()
+        })
     }
 }
 
@@ -200,7 +290,15 @@ known_heap_size!(0, u8, u16, u32, u64, usize);
 known_heap_size!(0, i8, i16, i32, i64, isize);
 known_heap_size!(0, bool, f32, f64);
 
-known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>);
+known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>, Range<T>);
+known_heap_size!(0, Length<T, U>, ScaleFactor<T, U, V>);
 
-known_heap_size!(0, Au, Color, Cursor, Matrix4);
-known_heap_size!(0, Range<T>);
+known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, Atom);
+known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode);
+
+// This is measured properly by the heap measurement implemented in SpiderMonkey.
+impl<T: Copy + GCMethods<T>> HeapSizeOf for Heap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}

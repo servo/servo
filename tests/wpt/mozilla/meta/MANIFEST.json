@@ -581,6 +581,12 @@
             "url": "/_mozilla/mozilla/element_matches_empty.html"
           }
         ],
+        "mozilla/element_parentOffset.html": [
+          {
+            "path": "mozilla/element_parentOffset.html",
+            "url": "/_mozilla/mozilla/element_parentOffset.html"
+          }
+        ],
         "mozilla/empty_clientrect.html": [
           {
             "path": "mozilla/empty_clientrect.html",

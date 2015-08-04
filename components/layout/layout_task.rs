@@ -15,7 +15,7 @@ use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
@@ -53,7 +53,7 @@ use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheC
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
-use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse};
+use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse, OffsetParentResponse};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
@@ -69,7 +69,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
-use style::computed_values::{filter, mix_blend_mode};
+use style::computed_values::{self, filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
 use style::properties::style_structs;
 use style::properties::longhands::{display, position};
@@ -136,6 +136,9 @@ pub struct LayoutTaskData {
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: Option<String>,
+
+    /// A queued response for the offset parent/rect of a node.
+    pub offset_parent_response: OffsetParentResponse,
 
     /// The list of currently-running animations.
     pub running_animations: Arc<HashMap<OpaqueNode,Vec<Animation>>>,
@@ -382,6 +385,7 @@ impl LayoutTask {
                     client_rect_response: Rect::zero(),
                     resolved_style_response: None,
                     running_animations: Arc::new(HashMap::new()),
+                    offset_parent_response: OffsetParentResponse::empty(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
                     new_animations_sender: new_animations_sender,
@@ -999,6 +1003,29 @@ impl LayoutTask {
         };
     }
 
+    fn process_offset_parent_query<'a>(&'a self,
+                                       requested_node: TrustedNodeAddress,
+                                       layout_root: &mut FlowRef,
+                                       rw_data: &mut RWGuard<'a>) {
+        let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+        let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node);
+        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+        let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
+        match parent_info_index {
+            Some(parent_info_index) => {
+                let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
+                let origin = iterator.node_border_box.origin - parent.border_box.origin;
+                let size = iterator.node_border_box.size;
+                rw_data.offset_parent_response = OffsetParentResponse {
+                    node_address: Some(parent.node_address.to_untrusted_node_address()),
+                    rect: Rect::new(origin, size),
+                };
+            }
+            None => {
+                rw_data.offset_parent_response = OffsetParentResponse::empty();
+            }
+        }
+    }
 
     fn compute_abs_pos_and_build_display_list<'a>(&'a self,
                                                   data: &Reflow,
@@ -1198,6 +1225,8 @@ impl LayoutTask {
                 self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
             ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) =>
                 self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
+            ReflowQueryType::OffsetParentQuery(node) =>
+                self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
             ReflowQueryType::NoQuery => {}
         }
 
@@ -1516,6 +1545,12 @@ impl LayoutRPC for LayoutRPCImpl {
             Ok(MouseOverResponse(response_list))
         }
     }
+
+    fn offset_parent(&self) -> OffsetParentResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.offset_parent_response.clone()
+    }
 }
 
 struct UnioningFragmentBorderBoxIterator {
@@ -1533,7 +1568,7 @@ impl UnioningFragmentBorderBoxIterator {
 }
 
 impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
-    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+    fn process(&mut self, _: &Fragment, _: i32, border_box: &Rect<Au>) {
         self.rect = match self.rect {
             Some(rect) => {
                 Some(rect.union(border_box))
@@ -1564,7 +1599,7 @@ impl CollectingFragmentBorderBoxIterator {
 }
 
 impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
-    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+    fn process(&mut self, _: &Fragment, _: i32, border_box: &Rect<Au>) {
         self.rects.push(*border_box);
     }
 
@@ -1587,8 +1622,33 @@ impl FragmentLocatingFragmentIterator {
     }
 }
 
+struct ParentBorderBoxInfo {
+    node_address: OpaqueNode,
+    border_box: Rect<Au>,
+}
+
+struct ParentOffsetBorderBoxIterator {
+    node_address: OpaqueNode,
+    last_level: i32,
+    has_found_node: bool,
+    node_border_box: Rect<Au>,
+    parent_nodes: Vec<Option<ParentBorderBoxInfo>>,
+}
+
+impl ParentOffsetBorderBoxIterator {
+    fn new(node_address: OpaqueNode) -> ParentOffsetBorderBoxIterator {
+        ParentOffsetBorderBoxIterator {
+            node_address: node_address,
+            last_level: -1,
+            has_found_node: false,
+            node_border_box: Rect::zero(),
+            parent_nodes: Vec::new(),
+        }
+    }
+}
+
 impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
-    fn process(&mut self, fragment: &Fragment, border_box: &Rect<Au>) {
+    fn process(&mut self, fragment: &Fragment, _: i32, border_box: &Rect<Au>) {
         let style_structs::Border {
             border_top_width: top_width,
             border_right_width: right_width,
@@ -1649,7 +1709,7 @@ impl PositionRetrievingFragmentBorderBoxIterator {
 }
 
 impl FragmentBorderBoxIterator for PositionRetrievingFragmentBorderBoxIterator {
-    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+    fn process(&mut self, _: &Fragment, _: i32, border_box: &Rect<Au>) {
         self.result =
             Some(match self.property {
                      PositionProperty::Left => self.position.x,
@@ -1691,7 +1751,7 @@ impl MarginRetrievingFragmentBorderBoxIterator {
 }
 
 impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
-    fn process(&mut self, fragment: &Fragment, _: &Rect<Au>) {
+    fn process(&mut self, fragment: &Fragment, _: i32, _: &Rect<Au>) {
         let rect = match self.margin_padding {
             MarginPadding::Margin => &fragment.margin,
             MarginPadding::Padding => &fragment.border_padding
@@ -1706,6 +1766,63 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
         fragment.contains_node(self.node_address)
+    }
+}
+
+// https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
+    fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
+        if fragment.node == self.node_address {
+            // Found the fragment in the flow tree that matches the
+            // DOM node being looked for.
+            self.has_found_node = true;
+            self.node_border_box = *border_box;
+
+            // offsetParent returns null if the node is fixed.
+            if fragment.style.get_box().position == computed_values::position::T::fixed {
+                self.parent_nodes.clear();
+            }
+        } else if level > self.last_level {
+            // TODO(gw): Is there a less fragile way of checking whether this
+            // fragment is the body element, rather than just checking that
+            // the parent nodes stack contains the root node only?
+            let is_body_element = self.parent_nodes.len() == 1;
+
+            let is_valid_parent = match (is_body_element,
+                                         fragment.style.get_box().position,
+                                         &fragment.specific) {
+                // Spec says it's valid if any of these are true:
+                //  1) Is the body element
+                //  2) Is static position *and* is a table or table cell
+                //  3) Is not static position
+                (true, _, _) |
+                (false, computed_values::position::T::static_, &SpecificFragmentInfo::Table) |
+                (false, computed_values::position::T::static_, &SpecificFragmentInfo::TableCell) |
+                (false, computed_values::position::T::absolute, _) |
+                (false, computed_values::position::T::relative, _) |
+                (false, computed_values::position::T::fixed, _) => true,
+
+                // Otherwise, it's not a valid parent
+                (false, computed_values::position::T::static_, _) => false,
+            };
+
+            let parent_info = if is_valid_parent {
+                Some(ParentBorderBoxInfo {
+                    border_box: *border_box,
+                    node_address: fragment.node,
+                })
+            } else {
+                None
+            };
+
+            self.parent_nodes.push(parent_info);
+        } else if level < self.last_level {
+            self.parent_nodes.pop();
+        }
+    }
+
+    fn should_process(&mut self, _: &Fragment) -> bool {
+        !self.has_found_node
     }
 }
 

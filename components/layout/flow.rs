@@ -5,25 +5,25 @@
 //! Servo's experimental layout system builds a tree of `Flow` and `Fragment` objects and solves
 //! layout constraints to obtain positions and display attributes of tree nodes. Positions are
 //! computed in several tree traversals driven by the fundamental data dependencies required by
-/// inline and block layout.
-///
-/// Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
-/// CSS specification. Flows are responsible for positioning their child flow contexts and
-/// fragments. Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow
-/// child lists, and so on.
-///
-/// Currently, the important types of flows are:
-///
-/// * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
-///   which are positioned according to block formatting context rules (CSS block boxes). Block
-///   flows also contain a single box to represent their rendered borders, padding, etc.
-///   The BlockFlow at the root of the tree has special behavior: it stretches to the boundaries of
-///   the viewport.
-///
-/// * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
-///   fragments/flows that are subject to inline layout and line breaking and structs to represent
-///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
-///   similar methods.
+//! inline and block layout.
+//!
+//! Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
+//! CSS specification. Flows are responsible for positioning their child flow contexts and
+//! fragments. Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow
+//! child lists, and so on.
+//!
+//! Currently, the important types of flows are:
+//!
+//! * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
+//!   which are positioned according to block formatting context rules (CSS block boxes). Block
+//!   flows also contain a single box to represent their rendered borders, padding, etc.
+//!   The BlockFlow at the root of the tree has special behavior: it stretches to the boundaries of
+//!   the viewport.
+//!
+//! * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
+//!   fragments/flows that are subject to inline layout and line breaking and structs to represent
+//!   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
+//!   similar methods.
 
 use block::BlockFlow;
 use context::LayoutContext;
@@ -281,8 +281,11 @@ pub trait Flow: fmt::Debug + Sync {
     fn compute_overflow(&self) -> Rect<Au>;
 
     /// Iterates through border boxes of all of this flow's fragments.
+    /// Level provides a zero based index indicating the current
+    /// depth of the flow tree during fragment iteration.
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
+                                             level: i32,
                                              stacking_context_position: &Point2D<Au>);
 
     /// Mutably iterates through fragments in this flow.
@@ -1389,13 +1392,31 @@ impl ContainingBlockLink {
     }
 
     #[inline]
-    pub fn generated_containing_block_size(&mut self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
+    pub fn generated_containing_block_size(&self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
         match self.link {
             None => {
                 panic!("Link to containing block not established; perhaps you forgot to call \
                         `set_absolute_descendants`?")
             }
             Some(ref link) => link.upgrade().unwrap().generated_containing_block_size(for_flow),
+        }
+    }
+
+    #[inline]
+    pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
+        match self.link {
+            None => {
+                panic!("Link to containing block not established; perhaps you forgot to call \
+                        `set_absolute_descendants`?")
+            }
+            Some(ref link) => {
+                let flow = link.upgrade().unwrap();
+                if flow.is_block_like() {
+                    flow.as_immutable_block().explicit_block_containing_size(layout_context)
+                } else {
+                    None
+                }
+            }
         }
     }
 }
@@ -1418,4 +1439,3 @@ impl OpaqueFlow {
         OpaqueFlow(base_flow as *const BaseFlow as usize)
     }
 }
-
