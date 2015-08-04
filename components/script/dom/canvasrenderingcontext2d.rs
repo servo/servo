@@ -901,7 +901,18 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
             .unwrap();
-        let data = receiver.recv().unwrap();
+        let mut data = receiver.recv().unwrap();
+
+        // Un-premultiply alpha
+        // TODO: may want a precomputed un-premultiply table to make this fast.
+        // https://github.com/servo/servo/issues/6969
+        for chunk in data.chunks_mut(4) {
+             let alpha = chunk[3] as f32 / 255.;
+             chunk[0] = (chunk[0] as f32 / alpha) as u8;
+             chunk[1] = (chunk[1] as f32 / alpha) as u8;
+             chunk[2] = (chunk[2] as f32 / alpha) as u8;
+        }
+
         Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
     }
 
