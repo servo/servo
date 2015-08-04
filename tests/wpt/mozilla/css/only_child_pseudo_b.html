@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:only-child test</title>
+    <style type="text/css">
+      html:only-child { background: red; }
+      html             { background: yellow;}
+
+      p { width: 20px; height: 20px; background: orange; float: left; margin-left: 10px; }
+      div { clear: both; }
+      #d1 > p, #d2 > p, #d3 > p, #d4 > p { background: green; }
+      #p5, #p6 { background: green; }
+    </style>
+  </head>
+  <body>
+    <div id="d1"><p> </p></div>
+    <div id="d2"> <p> </p></div>
+    <div id="d3"><p> </p><!-- comment --></div>
+    <div id="d4"><!-- comment --><p> </p></div>
+    <div id="d5"><p id="p5"> </p><span> </span></div>
+    <div id="d6"><span> </span><p id="p6"> </p></div>
+  </body>
+</html>
