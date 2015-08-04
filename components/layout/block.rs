@@ -45,7 +45,6 @@ use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
@@ -572,13 +571,10 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment,
-                                  float_kind: Option<FloatKind>)
-                                  -> BlockFlow {
-        let writing_mode = node.style().writing_mode;
+    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> BlockFlow {
+        let writing_mode = fragment.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, match float_kind {
+            base: BaseFlow::new(Some(fragment.style()), writing_mode, match float_kind {
                 Some(_) => ForceNonfloatedFlag::FloatIfNecessary,
                 None => ForceNonfloatedFlag::ForceNonfloated,
             }),
