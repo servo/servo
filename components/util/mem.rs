@@ -16,6 +16,7 @@ use cursor::Cursor;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use geometry::Au;
 use range::Range;
+use url;
 
 extern {
     // Get the size of a heap block.
@@ -83,6 +84,47 @@ impl<T: HeapSizeOf> HeapSizeOf for Option<T> {
         match *self {
             None => 0,
             Some(ref x) => x.heap_size_of_children()
+        }
+    }
+}
+
+impl HeapSizeOf for url::Url {
+    fn heap_size_of_children(&self) -> usize {
+        let &url::Url { ref scheme, ref scheme_data, ref query, ref fragment } = self;
+        scheme.heap_size_of_children() +
+        scheme_data.heap_size_of_children() +
+        query.heap_size_of_children() +
+        fragment.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for url::SchemeData {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &url::SchemeData::Relative(ref data) => data.heap_size_of_children(),
+            &url::SchemeData::NonRelative(ref str) => str.heap_size_of_children()
+        }
+    }
+}
+
+impl HeapSizeOf for url::RelativeSchemeData {
+    fn heap_size_of_children(&self) -> usize {
+        let &url::RelativeSchemeData { ref username, ref password, ref host,
+                                       ref port, ref default_port, ref path } = self;
+        username.heap_size_of_children() +
+        password.heap_size_of_children() +
+        host.heap_size_of_children() +
+        port.heap_size_of_children() +
+        default_port.heap_size_of_children() +
+        path.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for url::Host {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &url::Host::Domain(ref str) => str.heap_size_of_children(),
+            &url::Host::Ipv6(_) => 0
         }
     }
 }
