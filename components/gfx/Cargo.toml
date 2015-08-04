@@ -8,6 +8,22 @@ authors = ["The Servo Project Developers"]
 name = "gfx"
 path = "lib.rs"
 
+[dependencies]
+bitflags = "0.3"
+euclid = "0.1"
+fnv = "1.0"
+harfbuzz = "0.1"
+lazy_static = "0.1"
+libc = "0.1"
+log = "0.3"
+rand = "0.3"
+rustc-serialize = "0.3"
+serde = "0.4"
+serde_macros = "0.4"
+smallvec = "0.1"
+string_cache = "0.1"
+time = "0.1.12"
+
 [dependencies.plugins]
 path = "../plugins"
 
@@ -50,21 +66,6 @@ git = "https://github.com/pcwalton/ipc-channel"
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
-
-[dependencies]
-log = "0.3"
-fnv = "1.0"
-time = "0.1.12"
-bitflags = "0.3"
-rustc-serialize = "0.3"
-libc = "0.1"
-rand = "0.3"
-harfbuzz = "0.1"
-smallvec = "0.1"
-string_cache = "0.1"
-euclid = "0.1"
-serde = "0.4"
-serde_macros = "0.4"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.1"

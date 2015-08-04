@@ -12,6 +12,7 @@
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(str_char)]
+#![feature(unique)]
 #![feature(vec_push_all)]
 
 #![plugin(plugins)]
@@ -26,6 +27,8 @@ extern crate azure;
 extern crate fnv;
 extern crate euclid;
 extern crate ipc_channel;
+#[macro_use]
+extern crate lazy_static;
 extern crate layers;
 extern crate libc;
 #[macro_use]

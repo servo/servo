@@ -149,7 +149,6 @@ struct FontAndShapingOptions {
 pub struct Shaper {
     hb_face: *mut hb_face_t,
     hb_font: *mut hb_font_t,
-    hb_funcs: *mut hb_font_funcs_t,
     font_and_shaping_options: Box<FontAndShapingOptions>,
 }
 
@@ -161,9 +160,6 @@ impl Drop for Shaper {
 
             assert!(!self.hb_font.is_null());
             RUST_hb_font_destroy(self.hb_font);
-
-            assert!(!self.hb_funcs.is_null());
-            RUST_hb_font_funcs_destroy(self.hb_funcs);
         }
     }
 }
@@ -193,18 +189,11 @@ impl Shaper {
                                    Shaper::float_to_fixed(pt_size) as c_int);
 
             // configure static function callbacks.
-            // NB. This funcs structure could be reused globally, as it never changes.
-            let hb_funcs: *mut hb_font_funcs_t = RUST_hb_font_funcs_create();
-            RUST_hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
-            RUST_hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
-            RUST_hb_font_funcs_set_glyph_h_kerning_func(
-                hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
-            RUST_hb_font_set_funcs(hb_font, hb_funcs, font as *mut Font as *mut c_void, None);
+            RUST_hb_font_set_funcs(hb_font, **HB_FONT_FUNCS, font as *mut Font as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,
                 hb_font: hb_font,
-                hb_funcs: hb_funcs,
                 font_and_shaping_options: font_and_shaping_options,
             }
         }
@@ -536,7 +525,20 @@ impl Shaper {
     }
 }
 
-/// Callbacks from Harfbuzz when font map and glyph advance lookup needed.
+// Callbacks from Harfbuzz when font map and glyph advance lookup needed.
+lazy_static! {
+    static ref HB_FONT_FUNCS: ptr::Unique<hb_font_funcs_t> = unsafe {
+        let hb_funcs = RUST_hb_font_funcs_create();
+        RUST_hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
+        RUST_hb_font_funcs_set_glyph_h_advance_func(
+            hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
+        RUST_hb_font_funcs_set_glyph_h_kerning_func(
+            hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
+
+        ptr::Unique::new(hb_funcs)
+    };
+}
+
 extern fn glyph_func(_: *mut hb_font_t,
                      font_data: *mut c_void,
                      unicode: hb_codepoint_t,
