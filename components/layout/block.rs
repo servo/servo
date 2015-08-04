@@ -2011,12 +2011,14 @@ impl Flow for BlockFlow {
 
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
+                                             level: i32,
                                              stacking_context_position: &Point2D<Au>) {
         if !iterator.should_process(&self.fragment) {
             return
         }
 
         iterator.process(&self.fragment,
+                         level,
                          &self.fragment
                               .stacking_relative_border_box(&self.base.stacking_relative_position,
                                                             &self.base

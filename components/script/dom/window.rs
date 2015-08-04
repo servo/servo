@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerN
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
-use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
@@ -27,7 +27,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers};
+use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers, from_untrusted_node_address};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -582,6 +582,7 @@ pub trait WindowHelpers {
     fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32>;
     fn resolved_style_query(self, element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>, property: &Atom) -> Option<String>;
+    fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>);
     fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn set_fragment_name(self, fragment: Option<String>);
     fn steal_fragment_name(self) -> Option<String>;
@@ -829,6 +830,27 @@ impl<'a> WindowHelpers for &'a Window {
                     ReflowReason::Query);
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
         resolved
+    }
+
+    fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::OffsetParentQuery(node),
+                    ReflowReason::Query);
+        let response = self.layout_rpc.offset_parent();
+        let js_runtime = self.js_runtime.borrow();
+        let js_runtime = js_runtime.as_ref().unwrap();
+        let element = match response.node_address {
+            Some(parent_node_address) => {
+                let node = from_untrusted_node_address(js_runtime.rt(),
+                                                       parent_node_address);
+                let element = ElementCast::to_ref(node.r());
+                element.map(Root::from_ref)
+            }
+            None => {
+                None
+            }
+        };
+        (element, response.rect)
     }
 
     fn handle_reflow_complete_msg(self, reflow_id: u32) {
@@ -1139,6 +1161,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
+        ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
     });
 
     debug_msg.push_str(match *reason {

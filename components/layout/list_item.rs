@@ -158,13 +158,15 @@ impl Flow for ListItemFlow {
 
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
+                                             level: i32,
                                              stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position);
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
 
         if let Some(ref marker) = self.marker {
             if iterator.should_process(marker) {
                 iterator.process(
                     marker,
+                    level,
                     &marker.stacking_relative_border_box(&self.block_flow
                                                               .base
                                                               .stacking_relative_position,

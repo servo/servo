@@ -281,8 +281,11 @@ pub trait Flow: fmt::Debug + Sync {
     fn compute_overflow(&self) -> Rect<Au>;
 
     /// Iterates through border boxes of all of this flow's fragments.
+    /// Level provides a zero based index indicating the current
+    /// depth of the flow tree during fragment iteration.
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
+                                             level: i32,
                                              stacking_context_position: &Point2D<Au>);
 
     /// Mutably iterates through fragments in this flow.

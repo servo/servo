@@ -2164,7 +2164,7 @@ bitflags! {
 /// A top-down fragment border box iteration handler.
 pub trait FragmentBorderBoxIterator {
     /// The operation to perform.
-    fn process(&mut self, fragment: &Fragment, overflow: &Rect<Au>);
+    fn process(&mut self, fragment: &Fragment, level: i32, overflow: &Rect<Au>);
 
     /// Returns true if this fragment must be processed in-order. If this returns false,
     /// we skip the operation for this fragment, but continue processing siblings.
