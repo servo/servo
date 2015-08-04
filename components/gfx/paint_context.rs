@@ -706,7 +706,7 @@ impl<'a> PaintContext<'a> {
 
         self.draw_target.stroke_line(start,
                                      end,
-                                     &ColorPattern::new(color),
+                                     PatternRef::Color(&ColorPattern::new(color)),
                                      &stroke_opts,
                                      &draw_opts);
     }

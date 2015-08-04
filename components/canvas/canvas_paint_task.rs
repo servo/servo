@@ -314,6 +314,21 @@ impl<'a> CanvasPaintTask<'a> {
                 new_draw_target.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
                                             &self.state.stroke_opts, &self.state.draw_options);
             });
+        } else if rect.size.width == 0. || rect.size.height == 0. {
+            let cap = match self.state.stroke_opts.line_join {
+                JoinStyle::Round => CapStyle::Round,
+                _ => CapStyle::Butt
+            };
+
+            let stroke_opts =
+                StrokeOptions::new(self.state.stroke_opts.line_width,
+                                   self.state.stroke_opts.line_join,
+                                   cap,
+                                   self.state.stroke_opts.miter_limit,
+                                   self.state.stroke_opts.mDashPattern);
+            self.drawtarget.stroke_line(rect.origin, rect.bottom_right(),
+                                        self.state.stroke_style.to_pattern_ref(),
+                                        &stroke_opts, &self.state.draw_options);
         } else {
             self.drawtarget.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
                                         &self.state.stroke_opts, &self.state.draw_options);
