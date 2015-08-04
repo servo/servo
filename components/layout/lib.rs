@@ -13,7 +13,6 @@
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(raw)]
-#![feature(slice_chars)]
 #![feature(step_by)]
 #![feature(str_char)]
 #![feature(unsafe_no_drop_flag)]

@@ -7,7 +7,12 @@ use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+<<<<<<< HEAD
 use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions, ScrollBehavior};
+=======
+use dom::bindings::codegen::Bindings::WindowBinding::{self,
+    WindowMethods, FrameRequestCallback, ScrollOptions, ScrollToOptions};
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
 use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
@@ -39,10 +44,13 @@ use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
+<<<<<<< HEAD
 use core::ops::Deref;
+=======
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{TracingMetadata};
-use msg::compositor_msg::ScriptListener;
+use msg::compositor_msg::{ScriptListener, LayerId};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
@@ -56,7 +64,7 @@ use util::{breakpoint, opts};
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
@@ -75,8 +83,9 @@ use std::default::Default;
 use std::ffi::CString;
 use std::mem as std_mem;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::Arc;
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
+use std::sync::mpsc::{channel, Receiver};
 use time;
 
 /// Current state of the window object
@@ -176,7 +185,7 @@ pub struct Window {
     window_size: Cell<Option<WindowSizeData>>,
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
-    resource_task: ResourceTask,
+    resource_task: Arc<ResourceTask>,
 
     /// A handle for communicating messages to the storage task.
     storage_task: StorageTask,
@@ -569,6 +578,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
+<<<<<<< HEAD
     fn InnerHeight(self) -> Finite<f64> {
         let size = self.window_size.get();
         match size {
@@ -577,11 +587,19 @@ impl<'a> WindowMethods for &'a Window {
                 Finite::wrap(height)
             }
             None => Finite::wrap(0.0f64)
+=======
+    fn InnerHeight(self) -> i32 {
+        let size = self.window_size.get();
+        match size {
+            Some(e) => e.visible_viewport.height.get().to_i32().unwrap_or(0),
+            None => 0
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         }
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
     //TODO Include Scrollbar
+<<<<<<< HEAD
     fn InnerWidth(self) -> Finite<f64> {
         let size = self.window_size.get();
         match size {
@@ -590,10 +608,18 @@ impl<'a> WindowMethods for &'a Window {
                 Finite::wrap(width)
             }
             None => Finite::wrap(0.0f64)
+=======
+    fn InnerWidth(self) -> i32 {
+        let size = self.window_size.get();
+        match size {
+            Some(e) => e.visible_viewport.width.get().to_i32().unwrap_or(0),
+            None => 0
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         }
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
+<<<<<<< HEAD
     fn ScrollX(self) -> Finite<f64> {
         let origin = self.current_scroll_position.get().origin;
         Finite::wrap(origin.x.to_f64_px())
@@ -601,10 +627,19 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
     fn PageXOffset(self) -> Finite<f64> {
+=======
+    fn ScrollX(self) -> i32 {
+        self.current_scroll_position.get().origin.x.to_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
+    fn PageXOffset(self) -> i32{
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         self.ScrollX()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrolly
+<<<<<<< HEAD
     fn ScrollY(self) -> Finite<f64> {
         let origin = self.current_scroll_position.get().origin;
         Finite::wrap(origin.y.to_f64_px())
@@ -612,6 +647,14 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
     fn PageYOffset(self) -> Finite<f64> {
+=======
+    fn ScrollY(self) -> i32 {
+        self.current_scroll_position.get().origin.y.to_px()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
+    fn PageYOffset(self) -> i32 {
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         self.ScrollY()
     }
 
@@ -625,13 +668,18 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
+<<<<<<< HEAD
     fn Scroll_(self, x: f64, y: f64, options: &ScrollOptions) {
         println!("test");
+=======
+    fn Scroll_(self, x: f64, y: f64, _: &ScrollOptions) {
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
         // Step 4
         if self.window_size.get().is_none() {
             return;
         }
 
+<<<<<<< HEAD
         let width = (*self.ScrollX());
         let height = (*self.ScrollY());
 
@@ -642,6 +690,42 @@ impl<'a> WindowMethods for &'a Window {
         let delta = Point2D::new(offsetx.to_f32().unwrap_or(0.0f32), offsety.to_f32().unwrap_or(0.0f32));
         //let script_chan = self.script_chan.clone();
         //script_chan.send(ScriptMsg::ScrollDelta(self.pipeline(), delta)).unwrap()
+=======
+        // Step 5 remove scrollbar width
+        let width = self.InnerWidth() as f64;
+        // Step 6 remove scrollbar height
+        let height = self.InnerHeight() as f64;
+
+        // Step 7 & 8
+        // TODO use overflow direction
+        let body = self.Document().GetBody();
+        let (rangedx,rangedy) = match body {
+            Some(e) => {
+                let node = NodeCast::from_ref(e.r());
+                let content_size = node.get_bounding_content_box();
+
+                let content_height = content_size.size.height.to_f64_px();
+                let content_width = content_size.size.width.to_f64_px();
+                (x.max(0.0f64).min(content_width - width),
+                y.max(0.0f64).min(content_height - height))
+            },
+            None => {
+                (x.max(0.0f64), y.max(0.0f64))
+            }
+        };
+
+        // Step 10
+        // TODO handling ongoing smoth scrolling
+        if rangedx == self.ScrollX() as f64 && rangedy == self.ScrollX() as f64 {
+            return;
+        }
+
+        // TODO Step 11
+
+        // Step 12 Perform Scroll
+        let point = Point2D::new(rangedx.to_f32().unwrap_or(0.0f32), rangedy.to_f32().unwrap_or(0.0f32));
+        self.compositor.borrow_mut().scroll_fragment_point(self.pipeline(), LayerId::null(), point)
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
@@ -665,14 +749,21 @@ impl<'a> WindowMethods for &'a Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
     fn ScrollBy_(self, x: f64, y: f64, options: &ScrollOptions)  {
         // Step 3
+<<<<<<< HEAD
         let left = x + self.ScrollX().deref();
         // Step 4
         let top =  y + self.ScrollY().deref();
+=======
+        let left = x + self.ScrollX() as f64;
+        // Step 4
+        let top =  y + self.ScrollY() as f64;
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
 
         // Step 5
         self.Scroll_(left, top, options);
     }
 
+<<<<<<< HEAD
     //fn ResizeTo(self, x: Finite<f64>, y: Finite<f64>) {
     //    // Step 1
     //}
@@ -696,6 +787,64 @@ impl<'a> WindowMethods for &'a Window {
     //fn OuterWidth(self) -> Finite<f64> {
     //    Finite::wrap(0.0f64)
     //}
+=======
+    // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
+    fn ResizeTo(self, x: i32, y: i32) {
+        // Step 1
+        let size = Size2D::new(x,y);
+        self.compositor.borrow_mut().resize_window(size)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
+    fn ResizeBy(self, x: i32, y: i32) {
+        let client = self.client_window();
+        // Step 1
+        self.MoveTo(x + client.size.width, y + client.size.height)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-moveto
+    fn MoveTo(self, x: i32, y: i32) {
+        // Step 1
+        let point = Point2D::new(x,y);
+        self.compositor.borrow_mut().move_window(point)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-moveby
+    fn MoveBy(self, x: i32, y: i32) {
+        let client = self.client_window();
+        // Step 1
+        self.MoveTo(x + client.origin.x, y + client.origin.y)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-screenx
+    fn ScreenX(self) -> i32 {
+        let client = self.client_window();
+        client.origin.x
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-screeny
+    fn ScreenY(self) -> i32 {
+        let client = self.client_window();
+        client.origin.y
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-outerheight
+    fn OuterHeight(self) -> i32 {
+        let client = self.client_window();
+        client.size.height
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-outerwidth
+    fn OuterWidth(self) -> i32 {
+        let client = self.client_window();
+        client.size.width
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio
+    fn DevicePixelRatio(self) -> Finite<f64> {
+        Finite::wrap(0.0f64)
+    }
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
 
 
 }
@@ -719,6 +868,7 @@ pub trait WindowHelpers {
     fn steal_fragment_name(self) -> Option<String>;
     fn set_window_size(self, size: WindowSizeData);
     fn window_size(self) -> Option<WindowSizeData>;
+    fn client_window(self) -> Rect<i32>;
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
     fn mem_profiler_chan(self) -> mem::ProfilerChan;
@@ -923,6 +1073,20 @@ impl<'a> WindowHelpers for &'a Window {
         }
     }
 
+    fn client_window(self) -> Rect<i32> {
+        let channel = ipc::channel::<Rect<i32>>();
+        match channel {
+            Ok((send,recv)) => {
+                self.compositor.borrow_mut().client_window(send);
+                recv.recv().unwrap_or(Rect::zero())
+            }
+            Err(_) =>{
+                Rect::zero()
+            }
+        }
+
+    }
+
     fn layout(&self) -> &LayoutRPC {
         &*self.layout_rpc
     }
@@ -1020,7 +1184,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn resource_task(self) -> ResourceTask {
-        self.resource_task.clone()
+        (*self.resource_task).clone()
     }
 
     fn mem_profiler_chan(self) -> mem::ProfilerChan {
@@ -1174,7 +1338,7 @@ impl Window {
                control_chan: ScriptControlChan,
                compositor: ScriptListener,
                image_cache_task: ImageCacheTask,
-               resource_task: ResourceTask,
+               resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

@@ -19,6 +19,8 @@ use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
+use euclid::point::Point2D;
+use euclid::rect::Rect;
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
@@ -144,16 +146,16 @@ impl Window {
                 Cursor::TextCursor => msg_send![class("NSCursor"), IBeamCursor],
                 Cursor::GrabCursor | Cursor::AllScrollCursor =>
                     msg_send![class("NSCursor"), openHandCursor],
-                Cursor::NoDropCursor | Cursor::NotAllowedCursor => 
+                Cursor::NoDropCursor | Cursor::NotAllowedCursor =>
                     msg_send![class("NSCursor"), operationNotAllowedCursor],
                 Cursor::PointerCursor => msg_send![class("NSCursor"), pointingHandCursor],
                 Cursor::SResizeCursor => msg_send![class("NSCursor"), resizeDownCursor],
                 Cursor::WResizeCursor => msg_send![class("NSCursor"), resizeLeftCursor],
-                Cursor::EwResizeCursor | Cursor::ColResizeCursor => 
+                Cursor::EwResizeCursor | Cursor::ColResizeCursor =>
                     msg_send![class("NSCursor"), resizeLeftRightCursor],
                 Cursor::EResizeCursor => msg_send![class("NSCursor"), resizeRightCursor],
                 Cursor::NResizeCursor => msg_send![class("NSCursor"), resizeUpCursor],
-                Cursor::NsResizeCursor | Cursor::RowResizeCursor => 
+                Cursor::NsResizeCursor | Cursor::RowResizeCursor =>
                     msg_send![class("NSCursor"), resizeUpDownCursor],
                 Cursor::VerticalTextCursor => msg_send![class("NSCursor"), IBeamCursorForVerticalLayout],
                 _ => msg_send![class("NSCursor"), arrowCursor],
@@ -218,6 +220,18 @@ impl WindowMethods for Window {
                 Size2D::typed(rect.width as f32, rect.height as f32)
             }
         }
+    }
+
+    fn client_window(&self) -> Rect<i32> {
+        Rect::zero()
+    }
+
+    fn set_inner_size(&self, size: Size2D<i32>) {
+
+    }
+
+    fn set_position(&self, point: Point2D<i32>) {
+
     }
 
     fn present(&self) {
@@ -316,7 +330,24 @@ impl WindowMethods for Window {
         browser.downcast().favicons.borrow_mut().push(url.to_string().clone());
     }
 
-    fn status(&self, _: Option<String>) {
+    fn status(&self, info: Option<String>) {
+        let browser = self.cef_browser.borrow();
+        let browser = match *browser {
+            None => return,
+            Some(ref browser) => browser,
+        };
+        let str = match info {
+            Some(s) => {
+                let utf16_chars: Vec<u16> = Utf16Encoder::new(s.chars()).collect();
+                utf16_chars
+            }
+            None => vec![]
+        };
+
+        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
+           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_status_message) {
+            browser.get_host().get_client().get_display_handler().on_status_message((*browser).clone(), str.as_slice());
+        }
     }
 
     fn load_start(&self, back: bool, forward: bool) {

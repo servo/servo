@@ -208,15 +208,15 @@ pub struct Animation {
     /// A description of the property animation that is occurring.
     pub property_animation: PropertyAnimation,
     /// The start time of the animation, as returned by `time::precise_time_s()`.
-    pub start_time: f32,
+    pub start_time: f64,
     /// The end time of the animation, as returned by `time::precise_time_s()`.
-    pub end_time: f32,
+    pub end_time: f64,
 }
 
 impl Animation {
     /// Returns the duration of this animation in seconds.
     #[inline]
-    pub fn duration(&self) -> f32 {
+    pub fn duration(&self) -> f64 {
         self.end_time - self.start_time
     }
 }

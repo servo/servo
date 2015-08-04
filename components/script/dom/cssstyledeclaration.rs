@@ -16,11 +16,12 @@ use dom::window::{Window, WindowHelpers};
 use util::str::DOMString;
 use selectors::parser::PseudoElement;
 use string_cache::Atom;
-use style::properties::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
+use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
 use style::properties::PropertyDeclaration;
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::cell::Ref;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -50,7 +51,7 @@ macro_rules! css_properties(
     );
 );
 
-fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
+fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
     list.iter().fold(String::new(), |accum, ref declaration| {
         accum + &declaration.value() + " "
     })
@@ -78,25 +79,24 @@ impl CSSStyleDeclaration {
 }
 
 trait PrivateCSSStyleDeclarationHelpers {
-    fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
-    fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
-    fn get_computed_style(self, property: &Atom) -> Option<DOMString>;
+    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
+    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
 }
 
-impl<'a> PrivateCSSStyleDeclarationHelpers for &'a CSSStyleDeclaration {
-    fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let owner = self.owner.root();
-        let element = ElementCast::from_ref(owner.r());
-        element.get_inline_style_declaration(property).map(|decl| decl.clone())
+impl PrivateCSSStyleDeclarationHelpers for HTMLElement {
+    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
+        let element = ElementCast::from_ref(self);
+        element.get_inline_style_declaration(property)
     }
 
-    fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        let owner = self.owner.root();
-        let element = ElementCast::from_ref(owner.r());
-        element.get_important_inline_style_declaration(property).map(|decl| decl.clone())
+    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
+        let element = ElementCast::from_ref(self);
+        element.get_important_inline_style_declaration(property)
     }
+}
 
-    fn get_computed_style(self, property: &Atom) -> Option<DOMString> {
+impl CSSStyleDeclaration {
+    fn get_computed_style(&self, property: &Atom) -> Option<DOMString> {
         let owner = self.owner.root();
         let node = NodeCast::from_ref(owner.r());
         if !node.is_in_doc() {
@@ -144,6 +144,8 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
+        let owner = self.owner.root();
+
         // Step 1
         let property = Atom::from_slice(&property.to_ascii_lowercase());
 
@@ -161,7 +163,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
             // Step 2.2
             for longhand in longhand_properties.iter() {
                 // Step 2.2.1
-                let declaration = self.get_declaration(&Atom::from_slice(&longhand));
+                let declaration = owner.get_declaration(&Atom::from_slice(&longhand));
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
@@ -175,11 +177,12 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
 
         // Step 3 & 4
-        if let Some(ref declaration) = self.get_declaration(&property) {
-            declaration.value()
-        } else {
-            "".to_owned()
-        }
+        // FIXME: redundant let binding https://github.com/rust-lang/rust/issues/22252
+        let result = match owner.get_declaration(&property) {
+            Some(declaration) => declaration.value(),
+            None => "".to_owned(),
+        };
+        result
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
@@ -192,14 +195,18 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         if let Some(longhand_properties) = longhand_properties {
             // Step 2.1 & 2.2 & 2.3
             if longhand_properties.iter()
-                                  .map(|longhand| self.GetPropertyPriority(longhand.clone()))
+                                  .map(|&longhand| self.GetPropertyPriority(longhand.to_owned()))
                                   .all(|priority| priority == "important") {
 
                 return "important".to_owned();
             }
         // Step 3
-        } else if self.get_important_declaration(&property).is_some() {
-            return "important".to_owned();
+        } else {
+            // FIXME: extra let binding https://github.com/rust-lang/rust/issues/22323
+            let owner = self.owner.root();
+            if owner.get_important_declaration(&property).is_some() {
+                return "important".to_owned();
+            }
         }
 
         // Step 4
@@ -228,37 +235,31 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         }
 
         // Step 5
-        let priority = priority.to_ascii_lowercase();
-        if priority != "!important" && !priority.is_empty() {
-            return Ok(());
-        }
+        let priority = match &*priority {
+            "" => StylePriority::Normal,
+            p if p.eq_ignore_ascii_case("important") => StylePriority::Important,
+            _ => return Ok(()),
+        };
 
         // Step 6
-        let mut synthesized_declaration = property;
-        synthesized_declaration.push_str(": ");
-        synthesized_declaration.push_str(&value);
-
         let owner = self.owner.root();
         let window = window_from_node(owner.r());
-        let decl_block = parse_style_attribute(&synthesized_declaration, &window.r().get_url());
+        let declarations = parse_one_declaration(&property, &value, &window.r().get_url());
 
         // Step 7
-        if decl_block.normal.len() == 0 {
+        let declarations = if let Ok(declarations) = declarations {
+            declarations
+        } else {
             return Ok(());
-        }
+        };
 
         let owner = self.owner.root();
         let element = ElementCast::from_ref(owner.r());
 
         // Step 8
-        for decl in decl_block.normal.iter() {
+        for decl in declarations {
             // Step 9
-            let style_priority = if priority.is_empty() {
-                StylePriority::Normal
-            } else {
-                StylePriority::Important
-            };
-            element.update_inline_style(decl.clone(), style_priority);
+            element.update_inline_style(decl, priority);
         }
 
         let document = document_from_node(element);
@@ -274,34 +275,25 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        // Step 2
-        let property = property.to_ascii_lowercase();
-
-        // Step 3
+        // Step 2 & 3
         if !is_supported_property(&property) {
             return Ok(());
         }
 
         // Step 4
-        let priority = priority.to_ascii_lowercase();
-        if priority != "important" && !priority.is_empty() {
-            return Ok(());
-        }
+        let priority = match &*priority {
+            "" => StylePriority::Normal,
+            p if p.eq_ignore_ascii_case("important") => StylePriority::Important,
+            _ => return Ok(()),
+        };
 
         let owner = self.owner.root();
-        let window = window_from_node(owner.r());
-        let decl_block = parse_style_attribute(&property, &window.r().get_url());
         let element = ElementCast::from_ref(owner.r());
 
-        // Step 5
-        for decl in decl_block.normal.iter() {
-            // Step 6
-            let style_priority = if priority.is_empty() {
-                StylePriority::Normal
-            } else {
-                StylePriority::Important
-            };
-            element.update_inline_style(decl.clone(), style_priority);
+        // Step 5 & 6
+        match longhands_from_shorthand(&property) {
+            Some(properties) => element.set_inline_style_property_priority(properties, priority),
+            None => element.set_inline_style_property_priority(&[&*property], priority)
         }
 
         let document = document_from_node(element);
@@ -328,21 +320,18 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         // Step 3
         let value = self.GetPropertyValue(property.clone());
 
-        let longhand_properties = longhands_from_shorthand(&property);
-        match longhand_properties {
+        let owner = self.owner.root();
+        let elem = ElementCast::from_ref(owner.r());
+
+        match longhands_from_shorthand(&property) {
+            // Step 4
             Some(longhands) => {
-                // Step 4
                 for longhand in longhands.iter() {
-                    try!(self.RemoveProperty(longhand.clone()));
+                    elem.remove_inline_style_property(longhand)
                 }
             }
-
-            None => {
-                // Step 5
-                let owner = self.owner.root();
-                let elem = ElementCast::from_ref(owner.r());
-                elem.remove_inline_style_property(property)
-            }
+            // Step 5
+            None => elem.remove_inline_style_property(&property)
         }
 
         // Step 6

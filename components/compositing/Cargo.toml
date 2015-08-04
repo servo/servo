@@ -66,10 +66,13 @@ git = "https://github.com/pcwalton/ipc-channel"
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 features = ["texture_surface"]
 
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
+
 [dependencies]
 log = "0.3"
 num = "0.1.24"
-url = "0.2.36"
 time = "0.1.17"
 libc = "0.1"
 gleam = "0.1"
@@ -80,3 +83,4 @@ core-graphics = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"
+

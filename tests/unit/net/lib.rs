@@ -4,6 +4,7 @@
 
 #![cfg_attr(test, feature(box_raw))]
 
+extern crate ipc_channel;
 extern crate net;
 extern crate net_traits;
 extern crate url;

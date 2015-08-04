@@ -12,6 +12,7 @@ use headless;
 use windowing::{WindowEvent, WindowMethods};
 
 use euclid::point::Point2D;
+use euclid::size::Size2D;
 use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -70,6 +71,18 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
                 compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
             }
 
+            ScriptToCompositorMsg::GetClientWindow(send) => {
+                compositor_proxy.send(Msg::GetClientWindow(send));
+            }
+
+            ScriptToCompositorMsg::MoveTo(point) => {
+                compositor_proxy.send(Msg::MoveTo(point));
+            }
+
+            ScriptToCompositorMsg::ResizeTo(size) => {
+                compositor_proxy.send(Msg::ResizeTo(size));
+            }
+
             ScriptToCompositorMsg::Exit => {
                 let (chan, port) = channel();
                 compositor_proxy.send(Msg::Exit(chan));
@@ -82,10 +95,6 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
 
             ScriptToCompositorMsg::SendKeyEvent(key, key_state, key_modifiers) => {
                 compositor_proxy.send(Msg::KeyEvent(key, key_state, key_modifiers))
-            }
-
-            ScriptToCompositorMsg::ScrollDelta(pipeline_id, layer_id, delta) => {
-
             }
         }
     }
@@ -164,9 +173,6 @@ pub enum Msg {
     SetLayerRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
-
-
-    ScrollDelta(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor assign the painted buffers to the given layers.
     AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>, FrameTreeId),
     /// Alerts the compositor that the current page has changed its title.
@@ -208,6 +214,9 @@ pub enum Msg {
     CollectMemoryReports(mem::ReportsChan),
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
+    GetClientWindow(IpcSender<Rect<i32>>),
+    MoveTo(Point2D<i32>),
+    ResizeTo(Size2D<i32>),
 }
 
 impl Debug for Msg {
@@ -227,7 +236,6 @@ impl Debug for Msg {
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
             Msg::LoadStart(..) => write!(f, "LoadStart"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
-            Msg::ScrollDelta(..) => write!(f, "ScrollDelta"),
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
@@ -240,6 +248,9 @@ impl Debug for Msg {
             Msg::ReturnUnusedNativeSurfaces(..) => write!(f, "ReturnUnusedNativeSurfaces"),
             Msg::CollectMemoryReports(..) => write!(f, "CollectMemoryReports"),
             Msg::Status(..) => write!(f, "Status"),
+            Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
+            Msg::MoveTo(..) => write!(f, "MoveTo"),
+            Msg::ResizeTo(..) => write!(f, "ResizeTo"),
         }
     }
 }

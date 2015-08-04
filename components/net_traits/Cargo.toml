@@ -24,12 +24,12 @@ git = "https://github.com/servo/rust-stb-image"
 version = "0.6"
 features = [ "serde-serialization" ]
 
-[dependencies.url]
-version = "0.2.36"
-features = [ "serde_serialization" ]
-
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
 
 [dependencies]
 log = "0.3"

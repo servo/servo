@@ -10,8 +10,6 @@
 #![feature(vec_push_all)]
 #![plugin(serde_macros)]
 
-#![plugin(serde_macros)]
-
 extern crate euclid;
 extern crate hyper;
 extern crate ipc_channel;
@@ -28,10 +26,11 @@ use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
+use serde::{Deserializer, Serializer};
 use url::Url;
 
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
 pub mod image_cache_task;
@@ -46,7 +45,7 @@ pub mod image {
     pub mod base;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
@@ -87,6 +86,7 @@ pub trait AsyncResponseListener {
 
 /// Data for passing between threads/processes to indicate a particular action to
 /// take on a provided network listener.
+#[derive(Deserialize, Serialize)]
 pub enum ResponseAction {
     /// Invoke headers_available
     HeadersAvailable(Metadata),
@@ -109,32 +109,41 @@ impl ResponseAction {
 
 /// A target for async networking events. Commonly used to dispatch a runnable event to another
 /// thread storing the wrapped closure for later execution.
-pub trait AsyncResponseTarget {
-    fn invoke_with_listener(&self, action: ResponseAction);
+#[derive(Deserialize, Serialize)]
+pub struct AsyncResponseTarget {
+    pub sender: IpcSender<ResponseAction>,
+}
+
+impl AsyncResponseTarget {
+    pub fn invoke_with_listener(&self, action: ResponseAction) {
+        self.sender.send(action).unwrap()
+    }
 }
 
 /// A wrapper for a network load that can either be channel or event-based.
+#[derive(Deserialize, Serialize)]
 pub enum LoadConsumer {
-    Channel(Sender<LoadResponse>),
-    Listener(Box<AsyncResponseTarget + Send>),
+    Channel(IpcSender<LoadResponse>),
+    Listener(AsyncResponseTarget),
 }
 
 /// Handle to a resource task
-pub type ResourceTask = Sender<ControlMsg>;
+pub type ResourceTask = IpcSender<ControlMsg>;
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum IncludeSubdomains {
     Included,
     NotIncluded
 }
 
+#[derive(Deserialize, Serialize)]
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(Url, Sender<Option<String>>, CookieSource),
+    GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
     /// Store a domain's STS information
     SetHSTSEntryForHost(String, IncludeSubdomains, Option<u64>),
     Exit
@@ -180,17 +189,17 @@ impl PendingAsyncLoad {
     }
 
     /// Initiate the network request associated with this pending load.
-    pub fn load(mut self) -> Receiver<LoadResponse> {
+    pub fn load(mut self) -> IpcReceiver<LoadResponse> {
         self.guard.neuter();
         let load_data = LoadData::new(self.url, self.pipeline);
-        let (sender, receiver) = channel();
+        let (sender, receiver) = ipc::channel().unwrap();
         let consumer = LoadConsumer::Channel(sender);
         self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
         receiver
     }
 
     /// Initiate the network request associated with this pending load, using the provided target.
-    pub fn load_async(mut self, listener: Box<AsyncResponseTarget + Send>) {
+    pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
         let load_data = LoadData::new(self.url, self.pipeline);
         let consumer = LoadConsumer::Listener(listener);
@@ -203,23 +212,24 @@ impl PendingAsyncLoad {
 ///
 /// Even if loading fails immediately, we send one of these and the
 /// progress_port will provide the error.
+#[derive(Serialize, Deserialize)]
 pub struct LoadResponse {
     /// Metadata, such as from HTTP headers.
     pub metadata: Metadata,
     /// Port for reading data.
-    pub progress_port: Receiver<ProgressMsg>,
+    pub progress_port: IpcReceiver<ProgressMsg>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ResourceCORSData {
     /// CORS Preflight flag
     pub preflight: bool,
     /// Origin of CORS Request
-    pub origin: Url
+    pub origin: Url,
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: Url,
@@ -268,7 +278,7 @@ impl Metadata {
 }
 
 /// The creator of a given cookie
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum CookieSource {
     /// An HTTP API
     HTTP,
@@ -277,7 +287,7 @@ pub enum CookieSource {
 }
 
 /// Messages sent in response to a `Load` message
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq, Debug, Deserialize, Serialize)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
@@ -288,16 +298,17 @@ pub enum ProgressMsg {
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
-    let (start_chan, start_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan))).unwrap();
+    let (start_chan, start_port) = ipc::channel().unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url, None),
+                       LoadConsumer::Channel(start_chan))).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
     loop {
         match response.progress_port.recv().unwrap() {
             ProgressMsg::Payload(data) => buf.push_all(&data),
-            ProgressMsg::Done(Ok(()))  => return Ok((response.metadata, buf)),
-            ProgressMsg::Done(Err(e))  => return Err(e)
+            ProgressMsg::Done(Ok(())) => return Ok((response.metadata, buf)),
+            ProgressMsg::Done(Err(e)) => return Err(e)
         }
     }
 }
@@ -306,13 +317,15 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 pub fn load_bytes_iter(pending: PendingAsyncLoad) -> (Metadata, ProgressMsgPortIterator) {
     let input_port = pending.load();
     let response = input_port.recv().unwrap();
-    let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
+    let iter = ProgressMsgPortIterator {
+        progress_port: response.progress_port
+    };
     (response.metadata, iter)
 }
 
 /// Iterator that reads chunks of bytes from a ProgressMsg port
 pub struct ProgressMsgPortIterator {
-    progress_port: Receiver<ProgressMsg>
+    progress_port: IpcReceiver<ProgressMsg>,
 }
 
 impl Iterator for ProgressMsgPortIterator {
@@ -329,5 +342,4 @@ impl Iterator for ProgressMsgPortIterator {
         }
     }
 }
-
 

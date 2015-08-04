@@ -8,7 +8,7 @@ use clipboard_provider::ClipboardProvider;
 use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use util::str::DOMString;
+use util::str::{DOMString, slice_chars};
 
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
@@ -159,16 +159,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.get_sorted_selection().map(|(begin, end)| {
             if begin.line != end.line {
                 let mut s = String::new();
-                s.push_str(self.lines[begin.line].slice_chars(begin.index, self.lines[begin.line].len()));
+                s.push_str(slice_chars(&self.lines[begin.line], begin.index, self.lines[begin.line].len()));
                 for (_, line) in self.lines.iter().enumerate().filter(|&(i,_)| begin.line < i && i < end.line) {
                     s.push_str("\n");
                     s.push_str(line);
                 }
                 s.push_str("\n");
-                s.push_str(self.lines[end.line].slice_chars(0, end.index));
+                s.push_str(slice_chars(&self.lines[end.line], 0, end.index));
                 s
             } else {
-                self.lines[begin.line].slice_chars(begin.index, end.index).to_owned()
+                slice_chars(&self.lines[begin.line], begin.index, end.index).to_owned()
             }
         })
     }
@@ -178,8 +178,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             self.clear_selection();
 
             let new_lines = {
-                let prefix = self.lines[begin.line].slice_chars(0, begin.index);
-                let suffix = self.lines[end.line].slice_chars(end.index, self.lines[end.line].chars().count());
+                let prefix = slice_chars(&self.lines[begin.line], 0, begin.index);
+                let suffix = slice_chars(&self.lines[end.line], end.index, self.lines[end.line].chars().count());
                 let lines_prefix = &self.lines[..begin.line];
                 let lines_suffix = &self.lines[end.line + 1..];
 

@@ -117,12 +117,13 @@ partial interface Window {
   [SameObject] readonly attribute Screen screen;
 
   // browsing context
-  //void moveTo(double x, double y);
-  //void moveBy(double x, double y);
-  //void resizeTo(double x, double y);
-  //void resizeBy(double x, double y);
+  void moveTo(long x, long y);
+  void moveBy(long x, long y);
+  void resizeTo(long x, long y);
+  void resizeBy(long x, long y);
 
   // viewport
+<<<<<<< HEAD
   readonly attribute double innerWidth;
   readonly attribute double innerHeight;
 
@@ -131,6 +132,16 @@ partial interface Window {
   readonly attribute double pageXOffset;
   readonly attribute double scrollY;
   readonly attribute double pageYOffset;
+=======
+  readonly attribute long innerWidth;
+  readonly attribute long innerHeight;
+
+  // viewport scrolling
+  readonly attribute long scrollX;
+  readonly attribute long pageXOffset;
+  readonly attribute long scrollY;
+  readonly attribute long pageYOffset;
+>>>>>>> 43d6d5e76f8713ba9f2cb2ade7cdb703ab3416cd
   void scroll(optional ScrollToOptions options);
   void scroll(unrestricted double x, unrestricted double y, optional ScrollOptions options);
   void scrollTo(optional ScrollToOptions options);
@@ -139,11 +150,11 @@ partial interface Window {
   void scrollBy(unrestricted double x, unrestricted double y, optional ScrollOptions options);
 
   // client
-  //readonly attribute double screenX;
-  //readonly attribute double screenY;
-  //readonly attribute double outerWidth;
-  //readonly attribute double outerHeight;
-  //readonly attribute double devicePixelRatio;
+  readonly attribute long screenX;
+  readonly attribute long screenY;
+  readonly attribute long outerWidth;
+  readonly attribute long outerHeight;
+  readonly attribute double devicePixelRatio;
 };
 
 // Proprietary extensions.

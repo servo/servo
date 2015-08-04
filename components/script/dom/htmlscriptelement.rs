@@ -40,7 +40,9 @@ use js::jsval::UndefinedValue;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{Encoding, EncodingRef, DecoderTrap};
-use net_traits::{Metadata, AsyncResponseListener};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use net_traits::{Metadata, AsyncResponseListener, AsyncResponseTarget};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use html5ever::tree_builder::NextParserState;
 use std::cell::{RefCell, Cell};
@@ -330,12 +332,19 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                             url: url.clone(),
                         }));
 
+                        let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let listener = box NetworkListener {
                             context: context,
                             script_chan: script_chan,
                         };
+                        let response_target = AsyncResponseTarget {
+                            sender: action_sender,
+                        };
+                        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                            listener.notify(message.to().unwrap());
+                        });
 
-                        doc.r().load_async(LoadType::Script(url), listener);
+                        doc.r().load_async(LoadType::Script(url), response_target);
 
                         if self.parser_inserted.get() {
                             doc.r().get_current_parser().unwrap().r().suspend();

@@ -11,6 +11,7 @@ use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::ToOwned;
 use std::ops::Deref;
+use std::sync::Mutex;
 use string_cache::Atom;
 
 /// Platform specific font representation for mac.
@@ -26,7 +27,7 @@ pub struct FontTemplateData {
     /// When sending a `FontTemplateData` instance across processes, this will be set to `None` on
     /// the other side, because `CTFont` instances cannot be sent across processes. This is
     /// harmless, however, because it can always be recreated.
-    pub ctfont: CachedCTFont,
+    ctfont: CachedCTFont,
 
     pub identifier: Atom,
     pub font_data: Option<Vec<u8>>
@@ -52,18 +53,27 @@ impl FontTemplateData {
         };
 
         FontTemplateData {
-            ctfont: CachedCTFont(ctfont),
+            ctfont: CachedCTFont(Mutex::new(ctfont)),
             identifier: identifier.to_owned(),
             font_data: font_data
         }
     }
+
+    /// Retrieves the Core Text font instance, instantiating it if necessary.
+    pub fn ctfont(&self) -> Option<CTFont> {
+        let mut ctfont = self.ctfont.lock().unwrap();
+        if ctfont.is_none() {
+            *ctfont = core_text::font::new_from_name(self.identifier.as_slice(), 0.0).ok()
+        }
+        ctfont.as_ref().map(|ctfont| (*ctfont).clone())
+    }
 }
 
-pub struct CachedCTFont(Option<CTFont>);
+pub struct CachedCTFont(Mutex<Option<CTFont>>);
 
 impl Deref for CachedCTFont {
-    type Target = Option<CTFont>;
-    fn deref(&self) -> &Option<CTFont> {
+    type Target = Mutex<Option<CTFont>>;
+    fn deref(&self) -> &Mutex<Option<CTFont>> {
         &self.0
     }
 }
@@ -84,7 +94,7 @@ impl Deserialize for CachedCTFont {
 
             #[inline]
             fn visit_none<E>(&mut self) -> Result<CachedCTFont,E> where E: Error {
-                Ok(CachedCTFont(None))
+                Ok(CachedCTFont(Mutex::new(None)))
             }
         }
 

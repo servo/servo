@@ -64,7 +64,7 @@ impl FontHandleMethods for FontHandle {
             Some(s) => s.to_f64_px(),
             None => 0.0
         };
-        match *template.ctfont {
+        match template.ctfont() {
             Some(ref ctfont) => {
                 Ok(FontHandle {
                     font_data: template.clone(),

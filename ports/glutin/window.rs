@@ -6,6 +6,7 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
+use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
@@ -516,6 +517,22 @@ impl WindowMethods for Window {
     fn size(&self) -> TypedSize2D<ScreenPx, f32> {
         let (width, height) = self.window.get_inner_size().unwrap();
         Size2D::typed(width as f32, height as f32)
+    }
+
+    fn client_window(&self) -> Rect<i32> {
+        let (width, height) = self.window.get_outer_size().unwrap();
+        let size = Size2D::new(width as i32, height as i32);
+        let (x,y) = self.window.get_position().unwrap();
+        let origin = Point2D::new(x as i32,y as i32);
+        Rect::new(origin,size)
+    }
+
+    fn set_inner_size(&self, size: Size2D<i32>) {
+        self.window.set_inner_size(size.width as u32, size.height as u32)
+    }
+
+    fn set_position(&self, point: Point2D<i32>) {
+        self.window.set_position(point.x, point.y)
     }
 
     fn present(&self) {
