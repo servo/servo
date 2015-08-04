@@ -29,8 +29,7 @@ impl<'a> CanvasPaintTask<'a> {
     /// It reads image data from the canvas
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
-    fn read_pixels(&self, read_rect: Rect<f64>, canvas_size: Size2D<f64>) -> Vec<u8>{
-        let read_rect = read_rect.to_i32();
+    fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<f64>) -> Vec<u8>{
         let canvas_size = canvas_size.to_i32();
         let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
         let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
@@ -396,7 +395,7 @@ impl<'a> CanvasPaintTask<'a> {
                        smoothing_enabled: bool) {
         // Reads pixels from source image
         // In this case source and target are the same canvas
-        let image_data = self.read_pixels(source_rect, image_size);
+        let image_data = self.read_pixels(source_rect.to_i32(), image_size);
 
         if self.need_to_draw_shadow() {
             let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
@@ -567,24 +566,9 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn get_image_data(&self,
-                      mut dest_rect: Rect<f64>,
+                      dest_rect: Rect<i32>,
                       canvas_size: Size2D<f64>,
                       chan: IpcSender<Vec<u8>>) {
-        if dest_rect.size.width < 0.0 {
-            dest_rect.size.width = -dest_rect.size.width;
-            dest_rect.origin.x -= dest_rect.size.width;
-        }
-        if dest_rect.size.height < 0.0 {
-            dest_rect.size.height = -dest_rect.size.height;
-            dest_rect.origin.y -= dest_rect.size.height;
-        }
-        if dest_rect.size.width == 0.0 {
-            dest_rect.size.width = 1.0;
-        }
-        if dest_rect.size.height == 0.0 {
-            dest_rect.size.height = 1.0;
-        }
-
         let mut dest_data = self.read_pixels(dest_rect, canvas_size);
 
         // bgra -> rgba

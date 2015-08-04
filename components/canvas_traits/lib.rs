@@ -88,7 +88,7 @@ pub enum Canvas2dMsg {
     ClosePath,
     Fill,
     FillRect(Rect<f32>),
-    GetImageData(Rect<f64>, Size2D<f64>, IpcSender<Vec<u8>>),
+    GetImageData(Rect<i32>, Size2D<f64>, IpcSender<Vec<u8>>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     PutImageData(Vec<u8>, Rect<f64>, Option<Rect<f64>>),
