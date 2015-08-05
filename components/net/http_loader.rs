@@ -15,36 +15,79 @@ use log;
 use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
-use hyper::header::StrictTransportSecurity;
 use hyper::Error as HttpError;
+use hyper::client::{Request, Pool};
+use hyper::error::Result as HttpResult;
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, Quality};
+use hyper::header::{QualityItem, qitem};
+use hyper::header::StrictTransportSecurity;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{HttpConnector, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
-use std::error::Error;
+use hyper::net::{HttpsConnector, HttpStream, Ssl, Openssl};
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
+use openssl::ssl::SslStream as OpensslStream;
+use std::error::Error;
 use std::io::{self, Read, Write};
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, channel};
+use util::opts;
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
-use util::opts;
 use url::{Url, UrlParser};
 
 use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
+pub type Connector = HttpsConnector<SslProvider>;
+
+pub enum SslProvider {
+    None,
+    Openssl(Openssl)
+}
+
+
+impl Ssl for SslProvider {
+    type Stream = OpensslStream<HttpStream>;
+
+    fn wrap_client(&self, stream: HttpStream, host: &str) -> HttpResult<Self::Stream> {
+        match *self {
+            SslProvider::None => Err(HttpError::Ssl("ssl disabled".into())),
+            SslProvider::Openssl(ref s) => s.wrap_client(stream, host)
+        }
+    }
+
+    fn wrap_server(&self, _: HttpStream) -> HttpResult<Self::Stream> {
+        unimplemented!()
+    }
+}
+
+
+pub fn create_http_connector() -> Arc<Pool<Connector>> {
+    let connector = if opts::get().nossl {
+        HttpsConnector::new(SslProvider::None)
+    } else {
+        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+        context.set_verify(SSL_VERIFY_PEER, None);
+        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+        HttpsConnector::new(SslProvider::Openssl(Openssl {
+            context: Arc::new(context)
+        }))
+    };
+
+    Arc::new(Pool::with_connector(Default::default(), connector))
+}
+
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               hsts_list: Arc<Mutex<HSTSList>>)
+               hsts_list: Arc<Mutex<HSTSList>>,
+               connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
-        spawn_named("http_loader".to_owned(),
-                    move || load(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
+        spawn_named("http_loader".to_owned(), move || {
+            load(load_data, senders, classifier, connector, resource_mgr_chan, devtools_chan, hsts_list)
+        })
     }
 }
 
@@ -88,6 +131,7 @@ fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
 fn load(mut load_data: LoadData,
         start_chan: LoadConsumer,
         classifier: Arc<MIMEClassifier>,
+        connector: Arc<Pool<Connector>>,
         resource_mgr_chan: IpcSender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
@@ -151,17 +195,10 @@ fn load(mut load_data: LoadData,
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]))";
 
-        let req = if opts::get().nossl {
-            Request::with_connector(load_data.method.clone(), url.clone(), &HttpConnector)
-        } else {
-            let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-            context.set_verify(SSL_VERIFY_PEER, None);
-            context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
-            Request::with_connector(load_data.method.clone(), url.clone(),
-                &HttpsConnector::new(Openssl { context: Arc::new(context) }))
-        };
-
-        let mut req = match req {
+        let writer;
+        let mut req = match Request::with_connector(load_data.method.clone(),
+                                                    url.clone(),
+                                                    &*connector) {
             Ok(req) => req,
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
@@ -187,6 +224,7 @@ reason: \"certificate verify failed\" }]))";
             hostname: doc_url.serialize_host().unwrap(),
             port: doc_url.port_or_default()
         };
+
 
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
@@ -216,6 +254,7 @@ reason: \"certificate verify failed\" }]))";
         resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(doc_url.clone(),
                                                             tx,
                                                             CookieSource::HTTP)).unwrap();
+
         if let Some(cookie_list) = rx.recv().unwrap() {
             let mut v = Vec::new();
             v.push(cookie_list.into_bytes());
@@ -230,11 +269,10 @@ reason: \"certificate verify failed\" }]))";
             for header in req.headers().iter() {
                 info!(" - {}", header);
             }
-            info!("{:?}", load_data.data);
         }
 
         // Avoid automatically sending request body if a redirect has occurred.
-        let writer = match load_data.data {
+        writer = match load_data.data {
             Some(ref data) if iters == 1 => {
                 req.headers_mut().set(ContentLength(data.len() as u64));
                 let mut writer = match req.start() {
@@ -277,8 +315,8 @@ reason: \"certificate verify failed\" }]))";
                                                       load_data.headers.clone(),
                                                       load_data.data.clone());
             chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
-                                                                    net_event))).unwrap();
+                ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
+                                                                net_event))).unwrap();
         }
 
         let mut response = match writer.send() {
@@ -413,8 +451,8 @@ reason: \"certificate verify failed\" }]))";
                                            metadata.status.clone(),
                                            None);
             chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id,
-                                                                    net_event_response))).unwrap();
+                ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id,
+                                                                net_event_response))).unwrap();
         }
 
         match encoding_str {
