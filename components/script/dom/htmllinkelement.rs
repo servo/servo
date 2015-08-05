@@ -39,6 +39,7 @@ use url::UrlParser;
 use string_cache::Atom;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
@@ -239,7 +240,9 @@ impl<'a> HTMLLinkElementMethods for &'a HTMLLinkElement {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct StylesheetLoadDispatcher {
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     elem: Trusted<HTMLLinkElement>,
 }
 

@@ -24,6 +24,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
 use url::Url;
 use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
+use util::mem::HeapSizeOf;
 
 #[derive(Clone)]
 pub struct ConstellationChan(pub Sender<Msg>);
@@ -69,7 +70,7 @@ pub enum KeyState {
 }
 
 //N.B. Based on the glutin key enum
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum Key {
     Space,
     Apostrophe,

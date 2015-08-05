@@ -38,8 +38,10 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     textinput: DOMRefCell<TextInput<ConstellationChan>>,
     cols: Cell<u32>,
     rows: Cell<u32>,
@@ -384,7 +386,9 @@ impl<'a> FormControl<'a> for &'a HTMLTextAreaElement {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct ChangeEventRunnable {
+#[ignore_heap_size_of = "Cannot calculate Heap size"]
     element: Trusted<HTMLTextAreaElement>,
 }
 

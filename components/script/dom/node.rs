@@ -200,7 +200,7 @@ impl Drop for Node {
 /// suppress observers flag
 /// https://dom.spec.whatwg.org/#concept-node-insert
 /// https://dom.spec.whatwg.org/#concept-node-remove
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, HeapSizeOf)]
 enum SuppressObserver {
     Suppressed,
     Unsuppressed
@@ -385,6 +385,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct QuerySelectorIterator {
     selectors: Vec<Selector>,
     iterator: TreeIterator,
@@ -1248,6 +1249,7 @@ pub type ChildElementIterator =
     Peekable<FilterMap<NodeSiblingIterator,
                        fn(Root<Node>) -> Option<Root<Element>>>>;
 
+#[derive(HeapSizeOf)]
 pub struct NodeSiblingIterator {
     current: Option<Root<Node>>,
 }
@@ -1265,6 +1267,7 @@ impl Iterator for NodeSiblingIterator {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct ReverseSiblingIterator {
     current: Option<Root<Node>>,
 }
@@ -1282,6 +1285,7 @@ impl Iterator for ReverseSiblingIterator {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct FollowingNodeIterator {
     current: Option<Root<Node>>,
     root: Root<Node>,
@@ -1326,6 +1330,7 @@ impl Iterator for FollowingNodeIterator {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct PrecedingNodeIterator {
     current: Option<Root<Node>>,
     root: Root<Node>,
@@ -1372,6 +1377,7 @@ impl Iterator for PrecedingNodeIterator {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct LastChildIterator {
     current: Option<Root<Node>>,
 }
@@ -1389,6 +1395,7 @@ impl Iterator for LastChildIterator {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct AncestorIterator {
     current: Option<Root<Node>>,
 }
@@ -1406,6 +1413,7 @@ impl Iterator for AncestorIterator {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct TreeIterator {
     current: Option<Root<Node>>,
     depth: usize,
@@ -1451,7 +1459,7 @@ impl Iterator for TreeIterator {
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -2619,7 +2627,7 @@ impl<'a> DisabledStateHelpers for &'a Node {
 }
 
 /// A summary of the changes that happened to a node.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,

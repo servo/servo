@@ -37,6 +37,7 @@ use std::borrow::ToOwned;
 use std::sync::Arc;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     url: DOMRefCell<Option<Url>>,
@@ -65,7 +66,9 @@ trait PrivateHTMLImageElementHelpers {
     fn update_image(self, value: Option<(DOMString, &Url)>);
 }
 
+#[derive(HeapSizeOf)]
 struct ImageResponseHandlerRunnable {
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     element: Trusted<HTMLImageElement>,
     image: ImageResponse,
 }

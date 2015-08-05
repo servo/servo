@@ -36,7 +36,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 #[must_root]
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub struct Sink {
     pub base_url: Option<Url>,
     pub document: JS<Document>,
@@ -53,8 +53,10 @@ pub struct FragmentContext<'a> {
 pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 
 /// The context required for asynchronously fetching a document and parsing it progressively.
+#[derive(HeapSizeOf)]
 pub struct ParserContext {
     /// The parser that initiated the request.
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     parser: RefCell<Option<Trusted<ServoHTMLParser>>>,
     /// Is this document a synthesized document for a single image?
     is_image_document: Cell<bool>,
@@ -63,6 +65,7 @@ pub struct ParserContext {
     /// The subpage associated with this document.
     subpage: Option<SubpageId>,
     /// The target event loop for the response notifications.
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     script_chan: Box<ScriptChan+Send>,
     /// The URL for this document.
     url: Url,
@@ -157,8 +160,10 @@ impl PreInvoke for ParserContext {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct ServoHTMLParser {
     reflector_: Reflector,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<Vec<String>>,

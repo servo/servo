@@ -15,6 +15,7 @@ use dom::validitystate::ValidityState;
 use util::str::DOMString;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLOutputElement {
     htmlelement: HTMLElement
 }

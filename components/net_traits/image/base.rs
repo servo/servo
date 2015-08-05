@@ -7,11 +7,12 @@ use png;
 use stb_image::image as stb_image2;
 use std::mem;
 use util::vec::byte_swap;
+use util::mem::HeapSizeOf;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, HeapSizeOf)]
 pub enum PixelFormat {
     K8,         // Luminance channel only
     KA8,        // Luminance + alpha
@@ -19,11 +20,12 @@ pub enum PixelFormat {
     RGBA8,      // RGB + alpha, 8 bits per channel
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, HeapSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     pub bytes: IpcSharedMemory,
 }
 

@@ -24,6 +24,7 @@ use std::cell::{RefCell, Cell};
 no_jsmanaged_fields!(Key);
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: Cell<Option<Key>>,
@@ -753,6 +754,7 @@ pub struct KeyEventProperties {
     pub char_code: Option<u32>,
     pub key_code: u32,
 }
+known_heap_size!(0, KeyEventProperties);
 
 impl KeyEventProperties {
     pub fn is_printable(&self) -> bool {

@@ -12,6 +12,7 @@ use dom::window::Window;
 
 // https://w3c.github.io/FileAPI/#dfn-filelist
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct FileList {
     reflector_: Reflector,
     list: Vec<JS<File>>

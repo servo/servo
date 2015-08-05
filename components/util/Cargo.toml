@@ -38,6 +38,9 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.2"
 features = [ "serde_serialization" ]
 
+[dependencies.selectors]
+git = "https://github.com/servo/rust-selectors"
+
 [dependencies]
 log = "0.3"
 bitflags = "0.3"
@@ -54,3 +57,4 @@ serde_macros = "0.5"
 string_cache = "0.1"
 lazy_static = "0.1"
 getopts = "0.2.11"
+hyper = "0.6"

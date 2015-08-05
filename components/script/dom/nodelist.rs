@@ -12,6 +12,7 @@ use dom::window::Window;
 
 #[derive(JSTraceable)]
 #[must_root]
+#[derive(HeapSizeOf)]
 pub enum NodeListType {
     Simple(Vec<JS<Node>>),
     Children(JS<Node>)
@@ -19,6 +20,7 @@ pub enum NodeListType {
 
 // https://dom.spec.whatwg.org/#interface-nodelist
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct NodeList {
     reflector_: Reflector,
     list_type: NodeListType,

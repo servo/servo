@@ -92,12 +92,14 @@ use std::mem;
 use std::sync::Arc;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Element {
     node: Node,
     local_name: Atom,
     namespace: Namespace,
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
@@ -125,7 +127,7 @@ pub enum ElementTypeId {
     Element,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, HeapSizeOf)]
 pub enum ElementCreator {
     ParserCreated,
     ScriptCreated,
@@ -562,7 +564,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, HeapSizeOf)]
 pub enum StylePriority {
     Important,
     Normal,

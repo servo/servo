@@ -25,6 +25,7 @@ use string_cache::Atom;
 use std::borrow::ToOwned;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement
 }

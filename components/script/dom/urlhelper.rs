@@ -9,6 +9,7 @@ use url::{Url, SchemeData};
 use std::borrow::ToOwned;
 use std::fmt::Write;
 
+#[derive(HeapSizeOf)]
 pub struct UrlHelper;
 
 impl UrlHelper {

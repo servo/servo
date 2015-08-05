@@ -51,6 +51,7 @@ use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSRespon
 use cors::CORSResponse;
 use util::str::DOMString;
 use util::task::spawn_named;
+use util::mem::HeapSizeOf;
 
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -69,7 +70,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLS
 
 pub type SendParam = StringOrURLSearchParams;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -78,12 +79,14 @@ enum XMLHttpRequestState {
     Done = 4,
 }
 
-#[derive(JSTraceable, PartialEq, Clone, Copy)]
+#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
 /// XHR's response.
+#[derive(HeapSizeOf)]
 struct XHRContext {
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     xhr: TrustedXHRAddress,
     gen_id: GenerationId,
     cors_request: Option<CORSRequest>,
@@ -114,7 +117,25 @@ impl XHRProgress {
     }
 }
 
+impl HeapSizeOf for XHRProgress {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &XHRProgress::HeadersReceived(ref gen_id, _, ref status) => {
+                gen_id.heap_size_of_children() + status.heap_size_of_children()
+            },
+            &XHRProgress::Loading(ref gen_id, ref str) => {
+                gen_id.heap_size_of_children() + str.heap_size_of_children()
+            },
+            &XHRProgress::Errored(ref gen_id, ref error) => {
+                gen_id.heap_size_of_children() + error.heap_size_of_children()
+            },
+                        &XHRProgress::Done(ref id) => id.heap_size_of_children()
+        }
+    }
+}
+
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,
@@ -127,11 +148,13 @@ pub struct XMLHttpRequest {
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableHeap<JS<Document>>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     response_headers: DOMRefCell<Headers>,
 
     // Associated concepts
     request_method: DOMRefCell<Method>,
     request_url: DOMRefCell<Option<Url>>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     request_headers: DOMRefCell<Headers>,
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
@@ -140,8 +163,10 @@ pub struct XMLHttpRequest {
     send_flag: Cell<bool>,
 
     global: GlobalField,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     timeout_cancel: DOMRefCell<Option<Sender<()>>>,
     fetch_time: Cell<i64>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     timeout_target: DOMRefCell<Option<Box<ScriptChan+Send>>>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
@@ -197,11 +222,15 @@ impl XMLHttpRequest {
                   req: CORSRequest,
                   script_chan: Box<ScriptChan+Send>,
                   resource_task: ResourceTask) {
+       #[derive(HeapSizeOf)]
         struct CORSContext {
+            #[ignore_heap_size_of = "Cannot calculate Heap size"]
             xhr: Arc<Mutex<XHRContext>>,
             load_data: RefCell<Option<LoadData>>,
             req: CORSRequest,
+            #[ignore_heap_size_of = "Cannot calculate Heap size"]
             script_chan: Box<ScriptChan+Send>,
+            #[ignore_heap_size_of = "Cannot calculate Heap size"]
             resource_task: ResourceTask,
         }
 
@@ -980,7 +1009,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(self, duration_ms: u32) {
+       #[derive(HeapSizeOf)]
         struct XHRTimeout {
+            #[ignore_heap_size_of = "Cannot calculate Heap size"]
             xhr: TrustedXHRAddress,
             gen_id: GenerationId,
         }
@@ -1054,7 +1085,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         use hyper::error::Result;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, HeapSizeOf)]
         struct SetCookie2;
         impl Header for SetCookie2 {
             fn header_name() -> &'static str {

@@ -24,6 +24,7 @@ use url::Url;
 use script_task::{ScriptTask, ScriptMsg, MainThreadRunnable};
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Storage {
     reflector_: Reflector,
     global: GlobalField,
@@ -156,7 +157,9 @@ impl<'a> PrivateStorageHelpers for &'a Storage {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct StorageEventRunnable {
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     element: Trusted<Storage>,
     key: Option<DOMString>,
     old_value: Option<DOMString>,

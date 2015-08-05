@@ -16,6 +16,7 @@ use util::str::DOMString;
 use url::{Url, UrlParser};
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Location {
     reflector_: Reflector,
     window: JS<Window>,

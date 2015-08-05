@@ -42,36 +42,49 @@ pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }
 
+#[derive(HeapSizeOf)]
 pub struct WorkerGlobalScopeInit {
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     pub resource_task: ResourceTask,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     pub mem_profiler_chan: mem::ProfilerChan,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     pub devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     pub constellation_chan: ConstellationChan,
     pub worker_id: WorkerId,
 }
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
     worker_url: Url,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     runtime: Rc<Runtime>,
     next_worker_id: Cell<WorkerId>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     resource_task: ResourceTask,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     mem_profiler_chan: mem::ProfilerChan,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
     /// to the server from within the worker
     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     /// This `Receiver` will be ignored later if the corresponding
     /// `IpcSender` doesn't exist
     devtools_receiver: Receiver<DevtoolScriptControlMsg>,
@@ -80,6 +93,7 @@ pub struct WorkerGlobalScope {
     /// from the worker
     devtools_wants_updates: Cell<bool>,
 
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     constellation_chan: ConstellationChan,
 }
 

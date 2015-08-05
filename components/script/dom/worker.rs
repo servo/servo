@@ -40,9 +40,11 @@ pub type TrustedWorkerAddress = Trusted<Worker>;
 
 // https://html.spec.whatwg.org/multipage/#worker
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Worker {
     eventtarget: EventTarget,
     global: GlobalField,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
@@ -202,7 +204,9 @@ impl Runnable for WorkerEventHandler {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct WorkerErrorHandler {
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     addr: TrustedWorkerAddress,
     msg: DOMString,
     file_name: DOMString,

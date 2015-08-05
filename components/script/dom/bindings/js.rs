@@ -464,3 +464,8 @@ impl<T: Reflectable> Drop for Root<T> {
     }
 }
 
+impl<T: HeapSizeOf + Reflectable> HeapSizeOf for Root<T> {
+    fn heap_size_of_children(&self) -> usize {
+        self.r().heap_size_of_children()
+    }
+}

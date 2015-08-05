@@ -98,12 +98,17 @@ enum MixedMessage {
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     id: PipelineId,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan+Send>,
 }
