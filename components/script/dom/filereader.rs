@@ -423,11 +423,6 @@ fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, bl
         }
     };
 
-    let blobtype = data.blobtype.clone();
-    let label = data.label.clone();
-
-    let read_meta_data = ReadMetaData::new(blobtype, label, data.function);
-
-    let task = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, read_meta_data, bytes);
+    let task = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, data, bytes);
     chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
 }
