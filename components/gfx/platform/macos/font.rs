@@ -57,9 +57,9 @@ pub struct FontHandle {
 
 impl FontHandleMethods for FontHandle {
     fn new_from_template(_fctx: &FontContextHandle,
-                       template: Arc<FontTemplateData>,
-                       pt_size: Option<Au>)
-                        -> Result<FontHandle, ()> {
+                         template: Arc<FontTemplateData>,
+                         pt_size: Option<Au>)
+                         -> Result<FontHandle, ()> {
         let size = match pt_size {
             Some(s) => s.to_f64_px(),
             None => 0.0

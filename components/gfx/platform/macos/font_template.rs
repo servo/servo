@@ -38,22 +38,8 @@ unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {
     pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
-        let ctfont = match font_data {
-            Some(ref bytes) => {
-                let fontprov = CGDataProvider::from_buffer(bytes);
-                let cgfont_result = CGFont::from_data_provider(fontprov);
-                match cgfont_result {
-                    Ok(cgfont) => Some(core_text::font::new_from_CGFont(&cgfont, 0.0)),
-                    Err(_) => None
-                }
-            },
-            None => {
-                Some(core_text::font::new_from_name(identifier.as_slice(), 0.0).unwrap())
-            }
-        };
-
         FontTemplateData {
-            ctfont: CachedCTFont(Mutex::new(ctfont)),
+            ctfont: CachedCTFont(Mutex::new(None)),
             identifier: identifier.to_owned(),
             font_data: font_data
         }
@@ -63,7 +49,17 @@ impl FontTemplateData {
     pub fn ctfont(&self) -> Option<CTFont> {
         let mut ctfont = self.ctfont.lock().unwrap();
         if ctfont.is_none() {
-            *ctfont = core_text::font::new_from_name(self.identifier.as_slice(), 0.0).ok()
+            *ctfont = match self.font_data {
+                Some(ref bytes) => {
+                    let fontprov = CGDataProvider::from_buffer(bytes);
+                    let cgfont_result = CGFont::from_data_provider(fontprov);
+                    match cgfont_result {
+                        Ok(cgfont) => Some(core_text::font::new_from_CGFont(&cgfont, 0.0)),
+                        Err(_) => None
+                    }
+                }
+                None => core_text::font::new_from_name(self.identifier.as_slice(), 0.0).ok(),
+            }
         }
         ctfont.as_ref().map(|ctfont| (*ctfont).clone())
     }
