@@ -50,10 +50,12 @@ macro_rules! handle_potential_webgl_error {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
     global: GlobalField,
     renderer_id: usize,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
     last_error: Cell<Option<WebGLError>>,

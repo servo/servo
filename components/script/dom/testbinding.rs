@@ -30,6 +30,7 @@ use std::ptr;
 use std::rc::Rc;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct TestBinding {
     reflector_: Reflector,
     global: GlobalField,

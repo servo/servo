@@ -9,7 +9,8 @@
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(vec_push_all)]
-#![plugin(serde_macros)]
+#![feature(custom_attribute)]
+#![plugin(serde_macros, plugins)]
 
 #![plugin(regex_macros)]
 
@@ -35,6 +36,7 @@ use msg::constellation_msg::{PipelineId};
 use regex::Regex;
 use serde::{Deserializer, Serializer};
 use url::Url;
+use util::mem::HeapSizeOf;
 
 use std::thread;
 
@@ -56,12 +58,14 @@ pub mod image {
     pub mod base;
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
+    #[ignore_heap_size_of = "Defined in hyper"]
     /// Headers that will apply to the initial request only
     pub headers: Headers,
+    #[ignore_heap_size_of = "Defined in hyper"]
     /// Headers that will apply to the initial request and any redirects
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
@@ -231,7 +235,7 @@ pub struct LoadResponse {
     pub progress_port: IpcReceiver<ProgressMsg>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceCORSData {
     /// CORS Preflight flag
     pub preflight: bool,
@@ -240,7 +244,7 @@ pub struct ResourceCORSData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: Url,
@@ -251,6 +255,7 @@ pub struct Metadata {
     /// Character set.
     pub charset: Option<String>,
 
+    #[ignore_heap_size_of = "Defined in hyper"]
     /// Headers
     pub headers: Option<Headers>,
 

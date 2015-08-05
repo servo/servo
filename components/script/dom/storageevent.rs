@@ -17,6 +17,7 @@ use dom::storage::Storage;
 use util::str::DOMString;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct StorageEvent {
     event: Event,
     key: DOMRefCell<Option<DOMString>>,

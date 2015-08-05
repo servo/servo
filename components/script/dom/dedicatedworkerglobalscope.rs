@@ -98,12 +98,17 @@ enum MixedMessage {
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     id: PipelineId,
+    #[ignore_heap_size_of = "Defined in std"]
     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
+    #[ignore_heap_size_of = "Defined in std"]
     own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    #[ignore_heap_size_of = "Trusted<T> has unclear ownership like JS<T>"]
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
+    #[ignore_heap_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan+Send>,
 }

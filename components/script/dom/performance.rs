@@ -15,6 +15,7 @@ use time;
 pub type DOMHighResTimeStamp = Finite<f64>;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Performance {
     reflector_: Reflector,
     timing: JS<PerformanceTiming>,

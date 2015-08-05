@@ -463,4 +463,3 @@ impl<T: Reflectable> Drop for Root<T> {
         unsafe { (*self.root_list).unroot(self); }
     }
 }
-

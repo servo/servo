@@ -32,6 +32,7 @@ use hyper::status::StatusClass::Success;
 
 use unicase::UniCase;
 use url::{SchemeData, Url};
+use util::mem::HeapSizeOf;
 use util::task::spawn_named;
 
 /// Interface for network listeners concerned with CORS checks. Proper network requests
@@ -40,12 +41,13 @@ pub trait AsyncCORSResponseListener {
     fn response_available(&self, response: CORSResponse);
 }
 
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct CORSRequest {
     pub origin: Url,
     pub destination: Url,
     pub mode: RequestMode,
     pub method: Method,
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
     /// CORS preflight flag (https://fetch.spec.whatwg.org/#concept-http-fetch)
     /// Indicates that a CORS preflight request and/or cache check is to be performed
@@ -55,7 +57,7 @@ pub struct CORSRequest {
 /// https://fetch.spec.whatwg.org/#concept-request-mode
 /// This only covers some of the request modes. The
 /// `same-origin` and `no CORS` modes are unnecessary for XHR.
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, HeapSizeOf)]
 pub enum RequestMode {
     CORS, // CORS
     ForcedPreflight // CORS-with-forced-preflight

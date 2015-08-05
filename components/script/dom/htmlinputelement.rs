@@ -46,6 +46,7 @@ const DEFAULT_RESET_VALUE: &'static str = "Reset";
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
+#[derive(HeapSizeOf)]
 enum InputType {
     InputSubmit,
     InputReset,
@@ -59,6 +60,7 @@ enum InputType {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
@@ -68,6 +70,7 @@ pub struct HTMLInputElement {
     indeterminate: Cell<bool>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
+    #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<ConstellationChan>>,
     activation_state: DOMRefCell<InputActivationState>,
 }
@@ -80,6 +83,7 @@ impl PartialEq for HTMLInputElement {
 
 #[derive(JSTraceable)]
 #[must_root]
+#[derive(HeapSizeOf)]
 struct InputActivationState {
     indeterminate: bool,
     checked: bool,

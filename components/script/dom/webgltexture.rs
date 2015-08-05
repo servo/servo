@@ -14,10 +14,12 @@ use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct WebGLTexture {
     webgl_object: WebGLObject,
     id: u32,
     is_deleted: Cell<bool>,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
 }
 

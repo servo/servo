@@ -22,6 +22,7 @@ use dom::virtualmethods::VirtualMethods;
 use util::str::{DOMString, StaticStringVec};
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }
@@ -56,7 +57,7 @@ impl HTMLFieldSetElement {
 impl<'a> HTMLFieldSetElementMethods for &'a HTMLFieldSetElement {
     // https://www.whatwg.org/html/#dom-fieldset-elements
     fn Elements(self) -> Root<HTMLCollection> {
-        #[derive(JSTraceable)]
+        #[derive(JSTraceable, HeapSizeOf)]
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {

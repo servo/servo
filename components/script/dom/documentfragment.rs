@@ -21,6 +21,7 @@ use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct DocumentFragment {
     node: Node,
 }

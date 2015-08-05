@@ -11,7 +11,7 @@ use std::hash::Hash;
 use std::mem::{size_of, transmute};
 use std::sync::Arc;
 use std::rc::Rc;
-
+use std::result::Result;
 
 use azure::azure_hl::Color;
 use cssparser::Color as CSSParserColor;
@@ -28,8 +28,16 @@ use js::rust::GCMethods;
 use js::jsval::JSVal;
 use logical_geometry::WritingMode;
 use range::Range;
+use str::LengthOrPercentageOrAuto;
 use string_cache::atom::Atom;
+use string_cache::namespace::Namespace;
 use url;
+use hyper::method::Method;
+use hyper::http::RawStatus;
+use hyper::header::ContentType;
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use selectors::parser::{PseudoElement, Selector, CompoundSelector, SimpleSelector, Combinator};
+use rand::OsRng;
 
 extern {
     // Get the size of a heap block.
@@ -285,6 +293,118 @@ macro_rules! known_heap_size(
     );
 );
 
+// This is measured properly by the heap measurement implemented in SpiderMonkey.
+impl<T: Copy + GCMethods<T>> HeapSizeOf for Heap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}
+
+impl HeapSizeOf for Method {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &Method::Extension(ref str) => str.heap_size_of_children(),
+            _ => 0
+        }
+    }
+}
+
+impl<T: HeapSizeOf, U: HeapSizeOf> HeapSizeOf for Result<T, U> {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &Result::Ok(ref ok) => ok.heap_size_of_children(),
+            &Result::Err(ref err) => err.heap_size_of_children()
+        }
+    }
+}
+
+impl HeapSizeOf for () {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}
+
+impl HeapSizeOf for Selector {
+    fn heap_size_of_children(&self) -> usize {
+        let &Selector { ref compound_selectors, ref pseudo_element, ref specificity } = self;
+        compound_selectors.heap_size_of_children() + pseudo_element.heap_size_of_children() +
+        specificity.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for CompoundSelector {
+    fn heap_size_of_children(&self) -> usize {
+        let &CompoundSelector { ref simple_selectors, ref next } = self;
+        simple_selectors.heap_size_of_children() + next.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for SimpleSelector {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &SimpleSelector::Negation(ref vec) => vec.heap_size_of_children(),
+            &SimpleSelector::AttrIncludes(_, ref str) | &SimpleSelector::AttrPrefixMatch(_, ref str) |
+            &SimpleSelector::AttrSubstringMatch(_, ref str) | &SimpleSelector::AttrSuffixMatch(_, ref str)
+            => str.heap_size_of_children(),
+            &SimpleSelector::AttrEqual(_, ref str, _) => str.heap_size_of_children(),
+            &SimpleSelector::AttrDashMatch(_, ref first, ref second) => first.heap_size_of_children()
+            + second.heap_size_of_children(),
+            // All other types come down to Atom, enum or i32, all 0
+            _ => 0
+        }
+    }
+}
+
+impl HeapSizeOf for ContentType {
+    fn heap_size_of_children(&self) -> usize {
+        let &ContentType(ref mime) = self;
+        mime.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for Mime {
+    fn heap_size_of_children(&self) -> usize {
+        let &Mime(ref top_level, ref sub_level, ref vec) = self;
+        top_level.heap_size_of_children() + sub_level.heap_size_of_children() +
+        vec.heap_size_of_children()
+    }
+}
+
+impl HeapSizeOf for TopLevel {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &TopLevel::Ext(ref str) => str.heap_size_of_children(),
+            _ => 0
+        }
+    }
+}
+
+impl HeapSizeOf for SubLevel {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &SubLevel::Ext(ref str) => str.heap_size_of_children(),
+            _ => 0
+        }
+    }
+}
+
+impl HeapSizeOf for Attr {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &Attr::Ext(ref str) => str.heap_size_of_children(),
+            _ => 0
+        }
+    }
+}
+
+impl HeapSizeOf for Value {
+    fn heap_size_of_children(&self) -> usize {
+        match self {
+            &Value::Ext(ref str) => str.heap_size_of_children(),
+            _ => 0
+        }
+    }
+}
 
 known_heap_size!(0, u8, u16, u32, u64, usize);
 known_heap_size!(0, i8, i16, i32, i64, isize);
@@ -293,12 +413,7 @@ known_heap_size!(0, bool, f32, f64);
 known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>, Range<T>);
 known_heap_size!(0, Length<T, U>, ScaleFactor<T, U, V>);
 
-known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, Atom);
-known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode);
+known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, Atom, Namespace);
+known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, RawStatus, LengthOrPercentageOrAuto);
 
-// This is measured properly by the heap measurement implemented in SpiderMonkey.
-impl<T: Copy + GCMethods<T>> HeapSizeOf for Heap<T> {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
+known_heap_size!(0, PseudoElement, Combinator, str);

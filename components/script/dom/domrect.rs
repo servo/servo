@@ -12,6 +12,7 @@ use dom::window::Window;
 use util::geometry::Au;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct DOMRect {
     reflector_: Reflector,
     top: f32,
