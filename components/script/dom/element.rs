@@ -67,7 +67,7 @@ use smallvec::VecLike;
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
-use style::properties::longhands::{self, background_image, border_spacing, height};
+use style::properties::longhands::{self, background_image, border_spacing};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use util::geometry::Au;
