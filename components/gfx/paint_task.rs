@@ -602,7 +602,6 @@ impl WorkerThread {
                           self.time_profiler_sender.clone(),
                           || {
                 stacking_context.optimize_and_draw_into_context(&mut paint_context,
-                                                                &tile_bounds,
                                                                 &matrix,
                                                                 None);
                 paint_context.draw_target.flush();
