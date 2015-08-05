@@ -236,9 +236,6 @@ impl CanvasRenderingContext2D {
             }
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
                 let image_element = image.r();
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
                 let (image_data, image_size) = match self.fetch_image_data(&image_element) {
                     Some((mut data, size)) => {
                         // Pixels come from cache in BGRA order and drawImage expects RGBA so we
@@ -246,7 +243,7 @@ impl CanvasRenderingContext2D {
                         byte_swap(&mut data);
                         (data, size)
                     },
-                    None => return Err(InvalidState),
+                    None => return Ok(())
                 };
                 let dw = dw.unwrap_or(image_size.width);
                 let dh = dh.unwrap_or(image_size.height);
