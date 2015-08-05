@@ -12,6 +12,7 @@ use selectors::Element;
 use std::process;
 use smallvec::VecLike;
 use util::resource_files::read_resource_file;
+use util::opts;
 
 use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
@@ -75,6 +76,10 @@ impl Stylist {
                     process::exit(1);
                 }
             }
+        }
+        for &(ref contents, ref url) in &opts::get().user_stylesheets {
+            stylist.add_stylesheet(Stylesheet::from_bytes(
+                &contents, url.clone(), None, None, Origin::User));
         }
         stylist
     }
