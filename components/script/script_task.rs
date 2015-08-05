@@ -503,7 +503,7 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
         };
         println!("  isCompartment={}, invocationKind={}", desc.isCompartment_, invocationKind);
     }
-    stdout().flush();
+    let _ = stdout().flush();
 }
 
 unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut libc::c_void) {
