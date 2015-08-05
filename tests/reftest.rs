@@ -19,6 +19,7 @@
 extern crate png;
 extern crate test;
 extern crate url;
+extern crate util;
 
 use std::env;
 use std::ffi::OsStr;
@@ -257,6 +258,7 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .args(&reftest.servo_args[..])
+        .arg("--user-stylesheet").arg(util::resource_files::resources_dir_path().join("ahem.css"))
         // Allows pixel perfect rendering of Ahem font and the HTML canvas for reftests.
         .arg("-Z")
         .arg("disable-text-aa,disable-canvas-aa")
