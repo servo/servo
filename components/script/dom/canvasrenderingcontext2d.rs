@@ -1019,10 +1019,14 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
     fn CreateRadialGradient(self, x0: Finite<f64>, y0: Finite<f64>, r0: Finite<f64>,
                             x1: Finite<f64>, y1: Finite<f64>, r1: Finite<f64>)
-                            -> Root<CanvasGradient> {
-        CanvasGradient::new(self.global.root().r(),
-                            CanvasGradientStyle::Radial(
-                                RadialGradientStyle::new(*x0, *y0, *r0, *x1, *y1, *r1, Vec::new())))
+                            -> Fallible<Root<CanvasGradient>> {
+        if *r0 < 0. || *r1 < 0. {
+            return Err(IndexSize);
+        }
+
+        Ok(CanvasGradient::new(self.global.root().r(),
+                               CanvasGradientStyle::Radial(
+                                   RadialGradientStyle::new(*x0, *y0, *r0, *x1, *y1, *r1, Vec::new()))))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
