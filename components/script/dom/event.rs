@@ -20,6 +20,7 @@ use time;
 
 #[derive(JSTraceable, Copy, Clone)]
 #[repr(u16)]
+#[derive(HeapSizeOf)]
 pub enum EventPhase {
     None      = EventConstants::NONE,
     Capturing = EventConstants::CAPTURING_PHASE,
@@ -27,7 +28,7 @@ pub enum EventPhase {
     Bubbling  = EventConstants::BUBBLING_PHASE,
 }
 
-#[derive(JSTraceable, PartialEq)]
+#[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum EventTypeId {
     CustomEvent,
     HTMLEvent,
@@ -41,19 +42,20 @@ pub enum EventTypeId {
     CloseEvent
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, HeapSizeOf)]
 pub enum EventBubbles {
     Bubbles,
     DoesNotBubble
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, HeapSizeOf)]
 pub enum EventCancelable {
     Cancelable,
     NotCancelable
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Event {
     reflector_: Reflector,
     type_id: EventTypeId,

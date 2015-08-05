@@ -17,6 +17,7 @@ use std::borrow::ToOwned;
 
 // https://url.spec.whatwg.org/#url
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct URL {
     reflector_: Reflector,
 

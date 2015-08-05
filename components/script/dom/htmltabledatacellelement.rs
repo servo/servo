@@ -14,6 +14,7 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLTableDataCellElement {
     htmltablecellelement: HTMLTableCellElement,
 }

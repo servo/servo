@@ -52,6 +52,7 @@ use string_cache::Atom;
 use url::{Url, UrlParser};
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 
@@ -74,6 +75,7 @@ pub struct HTMLScriptElement {
     /// Document of the parser that created this element
     parser_document: JS<Document>,
 
+    #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
     block_character_encoding: DOMRefCell<EncodingRef>,
 }
@@ -160,6 +162,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
+#[derive(HeapSizeOf)]
 pub enum ScriptOrigin {
     Internal(String, Url),
     External(Result<(Metadata, Vec<u8>), String>),

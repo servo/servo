@@ -24,6 +24,9 @@ features = [ "serde_serialization" ]
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies]
 time = "0.1"
 rustc-serialize = "0.3"

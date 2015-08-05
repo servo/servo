@@ -49,6 +49,7 @@ use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
 use cors::CORSResponse;
+use util::mem::HeapSizeOf;
 use util::str::DOMString;
 use util::task::spawn_named;
 
@@ -69,7 +70,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLS
 
 pub type SendParam = StringOrURLSearchParams;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -78,7 +79,7 @@ enum XMLHttpRequestState {
     Done = 4,
 }
 
-#[derive(JSTraceable, PartialEq, Clone, Copy)]
+#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
@@ -115,6 +116,7 @@ impl XHRProgress {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,
@@ -127,11 +129,13 @@ pub struct XMLHttpRequest {
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableHeap<JS<Document>>,
+    #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
 
     // Associated concepts
     request_method: DOMRefCell<Method>,
     request_url: DOMRefCell<Option<Url>>,
+    #[ignore_heap_size_of = "Defined in hyper"]
     request_headers: DOMRefCell<Headers>,
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
@@ -140,8 +144,10 @@ pub struct XMLHttpRequest {
     send_flag: Cell<bool>,
 
     global: GlobalField,
+    #[ignore_heap_size_of = "Defined in std"]
     timeout_cancel: DOMRefCell<Option<Sender<()>>>,
     fetch_time: Cell<i64>,
+    #[ignore_heap_size_of = "Cannot calculate Heap size"]
     timeout_target: DOMRefCell<Option<Box<ScriptChan+Send>>>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
@@ -1054,7 +1060,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         use hyper::error::Result;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, HeapSizeOf)]
         struct SetCookie2;
         impl Header for SetCookie2 {
             fn header_name() -> &'static str {

@@ -23,12 +23,13 @@ use std::cell::Ref;
 use std::mem;
 use std::ops::Deref;
 
+#[derive(HeapSizeOf)]
 pub enum AttrSettingType {
     FirstSetAttr,
     ReplacedAttr,
 }
 
-#[derive(JSTraceable, PartialEq, Clone)]
+#[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
 pub enum AttrValue {
     String(DOMString),
     TokenList(DOMString, Vec<Atom>),
@@ -110,6 +111,7 @@ impl Deref for AttrValue {
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Attr {
     reflector_: Reflector,
     local_name: Atom,

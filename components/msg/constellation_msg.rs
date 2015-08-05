@@ -19,6 +19,7 @@ use offscreen_gl_context::GLContextAttributes;
 use png::Image;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
+use util::mem::HeapSizeOf;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
@@ -69,7 +70,7 @@ pub enum KeyState {
 }
 
 //N.B. Based on the glutin key enum
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum Key {
     Space,
     Apostrophe,

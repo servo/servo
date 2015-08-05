@@ -27,6 +27,7 @@ use string_cache::Atom;
 use std::cell::Cell;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,

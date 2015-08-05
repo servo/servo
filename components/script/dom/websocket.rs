@@ -48,7 +48,7 @@ use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug)]
+#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {
     Connecting = 0,
     Open = 1,
@@ -58,17 +58,20 @@ enum WebSocketRequestState {
 
 no_jsmanaged_fields!(Sender<WebSocketStream>);
 
+#[derive(HeapSizeOf)]
 enum MessageData {
     Text(String),
     Binary(Vec<u8>),
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct WebSocket {
     eventtarget: EventTarget,
     url: Url,
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
+    #[ignore_heap_size_of = "Defined in std"]
     sender: RefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
     full: Cell<bool>, //Flag to tell if websocket queue is full

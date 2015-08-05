@@ -11,6 +11,7 @@ use dom::blob::{Blob, BlobTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct File {
     blob: Blob,
     name: DOMString,

@@ -27,6 +27,7 @@ use std::borrow::ToOwned;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct DOMImplementation {
     reflector_: Reflector,
     document: JS<Document>,

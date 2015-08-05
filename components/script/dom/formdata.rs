@@ -23,12 +23,14 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 #[derive(JSTraceable, Clone)]
 #[must_root]
+#[derive(HeapSizeOf)]
 pub enum FormDatum {
     StringData(DOMString),
     FileData(JS<File>)
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct FormData {
     reflector_: Reflector,
     data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,

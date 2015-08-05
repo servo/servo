@@ -10,6 +10,7 @@ use util::str::DOMString;
 use cssparser::serialize_identifier;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct CSS {
     reflector_: Reflector,
 }

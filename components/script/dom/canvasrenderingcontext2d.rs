@@ -51,7 +51,7 @@ use url::Url;
 use util::vec::byte_swap;
 
 #[must_root]
-#[derive(JSTraceable, Clone)]
+#[derive(JSTraceable, Clone, HeapSizeOf)]
 pub enum CanvasFillOrStrokeStyle {
     Color(RGBA),
     Gradient(JS<CanvasGradient>),
@@ -60,10 +60,12 @@ pub enum CanvasFillOrStrokeStyle {
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     global: GlobalField,
     renderer_id: usize,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
     state: RefCell<CanvasContextState>,
@@ -71,7 +73,7 @@ pub struct CanvasRenderingContext2D {
 }
 
 #[must_root]
-#[derive(JSTraceable, Clone)]
+#[derive(JSTraceable, Clone, HeapSizeOf)]
 struct CanvasContextState {
     global_alpha: f64,
     global_composition: CompositionOrBlending,

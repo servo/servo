@@ -6,6 +6,7 @@ use image::base::Image;
 use ipc_channel::ipc::{self, IpcSender};
 use url::Url;
 use std::sync::Arc;
+use util::mem::HeapSizeOf;
 
 /// This is optionally passed to the image cache when requesting
 /// and image, and returned to the specified event loop when the
@@ -37,7 +38,7 @@ pub enum ImageState {
 }
 
 /// The returned image.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum ImageResponse {
     /// The requested image was loaded.
     Loaded(Arc<Image>),
