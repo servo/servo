@@ -99,6 +99,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == float_under_top_margin_a.html float_under_top_margin_ref.html
 == floated_generated_content_a.html floated_generated_content_b.html
 == floated_list_item_a.html floated_list_item_ref.html
+== floated_negative_margins_a.html floated_negative_margins_ref.html
 == floated_table_with_margin_a.html floated_table_with_margin_ref.html
 == focus_selector.html focus_selector_ref.html
 == font_advance.html font_advance_ref.html

@@ -1058,10 +1058,17 @@ impl BlockFlow {
         };
 
         let float_info: FloatedBlockInfo = (**self.float.as_ref().unwrap()).clone();
+
+        // Our `position` field accounts for positive margins, but not negative margins. (See
+        // calculation of `extra_inline_size_from_margin` below.) Negative margins must be taken
+        // into account for float placement, however. So we add them in here.
+        let inline_size_for_float_placement = self.base.position.size.inline +
+            min(Au(0), self.fragment.margin.inline_start_end());
+
         let info = PlacementInfo {
             size: LogicalSize::new(
                 self.fragment.style.writing_mode,
-                self.base.position.size.inline,
+                inline_size_for_float_placement,
                 block_size + self.fragment.margin.block_start_end())
                       .convert(self.fragment.style.writing_mode, self.base.floats.writing_mode),
             ceiling: clearance + float_info.float_ceiling,
@@ -2214,9 +2221,9 @@ pub trait ISizeAndMarginsComputer {
                     container_size - inline_size - fragment.margin.inline_end
                 };
 
-            // To calculate the total size of this block, we also need to account for any additional
-            // size contribution from positive margins. Negative margins means the block isn't made
-            // larger at all by the margin.
+            // To calculate the total size of this block, we also need to account for any
+            // additional size contribution from positive margins. Negative margins means the block
+            // isn't made larger at all by the margin.
             extra_inline_size_from_margin = max(Au(0), fragment.margin.inline_start) +
                                             max(Au(0), fragment.margin.inline_end);
         }
