@@ -9,7 +9,7 @@ use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
 use file_loader;
-use http_loader;
+use http_loader::{self, create_http_connector, Connector};
 use mime_classifier::MIMEClassifier;
 
 use net_traits::ProgressMsg::Done;
@@ -22,15 +22,15 @@ use util::task::spawn_named;
 use hsts::{HSTSList, HSTSEntry, preload_hsts_domains};
 
 use devtools_traits::{DevtoolsControlMsg};
+use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::mpsc::{channel, Sender};
+use std::sync::{Arc, Mutex};
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
@@ -189,6 +189,7 @@ pub struct ResourceManager {
     resource_task: IpcSender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    connector: Arc<Pool<Connector>>,
     hsts_list: Arc<Mutex<HSTSList>>
 }
 
@@ -203,7 +204,8 @@ impl ResourceManager {
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
-            hsts_list: Arc::new(Mutex::new(hsts_list))
+            hsts_list: Arc::new(Mutex::new(hsts_list)),
+            connector: create_http_connector(),
         }
     }
 }
@@ -241,7 +243,10 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone(), self.hsts_list.clone()),
+                http_loader::factory(self.resource_task.clone(),
+                                     self.devtools_chan.clone(),
+                                     self.hsts_list.clone(),
+                                     self.connector.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
