@@ -8,6 +8,7 @@ use display_list::{DisplayItem, DisplayList, StackingContext};
 
 use std::collections::linked_list::LinkedList;
 use euclid::rect::Rect;
+use euclid::{Matrix2D, Matrix4};
 use util::geometry::{self, Au};
 use std::sync::Arc;
 
@@ -62,9 +63,27 @@ impl DisplayListOptimizer {
                                              stacking_contexts: I)
                                              where I: Iterator<Item=&'a Arc<StackingContext>> {
         for stacking_context in stacking_contexts {
-            let overflow = stacking_context.overflow.translate(&stacking_context.bounds.origin);
-            if self.visible_rect.intersects(&overflow) {
-                result_list.push_back((*stacking_context).clone())
+            if stacking_context.layer.is_none() {
+                // Transform this stacking context to get it into the same space as
+                // the parent stacking context.
+                let origin_x = stacking_context.bounds.origin.x.to_f32_px();
+                let origin_y = stacking_context.bounds.origin.y.to_f32_px();
+
+                let transform = Matrix4::identity().translate(origin_x,
+                                                              origin_y,
+                                                              0.0)
+                                                   .mul(&stacking_context.transform);
+                let transform_2d = Matrix2D::new(transform.m11, transform.m12,
+                                                 transform.m21, transform.m22,
+                                                 transform.m41, transform.m42);
+
+                let overflow = geometry::au_rect_to_f32_rect(stacking_context.overflow);
+                let overflow = transform_2d.transform_rect(&overflow);
+                let overflow = geometry::f32_rect_to_au_rect(overflow);
+
+                if self.visible_rect.intersects(&overflow) {
+                    result_list.push_back((*stacking_context).clone())
+                }
             }
         }
     }
