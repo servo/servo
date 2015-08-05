@@ -220,16 +220,62 @@ impl CanvasRenderingContext2D {
     // is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
     //
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    fn draw_image(&self, image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                  sx: f64, sy: f64, sw: Option<f64>, sh: Option<f64>,
+                  dx: f64, dy: f64, dw: Option<f64>, dh: Option<f64>) -> Fallible<()> {
+        match image {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) =>
+                self.draw_html_canvas_element(canvas.r(),
+                                              sx, sy, sw, sh,
+                                              dx, dy, dw, dh),
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
+                let context = image.r();
+                let canvas = context.Canvas();
+                self.draw_html_canvas_element(canvas.r(),
+                                              sx, sy, sw, sh,
+                                              dx, dy, dw, dh)
+            }
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
+                let image_element = image.r();
+                // https://html.spec.whatwg.org/multipage/#img-error
+                // If the image argument is an HTMLImageElement object that is in the broken state,
+                // then throw an InvalidStateError exception
+                let (image_data, image_size) = match self.fetch_image_data(&image_element) {
+                    Some((mut data, size)) => {
+                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
+                        // have to swap the color values
+                        byte_swap(&mut data);
+                        (data, size)
+                    },
+                    None => return Err(InvalidState),
+                };
+                let dw = dw.unwrap_or(image_size.width);
+                let dh = dh.unwrap_or(image_size.height);
+                let sw = sw.unwrap_or(image_size.width);
+                let sh = sh.unwrap_or(image_size.height);
+                self.draw_image_data(image_data,
+                                     image_size,
+                                     sx, sy, sw, sh,
+                                     dx, dy, dw, dh)
+            }
+        }
+    }
+
     fn draw_html_canvas_element(&self,
                   canvas: &HTMLCanvasElement,
-                  sx: f64, sy: f64, sw: f64, sh: f64,
-                  dx: f64, dy: f64, dw: f64, dh: f64) -> Fallible<()> {
+                  sx: f64, sy: f64, sw: Option<f64>, sh: Option<f64>,
+                  dx: f64, dy: f64, dw: Option<f64>, dh: Option<f64>) -> Fallible<()> {
         // 1. Check the usability of the image argument
         if !canvas.is_valid() {
             return Err(InvalidState)
         }
 
         let canvas_size = canvas.get_size();
+        let dw = dw.unwrap_or(canvas_size.width as f64);
+        let dh = dh.unwrap_or(canvas_size.height as f64);
+        let sw = sw.unwrap_or(canvas_size.width as f64);
+        let sh = sh.unwrap_or(canvas_size.height as f64);
+
         let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         // 2. Establish the source and destination rectangles
         let (source_rect, dest_rect) = self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -598,61 +644,7 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
             return Ok(());
         }
 
-        // From rules described in the spec:
-        // If the sx, sy, sw, and sh arguments are omitted, they must default to 0, 0,
-        // the image's intrinsic width in image pixels,
-        // and the image's intrinsic height in image pixels, respectively
-        let sx: f64 = 0f64;
-        let sy: f64 = 0f64;
-
-        match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
-                let canvas_size = canvas.r().get_size();
-                let dw: f64 = canvas_size.width as f64;
-                let dh: f64 = canvas_size.height as f64;
-                let sw: f64 = dw;
-                let sh: f64 = dh;
-                return self.draw_html_canvas_element(canvas.r(),
-                                                     sx, sy, sw, sh,
-                                                     dx, dy, dw, dh)
-            }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
-                let context = image.r();
-                let canvas = context.Canvas();
-                let canvas_size = canvas.r().get_size();
-                let dw: f64 = canvas_size.width as f64;
-                let dh: f64 = canvas_size.height as f64;
-                let sw: f64 = dw;
-                let sh: f64 = dh;
-                return self.draw_html_canvas_element(canvas.r(),
-                                                     sx, sy, sw, sh,
-                                                     dx, dy, dw, dh)
-            }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
-                let image_element = image.r();
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                let (image_data, image_size) = match self.fetch_image_data(&image_element) {
-                    Some((mut data, size)) => {
-                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
-                        // have to swap the color values
-                        byte_swap(&mut data);
-                        (data, size)
-                    },
-                    None => return Err(InvalidState),
-                };
-                let dw: f64 = image_size.width as f64;
-                let dh: f64 = image_size.height as f64;
-                let sw: f64 = dw;
-                let sh: f64 = dh;
-                return self.draw_image_data(image_data,
-                                            image_size,
-                                            sx, sy, sw, sh,
-                                            dx, dy, dw, dh)
-            }
-
-        }
+        self.draw_image(image, 0f64, 0f64, None, None, dx, dy, None, None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -663,98 +655,19 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
             return Ok(());
         }
 
-        // From rules described in the spec:
-        // If the sx, sy, sw, and sh arguments are omitted, they must default to 0, 0,
-        // the image's intrinsic width in image pixels,
-        // and the image's intrinsic height in image pixels, respectively
-        let sx: f64 = 0f64;
-        let sy: f64 = 0f64;
-
-        match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
-                let canvas_size = canvas.r().get_size();
-                let sw: f64 = canvas_size.width as f64;
-                let sh: f64 = canvas_size.height as f64;
-                return self.draw_html_canvas_element(canvas.r(),
-                                                     sx, sy, sw, sh,
-                                                     dx, dy, dw, dh)
-            }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
-                let context = image.r();
-                let canvas = context.Canvas();
-                let canvas_size = canvas.r().get_size();
-                let sw: f64 = canvas_size.width as f64;
-                let sh: f64 = canvas_size.height as f64;
-                return self.draw_html_canvas_element(canvas.r(),
-                                                     sx, sy, sw, sh,
-                                                     dx, dy, dw, dh)
-            }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
-                let image_element = image.r();
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                let (image_data, image_size) = match self.fetch_image_data(&image_element) {
-                    Some((mut data, size)) => {
-                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
-                        // have to swap the color values
-                        byte_swap(&mut data);
-                        (data, size)
-                    },
-                    None => return Err(InvalidState),
-                };
-                let sw: f64 = image_size.width as f64;
-                let sh: f64 = image_size.height as f64;
-                return self.draw_image_data(image_data,
-                                            image_size,
-                                            sx, sy, sw, sh,
-                                            dx, dy, dw, dh)
-            }
-        }
+        self.draw_image(image, 0f64, 0f64, None, None, dx, dy, Some(dw), Some(dh))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage__(self, image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
-                         sx: f64, sy: f64, sw: f64, sh: f64,
-                         dx: f64, dy: f64, dw: f64, dh: f64) -> Fallible<()> {
+                   sx: f64, sy: f64, sw: f64, sh: f64,
+                   dx: f64, dy: f64, dw: f64, dh: f64) -> Fallible<()> {
         if !(sx.is_finite() && sy.is_finite() && sw.is_finite() && sh.is_finite() &&
              dx.is_finite() && dy.is_finite() && dw.is_finite() && dh.is_finite()) {
             return Ok(());
         }
 
-        match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(image) => {
-                return self.draw_html_canvas_element(image.r(),
-                                                     sx, sy, sw, sh,
-                                                     dx, dy, dw, dh)
-            }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
-                let context = image.r();
-                let canvas = context.Canvas();
-                return self.draw_html_canvas_element(canvas.r(),
-                                                     sx, sy, sw, sh,
-                                                     dx, dy, dw, dh)
-            }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
-                let image_element = image.r();
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                let (image_data, image_size) = match self.fetch_image_data(&image_element) {
-                    Some((mut data, size)) => {
-                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
-                        // have to swap the color values
-                        byte_swap(&mut data);
-                        (data, size)
-                    },
-                    None => return Err(InvalidState),
-                };
-                return self.draw_image_data(image_data,
-                                            image_size,
-                                            sx, sy, sw, sh,
-                                            dx, dy, dw, dh)
-            }
-        }
+        self.draw_image(image, sx, sy, Some(sw), Some(sh), dx, dy, Some(dw), Some(dh))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto
