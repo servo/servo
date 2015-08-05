@@ -954,12 +954,12 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
             return Err(IndexSize)
         }
 
-        Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), None))
+        ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData_(self, imagedata: &ImageData) -> Fallible<Root<ImageData>> {
-        Ok(ImageData::new(self.global.root().r(), imagedata.Width(), imagedata.Height(), None))
+        ImageData::new(self.global.root().r(), imagedata.Width(), imagedata.Height(), None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
@@ -986,7 +986,7 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
             .unwrap();
         let data = receiver.recv().unwrap();
-        Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
+        ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(&data))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

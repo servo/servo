@@ -9,6 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
+use dom::bindings::typedarray::{ArrayBufferView, ArrayBuffer, TypedArrayRooter};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use util::str::DOMString;
@@ -17,11 +18,8 @@ use encoding::Encoding;
 use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::JS_GetObjectAsArrayBufferView;
 
 use std::borrow::ToOwned;
-use std::ptr;
-use std::slice;
 
 #[dom_struct]
 pub struct TextDecoder {
@@ -92,23 +90,37 @@ impl<'a> TextDecoderMethods for &'a TextDecoder {
             None => return Ok(USVString("".to_owned())),
         };
 
-        let mut length = 0;
-        let mut data = ptr::null_mut();
-        if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
-            return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
-        }
-
-        let buffer = unsafe {
-            slice::from_raw_parts(data as *const _, length as usize)
+        let mut rooter = TypedArrayRooter::new();
+        let mut array_buffer_view = match ArrayBufferView::from(input, &mut rooter) {
+            Ok(array_buffer_view) => array_buffer_view,
+            Err(_) => {
+                let mut rooter = TypedArrayRooter::new();
+                let mut array_buffer = match ArrayBuffer::from(input, &mut rooter) {
+                    Ok(buffer) => buffer,
+                    Err(_) =>
+                        return Err(Error::Type("Argument to TextDecoder.decode is not an \
+                                                ArrayBufferView or ArrayBuffer".to_owned())),
+                };
+                array_buffer.init();
+                let data = array_buffer.extract();
+                return decode_from_slice(data.as_slice(), self.fatal, &self.encoding);
+            }
         };
-        let trap = if self.fatal {
-            DecoderTrap::Strict
-        } else {
-            DecoderTrap::Replace
-        };
-        match self.encoding.decode(buffer, trap) {
-            Ok(s) => Ok(USVString(s)),
-            Err(_) => Err(Error::Type("Decoding failed".to_owned())),
-        }
+        array_buffer_view.init();
+        let data = array_buffer_view.extract();
+        decode_from_slice(data.as_untyped_slice(), self.fatal, &self.encoding)
     }
 }
+
+fn decode_from_slice(buffer: &[u8], fatal: bool, encoding: &EncodingRef) -> Result<USVString, Error> {
+    let trap = if fatal {
+        DecoderTrap::Strict
+    } else {
+        DecoderTrap::Replace
+    };
+    match encoding.decode(buffer, trap) {
+        Ok(s) => Ok(USVString(s)),
+        Err(_) => Err(Error::Type("Decoding failed".to_owned())),
+    }
+}
+

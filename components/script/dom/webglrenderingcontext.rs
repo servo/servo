@@ -13,6 +13,7 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::typedarray::{ArrayBufferView, Float32Array, TypedArrayRooter};
 use dom::htmlcanvaselement::{HTMLCanvasElement};
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
 use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
@@ -24,13 +25,9 @@ use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelper
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
-use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::cell::Cell;
-use std::mem;
-use std::ptr;
-use std::slice;
 use std::sync::mpsc::channel;
 use util::str::DOMString;
 use offscreen_gl_context::GLContextAttributes;
@@ -279,23 +276,23 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         }
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
         let data = match data {
             Some(data) => data,
             None => return,
         };
-        let data_vec = unsafe {
-            let mut length = 0;
-            let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
-            if buffer_data.is_null() {
-                panic!("Argument data to WebGLRenderingContext.bufferdata is not a Float32Array")
-            }
-            let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
-            let data_vec_length = length / mem::size_of::<f32>() as u32;
-            slice::from_raw_parts(data_f32, data_vec_length as usize).to_vec()
+
+        let mut rooter = TypedArrayRooter::new();
+        let mut array_buffer_view = match ArrayBufferView::from(data, &mut rooter) {
+            Ok(view) => view,
+            Err(_) => return,
+        };
+        array_buffer_view.init();
+        let data_buffer = array_buffer_view.extract();
+        let data_vec = match data_buffer.as_slice() {
+            Ok(data) => data.to_vec(),
+            Err(_) => return,
         };
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
@@ -477,7 +474,6 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         }
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4fv(self,
                   _cx: *mut JSContext,
@@ -493,10 +489,15 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
             None => return,
         };
 
-        let data_vec = unsafe {
-            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
-            slice::from_raw_parts(data_f32, 4).to_vec()
+        let mut rooter = TypedArrayRooter::new();
+        let mut typed_array = match Float32Array::from(data, &mut rooter) {
+            Ok(array) => array,
+            Err(_) => return,
         };
+        typed_array.init();
+        let data_buffer = typed_array.extract();
+        let data_vec = data_buffer.as_slice().iter().cloned().take(4).collect();
+
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
             .unwrap()

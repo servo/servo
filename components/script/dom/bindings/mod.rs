@@ -148,6 +148,7 @@ pub mod num;
 pub mod str;
 pub mod structuredclone;
 pub mod trace;
+pub mod typedarray;
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
