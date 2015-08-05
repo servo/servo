@@ -13,8 +13,8 @@ use num_cpus;
 use std::collections::HashSet;
 use std::cmp;
 use std::env;
-use std::io::{self, Write};
-use std::fs::PathExt;
+use std::io::{self, Read, Write};
+use std::fs::{File, PathExt};
 use std::path::Path;
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
@@ -65,6 +65,8 @@ pub struct Opts {
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
     /// won't be loaded
     pub userscripts: Option<String>,
+
+    pub user_stylesheets: Vec<(Vec<u8>, Url)>,
 
     pub output_file: Option<String>,
 
@@ -241,6 +243,7 @@ pub fn default_opts() -> Opts {
         nonincremental_layout: false,
         nossl: false,
         userscripts: None,
+        user_stylesheets: Vec::new(),
         output_file: None,
         replace_surrogates: false,
         gc_profile: false,
@@ -294,6 +297,8 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optflag("", "no-ssl", "Disables ssl certificate verification.");
     opts.optflagopt("", "userscripts",
                     "Uses userscripts in resources/user-agent-js, or a specified full path","");
+    opts.optmulti("", "user-stylesheet",
+                  "A user stylesheet to be added to every document", "file.css");
     opts.optflag("z", "headless", "Headless mode");
     opts.optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure");
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
@@ -329,12 +334,12 @@ pub fn from_cmdline_args(args: &[String]) {
         print_debug_usage(app_name)
     }
 
+    let cwd = env::current_dir().unwrap();
     let url = if opt_match.free.is_empty() {
         print_usage(app_name, &opts);
         args_fail("servo asks that you provide a URL")
     } else {
         let ref url = opt_match.free[0];
-        let cwd = env::current_dir().unwrap();
         match Url::parse(url) {
             Ok(url) => url,
             Err(url::ParseError::RelativeUrlWithoutBase) => {
@@ -406,6 +411,17 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
+    let user_stylesheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
+        let path = cwd.join(filename);
+        let url = Url::from_file_path(&path).unwrap();
+        let mut contents = Vec::new();
+        File::open(path)
+            .unwrap_or_else(|err| args_fail(&format!("Couldn’t open {}: {}", filename, err)))
+            .read_to_end(&mut contents)
+            .unwrap_or_else(|err| args_fail(&format!("Couldn’t read {}: {}", filename, err)));
+        (contents, url)
+    }).collect();
+
     let opts = Opts {
         url: Some(url),
         paint_threads: paint_threads,
@@ -419,6 +435,7 @@ pub fn from_cmdline_args(args: &[String]) {
         nonincremental_layout: nonincremental_layout,
         nossl: nossl,
         userscripts: opt_match.opt_default("userscripts", ""),
+        user_stylesheets: user_stylesheets,
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.contains(&"replace-surrogates"),
         gc_profile: debug_options.contains(&"gc-profile"),
