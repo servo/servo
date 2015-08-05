@@ -21,8 +21,6 @@ use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
-use gfx::text::glyph::CharIndex;
-use gfx::text::text_run::TextRun;
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::fmt;
@@ -36,7 +34,6 @@ use unicode_bidi;
 use util::geometry::{Au, MAX_AU, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
-use util::str::slice_chars;
 use util;
 
 // From gfxFontConstants.h in Firefox
@@ -408,21 +405,27 @@ impl LineBreaker {
         }
         let last_fragment_index = self.pending_line.range.end() - FragmentIndex(1);
         let mut fragment = &mut self.new_fragments[last_fragment_index.get() as usize];
+
+        let mut old_fragment_inline_size = None;
+        if let SpecificFragmentInfo::ScannedText(_) = fragment.specific {
+            old_fragment_inline_size = Some(fragment.border_box.size.inline +
+                                            fragment.margin.inline_start_end());
+        }
+
+        fragment.strip_trailing_whitespace_if_necessary();
+
         if let SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) =
                 fragment.specific {
             let scanned_text_fragment_info = &mut **scanned_text_fragment_info;
-            let mut range = &mut scanned_text_fragment_info.range;
-            strip_trailing_whitespace_if_necessary(&*scanned_text_fragment_info.run, range);
+            let range = &mut scanned_text_fragment_info.range;
 
-            let old_fragment_inline_size = fragment.border_box.size.inline +
-                fragment.margin.inline_start_end();
             scanned_text_fragment_info.content_size.inline =
                 scanned_text_fragment_info.run.metrics_for_range(range).advance_width;
             fragment.border_box.size.inline = scanned_text_fragment_info.content_size.inline +
                 fragment.border_padding.inline_start_end();
             self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline -
-                (old_fragment_inline_size - (fragment.border_box.size.inline +
-                                             fragment.margin.inline_start_end()))
+                (old_fragment_inline_size.unwrap() -
+                 (fragment.border_box.size.inline + fragment.margin.inline_start_end()));
         }
     }
 
@@ -1867,26 +1870,5 @@ impl InlineMetrics {
 enum LineFlushMode {
     No,
     Flush,
-}
-
-/// Given a range and a text run, adjusts the range to eliminate trailing whitespace.
-fn strip_trailing_whitespace_if_necessary(text_run: &TextRun, range: &mut Range<CharIndex>) {
-    // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
-    debug!("stripping trailing whitespace: range={:?}, len={}",
-           range,
-           text_run.text.chars().count());
-    let text = slice_chars(&*text_run.text, range.begin().to_usize(), range.end().to_usize());
-    let mut trailing_whitespace_character_count = 0;
-    for ch in text.chars().rev() {
-        if util::str::char_is_whitespace(ch) {
-            trailing_whitespace_character_count += 1
-        } else {
-            break
-        }
-    }
-
-    if trailing_whitespace_character_count != 0 {
-        range.extend_by(CharIndex(-trailing_whitespace_character_count));
-    }
 }
 
