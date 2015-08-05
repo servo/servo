@@ -42,6 +42,7 @@ use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::fmt;
+use std::cmp;
 use std::sync::mpsc::channel;
 
 use util::str::DOMString;
@@ -954,7 +955,9 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
             return Err(IndexSize)
         }
 
-        Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), None))
+        let sw = cmp::max(1, sw.abs().to_u32().unwrap());
+        let sh = cmp::max(1, sh.abs().to_u32().unwrap());
+        Ok(ImageData::new(self.global.root().r(), sw, sh, None))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
