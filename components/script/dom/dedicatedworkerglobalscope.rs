@@ -116,8 +116,7 @@ impl DedicatedWorkerGlobalScope {
                      -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                WorkerGlobalScopeTypeId::DedicatedGlobalScope, init, worker_url,
-                runtime, devtools_port),
+                init, worker_url, runtime, devtools_port),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -375,7 +374,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {
     fn is_dedicatedworkerglobalscope(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::WorkerGlobalScope(WorkerGlobalScopeTypeId::DedicatedGlobalScope) => true,
+            EventTargetTypeId::WorkerGlobalScope(WorkerGlobalScopeTypeId::DedicatedWorkerGlobalScope) => true,
             _ => false
         }
     }

@@ -4,6 +4,7 @@
 
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::conversions::get_dom_class;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -43,9 +44,10 @@ pub enum ListenerPhase {
     Bubbling,
 }
 
-#[derive(JSTraceable, Copy, Clone)]
-#[derive(HeapSizeOf)]
+#[derive(Copy, Clone)]
 pub enum EventTargetTypeId {
+    EventTarget,
+
     Node(NodeTypeId),
     WebSocket,
     Window,
@@ -124,15 +126,13 @@ pub struct EventListenerEntry {
 #[derive(HeapSizeOf)]
 pub struct EventTarget {
     reflector_: Reflector,
-    type_id: EventTargetTypeId,
     handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, DefaultState<FnvHasher>>>,
 }
 
 impl EventTarget {
-    pub fn new_inherited(type_id: EventTargetTypeId) -> EventTarget {
+    pub fn new_inherited() -> EventTarget {
         EventTarget {
             reflector_: Reflector::new(),
-            type_id: type_id,
             handlers: DOMRefCell::new(Default::default()),
         }
     }
@@ -151,9 +151,15 @@ impl EventTarget {
         })
     }
 
-    #[inline]
+    #[allow(unsafe_code)]
     pub fn type_id<'a>(&'a self) -> &'a EventTargetTypeId {
-        &self.type_id
+        let domclass = unsafe {
+            get_dom_class(self.reflector_.get_jsobject().get()).unwrap()
+        };
+        match domclass.type_id {
+            Some(ref type_id) => type_id,
+            None => unreachable!(),
+        }
     }
 }
 

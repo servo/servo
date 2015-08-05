@@ -18,7 +18,7 @@ use dom::window::WindowHelpers;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
@@ -51,7 +51,7 @@ pub struct Worker {
 impl Worker {
     fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
         Worker {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
+            eventtarget: EventTarget::new_inherited(),
             global: GlobalField::from_rooted(&global),
             sender: sender,
         }

@@ -151,8 +151,10 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
 }
 
 /// The different types of CharacterData.
-#[derive(JSTraceable, Copy, Clone, PartialEq, Debug, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum CharacterDataTypeId {
+    CharacterData,
+
     Comment,
     Text,
     ProcessingInstruction,

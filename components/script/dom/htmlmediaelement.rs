@@ -41,8 +41,10 @@ impl HTMLMediaElement {
     }
 }
 
-#[derive(JSTraceable, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Copy, Clone, Debug)]
 pub enum HTMLMediaElementTypeId {
+    HTMLMediaElement = -1,
+
     HTMLAudioElement = 0,
     HTMLVideoElement = 1,
 }
