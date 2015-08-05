@@ -19,6 +19,7 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use net_traits::hosts::replace_hosts;
 use script_task::Runnable;
 use script_task::ScriptMsg;
 use std::cell::{Cell, RefCell};
@@ -27,6 +28,7 @@ use util::str::DOMString;
 use util::task::spawn_named;
 
 use hyper::header::Host;
+
 use websocket::Message;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::client::sender::Sender;
@@ -64,10 +66,20 @@ pub struct WebSocket {
 }
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
-fn establish_a_websocket_connection(url: (Host, String, bool), origin: String)
-    -> WebSocketResult<(Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
-    let mut request = try!(Client::connect(url));
+fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, bool),
+                                    origin: String)
+   -> WebSocketResult<(Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
+    // URL that we actually fetch from the network, after applying the replacements
+    // specified in the hosts file.
+
+    let host = Host {
+        hostname: resource_url.serialize_host().unwrap(),
+        port: resource_url.port_or_default()
+    };
+
+    let mut request = try!(Client::connect(net_url));
     request.headers.set(Origin(origin));
+    request.headers.set(host);
 
     let response = try!(request.send());
     try!(response.validate());
@@ -104,8 +116,8 @@ impl WebSocket {
                        protocols: Option<DOMString>)
                        -> Fallible<Root<WebSocket>> {
         // Step 1.
-        let parsed_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
-        let url = try!(parse_url(&parsed_url).map_err(|_| Error::Syntax));
+        let resource_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
+        let net_url = try!(parse_url(&replace_hosts(&resource_url)).map_err(|_| Error::Syntax));
 
         // Step 2: Disallow https -> ws connections.
         // Step 3: Potentially block access to some ports.
@@ -123,6 +135,7 @@ impl WebSocket {
 
             if protocols[i+1..].iter().any(|p| p == protocol) {
                 return Err(Syntax);
+
             }
 
             if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {
@@ -133,7 +146,7 @@ impl WebSocket {
         // Step 6: Origin.
 
         // Step 7.
-        let ws = WebSocket::new(global, parsed_url);
+        let ws = WebSocket::new(global, resource_url.clone());
         let address = Trusted::new(global.get_cx(), ws.r(), global.script_chan());
 
         let origin = global.get_url().serialize();
@@ -142,7 +155,7 @@ impl WebSocket {
             // Step 8: Protocols.
 
             // Step 9.
-            let channel = establish_a_websocket_connection(url, origin);
+            let channel = establish_a_websocket_connection(&resource_url, net_url, origin);
             let (temp_sender, _temp_receiver) = match channel {
                 Ok(channel) => channel,
                 Err(e) => {

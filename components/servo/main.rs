@@ -23,6 +23,7 @@ extern crate servo;
 extern crate compositing;
 // Servo networking
 extern crate net;
+extern crate net_traits;
 // Servo common utilitiess
 extern crate util;
 // The window backed by glutin
@@ -36,7 +37,7 @@ extern crate android_glue;
 
 use std::rc::Rc;
 use util::opts;
-use net::resource_task;
+use net_traits::hosts;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
@@ -52,7 +53,7 @@ fn main() {
     setup_logging();
 
     // Possibly interpret the `HOST_FILE` environment variable
-    resource_task::global_init();
+    hosts::global_init();
 
     let window = if opts::get().headless {
         None
