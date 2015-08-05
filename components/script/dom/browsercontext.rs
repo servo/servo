@@ -16,7 +16,7 @@ use dom::window::WindowHelpers;
 use js::jsapi::{JSContext, JSObject, JSPropertyDescriptor, JSErrNum};
 use js::jsapi::{HandleObject, HandleId, MutableHandle, MutableHandleValue};
 use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_GetPropertyDescriptorById, JS_DefinePropertyById6};
+use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_DefinePropertyById6};
 use js::jsapi::{JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue, Handle, HandleValue, Heap};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -129,8 +129,8 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObjec
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
-    // XXX This should be JS_GetOwnPropertyDescriptorById
-    if JS_GetPropertyDescriptorById(cx, target.handle(), id, desc) == 0 {
+
+    if JS_GetOwnPropertyDescriptorById(cx, target.handle(), id, desc) == 0 {
         return JSFalse;
     }
 
