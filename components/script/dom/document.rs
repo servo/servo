@@ -279,12 +279,12 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<&HTMLScriptElement>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
-    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32;
-    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32);
-    /// https://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
-    fn invoke_animation_callbacks(self);
+    /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
+    fn run_the_animation_frame_callbacks(self);
     fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
     fn load_async(self, load: LoadType, listener: AsyncResponseTarget);
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
@@ -907,7 +907,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32 {
         let window = self.window.root();
         let window = window.r();
@@ -925,7 +925,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         ident
     }
 
-    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().len() == 0 {
@@ -938,8 +938,8 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    /// https://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
-    fn invoke_animation_callbacks(self) {
+    /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
+    fn run_the_animation_frame_callbacks(self) {
         let animation_frame_list;
         {
             let mut list = self.animation_frame_list.borrow_mut();

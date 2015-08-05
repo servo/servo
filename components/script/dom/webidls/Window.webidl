@@ -56,6 +56,9 @@
   //void print();
   //any showModalDialog(DOMString url, optional any argument);
 
+  long requestAnimationFrame(FrameRequestCallback callback);
+  void cancelAnimationFrame(long handle);
+
   //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
 
   // also has obsolete members
@@ -159,9 +162,5 @@ interface WindowLocalStorage {
 };
 Window implements WindowLocalStorage;
 
-// https://w3c.github.io/animation-timing/#Window-interface-extensions
-partial interface Window {
-  long requestAnimationFrame(FrameRequestCallback callback);
-  void cancelAnimationFrame(long handle);
-};
+// http://w3c.github.io/animation-timing/#framerequestcallback
 callback FrameRequestCallback = void (DOMHighResTimeStamp time);
