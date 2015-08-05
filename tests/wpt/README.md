@@ -142,7 +142,7 @@ Reftest results can be analyzed from a raw log file. To generate this run
 with the `--log-raw` option e.g.
 
     ./mach test-css --log-raw css.log
-    
+
 This file can then be fed into the
 [reftest analyzer](http://hoppipolla.co.uk/410/reftest-analyser-structured.xhtml)
 which will show all failing tests (not just those with unexpected results).
