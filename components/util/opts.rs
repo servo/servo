@@ -8,7 +8,7 @@
 use geometry::ScreenPx;
 
 use euclid::size::{Size2D, TypedSize2D};
-use getopts;
+use getopts::Options;
 use num_cpus;
 use std::collections::HashSet;
 use std::cmp;
@@ -172,9 +172,9 @@ pub struct Opts {
     pub exit_after_load: bool,
 }
 
-fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
+fn print_usage(app: &str, opts: &Options) {
     let message = format!("Usage: {} [ options ... ] [URL]\n\twhere options include", app);
-    println!("{}", getopts::usage(&message, opts));
+    println!("{}", opts.usage(&message));
 }
 
 pub fn print_debug_usage(app: &str) -> ! {
@@ -278,37 +278,36 @@ pub fn default_opts() -> Opts {
 pub fn from_cmdline_args(args: &[String]) {
     let (app_name, args) = args.split_first().unwrap();
 
-    let opts = vec!(
-        getopts::optflag("c", "cpu", "CPU painting (default)"),
-        getopts::optflag("g", "gpu", "GPU painting"),
-        getopts::optopt("o", "output", "Output file", "output.png"),
-        getopts::optopt("s", "size", "Size of tiles", "512"),
-        getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
-        getopts::optflag("e", "experimental", "Enable experimental web features"),
-        getopts::optopt("t", "threads", "Number of paint threads", "1"),
-        getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
-        getopts::optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10"),
-        getopts::optflag("x", "exit", "Exit after load flag"),
-        getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
-        getopts::optflag("i", "nonincremental-layout", "Enable to turn off incremental layout."),
-        getopts::optflag("", "no-ssl", "Disables ssl certificate verification."),
-        getopts::optflagopt("", "userscripts",
-                            "Uses userscripts in resources/user-agent-js, or a specified full path",""),
-        getopts::optflag("z", "headless", "Headless mode"),
-        getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
-        getopts::optflagopt("", "devtools", "Start remote devtools server on port", "6000"),
-        getopts::optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000"),
-        getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
-        getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
-        getopts::optflag("M", "multiprocess", "Run in multiprocess mode"),
-        getopts::optopt("Z", "debug",
-                        "A comma-separated string of debug options. Pass help to show available options.", ""),
-        getopts::optflag("h", "help", "Print this message"),
-        getopts::optopt("", "resources-path", "Path to find static resources", "/home/servo/resources"),
-        getopts::optflag("", "sniff-mime-types" , "Enable MIME sniffing"),
-    );
+    let mut opts = Options::new();
+    opts.optflag("c", "cpu", "CPU painting (default)");
+    opts.optflag("g", "gpu", "GPU painting");
+    opts.optopt("o", "output", "Output file", "output.png");
+    opts.optopt("s", "size", "Size of tiles", "512");
+    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
+    opts.optflag("e", "experimental", "Enable experimental web features");
+    opts.optopt("t", "threads", "Number of paint threads", "1");
+    opts.optflagopt("p", "profile", "Profiler flag and output interval", "10");
+    opts.optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10");
+    opts.optflag("x", "exit", "Exit after load flag");
+    opts.optopt("y", "layout-threads", "Number of threads to use for layout", "1");
+    opts.optflag("i", "nonincremental-layout", "Enable to turn off incremental layout.");
+    opts.optflag("", "no-ssl", "Disables ssl certificate verification.");
+    opts.optflagopt("", "userscripts",
+                    "Uses userscripts in resources/user-agent-js, or a specified full path","");
+    opts.optflag("z", "headless", "Headless mode");
+    opts.optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure");
+    opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
+    opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
+    opts.optopt("", "resolution", "Set window resolution.", "800x600");
+    opts.optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
+    opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+    opts.optopt("Z", "debug",
+                "A comma-separated string of debug options. Pass help to show available options.", "");
+    opts.optflag("h", "help", "Print this message");
+    opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
+    opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
 
-    let opt_match = match getopts::getopts(args, &opts) {
+    let opt_match = match opts.parse(args) {
         Ok(m) => m,
         Err(f) => args_fail(&f.to_string()),
     };
