@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
-use dom::bindings::error::{ErrorResult, report_pending_exception};
+use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{RootCollection, Root};
 use dom::bindings::refcounted::LiveDOMReferences;
@@ -44,7 +44,7 @@ use url::Url;
 use rand::random;
 use std::mem::replace;
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, Receiver, channel, Select};
+use std::sync::mpsc::{Sender, Receiver, channel, Select, RecvError};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
@@ -90,6 +90,11 @@ impl<'a> Drop for AutoWorkerReset<'a> {
     fn drop(&mut self) {
         *self.workerscope.worker.borrow_mut() = self.old_worker.clone();
     }
+}
+
+enum MixedMessage {
+    FromWorker((TrustedWorkerAddress, ScriptMsg)),
+    FromDevtools(DevtoolScriptControlMsg),
 }
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
@@ -143,7 +148,6 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    #[allow(unsafe_code)]
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: Url,
                             id: PipelineId,
@@ -172,102 +176,37 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
-            let serialized_url = url.serialize();
-            let parent_sender_for_reporter = parent_sender.clone();
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_ipc_port, devtools_mpsc_chan);
 
             let global = DedicatedWorkerGlobalScope::new(
                 init, url, id, devtools_mpsc_port, runtime.clone(),
-                parent_sender, own_sender, receiver);
+                parent_sender.clone(), own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = WorkerGlobalScopeCast::from_ref(global.r());
-            let reporter_name = format!("worker-reporter-{}", random::<u64>());
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
-
-                match runtime.evaluate_script(
-                    global.r().reflector().get_jsobject(), source, serialized_url, 1) {
-                    Ok(_) => (),
-                    Err(_) => {
-                        // TODO: An error needs to be dispatched to the parent.
-                        // https://github.com/servo/servo/issues/6422
-                        println!("evaluate_script failed");
-                        let _ar = JSAutoRequest::new(runtime.cx());
-                        report_pending_exception(runtime.cx(), global.r().reflector().get_jsobject().get());
-                    }
-                }
-
-                // Register this task as a memory reporter. This needs to be done within the
-                // scope of `_ar` otherwise script_chan_as_reporter() will panic.
-                let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-                ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
-                    // Just injects an appropriate event into the worker task's queue.
-                    let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-                    parent_sender_for_reporter.send(ScriptMsg::CollectReports(
-                            reporter_request.reports_channel)).unwrap()
-                });
-                scope.mem_profiler_chan().send(mem::ProfilerMsg::RegisterReporter(
-                        reporter_name.clone(),
-                        Reporter(reporter_sender)));
+                scope.execute_script(source);
             }
 
-            enum MixedMessage {
-                FromWorker((TrustedWorkerAddress, ScriptMsg)),
-                FromDevtools(DevtoolScriptControlMsg),
-            }
+            // Register this task as a memory reporter.
+            let reporter_name = format!("worker-reporter-{}", random::<u64>());
+            let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+            ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
+                // Just injects an appropriate event into the worker task's queue.
+                let reporter_request: ReporterRequest = reporter_request.to().unwrap();
+                parent_sender.send(ScriptMsg::CollectReports(
+                        reporter_request.reports_channel)).unwrap()
+            });
+            scope.mem_profiler_chan().send(mem::ProfilerMsg::RegisterReporter(
+                    reporter_name.clone(),
+                    Reporter(reporter_sender)));
 
-            loop {
-                let worker_port = &global.r().receiver;
-                let devtools_port = scope.devtools_port();
-
-                let event = {
-                    let sel = Select::new();
-                    let mut worker_handle = sel.handle(worker_port);
-                    let mut devtools_handle = sel.handle(devtools_port);
-                    unsafe {
-                        worker_handle.add();
-                        if scope.devtools_sender().is_some() {
-                            devtools_handle.add();
-                        }
-                    }
-                    let ret = sel.wait();
-                    if ret == worker_handle.id() {
-                        match worker_port.recv() {
-                            Ok(stuff) => MixedMessage::FromWorker(stuff),
-                            Err(_) => break,
-                        }
-                    } else if ret == devtools_handle.id() {
-                        match devtools_port.recv() {
-                            Ok(stuff) => MixedMessage::FromDevtools(stuff),
-                            Err(_) => break,
-                        }
-                    } else {
-                        panic!("unexpected select result!")
-                    }
-                };
-
-                match event {
-                    MixedMessage::FromDevtools(msg) => {
-                        let global_ref = GlobalRef::Worker(scope);
-                        match msg {
-                            DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
-                                devtools::handle_evaluate_js(&global_ref, string, sender),
-                            DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) =>
-                                devtools::handle_get_cached_messages(pipe_id, message_types, sender),
-                            DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) =>
-                                devtools::handle_wants_live_notifications(&global_ref, bool_val),
-                            _ => debug!("got an unusable devtools control message inside the worker!"),
-                        }
-                    },
-                    MixedMessage::FromWorker((linked_worker, msg)) => {
-                        let _ar = AutoWorkerReset::new(global.r(), linked_worker);
-                        global.r().handle_event(msg);
-                    },
-                }
+            while let Ok(event) = global.receive_event() {
+                global.handle_event(event);
             }
 
             // Unregister this task as a memory reporter.
@@ -306,17 +245,44 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
     }
 
     fn process_event(self, msg: ScriptMsg) {
-        self.handle_event(msg);
+        self.handle_script_event(msg);
     }
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn handle_event(self, msg: ScriptMsg);
+    fn handle_script_event(self, msg: ScriptMsg);
     fn dispatch_error_to_worker(self, &ErrorEvent);
+    fn receive_event(self) -> Result<MixedMessage, RecvError>;
+    fn handle_event(self, event: MixedMessage);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
-    fn handle_event(self, msg: ScriptMsg) {
+    #[allow(unsafe_code)]
+    fn receive_event(self) -> Result<MixedMessage, RecvError> {
+        let scope = WorkerGlobalScopeCast::from_ref(self);
+        let worker_port = &self.receiver;
+        let devtools_port = scope.devtools_port();
+
+        let sel = Select::new();
+        let mut worker_handle = sel.handle(worker_port);
+        let mut devtools_handle = sel.handle(devtools_port);
+        unsafe {
+            worker_handle.add();
+            if scope.devtools_sender().is_some() {
+                devtools_handle.add();
+            }
+        }
+        let ret = sel.wait();
+        if ret == worker_handle.id() {
+            Ok(MixedMessage::FromWorker(try!(worker_port.recv())))
+        } else if ret == devtools_handle.id() {
+            Ok(MixedMessage::FromDevtools(try!(devtools_port.recv())))
+        } else {
+            panic!("unexpected select result!")
+        }
+    }
+
+    fn handle_script_event(self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::DOMMessage(data) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
@@ -345,6 +311,27 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
                 reports_chan.send(reports);
             }
             _ => panic!("Unexpected message"),
+        }
+    }
+
+    fn handle_event(self, event: MixedMessage) {
+        match event {
+            MixedMessage::FromDevtools(msg) => {
+                let global_ref = GlobalRef::Worker(WorkerGlobalScopeCast::from_ref(self));
+                match msg {
+                    DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
+                        devtools::handle_evaluate_js(&global_ref, string, sender),
+                    DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) =>
+                        devtools::handle_get_cached_messages(pipe_id, message_types, sender),
+                    DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) =>
+                        devtools::handle_wants_live_notifications(&global_ref, bool_val),
+                    _ => debug!("got an unusable devtools control message inside the worker!"),
+                }
+            },
+            MixedMessage::FromWorker((linked_worker, msg)) => {
+                let _ar = AutoWorkerReset::new(self, linked_worker);
+                self.handle_script_event(msg);
+            },
         }
     }
 
