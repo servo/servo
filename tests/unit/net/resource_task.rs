@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
-use net::resource_task::{new_resource_task, parse_hostsfile, replace_hosts};
+use net::resource_task::new_resource_task;
 use net_traits::{ControlMsg, LoadData, LoadConsumer};
+use net_traits::hosts::{parse_hostsfile, host_replacement};
 use net_traits::ProgressMsg;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -163,22 +164,12 @@ fn test_replace_hosts() {
 
     let host_table: *mut HashMap<String, String> = Box::into_raw(host_table_box);
 
-    //Start the TCP server
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let port = listener.local_addr().unwrap().port();
+    let url = Url::parse("http://foo.bar.com:8000/foo").unwrap();
+    assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "127.0.0.1");
 
-    //Start the resource task and make a request to our TCP server
-    let resource_task = new_resource_task(None, None);
-    let (start_chan, _start_port) = ipc::channel().unwrap();
-    let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
-    let msg = ControlMsg::Load(replace_hosts(LoadData::new(url, None), host_table),
-                               LoadConsumer::Channel(start_chan));
-    resource_task.send(msg).unwrap();
+    let url = Url::parse("http://servo.test.server").unwrap();
+    assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "127.0.0.2");
 
-    match listener.accept() {
-        Ok(..) => assert!(true, "received request"),
-        Err(_) => assert!(false, "error")
-    }
-
-    resource_task.send(ControlMsg::Exit).unwrap();
+    let url = Url::parse("http://a.foo.bar.com").unwrap();
+    assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "a.foo.bar.com");
 }

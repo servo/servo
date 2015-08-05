@@ -17,7 +17,7 @@ use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
-use wrapper::ThreadSafeLayoutNode;
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -106,6 +106,9 @@ pub struct Fragment {
 
     /// How damaged this fragment is since last reflow.
     pub restyle_damage: RestyleDamage,
+
+    /// The pseudo-element that this fragment represents.
+    pub pseudo: PseudoElementType<()>,
 
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     pub debug_id: u16,
@@ -752,6 +755,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
+            pseudo: node.get_pseudo_element_type().strip(),
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
@@ -782,12 +786,14 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
+            pseudo: node.get_pseudo_element_type().strip(),
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
 
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
+                                      pseudo: PseudoElementType<()>,
                                       style: Arc<ComputedValues>,
                                       restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
@@ -802,6 +808,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
+            pseudo: pseudo,
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
@@ -834,6 +841,7 @@ impl Fragment {
             margin: self.margin,
             specific: info,
             inline_context: self.inline_context.clone(),
+            pseudo: self.pseudo.clone(),
             debug_id: self.debug_id,
         }
     }
@@ -1810,15 +1818,23 @@ impl Fragment {
                                                              .computed_block_size();
                 InlineMetrics {
                     block_size_above_baseline: computed_block_size +
-                                                   self.border_padding.block_start_end(),
-                    depth_below_baseline: Au(0),
-                    ascent: computed_block_size + self.border_padding.block_start_end(),
+                                                   self.border_padding.block_start,
+                    depth_below_baseline: self.border_padding.block_end,
+                    ascent: computed_block_size + self.border_padding.block_start,
                 }
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
                 // See CSS 2.1 § 10.8.1.
                 let line_height = self.calculate_line_height(layout_context);
-                InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height)
+                let font_derived_metrics =
+                    InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height);
+                InlineMetrics {
+                    block_size_above_baseline: font_derived_metrics.block_size_above_baseline +
+                                                   self.border_padding.block_start,
+                    depth_below_baseline: font_derived_metrics.depth_below_baseline +
+                        self.border_padding.block_end,
+                    ascent: font_derived_metrics.ascent + self.border_padding.block_start,
+                }
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 // See CSS 2.1 § 10.8.1.

@@ -15,6 +15,7 @@ use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTe
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use smallvec::SmallVec;
 use text::TextRunScanner;
+use wrapper::PseudoElementType;
 
 use gfx::display_list::OpaqueNode;
 use std::collections::{LinkedList, HashMap};
@@ -174,6 +175,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                 GeneratedContentInfo::ListItem => {
                     new_info = self.traversal.list_item.render(self.traversal.layout_context,
                                                                fragment.node,
+                                                               fragment.pseudo.clone(),
                                                                fragment.style.clone(),
                                                                list_style_type,
                                                                RenderingMode::Suffix(".\u{00a0}"))
@@ -190,6 +192,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                                       .unwrap_or(&mut temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
+                                              fragment.pseudo.clone(),
                                               fragment.style.clone(),
                                               counter_style,
                                               RenderingMode::Plain)
@@ -204,6 +207,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                                       .unwrap_or(&mut temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
+                                              fragment.pseudo,
                                               fragment.style.clone(),
                                               counter_style,
                                               RenderingMode::All(&separator));
@@ -211,6 +215,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                 GeneratedContentInfo::ContentItem(ContentItem::OpenQuote) => {
                     new_info = Some(render_text(self.traversal.layout_context,
                                                 fragment.node,
+                                                fragment.pseudo,
                                                 fragment.style.clone(),
                                                 self.quote(&*fragment.style, false)));
                     self.traversal.quote += 1
@@ -222,6 +227,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
 
                     new_info = Some(render_text(self.traversal.layout_context,
                                                 fragment.node,
+                                                fragment.pseudo,
                                                 fragment.style.clone(),
                                                 self.quote(&*fragment.style, true)));
                 }
@@ -356,6 +362,7 @@ impl Counter {
     fn render(&self,
               layout_context: &LayoutContext,
               node: OpaqueNode,
+              pseudo: PseudoElementType<()>,
               style: Arc<ComputedValues>,
               list_style_type: list_style_type::T,
               mode: RenderingMode)
@@ -392,7 +399,7 @@ impl Counter {
         if string.is_empty() {
             None
         } else {
-            Some(render_text(layout_context, node, style, string))
+            Some(render_text(layout_context, node, pseudo, style, string))
         }
     }
 }
@@ -418,12 +425,14 @@ struct CounterValue {
 /// Creates fragment info for a literal string.
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
+               pseudo: PseudoElementType<()>,
                style: Arc<ComputedValues>,
                string: String)
                -> SpecificFragmentInfo {
     let mut fragments = LinkedList::new();
     let info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(string));
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
+                                                             pseudo,
                                                              style,
                                                              incremental::rebuild_and_reflow(),
                                                              info));
@@ -522,37 +531,57 @@ pub fn static_representation(list_style_type: list_style_type::T) -> char {
 /// Pushes the string that represents the value rendered using the given *alphabetic system* onto
 /// the accumulator per CSS-COUNTER-STYLES § 3.1.4.
 fn push_alphabetic_representation(mut value: i32, system: &[char], accumulator: &mut String) {
+    let mut abs_value = handle_negative_value(value, accumulator);
+
     let mut string: SmallVec<[char; 8]> = SmallVec::new();
-    while value != 0 {
+    while abs_value != 0 {
         // Step 1.
-        value = value - 1;
+        abs_value = abs_value - 1;
         // Step 2.
-        string.push(system[(value as usize) % system.len()]);
+        string.push(system[abs_value % system.len()]);
         // Step 3.
-        value = ((value as usize) / system.len()) as i32;
+        abs_value = abs_value / system.len();
     }
 
     accumulator.extend(string.iter().cloned().rev())
 }
 
 /// Pushes the string that represents the value rendered using the given *numeric system* onto the
-/// accumulator per CSS-COUNTER-STYLES § 3.1.4.
+/// accumulator per CSS-COUNTER-STYLES § 3.1.5.
 fn push_numeric_representation(mut value: i32, system: &[char], accumulator: &mut String) {
+    let mut abs_value = handle_negative_value(value, accumulator);
+
     // Step 1.
-    if value == 0 {
+    if abs_value == 0 {
         accumulator.push(system[0]);
         return
     }
 
     // Step 2.
     let mut string: SmallVec<[char; 8]> = SmallVec::new();
-    while value != 0 {
+    while abs_value != 0 {
         // Step 2.1.
-        string.push(system[(value as usize) % system.len()]);
+        string.push(system[abs_value % system.len()]);
         // Step 2.2.
-        value = ((value as usize) / system.len()) as i32;
+        abs_value = abs_value / system.len();
     }
 
     // Step 3.
     accumulator.extend(string.iter().cloned().rev())
+}
+
+/// If the system uses a negative sign, handle negative values per CSS-COUNTER-STYLES § 2.
+///
+/// Returns the absolute value of the counter.
+fn handle_negative_value(value: i32, accumulator: &mut String) -> usize {
+    // 3. If the counter value is negative and the counter style uses a negative sign, instead
+    //    generate an initial representation using the absolute value of the counter value.
+    if value < 0 {
+        // TODO: Support different negative signs using the 'negative' descriptor.
+        // https://drafts.csswg.org/date/2015-07-16/css-counter-styles/#counter-style-negative
+        accumulator.push('-');
+        value.abs() as usize
+    } else {
+        value as usize
+    }
 }

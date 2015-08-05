@@ -27,7 +27,6 @@ use harfbuzz::{hb_feature_t};
 use harfbuzz::{RUST_hb_font_create};
 use harfbuzz::{RUST_hb_font_destroy, RUST_hb_buffer_create};
 use harfbuzz::{RUST_hb_font_funcs_create};
-use harfbuzz::{RUST_hb_font_funcs_destroy};
 use harfbuzz::{RUST_hb_font_funcs_set_glyph_func};
 use harfbuzz::{RUST_hb_font_funcs_set_glyph_h_advance_func};
 use harfbuzz::{RUST_hb_font_funcs_set_glyph_h_kerning_func};
