@@ -22,6 +22,7 @@ use style::media_queries::parse_media_query_list;
 use cssparser::Parser as CssParser;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
 }

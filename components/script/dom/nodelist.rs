@@ -13,7 +13,7 @@ use dom::window::Window;
 
 use std::cell::Cell;
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
 pub enum NodeListType {
     Simple(Vec<JS<Node>>),
@@ -22,6 +22,7 @@ pub enum NodeListType {
 
 // https://dom.spec.whatwg.org/#interface-nodelist
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct NodeList {
     reflector_: Reflector,
     list_type: NodeListType,
@@ -93,10 +94,11 @@ impl<'a> NodeListHelpers<'a> for &'a NodeList {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
 pub struct ChildrenList {
     node: JS<Node>,
+    #[ignore_heap_size_of = "Defined in rust-mozjs"]
     last_visited: MutNullableHeap<JS<Node>>,
     last_index: Cell<u32>,
 }

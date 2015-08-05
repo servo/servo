@@ -33,6 +33,7 @@ use url::UrlParser;
 use std::default::Default;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,

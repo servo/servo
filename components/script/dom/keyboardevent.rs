@@ -24,6 +24,7 @@ use std::cell::{RefCell, Cell};
 no_jsmanaged_fields!(Key);
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: Cell<Option<Key>>,
@@ -746,6 +747,7 @@ fn key_keycode(key: Key) -> u32 {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub struct KeyEventProperties {
     pub key_string: &'static str,
     pub code: &'static str,

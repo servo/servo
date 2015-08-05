@@ -38,7 +38,7 @@ const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
 #[must_root]
-#[derive(JSTraceable, Clone, Copy)]
+#[derive(JSTraceable, Clone, Copy, HeapSizeOf)]
 pub enum CanvasContext {
     Context2d(JS<CanvasRenderingContext2D>),
     WebGL(JS<WebGLRenderingContext>),
@@ -47,6 +47,7 @@ pub enum CanvasContext {
 impl HeapGCValue for CanvasContext {}
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: MutNullableHeap<CanvasContext>,

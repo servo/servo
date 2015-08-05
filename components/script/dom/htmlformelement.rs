@@ -43,6 +43,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
@@ -149,13 +150,13 @@ impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, HeapSizeOf)]
 pub enum SubmittedFrom {
     FromFormSubmitMethod,
     NotFromFormSubmitMethod
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, HeapSizeOf)]
 pub enum ResetFrom {
     FromFormResetMethod,
     NotFromFormResetMethod
@@ -415,27 +416,28 @@ impl<'a> HTMLFormElementHelpers for &'a HTMLFormElement {
 }
 
 // TODO: add file support
+#[derive(HeapSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
     pub value: DOMString
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, HeapSizeOf)]
 pub enum FormEncType {
     TextPlainEncoded,
     UrlEncoded,
     FormDataEncoded
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, HeapSizeOf)]
 pub enum FormMethod {
     FormGet,
     FormPost,
     FormDialog
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, HeapSizeOf)]
 pub enum FormSubmitter<'a> {
     FormElement(&'a HTMLFormElement),
     InputElement(&'a HTMLInputElement),

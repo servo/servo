@@ -19,6 +19,7 @@ use cssparser::RGBA;
 use std::cell::Cell;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
     color: Cell<Option<RGBA>>,

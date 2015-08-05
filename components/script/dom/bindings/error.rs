@@ -9,6 +9,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
 use dom::domexception::{DOMException, DOMErrorName};
 
+use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 use js::jsapi::{JSContext, JSObject, RootedValue};
@@ -24,7 +25,7 @@ use std::ptr;
 use std::mem;
 
 /// DOM exceptions that can be thrown by a native DOM method.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, HeapSizeOf)]
 pub enum Error {
     /// IndexSizeError DOMException
     IndexSize,

@@ -29,7 +29,7 @@ use util::str::DOMString;
 use util::task::spawn_named;
 use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
 
-#[derive(PartialEq, Clone, Copy, JSTraceable)]
+#[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]
 pub enum FileReaderFunction {
     ReadAsText,
     ReadAsDataUrl,
@@ -37,7 +37,7 @@ pub enum FileReaderFunction {
 
 pub type TrustedFileReader = Trusted<FileReader>;
 
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct ReadMetaData {
     pub blobtype: DOMString,
     pub label: Option<DOMString>,
@@ -55,11 +55,11 @@ impl ReadMetaData {
     }
 }
 
-#[derive(PartialEq, Clone, Copy, JSTraceable)]
+#[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]
 pub struct GenerationId(u32);
 
 #[repr(u16)]
-#[derive(Copy, Clone, Debug, PartialEq, JSTraceable)]
+#[derive(Copy, Clone, Debug, PartialEq, JSTraceable, HeapSizeOf)]
 pub enum FileReaderReadyState {
     Empty = FileReaderConstants::EMPTY,
     Loading = FileReaderConstants::LOADING,
@@ -67,6 +67,7 @@ pub enum FileReaderReadyState {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct FileReader {
     eventtarget: EventTarget,
     global: GlobalField,

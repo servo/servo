@@ -36,6 +36,7 @@ impl PartialEq for HTMLTableCellElementTypeId {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,

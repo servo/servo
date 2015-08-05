@@ -8,6 +8,7 @@ use clipboard_provider::ClipboardProvider;
 use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
+use util::mem::HeapSizeOf;
 use util::str::{DOMString, slice_chars};
 
 use std::borrow::ToOwned;
@@ -21,7 +22,7 @@ pub enum Selection {
     NotSelected
 }
 
-#[derive(JSTraceable, Copy, Clone)]
+#[derive(JSTraceable, Copy, Clone, HeapSizeOf)]
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
@@ -30,7 +31,7 @@ pub struct TextPoint {
 }
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
@@ -40,6 +41,7 @@ pub struct TextInput<T: ClipboardProvider> {
     selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
+    #[ignore_heap_size_of = "Can't easily measure this generic type"]
     clipboard_provider: T,
 }
 

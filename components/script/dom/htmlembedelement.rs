@@ -13,6 +13,7 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLEmbedElement {
     htmlelement: HTMLElement
 }

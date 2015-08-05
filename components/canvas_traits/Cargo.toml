@@ -30,6 +30,12 @@ features = [ "nightly" ]
 version = "0.3"
 features = [ "serde-serialization" ]
 
+[dependencies.plugins]
+path = "../plugins"
+
+[dependencies.util]
+path = "../util"
+
 [dependencies]
 euclid = "0.1"
 serde_macros = "0.5"

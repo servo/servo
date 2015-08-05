@@ -17,6 +17,7 @@ use std::cell::Cell;
 use std::cell::RefCell;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: u32,
@@ -24,6 +25,7 @@ pub struct WebGLShader {
     source: RefCell<Option<String>>,
     is_deleted: Cell<bool>,
     // TODO(ecoal95): Evaluate moving this to `WebGLObject`
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
 }
 

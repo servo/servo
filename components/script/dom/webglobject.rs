@@ -9,6 +9,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::js::Root;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct WebGLObject {
     reflector_: Reflector,
 }

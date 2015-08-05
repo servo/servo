@@ -36,7 +36,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 #[must_root]
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub struct Sink {
     pub base_url: Option<Url>,
     pub document: JS<Document>,
@@ -157,8 +157,10 @@ impl PreInvoke for ParserContext {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct ServoHTMLParser {
     reflector_: Reflector,
+    #[ignore_heap_size_of = "Defined in html5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<Vec<String>>,

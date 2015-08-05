@@ -43,6 +43,7 @@ use util::str::{self, LengthOrPercentageOrAuto};
 use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 
+#[derive(HeapSizeOf)]
 enum SandboxAllowance {
     AllowNothing = 0x00,
     AllowSameOrigin = 0x01,
@@ -54,6 +55,7 @@ enum SandboxAllowance {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     subpage_id: Cell<Option<SubpageId>>,
