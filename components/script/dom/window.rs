@@ -519,7 +519,7 @@ impl<'a> WindowMethods for &'a Window {
         base64_atob(atob)
     }
 
-    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     fn RequestAnimationFrame(self, callback: Rc<FrameRequestCallback>) -> i32 {
         let doc = self.Document();
 
@@ -531,7 +531,7 @@ impl<'a> WindowMethods for &'a Window {
         doc.r().request_animation_frame(Box::new(callback))
     }
 
-    /// https://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     fn CancelAnimationFrame(self, ident: i32) {
         let doc = self.Document();
         doc.r().cancel_animation_frame(ident);
