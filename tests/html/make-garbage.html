@@ -1,0 +1,13 @@
+<script>
+var x = [];
+var i = 0;
+function K() {
+    window.gc();
+    x = [];
+    i += 1;
+    if (i <= 999999) {
+        setTimeout(K, 0);
+    }
+}
+requestAnimationFrame(K);
+</script>
