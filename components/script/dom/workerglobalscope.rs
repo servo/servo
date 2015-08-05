@@ -131,11 +131,6 @@ impl WorkerGlobalScope {
         self.constellation_chan.clone()
     }
 
-    #[inline]
-    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
-        &self.eventtarget
-    }
-
     pub fn get_cx(&self) -> *mut JSContext {
         self.runtime.cx()
     }
