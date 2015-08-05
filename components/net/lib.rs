@@ -21,6 +21,7 @@ extern crate png;
 extern crate log;
 extern crate openssl;
 extern crate rustc_serialize;
+extern crate solicit;
 extern crate util;
 extern crate time;
 extern crate url;
