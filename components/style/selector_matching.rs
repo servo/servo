@@ -84,6 +84,11 @@ impl Stylist {
         stylist
     }
 
+    #[inline]
+    pub fn stylesheets(&self) -> &[Stylesheet] {
+        &self.stylesheets
+    }
+
     pub fn constrain_viewport(&self) -> Option<ViewportConstraints> {
         let cascaded_rule = self.stylesheets.iter()
             .flat_map(|s| s.effective_rules(&self.device).viewport())
