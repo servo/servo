@@ -1818,15 +1818,23 @@ impl Fragment {
                                                              .computed_block_size();
                 InlineMetrics {
                     block_size_above_baseline: computed_block_size +
-                                                   self.border_padding.block_start_end(),
-                    depth_below_baseline: Au(0),
-                    ascent: computed_block_size + self.border_padding.block_start_end(),
+                                                   self.border_padding.block_start,
+                    depth_below_baseline: self.border_padding.block_end,
+                    ascent: computed_block_size + self.border_padding.block_start,
                 }
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
                 // See CSS 2.1 § 10.8.1.
                 let line_height = self.calculate_line_height(layout_context);
-                InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height)
+                let font_derived_metrics =
+                    InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height);
+                InlineMetrics {
+                    block_size_above_baseline: font_derived_metrics.block_size_above_baseline +
+                                                   self.border_padding.block_start,
+                    depth_below_baseline: font_derived_metrics.depth_below_baseline +
+                        self.border_padding.block_end,
+                    ascent: font_derived_metrics.ascent + self.border_padding.block_start,
+                }
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 // See CSS 2.1 § 10.8.1.
