@@ -1329,7 +1329,7 @@ impl ScriptTask {
     fn handle_tick_all_animations(&self, id: PipelineId) {
         let page = get_page(&self.root_page(), id);
         let document = page.document();
-        document.r().invoke_animation_callbacks();
+        document.r().run_the_animation_frame_callbacks();
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
