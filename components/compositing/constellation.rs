@@ -24,7 +24,6 @@ use euclid::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcSender};
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
-use libc;
 use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -48,6 +47,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
+use std::process;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::viewport::ViewportConstraints;
 use url::Url;
@@ -547,7 +547,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // Hard fail exists for test runners so we crash and that's good enough.
             let mut stderr = io::stderr();
             stderr.write_all("Pipeline failed in hard-fail mode.  Crashing!\n".as_bytes()).unwrap();
-            unsafe { libc::exit(1); }
+            process::exit(1);
         }
 
         self.close_pipeline(pipeline_id, ExitPipelineMode::Force);

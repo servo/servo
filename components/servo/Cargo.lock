@@ -178,7 +178,6 @@ dependencies = [
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout_traits 0.0.1",
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
