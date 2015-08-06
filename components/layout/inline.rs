@@ -408,7 +408,7 @@ impl LineBreaker {
                 fragment.specific {
             let scanned_text_fragment_info = &mut **scanned_text_fragment_info;
             let mut range = &mut scanned_text_fragment_info.range;
-            strip_trailing_whitespace_if_necessary(&**scanned_text_fragment_info.run, range);
+            strip_trailing_whitespace_if_necessary(&*scanned_text_fragment_info.run, range);
 
             let old_fragment_inline_size = fragment.border_box.size.inline +
                 fragment.margin.inline_start_end();

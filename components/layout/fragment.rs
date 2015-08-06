@@ -626,7 +626,7 @@ impl IframeFragmentInfo {
 #[derive(Clone)]
 pub struct ScannedTextFragmentInfo {
     /// The text run that this represents.
-    pub run: Arc<Box<TextRun>>,
+    pub run: Arc<TextRun>,
 
     /// The intrinsic size of the text fragment.
     pub content_size: LogicalSize<Au>,
@@ -646,7 +646,7 @@ pub struct ScannedTextFragmentInfo {
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>,
+    pub fn new(run: Arc<TextRun>,
                range: Range<CharIndex>,
                content_size: LogicalSize<Au>,
                requires_line_break_afterward_if_wrapping_on_newlines: bool)
@@ -689,7 +689,7 @@ pub struct SplitResult {
     /// The part of the fragment that goes on the second line.
     pub inline_end: Option<SplitInfo>,
     /// The text run which is being split.
-    pub text_run: Arc<Box<TextRun>>,
+    pub text_run: Arc<TextRun>,
 }
 
 /// Describes how a fragment should be truncated.
@@ -697,7 +697,7 @@ pub struct TruncationResult {
     /// The part of the fragment remaining after truncation.
     pub split: SplitInfo,
     /// The text run which is being truncated.
-    pub text_run: Arc<Box<TextRun>>,
+    pub text_run: Arc<TextRun>,
 }
 
 /// Data for an unscanned text fragment. Unscanned text fragments are the results of flow
@@ -705,10 +705,7 @@ pub struct TruncationResult {
 #[derive(Clone)]
 pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
-    ///
-    /// FIXME(pcwalton): Is there something more clever we can do here that avoids the double
-    /// indirection while not penalizing all fragments?
-    pub text: Box<String>,
+    pub text: Box<str>,
 }
 
 impl UnscannedTextFragmentInfo {
@@ -716,7 +713,7 @@ impl UnscannedTextFragmentInfo {
     #[inline]
     pub fn from_text(text: String) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
-            text: box text,
+            text: text.into_boxed_slice(),
         }
     }
 }
@@ -847,7 +844,7 @@ impl Fragment {
     }
 
     /// Transforms this fragment using the given `SplitInfo`, preserving all the other data.
-    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<Box<TextRun>>)
+    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<TextRun>)
                                      -> Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
