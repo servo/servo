@@ -227,7 +227,7 @@ pub struct StackingContext {
 
     /// The layer for this stacking context, if there is one.
     #[ignore_heap_size_of = "FIXME(njn): should measure this at some point"]
-    pub layer: Option<Arc<PaintLayer>>,
+    pub layer: Option<PaintLayer>,
 
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
@@ -263,7 +263,7 @@ impl StackingContext {
                z_index: i32,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
-               layer: Option<Arc<PaintLayer>>,
+               layer: Option<PaintLayer>,
                transform: Matrix4,
                perspective: Matrix4,
                establishes_3d_context: bool)
