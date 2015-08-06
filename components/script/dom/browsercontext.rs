@@ -24,7 +24,6 @@ use js::glue::{GetProxyPrivate};
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 use js::{JSTrue, JSFalse};
 
-use std::ptr;
 use std::default::Default;
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -134,12 +133,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObjec
         return JSFalse;
     }
 
-    if (*desc.ptr).obj != target.ptr {
-        // Not an own property
-        (*desc.ptr).obj = ptr::null_mut();
-    } else {
-        (*desc.ptr).obj = *proxy.ptr;
-    }
+    assert!((*desc.ptr).obj.is_null() || (*desc.ptr).obj == *proxy.ptr);
 
     JSTrue
 }
