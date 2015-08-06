@@ -634,8 +634,12 @@ impl<'a> CanvasPaintTask<'a> {
                          image_data_rect.origin.y + source_rect.origin.y),
             Size2D::new(source_rect.size.width, source_rect.size.height));
 
+        // PutImageData should ignore the transform.
+        let transform = &self.drawtarget.get_transform();
+        self.drawtarget.set_transform(&Matrix2D::identity());
         write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect,
-                     dest_rect, true, self.state.draw_options.composition, self.state.draw_options.alpha)
+                     dest_rect, true, CompositionOp::Over, 1.0);
+        self.drawtarget.set_transform(transform);
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
