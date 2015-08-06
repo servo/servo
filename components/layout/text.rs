@@ -276,7 +276,7 @@ impl TextRunScanner {
                     options.flags.insert(RTL_FLAG);
                 }
                 let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
-                Arc::new(box TextRun::new(&mut *font, run_info.text, &options, run_info.bidi_level))
+                Arc::new(TextRun::new(&mut *font, run_info.text, &options, run_info.bidi_level))
             }).collect::<Vec<_>>()
         };
 
