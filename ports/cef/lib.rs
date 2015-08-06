@@ -37,7 +37,7 @@ extern crate rustc_unicode;
 extern crate script;
 extern crate script_traits;
 
-extern crate net;
+extern crate net_traits;
 extern crate msg;
 extern crate util;
 extern crate style;

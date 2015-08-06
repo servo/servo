@@ -38,7 +38,6 @@ extern crate gleam;
 extern crate layers;
 extern crate egl;
 extern crate url;
-extern crate net;
 extern crate net_traits;
 extern crate env_logger;
 

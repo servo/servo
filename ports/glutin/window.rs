@@ -14,7 +14,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
-use net::net_error_list::NetError;
+use net_traits::net_error_list::NetError;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use url::Url;

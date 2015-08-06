@@ -20,9 +20,6 @@ path = "../../components/script"
 [dependencies.script_traits]
 path = "../../components/script_traits"
 
-[dependencies.net]
-path = "../../components/net"
-
 [dependencies.net_traits]
 path = "../../components/net_traits"
 

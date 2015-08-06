@@ -33,7 +33,6 @@ pub mod data_loader;
 pub mod cookie;
 pub mod cookie_storage;
 pub mod image_cache_task;
-pub mod net_error_list;
 pub mod pub_domains;
 pub mod resource_task;
 pub mod hsts;

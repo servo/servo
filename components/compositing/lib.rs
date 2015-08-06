@@ -23,7 +23,6 @@ extern crate offscreen_gl_context;
 extern crate png;
 extern crate script_traits;
 extern crate msg;
-extern crate net;
 extern crate num;
 #[macro_use]
 extern crate profile_traits;

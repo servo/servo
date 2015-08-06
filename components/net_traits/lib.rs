@@ -40,6 +40,7 @@ use std::thread;
 
 pub mod hosts;
 pub mod image_cache_task;
+pub mod net_error_list;
 pub mod storage_task;
 
 pub static IPV4_REGEX: Regex = regex!(
