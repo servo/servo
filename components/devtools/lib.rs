@@ -172,8 +172,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     println!("error: EOF");
                     break 'outer
                 }
-                Err(e) => {
-                    println!("error: {}", e.description());
+                Err(err_msg) => {
+                    println!("error: {}", err_msg);
                     break 'outer
                 }
             }
