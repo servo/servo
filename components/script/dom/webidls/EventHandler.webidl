@@ -26,6 +26,9 @@ interface GlobalEventHandlers {
            attribute EventHandler onclick;
            attribute EventHandler onload;
            attribute EventHandler oninput;
+           attribute EventHandler onkeydown;
+           attribute EventHandler onkeypress;
+           attribute EventHandler onkeyup;
            attribute EventHandler onchange;
            attribute EventHandler onsubmit;
 };
