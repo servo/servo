@@ -95,7 +95,7 @@ mod devtools;
 mod horribly_inefficient_timers;
 mod webdriver_handlers;
 
-#[cfg(any(target_os="linux", target_os="android"))]
+#[cfg(target_os="linux")]
 #[allow(unsafe_code)]
 fn perform_platform_specific_initialization() {
     use std::mem;
@@ -111,7 +111,7 @@ fn perform_platform_specific_initialization() {
     }
 }
 
-#[cfg(not(any(target_os="linux", target_os="android")))]
+#[cfg(not(target_os="linux"))]
 fn perform_platform_specific_initialization() {}
 
 #[allow(unsafe_code)]

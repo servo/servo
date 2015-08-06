@@ -595,7 +595,7 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.1.0"
-source = "git+https://github.com/pcwalton/ipc-channel#13af22aa2ba8d40f80a7f91cf67a397ffc3df55b"
+source = "git+https://github.com/pcwalton/ipc-channel#ed72316ae19db8f3371cdb54fde58e9cb128b4fb"
 dependencies = [
  "byteorder 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -608,7 +608,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#b8483df1f6cd7c66d686f2da251f89e1d9217bdf"
+source = "git+https://github.com/servo/rust-mozjs#e1a8c46045c698ed7c02c381334b9305a7088bbd"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -814,6 +814,8 @@ dependencies = [
  "net_traits 0.0.1",
  "openssl 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
+ "regex 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex_macros 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
