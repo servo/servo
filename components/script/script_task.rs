@@ -73,7 +73,7 @@ use net_traits::LoadData as NetLoadData;
 use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
-use profile_traits::mem::{self, Report, Reporter, ReporterRequest, ReportKind, ReportsChan};
+use profile_traits::mem::{self, Report, ReportKind, ReportsChan, OpaqueSender};
 use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
@@ -214,6 +214,12 @@ pub trait ScriptChan {
     fn send(&self, msg: ScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
     fn clone(&self) -> Box<ScriptChan+Send>;
+}
+
+impl OpaqueSender<ScriptMsg> for Box<ScriptChan+Send> {
+    fn send(&self, msg: ScriptMsg) {
+        ScriptChan::send(&**self, msg).unwrap();
+    }
 }
 
 /// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM
@@ -437,24 +443,10 @@ impl ScriptTaskFactory for ScriptTask {
                                                load_data.url.clone());
             script_task.start_page_load(new_load, load_data);
 
-            // Register this task as a memory reporter.
             let reporter_name = format!("script-reporter-{}", id.0);
-            let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-            ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
-                // Just injects an appropriate event into the worker task's queue.
-                let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-                channel_for_reporter.send(ScriptMsg::CollectReports(
-                        reporter_request.reports_channel)).unwrap()
-            });
-            let reporter = Reporter(reporter_sender);
-            let msg = mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter);
-            mem_profiler_chan.send(msg);
-
-            script_task.start();
-
-            // Unregister this task as a memory reporter.
-            let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
-            mem_profiler_chan.send(msg);
+            mem_profiler_chan.run_with_memory_reporting(|| {
+                script_task.start();
+            }, reporter_name, channel_for_reporter, ScriptMsg::CollectReports);
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();

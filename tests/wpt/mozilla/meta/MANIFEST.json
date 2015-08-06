@@ -63,6 +63,18 @@
             "url": "/_mozilla/css/absolute_hypothetical_float.html"
           }
         ],
+        "css/background.html": [
+          {
+            "path": "css/background.html",
+            "references": [
+              [
+                "/_mozilla/css/background_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -804,6 +816,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_hypothetical_float.html"
+        }
+      ],
+      "css/background.html": [
+        {
+          "path": "css/background.html",
+          "references": [
+            [
+              "/_mozilla/css/background_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background.html"
         }
       ],
       "css/class-namespaces.html": [

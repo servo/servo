@@ -74,7 +74,6 @@ features = [ "serde_serialization" ]
 log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
-libc = "0.1"
 gleam = "0.1"
 euclid = "0.1"
 
