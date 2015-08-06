@@ -63,6 +63,36 @@
             "url": "/_mozilla/css/absolute_hypothetical_float.html"
           }
         ],
+<<<<<<< HEAD
+<<<<<<< HEAD
+        "css/background_none_a.html": [
+          {
+            "path": "css/background_none_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_none_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_none_a.html"
+          }
+        ],
+=======
+>>>>>>> f2f55e4... mod manifest
+
+        "css/background.html": [
+          {
+            "path": "css/background.html",
+            "references": [
+              [
+                "/_mozilla/css/background_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background.html"
+          }
+        ],
+
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -806,6 +836,37 @@
           "url": "/_mozilla/css/absolute_hypothetical_float.html"
         }
       ],
+<<<<<<< HEAD
+<<<<<<< HEAD
+      "css/background_none_a.html": [
+        {
+          "path": "css/background_none_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_none_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_none_a.html"
+        }
+      ],
+=======
+ 
+>>>>>>> f2f55e4... mod manifest
+
+      "css/background.html": [
+        {
+          "path": "css/background.html",
+          "references": [
+            [
+              "/_mozilla/css/background_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background.html"
+        }
+      ],
+
       "css/class-namespaces.html": [
         {
           "path": "css/class-namespaces.html",
