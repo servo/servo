@@ -153,7 +153,7 @@ def check_flake8(file_name, contents):
     with stdout_redirect(output):
         check_code(contents, ignore=ignore)
     for error in output.getvalue().splitlines():
-        _, line_num, _, message = error.split(":")
+        _, line_num, _, message = error.split(":", 3)
         yield line_num, message.strip()
 
 
