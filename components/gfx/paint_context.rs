@@ -1264,7 +1264,7 @@ impl ToRadiiPx for BorderRadii<Au> {
 trait ScaledFontExtensionMethods {
     fn draw_text(&self,
                  draw_target: &DrawTarget,
-                 run: &Box<TextRun>,
+                 run: &TextRun,
                  range: &Range<CharIndex>,
                  baseline_origin: Point2D<Au>,
                  color: Color,
@@ -1274,7 +1274,7 @@ trait ScaledFontExtensionMethods {
 impl ScaledFontExtensionMethods for ScaledFont {
     fn draw_text(&self,
                  draw_target: &DrawTarget,
-                 run: &Box<TextRun>,
+                 run: &TextRun,
                  range: &Range<CharIndex>,
                  baseline_origin: Point2D<Au>,
                  color: Color,
