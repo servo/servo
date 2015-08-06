@@ -484,13 +484,15 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
         },
         GCProgress::GC_SLICE_END => {
             GC_SLICE_START.with(|start| {
-                let dur = time::now() - start.get().take().unwrap();
+                let dur = time::now() - start.get().unwrap();
+                start.set(None);
                 println!("GC slice ended: duration={}", dur);
             })
         },
         GCProgress::GC_CYCLE_END => {
             GC_CYCLE_START.with(|start| {
-                let dur = time::now() - start.get().take().unwrap();
+                let dur = time::now() - start.get().unwrap();
+                start.set(None);
                 println!("GC cycle ended: duration={}", dur);
             })
         },
