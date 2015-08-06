@@ -381,11 +381,13 @@ impl<'a> CanvasPaintTask<'a> {
 
             self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
                 write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
-                            smoothing_enabled, self.state.draw_options.alpha);
+                            smoothing_enabled, self.state.draw_options.composition,
+                            self.state.draw_options.alpha);
             });
         } else {
             write_image(&self.drawtarget, image_data, source_rect.size, dest_rect,
-                        smoothing_enabled, self.state.draw_options.alpha);
+                        smoothing_enabled, self.state.draw_options.composition,
+                        self.state.draw_options.alpha);
         }
     }
 
@@ -402,12 +404,14 @@ impl<'a> CanvasPaintTask<'a> {
 
             self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
                 write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
-                            smoothing_enabled, self.state.draw_options.alpha);
+                            smoothing_enabled, self.state.draw_options.composition,
+                            self.state.draw_options.alpha);
             });
         } else {
             // Writes on target canvas
             write_image(&self.drawtarget, image_data, image_size, dest_rect,
-                        smoothing_enabled, self.state.draw_options.alpha);
+                        smoothing_enabled, self.state.draw_options.composition,
+                        self.state.draw_options.alpha);
         }
     }
 
@@ -631,7 +635,7 @@ impl<'a> CanvasPaintTask<'a> {
             Size2D::new(source_rect.size.width, source_rect.size.height));
 
         write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect,
-                     dest_rect, true, self.state.draw_options.alpha)
+                     dest_rect, true, self.state.draw_options.composition, self.state.draw_options.alpha)
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
@@ -728,6 +732,7 @@ fn write_image(draw_target: &DrawTarget,
                image_size: Size2D<f64>,
                dest_rect: Rect<f64>,
                smoothing_enabled: bool,
+               composition_op: CompositionOp,
                global_alpha: f32) {
     if image_data.len() == 0 {
         return
@@ -735,7 +740,8 @@ fn write_image(draw_target: &DrawTarget,
     let image_rect = Rect::new(Point2D::zero(), image_size);
     // rgba -> bgra
     byte_swap(&mut image_data);
-    write_pixels(&draw_target, &image_data, image_size, image_rect, dest_rect, smoothing_enabled, global_alpha);
+    write_pixels(&draw_target, &image_data, image_size, image_rect,
+                 dest_rect, smoothing_enabled, composition_op, global_alpha);
 }
 
 /// It writes image data to the target
@@ -749,6 +755,7 @@ fn write_pixels(draw_target: &DrawTarget,
                 source_rect: Rect<f64>,
                 dest_rect: Rect<f64>,
                 smoothing_enabled: bool,
+                composition_op: CompositionOp,
                 global_alpha: f32) {
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
@@ -767,7 +774,7 @@ fn write_pixels(draw_target: &DrawTarget,
         image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
     let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-    let draw_options = DrawOptions::new(global_alpha, CompositionOp::Over, AntialiasMode::None);
+    let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
 
     draw_target.draw_surface(source_surface,
                              dest_rect.to_azfloat(),
