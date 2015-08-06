@@ -1164,18 +1164,18 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode, flotation: float::T)
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
-        let marker_fragment = match node.style().get_list().list_style_image.0 {
+        let marker_fragments = match node.style().get_list().list_style_image.0 {
             Some(ref url) => {
                 let image_info = box ImageFragmentInfo::new(node,
                                                             Some((*url).clone()),
                                                             &self.layout_context);
-                Some(Fragment::new(node, SpecificFragmentInfo::Image(image_info)))
+                vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info))]
             }
             None => {
                 match ListStyleTypeContent::from_list_style_type(node.style()
                                                                      .get_list()
                                                                      .list_style_type) {
-                    ListStyleTypeContent::None => None,
+                    ListStyleTypeContent::None => Vec::new(),
                     ListStyleTypeContent::StaticText(ch) => {
                         let text = format!("{}\u{a0}", ch);
                         let mut unscanned_marker_fragments = LinkedList::new();
@@ -1186,11 +1186,10 @@ impl<'a> FlowConstructor<'a> {
                         let marker_fragments = TextRunScanner::new().scan_for_runs(
                             &mut self.layout_context.font_context(),
                             unscanned_marker_fragments);
-                        debug_assert!(marker_fragments.len() == 1);
-                        marker_fragments.fragments.into_iter().next()
+                        marker_fragments.fragments
                     }
                     ListStyleTypeContent::GeneratedContent(info) => {
-                        Some(Fragment::new(node, SpecificFragmentInfo::GeneratedContent(info)))
+                        vec![Fragment::new(node, SpecificFragmentInfo::GeneratedContent(info))]
                     }
                 }
             }
@@ -1206,14 +1205,14 @@ impl<'a> FlowConstructor<'a> {
         let flow = match node.style().get_list().list_style_position {
             list_style_position::T::outside => {
                 box ListItemFlow::from_fragments_and_flotation(main_fragment,
-                                                               marker_fragment,
+                                                               marker_fragments,
                                                                flotation)
             }
             list_style_position::T::inside => {
-                if let Some(marker_fragment) = marker_fragment {
+                for marker_fragment in marker_fragments {
                     initial_fragments.fragments.push_back(marker_fragment)
                 }
-                box ListItemFlow::from_fragments_and_flotation(main_fragment, None, flotation)
+                box ListItemFlow::from_fragments_and_flotation(main_fragment, vec![], flotation)
             }
         };
 
