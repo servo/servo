@@ -72,7 +72,7 @@ use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
-use std::io::{stdout, Write};
+use std::io::{stdout, stderr, Write};
 use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -361,10 +361,15 @@ impl<'a> WindowMethods for &'a Window {
     // https://html.spec.whatwg.org/#dom-alert
     fn Alert(self, s: DOMString) {
         // Right now, just print to the console
+        // Ensure that stderr doesn't trample through the alert() we use to
+        // communicate test results.
+        let stderr = stderr();
+        let mut stderr = stderr.lock();
         let stdout = stdout();
         let mut stdout = stdout.lock();
         writeln!(&mut stdout, "ALERT: {}", s).unwrap();
         stdout.flush().unwrap();
+        stderr.flush().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
