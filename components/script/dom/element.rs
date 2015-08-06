@@ -1670,7 +1670,7 @@ impl<'a> ::selectors::Element for &'a Element {
         node.get_focus_state()
     }
     fn get_id(&self) -> Option<Atom> {
-        self.id_attribute.borrow().as_ref().map(|id| id.clone())
+        self.id_attribute.borrow().clone()
     }
     fn get_disabled_state(&self) -> bool {
         let node = NodeCast::from_ref(*self);
