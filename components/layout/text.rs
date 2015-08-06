@@ -398,9 +398,9 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
             };
 
             string_before =
-                box unscanned_text_fragment_info.text[..(position + 1)].to_owned();
+                unscanned_text_fragment_info.text[..(position + 1)].to_owned().into_boxed_slice();
             unscanned_text_fragment_info.text =
-                box unscanned_text_fragment_info.text[(position + 1)..].to_owned();
+                unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_slice();
         }
         first_fragment.transform(first_fragment.border_box.size,
                                  SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo {
