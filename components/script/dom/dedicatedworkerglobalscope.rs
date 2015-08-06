@@ -28,12 +28,11 @@ use script_task::StackRootTLS;
 use devtools_traits::DevtoolScriptControlMsg;
 use msg::constellation_msg::PipelineId;
 use net_traits::load_whole_resource;
-use profile_traits::mem::{self, Reporter, ReporterRequest};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
@@ -192,26 +191,12 @@ impl DedicatedWorkerGlobalScope {
                 scope.execute_script(source);
             }
 
-            // Register this task as a memory reporter.
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
-            let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-            ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
-                // Just injects an appropriate event into the worker task's queue.
-                let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-                parent_sender.send(ScriptMsg::CollectReports(
-                        reporter_request.reports_channel)).unwrap()
-            });
-            scope.mem_profiler_chan().send(mem::ProfilerMsg::RegisterReporter(
-                    reporter_name.clone(),
-                    Reporter(reporter_sender)));
-
-            while let Ok(event) = global.receive_event() {
-                global.handle_event(event);
-            }
-
-            // Unregister this task as a memory reporter.
-            let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
-            scope.mem_profiler_chan().send(msg);
+            scope.mem_profiler_chan().run_with_memory_reporting(|| {
+                while let Ok(event) = global.receive_event() {
+                    global.handle_event(event);
+                }
+            }, reporter_name, parent_sender, ScriptMsg::CollectReports);
         });
     }
 }

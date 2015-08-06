@@ -6,7 +6,23 @@
 
 #![deny(missing_docs)]
 
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
+
+use std::sync::mpsc::Sender;
+use std::marker::Send;
+
+/// A trait to abstract away the various kinds of message senders we use.
+pub trait OpaqueSender<T> {
+    /// Send a message.
+    fn send(&self, message: T);
+}
+
+impl<T> OpaqueSender<T> for Sender<T> {
+    fn send(&self, message: T) {
+        Sender::send(self, message).unwrap();
+    }
+}
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
@@ -20,6 +36,31 @@ impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
         let ProfilerChan(ref c) = *self;
         c.send(msg).unwrap();
+    }
+
+    /// Runs `f()` with memory profiling.
+    pub fn run_with_memory_reporting<F, M, T, C>(&self, f: F,
+                                                 reporter_name: String,
+                                                 channel_for_reporter: C,
+                                                 msg: M)
+        where F: FnOnce(),
+              M: Fn(ReportsChan) -> T + Send + 'static,
+              T: Send + 'static,
+              C: OpaqueSender<T> + Send + 'static
+    {
+        // Register the memory reporter.
+        let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+        ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
+            // Just injects an appropriate event into the paint task's queue.
+            let request: ReporterRequest = message.to().unwrap();
+            channel_for_reporter.send(msg(request.reports_channel));
+        });
+        self.send(ProfilerMsg::RegisterReporter(reporter_name.clone(),
+                                                Reporter(reporter_sender)));
+
+        f();
+
+        self.send(ProfilerMsg::UnregisterReporter(reporter_name));
     }
 }
 

@@ -16,8 +16,7 @@ use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::IpcSender;
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
@@ -25,7 +24,7 @@ use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
-use profile_traits::mem::{self, Reporter, ReporterRequest, ReportsChan};
+use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use skia::gl_context::GLContext;
@@ -167,25 +166,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     canvas_map: HashMap::new()
                 };
 
-                // Register the memory reporter.
                 let reporter_name = format!("paint-reporter-{}", id.0);
-                let (reporter_sender, reporter_receiver) =
-                    ipc::channel::<ReporterRequest>().unwrap();
-                let paint_chan_for_reporter = chrome_to_paint_chan.clone();
-                ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
-                    // Just injects an appropriate event into the paint task's queue.
-                    let request: ReporterRequest = message.to().unwrap();
-                    paint_chan_for_reporter.send(ChromeToPaintMsg::CollectReports(
-                            request.reports_channel)).unwrap();
-                });
-                mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(
-                        reporter_name.clone(),
-                        Reporter(reporter_sender)));
-
-                paint_task.start();
-
-                let msg = mem::ProfilerMsg::UnregisterReporter(reporter_name);
-                mem_profiler_chan.send(msg);
+                mem_profiler_chan.run_with_memory_reporting(|| {
+                    paint_task.start();
+                }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);
 
                 // Tell all the worker threads to shut down.
                 for worker_thread in paint_task.worker_threads.iter_mut() {
