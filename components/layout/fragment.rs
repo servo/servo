@@ -705,10 +705,7 @@ pub struct TruncationResult {
 #[derive(Clone)]
 pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
-    ///
-    /// FIXME(pcwalton): Is there something more clever we can do here that avoids the double
-    /// indirection while not penalizing all fragments?
-    pub text: Box<String>,
+    pub text: Box<str>,
 }
 
 impl UnscannedTextFragmentInfo {
@@ -716,7 +713,7 @@ impl UnscannedTextFragmentInfo {
     #[inline]
     pub fn from_text(text: String) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
-            text: box text,
+            text: text.into_boxed_slice(),
         }
     }
 }
