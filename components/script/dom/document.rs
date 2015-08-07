@@ -86,7 +86,7 @@ use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use ipc_channel::ipc;
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
-use url::Url;
+use url::{Url, UrlParser};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 
 use num::ToPrimitive;
@@ -466,7 +466,11 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     fn load_anchor_href(self, href: DOMString) {
         let window = self.window.root();
-        window.r().load_url(href);
+        let base_url = window.get_url();
+        let url = UrlParser::new().base_url(&base_url).parse(&href);
+        // FIXME: handle URL parse errors more gracefully.
+        let url = url.unwrap();
+        window.load_url(url);
     }
 
     /// Attempt to find a named element in this page's document.
