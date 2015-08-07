@@ -438,7 +438,9 @@ impl StackingContext {
                                                      inverse_transform.m21, inverse_transform.m22,
                                                      inverse_transform.m41, inverse_transform.m42);
 
-            let tile_rect = Rect::new(Point2D::zero(), paint_context.page_rect.size);
+            let tile_size = Size2D::new(paint_context.screen_rect.size.width as f32,
+                                        paint_context.screen_rect.size.height as f32);
+            let tile_rect = Rect::new(Point2D::zero(), tile_size);
             let tile_rect = inverse_transform_2d.transform_rect(&tile_rect);
 
             // Optimize the display list to throw out out-of-bounds display items and so forth.
