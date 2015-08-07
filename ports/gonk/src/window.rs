@@ -650,7 +650,7 @@ impl Window {
             assert!(ret == 0, "Failed to get HWC module!");
         }
 
-        let mut hwc_device: *mut hwc_composer_device;
+        let hwc_device: *mut hwc_composer_device;
         unsafe {
             let mut device = ptr::null();
             let cstr = CString::new("composer").unwrap();
@@ -675,7 +675,7 @@ impl Window {
         }
 
         let mut gralloc_mod = ptr::null();
-        let mut alloc_dev: *mut alloc_device;
+        let alloc_dev: *mut alloc_device;
         unsafe {
             let mut device = ptr::null();
             let cstr = CString::new("gralloc").unwrap();
