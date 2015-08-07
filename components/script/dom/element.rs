@@ -26,7 +26,6 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCel
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
 use dom::bindings::codegen::InheritTypes::TextCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
@@ -259,7 +258,7 @@ impl RawLayoutElementHelpers for Element {
         } else if self.is_htmltableelement() {
             let this: &HTMLTableElement = mem::transmute(self);
             this.get_background_color()
-        } else if self.is_htmltabledatacellelement() {
+        } else if self.is_htmltablecellelement() {
             let this: &HTMLTableCellElement = mem::transmute(self);
             this.get_background_color()
         } else if self.is_htmltablerowelement() {
@@ -357,7 +356,7 @@ impl RawLayoutElementHelpers for Element {
         } else if self.is_htmltableelement() {
             let this: &HTMLTableElement = mem::transmute(self);
             this.get_width()
-        } else if self.is_htmltabledatacellelement() {
+        } else if self.is_htmltablecellelement() {
             let this: &HTMLTableCellElement = mem::transmute(self);
             this.get_width()
         } else {
