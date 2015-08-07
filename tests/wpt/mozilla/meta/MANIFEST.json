@@ -635,12 +635,6 @@
             "url": "/_mozilla/mozilla/navigator.html"
           }
         ],
-        "mozilla/node_cloneNode.html": [
-          {
-            "path": "mozilla/node_cloneNode.html",
-            "url": "/_mozilla/mozilla/node_cloneNode.html"
-          }
-        ],
         "mozilla/node_compareDocumentPosition.html": [
           {
             "path": "mozilla/node_compareDocumentPosition.html",
