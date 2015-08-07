@@ -1332,7 +1332,7 @@ dependencies = [
 [[package]]
 name = "stb_image"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-stb-image#e3f7246caa694e863975ead98f4940d046108fd7"
+source = "git+https://github.com/servo/rust-stb-image#ad05c642b64a9059dd31c37b1a1ac78722821008"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
