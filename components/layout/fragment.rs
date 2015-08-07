@@ -1340,8 +1340,10 @@ impl Fragment {
                     let border_width = node.style.logical_border_width().inline_start_end();
                     let padding_inline_size =
                         model::padding_from_style(&*node.style, Au(0)).inline_start_end();
+                    let margin_inline_size =
+                        model::specified_margin_from_style(&*node.style).inline_start_end();
                     result.surrounding_size = result.surrounding_size + border_width +
-                        padding_inline_size;
+                        padding_inline_size + margin_inline_size;
                 }
             }
         }
