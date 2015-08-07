@@ -224,6 +224,7 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     event_handler!(open, GetOnopen, SetOnopen);
     event_handler!(close, GetOnclose, SetOnclose);
     event_handler!(error, GetOnerror, SetOnerror);
+    event_handler!(message, GetOnmessage, SetOnmessage);
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
     fn Url(self) -> DOMString {
