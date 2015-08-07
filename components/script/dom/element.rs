@@ -494,6 +494,7 @@ pub trait LayoutElementHelpers {
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
+    fn id_attribute(&self) -> *const Option<Atom>;
     fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
     fn local_name(&self) -> &Atom;
     fn namespace(&self) -> &Namespace;
@@ -515,6 +516,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
+    }
+
+    #[allow(unsafe_code)]
+    fn id_attribute(&self) -> *const Option<Atom> {
+        unsafe {
+            (*self.unsafe_get()).id_attribute.borrow_for_layout()
+        }
     }
 
     #[allow(unsafe_code)]
