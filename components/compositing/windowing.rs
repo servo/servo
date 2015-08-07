@@ -12,7 +12,7 @@ use euclid::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
-use net::net_error_list::NetError;
+use net_traits::net_error_list::NetError;
 use script_traits::MouseButton;
 use url::Url;
 use util::cursor::Cursor;

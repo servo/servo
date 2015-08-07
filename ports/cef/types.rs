@@ -9,7 +9,7 @@ use libc::c_ulong;
 use libc::c_void;
 use libc::types::os::arch::c95::wchar_t;
 
-use net::net_error_list::NetError;
+use net_traits::net_error_list::NetError;
 
 pub use self::cef_rect as cef_rect_t;
 

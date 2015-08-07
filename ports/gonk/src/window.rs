@@ -12,7 +12,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use libc::c_int;
 use msg::constellation_msg::{Key, KeyModifiers};
-use net::net_error_list::NetError;
+use net_traits::net_error_list::NetError;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::rc::Rc;
 use std::mem::transmute;
