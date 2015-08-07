@@ -43,10 +43,9 @@ impl<'a> LocationMethods for &'a Location {
         // TODO: per spec, we should use the _API base URL_ specified by the
         //       _entry settings object_.
         let base_url = window.get_url();
-        let url = UrlParser::new().base_url(&base_url).parse(&url);
-        // FIXME: handle URL parse errors more gracefully.
-        let url = url.unwrap();
-        window.load_url(url);
+        if let Ok(url) = UrlParser::new().base_url(&base_url).parse(&url) {
+            window.load_url(url);
+        }
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-hash
