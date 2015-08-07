@@ -15,9 +15,9 @@ use ipc_channel::ipc::{self, IpcSender};
 use log;
 use std::collections::HashSet;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
-use hyper::header::StrictTransportSecurity;
+use hyper::client::{Request, Response};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, StrictTransportSecurity};
+use hyper::header::{Quality, QualityItem};
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -96,20 +96,9 @@ fn load_for_consumer(load_data: LoadData,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
 
-    let connector = {
-        // TODO: Is this still necessary? The type system is making it really hard to support both
-        // connectors. SSL is working, so it's not clear to me if the original rationale still
-        // stands?
-        // if opts::get().nossl {
-        //     &HttpConnector
-        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-        context.set_verify(SSL_VERIFY_PEER, None);
-        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+    let requester = NetworkHttpRequester::new();
 
-        &HttpsConnector::new(Openssl { context: Arc::new(context) })
-    };
-
-    match load(load_data, resource_mgr_chan, devtools_chan, hsts_list, connector) {
+    match load(load_data, resource_mgr_chan, devtools_chan, hsts_list, &requester) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -141,38 +130,65 @@ fn load_for_consumer(load_data: LoadData,
     }
 }
 
-#[inline(always)]
-fn connect<C, S>(url: Url,
-                 method: Method,
-                 connector: &C) -> Result<Request<Fresh>, LoadError> where
-            C: NetworkConnector<Stream=S>,
-            S: Into<Box<NetworkStream + Send>> {
-    let connection = Request::with_connector(method, url.clone(), connector);
+struct NetworkHttpRequester {
+    connector: HttpsConnector<Openssl>
+}
 
-    let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
-function: \"SSL3_GET_SERVER_CERTIFICATE\", \
-reason: \"certificate verify failed\" }]))";
+impl NetworkHttpRequester {
+    fn new() -> NetworkHttpRequester {
+        // TODO: Is this still necessary? The type system is making it really hard to support both
+        // connectors. SSL is working, so it's not clear to me if the original rationale still
+        // stands?
+        // if opts::get().nossl {
+        //     &HttpConnector
+        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+        context.set_verify(SSL_VERIFY_PEER, None);
+        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
 
-    match connection {
-        Ok(req) => Ok(req),
-
-        Err(HttpError::Io(ref io_error)) if (
-            io_error.kind() == io::ErrorKind::Other &&
-            io_error.description() == "Error in OpenSSL" &&
-            // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-            format!("{:?}", io_error.cause()) == ssl_err_string
-        ) => {
-            Err(
-                LoadError::Ssl(
-                    url.clone(),
-                    format!("ssl error {:?}: {:?} {:?}", io_error.kind(), io_error.description(), io_error.cause())
-                )
-            )
-        },
-        Err(e) => {
-             Err(LoadError::Connection(url, e.description().to_string()))
+        NetworkHttpRequester {
+            connector: HttpsConnector::new(Openssl { context: Arc::new(context) })
         }
     }
+}
+
+impl HttpRequester for NetworkHttpRequester {
+    fn send(&self, request: Request<Fresh>) -> Result<Response, LoadError> {
+        unimplemented!()
+    }
+
+    fn build(&self, url: Url, method: Method) -> Result<Request<Fresh>, LoadError> {
+        let connection = Request::with_connector(method, url.clone(), &self.connector);
+
+        let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
+    function: \"SSL3_GET_SERVER_CERTIFICATE\", \
+    reason: \"certificate verify failed\" }]))";
+
+        match connection {
+            Ok(req) => Ok(req),
+
+            Err(HttpError::Io(ref io_error)) if (
+                io_error.kind() == io::ErrorKind::Other &&
+                io_error.description() == "Error in OpenSSL" &&
+                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
+                format!("{:?}", io_error.cause()) == ssl_err_string
+            ) => {
+                Err(
+                    LoadError::Ssl(
+                        url.clone(),
+                        format!("ssl error {:?}: {:?} {:?}", io_error.kind(), io_error.description(), io_error.cause())
+                    )
+                )
+            },
+            Err(e) => {
+                 Err(LoadError::Connection(url, e.description().to_string()))
+            }
+        }
+    }
+}
+
+pub trait HttpRequester {
+    fn build(&self, url: Url, method: Method) -> Result<Request<Fresh>, LoadError>;
+    fn send(&self, request: Request<Fresh>) -> Result<Response, LoadError>;
 }
 
 pub enum LoadError {
@@ -185,14 +201,12 @@ pub enum LoadError {
     MaxRedirects(Url)
 }
 
-fn load<C, S>(mut load_data: LoadData,
-        resource_mgr_chan: IpcSender<ControlMsg>,
-        devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-        hsts_list: Arc<Mutex<HSTSList>>,
-        connector: &C) -> Result<(Box<Read>, Metadata), LoadError> where
-            C: NetworkConnector<Stream=S>,
-            S: Into<Box<NetworkStream + Send>> {
-
+pub fn load(mut load_data: LoadData,
+            resource_mgr_chan: IpcSender<ControlMsg>,
+            devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+            hsts_list: Arc<Mutex<HSTSList>>,
+            requester: &HttpRequester)
+    -> Result<(Box<Read>, Metadata), LoadError> {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -234,7 +248,7 @@ fn load<C, S>(mut load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        let mut req = try!(connect(url.clone(), load_data.method.clone(), connector));
+        let mut req = try!(requester.build(url.clone(), load_data.method.clone()));
 
         //Ensure that the host header is set from the original url
         let host = Host {
