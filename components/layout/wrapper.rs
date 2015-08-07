@@ -455,7 +455,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn get_id(&self) -> Option<Atom> {
         unsafe {
-            (*self.element.unsafe_get()).get_attr_atom_for_layout(&ns!(""), &atom!("id"))
+            (*self.element.id_attribute()).clone()
         }
     }
 
