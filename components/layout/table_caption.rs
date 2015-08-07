@@ -10,7 +10,6 @@ use block::BlockFlow;
 use context::LayoutContext;
 use flow::{FlowClass, Flow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect};
 use util::geometry::Au;
@@ -25,10 +24,9 @@ pub struct TableCaptionFlow {
 }
 
 impl TableCaptionFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
-                                  -> TableCaptionFlow {
+    pub fn from_fragment(fragment: Fragment) -> TableCaptionFlow {
         TableCaptionFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment, None)
+            block_flow: BlockFlow::from_fragment(fragment, None)
         }
     }
 }

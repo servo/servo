@@ -10,7 +10,6 @@ use context::LayoutContext;
 use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect};
 use util::geometry::{Au, ZERO_RECT};
@@ -39,13 +38,12 @@ pub struct TableColGroupFlow {
 }
 
 impl TableColGroupFlow {
-    pub fn from_node_and_fragments(node: &ThreadSafeLayoutNode,
-                                   fragment: Fragment,
-                                   fragments: Vec<Fragment>)
-                                   -> TableColGroupFlow {
-        let writing_mode = node.style().writing_mode;
+    pub fn from_fragments(fragment: Fragment, fragments: Vec<Fragment>) -> TableColGroupFlow {
+        let writing_mode = fragment.style().writing_mode;
         TableColGroupFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
+            base: BaseFlow::new(Some(fragment.style()),
+                                writing_mode,
+                                ForceNonfloatedFlag::ForceNonfloated),
             fragment: Some(fragment),
             cols: fragments,
             inline_sizes: vec!(),

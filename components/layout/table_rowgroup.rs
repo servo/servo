@@ -14,7 +14,6 @@ use layout_debug;
 use style::computed_values::{border_collapse, border_spacing};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row::{self, CollapsedBordersForRow};
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect};
 use rustc_serialize::{Encoder, Encodable};
@@ -63,11 +62,10 @@ impl Encodable for TableRowGroupFlow {
 }
 
 impl TableRowGroupFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
-                                  -> TableRowGroupFlow {
+    pub fn from_fragment(fragment: Fragment) -> TableRowGroupFlow {
         let writing_mode = fragment.style().writing_mode;
         TableRowGroupFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment, None),
+            block_flow: BlockFlow::from_fragment(fragment, None),
             column_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
             spacing: border_spacing::T {
