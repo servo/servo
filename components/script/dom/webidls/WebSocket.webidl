@@ -26,7 +26,7 @@ interface WebSocket : EventTarget {
     [Throws] void close([Clamp] optional unsigned short code, optional USVString reason);
 
     //messaging
-    //attribute EventHandler onmessage;
+    attribute EventHandler onmessage;
     //attribute BinaryType binaryType;
     [Throws] void send(optional USVString data);
     //void send(Blob data);
