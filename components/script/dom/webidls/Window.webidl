@@ -132,11 +132,11 @@ partial interface Window {
   readonly attribute long scrollY;
   readonly attribute long pageYOffset;
   void scroll(optional ScrollToOptions options);
-  void scroll(unrestricted double x, unrestricted double y, optional ScrollOptions options);
+  void scroll(unrestricted double x, unrestricted double y);
   void scrollTo(optional ScrollToOptions options);
-  void scrollTo(unrestricted double x, unrestricted double y, optional ScrollOptions options);
+  void scrollTo(unrestricted double x, unrestricted double y);
   void scrollBy(optional ScrollToOptions options);
-  void scrollBy(unrestricted double x, unrestricted double y, optional ScrollOptions options);
+  void scrollBy(unrestricted double x, unrestricted double y);
 
   // client
   readonly attribute long screenX;

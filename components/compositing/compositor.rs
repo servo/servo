@@ -11,11 +11,11 @@ use scrolling::ScrollingTimerProxy;
 use windowing;
 use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
-use euclid::Matrix4;
-use euclid::point::{Point2D, TypedPoint2D};
-use euclid::rect::{Rect, TypedRect};
+use euclid::{Size2D, Point2D, Rect, Matrix4};
+use euclid::point::TypedPoint2D;
+use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::TypedSize2D;
 use gfx_traits::color;
 use gfx::paint_task::{ChromeToPaintMsg, PaintRequest};
 use gleam::gl::types::{GLint, GLsizei};
@@ -388,7 +388,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.send_buffer_requests_for_all_layers();
             }
 
-            (Msg::GetNativeDisplay(chan), ShutdownState::NotShuttingDown) => {
+            (Msg::GetNativeDisplay(chan),
+             ShutdownState::NotShuttingDown) => {
                 chan.send(Some(self.native_display.clone())).unwrap();
             }
 
@@ -428,7 +429,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_inner_size(size);
             }
 
-            (Msg::GetClientWindow(send), ShutdownState::NotShuttingDown) => {
+            (Msg::GetClientWindow(send),
+             ShutdownState::NotShuttingDown) => {
                 let rect = self.window.client_window();
                 send.send(rect).unwrap();
             }

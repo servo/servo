@@ -6,10 +6,10 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use libc::c_int;
@@ -794,11 +794,14 @@ impl WindowMethods for Window {
         Size2D::typed(self.width as f32, self.height as f32)
     }
 
-    fn client_window(&self) -> Rect<i32> {
-        Rect::zero()
+    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
+        let size = self.size().to_untyped();
+        let width = size.width as u32;
+        let height = size.height as u32;
+        (Size2D::new(width, height), Point2D::zero())
     }
 
-    fn set_inner_size(&self, size: Size2D<i32>) {
+    fn set_inner_size(&self, size: Size2D<u32>) {
 
     }
 

@@ -4,9 +4,7 @@
 
 use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyState, KeyModifiers};
-use euclid::point::Point2D;
-use euclid::size::Size2D;
-use euclid::rect::Rect;
+use euclid::{Size2D, Point2D, Rect};
 use euclid::Matrix4;
 use ipc_channel::ipc::IpcSender;
 use layers::platform::surface::NativeDisplay;
@@ -122,9 +120,9 @@ pub enum ScriptToCompositorMsg {
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     SetTitle(PipelineId, Option<String>),
     SendKeyEvent(Key, KeyState, KeyModifiers),
-    GetClientWindow(IpcSender<Rect<i32>>),
+    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
     MoveTo(Point2D<i32>),
-    ResizeTo(Size2D<i32>),
+    ResizeTo(Size2D<u32>),
     Exit,
 }
 
@@ -147,7 +145,7 @@ impl ScriptListener {
             .unwrap()
     }
 
-    pub fn client_window(&mut self, send: IpcSender<Rect<i32>>) {
+    pub fn client_window(&mut self, send: IpcSender<(Size2D<u32>, Point2D<i32>)>) {
         self.0.send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap()
     }
 
@@ -155,7 +153,7 @@ impl ScriptListener {
         self.0.send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
     }
 
-    pub fn resize_window(&mut self, size: Size2D<i32>) {
+    pub fn resize_window(&mut self, size: Size2D<u32>) {
         self.0.send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
     }
 

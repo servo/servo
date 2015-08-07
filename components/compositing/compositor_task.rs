@@ -11,9 +11,7 @@ use compositor;
 use headless;
 use windowing::{WindowEvent, WindowMethods};
 
-use euclid::point::Point2D;
-use euclid::size::Size2D;
-use euclid::rect::Rect;
+use euclid::{Size2D, Point2D, Rect};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBufferSet};
@@ -214,9 +212,12 @@ pub enum Msg {
     CollectMemoryReports(mem::ReportsChan),
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
-    GetClientWindow(IpcSender<Rect<i32>>),
+    /// Get Window Informations size and position
+    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    /// Move the window to a point
     MoveTo(Point2D<i32>),
-    ResizeTo(Size2D<i32>),
+    /// Resize the window to size
+    ResizeTo(Size2D<u32>),
 }
 
 impl Debug for Msg {

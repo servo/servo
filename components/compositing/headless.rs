@@ -5,8 +5,8 @@
 use compositor_task::{CompositorEventListener, CompositorReceiver, Msg};
 use windowing::WindowEvent;
 
+use euclid::{Size2D, Point2D};
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::Size2D;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile_traits::mem;
@@ -88,6 +88,10 @@ impl CompositorEventListener for NullCompositor {
                 response_chan.send(()).unwrap();
             }
 
+            Msg::GetClientWindow(send) => {
+               let rect = (Size2D::zero(), Point2D::zero());
+                send.send(rect).unwrap();
+            }
             // Explicitly list ignored messages so that when we add a new one,
             // we'll notice and think about whether it needs a response, like
             // SetFrameTree.
@@ -109,7 +113,6 @@ impl CompositorEventListener for NullCompositor {
             Msg::ViewportConstrained(..) => {}
             Msg::CreatePng(..) |
             Msg::PaintTaskExited(..) |
-            Msg::GetClientWindow(..) |
             Msg::MoveTo(..) |
             Msg::ResizeTo(..) |
             Msg::IsReadyToSaveImageReply(..) => {}
