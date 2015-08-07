@@ -86,7 +86,7 @@ use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use ipc_channel::ipc;
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
-use url::{Url, UrlParser};
+use url::Url;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 
 use num::ToPrimitive;
@@ -242,7 +242,6 @@ pub trait DocumentHelpers<'a> {
     fn disarm_reflow_timeout(self);
     fn unregister_named_element(self, to_unregister: &Element, id: Atom);
     fn register_named_element(self, element: &Element, id: Atom);
-    fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Root<Element>>;
     fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress>;
     fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress>;
@@ -462,15 +461,6 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                 elements.insert(head, JS::from_ref(element));
             }
         }
-    }
-
-    fn load_anchor_href(self, href: DOMString) {
-        let window = self.window.root();
-        let base_url = window.get_url();
-        let url = UrlParser::new().base_url(&base_url).parse(&href);
-        // FIXME: handle URL parse errors more gracefully.
-        let url = url.unwrap();
-        window.load_url(url);
     }
 
     /// Attempt to find a named element in this page's document.
