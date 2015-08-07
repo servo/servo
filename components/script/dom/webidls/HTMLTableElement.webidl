@@ -6,8 +6,8 @@
 // https://www.whatwg.org/html/#htmltableelement
 interface HTMLTableElement : HTMLElement {
            attribute HTMLTableCaptionElement? caption;
-  //HTMLElement createCaption();
-  //void deleteCaption();
+  HTMLElement createCaption();
+  void deleteCaption();
   //         attribute HTMLTableSectionElement? tHead;
   //HTMLElement createTHead();
   //void deleteTHead();
