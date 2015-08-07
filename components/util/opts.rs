@@ -8,13 +8,13 @@
 use geometry::ScreenPx;
 
 use euclid::size::{Size2D, TypedSize2D};
-use getopts;
+use getopts::Options;
 use num_cpus;
 use std::collections::HashSet;
 use std::cmp;
 use std::env;
-use std::io::{self, Write};
-use std::fs::PathExt;
+use std::io::{self, Read, Write};
+use std::fs::{File, PathExt};
 use std::path::Path;
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
@@ -65,6 +65,8 @@ pub struct Opts {
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
     /// won't be loaded
     pub userscripts: Option<String>,
+
+    pub user_stylesheets: Vec<(Vec<u8>, Url)>,
 
     pub output_file: Option<String>,
 
@@ -172,9 +174,9 @@ pub struct Opts {
     pub exit_after_load: bool,
 }
 
-fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
+fn print_usage(app: &str, opts: &Options) {
     let message = format!("Usage: {} [ options ... ] [URL]\n\twhere options include", app);
-    println!("{}", getopts::usage(&message, opts));
+    println!("{}", opts.usage(&message));
 }
 
 pub fn print_debug_usage(app: &str) -> ! {
@@ -241,6 +243,7 @@ pub fn default_opts() -> Opts {
         nonincremental_layout: false,
         nossl: false,
         userscripts: None,
+        user_stylesheets: Vec::new(),
         output_file: None,
         replace_surrogates: false,
         gc_profile: false,
@@ -278,37 +281,38 @@ pub fn default_opts() -> Opts {
 pub fn from_cmdline_args(args: &[String]) {
     let (app_name, args) = args.split_first().unwrap();
 
-    let opts = vec!(
-        getopts::optflag("c", "cpu", "CPU painting (default)"),
-        getopts::optflag("g", "gpu", "GPU painting"),
-        getopts::optopt("o", "output", "Output file", "output.png"),
-        getopts::optopt("s", "size", "Size of tiles", "512"),
-        getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
-        getopts::optflag("e", "experimental", "Enable experimental web features"),
-        getopts::optopt("t", "threads", "Number of paint threads", "1"),
-        getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
-        getopts::optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10"),
-        getopts::optflag("x", "exit", "Exit after load flag"),
-        getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
-        getopts::optflag("i", "nonincremental-layout", "Enable to turn off incremental layout."),
-        getopts::optflag("", "no-ssl", "Disables ssl certificate verification."),
-        getopts::optflagopt("", "userscripts",
-                            "Uses userscripts in resources/user-agent-js, or a specified full path",""),
-        getopts::optflag("z", "headless", "Headless mode"),
-        getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
-        getopts::optflagopt("", "devtools", "Start remote devtools server on port", "6000"),
-        getopts::optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000"),
-        getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
-        getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
-        getopts::optflag("M", "multiprocess", "Run in multiprocess mode"),
-        getopts::optopt("Z", "debug",
-                        "A comma-separated string of debug options. Pass help to show available options.", ""),
-        getopts::optflag("h", "help", "Print this message"),
-        getopts::optopt("", "resources-path", "Path to find static resources", "/home/servo/resources"),
-        getopts::optflag("", "sniff-mime-types" , "Enable MIME sniffing"),
-    );
+    let mut opts = Options::new();
+    opts.optflag("c", "cpu", "CPU painting (default)");
+    opts.optflag("g", "gpu", "GPU painting");
+    opts.optopt("o", "output", "Output file", "output.png");
+    opts.optopt("s", "size", "Size of tiles", "512");
+    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
+    opts.optflag("e", "experimental", "Enable experimental web features");
+    opts.optopt("t", "threads", "Number of paint threads", "1");
+    opts.optflagopt("p", "profile", "Profiler flag and output interval", "10");
+    opts.optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10");
+    opts.optflag("x", "exit", "Exit after load flag");
+    opts.optopt("y", "layout-threads", "Number of threads to use for layout", "1");
+    opts.optflag("i", "nonincremental-layout", "Enable to turn off incremental layout.");
+    opts.optflag("", "no-ssl", "Disables ssl certificate verification.");
+    opts.optflagopt("", "userscripts",
+                    "Uses userscripts in resources/user-agent-js, or a specified full path","");
+    opts.optmulti("", "user-stylesheet",
+                  "A user stylesheet to be added to every document", "file.css");
+    opts.optflag("z", "headless", "Headless mode");
+    opts.optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure");
+    opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
+    opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
+    opts.optopt("", "resolution", "Set window resolution.", "800x600");
+    opts.optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
+    opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+    opts.optopt("Z", "debug",
+                "A comma-separated string of debug options. Pass help to show available options.", "");
+    opts.optflag("h", "help", "Print this message");
+    opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
+    opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
 
-    let opt_match = match getopts::getopts(args, &opts) {
+    let opt_match = match opts.parse(args) {
         Ok(m) => m,
         Err(f) => args_fail(&f.to_string()),
     };
@@ -330,12 +334,12 @@ pub fn from_cmdline_args(args: &[String]) {
         print_debug_usage(app_name)
     }
 
+    let cwd = env::current_dir().unwrap();
     let url = if opt_match.free.is_empty() {
         print_usage(app_name, &opts);
         args_fail("servo asks that you provide a URL")
     } else {
         let ref url = opt_match.free[0];
-        let cwd = env::current_dir().unwrap();
         match Url::parse(url) {
             Ok(url) => url,
             Err(url::ParseError::RelativeUrlWithoutBase) => {
@@ -407,6 +411,17 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
+    let user_stylesheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
+        let path = cwd.join(filename);
+        let url = Url::from_file_path(&path).unwrap();
+        let mut contents = Vec::new();
+        File::open(path)
+            .unwrap_or_else(|err| args_fail(&format!("Couldn’t open {}: {}", filename, err)))
+            .read_to_end(&mut contents)
+            .unwrap_or_else(|err| args_fail(&format!("Couldn’t read {}: {}", filename, err)));
+        (contents, url)
+    }).collect();
+
     let opts = Opts {
         url: Some(url),
         paint_threads: paint_threads,
@@ -420,6 +435,7 @@ pub fn from_cmdline_args(args: &[String]) {
         nonincremental_layout: nonincremental_layout,
         nossl: nossl,
         userscripts: opt_match.opt_default("userscripts", ""),
+        user_stylesheets: user_stylesheets,
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.contains(&"replace-surrogates"),
         gc_profile: debug_options.contains(&"gc-profile"),
