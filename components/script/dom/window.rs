@@ -851,7 +851,7 @@ impl<'a> WindowHelpers for &'a Window {
         *self.js_runtime.borrow_mut() = None;
         *self.browsing_context.borrow_mut() = None;
     }
-    // https://drafts.csswg.org/cssom-view/#dom-window-scroll
+    /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
     fn scroll(self, x_: f64, y_: f64, behavior: ScrollBehavior) {
         // Step 4
         if self.window_size.get().is_none() {
@@ -866,7 +866,7 @@ impl<'a> WindowHelpers for &'a Window {
         let height = self.InnerHeight() as f64;
 
         // Step 7 & 8
-        // TODO use overflow direction
+        //TODO use overflow direction
         let body = self.Document().GetBody();
         let (x, y) = match body {
             Some(e) => {
@@ -884,23 +884,20 @@ impl<'a> WindowHelpers for &'a Window {
         };
 
         // Step 10
-        // TODO handling ongoing smoth scrolling
+        //TODO handling ongoing smoth scrolling
         if x == self.ScrollX() as f64 && y == self.ScrollX() as f64 {
             return;
         }
 
-        // TODO Step 11
-        let document = self.Document();
+        //TODO Step 11
+        //let document = self.Document();
         // Step 12
-        let root = document.r().GetDocumentElement();
-        let root = match root.r() {
-            Some(..) |,
-            None => return
-        };
         self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32), y.to_f32().unwrap_or(0.0f32), behavior);
     }
 
+    /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
     fn perform_a_scroll(self, x: f32, y: f32, _: ScrollBehavior) {
+        //TODO Step 1
         let point = Point2D::new(x, y);
         self.compositor.borrow_mut().scroll_fragment_point(self.pipeline(), LayerId::null(), point)
     }
