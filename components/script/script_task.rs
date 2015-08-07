@@ -78,6 +78,7 @@ use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
+use util::opts;
 
 use euclid::Rect;
 use euclid::point::Point2D;
@@ -89,6 +90,7 @@ use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncr
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_GetRuntime, JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
 use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
+use js::jsapi::{JSGCInvocationKind, GCDescription, SetGCSliceCallback, GCProgress};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::{Url, UrlParser};
@@ -98,6 +100,7 @@ use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
+use std::io::{stdout, Write};
 use std::mem as std_mem;
 use std::option::Option;
 use std::ptr;
@@ -105,7 +108,7 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
-use time::Tm;
+use time::{self, Tm};
 
 use hyper::header::{ContentType, HttpDate};
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -454,6 +457,49 @@ impl ScriptTaskFactory for ScriptTask {
     }
 }
 
+thread_local!(static GC_CYCLE_START: Cell<Option<Tm>> = Cell::new(None));
+thread_local!(static GC_SLICE_START: Cell<Option<Tm>> = Cell::new(None));
+
+unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress, desc: *const GCDescription) {
+    match progress {
+        GCProgress::GC_CYCLE_BEGIN => {
+            GC_CYCLE_START.with(|start| {
+                start.set(Some(time::now()));
+                println!("GC cycle began");
+            })
+        },
+        GCProgress::GC_SLICE_BEGIN => {
+            GC_SLICE_START.with(|start| {
+                start.set(Some(time::now()));
+                println!("GC slice began");
+            })
+        },
+        GCProgress::GC_SLICE_END => {
+            GC_SLICE_START.with(|start| {
+                let dur = time::now() - start.get().unwrap();
+                start.set(None);
+                println!("GC slice ended: duration={}", dur);
+            })
+        },
+        GCProgress::GC_CYCLE_END => {
+            GC_CYCLE_START.with(|start| {
+                let dur = time::now() - start.get().unwrap();
+                start.set(None);
+                println!("GC cycle ended: duration={}", dur);
+            })
+        },
+    };
+    if !desc.is_null() {
+        let desc: &GCDescription = &*desc;
+        let invocationKind = match desc.invocationKind_ {
+            JSGCInvocationKind::GC_NORMAL => "GC_NORMAL",
+            JSGCInvocationKind::GC_SHRINK => "GC_SHRINK",
+        };
+        println!("  isCompartment={}, invocationKind={}", desc.isCompartment_, invocationKind);
+    }
+    let _ = stdout().flush();
+}
+
 unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut libc::c_void) {
     match status {
         JSGCStatus::JSGC_BEGIN => task_state::enter(task_state::IN_GC),
@@ -565,6 +611,11 @@ impl ScriptTask {
         if cfg!(debug_assertions) {
             unsafe {
                 JS_SetGCCallback(runtime.rt(), Some(debug_gc_callback), ptr::null_mut());
+            }
+        }
+        if opts::get().gc_profile {
+            unsafe {
+                SetGCSliceCallback(runtime.rt(), Some(gc_slice_callback));
             }
         }
 
