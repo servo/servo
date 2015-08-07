@@ -423,6 +423,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got load complete message");
                 self.handle_load_complete_msg(&pipeline_id)
             }
+            // The DOM load event fired on a document
+            ConstellationMsg::DOMLoad(pipeline_id) => {
+                debug!("constellation got dom load message");
+                self.handle_dom_load(pipeline_id)
+            }
             // Handle a forward or back request
             ConstellationMsg::Navigate(pipeline_info, direction) => {
                 debug!("constellation got navigation message");
@@ -744,15 +749,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
         let frame_id = match self.pipeline_to_frame_map.get(pipeline_id) {
             Some(frame) => *frame,
-            None => return
+            None => {
+                debug!("frame not found for pipeline id {:?}", pipeline_id);
+                return
+            }
         };
 
         let forward = !self.frame(frame_id).next.is_empty();
         let back = !self.frame(frame_id).prev.is_empty();
         self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
+    }
 
+    fn handle_dom_load(&mut self,
+                       pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
-        if let Some((ref expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
+        if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
+            debug!("Sending load to WebDriver");
             if expected_pipeline_id == pipeline_id {
                 let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
                 webdriver_reset = true;
