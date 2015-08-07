@@ -42,6 +42,11 @@ impl<'a> LocationMethods for &'a Location {
         self.window.root().r().load_url(url);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-location-reload
+    fn Reload(self) {
+        self.window.root().r().load_url(self.get_url().serialize());
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-hash
     fn Hash(self) -> USVString {
         UrlHelper::Hash(&self.get_url())
