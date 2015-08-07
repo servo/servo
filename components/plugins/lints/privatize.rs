@@ -13,7 +13,7 @@ declare_lint!(PRIVATIZE, Deny,
 /// Lint for keeping DOM fields private
 ///
 /// This lint (disable with `-A privatize`/`#[allow(privatize)]`) ensures all types marked with `#[privatize]`
-/// have no private fields
+/// have no public fields
 pub struct PrivatizePass;
 
 impl LintPass for PrivatizePass {

@@ -136,7 +136,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn resource_task<'a>(&'a self) -> &'a ResourceTask {
-        &   self.resource_task
+        &self.resource_task
     }
 
     pub fn get_url<'a>(&'a self) -> &'a Url {

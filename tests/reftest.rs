@@ -8,10 +8,8 @@
 // except according to those terms.
 
 #![feature(append)]
-#![feature(exit_status)]
 #![feature(fs_walk)]
 #![feature(path_ext)]
-#![feature(slice_extras)]
 #![feature(slice_patterns)]
 #![feature(test)]
 
@@ -25,6 +23,7 @@ use std::ffi::OsStr;
 use std::fs::{PathExt, File, walk_dir};
 use std::io::{self, Read, Result};
 use std::path::{Path, PathBuf};
+use std::process;
 use std::process::{Command, Stdio};
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use test::run_tests_console;
@@ -43,7 +42,8 @@ bitflags!(
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut parts = args.tail().split(|e| &**e == "--");
+
+    let mut parts = args[1..].split(|e| &**e == "--");
 
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
@@ -101,8 +101,8 @@ fn main() {
     match run(test_opts,
               all_tests,
               servo_args.iter().map(|x| x.clone()).collect()) {
-        Ok(false) => env::set_exit_status(1), // tests failed
-        Err(_) => env::set_exit_status(2),    // I/O-related failure
+        Ok(false) => process::exit(1), // tests failed
+        Err(_) => process::exit(2),    // I/O-related failure
         _ => (),
     }
 }

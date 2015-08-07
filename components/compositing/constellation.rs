@@ -16,7 +16,7 @@ use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::CanvasMsg;
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlChan, DevtoolsControlMsg};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::point::Point2D;
 use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
@@ -81,7 +81,7 @@ pub struct Constellation<LTF, STF> {
     pub image_cache_task: ImageCacheTask,
 
     /// A channel through which messages can be sent to the developer tools.
-    devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel through which messages can be sent to the storage task.
     storage_task: StorageTask,
@@ -225,7 +225,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  font_cache_task: FontCacheTask,
                  time_profiler_chan: time::ProfilerChan,
                  mem_profiler_chan: mem::ProfilerChan,
-                 devtools_chan: Option<DevtoolsControlChan>,
+                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                  storage_task: StorageTask,
                  supports_clipboard: bool)
                  -> ConstellationChan {
