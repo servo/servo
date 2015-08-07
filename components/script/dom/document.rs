@@ -957,9 +957,10 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         let window = window.r();
         let performance = window.Performance();
         let performance = performance.r();
+        let timing = performance.Now();
 
         for (_, callback) in animation_frame_list {
-            callback(*performance.Now());
+            callback(*timing);
         }
 
         window.reflow(ReflowGoal::ForDisplay,
