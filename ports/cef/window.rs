@@ -26,7 +26,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
-use net::net_error_list::NetError;
+use net_traits::net_error_list::NetError;
 use std::ptr;
 use std_url::Url;
 use util::cursor::Cursor;

@@ -44,7 +44,7 @@ use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use multicol::MulticolFlow;
-use wrapper::ThreadSafeLayoutNode;
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
@@ -58,8 +58,8 @@ use std::raw;
 use std::slice::IterMut;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use style::computed_values::{clear, empty_cells, float, position, text_align};
-use style::properties::ComputedValues;
+use style::computed_values::{clear, display, empty_cells, float, position, text_align};
+use style::properties::{self, ComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::{Au, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
@@ -968,19 +968,18 @@ pub enum ForceNonfloatedFlag {
 
 impl BaseFlow {
     #[inline]
-    pub fn new(node: Option<ThreadSafeLayoutNode>,
+    pub fn new(style: Option<&ComputedValues>,
                writing_mode: WritingMode,
                force_nonfloated: ForceNonfloatedFlag)
                -> BaseFlow {
         let mut flags = FlowFlags::empty();
-        match node {
-            Some(node) => {
-                let node_style = node.style();
-                match node_style.get_box().position {
+        match style {
+            Some(style) => {
+                match style.get_box().position {
                     position::T::absolute | position::T::fixed => {
                         flags.insert(IS_ABSOLUTELY_POSITIONED);
 
-                        let logical_position = node_style.logical_position();
+                        let logical_position = style.logical_position();
                         if logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
                                 logical_position.inline_end == LengthOrPercentageOrAuto::Auto {
                             flags.insert(INLINE_POSITION_IS_STATIC);
@@ -994,14 +993,14 @@ impl BaseFlow {
                 }
 
                 if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
-                    match node_style.get_box().float {
+                    match style.get_box().float {
                         float::T::none => {}
                         float::T::left => flags.insert(FLOATS_LEFT),
                         float::T::right => flags.insert(FLOATS_RIGHT),
                     }
                 }
 
-                match node_style.get_box().clear {
+                match style.get_box().clear {
                     clear::T::none => {}
                     clear::T::left => flags.insert(CLEARS_LEFT),
                     clear::T::right => flags.insert(CLEARS_RIGHT),
@@ -1011,8 +1010,8 @@ impl BaseFlow {
                     }
                 }
 
-                if !node_style.get_counters().counter_reset.0.is_empty() ||
-                        !node_style.get_counters().counter_increment.0.is_empty() {
+                if !style.get_counters().counter_reset.0.is_empty() ||
+                        !style.get_counters().counter_increment.0.is_empty() {
                     flags.insert(AFFECTS_COUNTERS)
                 }
             }
@@ -1192,18 +1191,35 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
     }
 
     /// Generates missing child flow of this flow.
+    ///
+    /// FIXME(pcwalton): This duplicates some logic in
+    /// `generate_anonymous_table_flows_if_necessary()`. We should remove this function eventually,
+    /// as it's harder to understand.
     fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> FlowRef {
+        let mut style = node.style().clone();
         let flow = match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
-                let fragment =
-                    Fragment::new_anonymous_from_specific_info(node,
-                                                               SpecificFragmentInfo::TableRow);
-                box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>
+                properties::modify_style_for_anonymous_table_object(
+                    &mut style,
+                    display::T::table_row);
+                let fragment = Fragment::from_opaque_node_and_style(
+                    node.opaque(),
+                    PseudoElementType::Normal,
+                    style,
+                    node.restyle_damage(),
+                    SpecificFragmentInfo::TableRow);
+                box TableRowFlow::from_fragment(fragment) as Box<Flow>
             },
             FlowClass::TableRow => {
-                let fragment =
-                    Fragment::new_anonymous_from_specific_info(node,
-                                                               SpecificFragmentInfo::TableCell);
+                properties::modify_style_for_anonymous_table_object(
+                    &mut style,
+                    display::T::table_cell);
+                let fragment = Fragment::from_opaque_node_and_style(
+                    node.opaque(),
+                    PseudoElementType::Normal,
+                    style,
+                    node.restyle_damage(),
+                    SpecificFragmentInfo::TableCell);
                 let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide;
                 box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide) as
                     Box<Flow>

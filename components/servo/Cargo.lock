@@ -178,10 +178,8 @@ dependencies = [
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout_traits 0.0.1",
- "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "net 0.0.1",
  "net_traits 0.0.1",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
@@ -567,7 +565,7 @@ dependencies = [
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "net 0.0.1",
+ "net_traits 0.0.1",
  "script_traits 0.0.1",
  "time 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -763,7 +761,7 @@ dependencies = [
  "string_cache 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
- "unicode-bidi 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1333,7 +1331,7 @@ dependencies = [
 [[package]]
 name = "stb_image"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-stb-image#e3f7246caa694e863975ead98f4940d046108fd7"
+source = "git+https://github.com/servo/rust-stb-image#ad05c642b64a9059dd31c37b1a1ac78722821008"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1464,7 +1462,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unicode-bidi"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

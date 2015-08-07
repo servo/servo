@@ -1255,7 +1255,6 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         let transform_style = self.style().get_used_transform_style();
-        let layer = layer.map(|l| Arc::new(l));
 
         Arc::new(StackingContext::new(display_list,
                                       &border_box,

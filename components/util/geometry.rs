@@ -290,3 +290,8 @@ pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
               Size2D::new(Au::from_f32_px(rect.size.width), Au::from_f32_px(rect.size.height)))
 }
 
+/// A helper function to convert a rect of `Au` pixels to a rect of f32 units.
+pub fn au_rect_to_f32_rect(rect: Rect<Au>) -> Rect<f32> {
+    Rect::new(Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
+              Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()))
+}

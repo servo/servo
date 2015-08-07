@@ -133,3 +133,6 @@ Use `./mach run [url]` to run Servo.
 
 There are lots of mach commands you can use. You can list them with `./mach
 --help`.
+
+
+The generated documentation can be found on http://doc.servo.org/servo/index.html

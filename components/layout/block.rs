@@ -45,7 +45,6 @@ use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
-use wrapper::ThreadSafeLayoutNode;
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
@@ -572,13 +571,10 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment,
-                                  float_kind: Option<FloatKind>)
-                                  -> BlockFlow {
-        let writing_mode = node.style().writing_mode;
+    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> BlockFlow {
+        let writing_mode = fragment.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, match float_kind {
+            base: BaseFlow::new(Some(fragment.style()), writing_mode, match float_kind {
                 Some(_) => ForceNonfloatedFlag::FloatIfNecessary,
                 None => ForceNonfloatedFlag::ForceNonfloated,
             }),
@@ -1058,10 +1054,17 @@ impl BlockFlow {
         };
 
         let float_info: FloatedBlockInfo = (**self.float.as_ref().unwrap()).clone();
+
+        // Our `position` field accounts for positive margins, but not negative margins. (See
+        // calculation of `extra_inline_size_from_margin` below.) Negative margins must be taken
+        // into account for float placement, however. So we add them in here.
+        let inline_size_for_float_placement = self.base.position.size.inline +
+            min(Au(0), self.fragment.margin.inline_start_end());
+
         let info = PlacementInfo {
             size: LogicalSize::new(
                 self.fragment.style.writing_mode,
-                self.base.position.size.inline,
+                inline_size_for_float_placement,
                 block_size + self.fragment.margin.block_start_end())
                       .convert(self.fragment.style.writing_mode, self.base.floats.writing_mode),
             ceiling: clearance + float_info.float_ceiling,
@@ -2214,9 +2217,9 @@ pub trait ISizeAndMarginsComputer {
                     container_size - inline_size - fragment.margin.inline_end
                 };
 
-            // To calculate the total size of this block, we also need to account for any additional
-            // size contribution from positive margins. Negative margins means the block isn't made
-            // larger at all by the margin.
+            // To calculate the total size of this block, we also need to account for any
+            // additional size contribution from positive margins. Negative margins means the block
+            // isn't made larger at all by the margin.
             extra_inline_size_from_margin = max(Au(0), fragment.margin.inline_start) +
                                             max(Au(0), fragment.margin.inline_end);
         }

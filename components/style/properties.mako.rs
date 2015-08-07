@@ -6517,6 +6517,17 @@ pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
     }
 }
 
+/// Adjusts the display and position properties as appropriate for an anonymous table object.
+#[inline]
+pub fn modify_style_for_anonymous_table_object(
+        style: &mut Arc<ComputedValues>,
+        new_display_value: longhands::display::computed_value::T) {
+    let mut style = Arc::make_unique(style);
+    let box_style = Arc::make_unique(&mut style.box_);
+    box_style.display = new_display_value;
+    box_style.position = longhands::position::computed_value::T::static_;
+}
+
 pub fn is_supported_property(property: &str) -> bool {
     match_ignore_ascii_case! { property,
         % for property in SHORTHANDS + LONGHANDS[:-1]:

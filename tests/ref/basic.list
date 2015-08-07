@@ -99,6 +99,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == float_under_top_margin_a.html float_under_top_margin_ref.html
 == floated_generated_content_a.html floated_generated_content_b.html
 == floated_list_item_a.html floated_list_item_ref.html
+== floated_negative_margins_a.html floated_negative_margins_ref.html
 == floated_table_with_margin_a.html floated_table_with_margin_ref.html
 == focus_selector.html focus_selector_ref.html
 == font_advance.html font_advance_ref.html
@@ -162,6 +163,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 == inline_hypothetical_box_a.html inline_hypothetical_box_ref.html
 == inline_margin_multiple_fragments_a.html inline_margin_multiple_fragments_ref.html
 == inline_margins_a.html inline_margins_ref.html
+== inline_margins_intrinsic_size_a.html inline_margins_intrinsic_size_ref.html
 == inline_padding_a.html inline_padding_b.html
 # inline_text_align_a.html inline_text_align_b.html
 == inline_whitespace_a.html inline_whitespace_ref.html
@@ -171,6 +173,8 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 == inset.html inset_ref.html
 != inset_blackborder.html blackborder_ref.html
 == issue-1324.html issue-1324-ref.html
+== jpeg_normal.html jpeg_ref.html
+== jpeg_progressive.html jpeg_ref.html
 == jumpiness_a.html jumpiness_ref.html
 == last_child_pseudo_a.html last_child_pseudo_b.html
 == last_of_type_pseudo_a.html last_of_type_pseudo_b.html
@@ -179,6 +183,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 == legacy_table_border_attribute_a.html legacy_table_border_attribute_ref.html
 == legacy_td_bgcolor_attribute_a.html legacy_td_bgcolor_attribute_ref.html
 == legacy_td_width_attribute_a.html legacy_td_width_attribute_ref.html
+== legacy_th_width_attribute_a.html legacy_td_width_attribute_ref.html
 == letter_spacing_a.html letter_spacing_ref.html
 == line_breaking_whitespace_collapse_a.html line_breaking_whitespace_collapse_ref.html
 == line_height_a.html line_height_ref.html
@@ -320,6 +325,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == text_transform_none_a.html text_transform_none_ref.html
 == text_transform_uppercase_a.html text_transform_uppercase_ref.html
 == transform_3d.html transform_3d_ref.html
+== transform_optimization.html transform_optimization_ref.html
 == transform_simple_a.html transform_simple_ref.html
 == transform_stacking_context_a.html transform_stacking_context_ref.html
 == upper_id_attr.html upper_id_attr_ref.html

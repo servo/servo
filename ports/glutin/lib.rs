@@ -15,7 +15,7 @@ extern crate glutin;
 extern crate layers;
 extern crate libc;
 extern crate msg;
-extern crate net;
+extern crate net_traits;
 #[cfg(feature = "window")] extern crate script_traits;
 extern crate time;
 extern crate util;

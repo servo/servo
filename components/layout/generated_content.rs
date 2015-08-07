@@ -530,7 +530,7 @@ pub fn static_representation(list_style_type: list_style_type::T) -> char {
 
 /// Pushes the string that represents the value rendered using the given *alphabetic system* onto
 /// the accumulator per CSS-COUNTER-STYLES § 3.1.4.
-fn push_alphabetic_representation(mut value: i32, system: &[char], accumulator: &mut String) {
+fn push_alphabetic_representation(value: i32, system: &[char], accumulator: &mut String) {
     let mut abs_value = handle_negative_value(value, accumulator);
 
     let mut string: SmallVec<[char; 8]> = SmallVec::new();
@@ -548,7 +548,7 @@ fn push_alphabetic_representation(mut value: i32, system: &[char], accumulator: 
 
 /// Pushes the string that represents the value rendered using the given *numeric system* onto the
 /// accumulator per CSS-COUNTER-STYLES § 3.1.5.
-fn push_numeric_representation(mut value: i32, system: &[char], accumulator: &mut String) {
+fn push_numeric_representation(value: i32, system: &[char], accumulator: &mut String) {
     let mut abs_value = handle_negative_value(value, accumulator);
 
     // Step 1.

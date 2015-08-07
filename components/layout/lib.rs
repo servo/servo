@@ -4,6 +4,7 @@
 
 #![feature(append)]
 #![feature(arc_unique)]
+#![feature(box_str)]
 #![feature(box_syntax)]
 #![feature(cell_extras)]
 #![feature(custom_derive)]
@@ -85,6 +86,7 @@ pub mod model;
 pub mod multicol;
 pub mod opaque_node;
 pub mod parallel;
+pub mod query;
 pub mod sequential;
 pub mod table_wrapper;
 pub mod table;
