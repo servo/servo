@@ -172,8 +172,8 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
                             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan)
                                 => painter.get_image_data(dest_rect, canvas_size, chan),
-                            Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
-                                => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
+                            Canvas2dMsg::PutImageData(imagedata, offset, image_data_size, dirty_rect)
+                                => painter.put_image_data(imagedata, offset, image_data_size, dirty_rect),
                             Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
                             Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
                             Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
@@ -543,20 +543,17 @@ impl<'a> CanvasPaintTask<'a> {
         chan.send(dest_data).unwrap();
     }
 
-    fn put_image_data(&mut self, mut imagedata: Vec<u8>,
-                      image_data_rect: Rect<f64>,
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
+    fn put_image_data(&mut self, imagedata: Vec<u8>,
+                      offset: Point2D<f64>,
+                      image_data_size: Size2D<f64>,
                       mut dirty_rect: Rect<f64>) {
 
-
-        if image_data_rect.size.width <= 0.0 || image_data_rect.size.height <= 0.0 {
+        if image_data_size.width <= 0.0 || image_data_size.height <= 0.0 {
             return
         }
 
-        assert!(image_data_rect.size.width * image_data_rect.size.height * 4.0 == imagedata.len() as f64);
-        // rgba -> bgra
-        byte_swap(&mut imagedata);
-
-        let image_data_size = image_data_rect.size;
+        assert!(image_data_size.width * image_data_size.height * 4.0 == imagedata.len() as f64);
 
         // Step 1. TODO (neutered data)
 
@@ -597,19 +594,41 @@ impl<'a> CanvasPaintTask<'a> {
             return
         }
 
-        // 6) For all integer values of x and y where dirtyX ≤ x < dirty
-        // X+dirtyWidth and dirtyY ≤ y < dirtyY+dirtyHeight, copy the
-        // four channels of the pixel with coordinate (x, y) in the imagedata
-        // data structure's Canvas Pixel ArrayBuffer to the pixel with coordinate
-        // (dx+x, dy+y) in the rendering context's scratch bitmap.
-        // It also clips the destination rectangle to the canvas area
-        let dest_rect = Rect::new(
-            Point2D::new(image_data_rect.origin.x + dirty_rect.origin.x,
-                         image_data_rect.origin.y + dirty_rect.origin.y),
-            Size2D::new(dirty_rect.size.width, dirty_rect.size.height));
+        // Step 6.
+        let dest_rect = dirty_rect.translate(&offset).to_i32();
 
-        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, dirty_rect,
-                     dest_rect, true, self.state.draw_options.composition, self.state.draw_options.alpha)
+        // azure_hl operates with integers. We need to cast the image size
+        let image_size = image_data_size.to_i32();
+
+        let first_pixel = dest_rect.origin - offset.to_i32();
+        let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
+
+        let mut dest = Vec::new();
+        dest.reserve((dest_rect.size.width * dest_rect.size.height * 4) as usize);
+
+        for _ in 0 .. dest_rect.size.height {
+            let mut src_offset = src_line.clone();
+            for _ in 0 .. dest_rect.size.width {
+                // Premultiply alpha and swap RGBA -> BGRA.
+                // TODO: may want a precomputed premultiply table to make this fast.
+                // https://github.com/servo/servo/issues/6969
+                let alpha = imagedata[src_offset + 3] as f32 / 255.;
+                dest.push((imagedata[src_offset + 2] as f32 * alpha) as u8);
+                dest.push((imagedata[src_offset + 1] as f32 * alpha) as u8);
+                dest.push((imagedata[src_offset + 0] as f32 * alpha) as u8);
+                dest.push(imagedata[src_offset + 3]);
+                src_offset += 4;
+            }
+            src_line += (image_size.width * 4) as usize;
+        }
+
+        let source_surface = self.drawtarget.create_source_surface_from_data(
+            &dest,
+            dest_rect.size, dest_rect.size.width * 4, SurfaceFormat::B8G8R8A8);
+
+        self.drawtarget.copy_surface(source_surface,
+                                     Rect::new(Point2D::new(0, 0), dest_rect.size),
+                                     dest_rect.origin);
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
@@ -764,6 +783,17 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
         }
     }
     return false;
+}
+
+pub trait PointToi32 {
+    fn to_i32(&self) -> Point2D<i32>;
+}
+
+impl PointToi32 for Point2D<f64> {
+    fn to_i32(&self) -> Point2D<i32> {
+        Point2D::new(self.x.to_i32().unwrap(),
+                     self.y.to_i32().unwrap())
+    }
 }
 
 pub trait SizeToi32 {
