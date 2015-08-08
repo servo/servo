@@ -62,7 +62,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
 use js::rust::Runtime;
 use js::rust::CompileOptionsWrapper;
 use selectors::parser::PseudoElement;
-use url::{Url, UrlParser};
+use url::Url;
 
 use libc;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
@@ -594,7 +594,7 @@ impl<'a> WindowMethods for &'a Window {
 pub trait WindowHelpers {
     fn clear_js_runtime(self);
     fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>);
-    fn load_url(self, href: DOMString);
+    fn load_url(self, url: Url);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
     fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
@@ -890,12 +890,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    fn load_url(self, href: DOMString) {
-        let base_url = self.get_url();
-        debug!("current page url is {}", base_url);
-        let url = UrlParser::new().base_url(&base_url).parse(&href);
-        // FIXME: handle URL parse errors more gracefully.
-        let url = url.unwrap();
+    fn load_url(self, url: Url) {
         match url.fragment {
             Some(fragment) => {
                 self.script_chan.send(ScriptMsg::TriggerFragment(self.id, fragment)).unwrap();

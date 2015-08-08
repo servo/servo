@@ -29,6 +29,8 @@ use std::default::Default;
 use string_cache::Atom;
 use util::str::DOMString;
 
+use url::UrlParser;
+
 #[dom_struct]
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement,
@@ -155,7 +157,13 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
             value.push_str(&suffix);
         }
         debug!("clicked on link to {}", value);
-        doc.r().load_anchor_href(value);
+
+        let window = doc.window();
+        let base_url = window.get_url();
+        let url = UrlParser::new().base_url(&base_url).parse(&value);
+        // FIXME: handle URL parse errors more gracefully.
+        let url = url.unwrap();
+        window.load_url(url);
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element

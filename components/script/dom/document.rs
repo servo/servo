@@ -242,7 +242,6 @@ pub trait DocumentHelpers<'a> {
     fn disarm_reflow_timeout(self);
     fn unregister_named_element(self, to_unregister: &Element, id: Atom);
     fn register_named_element(self, element: &Element, id: Atom);
-    fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Root<Element>>;
     fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress>;
     fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress>;
@@ -463,11 +462,6 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                 elements.insert(head, JS::from_ref(element));
             }
         }
-    }
-
-    fn load_anchor_href(self, href: DOMString) {
-        let window = self.window.root();
-        window.r().load_url(href);
     }
 
     /// Attempt to find a named element in this page's document.
