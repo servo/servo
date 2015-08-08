@@ -87,6 +87,28 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
             assert!(node.AppendChild(NodeCast::from_ref(caption)).is_ok());
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
+    fn CreateTBody(self) -> Root<HTMLElement> {
+        let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
+                                                 None,
+                                                 document_from_node(self).r());
+        let node = NodeCast::from_ref(self);
+        let last_tbody =
+            node.rev_children()
+                .filter_map(ElementCast::to_root)
+                .find(|n| n.is_htmltablesectionelement() &&
+                       n.local_name() == &atom!("tbody"));
+        let reference_element = match last_tbody {
+            Some(tbody) => NodeCast::from_root(tbody).GetNextSibling(),
+            _ => None
+        };
+        let reference_element = reference_element.as_ref().map(|n| n.r());
+
+        assert!(node.InsertBefore(NodeCast::from_ref(tbody.r()),
+                                  reference_element).is_ok());
+        HTMLElementCast::from_root(tbody)
+    }
 }
 
 pub trait HTMLTableElementHelpers {
