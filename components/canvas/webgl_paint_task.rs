@@ -100,6 +100,14 @@ impl WebGLPaintTask {
                 gl::front_face(mode),
             CanvasWebGLMsg::DrawArrays(mode, first, count) =>
                 gl::draw_arrays(mode, first, count),
+            CanvasWebGLMsg::Hint(name, val) =>
+                gl::hint(name, val),
+            CanvasWebGLMsg::LineWidth(width) =>
+                gl::line_width(width),
+            CanvasWebGLMsg::PixelStorei(name, val) =>
+                gl::pixel_store_i(name, val),
+            CanvasWebGLMsg::PolygonOffset(factor, units) =>
+                gl::polygon_offset(factor, units),
             CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) =>
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
