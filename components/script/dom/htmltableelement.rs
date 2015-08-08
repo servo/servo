@@ -6,14 +6,16 @@ use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLTableCaptionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
-use dom::bindings::js::Root;
+use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
+use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
+use dom::element::{ElementHelpers, ElementTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -109,6 +111,24 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
         if let Some(caption) = self.GetCaption() {
             NodeCast::from_ref(caption.r()).remove_self();
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
+    fn CreateTBody(self) -> Root<HTMLTableSectionElement> {
+        let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
+                                                 None,
+                                                 document_from_node(self).r());
+        let node = NodeCast::from_ref(self);
+        let last_tbody =
+            node.rev_children()
+                .filter_map(ElementCast::to_root)
+                .find(|n| n.is_htmltablesectionelement() && n.local_name() == &atom!("tbody"));
+        let reference_element =
+            last_tbody.and_then(|t| NodeCast::from_root(t).GetNextSibling());
+
+        assert!(node.InsertBefore(NodeCast::from_ref(tbody.r()),
+                                  reference_element.r()).is_ok());
+        tbody
     }
 }
 
