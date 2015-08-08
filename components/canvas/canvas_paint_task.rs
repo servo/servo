@@ -556,45 +556,40 @@ impl<'a> CanvasPaintTask<'a> {
         // rgba -> bgra
         byte_swap(&mut imagedata);
 
-        // 1) If dirtyWidth is negative,
-        // let dirtyX be dirtyX+dirtyWidth,
-        // and let dirtyWidth be equal to the absolute magnitude of dirtyWidth.
+        let image_data_size = image_data_rect.size;
+
+        // Step 1. TODO (neutered data)
+
+        // Step 2.
         if dirty_rect.size.width < 0.0f64 {
-            dirty_rect.origin.x = dirty_rect.origin.x + dirty_rect.size.width;
+            dirty_rect.origin.x += dirty_rect.size.width;
             dirty_rect.size.width = -dirty_rect.size.width;
         }
 
-        // 2) If dirtyHeight is negative, let dirtyY be dirtyY+dirtyHeight,
-        // and let dirtyHeight be equal to the absolute magnitude of dirtyHeight.
         if dirty_rect.size.height < 0.0f64 {
-            dirty_rect.origin.y = dirty_rect.origin.y + dirty_rect.size.height;
+            dirty_rect.origin.y += dirty_rect.size.height;
             dirty_rect.size.height = -dirty_rect.size.height;
         }
 
-        // 3) If dirtyX is negative, let dirtyWidth be dirtyWidth+dirtyX, and let dirtyX be zero.
+        // Step 3.
         if dirty_rect.origin.x < 0.0f64 {
             dirty_rect.size.width += dirty_rect.origin.x;
             dirty_rect.origin.x = 0.0f64;
         }
 
-        // 3) If dirtyY is negative, let dirtyHeight be dirtyHeight+dirtyY, and let dirtyY be zero.
         if dirty_rect.origin.y < 0.0f64 {
             dirty_rect.size.height += dirty_rect.origin.y;
             dirty_rect.origin.y = 0.0f64;
         }
 
-        // 4) If dirtyX+dirtyWidth is greater than the width attribute of the imagedata argument,
-        // let dirtyWidth be the value of that width attribute, minus the value of dirtyX.
-        if dirty_rect.origin.x + dirty_rect.size.width > image_data_rect.size.width {
-            dirty_rect.size.width = image_data_rect.size.width - dirty_rect.origin.x;
+        // Step 4.
+        if dirty_rect.max_x() > image_data_size.width {
+            dirty_rect.size.width = image_data_size.width - dirty_rect.origin.x;
         }
 
-        // 4) If dirtyY+dirtyHeight is greater than the height attribute of the imagedata argument,
-        // let dirtyHeight be the value of that height attribute, minus the value of dirtyY.
-        if dirty_rect.origin.y + dirty_rect.size.height > image_data_rect.size.height {
-            dirty_rect.size.height = image_data_rect.size.height - dirty_rect.origin.y;
+        if dirty_rect.max_y() > image_data_size.height {
+            dirty_rect.size.height = image_data_size.height - dirty_rect.origin.y;
         }
-
 
         // 5) If either dirtyWidth or dirtyHeight is negative or zero,
         // stop without affecting any bitmaps
