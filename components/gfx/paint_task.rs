@@ -334,7 +334,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
               &Matrix4::identity(),
               &Matrix4::identity(),
               None);
-        self.compositor.initialize_layers_for_pipeline(self.id, properties, self.current_epoch.unwrap());
+        self.compositor.initialize_layers_for_pipeline(self.id,
+                                                       properties,
+                                                       self.current_epoch.unwrap());
 
         fn build(properties: &mut Vec<LayerProperties>,
                  stacking_context: &StackingContext,

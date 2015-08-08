@@ -477,7 +477,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     (-border.left, -border.top)
                 }
                 background_origin::T::content_box => {
-                    let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
+                    let border_padding = self.border_padding.to_physical(self.style.writing_mode);
                     (border_padding.left - border.left, border_padding.top - border.top)
                 }
             };
@@ -676,10 +676,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
-            let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
-                                                                                box_shadow.offset_y)),
-                                       box_shadow.blur_radius,
-                                       box_shadow.spread_radius);
+            let bounds =
+                shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
+                                                                       box_shadow.offset_y)),
+                              box_shadow.blur_radius,
+                              box_shadow.spread_radius);
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
@@ -1557,7 +1558,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     ScrollPolicy::Scrollable
                 };
 
-                let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
+                let paint_layer = PaintLayer::new(self.layer_id(0),
+                                                  color::transparent(),
+                                                  scroll_policy);
                 let layer = StackingContextLayer::Existing(paint_layer);
                 let stacking_context = self.fragment.create_stacking_context(
                     &self.base,
