@@ -733,23 +733,7 @@ fn write_image(draw_target: &DrawTarget,
     let image_rect = Rect::new(Point2D::zero(), image_size);
     // rgba -> bgra
     byte_swap(&mut image_data);
-    write_pixels(&draw_target, &image_data, image_size, image_rect,
-                 dest_rect, smoothing_enabled, composition_op, global_alpha);
-}
 
-/// It writes image data to the target
-/// draw_target: the destination target where the imagedata will be copied
-/// source_rect: the area of the image data to be written
-/// dest_rect: The area of the target where the imagedata will be copied
-/// smoothing_enabled: if smoothing is applied to the copied pixels
-fn write_pixels(draw_target: &DrawTarget,
-                image_data: &[u8],
-                image_size: Size2D<f64>,
-                source_rect: Rect<f64>,
-                dest_rect: Rect<f64>,
-                smoothing_enabled: bool,
-                composition_op: CompositionOp,
-                global_alpha: f32) {
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
     // to apply a smoothing algorithm to the image data when it is scaled.
@@ -771,7 +755,7 @@ fn write_pixels(draw_target: &DrawTarget,
 
     draw_target.draw_surface(source_surface,
                              dest_rect.to_azfloat(),
-                             source_rect.to_azfloat(),
+                             image_rect.to_azfloat(),
                              draw_surface_options,
                              draw_options);
 }
