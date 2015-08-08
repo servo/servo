@@ -56,55 +56,6 @@ impl<'a> CanvasPaintTask<'a> {
 
         image_data
     }
-
-    /// dirty_rect: original dirty_rect provided by the putImageData call
-    /// image_data_rect: the area of the image to be copied
-    /// Result: It retuns the modified dirty_rect by the rules described in
-    /// the spec https://html.spec.whatwg.org/#dom-context-2d-putimagedata
-    fn calculate_dirty_rect(&self,
-                            mut dirty_rect: Rect<f64>,
-                            image_data_rect: Rect<f64>) -> Rect<f64>{
-        // 1) If dirtyWidth is negative,
-        // let dirtyX be dirtyX+dirtyWidth,
-        // and let dirtyWidth be equal to the absolute magnitude of dirtyWidth.
-        if dirty_rect.size.width < 0.0f64 {
-            dirty_rect.origin.x = dirty_rect.origin.x + dirty_rect.size.width;
-            dirty_rect.size.width = -dirty_rect.size.width;
-        }
-
-        // 2) If dirtyHeight is negative, let dirtyY be dirtyY+dirtyHeight,
-        // and let dirtyHeight be equal to the absolute magnitude of dirtyHeight.
-        if dirty_rect.size.height < 0.0f64 {
-            dirty_rect.origin.y = dirty_rect.origin.y + dirty_rect.size.height;
-            dirty_rect.size.height = -dirty_rect.size.height;
-        }
-
-        // 3) If dirtyX is negative, let dirtyWidth be dirtyWidth+dirtyX, and let dirtyX be zero.
-        if dirty_rect.origin.x < 0.0f64 {
-            dirty_rect.size.width += dirty_rect.origin.x;
-            dirty_rect.origin.x = 0.0f64;
-        }
-
-        // 3) If dirtyY is negative, let dirtyHeight be dirtyHeight+dirtyY, and let dirtyY be zero.
-        if dirty_rect.origin.y < 0.0f64 {
-            dirty_rect.size.height += dirty_rect.origin.y;
-            dirty_rect.origin.y = 0.0f64;
-        }
-
-        // 4) If dirtyX+dirtyWidth is greater than the width attribute of the imagedata argument,
-        // let dirtyWidth be the value of that width attribute, minus the value of dirtyX.
-        if dirty_rect.origin.x + dirty_rect.size.width > image_data_rect.size.width {
-            dirty_rect.size.width = image_data_rect.size.width - dirty_rect.origin.x;
-        }
-
-        // 4) If dirtyY+dirtyHeight is greater than the height attribute of the imagedata argument,
-        // let dirtyHeight be the value of that height attribute, minus the value of dirtyY.
-        if dirty_rect.origin.y + dirty_rect.size.height > image_data_rect.size.height {
-            dirty_rect.size.height = image_data_rect.size.height - dirty_rect.origin.y;
-        }
-
-        dirty_rect
-    }
 }
 
 pub struct CanvasPaintTask<'a> {
@@ -594,7 +545,8 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn put_image_data(&mut self, mut imagedata: Vec<u8>,
                       image_data_rect: Rect<f64>,
-                      dirty_rect: Rect<f64>) {
+                      mut dirty_rect: Rect<f64>) {
+
 
         if image_data_rect.size.width <= 0.0 || image_data_rect.size.height <= 0.0 {
             return
@@ -604,13 +556,49 @@ impl<'a> CanvasPaintTask<'a> {
         // rgba -> bgra
         byte_swap(&mut imagedata);
 
-        // Dirty rectangle defines the area of the source image to be copied
-        // on the destination canvas
-        let source_rect = self.calculate_dirty_rect(dirty_rect, image_data_rect);
+        // 1) If dirtyWidth is negative,
+        // let dirtyX be dirtyX+dirtyWidth,
+        // and let dirtyWidth be equal to the absolute magnitude of dirtyWidth.
+        if dirty_rect.size.width < 0.0f64 {
+            dirty_rect.origin.x = dirty_rect.origin.x + dirty_rect.size.width;
+            dirty_rect.size.width = -dirty_rect.size.width;
+        }
+
+        // 2) If dirtyHeight is negative, let dirtyY be dirtyY+dirtyHeight,
+        // and let dirtyHeight be equal to the absolute magnitude of dirtyHeight.
+        if dirty_rect.size.height < 0.0f64 {
+            dirty_rect.origin.y = dirty_rect.origin.y + dirty_rect.size.height;
+            dirty_rect.size.height = -dirty_rect.size.height;
+        }
+
+        // 3) If dirtyX is negative, let dirtyWidth be dirtyWidth+dirtyX, and let dirtyX be zero.
+        if dirty_rect.origin.x < 0.0f64 {
+            dirty_rect.size.width += dirty_rect.origin.x;
+            dirty_rect.origin.x = 0.0f64;
+        }
+
+        // 3) If dirtyY is negative, let dirtyHeight be dirtyHeight+dirtyY, and let dirtyY be zero.
+        if dirty_rect.origin.y < 0.0f64 {
+            dirty_rect.size.height += dirty_rect.origin.y;
+            dirty_rect.origin.y = 0.0f64;
+        }
+
+        // 4) If dirtyX+dirtyWidth is greater than the width attribute of the imagedata argument,
+        // let dirtyWidth be the value of that width attribute, minus the value of dirtyX.
+        if dirty_rect.origin.x + dirty_rect.size.width > image_data_rect.size.width {
+            dirty_rect.size.width = image_data_rect.size.width - dirty_rect.origin.x;
+        }
+
+        // 4) If dirtyY+dirtyHeight is greater than the height attribute of the imagedata argument,
+        // let dirtyHeight be the value of that height attribute, minus the value of dirtyY.
+        if dirty_rect.origin.y + dirty_rect.size.height > image_data_rect.size.height {
+            dirty_rect.size.height = image_data_rect.size.height - dirty_rect.origin.y;
+        }
+
 
         // 5) If either dirtyWidth or dirtyHeight is negative or zero,
         // stop without affecting any bitmaps
-        if source_rect.size.width <= 0.0 || source_rect.size.height <= 0.0 {
+        if dirty_rect.size.width <= 0.0 || dirty_rect.size.height <= 0.0 {
             return
         }
 
@@ -621,11 +609,11 @@ impl<'a> CanvasPaintTask<'a> {
         // (dx+x, dy+y) in the rendering context's scratch bitmap.
         // It also clips the destination rectangle to the canvas area
         let dest_rect = Rect::new(
-            Point2D::new(image_data_rect.origin.x + source_rect.origin.x,
-                         image_data_rect.origin.y + source_rect.origin.y),
-            Size2D::new(source_rect.size.width, source_rect.size.height));
+            Point2D::new(image_data_rect.origin.x + dirty_rect.origin.x,
+                         image_data_rect.origin.y + dirty_rect.origin.y),
+            Size2D::new(dirty_rect.size.width, dirty_rect.size.height));
 
-        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect,
+        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, dirty_rect,
                      dest_rect, true, self.state.draw_options.composition, self.state.draw_options.alpha)
     }
 
