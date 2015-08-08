@@ -24,7 +24,7 @@ use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use util::opts;
 use style::properties::ComputedValues;
-use style::computed_values::list_style_type;
+use style::computed_values::{list_style_type, position};
 use std::sync::Arc;
 
 /// A block with the CSS `display` property equal to `list-item`.
@@ -130,6 +130,10 @@ impl Flow for ListItemFlow {
         self.block_flow.place_float_if_applicable(layout_context)
     }
 
+    fn is_absolute_containing_block(&self) -> bool {
+        self.block_flow.is_absolute_containing_block()
+    }
+
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
         self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
     }
@@ -157,11 +161,18 @@ impl Flow for ListItemFlow {
         self.block_flow.generated_containing_block_size(flow)
     }
 
+    /// The 'position' property of this flow.
+    fn positioning(&self) -> position::T {
+        self.block_flow.positioning()
+    }
+
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
                                              level: i32,
                                              stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
+        self.block_flow.iterate_through_fragment_border_boxes(iterator,
+                                                              level,
+                                                              stacking_context_position);
 
         for marker in &self.marker_fragments {
             if iterator.should_process(marker) {
