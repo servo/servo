@@ -109,9 +109,6 @@ pub struct SharedLayoutContext {
     /// The URL.
     pub url: Url,
 
-    /// The dirty rectangle, used during display list building.
-    pub dirty: Rect<Au>,
-
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     pub generation: u32,

@@ -900,21 +900,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                               relative_containing_block_mode,
                                               CoordinateSystem::Own);
 
-        debug!("Fragment::build_display_list at rel={:?}, abs={:?}, dirty={:?}, flow origin={:?}: \
-                {:?}",
+        debug!("Fragment::build_display_list at rel={:?}, abs={:?}, flow origin={:?}: {:?}",
                self.border_box,
                stacking_relative_border_box,
-               layout_context.shared.dirty,
                stacking_relative_flow_origin,
                self);
 
         if !stacking_relative_border_box.intersects(stacking_relative_display_port) {
             debug!("Fragment::build_display_list: outside display port");
-            return
-        }
-
-        if !stacking_relative_border_box.intersects(&layout_context.shared.dirty) {
-            debug!("Fragment::build_display_list: Did not intersect...");
             return
         }
 
