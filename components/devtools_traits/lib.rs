@@ -37,7 +37,6 @@ use ipc_channel::ipc::IpcSender;
 use time::Duration;
 
 use std::net::TcpStream;
-use std::sync::mpsc::{Receiver, Sender};
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
