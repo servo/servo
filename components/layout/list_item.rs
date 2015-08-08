@@ -170,7 +170,9 @@ impl Flow for ListItemFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              level: i32,
                                              stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
+        self.block_flow.iterate_through_fragment_border_boxes(iterator,
+                                                              level,
+                                                              stacking_context_position);
 
         for marker in &self.marker_fragments {
             if iterator.should_process(marker) {
