@@ -476,7 +476,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     (-border.left, -border.top)
                 }
                 background_origin::T::content_box => {
-                    let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
+                    let border_padding = self.border_padding.to_physical(self.style.writing_mode);
                     (border_padding.left - border.left, border_padding.top - border.top)
                 }
             };
@@ -675,10 +675,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
-            let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
-                                                                                box_shadow.offset_y)),
-                                       box_shadow.blur_radius,
-                                       box_shadow.spread_radius);
+            let bounds =
+                shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
+                                                                       box_shadow.offset_y)),
+                              box_shadow.blur_radius,
+                              box_shadow.spread_radius);
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
@@ -1326,25 +1327,19 @@ impl FragmentDisplayListBuilding for Fragment {
         // FIXME(pcwalton): This may be more complex than it needs to be, since it seems to be
         // impossible with the computed value rules as they are to have `overflow-x: visible` with
         // `overflow-y: <scrolling>` or vice versa!
-        match self.style.get_box().overflow_x {
-            overflow_x::T::hidden | overflow_x::T::auto | overflow_x::T::scroll => {
-                let mut bounds = current_clip.bounding_rect();
-                let max_x = cmp::min(bounds.max_x(), stacking_relative_border_box.max_x());
-                bounds.origin.x = cmp::max(bounds.origin.x, stacking_relative_border_box.origin.x);
-                bounds.size.width = max_x - bounds.origin.x;
-                current_clip = current_clip.intersect_rect(&bounds)
-            }
-            _ => {}
+        if self.style.get_box().overflow_x == overflow_x::T::hidden {
+            let mut bounds = current_clip.bounding_rect();
+            let max_x = cmp::min(bounds.max_x(), stacking_relative_border_box.max_x());
+            bounds.origin.x = cmp::max(bounds.origin.x, stacking_relative_border_box.origin.x);
+            bounds.size.width = max_x - bounds.origin.x;
+            current_clip = current_clip.intersect_rect(&bounds)
         }
-        match self.style.get_box().overflow_y.0 {
-            overflow_x::T::hidden | overflow_x::T::auto | overflow_x::T::scroll => {
-                let mut bounds = current_clip.bounding_rect();
-                let max_y = cmp::min(bounds.max_y(), stacking_relative_border_box.max_y());
-                bounds.origin.y = cmp::max(bounds.origin.y, stacking_relative_border_box.origin.y);
-                bounds.size.height = max_y - bounds.origin.y;
-                current_clip = current_clip.intersect_rect(&bounds)
-            }
-            _ => {}
+        if self.style.get_box().overflow_y.0 == overflow_x::T::hidden {
+            let mut bounds = current_clip.bounding_rect();
+            let max_y = cmp::min(bounds.max_y(), stacking_relative_border_box.max_y());
+            bounds.origin.y = cmp::max(bounds.origin.y, stacking_relative_border_box.origin.y);
+            bounds.size.height = max_y - bounds.origin.y;
+            current_clip = current_clip.intersect_rect(&bounds)
         }
 
         current_clip
@@ -1550,7 +1545,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     ScrollPolicy::Scrollable
                 };
 
-                let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
+                let paint_layer = PaintLayer::new(self.layer_id(0),
+                                                  color::transparent(),
+                                                  scroll_policy);
                 let layer = StackingContextLayer::Existing(paint_layer);
                 let stacking_context = self.fragment.create_stacking_context(
                     &self.base,

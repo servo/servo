@@ -255,13 +255,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> IOCompositor<Window> {
-
         // Register this thread as a memory reporter, via its own channel.
         let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
         let compositor_proxy_for_memory_reporter = sender.clone_compositor_proxy();
         ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
             let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(reporter_request.reports_channel));
+            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(
+                    reporter_request.reports_channel));
         });
         let reporter = Reporter(reporter_sender);
         mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
@@ -376,7 +376,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.get_title_for_main_frame();
             }
 
-            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties), ShutdownState::NotShuttingDown) => {
+            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
+             ShutdownState::NotShuttingDown) => {
                 self.get_or_create_pipeline_details(pipeline_id).current_epoch = epoch;
                 for (index, layer_properties) in properties.iter().enumerate() {
                     if index == 0 {
@@ -692,7 +693,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn create_or_update_base_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+    fn create_or_update_base_layer(&mut self,
+                                   pipeline_id: PipelineId,
+                                   layer_properties: LayerProperties) {
         debug_assert!(layer_properties.parent_id.is_none());
 
         let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
