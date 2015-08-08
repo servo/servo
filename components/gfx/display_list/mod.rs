@@ -252,6 +252,9 @@ pub struct StackingContext {
 
     /// Whether this stacking context creates a new 3d rendering context.
     pub establishes_3d_context: bool,
+
+    /// Whether this stacking context scrolls its overflow area.
+    pub scrolls_overflow_area: bool,
 }
 
 impl StackingContext {
@@ -266,7 +269,8 @@ impl StackingContext {
                layer: Option<PaintLayer>,
                transform: Matrix4,
                perspective: Matrix4,
-               establishes_3d_context: bool)
+               establishes_3d_context: bool,
+               scrolls_overflow_area: bool)
                -> StackingContext {
         StackingContext {
             display_list: display_list,
@@ -279,6 +283,7 @@ impl StackingContext {
             transform: transform,
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
+            scrolls_overflow_area: scrolls_overflow_area,
         }
     }
 

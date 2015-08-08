@@ -629,6 +629,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             transform: Matrix4::identity(),
             perspective: Matrix4::identity(),
             establishes_3d_context: true,
+            scrolls_overflow_area: false,
         };
 
         let root_layer = CompositorData::new_layer(pipeline.id,
@@ -740,10 +741,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         if let Some(parent_layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
                                                                                parent_id) {
+            let wants_scroll_events = if layer_properties.scrolls_overflow_area {
+                WantsScrollEventsFlag::WantsScrollEvents
+            } else {
+                WantsScrollEventsFlag::DoesntWantScrollEvents
+            };
+
             let new_layer = CompositorData::new_layer(pipeline_id,
                                                       layer_properties,
-                                                      WantsScrollEventsFlag::DoesntWantScrollEvents,
+                                                      wants_scroll_events,
                                                       parent_layer.tile_size);
+
+            if layer_properties.scrolls_overflow_area {
+                *new_layer.masks_to_bounds.borrow_mut() = true
+            }
+
             parent_layer.add_child(new_layer);
         }
     }
