@@ -1627,7 +1627,8 @@ impl Flow for InlineFlow {
                                                           .relative_containing_block_mode,
                                                       CoordinateSystem::Parent);
             let clip = fragment.clipping_region_for_children(&self.base.clip,
-                                                             &stacking_relative_border_box);
+                                                             &stacking_relative_border_box,
+                                                             false);
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;

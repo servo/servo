@@ -1046,7 +1046,8 @@ impl LayoutTask {
                                                                      Some(paint_layer),
                                                                      Matrix4::identity(),
                                                                      Matrix4::identity(),
-                                                                     true));
+                                                                     true,
+                                                                     false));
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
