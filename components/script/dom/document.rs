@@ -18,10 +18,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyE
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
+use dom::bindings::codegen::InheritTypes::HTMLTitleElementDerived;
 use dom::bindings::codegen::InheritTypes::ElementDerived;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
@@ -108,6 +105,8 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
+pub type CollectionKey = (usize, CollectionFilter);
+
 // https://dom.spec.whatwg.org/#document
 #[dom_struct]
 #[derive(HeapSizeOf)]
@@ -123,13 +122,6 @@ pub struct Document {
     is_html_document: bool,
     url: Url,
     quirks_mode: Cell<QuirksMode>,
-    images: MutNullableHeap<JS<HTMLCollection>>,
-    embeds: MutNullableHeap<JS<HTMLCollection>>,
-    links: MutNullableHeap<JS<HTMLCollection>>,
-    forms: MutNullableHeap<JS<HTMLCollection>>,
-    scripts: MutNullableHeap<JS<HTMLCollection>>,
-    anchors: MutNullableHeap<JS<HTMLCollection>>,
-    applets: MutNullableHeap<JS<HTMLCollection>>,
     ready_state: Cell<DocumentReadyState>,
     /// The element that has most recently requested focus for itself.
     possibly_focused: MutNullableHeap<JS<Element>>,
@@ -153,6 +145,8 @@ pub struct Document {
     current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
+    /// A cache of HTMLCollections for fast querying
+    html_collections: RefCell<HashMap<CollectionKey, JS<HTMLCollection>>>,
 }
 
 impl PartialEq for Document {
@@ -164,63 +158,6 @@ impl PartialEq for Document {
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
         *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Document)
-    }
-}
-
-#[derive(JSTraceable)]
-struct ImagesFilter;
-impl CollectionFilter for ImagesFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlimageelement()
-    }
-}
-
-#[derive(JSTraceable)]
-struct EmbedsFilter;
-impl CollectionFilter for EmbedsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlembedelement()
-    }
-}
-
-#[derive(JSTraceable)]
-struct LinksFilter;
-impl CollectionFilter for LinksFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
-            elem.has_attribute(&atom!("href"))
-    }
-}
-
-#[derive(JSTraceable)]
-struct FormsFilter;
-impl CollectionFilter for FormsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlformelement()
-    }
-}
-
-#[derive(JSTraceable)]
-struct ScriptsFilter;
-impl CollectionFilter for ScriptsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlscriptelement()
-    }
-}
-
-#[derive(JSTraceable)]
-struct AnchorsFilter;
-impl CollectionFilter for AnchorsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlanchorelement() && elem.has_attribute(&atom!("href"))
-    }
-}
-
-#[derive(JSTraceable)]
-struct AppletsFilter;
-impl CollectionFilter for AppletsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlappletelement()
     }
 }
 
@@ -292,6 +229,8 @@ pub trait DocumentHelpers<'a> {
     fn set_current_parser(self, script: Option<&ServoHTMLParser>);
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>>;
     fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>>;
+    fn get_collection(self, key: &CollectionKey) -> Option<Root<HTMLCollection>>;
+    fn add_collection(self, key: CollectionKey, value: &HTMLCollection);
 }
 
 impl<'a> DocumentHelpers<'a> for &'a Document {
@@ -1005,6 +944,14 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             .filter_map(HTMLIFrameElementCast::to_root)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
+
+    fn get_collection(self, key: &CollectionKey) -> Option<Root<HTMLCollection>> {
+        self.html_collections.borrow().get(key).map(|r| r.root())
+    }
+
+    fn add_collection(self, key: CollectionKey, value: &HTMLCollection) {
+        self.html_collections.borrow_mut().insert(key, JS::from_ref(value));
+    }
 }
 
 pub enum MouseEventType {
@@ -1072,13 +1019,6 @@ impl Document {
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: DOMRefCell::new("UTF-8".to_owned()),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
-            images: Default::default(),
-            embeds: Default::default(),
-            links: Default::default(),
-            forms: Default::default(),
-            scripts: Default::default(),
-            anchors: Default::default(),
-            applets: Default::default(),
             ready_state: Cell::new(ready_state),
             possibly_focused: Default::default(),
             focused: Default::default(),
@@ -1089,6 +1029,7 @@ impl Document {
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
+            html_collections: RefCell::new(HashMap::new()),
         }
     }
 
@@ -1120,6 +1061,54 @@ impl Document {
             node.set_owner_doc(document.r());
         }
         document
+    }
+
+    // https://html.spec.whatwg.org/#dom-document-nameditem-filter
+    pub fn filter_by_name(name: &Atom, node: &Node) -> bool {
+        let html_elem_type = match node.type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+            _ => return false,
+        };
+        let elem = match ElementCast::to_ref(node) {
+            Some(elem) => elem,
+            None => return false,
+        };
+        match html_elem_type {
+            HTMLElementTypeId::HTMLAppletElement => {
+                match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    Some(ref attr) if attr.r().value().atom() == Some(name) => true,
+                    _ => {
+                        match elem.get_attribute(&ns!(""), &atom!("id")) {
+                            Some(ref attr) => attr.r().value().atom() == Some(name),
+                            None => false,
+                        }
+                    },
+                }
+            },
+            HTMLElementTypeId::HTMLFormElement => {
+                match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    Some(ref attr) => attr.r().value().atom() == Some(name),
+                    None => false,
+                }
+            },
+            HTMLElementTypeId::HTMLImageElement => {
+                match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    Some(ref attr) => {
+                        if attr.r().value().atom() == Some(name) {
+                            true
+                        } else {
+                            match elem.get_attribute(&ns!(""), &atom!("id")) {
+                                Some(ref attr) => attr.r().value().atom() == Some(name),
+                                None => false,
+                            }
+                        }
+                    },
+                    None => false,
+                }
+            },
+            // TODO: Handle <embed>, <iframe> and <object>.
+            _ => false,
+        }
     }
 }
 
@@ -1586,22 +1575,18 @@ impl<'a> DocumentMethods for &'a Document {
 
     // https://html.spec.whatwg.org/#dom-document-images
     fn Images(self) -> Root<HTMLCollection> {
-        self.images.or_init(|| {
-            let window = self.window.root();
-            let root = NodeCast::from_ref(self);
-            let filter = box ImagesFilter;
-            HTMLCollection::create(window.r(), root, filter)
-        })
+        let window = self.window.root();
+        let root = NodeCast::from_ref(self);
+        let filter = CollectionFilter::Images;
+        HTMLCollection::create(window.r(), root, filter)
     }
 
     // https://html.spec.whatwg.org/#dom-document-embeds
     fn Embeds(self) -> Root<HTMLCollection> {
-        self.embeds.or_init(|| {
-            let window = self.window.root();
-            let root = NodeCast::from_ref(self);
-            let filter = box EmbedsFilter;
-            HTMLCollection::create(window.r(), root, filter)
-        })
+        let window = self.window.root();
+        let root = NodeCast::from_ref(self);
+        let filter = CollectionFilter::Embeds;
+        HTMLCollection::create(window.r(), root, filter)
     }
 
     // https://html.spec.whatwg.org/#dom-document-plugins
@@ -1611,53 +1596,43 @@ impl<'a> DocumentMethods for &'a Document {
 
     // https://html.spec.whatwg.org/#dom-document-links
     fn Links(self) -> Root<HTMLCollection> {
-        self.links.or_init(|| {
-            let window = self.window.root();
-            let root = NodeCast::from_ref(self);
-            let filter = box LinksFilter;
-            HTMLCollection::create(window.r(), root, filter)
-        })
+        let window = self.window.root();
+        let root = NodeCast::from_ref(self);
+        let filter = CollectionFilter::Links;
+        HTMLCollection::create(window.r(), root, filter)
     }
 
     // https://html.spec.whatwg.org/#dom-document-forms
     fn Forms(self) -> Root<HTMLCollection> {
-        self.forms.or_init(|| {
-            let window = self.window.root();
-            let root = NodeCast::from_ref(self);
-            let filter = box FormsFilter;
-            HTMLCollection::create(window.r(), root, filter)
-        })
+        let window = self.window.root();
+        let root = NodeCast::from_ref(self);
+        let filter = CollectionFilter::Forms;
+        HTMLCollection::create(window.r(), root, filter)
     }
 
     // https://html.spec.whatwg.org/#dom-document-scripts
     fn Scripts(self) -> Root<HTMLCollection> {
-        self.scripts.or_init(|| {
-            let window = self.window.root();
-            let root = NodeCast::from_ref(self);
-            let filter = box ScriptsFilter;
-            HTMLCollection::create(window.r(), root, filter)
-        })
+        let window = self.window.root();
+        let root = NodeCast::from_ref(self);
+        let filter = CollectionFilter::Scripts;
+        HTMLCollection::create(window.r(), root, filter)
     }
 
     // https://html.spec.whatwg.org/#dom-document-anchors
     fn Anchors(self) -> Root<HTMLCollection> {
-        self.anchors.or_init(|| {
-            let window = self.window.root();
-            let root = NodeCast::from_ref(self);
-            let filter = box AnchorsFilter;
-            HTMLCollection::create(window.r(), root, filter)
-        })
+        let window = self.window.root();
+        let root = NodeCast::from_ref(self);
+        let filter = CollectionFilter::Anchors;
+        HTMLCollection::create(window.r(), root, filter)
     }
 
     // https://html.spec.whatwg.org/#dom-document-applets
     fn Applets(self) -> Root<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
-        self.applets.or_init(|| {
-            let window = self.window.root();
-            let root = NodeCast::from_ref(self);
-            let filter = box AppletsFilter;
-            HTMLCollection::create(window.r(), root, filter)
-        })
+        let window = self.window.root();
+        let root = NodeCast::from_ref(self);
+        let filter = CollectionFilter::Applets;
+        HTMLCollection::create(window.r(), root, filter)
     }
 
     // https://html.spec.whatwg.org/#dom-document-location
@@ -1759,68 +1734,12 @@ impl<'a> DocumentMethods for &'a Document {
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
                    -> *mut JSObject {
-        #[derive(JSTraceable)]
-        struct NamedElementFilter {
-            name: Atom,
-        }
-        impl CollectionFilter for NamedElementFilter {
-            fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                filter_by_name(&self.name, NodeCast::from_ref(elem))
-            }
-        }
-        // https://html.spec.whatwg.org/#dom-document-nameditem-filter
-        fn filter_by_name(name: &Atom, node: &Node) -> bool {
-            let html_elem_type = match node.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
-                _ => return false,
-            };
-            let elem = match ElementCast::to_ref(node) {
-                Some(elem) => elem,
-                None => return false,
-            };
-            match html_elem_type {
-                HTMLElementTypeId::HTMLAppletElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) if attr.r().value().atom() == Some(name) => true,
-                        _ => {
-                            match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                Some(ref attr) => attr.r().value().atom() == Some(name),
-                                None => false,
-                            }
-                        },
-                    }
-                },
-                HTMLElementTypeId::HTMLFormElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) => attr.r().value().atom() == Some(name),
-                        None => false,
-                    }
-                },
-                HTMLElementTypeId::HTMLImageElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) => {
-                            if attr.r().value().atom() == Some(name) {
-                                true
-                            } else {
-                                match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                    Some(ref attr) => attr.r().value().atom() == Some(name),
-                                    None => false,
-                                }
-                            }
-                        },
-                        None => false,
-                    }
-                },
-                // TODO: Handle <embed>, <iframe> and <object>.
-                _ => false,
-            }
-        }
         let name = Atom::from_slice(&name);
         let root = NodeCast::from_ref(self);
         {
             // Step 1.
             let mut elements = root.traverse_preorder().filter(|node| {
-                filter_by_name(&name, node.r())
+                Document::filter_by_name(&name, node.r())
             }).peekable();
             if let Some(first) = elements.next() {
                 if elements.is_empty() {
@@ -1837,8 +1756,8 @@ impl<'a> DocumentMethods for &'a Document {
         // Step 4.
         *found = true;
         let window = self.window();
-        let filter = NamedElementFilter { name: name };
-        let collection = HTMLCollection::create(window.r(), root, box filter);
+        let filter = CollectionFilter::NamedElement(name);
+        let collection = HTMLCollection::create(window.r(), root, filter);
         collection.r().reflector().get_jsobject().get()
     }
 
