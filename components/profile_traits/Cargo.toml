@@ -15,7 +15,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
-serde = "0.4"
-serde_macros = "0.4"
+serde = "0.5"
+serde_macros = "0.5"
 time = "0.1.12"
 
