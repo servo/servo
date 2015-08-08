@@ -19,11 +19,6 @@ from licenseck import licenses
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml", ".webidl"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
-python_dependencies = [
-    "./python/dependencies/flake8-2.4.1-py2.py3-none-any.whl",
-    "./python/dependencies/pep8-1.5.7-py2.py3-none-any.whl",
-    "./python/dependencies/pyflakes-0.9.0-py2.py3-none-any.whl",
-]
 
 ignored_files = [
     # Upstream
@@ -36,6 +31,7 @@ ignored_files = [
     "python/toml/*",
     "components/script/dom/bindings/codegen/parser/*",
     "components/script/dom/bindings/codegen/ply/*",
+    "python/_virtualenv/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
     "target/*",
@@ -272,8 +268,6 @@ def get_reftest_names(line):
 
 
 def scan():
-    sys.path += python_dependencies
-
     all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
 

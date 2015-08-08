@@ -6,7 +6,7 @@
 /ports/android/libs
 /ports/android/local.properties
 /ports/android/obj
-/tests/wpt/_virtualenv
+/python/_virtualenv
 *~
 *#
 *.o
