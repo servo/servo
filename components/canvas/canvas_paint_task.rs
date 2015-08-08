@@ -594,7 +594,7 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn put_image_data(&mut self, mut imagedata: Vec<u8>,
                       image_data_rect: Rect<f64>,
-                      dirty_rect: Option<Rect<f64>>) {
+                      dirty_rect: Rect<f64>) {
 
         if image_data_rect.size.width <= 0.0 || image_data_rect.size.height <= 0.0 {
             return
@@ -604,18 +604,9 @@ impl<'a> CanvasPaintTask<'a> {
         // rgba -> bgra
         byte_swap(&mut imagedata);
 
-        let image_rect = Rect::new(Point2D::zero(),
-                                   Size2D::new(image_data_rect.size.width, image_data_rect.size.height));
-
         // Dirty rectangle defines the area of the source image to be copied
         // on the destination canvas
-        let source_rect = match dirty_rect {
-            Some(dirty_rect) =>
-                self.calculate_dirty_rect(dirty_rect, image_data_rect),
-            // If no dirty area is provided we consider the whole source image
-            // as the area to be copied to the canvas
-            None => image_rect,
-        };
+        let source_rect = self.calculate_dirty_rect(dirty_rect, image_data_rect);
 
         // 5) If either dirtyWidth or dirtyHeight is negative or zero,
         // stop without affecting any bitmaps
