@@ -50,7 +50,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#a6d3af35eafe9a02af3fa58b1f1d30eb9cb57ccd"
+source = "git+https://github.com/servo/rust-azure#53e7b7d07bd43199b136d869b1605016ed882cbc"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
