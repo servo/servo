@@ -51,7 +51,7 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> 
                 if token.as_bytes()[0] == b'#' {
                     break;
                 }
-                host_table.insert(token.to_owned().to_string(), address.clone());
+                host_table.insert((*token).to_owned(), address.clone());
             }
         }
     }
