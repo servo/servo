@@ -20,11 +20,14 @@ use page::{IterablePage, Page};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_task::{get_page, ScriptTask};
-use js::jsapi::RootedValue;
+use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
-
+use std::ffi::CStr;
 use std::rc::Rc;
+use std::str;
+use uuid::Uuid;
 
+#[allow(unsafe_code)]
 pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<EvaluateJSReply>) {
     let cx = global.get_cx();
     let mut rval = RootedValue::new(cx, UndefinedValue());
@@ -43,7 +46,15 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
         EvaluateJSReply::NullValue
     } else {
         assert!(rval.ptr.is_object());
-        panic!("object values unimplemented")
+
+        let obj = RootedObject::new(cx, rval.ptr.to_object());
+        let class_name = unsafe { CStr::from_ptr(ObjectClassName(cx, obj.handle())) };
+        let class_name = str::from_utf8(class_name.to_bytes()).unwrap();
+
+        EvaluateJSReply::ActorValue {
+            class: class_name.to_owned(),
+            uuid: Uuid::new_v4().to_string(),
+        }
     }).unwrap();
 }
 

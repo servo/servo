@@ -8,6 +8,7 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use actor::{Actor, ActorRegistry};
+use actors::object::ObjectActor;
 use protocol::JsonPacketStream;
 
 use devtools_traits::EvaluateJSReply::{NullValue, VoidValue, NumberValue};
@@ -92,7 +93,7 @@ impl Actor for ConsoleActor {
     }
 
     fn handle_message(&self,
-                      _registry: &ActorRegistry,
+                      registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
@@ -210,12 +211,14 @@ impl Actor for ConsoleActor {
                         }
                     }
                     StringValue(s) => s.to_json(),
-                    ActorValue(s) => {
-                        //TODO: make initial ActorValue message include these properties.
+                    ActorValue { class, uuid } => {
+                        //TODO: make initial ActorValue message include these properties?
                         let mut m = BTreeMap::new();
+                        let actor = ObjectActor::new(registry, uuid);
+
                         m.insert("type".to_string(), "object".to_string().to_json());
-                        m.insert("class".to_string(), "???".to_string().to_json());
-                        m.insert("actor".to_string(), s.to_json());
+                        m.insert("class".to_string(), class.to_json());
+                        m.insert("actor".to_string(), actor.to_json());
                         m.insert("extensible".to_string(), true.to_json());
                         m.insert("frozen".to_string(), false.to_json());
                         m.insert("sealed".to_string(), false.to_json());
