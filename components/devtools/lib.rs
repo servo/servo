@@ -44,6 +44,7 @@ use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
+use actors::object::ObjectActor;
 use protocol::JsonPacketStream;
 
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
@@ -75,6 +76,7 @@ mod actors {
     pub mod timeline;
     pub mod worker;
     pub mod network_event;
+    pub mod object;
 }
 mod protocol;
 
@@ -201,7 +203,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on TabActor
-        let (tab, console, inspector, timeline) = {
+        let (tab, console, inspector, object, timeline) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
@@ -215,6 +217,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 highlighter: RefCell::new(None),
                 script_chan: script_sender.clone(),
                 pipeline: pipeline,
+            };
+
+            let object = ObjectActor {
+                name: actors.new_name("object"),
+                uuid: String::new(),
             };
 
             let timeline = TimelineActor::new(actors.new_name("timeline"),
@@ -234,7 +241,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
             let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
-            (tab, console, inspector, timeline)
+            (tab, console, inspector, object, timeline)
         };
 
         if let Some(id) = worker_id {
@@ -252,6 +259,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(box console);
         actors.register(box inspector);
         actors.register(box timeline);
+        actors.register(box object);
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
