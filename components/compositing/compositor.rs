@@ -1622,6 +1622,33 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.surface_map.insert_surfaces(&self.native_display, surfaces);
         }
     }
+
+    #[allow(dead_code)]
+    fn dump_layer_tree(&self) {
+        if let Some(ref layer) = self.scene.root {
+            println!("Layer tree:");
+            self.dump_layer_tree_with_indent(&**layer, 0);
+        }
+    }
+
+    #[allow(dead_code)]
+    fn dump_layer_tree_with_indent(&self, layer: &Layer<CompositorData>, level: u32) {
+        let mut indentation = String::new();
+        for _ in 0..level {
+            indentation.push_str("  ");
+        }
+
+        println!("{}Layer {:x}: {:?} @ {:?} masks to bounds: {:?} establishes 3D context: {:?}",
+                 indentation,
+                 layer as *const _ as usize,
+                 layer.extra_data,
+                 *layer.bounds.borrow(),
+                 *layer.masks_to_bounds.borrow(),
+                 layer.establishes_3d_context);
+        for kid in layer.children().iter() {
+            self.dump_layer_tree_with_indent(&**kid, level + 1)
+        }
+    }
 }
 
 fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorData>>,

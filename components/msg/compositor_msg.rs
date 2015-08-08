@@ -60,7 +60,7 @@ pub enum LayerKind {
 }
 
 /// The scrolling policy of a layer.
-#[derive(Clone, PartialEq, Eq, Copy, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, Copy, Deserialize, Serialize, Debug)]
 pub enum ScrollPolicy {
     /// These layers scroll when the parent receives a scrolling message.
     Scrollable,
