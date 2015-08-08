@@ -75,6 +75,7 @@ mod actors {
     pub mod timeline;
     pub mod worker;
     pub mod network_event;
+    pub mod object;
 }
 mod protocol;
 

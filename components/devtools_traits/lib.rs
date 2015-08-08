@@ -77,7 +77,7 @@ pub enum EvaluateJSReply {
     BooleanValue(bool),
     NumberValue(f64),
     StringValue(String),
-    ActorValue(String),
+    ActorValue(String, String),
 }
 
 #[derive(Deserialize, Serialize)]
