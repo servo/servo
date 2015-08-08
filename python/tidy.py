@@ -240,7 +240,6 @@ def check_spec(file_name, contents):
 
 
 def collect_errors_for_files(files_to_check, checking_functions):
-    base_path = "components/script/dom/"
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
             contents = fp.read()
