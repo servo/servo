@@ -19,6 +19,7 @@ use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
 use std::rc::Rc;
 
+#[derive(Debug)]
 pub struct CompositorData {
     /// This layer's pipeline id. The compositor can associate this id with an
     /// actual CompositionPipeline.
@@ -143,7 +144,7 @@ pub trait CompositorLayer {
     fn pipeline_id(&self) -> PipelineId;
 }
 
-#[derive(Copy, PartialEq, Clone)]
+#[derive(Copy, PartialEq, Clone, Debug)]
 pub enum WantsScrollEventsFlag {
     WantsScrollEvents,
     DoesntWantScrollEvents,
