@@ -49,6 +49,23 @@ macro_rules! handle_potential_webgl_error {
     }
 }
 
+macro_rules! webgl_error {
+    ($ctx: ident, $variant: ident) => {
+        $ctx.handle_webgl_error(WebGLError::$variant)
+    }
+}
+
+/// Set of bitflags for texture unpacking (texImage2d, etc...)
+bitflags! {
+    flags TextureUnpacking : u8 {
+        const FLIP_Y_AXIS = 0x01,
+        const PREMULTIPLY_ALPHA = 0x02,
+        const CONVERT_COLORSPACE = 0x04,
+    }
+}
+
+no_jsmanaged_fields!(TextureUnpacking);
+
 #[dom_struct]
 #[derive(HeapSizeOf)]
 pub struct WebGLRenderingContext {
@@ -59,6 +76,7 @@ pub struct WebGLRenderingContext {
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
     last_error: Cell<Option<WebGLError>>,
+    texture_unpacking_settings: Cell<TextureUnpacking>,
 }
 
 impl WebGLRenderingContext {
@@ -80,8 +98,9 @@ impl WebGLRenderingContext {
                 global: GlobalField::from_rooted(&global),
                 renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
-                last_error: Cell::new(None),
                 canvas: JS::from_ref(canvas),
+                last_error: Cell::new(None),
+                texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
             }
         })
     }
@@ -344,7 +363,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 self.ipc_renderer
                     .send(CanvasMsg::WebGL(CanvasWebGLMsg::CullFace(mode)))
                     .unwrap(),
-            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+            _ => webgl_error!(self, InvalidEnum),
         }
     }
 
@@ -355,7 +374,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 self.ipc_renderer
                     .send(CanvasMsg::WebGL(CanvasWebGLMsg::FrontFace(mode)))
                     .unwrap(),
-            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+            _ => webgl_error!(self, InvalidEnum),
         }
     }
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -368,7 +387,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 self.ipc_renderer
                     .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthFunc(func)))
                     .unwrap(),
-            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+            _ => webgl_error!(self, InvalidEnum),
         }
     }
 
@@ -395,7 +414,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 self.ipc_renderer
                     .send(CanvasMsg::WebGL(CanvasWebGLMsg::Enable(cap)))
                     .unwrap(),
-            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+            _ => webgl_error!(self, InvalidEnum),
         }
     }
 
@@ -408,7 +427,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 self.ipc_renderer
                     .send(CanvasMsg::WebGL(CanvasWebGLMsg::Disable(cap)))
                     .unwrap(),
-            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+            _ => webgl_error!(self, InvalidEnum),
         }
     }
 
@@ -505,14 +524,14 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
                 // null generate an InvalidOperation error
                 if first < 0 || count < 0 {
-                    self.handle_webgl_error(WebGLError::InvalidValue);
+                    webgl_error!(self, InvalidValue);
                 } else {
                     self.ipc_renderer
                         .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawArrays(mode, first, count)))
                         .unwrap()
                 }
             },
-            _ => self.handle_webgl_error(WebGLError::InvalidEnum),
+            _ => webgl_error!(self, InvalidEnum),
         }
     }
 
@@ -564,6 +583,98 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         } else {
             None
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn Hint(self, target: u32, mode: u32) {
+        if target != constants::GENERATE_MIPMAP_HINT {
+            return webgl_error!(self, InvalidEnum);
+        }
+
+        match mode {
+            constants::FASTEST |
+            constants::NICEST |
+            constants::DONT_CARE => (),
+
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Hint(target, mode)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // TODO(ecoal95): If width is NaN  we should generate an
+    // INVALID_VALUE error
+    fn LineWidth(self, width: f32) {
+        if width <= 0f32 {
+            return webgl_error!(self, InvalidValue);
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::LineWidth(width)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // NOTE: Usage of this function could affect rendering while we keep using
+    //   readback to render to the page.
+    fn PixelStorei(self, param_name: u32, param_value: i32) {
+        let mut texture_settings = self.texture_unpacking_settings.get();
+        match param_name {
+            constants::UNPACK_FLIP_Y_WEBGL => {
+               if param_value != 0 {
+                    texture_settings.insert(FLIP_Y_AXIS)
+                } else {
+                    texture_settings.remove(FLIP_Y_AXIS)
+                }
+
+                self.texture_unpacking_settings.set(texture_settings);
+                return;
+            },
+            constants::UNPACK_PREMULTIPLY_ALPHA_WEBGL => {
+                if param_value != 0 {
+                    texture_settings.insert(PREMULTIPLY_ALPHA)
+                } else {
+                    texture_settings.remove(PREMULTIPLY_ALPHA)
+                }
+
+                self.texture_unpacking_settings.set(texture_settings);
+                return;
+            },
+            constants::UNPACK_COLORSPACE_CONVERSION_WEBGL => {
+                match param_value as u32 {
+                    constants::BROWSER_DEFAULT_WEBGL
+                        => texture_settings.insert(CONVERT_COLORSPACE),
+                    constants::NONE
+                        => texture_settings.remove(CONVERT_COLORSPACE),
+                    _ => return webgl_error!(self, InvalidEnum),
+                }
+
+                self.texture_unpacking_settings.set(texture_settings);
+                return;
+            },
+            constants::UNPACK_ALIGNMENT |
+            constants::PACK_ALIGNMENT => {
+                match param_value {
+                    1 | 2 | 4 | 8 => (),
+                    _ => return webgl_error!(self, InvalidValue),
+                }
+            },
+            _ => return webgl_error!(self, InvalidEnum),
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::PixelStorei(param_name, param_value)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn PolygonOffset(self, factor: f32, units: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::PolygonOffset(factor, units)))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9

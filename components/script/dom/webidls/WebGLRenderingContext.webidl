@@ -584,7 +584,7 @@ interface WebGLRenderingContextBase
 
     //[WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
 
-    //void hint(GLenum target, GLenum mode);
+    void hint(GLenum target, GLenum mode);
     //[WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
     //[WebGLHandlesContextLoss] GLboolean isEnabled(GLenum cap);
     //[WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
@@ -592,10 +592,10 @@ interface WebGLRenderingContextBase
     //[WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
     //[WebGLHandlesContextLoss] GLboolean isShader(WebGLShader? shader);
     //[WebGLHandlesContextLoss] GLboolean isTexture(WebGLTexture? texture);
-    //void lineWidth(GLfloat width);
+    void lineWidth(GLfloat width);
     void linkProgram(WebGLProgram? program);
-    //void pixelStorei(GLenum pname, GLint param);
-    //void polygonOffset(GLfloat factor, GLfloat units);
+    void pixelStorei(GLenum pname, GLint param);
+    void polygonOffset(GLfloat factor, GLfloat units);
 
     //void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
     //                GLenum format, GLenum type, ArrayBufferView? pixels);
