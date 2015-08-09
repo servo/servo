@@ -15,7 +15,6 @@ import os
 import os.path as path
 import subprocess
 from collections import OrderedDict
-from distutils.spawn import find_executable
 from time import time
 
 from mach.registrar import Registrar
@@ -242,7 +241,6 @@ class MachCommands(CommandBase):
                      help="Run with a release build of servo")
     def test_wpt(self, **kwargs):
         self.ensure_bootstrapped()
-        self.ensure_wpt_virtualenv()
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
 
         os.environ["hosts_file_path"] = hosts_file_path
@@ -260,7 +258,6 @@ class MachCommands(CommandBase):
              parser=updatecommandline.create_parser())
     def update_wpt(self, **kwargs):
         self.ensure_bootstrapped()
-        self.ensure_wpt_virtualenv()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
@@ -306,7 +303,6 @@ class MachCommands(CommandBase):
                      help="Run with a release build of servo")
     def test_css(self, **kwargs):
         self.ensure_bootstrapped()
-        self.ensure_wpt_virtualenv()
 
         run_file = path.abspath(path.join("tests", "wpt", "run_css.py"))
         run_globals = {"__file__": run_file}
@@ -324,47 +320,6 @@ class MachCommands(CommandBase):
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
-
-    def ensure_wpt_virtualenv(self):
-        virtualenv_path = path.join(self.context.topdir, "tests", "wpt", "_virtualenv")
-        python = self.get_exec("python2", "python")
-
-        if not os.path.exists(virtualenv_path):
-            virtualenv = self.get_exec("virtualenv2", "virtualenv")
-            subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
-
-        activate_path = path.join(virtualenv_path, "bin", "activate_this.py")
-
-        execfile(activate_path, dict(__file__=activate_path))
-
-        try:
-            import wptrunner  # noqa
-            from wptrunner.browsers import servo  # noqa
-        except ImportError:
-            subprocess.check_call(["pip", "install", "-r",
-                                   path.join(self.context.topdir, "tests", "wpt",
-                                             "harness", "requirements.txt")])
-            subprocess.check_call(["pip", "install", "-r",
-                                   path.join(self.context.topdir, "tests", "wpt",
-                                             "harness", "requirements_servo.txt")])
-        try:
-            import blessings
-        except ImportError:
-            subprocess.check_call(["pip", "install", "blessings"])
-
-        # This is an unfortunate hack. Because mozlog gets imported by wptcommandline
-        # before the virtualenv is initalised it doesn't see the blessings module so we don't
-        # get coloured output. Setting the blessings global explicitly fixes that.
-        from mozlog.structured.formatters import machformatter
-        import blessings  # noqa
-        machformatter.blessings = blessings
-
-    def get_exec(self, name, default=None):
-        path = find_executable(name)
-        if not path:
-            return default
-
-        return path
 
     def jquery_test_runner(self, cmd, release, dev):
         self.ensure_bootstrapped()
