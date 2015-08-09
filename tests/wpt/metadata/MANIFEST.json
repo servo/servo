@@ -8366,6 +8366,10 @@
         "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.current.changed.html"
       },
       {
+        "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.current.notrendered.html",
+        "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.current.notrendered.html"
+      },
+       {
         "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.current.removed.html",
         "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.current.removed.html"
       },
