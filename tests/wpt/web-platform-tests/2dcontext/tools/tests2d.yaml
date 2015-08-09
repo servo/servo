@@ -2013,9 +2013,9 @@
     var g = ctx.createLinearGradient(0, 0, 100, 0);
     @assert throws INDEX_SIZE_ERR g.addColorStop(-1, '#000');
     @assert throws INDEX_SIZE_ERR g.addColorStop(2, '#000');
-    @assert throws INDEX_SIZE_ERR g.addColorStop(Infinity, '#000');
-    @assert throws INDEX_SIZE_ERR g.addColorStop(-Infinity, '#000');
-    @assert throws INDEX_SIZE_ERR g.addColorStop(NaN, '#000');
+    @assert throws TypeError g.addColorStop(Infinity, '#000');
+    @assert throws TypeError g.addColorStop(-Infinity, '#000');
+    @assert throws TypeError g.addColorStop(NaN, '#000');
 
 - name: 2d.gradient.object.invalidcolour
   testing:
