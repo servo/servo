@@ -901,10 +901,15 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
-    fn perform_a_scroll(self, x: f32, y: f32, _: ScrollBehavior) {
+    fn perform_a_scroll(self, x: f32, y: f32, behavior: ScrollBehavior) {
         //TODO Step 1
         let point = Point2D::new(x, y);
-        self.compositor.borrow_mut().scroll_fragment_point(self.pipeline(), LayerId::null(), point)
+        let smooth = match behavior {
+            ScrollBehavior::Auto => false,
+            ScrollBehavior::Instant => false,
+            ScrollBehavior::Smooth => true
+        };
+        self.compositor.borrow_mut().scroll_fragment_point(self.pipeline(), LayerId::null(), point, smooth)
     }
 
     /// Reflows the page unconditionally. This method will wait for the layout thread to complete

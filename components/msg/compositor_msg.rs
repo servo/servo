@@ -139,7 +139,8 @@ impl ScriptListener {
     pub fn scroll_fragment_point(&mut self,
                                  pipeline_id: PipelineId,
                                  layer_id: LayerId,
-                                 point: Point2D<f32>) {
+                                 point: Point2D<f32>,
+                                 _: bool) {
         self.0
             .send(ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point))
             .unwrap()

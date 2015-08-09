@@ -1559,7 +1559,7 @@ impl ScriptTask {
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
-        self.compositor.borrow_mut().scroll_fragment_point(pipeline_id, LayerId::null(), point);
+        self.compositor.borrow_mut().scroll_fragment_point(pipeline_id, LayerId::null(), point, false);
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
