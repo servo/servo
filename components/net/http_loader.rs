@@ -26,6 +26,7 @@ use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Lo
 use hyper::header::{Quality, QualityItem, Headers};
 use hyper::Error as HttpError;
 use hyper::method::Method;
+use hyper::http::RawStatus;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::{Fresh, Streaming, HttpsConnector, Openssl, NetworkConnector, NetworkStream};
 use hyper::status::{StatusCode, StatusClass};
@@ -164,52 +165,47 @@ impl NetworkHttpRequester {
     }
 }
 
-pub trait HttpRequest {
+pub trait HttpResponse: Read {
     fn headers(&self) -> &Headers;
-    fn headers_mut(&mut self) -> &mut Headers;
-    fn send(self: Box<Self>) -> Result<Response, LoadError>;
+    fn status(&self) -> StatusCode;
+    fn status_raw(&self) -> &RawStatus;
 }
 
-struct NetworkHttpRequest {
-    fresh: Request<Fresh>
+struct WrappedHttpResponse {
+    response: Response
 }
 
-impl HttpRequest for NetworkHttpRequest {
+impl Read for WrappedHttpResponse {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.response.read(buf)
+    }
+}
+
+impl HttpResponse for WrappedHttpResponse {
     fn headers(&self) -> &Headers {
-        self.fresh.headers()
+        &self.response.headers
     }
 
-    fn headers_mut(&mut self) -> &mut Headers {
-        self.fresh.headers_mut()
+    fn status(&self) -> StatusCode {
+        self.response.status
     }
 
-    fn send(self: Box<Self>) -> Result<Response, LoadError> {
-        let connected = match self.fresh.start() {
-            Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
-        };
-
-        match connected.send() {
-            Ok(w) => Ok(w),
-            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
-        }
+    fn status_raw(&self) -> &RawStatus {
+        self.response.status_raw()
     }
 }
 
-impl HttpRequester for NetworkHttpRequester {
-    fn send(&self, request: Box<HttpRequest>) -> Result<Response, LoadError> {
-        request.send()
-    }
-
-    fn build(&self, url: Url, method: Method) -> Result<Box<HttpRequest>, LoadError> {
-        let connection = Request::with_connector(method, url.clone(), &self.connector);
+impl NetworkHttpRequester {
+    fn start_connection(&self, url: &Url, method: &Method) -> Result<Request<Fresh>, LoadError> {
+        let connection = Request::with_connector(method.clone(), url.clone(), &self.connector);
 
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
     function: \"SSL3_GET_SERVER_CERTIFICATE\", \
     reason: \"certificate verify failed\" }]))";
 
-        let request = match connection {
-            Ok(req) => req,
+        match connection {
+            Ok(req) => Ok(req),
 
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
@@ -225,17 +221,49 @@ impl HttpRequester for NetworkHttpRequester {
                 )
             },
             Err(e) => {
-                 return Err(LoadError::Connection(url, e.description().to_string()))
+                 return Err(LoadError::Connection(url.clone(), e.description().to_string()))
             }
-        };
-
-        Ok(Box::new(NetworkHttpRequest { fresh: request }))
+        }
     }
 }
 
+impl HttpRequester for NetworkHttpRequester {
+    fn send(&self, url: &Url, method: &Method, headers: &Headers, body: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError> {
+        let mut request = try!(self.start_connection(url, method));
+
+        *request.headers_mut() = headers.clone();
+
+        // TODO: fix HEAD method (don't write the body, and force content-length to 0)
+        if let Some(ref data) = *body {
+            request.headers_mut().set(ContentLength(data.len() as u64));
+        }
+
+        let mut request_writer = match request.start() {
+            Ok(streaming) => streaming,
+            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+        };
+
+        if let Some(ref data) = *body {
+            match request_writer.write_all(&*data) {
+                Err(e) => {
+                    return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+                }
+                _ => {}
+            }
+        }
+
+        let response = match request_writer.send() {
+            Ok(w) => w,
+            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+        };
+
+        Ok(Box::new(WrappedHttpResponse { response: response }))
+    }
+
+}
+
 pub trait HttpRequester {
-    fn build(&self, url: Url, method: Method) -> Result<Box<HttpRequest>, LoadError>;
-    fn send(&self, request: Box<HttpRequest>) -> Result<Response, LoadError>;
+    fn send(&self, url: &Url, method: &Method, headers: &Headers, body: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError>;
 }
 
 pub enum LoadError {
@@ -295,7 +323,7 @@ pub fn load(mut load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        let mut req = try!(requester.build(url.clone(), load_data.method.clone()));
+        // let mut req = try!(requester.build(url.clone(), load_data.method.clone()));
 
         //Ensure that the host header is set from the original url
         let host = Host {
@@ -307,26 +335,26 @@ pub fn load(mut load_data: LoadData,
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
         // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
         // Only preserve ones which have been explicitly marked as such.
-        if iters == 1 {
+        let mut request_headers = if iters == 1 {
             let mut combined_headers = load_data.headers.clone();
             combined_headers.extend(load_data.preserved_headers.iter());
-            *req.headers_mut() = combined_headers;
+            combined_headers
         } else {
-            *req.headers_mut() = load_data.preserved_headers.clone();
-        }
+            load_data.preserved_headers.clone()
+        };
 
-        req.headers_mut().set(host);
+        request_headers.set(host);
 
 
         // --- Set default accept header
-        if !req.headers().has::<Accept>() {
+        if !request_headers.has::<Accept>() {
             let accept = Accept(vec![
                 qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                 qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
                 QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
                 QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
             ]);
-            req.headers_mut().set(accept);
+            request_headers.set(accept);
         }
 
         // --- Fetch cookies
@@ -337,44 +365,25 @@ pub fn load(mut load_data: LoadData,
         if let Some(cookie_list) = rx.recv().unwrap() {
             let mut v = Vec::new();
             v.push(cookie_list.into_bytes());
-            req.headers_mut().set_raw("Cookie".to_owned(), v);
+            request_headers.set_raw("Cookie".to_owned(), v);
         }
 
         // --- Set default accept encoding
-        if !req.headers().has::<AcceptEncoding>() {
-            req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+        if !request_headers.has::<AcceptEncoding>() {
+            request_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
         }
 
         if log_enabled!(log::LogLevel::Info) {
             info!("{}", load_data.method);
-            for header in req.headers().iter() {
+            for header in request_headers.iter() {
                 info!(" - {}", header);
             }
             info!("{:?}", load_data.data);
         }
 
         // --- Start sending the request
-        // Avoid automatically sending request body if a redirect has occurred.
-        let response = match load_data.data {
-            Some(ref data) if iters == 1 => {
-                req.headers_mut().set(ContentLength(data.len() as u64));
-
-                match requester.send(req) {
-                    Ok(w) => w,
-                    Err(e) => return Err(e)
-                }
-            },
-            _ => {
-                match load_data.method {
-                    Method::Get | Method::Head => (),
-                    _ => req.headers_mut().set(ContentLength(0))
-                }
-                match requester.send(req) {
-                    Ok(w) => w,
-                    Err(e) => return Err(e)
-                }
-            }
-        };
+        // TODO: Avoid automatically sending request body if a redirect has occurred.
+        let response = try!(requester.send(&url, &load_data.method, &request_headers, &load_data.data));
 
         // --- Tell devtools we've made a request
         // Send an HttpRequest message to devtools with a unique request_id
@@ -391,16 +400,16 @@ pub fn load(mut load_data: LoadData,
         }
 
         // Dump headers, but only do the iteration if info!() is enabled.
-        info!("got HTTP response {}, headers:", response.status);
+        info!("got HTTP response {}, headers:", (*response).status());
         if log_enabled!(log::LogLevel::Info) {
-            for header in response.headers.iter() {
+            for header in response.headers().iter() {
                 info!(" - {}", header);
             }
         }
 
         // --- Update the resource manager that we've gotten a cookie
-        if let Some(cookies) = response.headers.get_raw("set-cookie") {
-            for cookie in cookies {
+        if let Some(cookies) = response.headers().get_raw("set-cookie") {
+            for cookie in cookies.iter() {
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
                     resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(doc_url.clone(),
                                                                         cookies,
@@ -410,7 +419,7 @@ pub fn load(mut load_data: LoadData,
         }
 
         if url.scheme == "https" {
-            if let Some(header) = response.headers.get::<StrictTransportSecurity>() {
+            if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
                 if let Some(host) = url.domain() {
                     info!("adding host {} to the strict transport security list", host);
                     info!("- max-age {}", header.max_age);
@@ -432,8 +441,8 @@ pub fn load(mut load_data: LoadData,
         }
 
         // --- Loop if there's a redirect
-        if response.status.class() == StatusClass::Redirection {
-            match response.headers.get::<Location>() {
+        if response.status().class() == StatusClass::Redirection {
+            match response.headers().get::<Location>() {
                 Some(&Location(ref new_url)) => {
                     // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                     match load_data.cors {
@@ -460,8 +469,8 @@ pub fn load(mut load_data: LoadData,
                     // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
                     // historically UAs have rewritten POST->GET on 301 and 302 responses.
                     if load_data.method == Method::Post &&
-                        (response.status == StatusCode::MovedPermanently ||
-                         response.status == StatusCode::Found) {
+                        (response.status() == StatusCode::MovedPermanently ||
+                         response.status() == StatusCode::Found) {
                         load_data.method = Method::Get;
                     }
 
@@ -476,7 +485,7 @@ pub fn load(mut load_data: LoadData,
             }
         }
 
-        let mut adjusted_headers = response.headers.clone();
+        let mut adjusted_headers = response.headers().clone();
 
         if viewing_source {
             adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
@@ -494,8 +503,8 @@ pub fn load(mut load_data: LoadData,
 
         //TODO: This is now in hyper, just need to implement
         //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
-        if let Some(encodings) = response.headers.get_raw("content-encoding") {
-            for encoding in encodings {
+        if let Some(encodings) = response.headers().get_raw("content-encoding") {
+            for encoding in encodings.iter() {
                 if let Ok(encodings) = String::from_utf8(encoding.clone()) {
                     if encodings == "gzip" || encodings == "deflate" {
                         encoding_str = Some(encodings);
