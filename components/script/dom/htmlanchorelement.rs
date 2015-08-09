@@ -178,7 +178,10 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<DOMString>) {
 
     // Step 4-5.
     let document = document_from_node(subject);
-    let url = UrlParser::new().base_url(&document.url()).parse(&href).unwrap();
+    let url = match UrlParser::new().base_url(&document.url()).parse(&href) {
+        Ok(url) => url,
+        Err(_) => return,
+    };
 
     // Step 7.
     debug!("following hyperlink to {}", url.serialize());
