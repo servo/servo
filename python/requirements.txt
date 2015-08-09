@@ -1,0 +1,12 @@
+# 'mach' is not listed here because a new version hasn't been published to PyPi in a while
+
+blessings == 1.6
+mozdebug == 0.1
+mozinfo == 0.8
+mozlog == 3.0
+toml == 0.9.1
+
+# For Python linting
+flake8 == 2.4.1
+pep8 == 1.5.7
+pyflakes == 0.8.0
