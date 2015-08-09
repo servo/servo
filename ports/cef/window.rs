@@ -226,6 +226,7 @@ impl WindowMethods for Window {
         let size = self.size().to_untyped();
         let width = size.width as u32;
         let height = size.height as u32;
+        //TODO get real window position
         (Size2D::new(width, height), Point2D::zero())
     }
 

@@ -738,7 +738,7 @@ impl<'a> WindowMethods for &'a Window {
     fn DevicePixelRatio(self) -> Finite<f64> {
         let dpr = self.window_size.get()
          .map(|data| data.device_pixel_ratio).unwrap_or(ScaleFactor::new(1.0f32)).get();
-        Finite::wrap(dpr.to_f64().unwrap_or(1.0f64))
+        Finite::wrap(dpr as f64)
     }
 }
 
@@ -851,8 +851,13 @@ impl<'a> WindowHelpers for &'a Window {
         *self.js_runtime.borrow_mut() = None;
         *self.browsing_context.borrow_mut() = None;
     }
+
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
     fn scroll(self, x_: f64, y_: f64, behavior: ScrollBehavior) {
+        // Step 3
+        let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
+        let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
+
         // Step 4
         if self.window_size.get().is_none() {
             return;
@@ -875,17 +880,17 @@ impl<'a> WindowHelpers for &'a Window {
 
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
-                (x_.max(0.0f64).min(content_width - width),
-                 y_.max(0.0f64).min(content_height - height))
+                (xfinite.max(0.0f64).min(content_width - width),
+                 yfinite.max(0.0f64).min(content_height - height))
             },
             None => {
-                (x_.max(0.0f64), y_.max(0.0f64))
+                (xfinite.max(0.0f64), yfinite.max(0.0f64))
             }
         };
 
         // Step 10
         //TODO handling ongoing smoth scrolling
-        if x == self.ScrollX() as f64 && y == self.ScrollX() as f64 {
+        if x == self.ScrollX() as f64 && y == self.ScrollY() as f64 {
             return;
         }
 

@@ -519,10 +519,10 @@ impl WindowMethods for Window {
 
     fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (width, height) = self.window.get_outer_size().unwrap();
-        let size = Size2D::new(width as u32, height as u32);
+        let size = Size2D::new(width, height);
         let (x,y) = self.window.get_position().unwrap();
         let origin = Point2D::new(x as i32,y as i32);
-        (size,origin)
+        (size, origin)
     }
 
     fn set_inner_size(&self, size: Size2D<u32>) {
