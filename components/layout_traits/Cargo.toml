@@ -34,6 +34,6 @@ features = [ "serde_serialization" ]
 
 [dependencies]
 euclid = "0.1"
-serde = "0.4"
-serde_macros = "0.4"
+serde = "0.5"
+serde_macros = "0.5"
 

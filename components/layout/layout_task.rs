@@ -61,7 +61,7 @@ use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddres
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
 use selectors::parser::PseudoElement;
-use serde::json;
+use serde_json;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -1061,7 +1061,7 @@ impl LayoutTask {
                     stacking_context.print("#".to_owned());
                 }
                 if opts::get().dump_display_list_json {
-                    println!("{}", json::to_string_pretty(&stacking_context).unwrap());
+                    println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
                 }
 
                 rw_data.stacking_context = Some(stacking_context.clone());
