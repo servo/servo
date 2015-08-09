@@ -12,10 +12,6 @@ from distutils.spawn import find_executable
 
 SEARCH_PATHS = [
     "python/mach",
-    "python/toml",
-    "python/mozlog",
-    "python/mozinfo",
-    "python/mozdebug",
     "tests/wpt",
     "tests/wpt/harness",
 ]
