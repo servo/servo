@@ -940,12 +940,13 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     fn PutImageData_(self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>,
                      dirtyX: Finite<f64>, dirtyY: Finite<f64>, dirtyWidth: Finite<f64>, dirtyHeight: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
-        let image_data_rect = Rect::new(Point2D::new(*dx, *dy),
-                                        Size2D::new(imagedata.Width() as f64,
-                                                    imagedata.Height() as f64));
-        let dirty_rect = Some(Rect::new(Point2D::new(*dirtyX, *dirtyY),
-                                        Size2D::new(*dirtyWidth, *dirtyHeight)));
-        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
+        let offset = Point2D::new(*dx, *dy);
+        let image_data_size = Size2D::new(imagedata.Width() as f64,
+                                          imagedata.Height() as f64);
+
+        let dirty_rect = Rect::new(Point2D::new(*dirtyX, *dirtyY),
+                                   Size2D::new(*dirtyWidth, *dirtyHeight));
+        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, offset, image_data_size, dirty_rect));
         self.ipc_renderer.send(msg).unwrap();
         self.mark_as_dirty();
     }

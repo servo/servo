@@ -55,55 +55,6 @@ impl<'a> CanvasPaintTask<'a> {
 
         image_data
     }
-
-    /// dirty_rect: original dirty_rect provided by the putImageData call
-    /// image_data_rect: the area of the image to be copied
-    /// Result: It retuns the modified dirty_rect by the rules described in
-    /// the spec https://html.spec.whatwg.org/#dom-context-2d-putimagedata
-    fn calculate_dirty_rect(&self,
-                            mut dirty_rect: Rect<f64>,
-                            image_data_rect: Rect<f64>) -> Rect<f64>{
-        // 1) If dirtyWidth is negative,
-        // let dirtyX be dirtyX+dirtyWidth,
-        // and let dirtyWidth be equal to the absolute magnitude of dirtyWidth.
-        if dirty_rect.size.width < 0.0f64 {
-            dirty_rect.origin.x = dirty_rect.origin.x + dirty_rect.size.width;
-            dirty_rect.size.width = -dirty_rect.size.width;
-        }
-
-        // 2) If dirtyHeight is negative, let dirtyY be dirtyY+dirtyHeight,
-        // and let dirtyHeight be equal to the absolute magnitude of dirtyHeight.
-        if dirty_rect.size.height < 0.0f64 {
-            dirty_rect.origin.y = dirty_rect.origin.y + dirty_rect.size.height;
-            dirty_rect.size.height = -dirty_rect.size.height;
-        }
-
-        // 3) If dirtyX is negative, let dirtyWidth be dirtyWidth+dirtyX, and let dirtyX be zero.
-        if dirty_rect.origin.x < 0.0f64 {
-            dirty_rect.size.width += dirty_rect.origin.x;
-            dirty_rect.origin.x = 0.0f64;
-        }
-
-        // 3) If dirtyY is negative, let dirtyHeight be dirtyHeight+dirtyY, and let dirtyY be zero.
-        if dirty_rect.origin.y < 0.0f64 {
-            dirty_rect.size.height += dirty_rect.origin.y;
-            dirty_rect.origin.y = 0.0f64;
-        }
-
-        // 4) If dirtyX+dirtyWidth is greater than the width attribute of the imagedata argument,
-        // let dirtyWidth be the value of that width attribute, minus the value of dirtyX.
-        if dirty_rect.origin.x + dirty_rect.size.width > image_data_rect.size.width {
-            dirty_rect.size.width = image_data_rect.size.width - dirty_rect.origin.x;
-        }
-
-        // 4) If dirtyY+dirtyHeight is greater than the height attribute of the imagedata argument,
-        // let dirtyHeight be the value of that height attribute, minus the value of dirtyY.
-        if dirty_rect.origin.y + dirty_rect.size.height > image_data_rect.size.height {
-            dirty_rect.size.height = image_data_rect.size.height - dirty_rect.origin.y;
-        }
-
-        dirty_rect
-    }
 }
 
 pub struct CanvasPaintTask<'a> {
@@ -220,8 +171,8 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
                             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan)
                                 => painter.get_image_data(dest_rect, canvas_size, chan),
-                            Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
-                                => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
+                            Canvas2dMsg::PutImageData(imagedata, offset, image_data_size, dirty_rect)
+                                => painter.put_image_data(imagedata, offset, image_data_size, dirty_rect),
                             Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
                             Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
                             Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
@@ -576,50 +527,91 @@ impl<'a> CanvasPaintTask<'a> {
         chan.send(dest_data).unwrap();
     }
 
-    fn put_image_data(&mut self, mut imagedata: Vec<u8>,
-                      image_data_rect: Rect<f64>,
-                      dirty_rect: Option<Rect<f64>>) {
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
+    fn put_image_data(&mut self, imagedata: Vec<u8>,
+                      offset: Point2D<f64>,
+                      image_data_size: Size2D<f64>,
+                      mut dirty_rect: Rect<f64>) {
 
-        if image_data_rect.size.width <= 0.0 || image_data_rect.size.height <= 0.0 {
+        if image_data_size.width <= 0.0 || image_data_size.height <= 0.0 {
             return
         }
 
-        assert!(image_data_rect.size.width * image_data_rect.size.height * 4.0 == imagedata.len() as f64);
-        // rgba -> bgra
-        byte_swap(&mut imagedata);
+        assert!(image_data_size.width * image_data_size.height * 4.0 == imagedata.len() as f64);
 
-        let image_rect = Rect::new(Point2D::zero(),
-                                   Size2D::new(image_data_rect.size.width, image_data_rect.size.height));
+        // Step 1. TODO (neutered data)
 
-        // Dirty rectangle defines the area of the source image to be copied
-        // on the destination canvas
-        let source_rect = match dirty_rect {
-            Some(dirty_rect) =>
-                self.calculate_dirty_rect(dirty_rect, image_data_rect),
-            // If no dirty area is provided we consider the whole source image
-            // as the area to be copied to the canvas
-            None => image_rect,
-        };
+        // Step 2.
+        if dirty_rect.size.width < 0.0f64 {
+            dirty_rect.origin.x += dirty_rect.size.width;
+            dirty_rect.size.width = -dirty_rect.size.width;
+        }
+
+        if dirty_rect.size.height < 0.0f64 {
+            dirty_rect.origin.y += dirty_rect.size.height;
+            dirty_rect.size.height = -dirty_rect.size.height;
+        }
+
+        // Step 3.
+        if dirty_rect.origin.x < 0.0f64 {
+            dirty_rect.size.width += dirty_rect.origin.x;
+            dirty_rect.origin.x = 0.0f64;
+        }
+
+        if dirty_rect.origin.y < 0.0f64 {
+            dirty_rect.size.height += dirty_rect.origin.y;
+            dirty_rect.origin.y = 0.0f64;
+        }
+
+        // Step 4.
+        if dirty_rect.max_x() > image_data_size.width {
+            dirty_rect.size.width = image_data_size.width - dirty_rect.origin.x;
+        }
+
+        if dirty_rect.max_y() > image_data_size.height {
+            dirty_rect.size.height = image_data_size.height - dirty_rect.origin.y;
+        }
 
         // 5) If either dirtyWidth or dirtyHeight is negative or zero,
         // stop without affecting any bitmaps
-        if source_rect.size.width <= 0.0 || source_rect.size.height <= 0.0 {
+        if dirty_rect.size.width <= 0.0 || dirty_rect.size.height <= 0.0 {
             return
         }
 
-        // 6) For all integer values of x and y where dirtyX ≤ x < dirty
-        // X+dirtyWidth and dirtyY ≤ y < dirtyY+dirtyHeight, copy the
-        // four channels of the pixel with coordinate (x, y) in the imagedata
-        // data structure's Canvas Pixel ArrayBuffer to the pixel with coordinate
-        // (dx+x, dy+y) in the rendering context's scratch bitmap.
-        // It also clips the destination rectangle to the canvas area
-        let dest_rect = Rect::new(
-            Point2D::new(image_data_rect.origin.x + source_rect.origin.x,
-                         image_data_rect.origin.y + source_rect.origin.y),
-            Size2D::new(source_rect.size.width, source_rect.size.height));
+        // Step 6.
+        let dest_rect = dirty_rect.translate(&offset).to_i32();
 
-        write_pixels(&self.drawtarget, &imagedata, image_data_rect.size, source_rect,
-                     dest_rect, true, self.state.draw_options.composition, self.state.draw_options.alpha)
+        // azure_hl operates with integers. We need to cast the image size
+        let image_size = image_data_size.to_i32();
+
+        let first_pixel = dest_rect.origin - offset.to_i32();
+        let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
+
+        let mut dest =
+            Vec::with_capacity((dest_rect.size.width * dest_rect.size.height * 4) as usize);
+
+        for _ in 0 .. dest_rect.size.height {
+            let mut src_offset = src_line;
+            for _ in 0 .. dest_rect.size.width {
+                // Premultiply alpha and swap RGBA -> BGRA.
+                // TODO: may want a precomputed premultiply table to make this fast. (#6969)
+                let alpha = imagedata[src_offset + 3] as f32 / 255.;
+                dest.push((imagedata[src_offset + 2] as f32 * alpha) as u8);
+                dest.push((imagedata[src_offset + 1] as f32 * alpha) as u8);
+                dest.push((imagedata[src_offset + 0] as f32 * alpha) as u8);
+                dest.push(imagedata[src_offset + 3]);
+                src_offset += 4;
+            }
+            src_line += (image_size.width * 4) as usize;
+        }
+
+        let source_surface = self.drawtarget.create_source_surface_from_data(
+            &dest,
+            dest_rect.size, dest_rect.size.width * 4, SurfaceFormat::B8G8R8A8);
+
+        self.drawtarget.copy_surface(source_surface,
+                                     Rect::new(Point2D::new(0, 0), dest_rect.size),
+                                     dest_rect.origin);
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
@@ -724,23 +716,7 @@ fn write_image(draw_target: &DrawTarget,
     let image_rect = Rect::new(Point2D::zero(), image_size);
     // rgba -> bgra
     byte_swap(&mut image_data);
-    write_pixels(&draw_target, &image_data, image_size, image_rect,
-                 dest_rect, smoothing_enabled, composition_op, global_alpha);
-}
 
-/// It writes image data to the target
-/// draw_target: the destination target where the imagedata will be copied
-/// source_rect: the area of the image data to be written
-/// dest_rect: The area of the target where the imagedata will be copied
-/// smoothing_enabled: if smoothing is applied to the copied pixels
-fn write_pixels(draw_target: &DrawTarget,
-                image_data: &[u8],
-                image_size: Size2D<f64>,
-                source_rect: Rect<f64>,
-                dest_rect: Rect<f64>,
-                smoothing_enabled: bool,
-                composition_op: CompositionOp,
-                global_alpha: f32) {
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
     // to apply a smoothing algorithm to the image data when it is scaled.
@@ -762,7 +738,7 @@ fn write_pixels(draw_target: &DrawTarget,
 
     draw_target.draw_surface(source_surface,
                              dest_rect.to_azfloat(),
-                             source_rect.to_azfloat(),
+                             image_rect.to_azfloat(),
                              draw_surface_options,
                              draw_options);
 }
@@ -774,6 +750,17 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
         }
     }
     return false;
+}
+
+pub trait PointToi32 {
+    fn to_i32(&self) -> Point2D<i32>;
+}
+
+impl PointToi32 for Point2D<f64> {
+    fn to_i32(&self) -> Point2D<i32> {
+        Point2D::new(self.x.to_i32().unwrap(),
+                     self.y.to_i32().unwrap())
+    }
 }
 
 pub trait SizeToi32 {

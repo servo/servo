@@ -91,7 +91,7 @@ pub enum Canvas2dMsg {
     GetImageData(Rect<i32>, Size2D<f64>, IpcSender<Vec<u8>>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(Vec<u8>, Rect<f64>, Option<Rect<f64>>),
+    PutImageData(Vec<u8>, Point2D<f64>, Size2D<f64>, Rect<f64>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,
