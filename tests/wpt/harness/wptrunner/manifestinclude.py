@@ -57,7 +57,7 @@ class IncludeManifest(ManifestItem):
             try:
                 skip_value = self.get("skip", {"test_type": test.item_type}).lower()
                 assert skip_value in ("true", "false")
-                return False if skip_value == "true" else True
+                return skip_value != "true"
             except KeyError:
                 if node.parent is not None:
                     node = node.parent
@@ -107,6 +107,7 @@ class IncludeManifest(ManifestItem):
             if component not in node.child_map:
                 new_node = IncludeManifest(DataNode(component))
                 node.append(new_node)
+                new_node.set("skip", node.get("skip", {}))
 
             node = node.child_map[component]
 

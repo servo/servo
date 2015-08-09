@@ -40,8 +40,12 @@ def setup_logging(*args, **kwargs):
     global logger
     logger = wptlogging.setup(*args, **kwargs)
 
-def get_loader(test_paths, product, ssl_env, debug=None, **kwargs):
-    run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=debug)
+def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, **kwargs):
+    if run_info_extras is None:
+        run_info_extras = {}
+
+    run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=debug,
+                                    extras=run_info_extras)
 
     test_manifests = testloader.ManifestLoader(test_paths, force_manifest_update=kwargs["manifest_update"]).load()
 
@@ -111,17 +115,21 @@ def run_tests(config, test_paths, product, **kwargs):
         (check_args,
          browser_cls, get_browser_kwargs,
          executor_classes, get_executor_kwargs,
-         env_options) = products.load_product(config, product)
+         env_options, run_info_extras) = products.load_product(config, product)
 
         ssl_env = env.ssl_env(logger, **kwargs)
 
         check_args(**kwargs)
 
         if "test_loader" in kwargs:
-            run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=None)
+            run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=None,
+                                            extras=run_info_extras(**kwargs))
             test_loader = kwargs["test_loader"]
         else:
-            run_info, test_loader = get_loader(test_paths, product, ssl_env,
+            run_info, test_loader = get_loader(test_paths,
+                                               product,
+                                               ssl_env,
+                                               run_info_extras=run_info_extras(**kwargs),
                                                **kwargs)
 
         if kwargs["run_by_dir"] is False:

@@ -13,11 +13,16 @@ window.wrappedJSObject.addEventListener("message", function listener(event) {
     clearTimeout(timer);
     var tests = event.data.tests;
     var status = event.data.status;
-    marionetteScriptFinished({test:"%(url)s",
-                              tests: tests,
-                              status: status.status,
-                              message: status.message,
-                              stack: status.stack});
+
+    var subtest_results = tests.map(function(x) {
+        return [x.name, x.status, x.message, x.stack]
+    });
+
+    marionetteScriptFinished(["%(url)s",
+                              status.status,
+                              status.message,
+                              status.stack,
+                              subtest_results]);
 }, false);
 
 window.wrappedJSObject.win = window.open("%(abs_url)s", "%(window_id)s");

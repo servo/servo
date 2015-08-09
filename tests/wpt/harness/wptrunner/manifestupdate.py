@@ -329,7 +329,7 @@ def group_conditionals(values):
 
     properties = set(item[0] for item in by_property.iterkeys())
 
-    prop_order = ["debug", "os", "version", "processor", "bits"]
+    prop_order = ["debug", "e10s", "os", "version", "processor", "bits"]
     include_props = []
 
     for prop in prop_order:
@@ -356,7 +356,7 @@ def make_expr(prop_set, status):
 
     assert len(prop_set) > 0
 
-    no_value_props = set(["debug"])
+    no_value_props = set(["debug", "e10s"])
 
     expressions = []
     for prop, value in prop_set:

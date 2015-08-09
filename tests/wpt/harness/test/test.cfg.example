@@ -8,7 +8,11 @@ ssl-type=none
 # prefs-root=/path/to/gecko-src/testing/profiles/
 
 # [servo]
-# binary=/path/to/servo-src/components/servo/target/servo
+# binary=/path/to/servo-src/target/release/servo
+# exclude=testharness # Because it needs a special testharness.js
+
+# [servodriver]
+# binary=/path/to/servo-src/target/release/servo
 # exclude=testharness # Because it needs a special testharness.js
 
 # [chrome]
