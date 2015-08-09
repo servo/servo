@@ -17,11 +17,11 @@ use std::collections::HashSet;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::{Request, Response};
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, StrictTransportSecurity};
-use hyper::header::{Quality, QualityItem};
+use hyper::header::{Quality, QualityItem, Headers};
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{Fresh, HttpsConnector, Openssl, NetworkConnector, NetworkStream};
+use hyper::net::{Fresh, Streaming, HttpsConnector, Openssl, NetworkConnector, NetworkStream};
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
@@ -151,20 +151,52 @@ impl NetworkHttpRequester {
     }
 }
 
-impl HttpRequester for NetworkHttpRequester {
-    fn send(&self, request: Request<Fresh>) -> Result<Response, LoadError> {
-        unimplemented!()
+pub trait HttpRequest {
+    fn headers(&self) -> &Headers;
+    fn headers_mut(&mut self) -> &mut Headers;
+    fn send(self: Box<Self>) -> Result<Response, LoadError>;
+}
+
+struct NetworkHttpRequest {
+    fresh: Request<Fresh>
+}
+
+impl HttpRequest for NetworkHttpRequest {
+    fn headers(&self) -> &Headers {
+        self.fresh.headers()
     }
 
-    fn build(&self, url: Url, method: Method) -> Result<Request<Fresh>, LoadError> {
+    fn headers_mut(&mut self) -> &mut Headers {
+        self.fresh.headers_mut()
+    }
+
+    fn send(self: Box<Self>) -> Result<Response, LoadError> {
+        let connected = match self.fresh.start() {
+            Ok(streaming) => streaming,
+            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+        };
+
+        match connected.send() {
+            Ok(w) => Ok(w),
+            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+        }
+    }
+}
+
+impl HttpRequester for NetworkHttpRequester {
+    fn send(&self, request: Box<HttpRequest>) -> Result<Response, LoadError> {
+        request.send()
+    }
+
+    fn build(&self, url: Url, method: Method) -> Result<Box<HttpRequest>, LoadError> {
         let connection = Request::with_connector(method, url.clone(), &self.connector);
 
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
     function: \"SSL3_GET_SERVER_CERTIFICATE\", \
     reason: \"certificate verify failed\" }]))";
 
-        match connection {
-            Ok(req) => Ok(req),
+        let request = match connection {
+            Ok(req) => req,
 
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
@@ -172,7 +204,7 @@ impl HttpRequester for NetworkHttpRequester {
                 // FIXME: This incredibly hacky. Make it more robust, and at least test it.
                 format!("{:?}", io_error.cause()) == ssl_err_string
             ) => {
-                Err(
+                return Err(
                     LoadError::Ssl(
                         url.clone(),
                         format!("ssl error {:?}: {:?} {:?}", io_error.kind(), io_error.description(), io_error.cause())
@@ -180,15 +212,17 @@ impl HttpRequester for NetworkHttpRequester {
                 )
             },
             Err(e) => {
-                 Err(LoadError::Connection(url, e.description().to_string()))
+                 return Err(LoadError::Connection(url, e.description().to_string()))
             }
-        }
+        };
+
+        Ok(Box::new(NetworkHttpRequest { fresh: request }))
     }
 }
 
 pub trait HttpRequester {
-    fn build(&self, url: Url, method: Method) -> Result<Request<Fresh>, LoadError>;
-    fn send(&self, request: Request<Fresh>) -> Result<Response, LoadError>;
+    fn build(&self, url: Url, method: Method) -> Result<Box<HttpRequest>, LoadError>;
+    fn send(&self, request: Box<HttpRequest>) -> Result<Response, LoadError>;
 }
 
 pub enum LoadError {
@@ -308,35 +342,23 @@ pub fn load(mut load_data: LoadData,
 
         // --- Start sending the request
         // Avoid automatically sending request body if a redirect has occurred.
-        let writer = match load_data.data {
+        let response = match load_data.data {
             Some(ref data) if iters == 1 => {
                 req.headers_mut().set(ContentLength(data.len() as u64));
 
-                let mut writer = match req.start() {
+                match requester.send(req) {
                     Ok(w) => w,
-                    Err(e) => {
-                        return Err(LoadError::Connection(url, e.description().to_string()));
-                    }
-                };
-
-                match writer.write_all(&*data) {
-                    Err(e) => {
-                        return Err(LoadError::Connection(url, e.description().to_string()));
-                    }
-                    _ => {}
-                };
-                writer
+                    Err(e) => return Err(e)
+                }
             },
             _ => {
                 match load_data.method {
                     Method::Get | Method::Head => (),
                     _ => req.headers_mut().set(ContentLength(0))
                 }
-                match req.start() {
+                match requester.send(req) {
                     Ok(w) => w,
-                    Err(e) => {
-                        return Err(LoadError::Connection(url, e.description().to_string()));
-                    }
+                    Err(e) => return Err(e)
                 }
             }
         };
@@ -354,14 +376,6 @@ pub fn load(mut load_data: LoadData,
                     ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
                                                                     net_event))).unwrap();
         }
-
-        // --- Finish writing the request and read the response
-        let response = match writer.send() {
-            Ok(r) => r,
-            Err(e) => {
-                return Err(LoadError::Connection(url, e.description().to_string()));
-            }
-        };
 
         // Dump headers, but only do the iteration if info!() is enabled.
         info!("got HTTP response {}, headers:", response.status);
