@@ -38,7 +38,6 @@ ignored_files = [
     "components/script/dom/bindings/codegen/ply/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
-    "components/style/properties/mod.rs",
     "target/*",
     "ports/gonk/src/native_window_glue.cpp",
     "ports/cef/*",

@@ -1734,7 +1734,7 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                                         mut display_list: Box<DisplayList>,
                                         layout_context: &LayoutContext) {
         // Draw the marker, if applicable.
-        if let Some(ref mut marker) = self.marker {
+        for marker in &mut self.marker_fragments {
             marker.build_display_list(&mut *display_list,
                                       layout_context,
                                       &self.block_flow.base.stacking_relative_position,

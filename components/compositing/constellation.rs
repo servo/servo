@@ -16,7 +16,7 @@ use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::CanvasMsg;
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlChan, DevtoolsControlMsg};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::point::Point2D;
 use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
@@ -81,7 +81,7 @@ pub struct Constellation<LTF, STF> {
     pub image_cache_task: ImageCacheTask,
 
     /// A channel through which messages can be sent to the developer tools.
-    devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel through which messages can be sent to the storage task.
     storage_task: StorageTask,
@@ -225,7 +225,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  font_cache_task: FontCacheTask,
                  time_profiler_chan: time::ProfilerChan,
                  mem_profiler_chan: mem::ProfilerChan,
-                 devtools_chan: Option<DevtoolsControlChan>,
+                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                  storage_task: StorageTask,
                  supports_clipboard: bool)
                  -> ConstellationChan {
@@ -422,6 +422,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             ConstellationMsg::LoadComplete(pipeline_id) => {
                 debug!("constellation got load complete message");
                 self.handle_load_complete_msg(&pipeline_id)
+            }
+            // The DOM load event fired on a document
+            ConstellationMsg::DOMLoad(pipeline_id) => {
+                debug!("constellation got dom load message");
+                self.handle_dom_load(pipeline_id)
             }
             // Handle a forward or back request
             ConstellationMsg::Navigate(pipeline_info, direction) => {
@@ -744,15 +749,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
         let frame_id = match self.pipeline_to_frame_map.get(pipeline_id) {
             Some(frame) => *frame,
-            None => return
+            None => {
+                debug!("frame not found for pipeline id {:?}", pipeline_id);
+                return
+            }
         };
 
         let forward = !self.frame(frame_id).next.is_empty();
         let back = !self.frame(frame_id).prev.is_empty();
         self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
+    }
 
+    fn handle_dom_load(&mut self,
+                       pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
-        if let Some((ref expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
+        if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
+            debug!("Sending load to WebDriver");
             if expected_pipeline_id == pipeline_id {
                 let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
                 webdriver_reset = true;

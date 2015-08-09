@@ -8,7 +8,7 @@ use script_traits::{LayoutControlMsg, ScriptControlChan, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use compositor_task;
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
+use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
 use gfx::paint_task::{ChromeToPaintMsg, LayoutToPaintMsg, PaintTask};
@@ -72,7 +72,7 @@ impl Pipeline {
                            parent_info: Option<(PipelineId, SubpageId)>,
                            constellation_chan: ConstellationChan,
                            compositor_proxy: Box<CompositorProxy+'static+Send>,
-                           devtools_chan: Option<DevtoolsControlChan>,
+                           devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                            image_cache_task: ImageCacheTask,
                            font_cache_task: FontCacheTask,
                            resource_task: ResourceTask,

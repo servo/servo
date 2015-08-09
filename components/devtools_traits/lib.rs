@@ -37,10 +37,6 @@ use ipc_channel::ipc::IpcSender;
 use time::Duration;
 
 use std::net::TcpStream;
-use std::sync::mpsc::{Receiver, Sender};
-
-pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
-pub type DevtoolsControlPort = Receiver<DevtoolScriptControlMsg>;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.

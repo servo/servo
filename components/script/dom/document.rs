@@ -23,6 +23,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElem
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::InheritTypes::ElementDerived;
+use dom::bindings::codegen::InheritTypes::HTMLBaseElementCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
@@ -45,6 +46,7 @@ use dom::element::{ElementTypeId, ActivationElementHelpers, FocusElementHelpers}
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
@@ -153,6 +155,8 @@ pub struct Document {
     current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
+    /// The cached first `base` element with an `href` attribute.
+    base_element: MutNullableHeap<JS<HTMLBaseElement>>,
 }
 
 impl PartialEq for Document {
@@ -231,7 +235,16 @@ pub trait DocumentHelpers<'a> {
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
     fn is_fully_active(self) -> bool;
+    /// https://dom.spec.whatwg.org/#concept-document-url
     fn url(self) -> Url;
+    /// https://html.spec.whatwg.org/multipage/#fallback-base-url
+    fn fallback_base_url(self) -> Url;
+    /// https://html.spec.whatwg.org/multipage/#document-base-url
+    fn base_url(self) -> Url;
+    /// Returns the first `base` element in the DOM that has an `href` attribute.
+    fn base_element(self) -> Option<Root<HTMLBaseElement>>;
+    /// Refresh the cached first base element in the DOM.
+    fn refresh_base_element(self);
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
     fn set_encoding_name(self, name: DOMString);
@@ -242,7 +255,6 @@ pub trait DocumentHelpers<'a> {
     fn disarm_reflow_timeout(self);
     fn unregister_named_element(self, to_unregister: &Element, id: Atom);
     fn register_named_element(self, element: &Element, id: Atom);
-    fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Root<Element>>;
     fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress>;
     fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress>;
@@ -289,6 +301,7 @@ pub trait DocumentHelpers<'a> {
     fn load_async(self, load: LoadType, listener: AsyncResponseTarget);
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
     fn finish_load(self, load: LoadType);
+    fn notify_constellation_load(self);
     fn set_current_parser(self, script: Option<&ServoHTMLParser>);
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>>;
     fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>>;
@@ -335,9 +348,42 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         true
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-url
+    // https://dom.spec.whatwg.org/#concept-document-url
     fn url(self) -> Url {
         self.url.clone()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#fallback-base-url
+    fn fallback_base_url(self) -> Url {
+        // Step 1: iframe srcdoc (#4767).
+        // Step 2: about:blank with a creator browsing context.
+        // Step 3.
+        self.url()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#document-base-url
+    fn base_url(self) -> Url {
+        match self.base_element() {
+            // Step 1.
+            None => self.fallback_base_url(),
+            // Step 2.
+            Some(base) => base.frozen_base_url(),
+        }
+    }
+
+    /// Returns the first `base` element in the DOM that has an `href` attribute.
+    fn base_element(self) -> Option<Root<HTMLBaseElement>> {
+        self.base_element.get().map(Root::from_rooted)
+    }
+
+    /// Refresh the cached first base element in the DOM.
+    fn refresh_base_element(self) {
+        let base = NodeCast::from_ref(self)
+            .traverse_preorder()
+            .filter_map(HTMLBaseElementCast::to_root)
+            .filter(|element| ElementCast::from_ref(&**element).has_attribute(&atom!("href")))
+            .next();
+        self.base_element.set(base.map(|element| JS::from_ref(&*element)));
     }
 
     fn quirks_mode(self) -> QuirksMode {
@@ -462,11 +508,6 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                 elements.insert(head, JS::from_ref(element));
             }
         }
-    }
-
-    fn load_anchor_href(self, href: DOMString) {
-        let window = self.window.root();
-        window.r().load_url(href);
     }
 
     /// Attempt to find a named element in this page's document.
@@ -956,9 +997,10 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         let window = window.r();
         let performance = window.Performance();
         let performance = performance.r();
+        let timing = performance.Now();
 
         for (_, callback) in animation_frame_list {
-            callback(*performance.Now());
+            callback(*timing);
         }
 
         window.reflow(ReflowGoal::ForDisplay,
@@ -984,6 +1026,15 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     fn finish_load(self, load: LoadType) {
         let mut loader = self.loader.borrow_mut();
         loader.finish_load(load);
+    }
+
+    fn notify_constellation_load(self) {
+        let window = self.window.root();
+        let pipeline_id = window.r().pipeline();
+        let ConstellationChan(ref chan) = window.r().constellation_chan();
+        let event = ConstellationMsg::DOMLoad(pipeline_id);
+        chan.send(event).unwrap();
+
     }
 
     fn set_current_parser(self, script: Option<&ServoHTMLParser>) {
@@ -1084,6 +1135,7 @@ impl Document {
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
+            base_element: Default::default(),
         }
     }
 
@@ -1903,6 +1955,8 @@ impl DocumentProgressHandler {
             let target = EventTargetCast::from_ref(frame_element.r());
             event.r().fire(target);
         });
+
+        document.r().notify_constellation_load();
 
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
         document.r().trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);

@@ -61,7 +61,7 @@ use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddres
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, StylesheetLoadResponder};
 use selectors::parser::PseudoElement;
-use serde::json;
+use serde_json;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -297,6 +297,14 @@ impl<'a> DerefMut for RWGuard<'a> {
     }
 }
 
+fn add_font_face_rules(stylesheet: &Stylesheet, device: &Device, font_cache_task: &FontCacheTask) {
+    for font_face in stylesheet.effective_rules(&device).font_face() {
+        for source in font_face.sources.iter() {
+            font_cache_task.add_web_font(font_face.family.clone(), source.clone());
+        }
+    }
+}
+
 impl LayoutTask {
     /// Creates a new `LayoutTask` structure.
     fn new(id: PipelineId,
@@ -336,6 +344,11 @@ impl LayoutTask {
         let image_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
+        let stylist = box Stylist::new(device);
+        for user_or_user_agent_stylesheet in stylist.stylesheets() {
+            add_font_face_rules(user_or_user_agent_stylesheet, &stylist.device, &font_cache_task);
+        }
+
         LayoutTask {
             id: id,
             url: url,
@@ -362,7 +375,7 @@ impl LayoutTask {
                     constellation_chan: constellation_chan,
                     screen_size: screen_size,
                     stacking_context: None,
-                    stylist: box Stylist::new(device),
+                    stylist: stylist,
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
                     generation: 0,
@@ -735,11 +748,7 @@ impl LayoutTask {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         if mq.evaluate(&rw_data.stylist.device) {
-            for font_face in sheet.effective_rules(&rw_data.stylist.device).font_face() {
-                for source in font_face.sources.iter() {
-                    self.font_cache_task.add_web_font(font_face.family.clone(), source.clone());
-                }
-            }
+            add_font_face_rules(&sheet, &rw_data.stylist.device, &self.font_cache_task);
             rw_data.stylist.add_stylesheet(sheet);
         }
 
@@ -1052,7 +1061,7 @@ impl LayoutTask {
                     stacking_context.print("#".to_owned());
                 }
                 if opts::get().dump_display_list_json {
-                    println!("{}", json::to_string_pretty(&stacking_context).unwrap());
+                    println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
                 }
 
                 rw_data.stacking_context = Some(stacking_context.clone());

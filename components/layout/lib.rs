@@ -57,6 +57,7 @@ extern crate script;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde;
+extern crate serde_json;
 extern crate smallvec;
 extern crate string_cache;
 extern crate style;

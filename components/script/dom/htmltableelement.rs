@@ -14,7 +14,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
@@ -80,11 +80,34 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
         let node = NodeCast::from_ref(self);
 
         if let Some(ref caption) = self.GetCaption() {
-            assert!(node.RemoveChild(NodeCast::from_ref(caption.r())).is_ok());
+            NodeCast::from_ref(caption.r()).remove_self();
         }
 
         if let Some(caption) = new_caption {
-            assert!(node.AppendChild(NodeCast::from_ref(caption)).is_ok());
+            assert!(node.InsertBefore(NodeCast::from_ref(caption),
+                                      node.GetFirstChild().as_ref().map(|n| n.r())).is_ok());
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createcaption
+    fn CreateCaption(self) -> Root<HTMLElement> {
+        let caption = match self.GetCaption() {
+            Some(caption) => caption,
+            None => {
+                let caption = HTMLTableCaptionElement::new("caption".to_owned(),
+                                                           None,
+                                                           document_from_node(self).r());
+                self.SetCaption(Some(caption.r()));
+                caption
+            }
+        };
+        HTMLElementCast::from_root(caption)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
+    fn DeleteCaption(self) {
+        if let Some(caption) = self.GetCaption() {
+            NodeCast::from_ref(caption.r()).remove_self();
         }
     }
 }

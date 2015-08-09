@@ -7,9 +7,12 @@
 //! This is used for off-screen rendering mode only; on-screen windows (the default embedding mode)
 //! are managed by a platform toolkit (Glutin).
 
+#[cfg(target_os="linux")]
 use core::CEF_APP;
 use eutil::Downcast;
-use interfaces::{CefApp, CefBrowser};
+#[cfg(target_os="linux")]
+use interfaces::CefApp;
+use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
 use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};

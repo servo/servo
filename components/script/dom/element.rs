@@ -1558,7 +1558,7 @@ impl<'a> VirtualMethods for &'a Element {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
                 let doc = document_from_node(*self);
-                let base_url = doc.r().url();
+                let base_url = doc.r().base_url();
                 let value = attr.value();
                 let style = Some(parse_style_attribute(&value, &base_url));
                 *self.style_attribute.borrow_mut() = style;

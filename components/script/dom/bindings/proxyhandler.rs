@@ -8,8 +8,8 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
-use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject, JSString};
-use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewStringCopyN};
+use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
+use js::jsapi::{JS_GetPropertyDescriptorById};
 use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
 use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
@@ -105,20 +105,6 @@ pub unsafe extern fn is_extensible(_cx: *mut JSContext, _proxy: HandleObject,
                                    succeeded: *mut u8) -> u8 {
     *succeeded = JSTrue;
     return JSTrue;
-}
-
-/// Returns the stringification of an object with class `name`.
-pub fn object_to_string(cx: *mut JSContext, name: &str) -> *mut JSString {
-    unsafe {
-        let result = format!("[object {}]", name);
-
-        let chars = result.as_ptr() as *const libc::c_char;
-        let length = result.len() as libc::size_t;
-
-        let string = JS_NewStringCopyN(cx, chars, length);
-        assert!(!string.is_null());
-        return string;
-    }
 }
 
 /// Get the expando object, or null if there is none.
