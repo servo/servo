@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
+use cssparser::Color as CSSColor;
+use cssparser::{Parser, RGBA};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
@@ -12,7 +14,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::canvasrenderingcontext2d::parse_color;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
@@ -50,9 +51,16 @@ impl CanvasGradientMethods for CanvasGradient {
             return Err(IndexSize);
         }
 
-        let color = match parse_color(&color) {
-            Ok(color) => color,
-            _ => return Err(Syntax)
+        let mut parser = Parser::new(&color);
+        let color = CSSColor::parse(&mut parser);
+        let color = if parser.is_exhausted() {
+            match color {
+                Ok(CSSColor::RGBA(rgba)) => rgba,
+                Ok(CSSColor::CurrentColor) => RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 },
+                _ => return Err(Syntax)
+            }
+        } else {
+            return Err(Syntax)
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {

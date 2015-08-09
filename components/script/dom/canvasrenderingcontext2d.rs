@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::Error::{IndexSize, InvalidState, Syntax};
@@ -409,6 +411,27 @@ impl CanvasRenderingContext2D {
         Some(Rect::new(Point2D::new(x as f32, y as f32), Size2D::new(w as f32, h as f32)))
     }
 
+    fn parse_color(&self, string: &str) -> Result<RGBA,()> {
+        let canvas = self.canvas.root();
+        let mut parser = Parser::new(&string);
+        let color = CSSColor::parse(&mut parser);
+        if parser.is_exhausted() {
+            match color {
+                Ok(CSSColor::RGBA(rgba)) => Ok(rgba),
+                Ok(CSSColor::CurrentColor) => {
+                    // TODO: will need to check that the context bitmap mode is fixed
+                    // once we implement CanvasProxy
+                    let window = window_from_node(canvas.r());
+                    let style = window.GetComputedStyle(HTMLElementCast::from_ref(canvas.r()), None);
+                    self.parse_color(&style.GetPropertyValue("color".to_owned()))
+                },
+                _ => Err(())
+            }
+        } else {
+            Err(())
+        }
+    }
+
     pub fn get_renderer_id(&self) -> usize {
         self.renderer_id
     }
@@ -797,7 +820,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
-                match parse_color(&string) {
+                match self.parse_color(&string) {
                     Ok(rgba) => {
                         self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
                         self.ipc_renderer
@@ -837,7 +860,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
-                if let Ok(rgba) = parse_color(&string) {
+                if let Ok(rgba) = self.parse_color(&string) {
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
                     self.ipc_renderer
                         .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
