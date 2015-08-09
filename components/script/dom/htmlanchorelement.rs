@@ -24,12 +24,13 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_n
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
-use num::ToPrimitive;
-use std::default::Default;
-use string_cache::Atom;
 use util::str::DOMString;
 
+use num::ToPrimitive;
+use string_cache::Atom;
 use url::UrlParser;
+
+use std::default::Default;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
@@ -149,24 +150,41 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
             }
         }
 
-        //TODO: Step 4. Download the link is `download` attribute is set.
-
-        let href = element.get_attribute(&ns!(""), &atom!("href")).unwrap();
-        let mut value = href.r().Value();
-        if let Some(suffix) = ismap_suffix {
-            value.push_str(&suffix);
-        }
-        debug!("clicked on link to {}", value);
-
-        let window = doc.window();
-        let base_url = window.get_url();
-        let url = UrlParser::new().base_url(&base_url).parse(&value);
-        // FIXME: handle URL parse errors more gracefully.
-        let url = url.unwrap();
-        window.load_url(url);
+        // Step 4.
+        //TODO: Download the link is `download` attribute is set.
+        follow_hyperlink(element, ismap_suffix);
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
     fn implicit_submission(&self, _ctrlKey: bool, _shiftKey: bool, _altKey: bool, _metaKey: bool) {
     }
+}
+
+/// https://html.spec.whatwg.org/multipage/#following-hyperlinks-2
+fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<DOMString>) {
+    // Step 1: replace.
+    // Step 2: source browsing context.
+    // Step 3: target browsing context.
+
+    // Step 4.
+    let attribute = subject.get_attribute(&ns!(""), &atom!("href")).unwrap();
+    let mut href = attribute.Value();
+
+    // Step 6.
+    // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
+    if let Some(suffix) = hyperlink_suffix {
+        href.push_str(&suffix);
+    }
+
+    // Step 4-5.
+    let document = document_from_node(subject);
+    let url = match UrlParser::new().base_url(&document.url()).parse(&href) {
+        Ok(url) => url,
+        Err(_) => return,
+    };
+
+    // Step 7.
+    debug!("following hyperlink to {}", url.serialize());
+    let window = document.window();
+    window.load_url(url);
 }
