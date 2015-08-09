@@ -7,6 +7,7 @@
 // [Exposed=(Window,Worker)]
 interface CanvasGradient {
   // opaque object
+  [Throws]
   void addColorStop(double offset, DOMString color);
 };
 
