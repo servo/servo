@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::http_loader::{load, LoadError, HttpRequester, HttpRequest};
+use net::http_loader::{load, LoadError, HttpRequester, HttpResponse};
 use url::Url;
 use std::sync::{Arc, Mutex};
 use ipc_channel::ipc;
@@ -10,15 +10,12 @@ use net_traits::LoadData;
 use net::hsts::HSTSList;
 use hyper::client::Response;
 use hyper::method::Method;
+use hyper::header::Headers;
 
 struct MockHttpRequester;
 
 impl HttpRequester for MockHttpRequester {
-    fn build(&self, url: Url, _: Method) -> Result<Box<HttpRequest>, LoadError> {
-        Err(LoadError::Connection(url.clone(), "shouldn't connect".to_string()))
-    }
-
-    fn send(&self, _: Box<HttpRequest>) -> Result<Response, LoadError> {
+    fn send(&self, _: &Url, _: &Method, _: &Headers, _: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError> {
         Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), "shouldn't connect".to_string()))
     }
 }
