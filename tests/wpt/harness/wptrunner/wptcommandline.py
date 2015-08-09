@@ -35,7 +35,7 @@ def require_arg(kwargs, name, value_func=None):
 
 
 def create_parser(product_choices=None):
-    from mozlog.structured import commandline
+    from mozlog import commandline
 
     import products
 

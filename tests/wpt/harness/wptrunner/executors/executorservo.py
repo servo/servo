@@ -104,7 +104,6 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
 
             if self.result_flag.is_set():
                 if self.result_data is not None:
-                    self.result_data["test"] = test.url
                     result = self.convert_result(test, self.result_data)
                 else:
                     self.proc.wait()

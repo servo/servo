@@ -7,12 +7,14 @@ var props = {output:%(output)d};
 setup(props);
 
 add_completion_callback(function (tests, harness_status) {
-    alert("RESULT: " + JSON.stringify({
-        tests: tests.map(function(t) {
-            return { name: t.name, status: t.status, message: t.message, stack: t.stack}
+    var id = location.pathname + location.search + location.hash;
+    alert("RESULT: " + JSON.stringify([
+        id,
+        harness_status.status,
+        harness_status.message,
+        harness_status.stack,
+        tests.map(function(t) {
+            return [t.name, t.status, t.message, t.stack]
         }),
-        status: harness_status.status,
-        message: harness_status.message,
-        stack: harness_status.stack,
-    }));
+    ]));
 });

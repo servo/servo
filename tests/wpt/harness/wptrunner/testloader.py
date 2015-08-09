@@ -496,7 +496,7 @@ class TestLoader(object):
     def iter_tests(self):
         manifest_items = []
 
-        for manifest in self.manifests.keys():
+        for manifest in sorted(self.manifests.keys()):
             manifest_iter = iterfilter(self.manifest_filters,
                                        manifest.itertypes(*self.test_types))
             manifest_items.extend(manifest_iter)

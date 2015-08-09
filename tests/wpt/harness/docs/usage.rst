@@ -154,11 +154,11 @@ metadata files in a subdirectory of the current directory named ``meta``.
 Output
 ------
 
-wptrunner uses the :py:mod:`mozlog.structured` package for output. This
+wptrunner uses the :py:mod:`mozlog` package for output. This
 structures events such as test results or log messages as JSON objects
 that can then be fed to other tools for interpretation. More details
 about the message format are given in the
-:py:mod:`mozlog.structured` documentation.
+:py:mod:`mozlog` documentation.
 
 By default the raw JSON messages are dumped to stdout. This is
 convenient for piping into other tools, but not ideal for humans
