@@ -229,6 +229,18 @@ static FORCE_CPU_PAINTING: bool = true;
 #[cfg(not(target_os="android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
+#[cfg(target_os="android")]
+const DEFAULT_USER_AGENT: &'static str = "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0";
+
+// FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
+// correct string in Gonk builds (i.e., it will never be chosen today).
+#[cfg(target_os="gonk")]
+const DEFAULT_USER_AGENT: &'static str = "Mozilla/5.0 (Mobile; rv:37.0) Servo/1.0 Firefox/37.0";
+
+#[cfg(not(any(target_os="android", target_os="gonk")))]
+const DEFAULT_USER_AGENT: &'static str =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0";
+
 pub fn default_opts() -> Opts {
     Opts {
         url: Some(Url::parse("about:blank").unwrap()),
@@ -411,6 +423,8 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
+    let user_agent = opt_match.opt_str("u").or(Some(DEFAULT_USER_AGENT.to_string()));
+
     let user_stylesheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
         let path = cwd.join(filename);
         let url = Url::from_file_path(&path).unwrap();
@@ -447,7 +461,7 @@ pub fn from_cmdline_args(args: &[String]) {
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
-        user_agent: opt_match.opt_str("u"),
+        user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
         show_debug_borders: debug_options.contains(&"show-compositor-borders"),
         show_debug_fragment_borders: debug_options.contains(&"show-fragment-borders"),
