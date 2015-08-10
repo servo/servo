@@ -36,8 +36,8 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
-use style::computed_values::{text_align, text_decoration, white_space, word_break};
-use style::computed_values::transform_style;
+use style::computed_values::{text_align, text_decoration, transform_style, white_space};
+use style::computed_values::{word_break, z_index};
 use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -2027,13 +2027,13 @@ impl Fragment {
             return true
         }
 
-        match self.style().get_box().position {
-            position::T::absolute | position::T::fixed => {
-                // FIXME(pcwalton): This should only establish a new stacking context when
-                // `z-index` is not `auto`. But this matches what we did before.
-                true
-            }
-            position::T::relative | position::T::static_ => {
+        match (self.style().get_box().position, self.style().get_box().z_index) {
+            (position::T::absolute, z_index::T::Auto) |
+            (position::T::fixed, z_index::T::Auto) => false,
+            (position::T::absolute, _) |
+            (position::T::fixed, _) => true,
+            (position::T::relative, _) |
+            (position::T::static_, _) => {
                 // FIXME(pcwalton): `position: relative` establishes a new stacking context if
                 // `z-index` is not `auto`. But this matches what we did before.
                 false

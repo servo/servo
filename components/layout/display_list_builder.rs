@@ -1567,10 +1567,24 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             mut display_list: Box<DisplayList>,
             layout_context: &LayoutContext,
             border_painting_mode: BorderPaintingMode) {
+        let establishes_stacking_context = self.fragment.establishes_stacking_context();
+        let background_and_border_level = if establishes_stacking_context {
+            BackgroundAndBorderLevel::RootOfStackingContext
+        } else {
+            BackgroundAndBorderLevel::Block
+        };
+
         self.build_display_list_for_block_base(&mut *display_list,
                                                layout_context,
                                                border_painting_mode,
-                                               BackgroundAndBorderLevel::RootOfStackingContext);
+                                               background_and_border_level);
+
+        if !self.fragment.establishes_stacking_context() {
+            display_list.form_pseudo_stacking_context_for_positioned_content();
+            self.base.display_list_building_result =
+                DisplayListBuildingResult::Normal(display_list);
+            return
+        }
 
         if !self.will_get_layer() {
             // We didn't need a layer.
