@@ -277,8 +277,8 @@ reason: \"certificate verify failed\" }]))";
                                                       load_data.headers.clone(),
                                                       load_data.data.clone());
             chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
-                                                                    net_event))).unwrap();
+                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id.clone(),
+                                                             net_event))).unwrap();
         }
 
         let mut response = match writer.send() {
@@ -413,8 +413,8 @@ reason: \"certificate verify failed\" }]))";
                                            metadata.status.clone(),
                                            None);
             chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id,
-                                                                    net_event_response))).unwrap();
+                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
+                                                             net_event_response))).unwrap();
         }
 
         match encoding_str {
