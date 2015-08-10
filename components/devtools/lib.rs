@@ -40,6 +40,7 @@ use actors::console::ConsoleActor;
 use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
+use actors::object::ObjectActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
@@ -68,13 +69,14 @@ mod actor;
 mod actors {
     pub mod console;
     pub mod framerate;
-    pub mod memory;
     pub mod inspector;
+    pub mod memory;
+    pub mod network_event;
+    pub mod object;
     pub mod root;
     pub mod tab;
     pub mod timeline;
     pub mod worker;
-    pub mod network_event;
 }
 mod protocol;
 
