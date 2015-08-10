@@ -164,6 +164,13 @@ impl WebGLPaintTask {
                 gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32),
             CanvasWebGLMsg::Viewport(x, y, width, height) =>
                 gl::viewport(x, y, width, height),
+            CanvasWebGLMsg::TexImage2D(target, level, internal, width, height, format, data_type, data) =>
+                gl::tex_image_2d(target, level, internal, width, height, /*border*/0, format, data_type, Some(&data)),
+            CanvasWebGLMsg::TexParameteri(target, name, value) => {
+                gl::tex_parameter_i(target, name, value)
+            },
+            CanvasWebGLMsg::TexParameterf(target, name, value) =>
+                gl::tex_parameter_f(target, name, value),
             CanvasWebGLMsg::DrawingBufferWidth(sender) =>
                 self.send_drawing_buffer_width(sender),
             CanvasWebGLMsg::DrawingBufferHeight(sender) =>
@@ -357,6 +364,7 @@ impl WebGLPaintTask {
         // allowed you to mutate in-place before freezing the object for sending.
         let width = self.size.width as usize;
         let height = self.size.height as usize;
+
         let mut pixels = gl::read_pixels(0, 0,
                                          self.size.width as gl::GLsizei,
                                          self.size.height as gl::GLsizei,
