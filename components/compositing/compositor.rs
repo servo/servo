@@ -1238,10 +1238,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 request.page_rect = request.page_rect / scale.get();
             }
 
-            let layer_kind = if layer.transform_state.borrow().is_3d {
-                LayerKind::Layer3D
+            let layer_kind = if layer.transform_state.borrow().has_transform {
+                LayerKind::HasTransform
             } else {
-                LayerKind::Layer2D
+                LayerKind::NoTransform
             };
 
             let mut paint_request = PaintRequest {
