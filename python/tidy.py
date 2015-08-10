@@ -278,9 +278,6 @@ def is_html_file_name(file_name):
 
 def get_html_file_names_from_reftest_list(reftest_list_file_name):
     for line in open(reftest_list_file_name, "r"):
-        if line and line[0] == '#':
-            continue
-
         for token in line.split():
             if is_html_file_name(token):
                 yield os.path.join(reftest_directories[0], token)
