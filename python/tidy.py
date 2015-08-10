@@ -289,7 +289,7 @@ def check_reftest_html_files_in_basic_list(reftest_files):
 
     for reftest_path in reftest_files:
         if is_html_file_name(reftest_path) and reftest_path not in basic_list_files:
-            yield reftest_path
+            yield (reftest_path, "", "not found in basic.list")
 
 
 def scan():
@@ -305,11 +305,9 @@ def scan():
 
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
+    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_files)
 
-    errors = list(itertools.chain(errors, r_errors))
-
-    for unused_reftest_html_file in check_reftest_html_files_in_basic_list(reftest_files):
-        print "\033[94m{}\033[0m \033[91mnot used or commented out in basic.list\033[0m".format(unused_reftest_html_file, "basic" + reftest_filetype)
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
 
     if errors:
         for error in errors:
