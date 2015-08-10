@@ -278,7 +278,7 @@ reason: \"certificate verify failed\" }]))";
                                                       load_data.data.clone());
             chan.send(DevtoolsControlMsg::FromChrome(
                     ChromeToDevtoolsControlMsg::NetworkEvent(request_id.clone(),
-                                                                    net_event))).unwrap();
+                                                             net_event))).unwrap();
         }
 
         let mut response = match writer.send() {
@@ -414,7 +414,7 @@ reason: \"certificate verify failed\" }]))";
                                            None);
             chan.send(DevtoolsControlMsg::FromChrome(
                     ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
-                                                                    net_event_response))).unwrap();
+                                                             net_event_response))).unwrap();
         }
 
         match encoding_str {
