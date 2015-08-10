@@ -272,24 +272,20 @@ def get_reftest_names(line):
     return None
 
 
-def is_html_file_name(file_name):
-    return os.path.splitext(file_name)[1] == '.html'
-
-
-def get_html_file_names_from_reftest_list(reftest_list_file_name):
-    for line in open(reftest_list_file_name, "r"):
+def get_html_file_names_from_reftest_list(reftest_dir, file_name):
+    for line in open(os.path.join(reftest_dir, file_name), "r"):
         for token in line.split():
-            if is_html_file_name(token):
-                yield os.path.join(reftest_directories[0], token)
+            if fnmatch.fnmatch(token, '*.html'):
+                yield os.path.join(reftest_dir, token)
 
 
-def check_reftest_html_files_in_basic_list(reftest_files):
-    basic_list_path = os.path.join(reftest_directories[0], "basic" + reftest_filetype)
-    basic_list_files = set(get_html_file_names_from_reftest_list(basic_list_path))
+def check_reftest_html_files_in_basic_list(reftest_dir):
+    basic_list_files = set(get_html_file_names_from_reftest_list(reftest_dir, "basic" + reftest_filetype))
 
-    for reftest_path in reftest_files:
-        if is_html_file_name(reftest_path) and reftest_path not in basic_list_files:
-            yield (reftest_path, "", "not found in basic.list")
+    for file_name in os.listdir(reftest_dir):
+        file_path = os.path.join(reftest_dir, file_name)
+        if fnmatch.fnmatch(file_path, '*.html') and file_path not in basic_list_files:
+            yield (file_path, "", "not found in basic.list")
 
 
 def scan():
@@ -301,11 +297,11 @@ def scan():
     checking_functions = [check_license, check_by_line, check_flake8, check_toml, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
-    reftest_files = list(collect_file_names(reftest_directories))
+    reftest_files = collect_file_names(reftest_directories)
 
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
-    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_files)
+    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_directories[0])
 
     errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
 
