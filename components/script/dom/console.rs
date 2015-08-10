@@ -100,7 +100,7 @@ fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
     let global = console.global.root();
     let pipelineId = global.r().pipeline();
     global.r().devtools_chan().as_ref().map(|chan| {
-        chan.send(ScriptToDevtoolsControlMsg::SendConsoleMessage(
+        chan.send(ScriptToDevtoolsControlMsg::ConsoleAPI(
             pipelineId, console_message.clone(), global.r().get_worker_id())).unwrap();
     });
 }

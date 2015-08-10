@@ -65,7 +65,7 @@ pub enum ScriptToDevtoolsControlMsg {
     NewGlobal((PipelineId, Option<WorkerId>),
               IpcSender<DevtoolScriptControlMsg>,
               DevtoolsPageInfo),
-    SendConsoleMessage(PipelineId, ConsoleMessage, Option<WorkerId>),
+    ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
 }
 
 /// Serialized JS return values

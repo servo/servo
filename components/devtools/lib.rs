@@ -413,7 +413,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                         ids, script_sender, pageinfo))) =>
                 handle_new_global(actors.clone(), ids, script_sender, sender.clone(), &mut actor_pipelines,
                                   &mut actor_workers, pageinfo),
-            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::SendConsoleMessage(
+            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
                         id,
                         console_message,
                         worker_id))) =>
