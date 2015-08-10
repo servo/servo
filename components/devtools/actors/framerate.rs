@@ -12,7 +12,7 @@ use std::sync::mpsc::Sender;
 use time::precise_time_ns;
 
 use msg::constellation_msg::PipelineId;
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::timeline::HighResolutionStamp;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolScriptControlMsg};
 
@@ -36,8 +36,8 @@ impl Actor for FramerateActor {
                       _registry: &ActorRegistry,
                       _msg_type: &str,
                       _msg: &json::Object,
-                      _stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(false)
+                      _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+        Ok(ActorMessageStatus::Ignored)
     }
 }
 

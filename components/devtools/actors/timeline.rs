@@ -13,7 +13,7 @@ use std::thread::sleep_ms;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
 
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::memory::{MemoryActor, TimelineMemoryReply};
 use actors::framerate::FramerateActor;
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
@@ -235,7 +235,7 @@ impl Actor for TimelineActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
@@ -279,7 +279,7 @@ impl Actor for TimelineActor {
                     value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "stop" => {
@@ -301,7 +301,7 @@ impl Actor for TimelineActor {
 
                 **self.is_recording.lock().as_mut().unwrap() = false;
                 self.stream.borrow_mut().take();
-                true
+                ActorMessageStatus::Processed
             }
 
             "isRecording" => {
@@ -311,11 +311,11 @@ impl Actor for TimelineActor {
                 };
 
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             _ => {
-                false
+                ActorMessageStatus::Ignored
             }
         })
     }
