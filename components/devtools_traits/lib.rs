@@ -49,22 +49,35 @@ pub struct DevtoolsPageInfo {
 /// Messages to the instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
+    /// Messages from tasks in the chrome process (resource/constellation/devtools)
     FromChrome(ChromeToDevtoolsControlMsg),
+    /// Messages from script tasks
     FromScript(ScriptToDevtoolsControlMsg),
 }
 
+/// Events that the devtools server must act upon.
 pub enum ChromeToDevtoolsControlMsg {
+    /// A new client has connected to the server.
     AddClient(TcpStream),
+    /// An animation frame with the given timestamp was processed in a script task.
+    /// The actor with the provided name should be notified.
     FramerateTick(String, f64),
+    /// The browser is shutting down.
     ServerExitMsg,
+    /// A network event occurred (request, reply, etc.). The actor with the
+    /// provided name should be notified.
     NetworkEventMessage(String, NetworkEvent),
 }
 
 #[derive(Deserialize, Serialize)]
+/// Events that the devtools server must act upon.
 pub enum ScriptToDevtoolsControlMsg {
+    /// A new global object was created, associated with a particular pipeline.
+    /// The means of communicating directly with it are provided.
     NewGlobal((PipelineId, Option<WorkerId>),
               IpcSender<DevtoolScriptControlMsg>,
               DevtoolsPageInfo),
+    /// A particular page has invoked the console API.
     SendConsoleMessage(PipelineId, ConsoleMessage, Option<WorkerId>),
 }
 
