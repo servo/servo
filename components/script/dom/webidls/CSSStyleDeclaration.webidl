@@ -32,176 +32,176 @@ interface CSSStyleDeclaration {
 };
 
 partial interface CSSStyleDeclaration {
-  [TreatNullAs=EmptyString] attribute DOMString background;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundColor;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundPosition;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundRepeat;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundImage;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundAttachment;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundSize;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundOrigin;
-  [TreatNullAs=EmptyString] attribute DOMString backgroundClip;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundPosition;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundRepeat;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundImage;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundAttachment;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundOrigin;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundClip;
 
-  [TreatNullAs=EmptyString] attribute DOMString border;
-  [TreatNullAs=EmptyString] attribute DOMString borderColor;
-  [TreatNullAs=EmptyString] attribute DOMString borderRadius;
-  [TreatNullAs=EmptyString] attribute DOMString borderSpacing;
-  [TreatNullAs=EmptyString] attribute DOMString borderStyle;
-  [TreatNullAs=EmptyString] attribute DOMString borderWidth;
-  [TreatNullAs=EmptyString] attribute DOMString borderBottom;
-  [TreatNullAs=EmptyString] attribute DOMString borderBottomColor;
-  [TreatNullAs=EmptyString] attribute DOMString borderBottomLeftRadius;
-  [TreatNullAs=EmptyString] attribute DOMString borderBottomRightRadius;
-  [TreatNullAs=EmptyString] attribute DOMString borderBottomStyle;
-  [TreatNullAs=EmptyString] attribute DOMString borderBottomWidth;
-  [TreatNullAs=EmptyString] attribute DOMString borderLeft;
-  [TreatNullAs=EmptyString] attribute DOMString borderLeftColor;
-  [TreatNullAs=EmptyString] attribute DOMString borderLeftStyle;
-  [TreatNullAs=EmptyString] attribute DOMString borderLeftWidth;
-  [TreatNullAs=EmptyString] attribute DOMString borderRight;
-  [TreatNullAs=EmptyString] attribute DOMString borderRightColor;
-  [TreatNullAs=EmptyString] attribute DOMString borderRightStyle;
-  [TreatNullAs=EmptyString] attribute DOMString borderRightWidth;
-  [TreatNullAs=EmptyString] attribute DOMString borderTop;
-  [TreatNullAs=EmptyString] attribute DOMString borderTopColor;
-  [TreatNullAs=EmptyString] attribute DOMString borderTopLeftRadius;
-  [TreatNullAs=EmptyString] attribute DOMString borderTopRightRadius;
-  [TreatNullAs=EmptyString] attribute DOMString borderTopStyle;
-  [TreatNullAs=EmptyString] attribute DOMString borderTopWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderRadius;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderSpacing;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBottom;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBottomColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBottomLeftRadius;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBottomRightRadius;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBottomStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBottomWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderLeft;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderLeftColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderLeftStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderLeftWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderRight;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderRightColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderRightStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderRightWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTop;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopLeftRadius;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopRightRadius;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopWidth;
 
-  [TreatNullAs=EmptyString] attribute DOMString content;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString content;
 
-  [TreatNullAs=EmptyString] attribute DOMString color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString color;
 
-  [TreatNullAs=EmptyString] attribute DOMString display;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString display;
 
-  [TreatNullAs=EmptyString] attribute DOMString opacity;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString opacity;
 
-  [TreatNullAs=EmptyString] attribute DOMString visibility;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString visibility;
 
-  [TreatNullAs=EmptyString] attribute DOMString cursor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString cursor;
 
-  [TreatNullAs=EmptyString] attribute DOMString boxSizing;
-  [TreatNullAs=EmptyString] attribute DOMString boxShadow;
-  [TreatNullAs=EmptyString] attribute DOMString textShadow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString boxSizing;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString boxShadow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textShadow;
 
-  [TreatNullAs=EmptyString] attribute DOMString _float;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString _float;
 
-  [TreatNullAs=EmptyString] attribute DOMString clear;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString clear;
 
-  [TreatNullAs=EmptyString] attribute DOMString clip;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString clip;
 
-  [TreatNullAs=EmptyString] attribute DOMString transform;
-  [TreatNullAs=EmptyString] attribute DOMString transformOrigin;
-  [TreatNullAs=EmptyString] attribute DOMString perspective;
-  [TreatNullAs=EmptyString] attribute DOMString perspectiveOrigin;
-  [TreatNullAs=EmptyString] attribute DOMString transformStyle;
-  [TreatNullAs=EmptyString] attribute DOMString backfaceVisibility;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transform;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transformOrigin;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString perspective;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString perspectiveOrigin;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transformStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backfaceVisibility;
 
-  [TreatNullAs=EmptyString] attribute DOMString direction;
-  [TreatNullAs=EmptyString] attribute DOMString unicodeBidi;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString direction;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString unicodeBidi;
 
-  [TreatNullAs=EmptyString] attribute DOMString filter;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString filter;
 
-  [TreatNullAs=EmptyString] attribute DOMString lineHeight;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString lineHeight;
 
-  [TreatNullAs=EmptyString] attribute DOMString mixBlendMode;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString mixBlendMode;
 
-  [TreatNullAs=EmptyString] attribute DOMString verticalAlign;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString verticalAlign;
 
-  [TreatNullAs=EmptyString] attribute DOMString listStyle;
-  [TreatNullAs=EmptyString] attribute DOMString listStylePosition;
-  [TreatNullAs=EmptyString] attribute DOMString listStyleType;
-  [TreatNullAs=EmptyString] attribute DOMString listStyleImage;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString listStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString listStylePosition;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString listStyleType;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString listStyleImage;
 
-  [TreatNullAs=EmptyString] attribute DOMString quotes;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString quotes;
 
-  [TreatNullAs=EmptyString] attribute DOMString counterIncrement;
-  [TreatNullAs=EmptyString] attribute DOMString counterReset;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString counterIncrement;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString counterReset;
 
-  [TreatNullAs=EmptyString] attribute DOMString overflow;
-  [TreatNullAs=EmptyString] attribute DOMString overflowX;
-  [TreatNullAs=EmptyString] attribute DOMString overflowY;
-  [TreatNullAs=EmptyString] attribute DOMString overflowWrap;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString overflow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString overflowX;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString overflowY;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString overflowWrap;
 
-  [TreatNullAs=EmptyString] attribute DOMString tableLayout;
-  [TreatNullAs=EmptyString] attribute DOMString borderCollapse;
-  [TreatNullAs=EmptyString] attribute DOMString emptyCells;
-  [TreatNullAs=EmptyString] attribute DOMString captionSide;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString tableLayout;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderCollapse;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString emptyCells;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString captionSide;
 
-  [TreatNullAs=EmptyString] attribute DOMString whiteSpace;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString whiteSpace;
 
-  [TreatNullAs=EmptyString] attribute DOMString writingMode;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString writingMode;
 
-  [TreatNullAs=EmptyString] attribute DOMString letterSpacing;
-  [TreatNullAs=EmptyString] attribute DOMString wordBreak;
-  [TreatNullAs=EmptyString] attribute DOMString wordSpacing;
-  [TreatNullAs=EmptyString] attribute DOMString wordWrap;
-  [TreatNullAs=EmptyString] attribute DOMString textOverflow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString letterSpacing;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString wordBreak;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString wordSpacing;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString wordWrap;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textOverflow;
 
-  [TreatNullAs=EmptyString] attribute DOMString textAlign;
-  [TreatNullAs=EmptyString] attribute DOMString textDecoration;
-  [TreatNullAs=EmptyString] attribute DOMString textIndent;
-  [TreatNullAs=EmptyString] attribute DOMString textJustify;
-  [TreatNullAs=EmptyString] attribute DOMString textOrientation;
-  [TreatNullAs=EmptyString] attribute DOMString textRendering;
-  [TreatNullAs=EmptyString] attribute DOMString textTransform;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textAlign;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textDecoration;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textIndent;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textJustify;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textOrientation;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textRendering;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textTransform;
 
-  [TreatNullAs=EmptyString] attribute DOMString font;
-  [TreatNullAs=EmptyString] attribute DOMString fontFamily;
-  [TreatNullAs=EmptyString] attribute DOMString fontSize;
-  [TreatNullAs=EmptyString] attribute DOMString fontStretch;
-  [TreatNullAs=EmptyString] attribute DOMString fontStyle;
-  [TreatNullAs=EmptyString] attribute DOMString fontVariant;
-  [TreatNullAs=EmptyString] attribute DOMString fontWeight;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontFamily;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontStretch;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontVariant;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontWeight;
 
-  [TreatNullAs=EmptyString] attribute DOMString margin;
-  [TreatNullAs=EmptyString] attribute DOMString marginBottom;
-  [TreatNullAs=EmptyString] attribute DOMString marginLeft;
-  [TreatNullAs=EmptyString] attribute DOMString marginRight;
-  [TreatNullAs=EmptyString] attribute DOMString marginTop;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBottom;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginLeft;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginRight;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginTop;
 
-  [TreatNullAs=EmptyString] attribute DOMString padding;
-  [TreatNullAs=EmptyString] attribute DOMString paddingBottom;
-  [TreatNullAs=EmptyString] attribute DOMString paddingLeft;
-  [TreatNullAs=EmptyString] attribute DOMString paddingRight;
-  [TreatNullAs=EmptyString] attribute DOMString paddingTop;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBottom;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingLeft;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingRight;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingTop;
 
-  [TreatNullAs=EmptyString] attribute DOMString outline;
-  [TreatNullAs=EmptyString] attribute DOMString outlineColor;
-  [TreatNullAs=EmptyString] attribute DOMString outlineStyle;
-  [TreatNullAs=EmptyString] attribute DOMString outlineWidth;
-  [TreatNullAs=EmptyString] attribute DOMString outlineOffset;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outline;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outlineColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outlineStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outlineWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outlineOffset;
 
-  [TreatNullAs=EmptyString] attribute DOMString position;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString position;
 
-  [TreatNullAs=EmptyString] attribute DOMString pointerEvents;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString pointerEvents;
 
-  [TreatNullAs=EmptyString] attribute DOMString top;
-  [TreatNullAs=EmptyString] attribute DOMString right;
-  [TreatNullAs=EmptyString] attribute DOMString left;
-  [TreatNullAs=EmptyString] attribute DOMString bottom;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString top;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString right;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString left;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString bottom;
 
-  [TreatNullAs=EmptyString] attribute DOMString height;
-  [TreatNullAs=EmptyString] attribute DOMString minHeight;
-  [TreatNullAs=EmptyString] attribute DOMString maxHeight;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString height;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString minHeight;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxHeight;
 
-  [TreatNullAs=EmptyString] attribute DOMString width;
-  [TreatNullAs=EmptyString] attribute DOMString minWidth;
-  [TreatNullAs=EmptyString] attribute DOMString maxWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString minWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxWidth;
 
-  [TreatNullAs=EmptyString] attribute DOMString zIndex;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString zIndex;
 
-  [TreatNullAs=EmptyString] attribute DOMString imageRendering;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString imageRendering;
 
-  [TreatNullAs=EmptyString] attribute DOMString columnCount;
-  [TreatNullAs=EmptyString] attribute DOMString columnWidth;
-  [TreatNullAs=EmptyString] attribute DOMString columns;
-  [TreatNullAs=EmptyString] attribute DOMString columnGap;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnCount;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString columns;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnGap;
 
-  [TreatNullAs=EmptyString] attribute DOMString transition;
-  [TreatNullAs=EmptyString] attribute DOMString transitionDuration;
-  [TreatNullAs=EmptyString] attribute DOMString transitionTimingFunction;
-  [TreatNullAs=EmptyString] attribute DOMString transitionProperty;
-  [TreatNullAs=EmptyString] attribute DOMString transitionDelay;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transition;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDuration;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionTimingFunction;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionProperty;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDelay;
 };
