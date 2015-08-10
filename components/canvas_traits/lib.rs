@@ -171,6 +171,9 @@ pub enum CanvasWebGLMsg {
     UseProgram(u32),
     VertexAttribPointer2f(u32, i32, bool, i32, i64),
     Viewport(i32, i32, i32, i32),
+    TexImage2D(u32, i32, i32, i32, i32, u32, u32, Vec<u8>),
+    TexParameteri(u32, u32, i32),
+    TexParameterf(u32, u32, f32),
     DrawingBufferWidth(IpcSender<i32>),
     DrawingBufferHeight(IpcSender<i32>),
 }

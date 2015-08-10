@@ -9,11 +9,15 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::
             {self, WebGLContextAttributes, WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 
-use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::htmlcanvaselement::{HTMLCanvasElement};
+use dom::bindings::conversions::ToJSValConvertible;
+use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmlcanvaselement::utils as canvas_utils;
+use dom::htmlimageelement::HTMLImageElementHelpers;
+use dom::imagedata::ImageDataHelpers;
+use dom::node::window_from_node;
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
 use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
 use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
@@ -27,13 +31,16 @@ use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use offscreen_gl_context::GLContextAttributes;
+use net_traits::image_cache_task::ImageResponse;
+use net_traits::image::base::PixelFormat;
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::slice;
 use std::sync::mpsc::channel;
 use util::str::DOMString;
+use offscreen_gl_context::GLContextAttributes;
+use util::vec::byte_swap;
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 

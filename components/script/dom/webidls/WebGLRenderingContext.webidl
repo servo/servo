@@ -24,6 +24,11 @@ typedef unsigned long  GLuint;
 typedef unrestricted float GLfloat;
 typedef unrestricted float GLclampf;
 
+typedef (ImageData or
+         HTMLImageElement or
+         HTMLCanvasElement or
+         HTMLVideoElement) TexImageSource;
+
 
 dictionary WebGLContextAttributes {
     GLboolean alpha = true;
@@ -614,18 +619,14 @@ interface WebGLRenderingContextBase
     //void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
     //void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 
-    //typedef (ImageData or
-    //         HTMLImageElement or
-    //         HTMLCanvasElement or
-    //        HTMLVideoElement) TexImageSource;
     //void texImage2D(GLenum target, GLint level, GLenum internalformat,
     //                GLsizei width, GLsizei height, GLint border, GLenum format,
     //                GLenum type, ArrayBufferView? pixels);
-    //void texImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
+    void texImage2D(GLenum target, GLint level, GLenum internalformat,
+                    GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
 
-    //void texParameterf(GLenum target, GLenum pname, GLfloat param);
-    //void texParameteri(GLenum target, GLenum pname, GLint param);
+    void texParameterf(GLenum target, GLenum pname, GLfloat param);
+    void texParameteri(GLenum target, GLenum pname, GLint param);
 
     //void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     //                   GLsizei width, GLsizei height,
