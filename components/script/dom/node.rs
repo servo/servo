@@ -40,7 +40,7 @@ use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
 use dom::element::ElementHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElementTypeId;
-use dom::nodelist::NodeList;
+use dom::nodelist::{NodeList, NodeListHelpers};
 use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -106,6 +106,9 @@ pub struct Node {
 
     /// The live list of children return by .childNodes.
     child_list: MutNullableHeap<JS<NodeList>>,
+
+    /// The live count of children of this node.
+    children_count: Cell<u32>,
 
     /// A bitfield of flags for node items.
     flags: Cell<NodeFlags>,
@@ -437,6 +440,7 @@ pub trait NodeHelpers {
     fn type_id(self) -> NodeTypeId;
     fn len(self) -> u32;
     fn index(self) -> u32;
+    fn children_count(self) -> u32;
 
     fn owner_doc(self) -> Root<Document>;
     fn set_owner_doc(self, document: &Document);
@@ -574,13 +578,17 @@ impl<'a> NodeHelpers for &'a Node {
             NodeTypeId::CharacterData(_) => {
                 CharacterDataCast::to_ref(self).unwrap().Length()
             },
-            _ => self.children().count() as u32
+            _ => self.children_count(),
         }
     }
 
     // https://dom.spec.whatwg.org/#concept-tree-index
     fn index(self) -> u32 {
         self.preceding_siblings().count() as u32
+    }
+
+    fn children_count(self) -> u32 {
+        self.children_count.get()
     }
 
     #[inline]
@@ -1083,36 +1091,26 @@ pub fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: Untruste
     }
 }
 
+#[allow(unsafe_code)]
 pub trait LayoutNodeHelpers {
-    #[allow(unsafe_code)]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
-    #[allow(unsafe_code)]
     unsafe fn parent_node_ref(&self) -> Option<LayoutJS<Node>>;
-    #[allow(unsafe_code)]
     unsafe fn first_child_ref(&self) -> Option<LayoutJS<Node>>;
-    #[allow(unsafe_code)]
     unsafe fn last_child_ref(&self) -> Option<LayoutJS<Node>>;
-    #[allow(unsafe_code)]
     unsafe fn prev_sibling_ref(&self) -> Option<LayoutJS<Node>>;
-    #[allow(unsafe_code)]
     unsafe fn next_sibling_ref(&self) -> Option<LayoutJS<Node>>;
 
-    #[allow(unsafe_code)]
     unsafe fn owner_doc_for_layout(&self) -> LayoutJS<Document>;
 
-    #[allow(unsafe_code)]
     unsafe fn is_element_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
-    #[allow(unsafe_code)]
     unsafe fn set_flag(&self, flag: NodeFlags, value: bool);
 
-    #[allow(unsafe_code)]
+    unsafe fn children_count(&self) -> u32;
+
     unsafe fn layout_data(&self) -> Ref<Option<LayoutData>>;
-    #[allow(unsafe_code)]
     unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>>;
-    #[allow(unsafe_code)]
     unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData>;
 
     fn get_hover_state_for_layout(&self) -> bool;
@@ -1189,6 +1187,12 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         }
 
         (*this).flags.set(flags);
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn children_count(&self) -> u32 {
+        (*self.unsafe_get()).children_count.get()
     }
 
     #[inline]
@@ -1489,6 +1493,7 @@ impl Node {
             prev_sibling: Default::default(),
             owner_doc: MutNullableHeap::new(doc.map(JS::from_ref)),
             child_list: Default::default(),
+            children_count: Cell::new(0u32),
             flags: Cell::new(NodeFlags::new(type_id)),
 
             layout_data: LayoutDataRef::new(),
@@ -2411,7 +2416,7 @@ impl<'a> NodeMethods for &'a Node {
             }
 
             // Step 5.
-            if this.children().count() != node.children().count() {
+            if this.children_count() != node.children_count() {
                 return false;
             }
 
@@ -2563,6 +2568,30 @@ impl<'a> VirtualMethods for &'a Node {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let eventtarget: &&EventTarget = EventTargetCast::from_borrowed_ref(self);
         Some(eventtarget as &VirtualMethods)
+    }
+
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        if let Some(ref s) = self.super_type() {
+            s.children_changed(mutation);
+        }
+        match *mutation {
+            ChildrenMutation::Append { added, .. } |
+            ChildrenMutation::Insert { added, .. } |
+            ChildrenMutation::Prepend { added, .. } => {
+                self.children_count.set(
+                    self.children_count.get() + added.len() as u32);
+            },
+            ChildrenMutation::Replace { added, .. } => {
+                self.children_count.set(
+                    self.children_count.get() - 1u32 + added.len() as u32);
+            },
+            ChildrenMutation::ReplaceAll { added, .. } => {
+                self.children_count.set(added.len() as u32);
+            },
+        }
+        if let Some(list) = self.child_list.get().map(|list| list.root()) {
+            list.as_children_list().children_changed(mutation);
+        }
     }
 }
 
