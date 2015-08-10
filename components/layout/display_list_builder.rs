@@ -1590,10 +1590,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             // We didn't need a layer.
             self.base.display_list_building_result =
                 DisplayListBuildingResult::StackingContext(
-                    self.fragment.create_stacking_context(&self.base,
-                                                          display_list,
-                                                          layout_context,
-                                                          StackingContextLayer::IfCanvas(self.layer_id(0))));
+                    self.fragment.create_stacking_context(
+                        &self.base,
+                        display_list,
+                        layout_context,
+                        StackingContextLayer::IfCanvas(self.layer_id(0))));
             return
         }
 
@@ -1605,10 +1606,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
-        let stacking_context = self.fragment.create_stacking_context(&self.base,
-                                                                     display_list,
-                                                                     layout_context,
-                                                                     StackingContextLayer::Existing(paint_layer));
+        let stacking_context = self.fragment.create_stacking_context(
+            &self.base,
+            display_list,
+            layout_context,
+            StackingContextLayer::Existing(paint_layer));
         self.base.display_list_building_result =
             DisplayListBuildingResult::StackingContext(stacking_context)
     }
