@@ -277,7 +277,7 @@ reason: \"certificate verify failed\" }]))";
                                                       load_data.headers.clone(),
                                                       load_data.data.clone());
             chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
+                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id.clone(),
                                                                     net_event))).unwrap();
         }
 
@@ -413,7 +413,7 @@ reason: \"certificate verify failed\" }]))";
                                            metadata.status.clone(),
                                            None);
             chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id,
+                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
                                                                     net_event_response))).unwrap();
         }
 
