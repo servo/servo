@@ -21,7 +21,7 @@ impl MIMEClassifier {
                     no_sniff: bool,
                     check_for_apache_bug: bool,
                     supplied_type: &Option<(String, String)>,
-                    data: &Vec<u8>) -> Option<(String, String)> {
+                    data: &[u8]) -> Option<(String, String)> {
 
         match *supplied_type{
             None => {
@@ -83,7 +83,7 @@ impl MIMEClassifier {
          }
     }
     //some sort of iterator over the classifiers might be better?
-    fn sniff_unknown_type(&self, sniff_scriptable: bool, data: &Vec<u8>) ->
+    fn sniff_unknown_type(&self, sniff_scriptable: bool, data: &[u8]) ->
       Option<(String,String)> {
         if sniff_scriptable {
             self.scriptable_classifier.classify(data)
@@ -96,7 +96,7 @@ impl MIMEClassifier {
          .or_else(|| self.binary_or_plaintext.classify(data))
     }
 
-    fn sniff_text_or_data(&self, data: &Vec<u8>) -> Option<(String, String)> {
+    fn sniff_text_or_data(&self, data: &[u8]) -> Option<(String, String)> {
         self.binary_or_plaintext.classify(data)
     }
     fn is_xml(tp: &str, sub_tp: &str) -> bool {
@@ -117,7 +117,7 @@ pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<(St
 
 //Interface used for composite types
 trait MIMEChecker {
-    fn classify(&self, data: &Vec<u8>)->Option<(String, String)>;
+    fn classify(&self, data: &[u8])->Option<(String, String)>;
 }
 
 trait Matches {
@@ -159,7 +159,7 @@ struct ByteMatcher {
 }
 
 impl ByteMatcher {
-    fn matches(&self, data: &Vec<u8>) -> Option<usize> {
+    fn matches(&self, data: &[u8]) -> Option<usize> {
 
         if data.len() < self.pattern.len() {
             return None;
@@ -189,7 +189,7 @@ impl ByteMatcher {
 }
 
 impl MIMEChecker for ByteMatcher {
-    fn classify(&self, data: &Vec<u8>) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         self.matches(data).map(|_| {
             (self.content_type.0.to_owned(), self.content_type.1.to_owned())
         })
@@ -201,7 +201,7 @@ struct TagTerminatedByteMatcher {
 }
 
 impl MIMEChecker for TagTerminatedByteMatcher {
-    fn classify(&self, data: &Vec<u8>) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         let pattern = self.matcher.matches(data);
         let pattern_matches = pattern.map(|j| j < data.len() && (data[j] == b' ' || data[j] == b'>'));
         if pattern_matches.unwrap_or(false) {
@@ -215,7 +215,7 @@ impl MIMEChecker for TagTerminatedByteMatcher {
 pub struct Mp4Matcher;
 
 impl Mp4Matcher {
-    pub fn matches(&self,data: &Vec<u8>) -> bool {
+    pub fn matches(&self,data: &[u8]) -> bool {
         if data.len() < 12 {
             return false;
         }
@@ -265,7 +265,7 @@ impl Mp4Matcher {
 
 }
 impl MIMEChecker for Mp4Matcher {
-    fn classify(&self, data: &Vec<u8>) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         if self.matches(data) {
             Some(("video".to_owned(), "mp4".to_owned()))
         } else {
@@ -277,7 +277,7 @@ impl MIMEChecker for Mp4Matcher {
 struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
-    fn classify_impl(&self, data: &Vec<u8>) -> Option<(&'static str, &'static str)> {
+    fn classify_impl(&self, data: &[u8]) -> Option<(&'static str, &'static str)> {
         if (data.len() >=2 &&
             ((data[0] == 0xFFu8 && data[1] == 0xFEu8) ||
             (data[0] == 0xFEu8 && data[1] == 0xFFu8))) ||
@@ -297,7 +297,7 @@ impl BinaryOrPlaintextClassifier {
     }
 }
 impl MIMEChecker for BinaryOrPlaintextClassifier {
-    fn classify(&self, data: &Vec<u8>) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         return as_string_option(self.classify_impl(data));
     }
 }
@@ -395,7 +395,7 @@ impl GroupedClassifier {
     }
 }
 impl MIMEChecker for GroupedClassifier {
-    fn classify(&self,data: &Vec<u8>) -> Option<(String, String)> {
+    fn classify(&self,data: &[u8]) -> Option<(String, String)> {
         self.byte_matchers
             .iter()
             .filter_map(|matcher| matcher.classify(data))
@@ -405,7 +405,7 @@ impl MIMEChecker for GroupedClassifier {
 
 struct FeedsClassifier;
 impl FeedsClassifier {
-    fn classify_impl(&self,data: &Vec<u8>) -> Option<(&'static str,&'static str)> {
+    fn classify_impl(&self,data: &[u8]) -> Option<(&'static str,&'static str)> {
         let length = data.len();
         let mut data_iterator = data.iter();
 
@@ -469,7 +469,7 @@ impl FeedsClassifier {
 }
 
 impl MIMEChecker for FeedsClassifier {
-    fn classify(&self,data: &Vec<u8>) -> Option<(String, String)> {
+    fn classify(&self,data: &[u8]) -> Option<(String, String)> {
        as_string_option(self.classify_impl(data))
     }
 }
