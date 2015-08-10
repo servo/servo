@@ -266,6 +266,7 @@ pub trait HttpRequester {
     fn send(&self, url: &Url, method: &Method, headers: &Headers, body: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError>;
 }
 
+#[derive(Debug)]
 pub enum LoadError {
     UnsupportedScheme(Url),
     Connection(Url, String),
