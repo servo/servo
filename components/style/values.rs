@@ -358,11 +358,93 @@ pub mod specified {
         }
     }
 
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
+    pub struct Calc {
+        pub absolute: Option<Au>,
+        pub font_relative: Option<FontRelativeLength>,
+        pub viewport_percentage: Option<ViewportPercentageLength>,
+        pub percentage: Option<CSSFloat>,
+    }
+    impl Calc {
+        pub fn parse_component(&mut self, input: &mut Parser) -> Result<(), ()> {
+             match try!(input.next()) {
+                Token::Dimension(ref value, ref unit) => {
+                    let value = value.value;
+                    match_ignore_ascii_case! { unit,
+                        "px" => self.absolute =
+                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_PX) as i32)),
+                        "in" => self.absolute =
+                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_IN) as i32)),
+                        "cm" => self.absolute =
+                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_CM) as i32)),
+                        "mm" => self.absolute =
+                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_MM) as i32)),
+                        "pt" => self.absolute =
+                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_PT) as i32)),
+                        "pc" => self.absolute =
+                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_PC) as i32))
+                        // font-relative
+                        /*"em" => Ok(Length::FontRelative(FontRelativeLength::Em(value))),
+                        "ex" => Ok(Length::FontRelative(FontRelativeLength::Ex(value))),
+                        "rem" => Ok(Length::FontRelative(FontRelativeLength::Rem(value))),
+                        // viewport percentages
+                        "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
+                        "vh" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vh(value))),
+                        "vmin" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
+                        "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value)))*/
+                        // Handle em, ex, rem, vw, vh, vmin, vmax
+                        _ => return Err(())
+                    }
+                },
+                Token::Percentage(ref value) =>
+                    self.percentage = Some(self.percentage.unwrap_or(0.) + value.unit_value),
+                Token::Number(ref value) if value.value == 0. =>
+                    self.absolute = self.absolute.or(Some(Au(0))),
+                _ => return Err(())
+            };
+            Ok(())
+        }
+
+        pub fn parse(input: &mut Parser) -> Result<Calc, ()> {
+            let mut calc = Calc {
+                absolute: None,
+                font_relative: None,
+                viewport_percentage: None,
+                percentage: None,
+            };
+
+            try!(calc.parse_component(input));
+            let operator = try!(input.next());
+            match operator {
+                Token::Delim('+') => (),
+                _ => return Err(())
+            };
+
+            try!(calc.parse_component(input));
+            Ok(calc)
+        }
+    }
+
+    impl ToCss for Calc {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            // XXX WRONG HACK
+            try!(write!(dest, "calc("));
+            if let Some(absolute) = self.absolute {
+                try!(write!(dest, "{}px", Au::to_px(absolute)));
+            }
+            if let Some(FontRelativeLength::Em(font_relative)) = self.font_relative {
+                try!(write!(dest, "{}em", font_relative));
+            }
+
+            write!(dest, ")")
+         }
+    }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Calc(Calc),
     }
 
     impl ToCss for LengthOrPercentage {
@@ -371,6 +453,7 @@ pub mod specified {
                 &LengthOrPercentage::Length(length) => length.to_css(dest),
                 &LengthOrPercentage::Percentage(percentage)
                 => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentage::Calc(calc) => calc.to_css(dest),
             }
         }
     }
@@ -389,6 +472,10 @@ pub mod specified {
                     Ok(LengthOrPercentage::Percentage(value.unit_value)),
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    let calc = try!(input.parse_nested_block(Calc::parse));
+                    Ok(LengthOrPercentage::Calc(calc))
+                },
                 _ => Err(())
             }
         }
@@ -943,10 +1030,50 @@ pub mod computed {
         }
     }
 
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
+    pub struct Calc {
+        length: Option<Au>,
+        percentage: Option<CSSFloat>,
+    }
+
+    impl Calc {
+        pub fn length(&self) -> Au {
+            self.length.unwrap_or(Au(0))
+        }
+
+        pub fn percentage(&self) -> CSSFloat {
+            self.percentage.unwrap_or(0.)
+        }
+    }
+
+    impl ::cssparser::ToCss for Calc {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match (self.length, self.percentage) {
+                (None, Some(p)) => write!(dest, "{}%", p),
+                (Some(l), None) => write!(dest, "{}px", Au::to_px(l)),
+                (Some(l), Some(p)) => write!(dest, "calc({}px + {}%)", Au::to_px(l), p * 100.),
+                _ => unreachable!()
+            }
+        }
+    }
+
+    impl ToComputedValue for specified::Calc {
+        type ComputedValue = Calc;
+
+        fn to_computed_value(&self, context: &Context) -> Calc {
+            let length = self.absolute;
+            let percentage = self.percentage;
+
+            Calc { length: length, percentage: percentage }
+        }
+    }
+
+
     #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
+        Calc(Calc),
     }
 
     impl LengthOrPercentage {
@@ -960,6 +1087,8 @@ pub mod computed {
             match self {
                 &LengthOrPercentage::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
+                // XXX HACK WRONG
+                &LengthOrPercentage::Calc(calc) => write!(f, "{}%", 100.),
             }
         }
     }
@@ -975,6 +1104,9 @@ pub mod computed {
                 specified::LengthOrPercentage::Percentage(value) => {
                     LengthOrPercentage::Percentage(value)
                 }
+                specified::LengthOrPercentage::Calc(calc) => {
+                    LengthOrPercentage::Calc(calc.to_computed_value(context))
+                }
             }
         }
     }
@@ -985,6 +1117,7 @@ pub mod computed {
                 &LengthOrPercentage::Length(length) => length.to_css(dest),
                 &LengthOrPercentage::Percentage(percentage)
                 => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentage::Calc(calc) => calc.to_css(dest),
             }
         }
     }

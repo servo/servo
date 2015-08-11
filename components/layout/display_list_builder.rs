@@ -1959,6 +1959,8 @@ fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32
             fmin(1.0, (length as f32) / (total_length as f32))
         }
         LengthOrPercentage::Percentage(percentage) => percentage as f32,
+        LengthOrPercentage::Calc(calc) =>
+            fmin(1.0, calc.percentage() + (calc.length().0 as f32) / (total_length as f32)),
     }
 }
 
