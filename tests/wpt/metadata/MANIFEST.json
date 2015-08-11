@@ -8232,8 +8232,16 @@
         "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex3.html"
       },
       {
+        "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html",
+        "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html"
+      },
+      {
         "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex6.html",
         "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex6.html"
+      },
+      {
+        "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html",
+        "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html"
       },
       {
         "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hsl-1.html",
@@ -12206,6 +12214,10 @@
       {
         "path": "animation-timing/idlharness.html",
         "url": "/animation-timing/idlharness.html"
+      },
+      {
+        "path": "animation-timing/same-dispatch-time.html",
+        "url": "/animation-timing/same-dispatch-time.html"
       },
       {
         "path": "battery-status/battery-interface-idlharness.html",
@@ -34555,7 +34567,7 @@
       }
     ]
   },
-  "rev": "d9834988b5b3625dfdf3dd88cab15dc314f33338",
+  "rev": "58133dd71b16037669a0aa011b2afd448b52d434",
   "url_base": "/",
   "version": 2
 }
