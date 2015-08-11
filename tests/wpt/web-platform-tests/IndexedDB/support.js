@@ -120,3 +120,7 @@ function createdb_for_multiple_tests(dbname, version) {
 
     return rq_open;
 }
+
+function assert_key_equals(actual, expected, description) {
+    assert_equals(indexedDB.cmp(actual, expected), 0, description);
+}

@@ -1046,6 +1046,10 @@
         "url": "/quirks-mode/active-and-hover-manual.html"
       },
       {
+        "path": "screen-orientation/page-visibility-manual.html",
+        "url": "/screen-orientation/page-visibility-manual.html"
+      },
+      {
         "path": "svg/import/animate-dom-01-f-manual.svg",
         "url": "/svg/import/animate-dom-01-f-manual.svg"
       },
@@ -12112,6 +12116,10 @@
         "url": "/XMLHttpRequest/setrequestheader-allow-empty-value.htm"
       },
       {
+        "path": "XMLHttpRequest/setrequestheader-allow-whitespace-in-value.htm",
+        "url": "/XMLHttpRequest/setrequestheader-allow-whitespace-in-value.htm"
+      },
+      {
         "path": "XMLHttpRequest/setrequestheader-before-open.htm",
         "url": "/XMLHttpRequest/setrequestheader-before-open.htm"
       },
@@ -12126,6 +12134,10 @@
       {
         "path": "XMLHttpRequest/setrequestheader-case-insensitive.htm",
         "url": "/XMLHttpRequest/setrequestheader-case-insensitive.htm"
+      },
+      {
+        "path": "XMLHttpRequest/setrequestheader-content-type.htm",
+        "url": "/XMLHttpRequest/setrequestheader-content-type.htm"
       },
       {
         "path": "XMLHttpRequest/setrequestheader-header-allowed.htm",
@@ -12538,22 +12550,6 @@
       {
         "path": "content-security-policy/blink-contrib/object-src-no-url-blocked.sub.html",
         "url": "/content-security-policy/blink-contrib/object-src-no-url-blocked.sub.html"
-      },
-      {
-        "path": "content-security-policy/blink-contrib/object-src-param-code-blocked.sub.html",
-        "url": "/content-security-policy/blink-contrib/object-src-param-code-blocked.sub.html"
-      },
-      {
-        "path": "content-security-policy/blink-contrib/object-src-param-movie-blocked.sub.html",
-        "url": "/content-security-policy/blink-contrib/object-src-param-movie-blocked.sub.html"
-      },
-      {
-        "path": "content-security-policy/blink-contrib/object-src-param-src-blocked.sub.html",
-        "url": "/content-security-policy/blink-contrib/object-src-param-src-blocked.sub.html"
-      },
-      {
-        "path": "content-security-policy/blink-contrib/object-src-param-url-blocked.sub.html",
-        "url": "/content-security-policy/blink-contrib/object-src-param-url-blocked.sub.html"
       },
       {
         "path": "content-security-policy/blink-contrib/object-src-url-allowed.sub.html",
@@ -13898,6 +13894,142 @@
       {
         "path": "domxpath/evaluator-constructor.html",
         "url": "/domxpath/evaluator-constructor.html"
+      },
+      {
+        "path": "editing/event.html",
+        "url": "/editing/event.html"
+      },
+      {
+        "path": "editing/run/backcolor.html",
+        "url": "/editing/run/backcolor.html"
+      },
+      {
+        "path": "editing/run/bold.html",
+        "url": "/editing/run/bold.html"
+      },
+      {
+        "path": "editing/run/createlink.html",
+        "url": "/editing/run/createlink.html"
+      },
+      {
+        "path": "editing/run/delete.html",
+        "url": "/editing/run/delete.html"
+      },
+      {
+        "path": "editing/run/fontname.html",
+        "url": "/editing/run/fontname.html"
+      },
+      {
+        "path": "editing/run/fontsize.html",
+        "url": "/editing/run/fontsize.html"
+      },
+      {
+        "path": "editing/run/forecolor.html",
+        "url": "/editing/run/forecolor.html"
+      },
+      {
+        "path": "editing/run/formatblock.html",
+        "url": "/editing/run/formatblock.html"
+      },
+      {
+        "path": "editing/run/forwarddelete.html",
+        "url": "/editing/run/forwarddelete.html"
+      },
+      {
+        "path": "editing/run/hilitecolor.html",
+        "url": "/editing/run/hilitecolor.html"
+      },
+      {
+        "path": "editing/run/indent.html",
+        "url": "/editing/run/indent.html"
+      },
+      {
+        "path": "editing/run/inserthorizontalrule.html",
+        "url": "/editing/run/inserthorizontalrule.html"
+      },
+      {
+        "path": "editing/run/inserthtml.html",
+        "url": "/editing/run/inserthtml.html"
+      },
+      {
+        "path": "editing/run/insertimage.html",
+        "url": "/editing/run/insertimage.html"
+      },
+      {
+        "path": "editing/run/insertlinebreak.html",
+        "url": "/editing/run/insertlinebreak.html"
+      },
+      {
+        "path": "editing/run/insertorderedlist.html",
+        "url": "/editing/run/insertorderedlist.html"
+      },
+      {
+        "path": "editing/run/insertparagraph.html",
+        "url": "/editing/run/insertparagraph.html"
+      },
+      {
+        "path": "editing/run/inserttext.html",
+        "url": "/editing/run/inserttext.html"
+      },
+      {
+        "path": "editing/run/insertunorderedlist.html",
+        "url": "/editing/run/insertunorderedlist.html"
+      },
+      {
+        "path": "editing/run/italic.html",
+        "url": "/editing/run/italic.html"
+      },
+      {
+        "path": "editing/run/justifycenter.html",
+        "url": "/editing/run/justifycenter.html"
+      },
+      {
+        "path": "editing/run/justifyfull.html",
+        "url": "/editing/run/justifyfull.html"
+      },
+      {
+        "path": "editing/run/justifyleft.html",
+        "url": "/editing/run/justifyleft.html"
+      },
+      {
+        "path": "editing/run/justifyright.html",
+        "url": "/editing/run/justifyright.html"
+      },
+      {
+        "path": "editing/run/misc.html",
+        "url": "/editing/run/misc.html"
+      },
+      {
+        "path": "editing/run/multitest.html",
+        "url": "/editing/run/multitest.html"
+      },
+      {
+        "path": "editing/run/outdent.html",
+        "url": "/editing/run/outdent.html"
+      },
+      {
+        "path": "editing/run/removeformat.html",
+        "url": "/editing/run/removeformat.html"
+      },
+      {
+        "path": "editing/run/strikethrough.html",
+        "url": "/editing/run/strikethrough.html"
+      },
+      {
+        "path": "editing/run/subscript.html",
+        "url": "/editing/run/subscript.html"
+      },
+      {
+        "path": "editing/run/superscript.html",
+        "url": "/editing/run/superscript.html"
+      },
+      {
+        "path": "editing/run/underline.html",
+        "url": "/editing/run/underline.html"
+      },
+      {
+        "path": "editing/run/unlink.html",
+        "url": "/editing/run/unlink.html"
       },
       {
         "path": "encoding/api-basics.html",
@@ -16650,6 +16782,10 @@
       {
         "path": "html/semantics/embedded-content/the-canvas-element/toDataURL.jpeg.quality.outsiderange.html",
         "url": "/html/semantics/embedded-content/the-canvas-element/toDataURL.jpeg.quality.outsiderange.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-canvas-element/toDataURL.jpg.html",
+        "url": "/html/semantics/embedded-content/the-canvas-element/toDataURL.jpg.html"
       },
       {
         "path": "html/semantics/embedded-content/the-canvas-element/toDataURL.lowercase.ascii.html",
@@ -24784,6 +24920,86 @@
         "url": "/resource-timing/test_resource_timing.html"
       },
       {
+        "path": "screen-orientation/lock-bad-argument.html",
+        "url": "/screen-orientation/lock-bad-argument.html"
+      },
+      {
+        "path": "screen-orientation/lock-basic.html",
+        "url": "/screen-orientation/lock-basic.html"
+      },
+      {
+        "path": "screen-orientation/lock-sandboxed-iframe.html",
+        "url": "/screen-orientation/lock-sandboxed-iframe.html"
+      },
+      {
+        "path": "screen-orientation/onchange-event-subframe.html",
+        "url": "/screen-orientation/onchange-event-subframe.html"
+      },
+      {
+        "path": "screen-orientation/onchange-event.html",
+        "url": "/screen-orientation/onchange-event.html"
+      },
+      {
+        "path": "screen-orientation/orientation-api.html",
+        "url": "/screen-orientation/orientation-api.html"
+      },
+      {
+        "path": "screen-orientation/orientation-reading.html",
+        "url": "/screen-orientation/orientation-reading.html"
+      },
+      {
+        "path": "selection/Document-open.html",
+        "url": "/selection/Document-open.html"
+      },
+      {
+        "path": "selection/addRange.html",
+        "url": "/selection/addRange.html"
+      },
+      {
+        "path": "selection/collapse.html",
+        "url": "/selection/collapse.html"
+      },
+      {
+        "path": "selection/collapseToStartEnd.html",
+        "url": "/selection/collapseToStartEnd.html"
+      },
+      {
+        "path": "selection/deleteFromDocument.html",
+        "url": "/selection/deleteFromDocument.html"
+      },
+      {
+        "path": "selection/dir.manual.html",
+        "url": "/selection/dir.manual.html"
+      },
+      {
+        "path": "selection/extend.html",
+        "url": "/selection/extend.html"
+      },
+      {
+        "path": "selection/getRangeAt.html",
+        "url": "/selection/getRangeAt.html"
+      },
+      {
+        "path": "selection/getSelection.html",
+        "url": "/selection/getSelection.html"
+      },
+      {
+        "path": "selection/interfaces.html",
+        "url": "/selection/interfaces.html"
+      },
+      {
+        "path": "selection/isCollapsed.html",
+        "url": "/selection/isCollapsed.html"
+      },
+      {
+        "path": "selection/removeAllRanges.html",
+        "url": "/selection/removeAllRanges.html"
+      },
+      {
+        "path": "selection/selectAllChildren.html",
+        "url": "/selection/selectAllChildren.html"
+      },
+      {
         "path": "selectors-api/tests/submissions/Opera/ParentNode-query-queryAll.html",
         "url": "/selectors-api/tests/submissions/Opera/ParentNode-query-queryAll.html"
       },
@@ -27686,6 +27902,11 @@
         "url": "/dom/traversal/NodeIterator.html"
       },
       {
+        "path": "dom/traversal/TreeWalker.html",
+        "timeout": "long",
+        "url": "/dom/traversal/TreeWalker.html"
+      },
+      {
         "path": "encoding/api-invalid-label.html",
         "timeout": "long",
         "url": "/encoding/api-invalid-label.html"
@@ -28856,36 +29077,8 @@
     ]
   },
   "local_changes": {
-    "deleted": [
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
-      "2dcontext/transformations/canvas_transformations_reset_001.htm",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
-    ],
-    "items": {
-      "testharness": {
-        "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html": [
-          {
-            "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html",
-            "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex4.html"
-          }
-        ],
-        "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html": [
-          {
-            "path": "2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html",
-            "url": "/2dcontext/fill-and-stroke-styles/2d.fillStyle.parse.hex8.html"
-          }
-        ],
-        "animation-timing/same-dispatch-time.html": [
-          {
-            "path": "animation-timing/same-dispatch-time.html",
-            "url": "/animation-timing/same-dispatch-time.html"
-          }
-        ]
-      }
-    },
+    "deleted": [],
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -34362,7 +34555,7 @@
       }
     ]
   },
-  "rev": "12d3e15e5ecae695e1216c358d613705fbff6b68",
+  "rev": "d9834988b5b3625dfdf3dd88cab15dc314f33338",
   "url_base": "/",
   "version": 2
 }

@@ -42,22 +42,22 @@ setup(function() {
 var filter = {
   acceptNode: function(node) {
     if (node.className == 'keep')
-      return /*NodeFilter.*/FILTER_ACCEPT;
+      return NodeFilter.FILTER_ACCEPT;
 
-    return /*NodeFilter.*/FILTER_SKIP;
+    return NodeFilter.FILTER_SKIP;
   }
 }
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
     assert_node(walker.firstChild(), { type: Element, id: 'B1' });
     assert_node(walker.nextSibling(), { type: Element, id: 'B3' });
 }, 'Testing nextSibling');
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
     walker.currentNode = testElement.querySelectorAll('#B3')[0];
     assert_node(walker.previousSibling(), { type: Element, id: 'B1' });
 }, 'Testing previousSibling');

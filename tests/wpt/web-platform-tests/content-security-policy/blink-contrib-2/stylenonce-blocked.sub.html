@@ -24,13 +24,13 @@ style-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 <body>
     <p id="test">This text should be green.</p>
     <script>
-        console.info("Style that does not match a 'nonce-*' expression in 'style-src' should not be applied to the page.");
         var el = document.querySelector('#test');
         test(function() {
             assert_equals(window.getComputedStyle(el).color, "rgb(0, 128, 0)")
         });
 
     </script>
+    <p>Style that does not match a 'nonce-*' expression in 'style-src' should not be applied to the page.</p>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=style-src%20&apos;self&apos;"></script>
 </body>

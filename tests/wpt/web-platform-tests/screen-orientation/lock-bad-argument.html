@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+var test = async_test("Test that screen.orientation.lock() throws when the input isn't valid.");
+
+function onOrientationChangeEvent(ev) {
+    assert_unreached('Unexpected orientation change');
+}
+
+window.screen.orientation.addEventListener('change', test.step_func(onOrientationChangeEvent));
+
+test.step(function() {
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock('invalid-orientation');
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock(null);
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock(undefined);
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock(undefined);
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock(123);
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock(window);
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock(['portrait-primary']);
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock(['portrait-primary', 'landscape-primary']);
+    });
+
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    assert_throws(new TypeError(), function() {
+        screen.orientation.lock();
+    });
+});
+
+// Finish asynchronously to give events a chance to fire.
+setTimeout(test.step_func(function() {
+    assert_equals(screen.orientation.type, 'portrait-primary');
+    screen.orientation.unlock();
+    test.done();
+}));
+
+</script>
+</body>
+</html>
+

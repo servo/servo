@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name='flags' content='interact'>
+<meta name="timeout" content="long">
+<p>Switch the page to background, then switch back in a minute.</p>
+<iframe src='about:blank'></iframe>
+<script>
+
+var eventVisibleTest = async_test("Test that a change event is fired when the page is visible.");
+var noEventHiddenTest = async_test("Test that change event is not fired when the page is not visible.");
+var orientationUnchangeHiddenTest = async_test("Test that screen.orientation keeps returning the same orientation when the page is not visible.");
+var orientationUpdateVisibleTest = async_test("Test that screen.orientation is updated once the page is visible again.");
+var frameEventsTest = async_test("Test that the iframe got as many events as the main frame.");
+
+var orientationChangeContinuation = null;
+var orientationChangeEventListenerCalls = 0;
+var orientationChangeEventListenerCallsForFrame = 0;
+
+screen.orientation.addEventListener('change', function() {
+    orientationChangeEventListenerCalls++;
+    if (orientationChangeEventContinuation) {
+        setTimeout(orientationChangeEventContinuation);
+        orientationChangeEventContinuation = null;
+    }
+});
+
+window.frames[0].screen.orientation.addEventListener('change', function() {
+    orientationChangeEventListenerCallsForFrame++;
+});
+
+document.addEventListener("visibilitychange", function () {
+    if(document.hidden)
+        runNoEventHiddenTest();
+    else
+        runOrientationUpdateVisibleTest();
+});
+
+function runEventVisibleTest() {
+    eventVisibleTest.step(function() {
+        assert_false(document.hidden);
+    });
+
+    screen.orientation.lock("landscape-primary").then(function() {}, function() {});
+
+    orientationChangeEventContinuation = function() {
+        eventVisibleTest.step(function() {
+            assert_equals(orientationChangeEventListenerCalls, 1);
+            assert_equals(screen.orientation.type, "landscape-primary");
+        });
+        eventVisibleTest.done();
+
+    };
+}
+
+function runNoEventHiddenTest() {
+
+    noEventHiddenTest.step(function() {
+        assert_true(document.hidden);
+    });
+
+    screen.orientation.lock("portrait-primary").then(function() {}, function() {});
+
+    noEventHiddenTest.step(function() {
+        assert_equals(orientationChangeEventListenerCalls, 1);
+    });
+    noEventHiddenTest.done();
+
+    runOrientationUnchangeHiddenTest();
+}
+
+function runOrientationUnchangeHiddenTest() {
+    orientationUnchangeHiddenTest.step(function() {
+        assert_equals(screen.orientation.type, "landscape-primary");
+    });
+    orientationUnchangeHiddenTest.done();
+
+}
+
+function runOrientationUpdateVisibleTest() {
+
+    orientationChangeEventContinuation = function() {
+        orientationUpdateVisibleTest.step(function() {
+            assert_false(document.hidden);
+            // A change event should have been fired.
+            assert_equals(orientationChangeEventListenerCalls, 2);
+            // Should keep returning the start returning the orientation value.
+            assert_equals(screen.orientation.type, "portrait-primary");
+        });
+
+        orientationUpdateVisibleTest.done();
+
+        runFrameEventsTest();
+    };
+}
+
+function runFrameEventsTest() {
+    frameEventsTest.step(function() {
+        assert_equals(orientationChangeEventListenerCallsForFrame, orientationChangeEventListenerCalls);
+    });
+    frameEventsTest.done();
+}
+
+runEventVisibleTest();
+
+</script>
+</body>
+</html>

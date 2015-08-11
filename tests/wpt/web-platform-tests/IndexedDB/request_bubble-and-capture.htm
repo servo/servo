@@ -29,20 +29,20 @@
 
     open_rq.onsuccess = function(e) {
         log("open_rq.success")(e);
-        assert_object_equals(events, [
-                                       "capture  db.success",
-                                       "capture txn.success",
-                                       "capture rq1.success",
-                                       "bubble  rq1.success",
+        assert_array_equals(events, [
+                                      "capture  db.success",
+                                      "capture txn.success",
+                                      "capture rq1.success",
+                                      "bubble  rq1.success",
 
-                                       "capture  db.error: ConstraintError",
-                                       "capture txn.error: ConstraintError",
-                                       "capture rq2.error: ConstraintError",
-                                       "bubble  rq2.error: ConstraintError",
-                                       "bubble  txn.error: ConstraintError",
-                                       "bubble   db.error: ConstraintError",
+                                      "capture  db.error: ConstraintError",
+                                      "capture txn.error: ConstraintError",
+                                      "capture rq2.error: ConstraintError",
+                                      "bubble  rq2.error: ConstraintError",
+                                      "bubble  txn.error: ConstraintError",
+                                      "bubble   db.error: ConstraintError",
 
-                                       "open_rq.success"
+                                      "open_rq.success"
                                      ],
                             "events");
         this.done();

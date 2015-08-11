@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>The getRangeAt method</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  var sel = getSelection();
+  var range = document.createRange();
+  sel.addRange(range);
+  assert_throws("INDEX_SIZE_ERR", function() { sel.getRangeAt(-1); })
+  assert_throws("INDEX_SIZE_ERR", function() { sel.getRangeAt(1); })
+});
+</script>

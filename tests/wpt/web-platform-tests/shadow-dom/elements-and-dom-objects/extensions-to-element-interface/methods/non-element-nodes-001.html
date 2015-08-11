@@ -61,16 +61,9 @@ function createDocumentFragmentNode() {
     return node;
 }
 
-function createEntityReferenceNode() {
-    var doc = document.implementation.createDocument(XHTML_NAMESPACE, 'html');
-    var node = doc.createEntityReference('entity-reference-node');
-    doc.documentElement.appendChild(node);
-    return node;
-}
-
 function createProcessingInstructionNode() {
     var doc = document.implementation.createDocument(XHTML_NAMESPACE, 'html');
-    var node = doc.createProcessingInstruction('processing-instruction-node');
+    var node = doc.createProcessingInstruction('processing-instruction-node', '');
     doc.documentElement.appendChild(node);
     return node;
 }
@@ -85,7 +78,6 @@ var factories = [
     ['a CDATA section node', createCDATASectionNode],
     ['an attribute node', createAttributeNode],
     ['a document fragment node', createDocumentFragmentNode],
-    ['an entity reference node', createEntityReferenceNode],
     ['a processing instruction node', createProcessingInstructionNode],
     ['a document node', createDocumentNode]
 ];
@@ -108,29 +100,6 @@ function testNoCreateShadowRoot(factory) {
 }
 
 generate_tests(testNoCreateShadowRoot, noCreateShadowRootTestParameters);
-
-// When createShadowRoot() is called on non-element nodes, it should throw
-// InvalidNodeTypeError (step 1 of section 10.2.2).
-function testThrowInvalidNodeTypeError(factory) {
-    var node = factory();
-    node.createShadowRoot = Element.prototype.createShadowRoot;
-    assert_throws('InvalidNodeTypeError',
-                  function () { node.createShadowRoot(); });
-}
-
-var throwInvalidNodeTypeErrorTestParameters = factories.map(
-    function (nameAndFactory) {
-        var name = nameAndFactory[0];
-        var factory = nameAndFactory[1];
-        return [
-            'When createShadowRoot() is called on ' + name + ', ' +
-                'InvalidNodeTypeError should be thrown.',
-            factory
-        ];
-    });
-
-generate_tests(testThrowInvalidNodeTypeError,
-               throwInvalidNodeTypeErrorTestParameters);
 </script>
 </body>
 </html>

@@ -40,10 +40,11 @@
     <!-- enforcing policy:
 frame-src 'self' http://localhost:8080; script-src 'self' 'unsafe-inline'; connect-src 'self';
 -->
-    <script></script>
+    <p>
+        IFrames blocked by CSP should generate a 'load' event, regardless of blocked state. This means they appear to be normal cross-origin loads, thereby not leaking URL information directly to JS.
+    </p>
     <script>
         window.wasPostTestScriptParsed = true;
-        console.info("IFrames blocked by CSP should generate a 'load' event, regardless of blocked state. This means they appear to be normal cross-origin loads, thereby not leaking URL information directly to JS.");
         var loads = 0;
 
         function loadEvent() {

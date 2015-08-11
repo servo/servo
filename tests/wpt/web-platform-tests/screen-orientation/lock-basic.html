@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+var previousOrientation = screen.orientation;
+
+test(function() {
+    screen.orientation.unlock();
+}, "Test that screen.orientation.unlock() doesn't throw when there is no lock");
+
+async_test(function(t) {
+    var orientations = ['any', 'portrait', 'landscape', 'portrait-secondary',
+                        'landscape-primary', 'landscape-secondary', 'portrait-primary'];
+
+    setOrientation = function(idx) {
+        if( idx == orientations.length) {
+            screen.orientation.unlock();
+            t.done();
+            return;
+        }
+        (function(i) {
+            screen.orientation.lock(orientations[i]).then(function() {
+                setOrientation(i+1);
+            },function() {});
+        })(idx);
+    };
+
+    setOrientation(0);
+
+}, "Test that screen.orientation.lock returns a pending promise.");
+
+test(function() {
+    assert_equals(screen.orientation, previousOrientation);
+}, "Test that screen.orientation.lock() is actually async");
+
+</script>
+</body>
+</html>

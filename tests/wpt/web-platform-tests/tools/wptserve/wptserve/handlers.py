@@ -51,13 +51,17 @@ class DirectoryHandler(object):
         self.base_path = base_path
         self.url_base = url_base
 
+    def __repr__(self):
+        return "<%s base_path:%s url_base:%s>" % (self.__class__.__name__, self.base_path, self.url_base)
+
     def __call__(self, request, response):
         if not request.url_parts.path.endswith("/"):
             raise HTTPException(404)
 
         path = filesystem_path(self.base_path, request, self.url_base)
 
-        assert os.path.isdir(path)
+        if not os.path.isdir(path):
+            raise HTTPException(404, "%s is not a directory" % path)
 
         response.headers = [("Content-Type", "text/html")]
         response.content = """<!doctype html>
@@ -102,7 +106,10 @@ class FileHandler(object):
     def __init__(self, base_path=None, url_base="/"):
         self.base_path = base_path
         self.url_base = url_base
-        self.directory_handler = DirectoryHandler(self.base_path)
+        self.directory_handler = DirectoryHandler(self.base_path, self.url_base)
+
+    def __repr__(self):
+        return "<%s base_path:%s url_base:%s>" % (self.__class__.__name__, self.base_path, self.url_base)
 
     def __call__(self, request, response):
         path = filesystem_path(self.base_path, request, self.url_base)
@@ -208,6 +215,9 @@ class PythonScriptHandler(object):
     def __init__(self, base_path=None, url_base="/"):
         self.base_path = base_path
         self.url_base = url_base
+
+    def __repr__(self):
+        return "<%s base_path:%s url_base:%s>" % (self.__class__.__name__, self.base_path, self.url_base)
 
     def __call__(self, request, response):
         path = filesystem_path(self.base_path, request, self.url_base)
@@ -330,3 +340,29 @@ class ErrorHandler(object):
 
     def __call__(self, request, response):
         response.set_error(self.status)
+
+
+class StaticHandler(object):
+    def __init__(self, path, format_args, content_type, **headers):
+        """Hander that reads a file from a path and substitutes some fixed data
+
+        :param path: Path to the template file to use
+        :param format_args: Dictionary of values to substitute into the template file
+        :param content_type: Content type header to server the response with
+        :param headers: List of headers to send with responses"""
+
+        with open(path) as f:
+            self.data = f.read() % format_args
+
+        self.resp_headers = [("Content-Type", content_type)]
+        for k, v in headers.iteritems():
+            resp_headers.append((k.replace("_", "-"), v))
+
+        self.handler = handler(self.handle_request)
+
+    def handle_request(self, request, response):
+        return self.resp_headers, self.data
+
+    def __call__(self, request, response):
+        rv = self.handler(request, response)
+        return rv
