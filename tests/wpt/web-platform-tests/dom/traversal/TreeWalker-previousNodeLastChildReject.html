@@ -66,11 +66,11 @@ test(function()
     function filter(node)
     {
         if (node.id == "C2")
-            return /*NodeFilter.*/FILTER_REJECT;
-        return /*NodeFilter.*/FILTER_ACCEPT;
+            return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
     }
 
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
     assert_node(walker.currentNode, { type: Element, id: 'root' });
     assert_node(walker.firstChild(), { type: Element, id: 'A1' });
     assert_node(walker.currentNode, { type: Element, id: 'A1' });

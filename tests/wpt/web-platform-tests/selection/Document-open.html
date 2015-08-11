@@ -1,0 +1,44 @@
+<!doctype html>
+<title>Selection Document.open() tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+// This tests the HTML spec requirement "Replace the Document's singleton
+// objects with new instances of those objects. (This includes in particular
+// the Window, Location, History, ApplicationCache, and Navigator, objects, the
+// various BarProp objects, the two Storage objects, the various HTMLCollection
+// objects, and objects defined by other specifications, like Selection and the
+// document's UndoManager. It also includes all the Web IDL prototypes in the
+// JavaScript binding, including the Document object's prototype.)" in the
+// document.open() algorithm.
+
+var iframe = document.createElement("iframe");
+var t = async_test("Selection must be replaced with a new object after document.open()");
+iframe.onload = function() {
+    t.step(function() {
+        var originalSelection = iframe.contentWindow.getSelection();
+        assert_equals(originalSelection.rangeCount, 0,
+            "Sanity check: rangeCount must be initially 0");
+        iframe.contentDocument.body.appendChild(
+            iframe.contentDocument.createTextNode("foo"));
+        var range = iframe.contentDocument.createRange();
+        range.selectNodeContents(iframe.contentDocument.body);
+        iframe.contentWindow.getSelection().addRange(range);
+        assert_equals(originalSelection.rangeCount, 1,
+            "Sanity check: rangeCount must be 1 after adding a range");
+
+        iframe.contentDocument.open();
+
+        assert_not_equals(iframe.contentWindow.getSelection(), originalSelection,
+            "After document.open(), the Selection object must no longer be the same");
+        assert_equals(iframe.contentWindow.getSelection().rangeCount, 0,
+            "After document.open(), rangeCount must be 0 again");
+    });
+    t.done();
+    document.body.removeChild(iframe);
+};
+document.body.appendChild(iframe);
+</script>

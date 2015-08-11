@@ -1,0 +1,33 @@
+<!doctype html>
+<title>Selection test iframe</title>
+<link rel=author title="Aryeh Gregor" href=ayg@aryeh.name>
+<body>
+<script src=common.js></script>
+<script>
+"use strict";
+
+// This script only exists because we want to evaluate the range endpoints
+// in each iframe using that iframe's local variables set up by common.js.  It
+// just creates a range with the endpoints given by
+// eval(window.testRangeInput), and assigns the result to window.testRange.  If
+// there's an exception, it's assigned to window.unexpectedException.
+// Everything else is to be done by the script that created the iframe.
+window.unexpectedException = null;
+
+function run() {
+    window.unexpectedException = null;
+    try {
+        window.testRange = rangeFromEndpoints(eval(window.testRangeInput));
+    } catch(e) {
+        window.unexpectedException = e;
+    }
+}
+
+// Remove the scripts so they don't run repeatedly when the iframe is
+// reinitialized
+[].forEach.call(document.querySelectorAll("script"), function(script) {
+    script.parentNode.removeChild(script);
+});
+
+testDiv.style.display = "none";
+</script>

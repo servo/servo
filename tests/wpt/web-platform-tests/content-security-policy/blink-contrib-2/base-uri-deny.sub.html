@@ -13,7 +13,6 @@
 base-uri 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 -->
     <script>
-        console.info('Check that base URIs cannot be set if they violate the page\'s policy.');
         var base = document.createElement('base');
         base.href = 'http://www1.{{host}}:{{ports[http][0]}}/';
         document.head.appendChild(base);
@@ -26,6 +25,7 @@ base-uri 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 </head>
 
 <body>
+    <p>Check that base URIs cannot be set if they violate the page's policy.</p>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=base-uri%20&apos;self&apos;"></script>
 </body>

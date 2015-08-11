@@ -38,7 +38,7 @@
         });
         idx.get(ar).onsuccess = t.step_func(function(e) {
             assert_equals(e.target.result.key, 'array', 'key');
-            assert_object_equals(e.target.result.i, ar, 'array is the same');
+            assert_array_equals(e.target.result.i, ar, 'array is the same');
         });
         idx.get(num).onsuccess = t.step_func(function(e) {
             assert_equals(e.target.result.key, 'number', 'key');

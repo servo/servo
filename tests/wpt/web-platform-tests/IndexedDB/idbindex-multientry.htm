@@ -44,7 +44,7 @@
         idx.getKey('Bobby').onsuccess = this.step_func(function(e) {
             gotten_keys.push(e.target.result)
 
-            assert_object_equals(gotten_keys, expected_keys);
+            assert_array_equals(gotten_keys, expected_keys);
             this.done();
         });
     }

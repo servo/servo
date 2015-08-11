@@ -9,6 +9,22 @@
 <script>
 "use strict";
 
+function check_iter(iter, root, whatToShowValue) {
+    whatToShowValue = whatToShowValue === undefined ? 0xFFFFFFFF : whatToShowValue;
+
+    assert_equals(iter.toString(), '[object NodeIterator]', 'toString');
+    assert_equals(iter.root, root, 'root');
+    assert_equals(iter.whatToShow, whatToShowValue, 'whatToShow');
+    assert_equals(iter.filter, null, 'filter');
+    assert_equals(iter.referenceNode, root, 'referenceNode');
+    assert_equals(iter.pointerBeforeReferenceNode, true, 'pointerBeforeReferenceNode');
+    assert_readonly(iter, 'root');
+    assert_readonly(iter, 'whatToShow');
+    assert_readonly(iter, 'filter');
+    assert_readonly(iter, 'referenceNode');
+    assert_readonly(iter, 'pointerBeforeReferenceNode');
+}
+
 test(function() {
   var iter = document.createNodeIterator(document);
   iter.detach();
@@ -17,9 +33,18 @@ test(function() {
 
 test(function() {
   var iter = document.createNodeIterator(document);
-  assert_equals(iter.whatToShow, 0xFFFFFFFF, "whatToShow");
-  assert_equals(iter.filter, null, "filter");
+  check_iter(iter, document);
 }, "createNodeIterator() parameter defaults");
+
+test(function() {
+  var iter = document.createNodeIterator(document, null, null);
+  check_iter(iter, document, 0);
+}, "createNodeIterator() with null as arguments");
+
+test(function() {
+  var iter = document.createNodeIterator(document, undefined, undefined);
+  check_iter(iter, document);
+}, "createNodeIterator() with undefined as arguments");
 
 test(function() {
   var iter = document.createNodeIterator(document, NodeFilter.SHOW_ALL,

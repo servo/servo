@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<script>
+    var msg = "";
+    screen.orientation.lock("portrait-primary").then(function() {
+        msg = screen.orientation.type;
+    }, function(error) {
+        msg = error.name;
+    });
+
+    // FIXME: for the moment, tests gets notified when there is a failure but
+    // not a success, this hack should allow us to still have the test running.
+    // That should be removed as soon as we get a resolved promise in tests.
+    setTimeout(function() {
+        parent.window.postMessage(msg, "*");
+    })
+</script>
+</html>
