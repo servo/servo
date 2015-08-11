@@ -342,9 +342,11 @@ class MachCommands(CommandBase):
             from wptrunner.browsers import servo  # noqa
         except ImportError:
             subprocess.check_call(["pip", "install", "-r",
-                                   path.join(self.context.topdir, "tests", "wpt", "harness", "requirements.txt")])
+                                   path.join(self.context.topdir, "tests", "wpt",
+                                             "harness", "requirements.txt")])
             subprocess.check_call(["pip", "install", "-r",
-                                   path.join(self.context.topdir, "tests", "wpt", "harness", "requirements_servo.txt")])
+                                   path.join(self.context.topdir, "tests", "wpt",
+                                             "harness", "requirements_servo.txt")])
         try:
             import blessings
         except ImportError:
