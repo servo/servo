@@ -9,6 +9,7 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
+== abs_rel_explicit_height.html abs_rel_explicit_height_ref.html
 == absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html

@@ -1104,7 +1104,8 @@ impl BlockFlow {
             let screen_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
                                                          layout_context.shared.screen_size);
             Some(screen_size.block)
-        } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+        } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
+                  self.base.block_container_explicit_block_size.is_none() {
             self.base.absolute_cb.explicit_block_containing_size(layout_context)
         } else {
             self.base.block_container_explicit_block_size
@@ -1329,12 +1330,7 @@ impl BlockFlow {
 
         let mut iterator = self.base.child_iter().enumerate().peekable();
         while let Some((i, kid)) = iterator.next() {
-            {
-                let kid_base = flow::mut_base(kid);
-                if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                    kid_base.block_container_explicit_block_size = explicit_content_size;
-                }
-            }
+            flow::mut_base(kid).block_container_explicit_block_size = explicit_content_size;
 
             // Determine float impaction, and update the inline size speculations if necessary.
             if flow::base(kid).flags.contains(CLEARS_LEFT) {
