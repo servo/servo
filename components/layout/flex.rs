@@ -33,6 +33,7 @@ use style::properties::ComputedValues;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use util::opts;
+use model::MaybeAuto;
 
 // A mode describes which logical axis a flex axis is parallel with.
 // The logical axises are inline and block, the flex axises are main and cross.
@@ -230,6 +231,70 @@ impl FlexFlow {
             inline_child_start = inline_child_start + even_content_inline_size;
         }
     }
+
+    // TODO(zentner): This function should actually flex elements!
+    fn block_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+        self.block_flow.assign_block_size(layout_context)
+    }
+
+    // TODO(zentner): This function should actually flex elements!
+    // Currently, this is the core of TableRowFlow::assign_block_size() with
+    // float related logic stripped out.
+    fn inline_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+        let _scope = layout_debug_scope!("flex::inline_mode_assign_block_size");
+
+        let mut max_block_size = Au(0);
+        let thread_id = self.block_flow.base.thread_id;
+        for kid in self.block_flow.base.child_iter() {
+            kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
+
+            {
+                let child_fragment = &mut kid.as_block().fragment;
+                // TODO: Percentage block-size
+                let child_specified_block_size =
+                    MaybeAuto::from_style(child_fragment.style().content_block_size(),
+                                          Au(0)).specified_or_zero();
+                max_block_size =
+                    max(max_block_size,
+                        child_specified_block_size +
+                        child_fragment.border_padding.block_start_end());
+            }
+            let child_node = flow::mut_base(kid);
+            child_node.position.start.b = Au(0);
+            max_block_size = max(max_block_size, child_node.position.size.block);
+        }
+
+        let mut block_size = max_block_size;
+        // TODO: Percentage block-size
+
+        block_size = match MaybeAuto::from_style(self.block_flow
+                                                     .fragment
+                                                     .style()
+                                                     .content_block_size(),
+                                                 Au(0)) {
+            MaybeAuto::Auto => block_size,
+            MaybeAuto::Specified(value) => max(value, block_size),
+        };
+
+        // Assign the block-size of own fragment
+        let mut position = self.block_flow.fragment.border_box;
+        position.size.block = block_size;
+        self.block_flow.fragment.border_box = position;
+        self.block_flow.base.position.size.block = block_size;
+
+        // Assign the block-size of kid fragments, which is the same value as own block-size.
+        for kid in self.block_flow.base.child_iter() {
+            {
+                let kid_fragment = &mut kid.as_block().fragment;
+                let mut position = kid_fragment.border_box;
+                position.size.block = block_size;
+                kid_fragment.border_box = position;
+            }
+
+            // Assign the child's block size.
+            flow::mut_base(kid).position.size.block = block_size
+        }
+    }
 }
 
 impl Flow for FlexFlow {
@@ -323,6 +388,12 @@ impl Flow for FlexFlow {
 
     fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size(layout_context);
+        match self.main_mode {
+            Mode::Inline =>
+                self.inline_mode_assign_block_size(layout_context),
+            Mode::Block  =>
+                self.block_mode_assign_block_size(layout_context)
+        }
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
