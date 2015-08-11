@@ -6385,43 +6385,6 @@ pub fn cascade(viewport_size: Size2D<Au>,
     }, cacheable)
 }
 
-
-/// Equivalent to `cascade()` with an empty `applicable_declarations`
-/// Performs the CSS cascade for an anonymous box.
-///
-///   * `parent_style`: Computed style of the element this anonymous box inherits from.
-pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
-    let initial_values = &*INITIAL_VALUES;
-    let mut result = ComputedValues {
-        % for style_struct in STYLE_STRUCTS:
-            ${style_struct.ident}:
-                % if style_struct.inherited:
-                    parent_style
-                % else:
-                    initial_values
-                % endif
-                .${style_struct.ident}.clone(),
-        % endfor
-        shareable: false,
-        writing_mode: parent_style.writing_mode,
-        root_font_size: parent_style.root_font_size,
-    };
-    {
-        let border = Arc::make_unique(&mut result.border);
-        % for side in ["top", "right", "bottom", "left"]:
-            // Like calling to_computed_value, which wouldn't type check.
-            border.border_${side}_width = Au(0);
-        % endfor
-    }
-    {
-        // Initial value of outline-style is always none for anonymous box.
-        let outline = Arc::make_unique(&mut result.outline);
-        outline.outline_width = Au(0);
-    }
-    // None of the teaks on 'display' apply here.
-    result
-}
-
 /// Alters the given style to accommodate replaced content. This is called in flow construction. It
 /// handles cases like `<div style="position: absolute">foo bar baz</div>` (in which `foo`, `bar`,
 /// and `baz` must not be absolutely-positioned) and cases like `<sup>Foo</sup>` (in which the
@@ -6434,7 +6397,8 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
     if style.box_.display != longhands::display::computed_value::T::inline {
         let mut style = Arc::make_unique(style);
         Arc::make_unique(&mut style.box_).display = longhands::display::computed_value::T::inline;
-        Arc::make_unique(&mut style.box_).position = longhands::position::computed_value::T::static_;
+        Arc::make_unique(&mut style.box_).position =
+            longhands::position::computed_value::T::static_;
     }
 
     // Reset `vertical-align` to handle cases like `<sup>foo</sup>`.
@@ -6526,6 +6490,32 @@ pub fn modify_style_for_anonymous_table_object(
     let box_style = Arc::make_unique(&mut style.box_);
     box_style.display = new_display_value;
     box_style.position = longhands::position::computed_value::T::static_;
+}
+
+/// Adjusts the `position` property as necessary for the outer fragment wrapper of an inline-block.
+#[inline]
+pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValues>) {
+    let mut style = Arc::make_unique(style);
+    let box_style = Arc::make_unique(&mut style.box_);
+    box_style.position = longhands::position::computed_value::T::static_
+}
+
+/// Adjusts the `position` property as necessary to account for text.
+///
+/// Text is never directly relatively positioned; it's always contained within an element that is
+/// itself relatively positioned.
+#[inline]
+pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
+    if style.box_.position == longhands::position::computed_value::T::relative {
+        // We leave the `position` property set to `relative` so that we'll still establish a
+        // containing block if needed. But we reset all position offsets to `auto`.
+        let mut style = Arc::make_unique(style);
+        let mut position_offsets = Arc::make_unique(&mut style.positionoffsets);
+        position_offsets.top = computed::LengthOrPercentageOrAuto::Auto;
+        position_offsets.right = computed::LengthOrPercentageOrAuto::Auto;
+        position_offsets.bottom = computed::LengthOrPercentageOrAuto::Auto;
+        position_offsets.left = computed::LengthOrPercentageOrAuto::Auto;
+    }
 }
 
 pub fn is_supported_property(property: &str) -> bool {
