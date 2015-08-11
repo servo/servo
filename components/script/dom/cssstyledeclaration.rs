@@ -44,8 +44,8 @@ macro_rules! css_properties(
             fn $getter(self) -> DOMString {
                 self.GetPropertyValue($cssprop.to_owned())
             }
-            fn $setter(self, value: DOMString) {
-                self.SetPropertyValue($cssprop.to_owned(), value).unwrap();
+            fn $setter(self, value: DOMString) -> ErrorResult {
+                self.SetPropertyValue($cssprop.to_owned(), value)
             }
         )*
     );
