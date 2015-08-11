@@ -19,6 +19,7 @@ use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
 use std::rc::Rc;
 
+#[derive(Debug)]
 pub struct CompositorData {
     /// This layer's pipeline id. The compositor can associate this id with an
     /// actual CompositionPipeline.
@@ -143,7 +144,7 @@ pub trait CompositorLayer {
     fn pipeline_id(&self) -> PipelineId;
 }
 
-#[derive(Copy, PartialEq, Clone)]
+#[derive(Copy, PartialEq, Clone, Debug)]
 pub enum WantsScrollEventsFlag {
     WantsScrollEvents,
     DoesntWantScrollEvents,
@@ -292,13 +293,7 @@ impl CompositorLayer for Layer<CompositorData> {
                            delta: TypedPoint2D<LayerPixel, f32>,
                            cursor: TypedPoint2D<LayerPixel, f32>)
                            -> ScrollEventResult {
-        // If this layer doesn't want scroll events, neither it nor its children can handle scroll
-        // events.
-        if self.wants_scroll_events() != WantsScrollEventsFlag::WantsScrollEvents {
-            return ScrollEventResult::ScrollEventUnhandled;
-        }
-
-        //// Allow children to scroll.
+        // Allow children to scroll.
         let scroll_offset = self.extra_data.borrow().scroll_offset;
         let new_cursor = cursor - scroll_offset;
         for child in self.children().iter() {
@@ -309,6 +304,11 @@ impl CompositorLayer for Layer<CompositorData> {
                     return result;
                 }
             }
+        }
+
+        // If this layer doesn't want scroll events, it can't handle scroll events.
+        if self.wants_scroll_events() != WantsScrollEventsFlag::WantsScrollEvents {
+            return ScrollEventResult::ScrollEventUnhandled;
         }
 
         self.clamp_scroll_offset_and_scroll_layer(scroll_offset + delta)

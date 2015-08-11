@@ -62,6 +62,11 @@ use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 
+/// The fake fragment ID we use to indicate the inner display list for `overflow: scroll`.
+///
+/// FIXME(pcwalton): This is pretty ugly. Consider modifying `LayerId` somehow.
+const FAKE_FRAGMENT_ID_FOR_OVERFLOW_SCROLL: u32 = 1000000;
+
 /// A possible `PaintLayer` for an stacking context
 pub enum StackingContextLayer {
     Existing(PaintLayer),
@@ -208,10 +213,11 @@ pub trait FragmentDisplayListBuilding {
                                             offset: Point2D<Au>,
                                             layout_context: &LayoutContext);
 
-    /// Returns the appropriate clipping region for descendants of this flow.
+    /// Returns the appropriate clipping region for descendants of this fragment.
     fn clipping_region_for_children(&self,
                                     current_clip: &ClippingRegion,
-                                    stacking_relative_border_box: &Rect<Au>)
+                                    stacking_relative_border_box: &Rect<Au>,
+                                    is_absolutely_positioned: bool)
                                     -> ClippingRegion;
 
     /// Calculates the clipping rectangle for a fragment, taking the `clip` property into account
@@ -253,7 +259,8 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               layer: StackingContextLayer)
+                               layer: StackingContextLayer,
+                               mode: StackingContextCreationMode)
                                -> Arc<StackingContext>;
 
 }
@@ -470,7 +477,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     (-border.left, -border.top)
                 }
                 background_origin::T::content_box => {
-                    let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
+                    let border_padding = self.border_padding.to_physical(self.style.writing_mode);
                     (border_padding.left - border.left, border_padding.top - border.top)
                 }
             };
@@ -669,10 +676,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
-            let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
-                                                                                box_shadow.offset_y)),
-                                       box_shadow.blur_radius,
-                                       box_shadow.spread_radius);
+            let bounds =
+                shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
+                                                                       box_shadow.offset_y)),
+                              box_shadow.blur_radius,
+                              box_shadow.spread_radius);
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
@@ -900,21 +908,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                               relative_containing_block_mode,
                                               CoordinateSystem::Own);
 
-        debug!("Fragment::build_display_list at rel={:?}, abs={:?}, dirty={:?}, flow origin={:?}: \
-                {:?}",
+        debug!("Fragment::build_display_list at rel={:?}, abs={:?}, flow origin={:?}: {:?}",
                self.border_box,
                stacking_relative_border_box,
-               layout_context.shared.dirty,
                stacking_relative_flow_origin,
                self);
 
         if !stacking_relative_border_box.intersects(stacking_relative_display_port) {
             debug!("Fragment::build_display_list: outside display port");
-            return
-        }
-
-        if !stacking_relative_border_box.intersects(&layout_context.shared.dirty) {
-            debug!("Fragment::build_display_list: Did not intersect...");
             return
         }
 
@@ -1136,17 +1137,37 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               layer: StackingContextLayer)
+                               layer: StackingContextLayer,
+                               mode: StackingContextCreationMode)
                                -> Arc<StackingContext> {
-        let border_box = self.stacking_relative_border_box(&base_flow.stacking_relative_position,
-                                                               &base_flow.absolute_position_info
-                                                               .relative_containing_block_size,
-                                                               base_flow.absolute_position_info
-                                                               .relative_containing_block_mode,
-                                                               CoordinateSystem::Parent);
+        // FIXME(pcwalton): Is this vertical-writing-direction-safe?
+        let margin = self.margin.to_physical(base_flow.writing_mode);
+
+        let border_box = match mode {
+            StackingContextCreationMode::Normal |
+            StackingContextCreationMode::OuterScrollWrapper => {
+                self.stacking_relative_border_box(&base_flow.stacking_relative_position,
+                                                  &base_flow.absolute_position_info
+                                                            .relative_containing_block_size,
+                                                  base_flow.absolute_position_info
+                                                           .relative_containing_block_mode,
+                                                  CoordinateSystem::Parent)
+            }
+            StackingContextCreationMode::InnerScrollWrapper => {
+                Rect::new(ZERO_POINT, base_flow.overflow.size)
+            }
+        };
+        let overflow = match mode {
+            StackingContextCreationMode::Normal => {
+                base_flow.overflow.translate(&-Point2D::new(margin.left, Au(0)))
+            }
+            StackingContextCreationMode::InnerScrollWrapper |
+            StackingContextCreationMode::OuterScrollWrapper => {
+                Rect::new(ZERO_POINT, border_box.size)
+            }
+        };
 
         let mut transform = Matrix4::identity();
-
         if let Some(ref operations) = self.style().get_effects().transform.0 {
             let transform_origin = self.style().get_effects().transform_origin;
             let transform_origin =
@@ -1220,10 +1241,6 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
 
-        // FIXME(pcwalton): Is this vertical-writing-direction-safe?
-        let margin = self.margin.to_physical(base_flow.writing_mode);
-        let overflow = base_flow.overflow.translate(&-Point2D::new(margin.left, Au(0)));
-
         // Create the filter pipeline.
         let effects = self.style().get_effects();
         let mut filters = effects.filter.clone();
@@ -1254,7 +1271,10 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         }
 
+        let scrolls_overflow_area = mode == StackingContextCreationMode::OuterScrollWrapper;
         let transform_style = self.style().get_used_transform_style();
+        let establishes_3d_context = scrolls_overflow_area ||
+            transform_style == transform_style::T::flat;
 
         Arc::new(StackingContext::new(display_list,
                                       &border_box,
@@ -1265,7 +1285,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                       layer,
                                       transform,
                                       perspective,
-                                      transform_style == transform_style::T::flat))
+                                      establishes_3d_context,
+                                      scrolls_overflow_area))
     }
 
     #[inline(never)]
@@ -1291,7 +1312,8 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn clipping_region_for_children(&self,
                                     current_clip: &ClippingRegion,
-                                    stacking_relative_border_box: &Rect<Au>)
+                                    stacking_relative_border_box: &Rect<Au>,
+                                    is_absolutely_positioned: bool)
                                     -> ClippingRegion {
         // Don't clip if we're text.
         if self.is_scanned_text_fragment() {
@@ -1304,12 +1326,14 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Clip according to the values of `overflow-x` and `overflow-y`.
         //
-        // TODO(pcwalton): Support scrolling.
+        // TODO(pcwalton): Support scrolling of non-absolutely-positioned elements.
         // FIXME(pcwalton): This may be more complex than it needs to be, since it seems to be
         // impossible with the computed value rules as they are to have `overflow-x: visible` with
         // `overflow-y: <scrolling>` or vice versa!
-        match self.style.get_box().overflow_x {
-            overflow_x::T::hidden | overflow_x::T::auto | overflow_x::T::scroll => {
+        match (self.style.get_box().overflow_x, is_absolutely_positioned) {
+            (overflow_x::T::hidden, _) |
+            (overflow_x::T::auto, false) |
+            (overflow_x::T::scroll, false) => {
                 let mut bounds = current_clip.bounding_rect();
                 let max_x = cmp::min(bounds.max_x(), stacking_relative_border_box.max_x());
                 bounds.origin.x = cmp::max(bounds.origin.x, stacking_relative_border_box.origin.x);
@@ -1318,8 +1342,10 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             _ => {}
         }
-        match self.style.get_box().overflow_y.0 {
-            overflow_x::T::hidden | overflow_x::T::auto | overflow_x::T::scroll => {
+        match (self.style.get_box().overflow_y.0, is_absolutely_positioned) {
+            (overflow_x::T::hidden, _) |
+            (overflow_x::T::auto, false) |
+            (overflow_x::T::scroll, false) => {
                 let mut bounds = current_clip.bounding_rect();
                 let max_y = cmp::min(bounds.max_y(), stacking_relative_border_box.max_y());
                 bounds.origin.y = cmp::max(bounds.origin.y, stacking_relative_border_box.origin.y);
@@ -1532,19 +1558,25 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     ScrollPolicy::Scrollable
                 };
 
-                let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
+                let paint_layer = PaintLayer::new(self.layer_id(0),
+                                                  color::transparent(),
+                                                  scroll_policy);
                 let layer = StackingContextLayer::Existing(paint_layer);
-                let stacking_context = self.fragment.create_stacking_context(&self.base,
-                                                                             display_list,
-                                                                             layout_context,
-                                                                             layer);
+                let stacking_context = self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    layout_context,
+                    layer,
+                    StackingContextCreationMode::Normal);
                 DisplayListBuildingResult::StackingContext(stacking_context)
             } else {
                 DisplayListBuildingResult::StackingContext(
-                    self.fragment.create_stacking_context(&self.base,
-                                                          display_list,
-                                                          layout_context,
-                                                          StackingContextLayer::IfCanvas(self.layer_id(0))))
+                    self.fragment.create_stacking_context(
+                        &self.base,
+                        display_list,
+                        layout_context,
+                        StackingContextLayer::IfCanvas(self.layer_id(0)),
+                        StackingContextCreationMode::Normal))
             }
         } else {
             match self.fragment.style.get_box().position {
@@ -1567,19 +1599,57 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             mut display_list: Box<DisplayList>,
             layout_context: &LayoutContext,
             border_painting_mode: BorderPaintingMode) {
-        self.build_display_list_for_block_base(&mut *display_list,
-                                               layout_context,
-                                               border_painting_mode,
-                                               BackgroundAndBorderLevel::RootOfStackingContext);
+        // If `overflow: scroll` is in effect, we add this fragment's display items to a new
+        // stacking context.
+        let outer_display_list_for_overflow_scroll =
+                match (self.fragment.style().get_box().overflow_x,
+                       self.fragment.style().get_box().overflow_y.0) {
+            (overflow_x::T::auto, _) |
+            (overflow_x::T::scroll, _) |
+            (_, overflow_x::T::auto) |
+            (_, overflow_x::T::scroll) => {
+                // Create a separate display list for our own fragment.
+                let mut outer_display_list_for_overflow_scroll = box DisplayList::new();
+                let clip = self.base.clip.translate(&-self.base.stacking_relative_position);
+                self.fragment.build_display_list(
+                    &mut outer_display_list_for_overflow_scroll,
+                    layout_context,
+                    &self.base.stacking_relative_position,
+                    &self.base.absolute_position_info.relative_containing_block_size,
+                    self.base.absolute_position_info.relative_containing_block_mode,
+                    border_painting_mode,
+                    BackgroundAndBorderLevel::RootOfStackingContext,
+                    &clip,
+                    &self.base.stacking_relative_position_of_display_port);
+
+                // Add the fragments of our children to the display list we'll use for the inner
+                // stacking context.
+                for kid in self.base.children.iter_mut() {
+                    flow::mut_base(kid).display_list_building_result.add_to(&mut *display_list);
+                }
+
+                Some(outer_display_list_for_overflow_scroll)
+            }
+            _ => {
+                self.build_display_list_for_block_base(
+                    &mut *display_list,
+                    layout_context,
+                    border_painting_mode,
+                    BackgroundAndBorderLevel::RootOfStackingContext);
+                None
+            }
+        };
 
         if !self.will_get_layer() {
             // We didn't need a layer.
             self.base.display_list_building_result =
                 DisplayListBuildingResult::StackingContext(
-                    self.fragment.create_stacking_context(&self.base,
-                                                          display_list,
-                                                          layout_context,
-                                                          StackingContextLayer::IfCanvas(self.layer_id(0))));
+                    self.fragment.create_stacking_context(
+                        &self.base,
+                        display_list,
+                        layout_context,
+                        StackingContextLayer::IfCanvas(self.layer_id(0)),
+                        StackingContextCreationMode::Normal));
             return
         }
 
@@ -1590,13 +1660,44 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollPolicy::Scrollable
         };
 
-        let paint_layer = PaintLayer::new(self.layer_id(0), color::transparent(), scroll_policy);
-        let stacking_context = self.fragment.create_stacking_context(&self.base,
-                                                                     display_list,
-                                                                     layout_context,
-                                                                     StackingContextLayer::Existing(paint_layer));
+        let stacking_context_creation_mode = if outer_display_list_for_overflow_scroll.is_some() {
+            StackingContextCreationMode::InnerScrollWrapper
+        } else {
+            StackingContextCreationMode::Normal
+        };
+
+        let layer_id = if outer_display_list_for_overflow_scroll.is_some() {
+            self.layer_id(FAKE_FRAGMENT_ID_FOR_OVERFLOW_SCROLL)
+        } else {
+            self.layer_id(0)
+        };
+        let paint_layer = PaintLayer::new(layer_id, color::transparent(), scroll_policy);
+        let stacking_context = self.fragment.create_stacking_context(
+            &self.base,
+            display_list,
+            layout_context,
+            StackingContextLayer::Existing(paint_layer),
+            stacking_context_creation_mode);
+
+        let outermost_stacking_context = match outer_display_list_for_overflow_scroll {
+            Some(mut outer_display_list_for_overflow_scroll) => {
+                outer_display_list_for_overflow_scroll.children.push_back(stacking_context);
+
+                let paint_layer = PaintLayer::new(self.layer_id(0),
+                                                  color::transparent(),
+                                                  scroll_policy);
+                self.fragment.create_stacking_context(
+                    &self.base,
+                    outer_display_list_for_overflow_scroll,
+                    layout_context,
+                    StackingContextLayer::Existing(paint_layer),
+                    StackingContextCreationMode::OuterScrollWrapper)
+            }
+            None => stacking_context,
+        };
+
         self.base.display_list_building_result =
-            DisplayListBuildingResult::StackingContext(stacking_context)
+            DisplayListBuildingResult::StackingContext(outermost_stacking_context)
     }
 
     fn build_display_list_for_floating_block(&mut self,
@@ -1611,10 +1712,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
             DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(&self.base,
-                                                      display_list,
-                                                      layout_context,
-                                                      StackingContextLayer::IfCanvas(self.layer_id(0))))
+                self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    layout_context,
+                    StackingContextLayer::IfCanvas(self.layer_id(0)),
+                    StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1709,10 +1812,12 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         self.base.display_list_building_result = if has_stacking_context {
             DisplayListBuildingResult::StackingContext(
-                self.fragments.fragments[0].create_stacking_context(&self.base,
-                                                                    display_list,
-                                                                    layout_context,
-                                                                    StackingContextLayer::IfCanvas(self.layer_id(0))))
+                self.fragments.fragments[0].create_stacking_context(
+                    &self.base,
+                    display_list,
+                    layout_context,
+                    StackingContextLayer::IfCanvas(self.layer_id(0)),
+                    StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         };
@@ -1900,5 +2005,12 @@ pub enum BorderPaintingMode<'a> {
     Collapse(&'a CollapsedBordersForCell),
     /// Paint no borders.
     Hidden,
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum StackingContextCreationMode {
+    Normal,
+    OuterScrollWrapper,
+    InnerScrollWrapper,
 }
 

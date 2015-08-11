@@ -255,13 +255,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> IOCompositor<Window> {
-
         // Register this thread as a memory reporter, via its own channel.
         let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
         let compositor_proxy_for_memory_reporter = sender.clone_compositor_proxy();
         ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
             let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(reporter_request.reports_channel));
+            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(
+                    reporter_request.reports_channel));
         });
         let reporter = Reporter(reporter_sender);
         mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
@@ -376,7 +376,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.get_title_for_main_frame();
             }
 
-            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties), ShutdownState::NotShuttingDown) => {
+            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
+             ShutdownState::NotShuttingDown) => {
                 self.get_or_create_pipeline_details(pipeline_id).current_epoch = epoch;
                 for (index, layer_properties) in properties.iter().enumerate() {
                     if index == 0 {
@@ -629,6 +630,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             transform: Matrix4::identity(),
             perspective: Matrix4::identity(),
             establishes_3d_context: true,
+            scrolls_overflow_area: false,
         };
 
         let root_layer = CompositorData::new_layer(pipeline.id,
@@ -691,7 +693,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn create_or_update_base_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+    fn create_or_update_base_layer(&mut self,
+                                   pipeline_id: PipelineId,
+                                   layer_properties: LayerProperties) {
         debug_assert!(layer_properties.parent_id.is_none());
 
         let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
@@ -740,10 +744,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         if let Some(parent_layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
                                                                                parent_id) {
+            let wants_scroll_events = if layer_properties.scrolls_overflow_area {
+                WantsScrollEventsFlag::WantsScrollEvents
+            } else {
+                WantsScrollEventsFlag::DoesntWantScrollEvents
+            };
+
             let new_layer = CompositorData::new_layer(pipeline_id,
                                                       layer_properties,
-                                                      WantsScrollEventsFlag::DoesntWantScrollEvents,
+                                                      wants_scroll_events,
                                                       parent_layer.tile_size);
+
+            if layer_properties.scrolls_overflow_area {
+                *new_layer.masks_to_bounds.borrow_mut() = true
+            }
+
             parent_layer.add_child(new_layer);
         }
     }
@@ -1608,6 +1623,33 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 buffer.native_surface
             }).collect();
             self.surface_map.insert_surfaces(&self.native_display, surfaces);
+        }
+    }
+
+    #[allow(dead_code)]
+    fn dump_layer_tree(&self) {
+        if let Some(ref layer) = self.scene.root {
+            println!("Layer tree:");
+            self.dump_layer_tree_with_indent(&**layer, 0);
+        }
+    }
+
+    #[allow(dead_code)]
+    fn dump_layer_tree_with_indent(&self, layer: &Layer<CompositorData>, level: u32) {
+        let mut indentation = String::new();
+        for _ in 0..level {
+            indentation.push_str("  ");
+        }
+
+        println!("{}Layer {:x}: {:?} @ {:?} masks to bounds: {:?} establishes 3D context: {:?}",
+                 indentation,
+                 layer as *const _ as usize,
+                 layer.extra_data,
+                 *layer.bounds.borrow(),
+                 *layer.masks_to_bounds.borrow(),
+                 layer.establishes_3d_context);
+        for kid in layer.children().iter() {
+            self.dump_layer_tree_with_indent(&**kid, level + 1)
         }
     }
 }

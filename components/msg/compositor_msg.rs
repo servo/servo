@@ -60,7 +60,7 @@ pub enum LayerKind {
 }
 
 /// The scrolling policy of a layer.
-#[derive(Clone, PartialEq, Eq, Copy, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, Copy, Deserialize, Serialize, Debug)]
 pub enum ScrollPolicy {
     /// These layers scroll when the parent receives a scrolling message.
     Scrollable,
@@ -88,6 +88,8 @@ pub struct LayerProperties {
     pub perspective: Matrix4,
     /// Whether this layer establishes a new 3d rendering context.
     pub establishes_3d_context: bool,
+    /// Whether this layer scrolls its overflow area.
+    pub scrolls_overflow_area: bool,
 }
 
 /// The interface used by the painter to acquire draw targets for each paint frame and

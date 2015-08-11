@@ -1756,6 +1756,17 @@ impl Flow for BlockFlow {
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            // `overflow: auto` and `overflow: scroll` force creation of layers, since we can only
+            // scroll layers.
+            match (self.fragment.style().get_box().overflow_x,
+                   self.fragment.style().get_box().overflow_y.0) {
+                (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
+                (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
+                    self.base.flags.insert(NEEDS_LAYER);
+                }
+                _ => {}
+            }
+
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,
                                                                       container_size);
 
@@ -1892,8 +1903,10 @@ impl Flow for BlockFlow {
                                                   .absolute_position_info
                                                   .relative_containing_block_mode,
                                               CoordinateSystem::Own);
-        let clip = self.fragment.clipping_region_for_children(&clip_in_child_coordinate_system,
-                                                              &stacking_relative_border_box);
+        let clip = self.fragment.clipping_region_for_children(
+            &clip_in_child_coordinate_system,
+            &stacking_relative_border_box,
+            self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
 
         // Process children.
         for kid in self.base.child_iter() {

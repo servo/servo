@@ -334,7 +334,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
               &Matrix4::identity(),
               &Matrix4::identity(),
               None);
-        self.compositor.initialize_layers_for_pipeline(self.id, properties, self.current_epoch.unwrap());
+        self.compositor.initialize_layers_for_pipeline(self.id,
+                                                       properties,
+                                                       self.current_epoch.unwrap());
 
         fn build(properties: &mut Vec<LayerProperties>,
                  stacking_context: &StackingContext,
@@ -342,29 +344,27 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                  transform: &Matrix4,
                  perspective: &Matrix4,
                  parent_id: Option<LayerId>) {
-
             let transform = transform.mul(&stacking_context.transform);
             let perspective = perspective.mul(&stacking_context.perspective);
 
             let (next_parent_id, page_position, transform, perspective) =
                 match stacking_context.layer {
                 Some(ref paint_layer) => {
-                    // Layers start at the top left of their overflow rect, as far as the info we
-                    // give to the compositor is concerned.
+                    let overflow_size =
+                        Size2D::new(stacking_context.overflow.size.width.to_nearest_px() as f32,
+                                    stacking_context.overflow.size.height.to_nearest_px() as f32);
+                    let establishes_3d_context = stacking_context.establishes_3d_context;
+                    let scrolls_overflow_area = stacking_context.scrolls_overflow_area;
+
+                    // Layers start at the top left of their overflow rect, as far as the info
+                    // we give to the compositor is concerned.
                     let overflow_relative_page_position = *page_position +
                                                           stacking_context.bounds.origin +
                                                           stacking_context.overflow.origin;
-                    let layer_position =
-                        Rect::new(Point2D::new(overflow_relative_page_position.x.to_nearest_px() as
-                                               f32,
-                                               overflow_relative_page_position.y.to_nearest_px() as
-                                               f32),
-                                  Size2D::new(stacking_context.overflow.size.width.to_nearest_px()
-                                              as f32,
-                                              stacking_context.overflow.size.height.to_nearest_px()
-                                              as f32));
-
-                    let establishes_3d_context = stacking_context.establishes_3d_context;
+                    let layer_position = Rect::new(
+                        Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
+                                     overflow_relative_page_position.y.to_nearest_px() as f32),
+                        overflow_size);
 
                     properties.push(LayerProperties {
                         id: paint_layer.id,
@@ -375,6 +375,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         transform: transform,
                         perspective: perspective,
                         establishes_3d_context: establishes_3d_context,
+                        scrolls_overflow_area: scrolls_overflow_area,
                     });
 
                     // When there is a new layer, the transforms and origin

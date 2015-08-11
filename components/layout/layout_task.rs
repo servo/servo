@@ -119,9 +119,6 @@ pub struct LayoutTaskData {
     /// The workers that we use for parallel operation.
     pub parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
 
-    /// The dirty rect. Used during display list construction.
-    pub dirty: Rect<Au>,
-
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     pub generation: u32,
@@ -377,7 +374,6 @@ impl LayoutTask {
                     stacking_context: None,
                     stylist: stylist,
                     parallel_traversal: parallel_traversal,
-                    dirty: Rect::zero(),
                     generation: 0,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
@@ -421,7 +417,6 @@ impl LayoutTask {
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
             reflow_root: reflow_root.map(|node| node.opaque()),
-            dirty: Rect::zero(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
             new_animations_sender: rw_data.new_animations_sender.clone(),
@@ -1005,9 +1000,6 @@ impl LayoutTask {
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
-            shared_layout_context.dirty =
-                flow::base(&**layout_root).position.to_physical(writing_mode,
-                                                                     rw_data.screen_size);
             flow::mut_base(&mut **layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
@@ -1054,7 +1046,8 @@ impl LayoutTask {
                                                                      Some(paint_layer),
                                                                      Matrix4::identity(),
                                                                      Matrix4::identity(),
-                                                                     true));
+                                                                     true,
+                                                                     false));
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
