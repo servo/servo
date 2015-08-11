@@ -99,6 +99,18 @@
             "url": "/_mozilla/css/setpropertypriority.html"
           }
         ],
+        "css/word-spacing.html": [
+          {
+            "path": "css/word-spacing.html",
+            "references": [
+              [
+                "/_mozilla/css/word-spacing-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/word-spacing.html"
+          }
+        ],
         "mozilla/canvas/drawimage_html_image_1.html": [
           {
             "path": "mozilla/canvas/drawimage_html_image_1.html",
@@ -858,6 +870,18 @@
             ]
           ],
           "url": "/_mozilla/css/setpropertypriority.html"
+        }
+      ],
+      "css/word-spacing.html": [
+        {
+          "path": "css/word-spacing.html",
+          "references": [
+            [
+              "/_mozilla/css/word-spacing-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/word-spacing.html"
         }
       ],
       "mozilla/canvas/drawimage_html_image_1.html": [
