@@ -756,7 +756,7 @@ pub mod longhands {
         pub mod computed_value {
             use std::fmt;
             use util::geometry::Au;
-            use values::CSSFloat;
+            use values::{CSSFloat, computed};
             #[allow(non_camel_case_types)]
             #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
@@ -765,6 +765,7 @@ pub mod longhands {
                 % endfor
                 Length(Au),
                 Percentage(CSSFloat),
+                Calc(computed::Calc),
             }
             impl fmt::Debug for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -774,6 +775,8 @@ pub mod longhands {
                         % endfor
                         &T::Length(length) => write!(f, "{:?}", length),
                         &T::Percentage(number) => write!(f, "{}%", number),
+                        // XXX HACK WRONG
+                        &T::Calc(calc) => write!(f, "{}%", 10.),
                     }
                 }
             }
@@ -785,6 +788,7 @@ pub mod longhands {
                         % endfor
                         T::Length(value) => value.to_css(dest),
                         T::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
+                        T::Calc(calc) => calc.to_css(dest),
                     }
                 }
             }
@@ -805,12 +809,12 @@ pub mod longhands {
                     % endfor
                     SpecifiedValue::LengthOrPercentage(value) => {
                         match value.to_computed_value(context) {
-                            computed::LengthOrPercentage::Length(value) => {
-                                computed_value::T::Length(value)
-                            }
-                            computed::LengthOrPercentage::Percentage(value) => {
-                                computed_value::T::Percentage(value)
-                            }
+                            computed::LengthOrPercentage::Length(value) =>
+                                computed_value::T::Length(value),
+                            computed::LengthOrPercentage::Percentage(value) =>
+                                computed_value::T::Percentage(value),
+                            computed::LengthOrPercentage::Calc(value) =>
+                                computed_value::T::Calc(value),
                         }
                     }
                 }
@@ -1909,7 +1913,10 @@ pub mod longhands {
             .map(|value| match value {
                 specified::LengthOrPercentage::Length(value) => value,
                 specified::LengthOrPercentage::Percentage(value) =>
-                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value))
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value)),
+                // XXX WRONG HACK
+                specified::LengthOrPercentage::Calc(calc) =>
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(20.)),
             })
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),

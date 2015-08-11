@@ -331,9 +331,8 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(length),
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
-            (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
-                Some(block_container_block_size.scale_by(percent))
-            }
+            (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) =>
+                Some(block_container_block_size.scale_by(percent)),
             (LengthOrPercentageOrNone::Percentage(_), None) |
             (LengthOrPercentageOrNone::None, _) => None,
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),
@@ -342,6 +341,10 @@ impl CandidateBSizeIterator {
             (LengthOrPercentage::Percentage(percent), Some(block_container_block_size)) => {
                 block_container_block_size.scale_by(percent)
             }
+            (LengthOrPercentage::Calc(calc), Some(block_container_block_size)) => {
+                calc.length() + block_container_block_size.scale_by(calc.percentage())
+            }
+            (LengthOrPercentage::Calc(calc), None) => calc.length(),
             (LengthOrPercentage::Percentage(_), None) => Au(0),
             (LengthOrPercentage::Length(length), _) => length,
         };
