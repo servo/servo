@@ -57,7 +57,7 @@ pub enum ChromeToDevtoolsControlMsg {
     AddClient(TcpStream),
     FramerateTick(String, f64),
     ServerExitMsg,
-    NetworkEventMessage(String, NetworkEvent),
+    NetworkEvent(String, NetworkEvent),
 }
 
 #[derive(Deserialize, Serialize)]
