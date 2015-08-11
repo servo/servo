@@ -1236,6 +1236,27 @@ impl<'a> DocumentMethods for &'a Document {
         }
     }
 
+    // https://html.spec.whatwg.org/#dom-document-hasfocus
+    fn HasFocus(self) -> bool {
+        let target = self;                                                        // Step 1.
+        let window = self.window.root();
+        let window = window.r();
+        let browsing_context = window.browsing_context();
+        let browsing_context = browsing_context.as_ref();
+
+        match browsing_context {
+            Some(browsing_context) => {
+                let condidate = browsing_context.active_document();                        // Step 2.
+                if condidate.node.get_unique_id() == target.node.get_unique_id() {           // Step 3.
+                    true
+                } else {
+                    false //TODO  Step 4.
+                }
+            }
+            None => false
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-document-documenturi
     fn DocumentURI(self) -> DOMString {
         self.URL()

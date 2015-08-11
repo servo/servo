@@ -116,7 +116,7 @@ partial /*sealed*/ interface Document {
   // user interaction
   readonly attribute Window/*Proxy?*/ defaultView;
   // readonly attribute Element? activeElement;
-  // boolean hasFocus();
+  boolean hasFocus();
   // attribute DOMString designMode;
   // boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString value = "");
   // boolean queryCommandEnabled(DOMString commandId);
