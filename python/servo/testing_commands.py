@@ -243,13 +243,13 @@ class MachCommands(CommandBase):
     def test_wpt(self, **kwargs):
         self.ensure_bootstrapped()
         self.ensure_wpt_virtualenv()
-        hosts_file_path = path.join('tests', 'wpt', 'hosts')
+        hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
 
         os.environ["hosts_file_path"] = hosts_file_path
 
         kwargs["debug"] = not kwargs["release"]
 
-        run_file = path.abspath(path.join("tests", "wpt", "run_wpt.py"))
+        run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run_wpt.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["run_tests"](**kwargs)
@@ -326,7 +326,7 @@ class MachCommands(CommandBase):
         return run_globals["update_tests"](**kwargs)
 
     def ensure_wpt_virtualenv(self):
-        virtualenv_path = path.join("tests", "wpt", "_virtualenv")
+        virtualenv_path = path.join(self.context.topdir, "tests", "wpt", "_virtualenv")
         python = self.get_exec("python2", "python")
 
         if not os.path.exists(virtualenv_path):
@@ -342,9 +342,11 @@ class MachCommands(CommandBase):
             from wptrunner.browsers import servo  # noqa
         except ImportError:
             subprocess.check_call(["pip", "install", "-r",
-                                   path.join("tests", "wpt", "harness", "requirements.txt")])
+                                   path.join(self.context.topdir, "tests", "wpt",
+                                             "harness", "requirements.txt")])
             subprocess.check_call(["pip", "install", "-r",
-                                   path.join("tests", "wpt", "harness", "requirements_servo.txt")])
+                                   path.join(self.context.topdir, "tests", "wpt",
+                                             "harness", "requirements_servo.txt")])
         try:
             import blessings
         except ImportError:
