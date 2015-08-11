@@ -55,8 +55,8 @@ impl LayerId {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {
-    Layer2D,
-    Layer3D,
+    NoTransform,
+    HasTransform,
 }
 
 /// The scrolling policy of a layer.
