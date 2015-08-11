@@ -22,6 +22,7 @@ use std::default::Default;
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum UIEventTypeId {
     MouseEvent,
+    TouchEvent,
     KeyboardEvent,
     UIEvent,
 }
