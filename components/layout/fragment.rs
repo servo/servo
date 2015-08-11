@@ -35,9 +35,9 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
-use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
-use style::computed_values::{text_align, text_decoration, white_space, word_break};
-use style::computed_values::transform_style;
+use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, overflow_x};
+use style::computed_values::{position, text_align, text_decoration, transform_style, white_space};
+use style::computed_values::{word_break, z_index};
 use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -2027,13 +2027,24 @@ impl Fragment {
             return true
         }
 
-        match self.style().get_box().position {
-            position::T::absolute | position::T::fixed => {
-                // FIXME(pcwalton): This should only establish a new stacking context when
-                // `z-index` is not `auto`. But this matches what we did before.
-                true
-            }
-            position::T::relative | position::T::static_ => {
+        // FIXME(pcwalton): Don't unconditionally form stacking contexts for `overflow_x: scroll`
+        // and `overflow_y: scroll`. This needs multiple layers per stacking context.
+        match (self.style().get_box().position,
+               self.style().get_box().z_index,
+               self.style().get_box().overflow_x,
+               self.style().get_box().overflow_y.0) {
+            (position::T::absolute,
+             z_index::T::Auto,
+             overflow_x::T::visible,
+             overflow_x::T::visible) |
+            (position::T::fixed,
+             z_index::T::Auto,
+             overflow_x::T::visible,
+             overflow_x::T::visible) => false,
+            (position::T::absolute, _, _, _) |
+            (position::T::fixed, _, _, _) => true,
+            (position::T::relative, _, _, _) |
+            (position::T::static_, _, _, _) => {
                 // FIXME(pcwalton): `position: relative` establishes a new stacking context if
                 // `z-index` is not `auto`. But this matches what we did before.
                 false

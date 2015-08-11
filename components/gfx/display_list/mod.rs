@@ -181,25 +181,31 @@ impl DisplayList {
             for item in items.iter() {
                 match *item {
                     DisplayItem::SolidColorClass(ref solid_color) => {
-                        println!("{:?} SolidColor. {:?}", indentation, solid_color.base.bounds)
+                        println!("{} SolidColor({},{},{},{}). {:?}",
+                                 indentation,
+                                 solid_color.color.r,
+                                 solid_color.color.g,
+                                 solid_color.color.b,
+                                 solid_color.color.a,
+                                 solid_color.base.bounds)
                     }
                     DisplayItem::TextClass(ref text) => {
-                        println!("{:?} Text. {:?}", indentation, text.base.bounds)
+                        println!("{} Text. {:?}", indentation, text.base.bounds)
                     }
                     DisplayItem::ImageClass(ref image) => {
-                        println!("{:?} Image. {:?}", indentation, image.base.bounds)
+                        println!("{} Image. {:?}", indentation, image.base.bounds)
                     }
                     DisplayItem::BorderClass(ref border) => {
-                        println!("{:?} Border. {:?}", indentation, border.base.bounds)
+                        println!("{} Border. {:?}", indentation, border.base.bounds)
                     }
                     DisplayItem::GradientClass(ref gradient) => {
-                        println!("{:?} Gradient. {:?}", indentation, gradient.base.bounds)
+                        println!("{} Gradient. {:?}", indentation, gradient.base.bounds)
                     }
                     DisplayItem::LineClass(ref line) => {
-                        println!("{:?} Line. {:?}", indentation, line.base.bounds)
+                        println!("{} Line. {:?}", indentation, line.base.bounds)
                     }
                     DisplayItem::BoxShadowClass(ref box_shadow) => {
-                        println!("{:?} Box_shadow. {:?}", indentation, box_shadow.base.bounds)
+                        println!("{} Box_shadow. {:?}", indentation, box_shadow.base.bounds)
                     }
                 }
             }
