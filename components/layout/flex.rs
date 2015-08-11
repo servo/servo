@@ -13,9 +13,12 @@ use floats::FloatKind;
 use flow;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
+use flow::ImmutableFlowUtils;
+use flow::INLINE_POSITION_IS_STATIC;
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::mut_base;
 use fragment::{Fragment, FragmentBorderBoxIterator};
+use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes};
 use style::computed_values::{flex_direction, float};
@@ -141,6 +144,92 @@ impl FlexFlow {
         }
         self.block_flow.base.intrinsic_inline_sizes = computation.finish();
     }
+
+    // TODO(zentner): This function needs to be radically different for multi-line flexbox.
+    // Currently, this is the core of BlockFlow::propagate_assigned_inline_size_to_children() with
+    // all float and table logic stripped out.
+    fn block_mode_assign_inline_sizes(&mut self,
+                                      _layout_context: &LayoutContext,
+                                      inline_start_content_edge: Au,
+                                      inline_end_content_edge: Au,
+                                      content_inline_size: Au) {
+        let _scope = layout_debug_scope!("flex::block_mode_assign_inline_sizes");
+        debug!("block_mode_assign_inline_sizes");
+
+        // Calculate non-auto block size to pass to children.
+        let content_block_size = self.block_flow.fragment.style().content_block_size();
+
+        let explicit_content_size =
+            match (content_block_size, self.block_flow.base.block_container_explicit_block_size) {
+            (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
+                Some(container_size.scale_by(percent))
+            }
+            (LengthOrPercentageOrAuto::Percentage(_), None) |
+            (LengthOrPercentageOrAuto::Auto, _) => None,
+            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
+        };
+
+        // FIXME (mbrubeck): Get correct mode for absolute containing block
+        let containing_block_mode = self.block_flow.base.writing_mode;
+
+        let mut iterator = self.block_flow.base.child_iter().enumerate().peekable();
+        while let Some((_, kid)) = iterator.next() {
+            {
+                let kid_base = flow::mut_base(kid);
+                kid_base.block_container_explicit_block_size = explicit_content_size;
+            }
+
+            // The inline-start margin edge of the child flow is at our inline-start content edge,
+            // and its inline-size is our content inline-size.
+            let kid_mode = flow::base(kid).writing_mode;
+            {
+                let kid_base = flow::mut_base(kid);
+                if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
+                    kid_base.position.start.i =
+                        if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
+                            inline_start_content_edge
+                        } else {
+                            // The kid's inline 'start' is at the parent's 'end'
+                            inline_end_content_edge
+                        };
+                }
+                kid_base.block_container_inline_size = content_inline_size;
+                kid_base.block_container_writing_mode = containing_block_mode;
+            }
+        }
+    }
+
+    // TODO(zentner): This function should actually flex elements!
+    // Currently, this is the core of InlineFlow::propagate_assigned_inline_size_to_children() with
+    // fragment logic stripped out.
+    fn inline_mode_assign_inline_sizes(&mut self,
+                                       _layout_context: &LayoutContext,
+                                       inline_start_content_edge: Au,
+                                       _inline_end_content_edge: Au,
+                                       content_inline_size: Au) {
+        let _scope = layout_debug_scope!("flex::inline_mode_assign_inline_sizes");
+        debug!("inline_mode_assign_inline_sizes");
+
+        debug!("content_inline_size = {:?}", content_inline_size);
+        debug!("child_count = {:?}", ImmutableFlowUtils::child_count(self as &Flow) as i32);
+        let even_content_inline_size = content_inline_size / ImmutableFlowUtils::child_count(self as &Flow) as i32;
+
+        let inline_size = self.block_flow.base.block_container_inline_size;
+        let container_mode = self.block_flow.base.block_container_writing_mode;
+        self.block_flow.base.position.size.inline = inline_size;
+
+        let block_container_explicit_block_size = self.block_flow.base.block_container_explicit_block_size;
+        let mut inline_child_start = inline_start_content_edge;
+        for kid in self.block_flow.base.child_iter() {
+            let kid_base = flow::mut_base(kid);
+
+            kid_base.block_container_inline_size = even_content_inline_size;
+            kid_base.block_container_writing_mode = container_mode;
+            kid_base.block_container_explicit_block_size = block_container_explicit_block_size;
+            kid_base.position.start.i = inline_child_start;
+            inline_child_start = inline_child_start + even_content_inline_size;
+        }
+    }
 }
 
 impl Flow for FlexFlow {
@@ -185,7 +274,51 @@ impl Flow for FlexFlow {
     }
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.assign_inline_sizes(layout_context);
+        let _scope = layout_debug_scope!("flex::assign_inline_sizes {:x}", self.block_flow.base.debug_id());
+        debug!("assign_inline_sizes");
+
+        if !self.block_flow.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
+            return
+        }
+
+        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
+        // Now compute the real value.
+        let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
+        self.block_flow.compute_used_inline_size(layout_context, containing_block_inline_size);
+        if self.block_flow.base.flags.is_float() {
+            self.block_flow.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
+        }
+
+        // Move in from the inline-start border edge.
+        let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
+            self.block_flow.fragment.border_padding.inline_start;
+
+        debug!("inline_start_content_edge = {:?}", inline_start_content_edge);
+
+        let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
+
+        // Distance from the inline-end margin edge to the inline-end content edge.
+        let inline_end_content_edge =
+            self.block_flow.fragment.margin.inline_end +
+            self.block_flow.fragment.border_padding.inline_end;
+
+        debug!("padding_and_borders = {:?}", padding_and_borders);
+        debug!("self.block_flow.fragment.border_box.size.inline = {:?}",
+               self.block_flow.fragment.border_box.size.inline);
+        let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
+
+        match self.main_mode {
+            Mode::Inline =>
+                self.inline_mode_assign_inline_sizes(layout_context,
+                                                     inline_start_content_edge,
+                                                     inline_end_content_edge,
+                                                     content_inline_size),
+            Mode::Block  =>
+                self.block_mode_assign_inline_sizes(layout_context,
+                                                    inline_start_content_edge,
+                                                    inline_end_content_edge,
+                                                    content_inline_size)
+        }
     }
 
     fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
