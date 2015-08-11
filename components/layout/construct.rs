@@ -227,6 +227,20 @@ impl InlineFragmentsAccumulator {
         }
     }
 
+    fn from_inline_node_and_style(node: &ThreadSafeLayoutNode, style: Arc<ComputedValues>)
+                                  -> InlineFragmentsAccumulator {
+        InlineFragmentsAccumulator {
+            fragments: IntermediateInlineFragments::new(),
+            enclosing_node: Some(InlineFragmentNodeInfo {
+                address: node.opaque(),
+                pseudo: node.get_pseudo_element_type().strip(),
+                style: style,
+            }),
+            bidi_control_chars: None,
+            restyle_damage: node.restyle_damage(),
+        }
+    }
+
     fn push(&mut self, fragment: Fragment) {
         self.fragments.fragments.push_back(fragment)
     }
@@ -686,7 +700,15 @@ impl<'a> FlowConstructor<'a> {
                                               fragments: &mut IntermediateInlineFragments,
                                               node: &ThreadSafeLayoutNode,
                                               style: &Arc<ComputedValues>) {
-        for content_item in node.text_content().into_iter() {
+        // Fast path: If there is no text content, return immediately.
+        let text_content = node.text_content();
+        if text_content.len() == 0 {
+            return
+        }
+
+        let mut style = (*style).clone();
+        properties::modify_style_for_text(&mut style);
+        for content_item in text_content.into_iter() {
             let specific = match content_item {
                 ContentItem::String(string) => {
                     let info = UnscannedTextFragmentInfo::from_text(string);
@@ -910,11 +932,18 @@ impl<'a> FlowConstructor<'a> {
             _ => unreachable!()
         };
 
+        let mut modified_style = (*node.style()).clone();
+        properties::modify_style_for_outer_inline_block_fragment(&mut modified_style);
         let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
                 block_flow));
-        let fragment = Fragment::new(node, fragment_info);
+        let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
+                                                            node.get_pseudo_element_type().strip(),
+                                                            modified_style.clone(),
+                                                            node.restyle_damage(),
+                                                            fragment_info);
 
-        let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
+        let mut fragment_accumulator =
+            InlineFragmentsAccumulator::from_inline_node_and_style(node, modified_style);
         fragment_accumulator.fragments.fragments.push_back(fragment);
 
         let construction_item =
@@ -1316,6 +1345,12 @@ impl<'a> FlowConstructor<'a> {
                             // FIXME(pcwalton): Fragment restyle damage too?
                             inline_absolute_fragment.flow_ref
                                                     .repair_style_and_bubble_inline_sizes(&style);
+                        }
+                        SpecificFragmentInfo::ScannedText(_) |
+                        SpecificFragmentInfo::UnscannedText(_) => {
+                            properties::modify_style_for_text(&mut style);
+                            properties::modify_style_for_replaced_content(&mut style);
+                            fragment.repair_style(&style);
                         }
                         _ => {
                             if node.is_replaced_content() {

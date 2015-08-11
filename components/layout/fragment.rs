@@ -39,7 +39,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, overflow_x};
 use style::computed_values::{position, text_align, text_decoration, transform_style, white_space};
 use style::computed_values::{word_break, z_index};
-use style::properties::{self, ComputedValues, cascade_anonymous};
+use style::properties::{self, ComputedValues};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text::TextRunScanner;
@@ -750,37 +750,6 @@ impl Fragment {
         Fragment {
             node: node.opaque(),
             style: style,
-            restyle_damage: node.restyle_damage(),
-            border_box: LogicalRect::zero(writing_mode),
-            border_padding: LogicalMargin::zero(writing_mode),
-            margin: LogicalMargin::zero(writing_mode),
-            specific: specific,
-            inline_context: None,
-            pseudo: node.get_pseudo_element_type().strip(),
-            debug_id: layout_debug::generate_unique_debug_id(),
-        }
-    }
-
-    /// Constructs a new `Fragment` instance for an anonymous table object.
-    pub fn new_anonymous_from_specific_info(node: &ThreadSafeLayoutNode,
-                                            specific: SpecificFragmentInfo)
-                                            -> Fragment {
-        // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table fragments
-        // example:
-        //
-        //     <div style="display: table">
-        //         Foo
-        //     </div>
-        //
-        // Anonymous table fragments, SpecificFragmentInfo::TableRow and
-        // SpecificFragmentInfo::TableCell, are generated around `Foo`, but they shouldn't inherit
-        // the border.
-
-        let node_style = cascade_anonymous(&**node.style());
-        let writing_mode = node_style.writing_mode;
-        Fragment {
-            node: node.opaque(),
-            style: Arc::new(node_style),
             restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
