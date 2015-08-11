@@ -23,6 +23,7 @@ use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::htmlimageelement::{HTMLImageElement, HTMLImageElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
 use dom::node::{window_from_node, NodeHelpers, NodeDamage};
+use dom::window::WindowHelpers;
 
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
@@ -417,10 +418,10 @@ impl CanvasRenderingContext2D {
             match color {
                 Ok(CSSColor::RGBA(rgba)) => Ok(rgba),
                 Ok(CSSColor::CurrentColor) => {
-                    if self.is_being_rendered() {
+                    let window = window_from_node(canvas.r());
+                    if window.is_being_rendered(NodeCast::from_ref(canvas.r()).to_trusted_node_address()) {
                         // TODO: will need to check that the context bitmap mode is fixed
                         // once we implement CanvasProxy
-                        let window = window_from_node(canvas.r());
                         let style = window.GetComputedStyle(HTMLElementCast::from_ref(canvas.r()), None);
                         self.parse_color(&style.GetPropertyValue("color".to_owned()))
                     } else {
@@ -432,12 +433,6 @@ impl CanvasRenderingContext2D {
         } else {
             Err(())
         }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#being-rendered
-    fn is_being_rendered(&self) -> bool {
-        //TODO: ask layout if it has created boxes for this element
-        true
     }
 }
 

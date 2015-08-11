@@ -605,6 +605,7 @@ pub trait WindowHelpers {
     fn client_rect_query(self, node_geometry_request: TrustedNodeAddress) -> Rect<i32>;
     fn resolved_style_query(self, element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>, property: &Atom) -> Option<String>;
+    fn is_being_rendered(self, element: TrustedNodeAddress) -> bool;
     fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>);
     fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn set_fragment_name(self, fragment: Option<String>);
@@ -853,6 +854,14 @@ impl<'a> WindowHelpers for &'a Window {
                     ReflowReason::Query);
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
         resolved
+    }
+
+    fn is_being_rendered(self,
+                         element: TrustedNodeAddress) -> bool {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::IsRenderedQuery(element),
+                    ReflowReason::Query);
+        self.layout_rpc.is_rendered()
     }
 
     fn offset_parent_query(self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
@@ -1180,6 +1189,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
+        ReflowQueryType::IsRenderedQuery(_n) => "\tIsRenderedQuery",
     });
 
     debug_msg.push_str(match *reason {

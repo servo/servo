@@ -105,6 +105,7 @@ pub trait LayoutRPC {
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
+    fn is_rendered(&self) -> bool;
 }
 
 
@@ -150,6 +151,7 @@ pub enum ReflowQueryType {
     NodeGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
     OffsetParentQuery(TrustedNodeAddress),
+    IsRenderedQuery(TrustedNodeAddress),
 }
 
 /// Information needed for a reflow.

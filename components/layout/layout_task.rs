@@ -22,6 +22,7 @@ use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request, MarginPadding, Side};
 use query::{MarginRetrievingFragmentBorderBoxIterator, PositionProperty, PositionRetrievingFragmentBorderBoxIterator};
+use query::process_is_rendered_query;
 use sequential;
 use wrapper::LayoutNode;
 
@@ -140,6 +141,9 @@ pub struct LayoutTaskData {
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
+
+    /// A queued response for whether a node is being rendered.
+    pub is_rendered_response: bool,
 
     /// The list of currently-running animations.
     pub running_animations: Arc<HashMap<OpaqueNode,Vec<Animation>>>,
@@ -383,6 +387,7 @@ impl LayoutTask {
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
                     resolved_style_response: None,
+                    is_rendered_response: false,
                     running_animations: Arc::new(HashMap::new()),
                     offset_parent_response: OffsetParentResponse::empty(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
@@ -1195,6 +1200,8 @@ impl LayoutTask {
                 self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
             ReflowQueryType::OffsetParentQuery(node) =>
                 self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
+            ReflowQueryType::IsRenderedQuery(node) =>
+                process_is_rendered_query(node, &mut root_flow, &mut rw_data),
             ReflowQueryType::NoQuery => {}
         }
 

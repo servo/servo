@@ -19,6 +19,7 @@ use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, Of
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, TrustedNodeAddress};
 use sequential;
 
+use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use util::geometry::Au;
 use util::cursor::Cursor;
@@ -56,6 +57,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
+    }
+
+    fn is_rendered(&self) -> bool {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.is_rendered_response
     }
 
     /// Requests the node containing the point of interest.
@@ -283,6 +290,30 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
     }
 }
 
+pub struct IsRenderedFragmentBorderBoxIterator {
+    node_address: OpaqueNode,
+    pub result: Cell<bool>,
+}
+
+impl IsRenderedFragmentBorderBoxIterator {
+    pub fn new(node_address: OpaqueNode) -> IsRenderedFragmentBorderBoxIterator {
+        IsRenderedFragmentBorderBoxIterator {
+            node_address: node_address,
+            result: Cell::new(false),
+        }
+    }
+}
+
+impl FragmentBorderBoxIterator for IsRenderedFragmentBorderBoxIterator {
+    fn process(&mut self, _: &Fragment, _: i32, _: &Rect<Au>) {
+        self.result.set(true);
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address)
+    }
+}
+
 pub fn process_content_box_request<'a>(requested_node: TrustedNodeAddress,
                                        layout_root: &mut FlowRef,
                                        rw_data: &mut RWGuard<'a>) {
@@ -307,3 +338,14 @@ pub fn process_content_boxes_request<'a>(requested_node: TrustedNodeAddress,
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     rw_data.content_boxes_response = iterator.rects;
 }
+
+pub fn process_is_rendered_query<'a>(requested_node: TrustedNodeAddress,
+                                     layout_root: &mut FlowRef,
+                                     rw_data: &mut RWGuard<'a>) {
+    let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+    let mut iterator = IsRenderedFragmentBorderBoxIterator::new(requested_node);
+    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    rw_data.is_rendered_response = iterator.result.get()
+}
+
+
