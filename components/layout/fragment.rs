@@ -23,6 +23,7 @@ use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
+use gfx;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
@@ -209,6 +210,9 @@ impl fmt::Debug for SpecificFragmentInfo {
             SpecificFragmentInfo::ScannedText(ref info) => {
                 write!(f, " \"{}\"", slice_chars(&*info.run.text, info.range.begin().get() as usize,
                                                  info.range.end().get() as usize))
+            }
+            SpecificFragmentInfo::UnscannedText(ref info) => {
+                write!(f, " \"{}\"", info.text)
             }
             _ => Ok(())
         }
@@ -2113,35 +2117,144 @@ impl Fragment {
         }
     }
 
-    pub fn strip_leading_whitespace_if_necessary(&mut self) {
-        let mut scanned_text_fragment_info = match self.specific {
-            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
-                scanned_text_fragment_info
-            }
-            _ => return,
-        };
-
+    pub fn strip_leading_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
         if self.style.get_inheritedtext().white_space == white_space::T::pre {
-            return
+            return WhitespaceStrippingResult::RetainFragment
         }
 
-        let mut leading_whitespace_character_count = 0;
-        {
-            let text = slice_chars(
-                &*scanned_text_fragment_info.run.text,
-                scanned_text_fragment_info.range.begin().to_usize(),
-                scanned_text_fragment_info.range.end().to_usize());
-            for character in text.chars() {
-                if util::str::char_is_whitespace(character) {
-                    leading_whitespace_character_count += 1
-                } else {
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
+                let mut leading_whitespace_character_count = 0;
+                {
+                    let text = slice_chars(
+                        &*scanned_text_fragment_info.run.text,
+                        scanned_text_fragment_info.range.begin().to_usize(),
+                        scanned_text_fragment_info.range.end().to_usize());
+                    for character in text.chars() {
+                        if util::str::char_is_whitespace(character) {
+                            leading_whitespace_character_count += 1
+                        } else {
+                            break
+                        }
+                    }
+                }
+
+                let whitespace_range = Range::new(scanned_text_fragment_info.range.begin(),
+                                                  CharIndex(leading_whitespace_character_count));
+                let text_bounds =
+                    scanned_text_fragment_info.run.metrics_for_range(&whitespace_range).bounding_box;
+                self.border_box.size.inline = self.border_box.size.inline - text_bounds.size.width;
+                scanned_text_fragment_info.content_size.inline =
+                    scanned_text_fragment_info.content_size.inline - text_bounds.size.width;
+
+                scanned_text_fragment_info.range.adjust_by(
+                    CharIndex(leading_whitespace_character_count),
+                    -CharIndex(leading_whitespace_character_count));
+
+                return WhitespaceStrippingResult::RetainFragment
+            }
+            SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
+                let mut new_text_string = String::new();
+                let mut modified = false;
+                for (i, character) in unscanned_text_fragment_info.text.char_indices() {
+                    if gfx::text::util::is_bidi_control(character) {
+                        new_text_string.push(character);
+                        continue
+                    }
+                    if util::str::char_is_whitespace(character) {
+                        modified = true;
+                        continue
+                    }
+                    new_text_string.push_str(&unscanned_text_fragment_info.text[i..]);
                     break
                 }
+                if modified {
+                    unscanned_text_fragment_info.text = new_text_string.into_boxed_slice();
+                }
+
+                WhitespaceStrippingResult::from_unscanned_text_fragment_info(
+                    &unscanned_text_fragment_info)
             }
+            _ => WhitespaceStrippingResult::RetainFragment,
+        }
+    }
+
+    /// Returns true if the entire fragment was stripped.
+    pub fn strip_trailing_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
+        if self.style.get_inheritedtext().white_space == white_space::T::pre {
+            return WhitespaceStrippingResult::RetainFragment
         }
 
-        scanned_text_fragment_info.range.adjust_by(CharIndex(leading_whitespace_character_count),
-                                                   -CharIndex(leading_whitespace_character_count));
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
+                // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
+                debug!("stripping trailing whitespace: range={:?}, len={}",
+                       scanned_text_fragment_info.range,
+                       scanned_text_fragment_info.run.text.chars().count());
+                let mut trailing_whitespace_character_count = 0;
+                let text_bounds;
+                {
+                    let text = slice_chars(&*scanned_text_fragment_info.run.text,
+                                           scanned_text_fragment_info.range.begin().to_usize(),
+                                           scanned_text_fragment_info.range.end().to_usize());
+                    for ch in text.chars().rev() {
+                        if util::str::char_is_whitespace(ch) {
+                            trailing_whitespace_character_count += 1
+                        } else {
+                            break
+                        }
+                    }
+
+                    let whitespace_range =
+                        Range::new(scanned_text_fragment_info.range.end() -
+                                   CharIndex(trailing_whitespace_character_count),
+                                   CharIndex(trailing_whitespace_character_count));
+                    text_bounds = scanned_text_fragment_info.run
+                                                            .metrics_for_range(&whitespace_range)
+                                                            .bounding_box;
+                    self.border_box.size.inline = self.border_box.size.inline -
+                        text_bounds.size.width;
+                }
+
+                scanned_text_fragment_info.content_size.inline =
+                    scanned_text_fragment_info.content_size.inline - text_bounds.size.width;
+
+                if trailing_whitespace_character_count != 0 {
+                    scanned_text_fragment_info.range.extend_by(
+                        CharIndex(-trailing_whitespace_character_count));
+                }
+
+                WhitespaceStrippingResult::RetainFragment
+            }
+            SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
+                let mut trailing_bidi_control_characters_to_retain = Vec::new();
+                let (mut modified, mut last_character_index) = (true, 0);
+                for (i, character) in unscanned_text_fragment_info.text.char_indices().rev() {
+                    if gfx::text::util::is_bidi_control(character) {
+                        trailing_bidi_control_characters_to_retain.push(character);
+                        continue
+                    }
+                    if util::str::char_is_whitespace(character) {
+                        modified = true;
+                        continue
+                    }
+                    last_character_index = i + character.len_utf8();
+                    break
+                }
+                if modified {
+                    let mut text = unscanned_text_fragment_info.text.to_string();
+                    text.truncate(last_character_index);
+                    for character in trailing_bidi_control_characters_to_retain.iter().rev() {
+                        text.push(*character);
+                    }
+                    unscanned_text_fragment_info.text = text.into_boxed_slice();
+                }
+
+                WhitespaceStrippingResult::from_unscanned_text_fragment_info(
+                    &unscanned_text_fragment_info)
+            }
+            _ => WhitespaceStrippingResult::RetainFragment,
+        }
     }
 
     pub fn inline_styles<'a>(&'a self) -> InlineStyleIterator<'a> {
@@ -2243,3 +2356,24 @@ impl<'a> InlineStyleIterator<'a> {
         }
     }
 }
+
+#[derive(Copy, Clone, Debug)]
+pub enum WhitespaceStrippingResult {
+    RetainFragment,
+    FragmentContainedOnlyBidiControlCharacters,
+    FragmentContainedOnlyWhitespace,
+}
+
+impl WhitespaceStrippingResult {
+    fn from_unscanned_text_fragment_info(info: &UnscannedTextFragmentInfo)
+                                         -> WhitespaceStrippingResult {
+        if info.text.is_empty() {
+            WhitespaceStrippingResult::FragmentContainedOnlyWhitespace
+        } else if info.text.chars().all(gfx::text::util::is_bidi_control) {
+            WhitespaceStrippingResult::FragmentContainedOnlyBidiControlCharacters
+        } else {
+            WhitespaceStrippingResult::RetainFragment
+        }
+    }
+}
+
