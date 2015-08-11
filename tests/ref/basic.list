@@ -98,6 +98,8 @@ flaky_cpu == append_style_a.html append_style_b.html
 == first_child_pseudo_a.html first_child_pseudo_b.html
 == first_of_type_pseudo_a.html first_of_type_pseudo_b.html
 == fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
+== flex_column_direction.html flex_column_direction_ref.html
+== flex_row_direction.html flex_row_direction_ref.html
 == float_clearance_a.html float_clearance_ref.html
 == float_clearance_intrinsic_width_a.html float_clearance_intrinsic_width_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
