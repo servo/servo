@@ -8,6 +8,7 @@ use canvas_traits::
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::
             {self, WebGLContextAttributes, WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 
 use dom::bindings::global::{GlobalRef, GlobalField};
@@ -18,7 +19,7 @@ use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElementHelpers;
 use dom::imagedata::ImageDataHelpers;
-use dom::node::window_from_node;
+use dom::node::{window_from_node, NodeHelpers, NodeDamage};
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
 use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
 use dom::webglrenderbuffer::{WebGLRenderbuffer, WebGLRenderbufferHelpers};
@@ -133,6 +134,13 @@ impl WebGLRenderingContext {
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+    }
+
+    #[inline]
+    fn mark_as_dirty(&self) {
+        let canvas = self.canvas.root();
+        let node = NodeCast::from_ref(canvas.r());
+        node.dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -369,7 +377,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(self, mask: u32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap()
+        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap();
+        self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -572,7 +581,8 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 } else {
                     self.ipc_renderer
                         .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawArrays(mode, first, count)))
-                        .unwrap()
+                        .unwrap();
+                    self.mark_as_dirty();
                 }
             },
             _ => webgl_error!(self, InvalidEnum),
