@@ -16,6 +16,7 @@
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(drain)]
+#![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]

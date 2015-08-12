@@ -59,9 +59,6 @@ pub enum DevtoolsControlMsg {
 pub enum ChromeToDevtoolsControlMsg {
     /// A new client has connected to the server.
     AddClient(TcpStream),
-    /// An animation frame with the given timestamp was processed in a script task.
-    /// The actor with the provided name should be notified. 
-    FramerateTick(String, f64),
     /// The browser is shutting down.
     ServerExitMsg,
     /// A network event occurred (request, reply, etc.). The actor with the
@@ -79,6 +76,9 @@ pub enum ScriptToDevtoolsControlMsg {
               DevtoolsPageInfo),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
+    /// An animation frame with the given timestamp was processed in a script task.
+    /// The actor with the provided name should be notified.
+    FramerateTick(String, f64),
 }
 
 /// Serialized JS return values
@@ -158,7 +158,7 @@ pub enum DevtoolScriptControlMsg {
     WantsLiveNotifications(PipelineId, bool),
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<TimelineMarker>),
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
-    RequestAnimationFrame(PipelineId, IpcSender<f64>),
+    RequestAnimationFrame(PipelineId, String),
 }
 
 #[derive(RustcEncodable, Deserialize, Serialize)]

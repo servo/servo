@@ -406,7 +406,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     handle_client(actors, stream.try_clone().unwrap())
                 })
             }
-            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::FramerateTick(
+            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
                         actor_name, tick))) =>
                 handle_framerate_tick(actors.clone(), actor_name, tick),
             Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
