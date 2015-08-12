@@ -36,7 +36,7 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use page::Page;
 use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
 use script_task::ScriptMsg;
-use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::ConstellationControlMsg;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
@@ -744,7 +744,7 @@ impl<'a> WindowHelpers for &'a Window {
             },
             document_root: root.to_trusted_node_address(),
             window_size: window_size,
-            script_chan: ScriptControlChan(self.control_chan.clone()),
+            script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
             id: last_reflow_id.get(),
             query_type: query_type,
