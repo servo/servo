@@ -205,10 +205,9 @@ pub fn handle_drop_timeline_markers(page: &Rc<Page>,
 pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, actor_name: String) {
     let page = page.find(id).expect("There is no such page");
     let doc = page.document();
-    let devtools_sender = page.window().devtools_chan();
+    let devtools_sender = page.window().devtools_chan().unwrap();
     doc.r().request_animation_frame(box move |time| {
-        devtools_sender.unwrap()
-                       .send(ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time))
-                       .unwrap();
+        let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
+        devtools_sender.send(msg).unwrap();
     });
 }
