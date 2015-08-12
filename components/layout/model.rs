@@ -379,6 +379,9 @@ impl MaybeAuto {
             LengthOrPercentageOrAuto::Percentage(percent) => {
                 MaybeAuto::Specified(containing_length.scale_by(percent))
             }
+            LengthOrPercentageOrAuto::Calc(calc) => {
+                MaybeAuto::Specified(calc.length() + containing_length.scale_by(calc.percentage()))
+            }
             LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(length)
         }
     }

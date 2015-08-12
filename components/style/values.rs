@@ -495,6 +495,7 @@ pub mod specified {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         Auto,
+        Calc(Calc),
     }
 
     impl ToCss for LengthOrPercentageOrAuto {
@@ -504,6 +505,7 @@ pub mod specified {
                 &LengthOrPercentageOrAuto::Percentage(percentage)
                 => write!(dest, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
+                &LengthOrPercentageOrAuto::Calc(calc) => calc.to_css(dest),
             }
         }
     }
@@ -521,6 +523,10 @@ pub mod specified {
                     Ok(LengthOrPercentageOrAuto::Length(Length::Absolute(Au(0)))),
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                     Ok(LengthOrPercentageOrAuto::Auto),
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    let calc = try!(input.parse_nested_block(Calc::parse));
+                    Ok(LengthOrPercentageOrAuto::Calc(calc))
+                },
                 _ => Err(())
             }
         }
@@ -1127,6 +1133,7 @@ pub mod computed {
         Length(Au),
         Percentage(CSSFloat),
         Auto,
+        Calc(Calc),
     }
     impl fmt::Debug for LengthOrPercentageOrAuto {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1134,6 +1141,8 @@ pub mod computed {
                 &LengthOrPercentageOrAuto::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
+                // XXX HACK WRONG
+                &LengthOrPercentageOrAuto::Calc(calc) => write!(f, "{}%", 100.),
             }
         }
     }
@@ -1153,6 +1162,9 @@ pub mod computed {
                 specified::LengthOrPercentageOrAuto::Auto => {
                     LengthOrPercentageOrAuto::Auto
                 }
+                specified::LengthOrPercentageOrAuto::Calc(calc) => {
+                    LengthOrPercentageOrAuto::Calc(calc.to_computed_value(context))
+                }
             }
         }
     }
@@ -1164,6 +1176,7 @@ pub mod computed {
                 &LengthOrPercentageOrAuto::Percentage(percentage)
                 => write!(dest, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
+                &LengthOrPercentageOrAuto::Calc(calc) => calc.to_css(dest),
             }
         }
     }
