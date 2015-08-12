@@ -6,7 +6,6 @@ use ipc_channel::ipc::IpcSender;
 use rustc_serialize::json;
 use std::mem;
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 
 use msg::constellation_msg::PipelineId;
@@ -20,7 +19,7 @@ pub struct FramerateActor {
     script_sender: IpcSender<DevtoolScriptControlMsg>,
     start_time: Option<u64>,
     is_recording: bool,
-    ticks: Arc<Mutex<Vec<HighResolutionStamp>>>,
+    ticks: Vec<HighResolutionStamp>,
 }
 
 impl Actor for FramerateActor {
@@ -50,7 +49,7 @@ impl FramerateActor {
             script_sender: script_sender,
             start_time: None,
             is_recording: false,
-            ticks: Arc::new(Mutex::new(Vec::new())),
+            ticks: Vec::new(),
         };
 
         actor.start_recording();
@@ -58,10 +57,8 @@ impl FramerateActor {
         actor_name
     }
 
-    pub fn add_tick(&self, tick: f64) {
-        let mut lock = self.ticks.lock();
-        let mut ticks = lock.as_mut().unwrap();
-        ticks.push(HighResolutionStamp::wrap(tick));
+    pub fn add_tick(&mut self, tick: f64) {
+        self.ticks.push(HighResolutionStamp::wrap(tick));
 
         if self.is_recording {
             let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline,
@@ -70,10 +67,8 @@ impl FramerateActor {
         }
     }
 
-    pub fn take_pending_ticks(&self) -> Vec<HighResolutionStamp> {
-        let mut lock = self.ticks.lock();
-        let mut ticks = lock.as_mut().unwrap();
-        mem::replace(ticks, Vec::new())
+    pub fn take_pending_ticks(&mut self) -> Vec<HighResolutionStamp> {
+        mem::replace(&mut self.ticks, Vec::new())
     }
 
     fn start_recording(&mut self) {

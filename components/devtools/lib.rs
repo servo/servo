@@ -185,8 +185,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     }
 
     fn handle_framerate_tick(actors: Arc<Mutex<ActorRegistry>>, actor_name: String, tick: f64) {
-        let actors = actors.lock().unwrap();
-        let framerate_actor = actors.find::<FramerateActor>(&actor_name);
+        let mut actors = actors.lock().unwrap();
+        let framerate_actor = actors.find_mut::<FramerateActor>(&actor_name);
         framerate_actor.add_tick(tick);
     }
 
