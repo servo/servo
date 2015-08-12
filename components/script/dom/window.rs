@@ -264,10 +264,6 @@ impl Window {
         (box NonWorkerScriptChan(tx), box rx)
     }
 
-    pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {
-        &self.control_chan
-    }
-
     pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
         &self.image_cache_task
     }
