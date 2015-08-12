@@ -437,6 +437,8 @@ impl ViewportConstraints {
                         LengthOrPercentageOrAuto::Percentage(value) =>
                             Some(initial_viewport.$dimension.scale_by(value)),
                         LengthOrPercentageOrAuto::Auto => None,
+                        // XXX WRONG HACK
+                        LengthOrPercentageOrAuto::Calc(calc) => None,
                     }
                 } else {
                     None
