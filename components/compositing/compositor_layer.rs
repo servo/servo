@@ -14,7 +14,7 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
-use script_traits::{ScriptControlChan, ConstellationControlMsg};
+use script_traits::ConstellationControlMsg;
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
 use std::rc::Rc;
@@ -360,8 +360,7 @@ impl CompositorLayer for Layer<CompositorData> {
         };
 
         let pipeline = compositor.get_pipeline(self.pipeline_id());
-        let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn send_mouse_move_event<Window>(&self,
@@ -370,8 +369,7 @@ impl CompositorLayer for Layer<CompositorData> {
                                      where Window: WindowMethods {
         let message = MouseMoveEvent(cursor.to_untyped());
         let pipeline = compositor.get_pipeline(self.pipeline_id());
-        let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<LayerPixel, f32>)

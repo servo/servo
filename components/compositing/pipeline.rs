@@ -59,7 +59,7 @@ pub struct Pipeline {
 #[derive(Clone)]
 pub struct CompositionPipeline {
     pub id: PipelineId,
-    pub script_chan: ScriptControlChan,
+    pub script_chan: Sender<ConstellationControlMsg>,
     pub layout_chan: LayoutControlChan,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
 }
@@ -257,7 +257,7 @@ impl Pipeline {
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id.clone(),
-            script_chan: self.script_chan.clone(),
+            script_chan: self.script_chan.0.clone(),
             layout_chan: self.layout_chan.clone(),
             chrome_to_paint_chan: self.chrome_to_paint_chan.clone(),
         }

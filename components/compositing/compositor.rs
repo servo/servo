@@ -39,7 +39,7 @@ use msg::constellation_msg::{PipelineId, WindowSizeData};
 use png;
 use profile_traits::mem::{self, Reporter, ReporterRequest, ReportKind};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::mem as std_mem;
@@ -1278,8 +1278,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let layer_rect = Rect::new(-layer.extra_data.borrow().scroll_offset.to_untyped(),
                                        layer.bounds.borrow().size.to_untyped());
             let pipeline = self.get_pipeline(layer.pipeline_id());
-            let ScriptControlChan(ref chan) = pipeline.script_chan;
-            chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
+            pipeline.script_chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
         }
 
         for kid in layer.children().iter() {
