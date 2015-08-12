@@ -386,8 +386,13 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub struct Calc {
         pub absolute: Option<Au>,
-        pub font_relative: Option<FontRelativeLength>,
-        pub viewport_percentage: Option<ViewportPercentageLength>,
+        pub vw: Option<ViewportPercentageLength>,
+        pub vh: Option<ViewportPercentageLength>,
+        pub vmin: Option<ViewportPercentageLength>,
+        pub vmax: Option<ViewportPercentageLength>,
+        pub em: Option<FontRelativeLength>,
+        pub ex: Option<FontRelativeLength>,
+        pub rem: Option<FontRelativeLength>,
         pub percentage: Option<CSSFloat>,
     }
     impl Calc {
@@ -465,22 +470,6 @@ pub mod specified {
             }
         }
 
-        fn simplify_ast(node: CalcSumNode) -> Result<CalcSumNode, ()> {
-            let mut simplified = Vec::new();
-            for node in node.products {
-                let node = try!(Calc::simplify_product(node));
-                match node {
-                    CalcAstNode::Value(value) => {
-                        let product = CalcProductNode { values: vec!(value) };
-                        simplified.push(product);
-                    }
-                    _ => return Err(())
-                }
-            }
-
-            Ok(CalcSumNode {products: simplified} )
-        }
-
         fn simplify_product(node: CalcProductNode) -> Result<CalcAstNode, ()> {
             let mut multiplier = 1.;
             let mut node_with_unit: Option<CalcAstNode> = None;
@@ -525,15 +514,7 @@ pub mod specified {
                 &CalcValueNode::Number(_) => unreachable!(),
                 &CalcValueNode::Percentage(p) => CalcValueNode::Percentage(p * multiplier),
                 &CalcValueNode::Sum(_) => unreachable!(),
-                &CalcValueNode::Length(l) => CalcValueNode::Length(Calc::multiply_length(l, multiplier))
-            }
-        }
-
-        fn multiply_length(length: Length, multiplier: CSSFloat) -> Length {
-            match length {
-                Length::Absolute(Au(au)) =>
-                    Length::Absolute(Au((au as CSSFloat * multiplier) as i32)),
-                _ => panic!()
+                &CalcValueNode::Length(l) => CalcValueNode::Length(l * multiplier),
             }
         }
 
@@ -569,23 +550,45 @@ pub mod specified {
 
             let ast = try!(Calc::parse_sum(input));
             let ast = try!(Calc::simplify_sum(ast));
-            let mut calc = Calc {
-                absolute: None,
-                font_relative: None,
-                viewport_percentage: None,
-                percentage: None,
-            };
+
+            let mut absolute = None;
+            let mut vw = None;
+            let mut vh = None;
+            let mut vmax = None;
+            let mut vmin = None;
+            let mut em = None;
+            let mut ex = None;
+            let mut rem = None;
+            let mut percentage = None;
 
             if let CalcAstNode::Add(ast) = ast {
                 for value in ast.products {
                     assert!(value.values.len() == 1);
                     match value.values[0] {
                         CalcValueNode::Percentage(p) =>
-                            calc.percentage = Some(calc.percentage.unwrap_or(0.) + p),
+                            percentage = Some(percentage.unwrap_or(0.) + p),
                         CalcValueNode::Length(Length::Absolute(Au(au))) =>
-                            calc.absolute = Some(calc.absolute.unwrap_or(Au(0)) + Au(au)),
-                        //CalcValueNode::Length(Length::FontRelative(Au(au)))
-                            //calc.absolute = Some(calc.absolute.unwrap_or(0.) + au),
+                            absolute = Some(absolute.unwrap_or(0) + au),
+                        CalcValueNode::Length(Length::ViewportPercentage(v)) =>
+                            match v {
+                                ViewportPercentageLength::Vw(val) =>
+                                    vw = Some(vw.unwrap_or(0.) + val),
+                                ViewportPercentageLength::Vh(val) =>
+                                    vh = Some(vh.unwrap_or(0.) + val),
+                                ViewportPercentageLength::Vmin(val) =>
+                                    vmin = Some(vmin.unwrap_or(0.) + val),
+                                ViewportPercentageLength::Vmax(val) =>
+                                    vmax = Some(vmax.unwrap_or(0.) + val),
+                            },
+                        CalcValueNode::Length(Length::FontRelative(f)) =>
+                            match f {
+                                FontRelativeLength::Em(val) =>
+                                    em = Some(em.unwrap_or(0.) + val),
+                                FontRelativeLength::Ex(val) =>
+                                    ex = Some(ex.unwrap_or(0.) + val),
+                                FontRelativeLength::Rem(val) =>
+                                    rem = Some(rem.unwrap_or(0.) + val),
+                            },
                         _ => return Err(())
                     }
                 }
@@ -593,7 +596,17 @@ pub mod specified {
                 unreachable!()
             }
 
-            Ok(calc)
+           Ok(Calc {
+                absolute: absolute.map(Au),
+                vw: vw.map(ViewportPercentageLength::Vw),
+                vh: vh.map(ViewportPercentageLength::Vh),
+                vmax: vmax.map(ViewportPercentageLength::Vmax),
+                vmin: vmin.map(ViewportPercentageLength::Vmin),
+                em: em.map(FontRelativeLength::Em),
+                ex: ex.map(FontRelativeLength::Ex),
+                rem: rem.map(FontRelativeLength::Rem),
+                percentage: percentage,
+            })
         }
     }
 
@@ -601,12 +614,31 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             // XXX WRONG HACK
             try!(write!(dest, "calc("));
+            if let Some(FontRelativeLength::Em(em)) = self.em {
+                try!(write!(dest, "{}em", em));
+            }
+            if let Some(FontRelativeLength::Ex(ex)) = self.ex {
+                try!(write!(dest, "{}ex", ex));
+            }
             if let Some(absolute) = self.absolute {
                 try!(write!(dest, "{}px", Au::to_px(absolute)));
             }
-            if let Some(FontRelativeLength::Em(font_relative)) = self.font_relative {
-                try!(write!(dest, "{}em", font_relative));
+            if let Some(FontRelativeLength::Rem(rem)) = self.rem {
+                try!(write!(dest, "{}rem", rem));
             }
+            if let Some(ViewportPercentageLength::Vh(vh)) = self.vh {
+                try!(write!(dest, "{}vh", vh));
+            }
+            if let Some(ViewportPercentageLength::Vmax(vmax)) = self.vmax {
+                try!(write!(dest, "{}vmax", vmax));
+            }
+            if let Some(ViewportPercentageLength::Vmin(vmin)) = self.vmin {
+                try!(write!(dest, "{}vmin", vmin));
+            }
+            if let Some(ViewportPercentageLength::Vw(vw)) = self.vw {
+                try!(write!(dest, "{}vw", vw));
+            }
+
 
             write!(dest, ")")
          }
@@ -1239,10 +1271,26 @@ pub mod computed {
         type ComputedValue = Calc;
 
         fn to_computed_value(&self, context: &Context) -> Calc {
-            let length = self.absolute;
-            let percentage = self.percentage;
+            let mut length = None;
 
-            Calc { length: length, percentage: percentage }
+            if let Some(absolute) = self.absolute {
+                length = Some(length.unwrap_or(Au(0)) + absolute);
+            }
+
+            for val in vec!(self.vw, self.vh, self.vmin, self.vmax) {
+                if let Some(val) = val {
+                    length = Some(length.unwrap_or(Au(0)) +
+                        val.to_computed_value(context.viewport_size));
+                }
+            }
+            for val in vec!(self.em, self.ex, self.rem) {
+                if let Some(val) = val {
+                    length = Some(length.unwrap_or(Au(0)) +
+                        val.to_computed_value(context.font_size, context.root_font_size));
+                }
+            }
+
+            Calc { length: length, percentage: self.percentage }
         }
     }
 
