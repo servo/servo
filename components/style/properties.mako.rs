@@ -6518,6 +6518,19 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
     }
 }
 
+/// Adjusts the `margin` property as necessary to account for the text of an `input` element.
+///
+/// Margins apply to the `input` element itself, so including them in the text will cause them to
+/// be double-counted.
+pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
+    let mut style = Arc::make_unique(style);
+    let margin_style = Arc::make_unique(&mut style.margin);
+    margin_style.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
+    margin_style.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
+    margin_style.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
+    margin_style.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
+}
+
 pub fn is_supported_property(property: &str) -> bool {
     match_ignore_ascii_case! { property,
         % for property in SHORTHANDS + LONGHANDS[:-1]:
