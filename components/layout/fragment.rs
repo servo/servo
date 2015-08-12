@@ -452,6 +452,12 @@ impl ReplacedImageFragmentInfo {
                 MaybeAuto::Specified(container_size.scale_by(pc))
             }
             (LengthOrPercentageOrAuto::Percentage(_), _, None) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Calc(calc), _, Some(container_size)) => {
+                MaybeAuto::Specified(calc.length() + container_size.scale_by(calc.percentage()))
+            }
+            (LengthOrPercentageOrAuto::Calc(calc), _, None) => {
+                MaybeAuto::Specified(calc.length())
+            }
             (LengthOrPercentageOrAuto::Auto, Some(dom_length), _) => MaybeAuto::Specified(dom_length),
             (LengthOrPercentageOrAuto::Auto, None, _) => MaybeAuto::Auto,
         }
@@ -605,6 +611,10 @@ impl IframeFragmentInfo {
         let computed_size = match (content_size, containing_size) {
             (LengthOrPercentageOrAuto::Length(length), _) => length,
             (LengthOrPercentageOrAuto::Percentage(pc), Some(container_size)) => container_size.scale_by(pc),
+            (LengthOrPercentageOrAuto::Calc(calc), Some(container_size)) => {
+                container_size.scale_by(calc.percentage()) + calc.length()
+            },
+            (LengthOrPercentageOrAuto::Calc(calc), None) => calc.length(),
             (LengthOrPercentageOrAuto::Percentage(_), None) => default_size,
             (LengthOrPercentageOrAuto::Auto, _) => default_size,
         };
