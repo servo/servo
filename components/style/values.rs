@@ -353,6 +353,31 @@ pub mod specified {
         }
     }
 
+    #[derive(Clone, Debug)]
+    struct CalcSumNode {
+        products: Vec<CalcProductNode>,
+    }
+
+    #[derive(Clone, Debug)]
+    struct CalcProductNode {
+        values: Vec<CalcValueNode>
+    }
+
+    #[derive(Clone, Debug)]
+    enum CalcValueNode {
+        Length(Length),
+        Percentage(CSSFloat),
+        Number(CSSFloat),
+        Sum(Box<CalcSumNode>),
+    }
+
+    #[derive(Clone, Debug)]
+    enum CalcAstNode {
+        Add(CalcSumNode),
+        Multiply(CalcProductNode),
+        Value(CalcValueNode),
+    }
+
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub struct Calc {
         pub absolute: Option<Au>,
@@ -361,46 +386,184 @@ pub mod specified {
         pub percentage: Option<CSSFloat>,
     }
     impl Calc {
-        pub fn parse_component(&mut self, input: &mut Parser) -> Result<(), ()> {
-             match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) => {
-                    let value = value.value;
-                    match_ignore_ascii_case! { unit,
-                        "px" => self.absolute =
-                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_PX) as i32)),
-                        "in" => self.absolute =
-                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_IN) as i32)),
-                        "cm" => self.absolute =
-                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_CM) as i32)),
-                        "mm" => self.absolute =
-                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_MM) as i32)),
-                        "pt" => self.absolute =
-                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_PT) as i32)),
-                        "pc" => self.absolute =
-                            Some(self.absolute.unwrap_or(Au(0)) + Au((value * AU_PER_PC) as i32))
-                        // font-relative
-                        /*"em" => Ok(Length::FontRelative(FontRelativeLength::Em(value))),
-                        "ex" => Ok(Length::FontRelative(FontRelativeLength::Ex(value))),
-                        "rem" => Ok(Length::FontRelative(FontRelativeLength::Rem(value))),
-                        // viewport percentages
-                        "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
-                        "vh" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vh(value))),
-                        "vmin" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
-                        "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value)))*/
-                        // Handle em, ex, rem, vw, vh, vmin, vmax
-                        _ => return Err(())
+        fn parse_sum(input: &mut Parser) -> Result<CalcSumNode, ()> {
+            let mut products = Vec::new();
+            products.push(try!(Calc::parse_product(input)));
+
+            loop {
+                let next = input.next();
+                match next {
+                    Ok(Token::Delim('+')) => {
+                        products.push(try!(Calc::parse_product(input)));
                     }
+                    Ok(Token::Delim('-')) => {
+                        let mut right = try!(Calc::parse_product(input));
+                        right.values.push(CalcValueNode::Number(-1.));
+                        products.push(right);
+                    }
+                    Ok(_) => return Err(()),
+                    _ => break
+                }
+            }
+
+            let sum = CalcSumNode { products: products };
+            println!("Parsed sum {:?} ", sum);
+            Ok(sum)
+        }
+
+        fn parse_product(input: &mut Parser) -> Result<CalcProductNode, ()> {
+            let mut values = Vec::new();
+            values.push(try!(Calc::parse_value(input)));
+
+            loop {
+                let position = input.position();
+                let next = input.next();
+                match next {
+                    Ok(Token::Delim('*')) => {
+                        values.push(try!(Calc::parse_value(input)));
+                    }
+                    Ok(Token::Delim('/')) => {
+                        if let Ok(Token::Number(ref value)) = input.next() {
+                            if value.value == 0. {
+                                return Err(());
+                            }
+                            values.push(CalcValueNode::Number(1. / value.value));
+                        } else {
+                            return Err(());
+                        }
+                    }
+                    _ => {
+                        input.reset(position);
+                        break
+                    }
+                }
+            }
+
+            let sum = CalcProductNode { values: values };
+            println!("Parsed product {:?} ", sum);
+            Ok(sum)
+        }
+
+        fn parse_value(input: &mut Parser) -> Result<CalcValueNode, ()> {
+            let next = input.next();
+            match next {
+                Ok(Token::Number(ref value)) => Ok(CalcValueNode::Number(value.value)),
+                Ok(Token::Dimension(ref value, ref unit)) =>
+                    Length::parse_dimension(value.value, unit).map(CalcValueNode::Length),
+                Ok(Token::Percentage(ref value)) =>
+                    Ok(CalcValueNode::Percentage(value.unit_value)),
+                Ok(Token::ParenthesisBlock) => {
+                    let result = try!(input.parse_nested_block(Calc::parse_sum));
+                    Ok(CalcValueNode::Sum(box result))
                 },
-                Token::Percentage(ref value) =>
-                    self.percentage = Some(self.percentage.unwrap_or(0.) + value.unit_value),
-                Token::Number(ref value) if value.value == 0. =>
-                    self.absolute = self.absolute.or(Some(Au(0))),
-                _ => return Err(())
-            };
-            Ok(())
+                _ => Err(())
+            }
+        }
+
+        fn simplify_ast(node: CalcSumNode) -> Result<CalcSumNode, ()> {
+            let mut simplified = Vec::new();
+            for node in node.products {
+                let node = try!(Calc::simplify_product(node));
+                match node {
+                    CalcAstNode::Value(value) => {
+                        let product = CalcProductNode { values: vec!(value) };
+                        simplified.push(product);
+                    }
+                    _ => return Err(())
+                }
+            }
+
+            Ok(CalcSumNode {products: simplified} )
+        }
+
+        fn simplify_product(node: CalcProductNode) -> Result<CalcAstNode, ()> {
+            let mut multiplier = 1.;
+            let mut node_with_unit: Option<CalcAstNode> = None;
+            let mut node_hack: CalcAstNode;
+            for node in node.values {
+                node_hack = try!(Calc::simplify_value(node));
+                if let CalcAstNode::Value(CalcValueNode::Number(n)) = node_hack {
+                    multiplier *= n;
+                } else if node_with_unit.is_none() {
+                    node_with_unit = Some(node_hack);
+                } else {
+                    return Err(());
+                }
+            }
+
+            match node_with_unit {
+                None => Ok(CalcAstNode::Value(CalcValueNode::Number(multiplier))),
+                Some(CalcAstNode::Add(sum)) =>
+                    Ok(CalcAstNode::Add(CalcSumNode {
+                        products: sum.products
+                                     .iter()
+                                     .map(|p| Calc::multiply_product(p, multiplier))
+                                     .collect()
+                    })),
+                Some(CalcAstNode::Value(ref value)) =>
+                    Ok(CalcAstNode::Value(Calc::multiply_value(value, multiplier))),
+                _ => unreachable!()
+            }
+        }
+
+        fn multiply_product(node: &CalcProductNode, multiplier: CSSFloat) -> CalcProductNode {
+            CalcProductNode {
+                values: node.values
+                            .iter()
+                            .map(|v| Calc::multiply_value(v, multiplier))
+                            .collect()
+            }
+        }
+
+        fn multiply_value(node: &CalcValueNode, multiplier: CSSFloat) -> CalcValueNode {
+            match node {
+                &CalcValueNode::Number(_) => unreachable!(),
+                &CalcValueNode::Percentage(p) => CalcValueNode::Percentage(p * multiplier),
+                &CalcValueNode::Sum(_) => unreachable!(),
+                &CalcValueNode::Length(l) => CalcValueNode::Length(Calc::multiply_length(l, multiplier))
+            }
+        }
+
+        fn multiply_length(length: Length, multiplier: CSSFloat) -> Length {
+            match length {
+                Length::Absolute(Au(au)) =>
+                    Length::Absolute(Au((au as CSSFloat * multiplier) as i32)),
+                _ => panic!()
+            }
+        }
+
+        fn simplify_sum(node: CalcSumNode) -> Result<CalcAstNode, ()> {
+            let mut simplified = Vec::new();
+            let length = node.products.len();
+            for node in node.products {
+                let node = try!(Calc::simplify_product(node));
+                match node {
+                    CalcAstNode::Value(value) => {
+                        let product = CalcProductNode { values: vec!(value) };
+                        if length == 1 {
+                            return Ok(CalcAstNode::Multiply(product));
+                        }
+                        simplified.push(product);
+                    }
+                    CalcAstNode::Add(sum) => simplified.push_all(&sum.products),
+                    _ => return Err(())
+                }
+            }
+
+            Ok(CalcAstNode::Add(CalcSumNode {products: simplified} ))
+        }
+
+        fn simplify_value(node: CalcValueNode) -> Result<CalcAstNode, ()> {
+            match node {
+                CalcValueNode::Sum(box sum) => Calc::simplify_sum(sum),
+                node => Ok(CalcAstNode::Value(node))
+            }
         }
 
         pub fn parse(input: &mut Parser) -> Result<Calc, ()> {
+
+            let ast = try!(Calc::parse_sum(input));
+            let ast = try!(Calc::simplify_sum(ast));
             let mut calc = Calc {
                 absolute: None,
                 font_relative: None,
@@ -408,14 +571,23 @@ pub mod specified {
                 percentage: None,
             };
 
-            try!(calc.parse_component(input));
-            let operator = try!(input.next());
-            match operator {
-                Token::Delim('+') => (),
-                _ => return Err(())
-            };
+            if let CalcAstNode::Add(ast) = ast {
+                for value in ast.products {
+                    assert!(value.values.len() == 1);
+                    match value.values[0] {
+                        CalcValueNode::Percentage(p) =>
+                            calc.percentage = Some(calc.percentage.unwrap_or(0.) + p),
+                        CalcValueNode::Length(Length::Absolute(Au(au))) =>
+                            calc.absolute = Some(calc.absolute.unwrap_or(Au(0)) + Au(au)),
+                        //CalcValueNode::Length(Length::FontRelative(Au(au)))
+                            //calc.absolute = Some(calc.absolute.unwrap_or(0.) + au),
+                        _ => return Err(())
+                    }
+                }
+            } else {
+                unreachable!()
+            }
 
-            try!(calc.parse_component(input));
             Ok(calc)
         }
     }
