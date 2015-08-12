@@ -11,6 +11,7 @@ use euclid::size::{Size2D, TypedSize2D};
 use getopts::Options;
 use num_cpus;
 use std::cmp;
+use std::default::Default;
 use std::env;
 use std::io::{self, Read, Write};
 use std::fs::{File, PathExt};
@@ -180,6 +181,7 @@ fn print_usage(app: &str, opts: &Options) {
 
 
 /// Debug options for Servo, currently set on the command line with -Z
+#[derive(Default)]
 pub struct DebugOptions {
     /// List all the debug options.
     pub help: bool,
@@ -244,32 +246,6 @@ pub struct DebugOptions {
 
     /// Log GC passes and their durations.
     pub gc_profile: bool,
-}
-
-pub fn default_debug_options() -> DebugOptions {
-    DebugOptions {
-        help: false,
-        bubble_widths: false,
-        disable_text_aa: false,
-        disable_canvas_aa: false,
-        dump_flow_tree: false,
-        dump_display_list: false,
-        dump_display_list_json: false,
-        dump_display_list_optimized: false,
-        relayout_event: false,
-        profile_tasks: false,
-        show_compositor_borders: false,
-        show_fragment_borders: false,
-        show_parallel_paint: false,
-        show_parallel_layout: false,
-        paint_flashing: false,
-        trace_layout: false,
-        validate_display_list_geometry: false,
-        disable_share_style_cache: false,
-        parallel_display_list_building: false,
-        replace_surrogates: false,
-        gc_profile: false,
-    }
 }
 
 
@@ -386,7 +362,7 @@ pub fn default_opts() -> Opts {
 }
 
 pub fn validate_debug_options(debug_string: &str) -> Result<DebugOptions, String> {
-    let mut debug_options = default_debug_options();
+    let mut debug_options = DebugOptions::default();
 
     for option in debug_string.split(',') {
         match option {
