@@ -60,7 +60,7 @@ use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::{CompositorEvent, MouseButton};
-use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::ConstellationControlMsg;
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptState, ScriptTaskFactory};
 use msg::compositor_msg::{LayerId, ScriptListener};
@@ -1466,7 +1466,7 @@ impl ScriptTask {
                                  page.clone(),
                                  self.chan.clone(),
                                  self.image_cache_channel.clone(),
-                                 ScriptControlChan(self.control_chan.clone()),
+                                 self.control_chan.clone(),
                                  self.compositor.borrow_mut().dup(),
                                  self.image_cache_task.clone(),
                                  self.resource_task.clone(),
