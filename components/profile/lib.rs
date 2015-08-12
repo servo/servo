@@ -8,7 +8,7 @@
 
 #[macro_use] extern crate log;
 
-extern crate heartbeats_simple;
+extern crate hbs_pow;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]

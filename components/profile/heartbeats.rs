@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use heartbeats_simple::pow::HeartbeatPow as Heartbeat;
-use heartbeats_simple::pow::HeartbeatPowContext as HeartbeatContext;
+use hbs_pow::HeartbeatPow as Heartbeat;
+use hbs_pow::HeartbeatPowContext as HeartbeatContext;
 use std::collections::HashMap;
 use std::mem;
 use std::fs::File;
