@@ -182,9 +182,6 @@ pub trait MainThreadRunnable {
 /// Messages used to control script event loops, such as ScriptTask and
 /// DedicatedWorkerGlobalScope.
 pub enum ScriptMsg {
-    /// Acts on a fragment URL load on the specified pipeline (only dispatched
-    /// to ScriptTask).
-    TriggerFragment(PipelineId, String),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     Navigate(PipelineId, LoadData),
@@ -862,8 +859,6 @@ impl ScriptTask {
         match msg {
             ScriptMsg::Navigate(id, load_data) =>
                 self.handle_navigate(id, None, load_data),
-            ScriptMsg::TriggerFragment(id, fragment) =>
-                self.trigger_fragment(id, fragment),
             ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
                 self.handle_fire_timer_msg(id, timer_id),
             ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
@@ -1680,6 +1675,19 @@ impl ScriptTask {
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
+        // Step 8.
+        if let Some(fragment) = load_data.url.fragment {
+            let page = get_page(&self.root_page(), pipeline_id);
+            let document = page.document();
+            match document.r().find_fragment_node(fragment) {
+                Some(ref node) => {
+                    self.scroll_fragment_point(pipeline_id, node.r());
+                }
+                None => {}
+            }
+            return;
+        }
+
         match subpage_id {
             Some(subpage_id) => {
                 let borrowed_page = self.root_page();
@@ -1697,20 +1705,6 @@ impl ScriptTask {
             }
         }
     }
-
-    /// The entry point for content to notify that a fragment url has been requested
-    /// for the given pipeline.
-    fn trigger_fragment(&self, pipeline_id: PipelineId, fragment: String) {
-        let page = get_page(&self.root_page(), pipeline_id);
-        let document = page.document();
-        match document.r().find_fragment_node(fragment) {
-            Some(ref node) => {
-                self.scroll_fragment_point(pipeline_id, node.r());
-            }
-            None => {}
-        }
-    }
-
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData) {
         let page = get_page(&self.root_page(), pipeline_id);

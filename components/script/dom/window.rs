@@ -887,14 +887,7 @@ impl<'a> WindowHelpers for &'a Window {
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     fn load_url(self, url: Url) {
-        match url.fragment {
-            Some(fragment) => {
-                self.script_chan.send(ScriptMsg::TriggerFragment(self.id, fragment)).unwrap();
-            },
-            None => {
-                self.script_chan.send(ScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
-            }
-        }
+        self.script_chan.send(ScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
     }
 
     fn handle_fire_timer(self, timer_id: TimerId) {
