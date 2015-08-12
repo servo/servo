@@ -84,19 +84,19 @@ impl Flow for TableCellFlow {
         FlowClass::TableCell
     }
 
-    fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
+    fn as_mut_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
         self
     }
 
-    fn as_immutable_table_cell<'a>(&'a self) -> &'a TableCellFlow {
+    fn as_table_cell<'a>(&'a self) -> &'a TableCellFlow {
         self
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block(&self) -> &BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         &self.block_flow
     }
 
@@ -354,4 +354,3 @@ impl CollapsedBordersForCell {
         *border_styles = logical_border_styles.to_physical(writing_mode);
     }
 }
-

@@ -68,11 +68,11 @@ impl Flow for ListItemFlow {
         FlowClass::ListItem
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
         &self.block_flow
     }
 
@@ -228,4 +228,3 @@ impl ListStyleTypeContent {
         }
     }
 }
-

@@ -451,7 +451,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             }
         }
 
-        let block = flow.as_block();
+        let block = flow.as_mut_block();
         debug_assert!(block.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
         if !block.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
@@ -845,7 +845,7 @@ impl BlockFlow {
                 if flow::base(kid).flags.is_float() {
                     flow::mut_base(kid).position.start.b = cur_b;
                     {
-                        let kid_block = kid.as_block();
+                        let kid_block = kid.as_mut_block();
                         kid_block.float.as_mut().unwrap().float_ceiling =
                             margin_collapse_info.current_float_ceiling();
                     }
@@ -1384,7 +1384,7 @@ impl BlockFlow {
             }
 
             if kid.is_block_flow() {
-                let kid_block = kid.as_block();
+                let kid_block = kid.as_mut_block();
                 kid_block.inline_size_of_preceding_left_floats =
                     inline_size_of_preceding_left_floats;
                 kid_block.inline_size_of_preceding_right_floats =
@@ -1409,7 +1409,7 @@ impl BlockFlow {
             // necessary because any percentages are relative to the containing block, which only
             // we know.
             if kid.is_inline_flow() {
-                kid.as_inline().first_line_indentation =
+                kid.as_mut_inline().first_line_indentation =
                     specified(self.fragment.style().get_inheritedtext().text_indent,
                               containing_block_size);
             }
@@ -1501,11 +1501,11 @@ impl Flow for BlockFlow {
         FlowClass::Block
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         self
     }
 
-    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
         self
     }
 
@@ -2839,4 +2839,3 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
-

@@ -1298,11 +1298,11 @@ impl Flow for InlineFlow {
         FlowClass::Inline
     }
 
-    fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
+    fn as_inline<'a>(&'a self) -> &'a InlineFlow {
         self
     }
 
-    fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+    fn as_mut_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
         self
     }
 
@@ -1658,7 +1658,7 @@ impl Flow for InlineFlow {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
 
-                    let block_flow = info.flow_ref.as_block();
+                    let block_flow = info.flow_ref.as_mut_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
                     let stacking_relative_position = self.base.stacking_relative_position;
@@ -1678,7 +1678,7 @@ impl Flow for InlineFlow {
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
 
-                    let block_flow = info.flow_ref.as_block();
+                    let block_flow = info.flow_ref.as_mut_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
                     block_flow.base.stacking_relative_position =
@@ -1689,7 +1689,7 @@ impl Flow for InlineFlow {
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
 
-                    let block_flow = info.flow_ref.as_block();
+                    let block_flow = info.flow_ref.as_mut_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
                     let stacking_relative_position = self.base.stacking_relative_position;

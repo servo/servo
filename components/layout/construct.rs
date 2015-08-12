@@ -480,7 +480,7 @@ impl<'a> FlowConstructor<'a> {
         absolute_descendants.push_descendants(fragments.absolute_descendants);
 
         {
-            let inline_flow = inline_flow_ref.as_inline();
+            let inline_flow = inline_flow_ref.as_mut_inline();
 
 
             let (ascent, descent) =
@@ -802,7 +802,7 @@ impl<'a> FlowConstructor<'a> {
             }
             match kid.swap_out_construction_result() {
                 ConstructionResult::None => {}
-                ConstructionResult::Flow(mut flow, kid_abs_descendants) => {
+                ConstructionResult::Flow(flow, kid_abs_descendants) => {
                     if !flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                         // {ib} split. Flush the accumulator to our new split and make a new
                         // accumulator to hold any subsequent fragments we come across.
@@ -1015,7 +1015,7 @@ impl<'a> FlowConstructor<'a> {
         // Only flows that are table captions are matched here.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
-                ConstructionResult::Flow(mut kid_flow, _) => {
+                ConstructionResult::Flow(kid_flow, _) => {
                     if kid_flow.is_table_caption() &&
                         kid_flow.as_block()
                                 .fragment

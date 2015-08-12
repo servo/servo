@@ -76,95 +76,97 @@ pub trait Flow: fmt::Debug + Sync {
     /// Returns the class of flow that this is.
     fn class(&self) -> FlowClass;
 
-    /// If this is a block flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
-        panic!("called as_immutable_block() on a non-block flow")
-    }
-
     /// If this is a block flow, returns the underlying object. Fails otherwise.
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
-        debug!("called as_block() on a flow of type {:?}", self.class());
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
         panic!("called as_block() on a non-block flow")
     }
 
-    /// If this is an inline flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
-        panic!("called as_immutable_inline() on a non-inline flow")
+    /// If this is a block flow, returns the underlying object, borrowed mutably. Fails otherwise.
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+        debug!("called as_mut_block() on a flow of type {:?}", self.class());
+        panic!("called as_mut_block() on a non-block flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
-    fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+    fn as_inline<'a>(&'a self) -> &'a InlineFlow {
         panic!("called as_inline() on a non-inline flow")
     }
 
+    /// If this is an inline flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+        panic!("called as_mut_inline() on a non-inline flow")
+    }
+
+    /// If this is a table wrapper flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+        panic!("called as_mut_table_wrapper() on a non-tablewrapper flow")
+    }
+
     /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
-    fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+    fn as_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
         panic!("called as_table_wrapper() on a non-tablewrapper flow")
     }
 
-    /// If this is a table wrapper flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
-        panic!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
+    /// If this is a table flow, returns the underlying object, borrowed mutably. Fails otherwise.
+    fn as_mut_table<'a>(&'a mut self) -> &'a mut TableFlow {
+        panic!("called as_mut_table() on a non-table flow")
     }
 
     /// If this is a table flow, returns the underlying object. Fails otherwise.
-    fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
+    fn as_table<'a>(&'a self) -> &'a TableFlow {
         panic!("called as_table() on a non-table flow")
     }
 
-    /// If this is a table flow, returns the underlying object, borrowed immutably. Fails otherwise.
-    fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
-        panic!("called as_table() on a non-table flow")
+    /// If this is a table colgroup flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
+        panic!("called as_mut_table_colgroup() on a non-tablecolgroup flow")
     }
 
-    /// If this is a table colgroup flow, returns the underlying object. Fails otherwise.
-    fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
-        panic!("called as_table_colgroup() on a non-tablecolgroup flow")
+    /// If this is a table rowgroup flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+        panic!("called as_mut_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
-    fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+    fn as_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
         panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
-    /// If this is a table rowgroup flow, returns the underlying object, borrowed immutably. Fails
+    /// If this is a table row flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_immutable_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
-        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
+    fn as_mut_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+        panic!("called as_mut_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table row flow, returns the underlying object. Fails otherwise.
-    fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+    fn as_table_row<'a>(&'a self) -> &'a TableRowFlow {
         panic!("called as_table_row() on a non-tablerow flow")
     }
 
-    /// If this is a table row flow, returns the underlying object, borrowed immutably. Fails
+    /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
-        panic!("called as_table_row() on a non-tablerow flow")
+    fn as_mut_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
+        panic!("called as_mut_table_caption() on a non-tablecaption flow")
+    }
+
+    /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
+        panic!("called as_mut_table_cell() on a non-tablecell flow")
+    }
+
+    /// If this is a multicol flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
+        panic!("called as_mut_multicol() on a non-multicol flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
-    fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
-        panic!("called as_table_caption() on a non-tablecaption flow")
-    }
-
-    /// If this is a table cell flow, returns the underlying object. Fails otherwise.
-    fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
-        panic!("called as_table_cell() on a non-tablecell flow")
-    }
-
-    /// If this is a multicol flow, returns the underlying object. Fails otherwise.
-    fn as_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
-        panic!("called as_multicol() on a non-multicol flow")
-    }
-
-    /// If this is a table cell flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_table_cell<'a>(&'a self) -> &'a TableCellFlow {
+    fn as_table_cell<'a>(&'a self) -> &'a TableCellFlow {
         panic!("called as_table_cell() on a non-tablecell flow")
     }
 
@@ -938,21 +940,13 @@ impl Encodable for BaseFlow {
                                 try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)));
                                 e.emit_struct_field("data", 1, |e| {
                                     match c.class() {
-                                        FlowClass::Block => c.as_immutable_block().encode(e),
-                                        FlowClass::Inline => c.as_immutable_inline().encode(e),
-                                        FlowClass::Table => c.as_immutable_table().encode(e),
-                                        FlowClass::TableWrapper => {
-                                            c.as_immutable_table_wrapper().encode(e)
-                                        }
-                                        FlowClass::TableRowGroup => {
-                                            c.as_immutable_table_rowgroup().encode(e)
-                                        }
-                                        FlowClass::TableRow => {
-                                            c.as_immutable_table_row().encode(e)
-                                        }
-                                        FlowClass::TableCell => {
-                                            c.as_immutable_table_cell().encode(e)
-                                        }
+                                        FlowClass::Block => c.as_block().encode(e),
+                                        FlowClass::Inline => c.as_inline().encode(e),
+                                        FlowClass::Table => c.as_table().encode(e),
+                                        FlowClass::TableWrapper => c.as_table_wrapper().encode(e),
+                                        FlowClass::TableRowGroup => c.as_table_rowgroup().encode(e),
+                                        FlowClass::TableRow => c.as_table_row().encode(e),
+                                        FlowClass::TableCell => c.as_table_cell().encode(e),
                                         _ => { Ok(()) }     // TODO: Support captions
                                     }
                                 })
@@ -1452,9 +1446,9 @@ impl ContainingBlockLink {
             Some(ref link) => {
                 let flow = link.upgrade().unwrap();
                 if flow.is_block_like() {
-                    flow.as_immutable_block().explicit_block_containing_size(layout_context)
+                    flow.as_block().explicit_block_containing_size(layout_context)
                 } else if flow.is_inline_flow() {
-                    Some(flow.as_immutable_inline().minimum_block_size_above_baseline)
+                    Some(flow.as_inline().minimum_block_size_above_baseline)
                 } else {
                     None
                 }

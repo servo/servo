@@ -1541,7 +1541,7 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
         return color::transparent()
     }
 
-    let block_flow = flow.as_block();
+    let block_flow = flow.as_mut_block();
     let kid = match block_flow.base.children.iter_mut().next() {
         None => return color::transparent(),
         Some(kid) => kid,
