@@ -249,6 +249,42 @@ pub struct DebugOptions {
 }
 
 
+impl DebugOptions {
+    pub fn new<'a>(debug_string: &'a str) -> Result<DebugOptions, &'a str> {
+        let mut debug_options = DebugOptions::default();
+
+        for option in debug_string.split(',') {
+            match option {
+                "help" => debug_options.help = true,
+                "bubble-widths" => debug_options.bubble_widths = true,
+                "disable-text-aa" => debug_options.disable_text_aa = true,
+                "disable-canvas-aa" => debug_options.disable_text_aa = true,
+                "dump-flow-tree" => debug_options.dump_flow_tree = true,
+                "dump-display-list" => debug_options.dump_display_list = true,
+                "dump-display-list-json" => debug_options.dump_display_list_json = true,
+                "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
+                "relayout-event" => debug_options.relayout_event = true,
+                "profile-tasks" => debug_options.profile_tasks = true,
+                "show-compositor-borders" => debug_options.show_compositor_borders = true,
+                "show-fragment-borders" => debug_options.show_fragment_borders = true,
+                "show-parallel-paint" => debug_options.show_parallel_paint = true,
+                "show-parallel-layout" => debug_options.show_parallel_layout = true,
+                "paint-flashing" => debug_options.paint_flashing = true,
+                "trace-layout" => debug_options.trace_layout = true,
+                "validate-display-list-geometry" => debug_options.validate_display_list_geometry = true,
+                "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
+                "parallel-display-list-building" => debug_options.parallel_display_list_building = true,
+                "replace-surrogates" => debug_options.replace_surrogates = true,
+                "gc-profile" => debug_options.gc_profile = true,
+                _ => return Err(option)
+            };
+        };
+
+        return Ok(debug_options);
+    }
+}
+
+
 pub fn print_debug_usage(app: &str) -> ! {
     fn print_option(name: &str, description: &str) {
         println!("\t{:<35} {}", name, description);
@@ -361,39 +397,6 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn validate_debug_options(debug_string: &str) -> Result<DebugOptions, String> {
-    let mut debug_options = DebugOptions::default();
-
-    for option in debug_string.split(',') {
-        match option {
-            "help" => debug_options.help = true,
-            "bubble-widths" => debug_options.bubble_widths = true,
-            "disable-text-aa" => debug_options.disable_text_aa = true,
-            "disable-canvas-aa" => debug_options.disable_text_aa = true,
-            "dump-flow-tree" => debug_options.dump_flow_tree = true,
-            "dump-display-list" => debug_options.dump_display_list = true,
-            "dump-display-list-json" => debug_options.dump_display_list_json = true,
-            "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
-            "relayout-event" => debug_options.relayout_event = true,
-            "profile-tasks" => debug_options.profile_tasks = true,
-            "show-compositor-borders" => debug_options.show_compositor_borders = true,
-            "show-fragment-borders" => debug_options.show_fragment_borders = true,
-            "show-parallel-paint" => debug_options.show_parallel_paint = true,
-            "show-parallel-layout" => debug_options.show_parallel_layout = true,
-            "paint-flashing" => debug_options.paint_flashing = true,
-            "trace-layout" => debug_options.trace_layout = true,
-            "validate-display-list-geometry" => debug_options.validate_display_list_geometry = true,
-            "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
-            "parallel-display-list-building" => debug_options.parallel_display_list_building = true,
-            "replace-surrogates" => debug_options.replace_surrogates = true,
-            "gc-profile" => debug_options.gc_profile = true,
-            _ => return Err(option.to_string())
-        };
-    };
-
-    Ok(debug_options);
-}
-
 
 pub fn from_cmdline_args(args: &[String]) {
     let (app_name, args) = args.split_first().unwrap();
@@ -444,7 +447,7 @@ pub fn from_cmdline_args(args: &[String]) {
         None => String::new()
     };
 
-    let debug_options = match validate_debug_options(&debug_string) {
+    let debug_options = match DebugOptions::new(&debug_string) {
         Ok(debug_options) => debug_options,
         Err(e) => args_fail(&format!("error: unrecognized debug option: {}", e)),
     };
