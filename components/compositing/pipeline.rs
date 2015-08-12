@@ -38,7 +38,7 @@ use util::opts;
 pub struct Pipeline {
     pub id: PipelineId,
     pub parent_info: Option<(PipelineId, SubpageId)>,
-    pub script_chan: ScriptControlChan,
+    pub script_chan: Sender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: LayoutControlChan,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
@@ -194,7 +194,7 @@ impl Pipeline {
         Pipeline {
             id: id,
             parent_info: parent_info,
-            script_chan: script_chan,
+            script_chan: script_chan.0,
             layout_chan: layout_chan,
             chrome_to_paint_chan: chrome_to_paint_chan,
             layout_shutdown_port: layout_shutdown_port,
@@ -221,8 +221,7 @@ impl Pipeline {
 
         // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
-        let ScriptControlChan(ref chan) = self.script_chan;
-        if chan.send(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
+        if self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             let _ = self.paint_shutdown_port.recv();
@@ -232,18 +231,15 @@ impl Pipeline {
     }
 
     pub fn freeze(&self) {
-        let ScriptControlChan(ref script_channel) = self.script_chan;
-        let _ = script_channel.send(ConstellationControlMsg::Freeze(self.id)).unwrap();
+        let _ = self.script_chan.send(ConstellationControlMsg::Freeze(self.id)).unwrap();
     }
 
     pub fn thaw(&self) {
-        let ScriptControlChan(ref script_channel) = self.script_chan;
-        let _ = script_channel.send(ConstellationControlMsg::Thaw(self.id)).unwrap();
+        let _ = self.script_chan.send(ConstellationControlMsg::Thaw(self.id)).unwrap();
     }
 
     pub fn force_exit(&self) {
-        let ScriptControlChan(ref script_channel) = self.script_chan;
-        let _ = script_channel.send(
+        let _ = self.script_chan.send(
             ConstellationControlMsg::ExitPipeline(self.id,
                                                   PipelineExitType::PipelineOnly)).unwrap();
         let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit(
@@ -257,7 +253,7 @@ impl Pipeline {
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id.clone(),
-            script_chan: self.script_chan.0.clone(),
+            script_chan: self.script_chan.clone(),
             layout_chan: self.layout_chan.clone(),
             chrome_to_paint_chan: self.chrome_to_paint_chan.clone(),
         }
@@ -277,11 +273,10 @@ impl Pipeline {
                                      event: MozBrowserEvent) {
         assert!(opts::experimental_enabled());
 
-        let ScriptControlChan(ref script_channel) = self.script_chan;
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
                                                              subpage_id,
                                                              event);
-        script_channel.send(event).unwrap();
+        self.script_chan.send(event).unwrap();
     }
 }
 

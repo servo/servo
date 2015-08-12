@@ -606,7 +606,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             (pipeline.id, pipeline.script_chan.clone())
         };
 
-        let ScriptControlChan(ref script_chan) = script_chan;
         script_chan.send(ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
             visible_viewport: rect.size,
             initial_viewport: rect.size * ScaleFactor::new(1.0),
@@ -649,7 +648,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             if same_script {
                 debug!("Constellation: loading same-origin iframe, \
                         parent url {:?}, iframe url {:?}", source_url, url);
-                Some(source_pipeline.script_chan.clone())
+                Some(ScriptControlChan(source_pipeline.script_chan.clone()))
             } else {
                 debug!("Constellation: loading cross-origin iframe, \
                         parent url {:?}, iframe url {:?}", source_url, url);
@@ -706,7 +705,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 // Message the constellation to find the script task for this iframe
                 // and issue an iframe load through there.
                 let parent_pipeline = self.pipeline(parent_pipeline_id);
-                let ScriptControlChan(ref script_channel) = parent_pipeline.script_chan;
+                let script_channel = &parent_pipeline.script_chan;
                 script_channel.send(ConstellationControlMsg::Navigate(parent_pipeline_id,
                                                                       subpage_id,
                                                                       load_data)).unwrap();
@@ -837,7 +836,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, subpage_id)) = pipeline_info {
-            let ScriptControlChan(ref script_chan) = self.pipeline(parent_pipeline_id).script_chan;
+            let script_chan = &self.pipeline(parent_pipeline_id).script_chan;
             let (_, new_subpage_id) = self.pipeline(next_pipeline_id).parent_info.unwrap();
             script_chan.send(ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
                                                                       subpage_id,
@@ -860,10 +859,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         match target_pipeline_id {
             Some(target_pipeline_id) => {
                 let pipeline = self.pipeline(target_pipeline_id);
-                let ScriptControlChan(ref chan) = pipeline.script_chan;
                 let event = CompositorEvent::KeyEvent(key, state, mods);
-                chan.send(ConstellationControlMsg::SendEvent(pipeline.id,
-                                                             event)).unwrap();
+                pipeline.script_chan.send(
+                    ConstellationControlMsg::SendEvent(pipeline.id, event)).unwrap();
             }
             None => {
                 let event = CompositorMsg::KeyEvent(key, state, mods);
@@ -876,8 +874,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         match self.pipelines.get(&pipeline_id) {
             None => self.compositor_proxy.send(CompositorMsg::ChangePageTitle(pipeline_id, None)),
             Some(pipeline) => {
-                let ScriptControlChan(ref script_channel) = pipeline.script_chan;
-                script_channel.send(ConstellationControlMsg::GetTitle(pipeline_id)).unwrap();
+                pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id)).unwrap();
             }
         }
     }
@@ -920,10 +917,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // telling it to mark the iframe element as focused.
         if let Some((containing_pipeline_id, subpage_id)) = self.pipeline(pipeline_id).parent_info {
             let pipeline = self.pipeline(containing_pipeline_id);
-            let ScriptControlChan(ref script_channel) = pipeline.script_chan;
             let event = ConstellationControlMsg::FocusIFrame(containing_pipeline_id,
                                                                 subpage_id);
-            script_channel.send(event).unwrap();
+            pipeline.script_chan.send(event).unwrap();
 
             self.focus_parent_pipeline(containing_pipeline_id);
         }
@@ -997,8 +993,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
                 let pipeline = self.pipeline(pipeline_id);
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
-                let ScriptControlChan(ref script_channel) = pipeline.script_chan;
-                script_channel.send(control_msg).unwrap();
+                pipeline.script_chan.send(control_msg).unwrap();
             },
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
                 let current_pipeline_id = self.root_frame_id.map(|frame_id| {
@@ -1143,13 +1138,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let frame = self.frames.get(&root_frame_id).unwrap();
 
             let pipeline = self.pipelines.get(&frame.current).unwrap();
-            let ScriptControlChan(ref chan) = pipeline.script_chan;
-            let _ = chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
+            let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
 
             for pipeline_id in frame.prev.iter().chain(frame.next.iter()) {
                 let pipeline = self.pipelines.get(pipeline_id).unwrap();
-                let ScriptControlChan(ref chan) = pipeline.script_chan;
-                let _ = chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
+                let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
             }
         }
 
@@ -1157,8 +1150,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         for pending_frame in &self.pending_frames {
             let pipeline = self.pipelines.get(&pending_frame.new_pipeline_id).unwrap();
             if pipeline.parent_info.is_none() {
-                let ScriptControlChan(ref chan) = pipeline.script_chan;
-                let _ = chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
+                let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
             }
         }
 
@@ -1198,10 +1190,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
             // Synchronously query the script task for this pipeline
             // to see if it is idle.
-            let ScriptControlChan(ref script_chan) = pipeline.script_chan;
             let (sender, receiver) = channel();
             let msg = ConstellationControlMsg::GetCurrentState(sender, frame.current);
-            script_chan.send(msg).unwrap();
+            pipeline.script_chan.send(msg).unwrap();
             if receiver.recv().unwrap() == ScriptState::DocumentLoading {
                 return false;
             }
