@@ -798,20 +798,28 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
             let next = match direction {
                 NavigationDirection::Forward => {
-                    if frame.next.is_empty() {
-                        debug!("no next page to navigate to");
-                        return;
+                    match frame.next.pop() {
+                        None => {
+                            debug!("no next page to navigate to");
+                            return;
+                        },
+                        Some(next) => {
+                            frame.prev.push(frame.current);
+                            next
+                        },
                     }
-                    frame.prev.push(frame.current);
-                    frame.next.pop().unwrap()
                 }
                 NavigationDirection::Back => {
-                    if frame.prev.is_empty() {
-                        debug!("no previous page to navigate to");
-                        return;
+                    match frame.prev.pop() {
+                        None => {
+                            debug!("no previous page to navigate to");
+                            return;
+                        },
+                        Some(prev) => {
+                            frame.next.push(frame.current);
+                            prev
+                        },
                     }
-                    frame.next.push(frame.current);
-                    frame.prev.pop().unwrap()
                 }
             };
             let prev = frame.current;
