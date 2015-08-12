@@ -120,11 +120,11 @@ def check_whitespace(idx, line):
     if match is not None:
         yield (idx + 1, "there should be a space following a comma")
 
-    match = re.search(r"[A-Za-z0-9][\+-/\*%=]", line)
+    match = re.search(r"[A-Za-z0-9][\+\-/\*%=]", line)
     if match is not None:
         yield (idx + 1, "there should be a space preceding an operator")
 
-    match = re.search(r"[\+-/\*%=][A-Za-z0-9]", line)
+    match = re.search(r"[\+\-/\*%=][A-Za-z0-9]", line)
     if match is not None:
         yield (idx + 1, "there should be a space following an operator")
 
