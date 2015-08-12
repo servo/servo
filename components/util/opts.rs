@@ -397,7 +397,6 @@ pub fn default_opts() -> Opts {
     }
 }
 
-
 pub fn from_cmdline_args(args: &[String]) {
     let (app_name, args) = args.split_first().unwrap();
 
