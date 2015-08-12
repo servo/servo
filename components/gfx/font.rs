@@ -6,9 +6,8 @@ use euclid::{Point2D, Rect, Size2D};
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::mem;
 use std::rc::Rc;
-use std::slice;
+use std::str;
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
@@ -56,12 +55,11 @@ pub trait FontTableTagConversions {
 
 impl FontTableTagConversions for FontTableTag {
     fn tag_to_str(&self) -> String {
-        unsafe {
-            let pointer = mem::transmute::<&u32, *const u8>(self);
-            let mut bytes = slice::from_raw_parts(pointer, 4).to_vec();
-            bytes.reverse();
-            String::from_utf8_unchecked(bytes)
-        }
+        let bytes = [(self >> 24) as u8,
+                     (self >> 16) as u8,
+                     (self >>  8) as u8,
+                     (self >>  0) as u8];
+        str::from_utf8(&bytes).unwrap().to_owned()
     }
 }
 

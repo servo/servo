@@ -23,13 +23,12 @@ use selectors::parser::PseudoElement;
 use selectors::{Element};
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
-use std::mem;
 use std::slice::Iter;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::node::TElementAttributes;
-use style::properties::{ComputedValues, cascade};
+use style::properties::{ComputedValues, cascade, PropertyDeclaration};
 use style::selector_matching::{Stylist, DeclarationBlock};
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
@@ -128,9 +127,9 @@ impl<'a> PartialEq<ApplicableDeclarationsCacheEntry> for ApplicableDeclarationsC
 impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for declaration in self.declarations {
-            let ptr: usize = unsafe {
-                mem::transmute_copy(declaration)
-            };
+            // Each declaration contians an Arc, which is a stable
+            // pointer; we use that for hashing and equality.
+            let ptr = &*declaration.declarations as *const Vec<PropertyDeclaration>;
             ptr.hash(state);
         }
     }
