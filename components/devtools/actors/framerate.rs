@@ -2,25 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::IpcSender;
 use rustc_serialize::json;
 use std::mem;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Sender;
 use time::precise_time_ns;
 
 use msg::constellation_msg::PipelineId;
 use actor::{Actor, ActorRegistry};
 use actors::timeline::HighResolutionStamp;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolScriptControlMsg};
+use devtools_traits::DevtoolScriptControlMsg;
 
 pub struct FramerateActor {
     name: String,
     pipeline: PipelineId,
     script_sender: IpcSender<DevtoolScriptControlMsg>,
-    devtools_sender: Sender<DevtoolsControlMsg>,
     start_time: Option<u64>,
     is_recording: bool,
     ticks: Arc<Mutex<Vec<HighResolutionStamp>>>,
@@ -45,14 +42,12 @@ impl FramerateActor {
     /// return name of actor
     pub fn create(registry: &ActorRegistry,
                   pipeline_id: PipelineId,
-                  script_sender: IpcSender<DevtoolScriptControlMsg>,
-                  devtools_sender: Sender<DevtoolsControlMsg>) -> String {
+                  script_sender: IpcSender<DevtoolScriptControlMsg>) -> String {
         let actor_name = registry.new_name("framerate");
         let mut actor = FramerateActor {
             name: actor_name.clone(),
             pipeline: pipeline_id,
             script_sender: script_sender,
-            devtools_sender: devtools_sender,
             start_time: None,
             is_recording: false,
             ticks: Arc::new(Mutex::new(Vec::new())),

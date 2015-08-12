@@ -193,7 +193,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          ids: (PipelineId, Option<WorkerId>),
                          script_sender: IpcSender<DevtoolScriptControlMsg>,
-                         devtools_sender: Sender<DevtoolsControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
                          page_info: DevtoolsPageInfo) {
@@ -220,8 +219,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
             let timeline = TimelineActor::new(actors.new_name("timeline"),
                                               pipeline,
-                                              script_sender,
-                                              devtools_sender);
+                                              script_sender);
 
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
@@ -411,7 +409,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 handle_framerate_tick(actors.clone(), actor_name, tick),
             Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
                         ids, script_sender, pageinfo))) =>
-                handle_new_global(actors.clone(), ids, script_sender, sender.clone(), &mut actor_pipelines,
+                handle_new_global(actors.clone(), ids, script_sender, &mut actor_pipelines,
                                   &mut actor_workers, pageinfo),
             Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
                         id,
