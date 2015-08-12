@@ -1262,19 +1262,13 @@ impl InlineFlow {
         while start_index > FragmentIndex(0) &&
                 self.fragments
                     .fragments[(start_index - FragmentIndex(1)).get() as usize]
-                    .style
-                    .get_box()
-                    .position == position::T::static_ {
+                    .is_positioned() {
             start_index = start_index - FragmentIndex(1)
         }
 
         let mut end_index = fragment_index + FragmentIndex(1);
         while end_index < FragmentIndex(self.fragments.fragments.len() as isize) &&
-                self.fragments
-                    .fragments[end_index.get() as usize]
-                    .style
-                    .get_box()
-                    .position == position::T::static_ {
+                self.fragments.fragments[end_index.get() as usize].is_positioned() {
             end_index = end_index + FragmentIndex(1)
         }
 
@@ -1286,6 +1280,10 @@ impl InlineFlow {
             match fragment.specific {
                 SpecificFragmentInfo::InlineAbsolute(ref inline_absolute) => {
                     OpaqueFlow::from_flow(&*inline_absolute.flow_ref) == opaque_flow
+                }
+                SpecificFragmentInfo::InlineAbsoluteHypothetical(
+                        ref inline_absolute_hypothetical) => {
+                    OpaqueFlow::from_flow(&*inline_absolute_hypothetical.flow_ref) == opaque_flow
                 }
                 _ => false,
             }
@@ -1600,20 +1598,43 @@ impl Flow for InlineFlow {
 
     fn compute_absolute_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
+        //
+        // FIXME(pcwalton): This will get the absolute containing blocks inside `...` wrong in the
+        // case of something like:
+        //
+        //      <span style="position: relative">
+        //          Foo
+        //          <span style="display: inline-block">...</span>
+        //      </span>
         let mut containing_block_positions = Vec::new();
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
         for (fragment_index, fragment) in self.fragments.fragments.iter().enumerate() {
-            if let SpecificFragmentInfo::InlineAbsolute(_) = fragment.specific {
-                let containing_block_range =
-                    self.containing_block_range_for_flow_surrounding_fragment_at_index(
-                        FragmentIndex(fragment_index as isize));
-                let first_fragment_index = containing_block_range.begin().get() as usize;
-                debug_assert!(first_fragment_index < self.fragments.fragments.len());
-                let first_fragment = &self.fragments.fragments[first_fragment_index];
-                let padding_box_origin = (first_fragment.border_box -
-                                          first_fragment.style.logical_border_width()).start;
-                containing_block_positions.push(
-                    padding_box_origin.to_physical(self.base.writing_mode, container_size));
+            match fragment.specific {
+                SpecificFragmentInfo::InlineAbsolute(_) => {
+                    let containing_block_range =
+                        self.containing_block_range_for_flow_surrounding_fragment_at_index(
+                            FragmentIndex(fragment_index as isize));
+                    let first_fragment_index = containing_block_range.begin().get() as usize;
+                    debug_assert!(first_fragment_index < self.fragments.fragments.len());
+                    let first_fragment = &self.fragments.fragments[first_fragment_index];
+                    let padding_box_origin = (first_fragment.border_box -
+                                              first_fragment.style.logical_border_width()).start;
+                    containing_block_positions.push(
+                        padding_box_origin.to_physical(self.base.writing_mode, container_size));
+                }
+                SpecificFragmentInfo::InlineBlock(_) if fragment.is_positioned() => {
+                    let containing_block_range =
+                        self.containing_block_range_for_flow_surrounding_fragment_at_index(
+                            FragmentIndex(fragment_index as isize));
+                    let first_fragment_index = containing_block_range.begin().get() as usize;
+                    debug_assert!(first_fragment_index < self.fragments.fragments.len());
+                    let first_fragment = &self.fragments.fragments[first_fragment_index];
+                    let padding_box_origin = (first_fragment.border_box -
+                                              first_fragment.style.logical_border_width()).start;
+                    containing_block_positions.push(
+                        padding_box_origin.to_physical(self.base.writing_mode, container_size));
+                }
+                _ => {}
             }
         }
 
@@ -1632,12 +1653,23 @@ impl Flow for InlineFlow {
             let clip = fragment.clipping_region_for_children(&self.base.clip,
                                                              &stacking_relative_border_box,
                                                              false);
+            let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
 
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
+
+                    let stacking_relative_position = self.base.stacking_relative_position;
+                    if is_positioned {
+                        let padding_box_origin = containing_block_positions.next().unwrap();
+                        block_flow.base
+                                  .absolute_position_info
+                                  .stacking_relative_position_of_absolute_containing_block =
+                            stacking_relative_position + *padding_box_origin;
+                    }
+
                     block_flow.base.stacking_relative_position =
                         stacking_relative_border_box.origin;
                     block_flow.base.stacking_relative_position_of_display_port =
@@ -1645,13 +1677,14 @@ impl Flow for InlineFlow {
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
+
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
+
                     block_flow.base.stacking_relative_position =
                         stacking_relative_border_box.origin;
                     block_flow.base.stacking_relative_position_of_display_port =
                         self.base.stacking_relative_position_of_display_port;
-
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
