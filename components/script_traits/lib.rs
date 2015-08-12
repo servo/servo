@@ -185,7 +185,7 @@ pub trait ScriptTaskFactory {
               parent_info: Option<(PipelineId, SubpageId)>,
               compositor: ScriptListener,
               layout_chan: &OpaqueScriptLayoutChannel,
-              control_chan: ScriptControlChan,
+              control_chan: Sender<ConstellationControlMsg>,
               control_port: Receiver<ConstellationControlMsg>,
               constellation_msg: ConstellationChan,
               failure_msg: Failure,

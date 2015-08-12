@@ -331,7 +331,7 @@ impl PipelineContent {
                                   self.parent_info,
                                   ScriptListener::new(script_to_compositor_chan),
                                   &layout_pair,
-                                  self.script_chan.clone(),
+                                  self.script_chan.0.clone(),
                                   mem::replace(&mut self.script_port, None).unwrap(),
                                   self.constellation_chan.clone(),
                                   self.failure.clone(),
