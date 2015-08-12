@@ -280,7 +280,7 @@ impl DebugOptions {
             };
         };
 
-        return Ok(debug_options);
+        Ok(debug_options)
     }
 }
 
