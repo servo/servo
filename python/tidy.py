@@ -165,6 +165,58 @@ def check_toml(file_name, contents):
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
+def check_rust(file_name, contents):
+    if not file_name.endswith(".rs"):
+        raise StopIteration
+    contents = contents.splitlines(True)
+    for idx, line in enumerate(contents):
+        # simplify the analisis
+        line = line.lstrip()
+
+        # get rid of strings and chars because cases like regex expression
+        line = re.sub('".*?"|\'.*?\'', '', line)
+
+        # get rid of comments and attributes
+        line = re.sub('//.*?$|/\*.*?$|^\*.*?$|^#.*?$', '', line)
+
+        match = re.search(r",[A-Za-z0-9]", line)
+        if match is not None:
+            yield (idx + 1, "there should be a space following a comma")
+
+        match = re.search(r"[A-Za-z0-9][\+\-/\*%=]", line)
+        if match is not None:
+            yield (idx + 1, "there should be a space preceding an operator")
+
+        # not included * because cases like dereference
+        match = re.search(r"[\+/\%=][A-Za-z0-9]", line)
+        if match is not None:
+            yield (idx + 1, "there should be a space following an operator")
+
+        match = re.search(r"\-[A-Za-z]", line)
+        if match is not None:
+            yield (idx + 1, "there should be a space following an operator")
+
+        match = re.search(r"\)->", line)
+        if match is not None:
+            yield (idx + 1, "there should be a space before -> in a function return type")
+
+        match = re.search(r"->[A-Za-z]", line)
+        if match is not None:
+            yield (idx + 1, "there should be a space after -> in a function return type")
+
+        match = re.search(r" :", line)
+        if match is not None:
+            yield (idx + 1, "there should not be a space preceding a colon")
+
+        match = re.search(r"[A-Za-z0-9\)]{", line)
+        if match is not None:
+            yield (idx + 1, "there should be a space before an open brace")
+
+        match = re.search(r"^use", line)
+        if match is not None and "{" in line and "}" not in line:
+            yield (idx + 1, "use statements should not span more than one line")
+
+
 def check_webidl_spec(file_name, contents):
     # Sorted by this function (in pseudo-Rust). The idea is to group the same
     # organization together.
@@ -278,7 +330,8 @@ def scan():
     all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_by_line, check_flake8, check_toml, check_webidl_spec, check_spec]
+    checking_functions = [check_license, check_by_line, check_flake8, check_toml,
+                          check_rust, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = collect_file_names(reftest_directories)
