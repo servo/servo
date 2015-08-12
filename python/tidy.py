@@ -116,6 +116,38 @@ def check_whitespace(idx, line):
     if "\r" in line:
         yield (idx + 1, "CR on line")
 
+    match = re.search(r",[A-Za-z0-9]", line)
+    if match is not None:
+        yield (idx + 1, "there should be a space following a comma")
+
+    match = re.search(r"[A-Za-z0-9][\+-/\*%=]", line)
+    if match is not None:
+        yield (idx + 1, "there should be a space preceding an operator")
+
+    match = re.search(r"[\+-/\*%=][A-Za-z0-9]", line)
+    if match is not None:
+        yield (idx + 1, "there should be a space following an operator")
+
+    match2 = re.search(r"\)->", line)
+    if match2 is not None:
+        yield (idx + 1, "there should be a space before -> in a function return type")
+
+    match = re.search(r"->[A-Za-z]", line)
+    if match is not None:
+        yield (idx + 1, "there should be a space after -> in a function return type")
+
+    match = re.search(r" :", line)
+    if match is not None:
+        yield (idx + 1, "there should not be a space preceding a colon")
+
+    match = re.search(r"[A-Za-z0-9\)]{", line)
+    if match is not None:
+        yield (idx + 1, "there should be a space before an open brace")
+
+    match = re.search(r"^use", line)
+    if match is not None and "{" in line and "}" not in line:
+        yield (idx + 1, "use statements should not span more than one line")
+
 
 def check_by_line(file_name, contents):
     lines = contents.splitlines(True)
