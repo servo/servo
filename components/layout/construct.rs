@@ -673,11 +673,13 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_block_like(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
                             -> ConstructionResult {
         let mut initial_fragments = IntermediateInlineFragments::new();
-        if node.get_pseudo_element_type() != PseudoElementType::Normal ||
+        let node_is_input_or_text_area =
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                        HTMLElementTypeId::HTMLInputElement))) ||
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                       HTMLElementTypeId::HTMLTextAreaElement))) {
+                       HTMLElementTypeId::HTMLTextAreaElement)));
+        if node.get_pseudo_element_type() != PseudoElementType::Normal ||
+                node_is_input_or_text_area {
             // A TextArea's text contents are displayed through the input text
             // box, so don't construct them.
             if node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -687,9 +689,12 @@ impl<'a> FlowConstructor<'a> {
                 }
             }
 
-            self.create_fragments_for_node_text_content(&mut initial_fragments,
-                                                        node,
-                                                        &*node.style());
+            let mut style = node.style().clone();
+            if node_is_input_or_text_area {
+                properties::modify_style_for_input_text(&mut style);
+            }
+
+            self.create_fragments_for_node_text_content(&mut initial_fragments, node, &style)
         }
 
         self.build_flow_for_block_starting_with_fragments(flow, node, initial_fragments)
