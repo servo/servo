@@ -29,7 +29,7 @@ impl ProfilerChan {
 #[derive(Clone, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
-    Time((ProfilerCategory, Option<TimerMetadata>), f64),
+    Time((ProfilerCategory, Option<TimerMetadata>), (u64, u64)),
     /// Message used to force print the profiling metrics
     Print,
     /// Tells the profiler to shut down.
@@ -37,7 +37,7 @@ pub enum ProfilerMsg {
 }
 
 #[repr(u32)]
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize, Debug, Hash)]
 pub enum ProfilerCategory {
     Compositing,
     LayoutPerform,
@@ -83,13 +83,12 @@ pub fn profile<T, F>(category: ProfilerCategory,
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = (end_time - start_time) as f64 / 1000000f64;
     let meta = meta.map(|(url, iframe, reflow_type)|
         TimerMetadata {
             url: url.serialize(),
             iframe: iframe == TimerMetadataFrameType::IFrame,
             incremental: reflow_type == TimerMetadataReflowType::Incremental,
         });
-    profiler_chan.send(ProfilerMsg::Time((category, meta), ms));
+    profiler_chan.send(ProfilerMsg::Time((category, meta), (start_time, end_time)));
     return val;
 }

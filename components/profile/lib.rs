@@ -8,6 +8,7 @@
 
 #[macro_use] extern crate log;
 
+extern crate hbs_pow;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
@@ -21,3 +22,5 @@ extern crate util;
 
 pub mod mem;
 pub mod time;
+
+mod heartbeats;
