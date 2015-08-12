@@ -391,7 +391,7 @@ pub fn validate_debug_options(debug_string: &str) -> Result<DebugOptions, String
         };
     };
 
-    return Ok(debug_options);
+    Ok(debug_options);
 }
 
 
