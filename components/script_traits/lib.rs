@@ -172,10 +172,6 @@ pub enum CompositorEvent {
 /// crates that don't need to know about them.
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
 
-/// Encapsulates external communication with the script task.
-#[derive(Clone)]
-pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
-
 /// This trait allows creating a `ScriptTask` without depending on the `script`
 /// crate.
 pub trait ScriptTaskFactory {
