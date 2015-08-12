@@ -41,7 +41,7 @@ use offscreen_gl_context::GLContextAttributes;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{ScriptControlChan, ScriptState, ScriptTaskFactory};
+use script_traits::{ScriptState, ScriptTaskFactory};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -287,7 +287,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn new_pipeline(&mut self,
                     parent_info: Option<(PipelineId, SubpageId)>,
                     initial_window_rect: Option<TypedRect<PagePx, f32>>,
-                    script_channel: Option<ScriptControlChan>,
+                    script_channel: Option<Sender<ConstellationControlMsg>>,
                     load_data: LoadData)
                     -> PipelineId {
         let pipeline_id = self.next_pipeline_id;
@@ -648,7 +648,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             if same_script {
                 debug!("Constellation: loading same-origin iframe, \
                         parent url {:?}, iframe url {:?}", source_url, url);
-                Some(ScriptControlChan(source_pipeline.script_chan.clone()))
+                Some(source_pipeline.script_chan.clone())
             } else {
                 debug!("Constellation: loading cross-origin iframe, \
                         parent url {:?}, iframe url {:?}", source_url, url);

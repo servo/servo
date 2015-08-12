@@ -4,7 +4,7 @@
 
 use CompositorProxy;
 use layout_traits::{LayoutTaskFactory, LayoutControlChan};
-use script_traits::{LayoutControlMsg, ScriptControlChan, ScriptTaskFactory};
+use script_traits::{LayoutControlMsg, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use compositor_task;
@@ -80,7 +80,7 @@ impl Pipeline {
                            time_profiler_chan: time::ProfilerChan,
                            mem_profiler_chan: profile_mem::ProfilerChan,
                            window_rect: Option<TypedRect<PagePx, f32>>,
-                           script_chan: Option<ScriptControlChan>,
+                           script_chan: Option<Sender<ConstellationControlMsg>>,
                            load_data: LoadData,
                            device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
                            -> (Pipeline, PipelineContent)
@@ -131,14 +131,13 @@ impl Pipeline {
                     layout_shutdown_chan: layout_shutdown_chan.clone(),
                 };
 
-                script_chan.0
-                           .send(ConstellationControlMsg::AttachLayout(new_layout_info))
+                script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info))
                            .unwrap();
                 (script_chan, None)
             }
             None => {
                 let (script_chan, script_port) = channel();
-                (ScriptControlChan(script_chan), Some(script_port))
+                (script_chan, Some(script_port))
             }
         };
 
@@ -165,7 +164,7 @@ impl Pipeline {
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
             window_size: window_size,
-            script_chan: script_chan.0,
+            script_chan: script_chan,
             load_data: load_data,
             failure: failure,
             script_port: script_port,
@@ -183,7 +182,7 @@ impl Pipeline {
 
     pub fn new(id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
-               script_chan: ScriptControlChan,
+               script_chan: Sender<ConstellationControlMsg>,
                layout_chan: LayoutControlChan,
                chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
                layout_shutdown_port: Receiver<()>,
@@ -194,7 +193,7 @@ impl Pipeline {
         Pipeline {
             id: id,
             parent_info: parent_info,
-            script_chan: script_chan.0,
+            script_chan: script_chan,
             layout_chan: layout_chan,
             chrome_to_paint_chan: chrome_to_paint_chan,
             layout_shutdown_port: layout_shutdown_port,
