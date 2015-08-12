@@ -45,24 +45,24 @@ setup(function() {
 var rejectB1Filter = {
   acceptNode: function(node) {
     if (node.id == 'B1')
-      return /*NodeFilter.*/FILTER_REJECT;
+      return NodeFilter.FILTER_REJECT;
 
-    return /*NodeFilter.*/FILTER_ACCEPT;
+    return NodeFilter.FILTER_ACCEPT;
   }
 }
 
 var skipB2Filter = {
   acceptNode: function(node) {
     if (node.id == 'B2')
-      return /*NodeFilter.*/FILTER_SKIP;
+      return NodeFilter.FILTER_SKIP;
 
-    return /*NodeFilter.*/FILTER_ACCEPT;
+    return NodeFilter.FILTER_ACCEPT;
   }
 }
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, rejectB1Filter);
     assert_node(walker.nextNode(), { type: Element, id: 'A1' });
     assert_node(walker.nextNode(), { type: Element, id: 'B2' });
     assert_node(walker.nextNode(), { type: Element, id: 'B3' });
@@ -70,14 +70,14 @@ test(function()
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, rejectB1Filter);
     assert_node(walker.firstChild(), { type: Element, id: 'A1' });
     assert_node(walker.firstChild(), { type: Element, id: 'B2' });
 }, 'Testing firstChild');
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, skipB2Filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, skipB2Filter);
     assert_node(walker.firstChild(), { type: Element, id: 'A1' });
     assert_node(walker.firstChild(), { type: Element, id: 'B1' });
     assert_node(walker.nextSibling(), { type: Element, id: 'B3' });
@@ -85,21 +85,21 @@ test(function()
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, rejectB1Filter);
     walker.currentNode = testElement.querySelectorAll('#C1')[0];
     assert_node(walker.parentNode(), { type: Element, id: 'A1' });
 }, 'Testing parentNode');
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, skipB2Filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, skipB2Filter);
     walker.currentNode = testElement.querySelectorAll('#B3')[0];
     assert_node(walker.previousSibling(), { type: Element, id: 'B1' });
 }, 'Testing previousSibling');
 
 test(function()
 {
-    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, rejectB1Filter);
     walker.currentNode = testElement.querySelectorAll('#B3')[0];
     assert_node(walker.previousNode(), { type: Element, id: 'B2' });
     assert_node(walker.previousNode(), { type: Element, id: 'A1' });

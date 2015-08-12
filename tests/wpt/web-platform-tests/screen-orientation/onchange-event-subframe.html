@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="testIframe" sandbox="allow-scripts allow-same-origin" style="display:none">
+</iframe>
+
+<script>
+    var test = async_test("Test subframes receive orientation change events");
+
+    var orientations = [
+        'portrait-primary',
+        'portrait-secondary',
+        'landscape-primary',
+        'landscape-secondary'
+    ];
+
+    var currentIndex = orientations.indexOf(window.screen.orientation.type);
+    var eventsReceived = 0;
+
+    function getNextIndex() {
+        return (currentIndex + 1) % orientations.length;
+    }
+
+    function changeOrientation() {
+        screen.orientation.lock(orientations[getNextIndex()]).then(function () {}, function () {});
+        currentIndex = getNextIndex();
+    }
+
+    window.onmessage = test.step_func(function (ev) {
+        assert_equals(ev.data, orientations[currentIndex], "subframe receives orientation change event");
+        ++eventsReceived;
+        if (eventsReceived < orientations.length)
+            changeOrientation()
+        else
+            test.done();
+    });
+
+    var testIframe = document.getElementById("testIframe");
+    testIframe.src = "resources/iframe-listen-orientation-change.html";
+    testIframe.onload = changeOrientation;
+</script>
+</body>
+</html>

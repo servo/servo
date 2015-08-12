@@ -23,8 +23,6 @@ open_rq.onupgradeneeded = function(e) {
         os.put({ os: "os" + i, k: i});
         os.add({ os: "os" + i });
     }
-
-//    assert_object_equals(db.objectStoreNames, ["os1", "os2", "os3", "os4", "os5" ], "objectStores");
 }
 
 open_rq.onsuccess = function(e) {
@@ -67,22 +65,22 @@ function finish() {
     if (--finish_to_go)
         return;
 
-    assert_object_equals(keys['txn'], [
-                           "os1: 1",
-                           "os3: 1",
-                           "os1: 2",
-                           "os2: 3",
-                           "os2: 1", "os2: 1", "os2: 1",
-                           "os1: 2",
-                          ], 'transaction keys');
+    assert_array_equals(keys['txn'], [
+        "os1: 1",
+        "os3: 1",
+        "os1: 2",
+        "os2: 3",
+        "os2: 1", "os2: 1", "os2: 1",
+        "os1: 2",
+    ], 'transaction keys');
 
-    assert_object_equals(keys['txn2'], [
-                           "os4: 1", "os4: 5", "os4: 4", "os3: 1",
-                           "os4: 1", "os4: 5", "os4: 4", "os3: 1",
-                           "os4: 1", "os4: 5", "os4: 4", "os3: 1",
-                           "os1: 2",
-                           "os4: 5",
-                          ], 'transaction 2 keys');
+    assert_array_equals(keys['txn2'], [
+        "os4: 1", "os4: 5", "os4: 4", "os3: 1",
+        "os4: 1", "os4: 5", "os4: 4", "os3: 1",
+        "os4: 1", "os4: 5", "os4: 4", "os3: 1",
+        "os1: 2",
+        "os4: 5",
+    ], 'transaction 2 keys');
 
     t.done();
 }

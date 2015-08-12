@@ -20,7 +20,6 @@ object-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
         var allTypes = "";
         var appletMimeType = "application/x-java-applet";
         for (var i = 0; i < len; i++) {
-            console.log("Found navigator.mimeType " + navigator.mimeTypes[i].type);
             allTypes += navigator.mimeTypes[i].type + ';';
         }
         if (allTypes.indexOf(appletMimeType) == -1) {

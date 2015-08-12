@@ -33,18 +33,18 @@
                 assert_equals(cursor.value, "data", "prequisite cursor.value");
                 assert_equals(cursor.key, "data", "prequisite cursor.key");
 
-                assert_object_equals(cursor.primaryKey, key, 'primaryKey');
+                assert_key_equals(cursor.primaryKey, key, 'primaryKey');
                 assert_readonly(cursor, 'primaryKey');
 
                 if (key instanceof Array) {
                     cursor.primaryKey.push("new");
                     key.push("new");
 
-                    assert_object_equals(cursor.primaryKey, key, 'primaryKey after array push');
+                    assert_key_equals(cursor.primaryKey, key, 'primaryKey after array push');
 
                     // But we can not change key (like readonly, just a bit different)
                     cursor.key = 10;
-                    assert_object_equals(cursor.primaryKey, key, 'key after assignment');
+                    assert_key_equals(cursor.primaryKey, key, 'key after assignment');
                 }
 
                 t.done();

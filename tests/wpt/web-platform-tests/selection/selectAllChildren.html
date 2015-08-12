@@ -1,0 +1,53 @@
+<!doctype html>
+<title>Selection.selectAllChildren tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+testRanges.unshift("[]");
+
+for (var i = 0; i < testRanges.length; i++) {
+    var endpoints = eval(testRanges[i]);
+
+    for (var j = 0; j < testNodes.length; j++) {
+        var node = eval(testNodes[j]);
+
+        test(function() {
+            setSelectionForwards(endpoints);
+            var originalRange = getSelection().rangeCount
+                ? getSelection().getRangeAt(0)
+                : null;
+
+            if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
+                assert_throws("INVALID_NODE_TYPE_ERR", function() {
+                    selection.selectAllChildren(node);
+                }, "selectAllChildren() on a DocumentType must throw InvalidNodeTypeError");
+                return;
+            }
+
+            selection.selectAllChildren(node);
+            // This implicitly tests that the selection is forwards, by using
+            // anchorOffset/focusOffset instead of getRangeAt.
+            assert_equals(selection.rangeCount, 1,
+                "After selectAllChildren, rangeCount must be 1");
+            assert_equals(selection.anchorNode, node,
+                "After selectAllChildren, anchorNode must be the given node");
+            assert_equals(selection.anchorOffset, 0,
+                "After selectAllChildren, anchorOffset must be 0");
+            assert_equals(selection.focusNode, node,
+                "After selectAllChildren, focusNode must be the given node");
+            assert_equals(selection.focusOffset, node.childNodes.length,
+                "After selectAllChildren, focusOffset must be the given node's number of children");
+            if (originalRange) {
+                assert_not_equals(getSelection().getRangeAt(0), originalRange,
+                    "selectAllChildren must replace any existing range, not mutate it");
+            }
+        }, "Range " + i + " " + testRanges[i] + ", node " + j + " " + testNodes[j]);
+    }
+}
+
+testDiv.style.display = "none";
+</script>

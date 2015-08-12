@@ -10,7 +10,7 @@ import time
 import traceback
 import urllib2
 import uuid
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from multiprocessing import Process, Event
 
 from .. import localpaths
@@ -50,17 +50,55 @@ subdomains = [u"www",
               u"天気の良い日",
               u"élève"]
 
+class RoutesBuilder(object):
+    def __init__(self):
+        self.forbidden_override = [("GET", "/tools/runner/*", handlers.file_handler),
+                                   ("POST", "/tools/runner/update_manifest.py",
+                                    handlers.python_script_handler)]
+
+        self.forbidden = [("*", "/_certs/*", handlers.ErrorHandler(404)),
+                          ("*", "/tools/*", handlers.ErrorHandler(404)),
+                          ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
+                          ("*", "/serve.py", handlers.ErrorHandler(404))]
+
+        self.static = [("GET", "*.worker", WorkersHandler())]
+
+        self.mountpoint_routes = OrderedDict()
+
+        self.add_mount_point("/", None)
+
+    def get_routes(self):
+        routes = self.forbidden_override + self.forbidden + self.static
+        # Using reversed here means that mount points that are added later
+        # get higher priority. This makes sense since / is typically added
+        # first.
+        for item in reversed(self.mountpoint_routes.values()):
+            routes.extend(item)
+        return routes
+
+    def add_static(self, path, format_args, content_type, route):
+        handler = handlers.StaticHandler(path, format_args, content_type)
+        self.static.append((b"GET", str(route), handler))
+
+    def add_mount_point(self, url_base, path):
+        url_base = "/%s/" % url_base.strip("/") if url_base != "/" else "/"
+
+        self.mountpoint_routes[url_base] = []
+
+        routes = [("GET", "*.asis", handlers.AsIsHandler),
+                  ("*", "*.py", handlers.PythonScriptHandler),
+                  ("GET", "*", handlers.FileHandler)]
+
+        for (method, suffix, handler_cls) in routes:
+            self.mountpoint_routes[url_base].append(
+                (method,
+                 b"%s%s" % (str(url_base) if url_base != "/" else "", str(suffix)),
+                 handler_cls(base_path=path, url_base=url_base)))
+
+
 def default_routes():
-    return [("GET", "/tools/runner/*", handlers.file_handler),
-            ("POST", "/tools/runner/update_manifest.py", handlers.python_script_handler),
-            ("*", "/_certs/*", handlers.ErrorHandler(404)),
-            ("*", "/tools/*", handlers.ErrorHandler(404)),
-            ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
-            ("*", "/serve.py", handlers.ErrorHandler(404)),
-            ("*", "*.py", handlers.python_script_handler),
-            ("GET", "*.asis", handlers.as_is_handler),
-            ("GET", "*.worker", WorkersHandler()),
-            ("GET", "*", handlers.file_handler),]
+    return RoutesBuilder().get_routes()
+
 
 def setup_logger(level):
     import logging

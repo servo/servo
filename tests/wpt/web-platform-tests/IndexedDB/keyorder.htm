@@ -45,11 +45,11 @@
                 var cursor = e.target.result;
 
                 if (cursor) {
-                    actual_keys.push(cursor.key.valueOf());
+                    actual_keys.push(cursor.key);
                     cursor.continue();
                 }
                 else {
-                    assert_object_equals(actual_keys, expected, "keyorder array");
+                    assert_key_equals(actual_keys, expected, "keyorder array");
                     assert_equals(actual_keys.length, expected.length, "array length");
 
                     t.done();
@@ -60,12 +60,7 @@
         // The IDBKey.cmp test
         test(function () {
             var sorted = unsorted.slice(0).sort(function(a, b) { return indexedDB.cmp(a, b)});
-
-            for (var i in sorted)
-                if (typeof sorted[i] === "object" && 'valueOf' in sorted[i])
-                    sorted[i] = sorted[i].valueOf();
-
-            assert_object_equals(sorted, expected, "sorted array");
+            assert_key_equals(sorted, expected, "sorted array");
 
         }, "IDBKey.cmp sorted - " + desc);
     }
@@ -84,16 +79,16 @@
 
     keysort('float < Date',
         [ now, 0, 9999999999999, -0.22 ],
-        [ -0.22, 0, 9999999999999, now.valueOf() ]);
+        [ -0.22, 0, 9999999999999, now ]);
 
     keysort('float < Date < String < Array',
         [ [], "", now, [0], "-1", 0, 9999999999999, ],
-        [ 0, 9999999999999, now.valueOf(), "", "-1", [], [0] ]);
+        [ 0, 9999999999999, now, "", "-1", [], [0] ]);
 
 
     keysort('Date(1 sec ago) < Date(now) < Date(1 minute in future)',
         [ now, one_sec_ago, one_min_future ],
-        [ one_sec_ago.valueOf(), now.valueOf(), one_min_future.valueOf() ]);
+        [ one_sec_ago, now, one_min_future ]);
 
     keysort('-1.1 < 1 < 1.01337 < 1.013373 < 2',
         [ 1.013373, 2, 1.01337, -1.1, 1 ],
@@ -157,12 +152,12 @@
           1,
           2.55,
           Infinity,
-          one_sec_ago.valueOf(),
-          now.valueOf(),
+          one_sec_ago,
+          now,
           "test",
           [],
           [0 ,2, "c"],
-          [0, now.valueOf()],
+          [0, now],
           [0, "b", "c"],
           [0, []],
           [0, [], 3],

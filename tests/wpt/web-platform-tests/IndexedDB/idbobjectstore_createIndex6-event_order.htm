@@ -47,17 +47,17 @@
 
     open_rq.onerror = function(e) {
         log("open_rq.error")(e);
-        assert_object_equals(events, [ "rq_add1.success",
-                                       "rq_add2.success",
+        assert_array_equals(events, [ "rq_add1.success",
+                                      "rq_add2.success",
 
-                                       "rq_add3.error: AbortError",
-                                       "transaction.error: AbortError",
-                                       "db.error: AbortError",
+                                      "rq_add3.error: AbortError",
+                                      "transaction.error: AbortError",
+                                      "db.error: AbortError",
 
-                                       "transaction.abort: ConstraintError",
-                                       "db.abort: ConstraintError",
+                                      "transaction.abort: ConstraintError",
+                                      "db.abort: ConstraintError",
 
-                                       "open_rq.error: AbortError" ],
+                                      "open_rq.error: AbortError" ],
                             "events");
         t.done();
     }

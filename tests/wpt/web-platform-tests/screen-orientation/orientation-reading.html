@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(function() {
+    assert_true('type' in screen.orientation);
+    assert_true('angle' in screen.orientation);
+}, "Test screen.orientation properties");
+
+test(function() {
+    assert_equals(screen.orientation.type, "portrait-primary");
+    assert_equals(screen.orientation.angle, 0);
+}, "Test screen.orientation default values.");
+
+test(function() {
+    var type = screen.orientation.type;
+    var angle = screen.orientation.angle;
+
+    screen.orientation.type = 'foo';
+    screen.orientation.angle = 42;
+
+    assert_equals(screen.orientation.type, type);
+    assert_equals(screen.orientation.angle, angle);
+}, "Test that screen.orientation properties are not writable");
+
+test(function() {
+    assert_equals(screen.orientation, screen.orientation);
+}, "Test that screen.orientation is always the same object");
+
+async_test(function(t) {
+    var orientation = screen.orientation;
+    var orientationType = screen.orientation.type;
+    var orientationAngle = screen.orientation.angle;
+
+    screen.orientation.unlock();
+    screen.orientation.lock('landscape-primary').then(function () {
+        t.step(function () {
+            assert_equals(screen.orientation, orientation);
+            assert_equals(screen.orientation.type, orientation.type);
+            assert_equals(screen.orientation.angle, orientation.angle);
+            assert_not_equals(screen.orientation.type, orientationType);
+            assert_not_equals(screen.orientation.angle, orientationAngle);
+        });
+        t.done();
+        screen.orientation.unlock();
+    }, function () {
+        t.step(function () {
+            assert_unreached('Unexpected orientation change');
+        });
+        t.done();
+        screen.orientation.unlock();
+    });
+
+}, "Test that screen.orientation values change if the orientation changes");
+
+</script>
+</body>
+</html>

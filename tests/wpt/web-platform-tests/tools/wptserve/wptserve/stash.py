@@ -57,18 +57,19 @@ def start_server(address=None, authkey=None):
 #TODO: Consider expiring values after some fixed time for long-running
 #servers
 
-# TODO(kristijanburnik): Provide shared Stash support for WebSockets.
-
 class Stash(object):
-    """Key-value store for persisting data across HTTP/S requests.
+    """Key-value store for persisting data across HTTP/S and WS/S requests.
 
-    This data store is specifically designed for persisting data across
-    HTTP and HTTPS requests. The synchronization model is usually done by using
-    the SyncManager from the multiprocessing module.
+    This data store is specifically designed for persisting data across server
+    requests. The synchronization is achieved by using the BaseManager from
+    the multiprocessing module so different processes can acccess the same data.
 
-    Stash can be used interchangeably between HTTP and HTTPS requests as both
-    processes are accessing the same resource (e.g. a Manager.dict).
-    The WS and WSS servers are currently not supported.
+    Stash can be used interchangeably between HTTP, HTTPS, WS and WSS servers.
+    A thing to note about WS/S servers is that they require additional steps in
+    the handlers for accessing the same underlying shared data in the Stash.
+    This can usually be achieved by using load_env_config(). When using Stash
+    interchangeably between HTTP/S and WS/S request, the path part of the key
+    should be expliclitly specified if accessing the same key/value subset.
 
     The store has several unusual properties. Keys are of the form (path,
     uuid), where path is, by default, the path in the HTTP request and

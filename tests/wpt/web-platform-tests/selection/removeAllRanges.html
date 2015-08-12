@@ -1,0 +1,45 @@
+<!doctype html>
+<title>Selection.removeAllRanges() tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+// Also test a selection with no ranges
+testRanges.unshift("[]");
+
+var range = rangeFromEndpoints([paras[0].firstChild, 0, paras[0].firstChild, 1]);
+
+for (var i = 0; i < testRanges.length; i++) {
+    test(function() {
+        setSelectionForwards(eval(testRanges[i]));
+        selection.removeAllRanges();
+        assert_equals(selection.rangeCount, 0,
+            "After removeAllRanges(), rangeCount must be 0");
+        // Test that it's forwards
+        selection.addRange(range);
+        assert_equals(selection.anchorOffset, selection.getRangeAt(0).startOffset,
+            "After removeAllRanges(), addRange() must be forwards, so anchorOffset must equal startOffset rather than endOffset");
+        assert_equals(selection.focusOffset, selection.getRangeAt(0).endOffset,
+            "After removeAllRanges(), addRange() must be forwards, so focusOffset must equal endOffset rather than startOffset");
+    }, "Range " + i + " " + testRanges[i] + " forwards");
+
+    // Copy-pasted from above
+    test(function() {
+        setSelectionBackwards(eval(testRanges[i]));
+        selection.removeAllRanges();
+        assert_equals(selection.rangeCount, 0,
+            "After removeAllRanges(), rangeCount must be 0");
+        // Test that it's forwards
+        selection.addRange(range);
+        assert_equals(selection.anchorOffset, selection.getRangeAt(0).startOffset,
+            "After removeAllRanges(), addRange() must be forwards, so anchorOffset must equal startOffset rather than endOffset");
+        assert_equals(selection.focusOffset, selection.getRangeAt(0).endOffset,
+            "After removeAllRanges(), addRange() must be forwards, so focusOffset must equal endOffset rather than startOffset");
+    }, "Range " + i + " " + testRanges[i] + " backwards");
+}
+
+testDiv.style.display = "none";
+</script>

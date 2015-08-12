@@ -26,7 +26,7 @@ var all = function(node) { return true; }
 
 test(function()
 {
-    var w = document.createTreeWalker(subTree, /*NodeFilter.*/SHOW_ELEMENT, all);
+    var w = document.createTreeWalker(subTree, NodeFilter.SHOW_ELEMENT, all);
     assert_node(w.currentNode, { type: Element, id: 'subTree' });
     assert_equals(w.parentNode(), null);
     assert_node(w.currentNode, { type: Element, id: 'subTree' });
@@ -35,8 +35,8 @@ test(function()
 test(function()
 {
     var w = document.createTreeWalker(subTree,
-                                      /*NodeFilter.*/SHOW_ELEMENT
-                                      | /*NodeFilter.*/SHOW_COMMENT,
+                                      NodeFilter.SHOW_ELEMENT
+                                      | NodeFilter.SHOW_COMMENT,
                                       all);
     w.currentNode = document.documentElement;
     assert_equals(w.parentNode(), null);
@@ -63,7 +63,7 @@ test(function()
 
 test(function()
 {
-    var w = document.createTreeWalker(subTree, /*NodeFilter.*/SHOW_ELEMENT, all);
+    var w = document.createTreeWalker(subTree, NodeFilter.SHOW_ELEMENT, all);
     w.currentNode = subTree.previousSibling;
     assert_equals(w.nextNode(), subTree);
     w.currentNode = document.getElementById("parent");

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: setRequestHeader() - Content-Type header</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="/following::ol/li[4]/p[contains(@class,'note')] /following::ol/li[6]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function request(value) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          client.open("POST", "resources/inspect-headers.py?filter_name=Content-Type", false)
+          client.setRequestHeader('Content-Type', value)
+          client.send("")
+          assert_equals(client.responseText, 'content-type: '+ String(value ? value.trim() : value).toLowerCase()+'\n' )
+        }, document.title + " (" + value + ")")
+      }
+      request("")
+      request(" ")
+      request(null)
+      request(undefined)
+    </script>
+  </body>
+</html>

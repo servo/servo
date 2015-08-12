@@ -43,9 +43,7 @@
                     cursor.continue();
                 }
                 else {
-                    assert_equals(actual_keys.length, expected_keys.length, "array length");
-                    assert_object_equals(actual_keys, expected_keys, "keygenerator array");
-
+                    assert_key_equals(actual_keys, expected_keys, "keygenerator array");
                     t.done();
                 }
             });

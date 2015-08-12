@@ -33,7 +33,7 @@ open_rq.onupgradeneeded = function(e) {
 }
 
 open_rq.onsuccess = function(e) {
-    assert_object_equals(keys, [5, 6, 1], "keys");
+    assert_array_equals(keys, [5, 6, 1], "keys");
     t.done();
 }
 
