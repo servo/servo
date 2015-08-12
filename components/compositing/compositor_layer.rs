@@ -98,6 +98,14 @@ pub trait CompositorLayer {
                                                   pipeline_id: PipelineId)
                                                   where Window: WindowMethods;
 
+    /// Traverses the existing layer hierarchy and removes any layers that
+    /// currently exist but which are no longer required.
+    fn collect_old_layers<Window>(&self,
+                                  compositor: &mut IOCompositor<Window>,
+                                  pipeline_id: PipelineId,
+                                  new_layers: &Vec<LayerProperties>)
+                                  where Window: WindowMethods;
+
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
@@ -270,6 +278,43 @@ impl CompositorLayer for Layer<CompositorData> {
                 }
             }
         }
+    }
+
+    fn collect_old_layers<Window>(&self,
+                                  compositor: &mut IOCompositor<Window>,
+                                  pipeline_id: PipelineId,
+                                  new_layers: &Vec<LayerProperties>)
+                                  where Window: WindowMethods {
+        // Traverse children first so that layers are removed
+        // bottom up - allowing each layer being removed to properly
+        // clean up any tiles it owns.
+        for kid in self.children().iter() {
+            kid.collect_old_layers(compositor, pipeline_id, new_layers);
+        }
+
+        // Retain child layers that also exist in the new layer list.
+        self.children().retain(|child| {
+            let extra_data = child.extra_data.borrow();
+
+            // Never remove root layers or layers from other pipelines.
+            if pipeline_id != extra_data.pipeline_id ||
+               extra_data.id == LayerId::null() {
+                true
+            } else {
+                // Keep this layer if it exists in the new layer list.
+                let keep_layer = new_layers.iter().position(|properties| {
+                    properties.id == extra_data.id
+                }).is_some();
+
+                // When removing a layer, clear any tiles and surfaces
+                // associated with the layer.
+                if !keep_layer {
+                    child.clear_all_tiles(compositor);
+                }
+
+                keep_layer
+            }
+        });
     }
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the

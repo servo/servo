@@ -379,6 +379,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
              ShutdownState::NotShuttingDown) => {
                 self.get_or_create_pipeline_details(pipeline_id).current_epoch = epoch;
+                self.collect_old_layers(pipeline_id, &properties);
                 for (index, layer_properties) in properties.iter().enumerate() {
                     if index == 0 {
                         self.create_or_update_base_layer(pipeline_id, *layer_properties);
@@ -669,6 +670,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             panic!("Tried to create or update layer for unknown pipeline")
         }
         self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null())
+    }
+
+    fn collect_old_layers(&mut self,
+                          pipeline_id: PipelineId,
+                          new_layers: &Vec<LayerProperties>) {
+        let root_layer = match self.scene.root {
+            Some(ref root_layer) => root_layer.clone(),
+            None => return,
+        };
+
+        root_layer.collect_old_layers(self, pipeline_id, new_layers);
     }
 
     fn remove_pipeline_root_layer(&mut self, pipeline_id: PipelineId) {
