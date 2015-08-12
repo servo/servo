@@ -552,6 +552,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "hbs-common-sys"
+version = "0.1.0"
+source = "git+https://github.com/connorimes/heartbeats-simple-sys.git#c098285262c9a5e0b80be60ea6bc0f250296a70c"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "hbs-pow-sys"
+version = "0.1.0"
+source = "git+https://github.com/connorimes/heartbeats-simple-sys.git#c098285262c9a5e0b80be60ea6bc0f250296a70c"
+dependencies = [
+ "hbs-common-sys 0.1.0 (git+https://github.com/connorimes/heartbeats-simple-sys.git)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "heartbeats-simple"
+version = "0.1.0"
+source = "git+https://github.com/connorimes/heartbeats-simple-rust.git#ad2577271b1120d01af1302778ae422ce14d69b8"
+dependencies = [
+ "hbs-pow-sys 0.1.0 (git+https://github.com/connorimes/heartbeats-simple-sys.git)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "hpack"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1007,6 +1034,7 @@ source = "git+https://github.com/servo/rust-png#a3569ca11ea54e5d6152ee80d7d39b27
 name = "profile"
 version = "0.0.1"
 dependencies = [
+ "heartbeats-simple 0.1.0 (git+https://github.com/connorimes/heartbeats-simple-rust.git)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
