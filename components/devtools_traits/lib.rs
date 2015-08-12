@@ -10,6 +10,8 @@
 #![crate_type = "rlib"]
 
 #![allow(non_snake_case)]
+#![deny(unsafe_code)]
+
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
 

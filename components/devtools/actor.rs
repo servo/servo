@@ -44,6 +44,7 @@ impl Actor + Send {
     /// Returns some reference to the boxed value if it is of type `T`, or
     /// `None` if it isn't.
     #[inline]
+    #[allow(unsafe_code)]
     pub fn downcast_ref<T: Reflect + 'static>(&self) -> Option<&T> {
         if self.is::<T>() {
             unsafe {
@@ -61,6 +62,7 @@ impl Actor + Send {
     /// Returns some mutable reference to the boxed value if it is of type `T`, or
     /// `None` if it isn't.
     #[inline]
+    #[allow(unsafe_code)]
     pub fn downcast_mut<T: Reflect + 'static>(&mut self) -> Option<&mut T> {
         if self.is::<T>() {
             unsafe {
