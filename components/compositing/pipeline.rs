@@ -351,7 +351,7 @@ impl PipelineContent {
                                   self.pipeline_port.unwrap(),
                                   self.constellation_chan,
                                   self.failure,
-                                  self.script_chan.clone(),
+                                  self.script_chan.0.clone(),
                                   self.layout_to_paint_chan.clone(),
                                   self.image_cache_task,
                                   self.font_cache_task,
