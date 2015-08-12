@@ -59,7 +59,7 @@ use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, StylesheetLoadResponder};
+use script_traits::StylesheetLoadResponder;
 use selectors::parser::PseudoElement;
 use serde_json;
 use std::borrow::ToOwned;
@@ -186,7 +186,7 @@ pub struct LayoutTask {
     pub constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the script task.
-    pub script_chan: ScriptControlChan,
+    pub script_chan: Sender<ConstellationControlMsg>,
 
     /// The channel on which messages can be sent to the painting task.
     pub paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
@@ -228,7 +228,7 @@ impl LayoutTaskFactory for LayoutTask {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
-              script_chan: ScriptControlChan,
+              script_chan: Sender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
@@ -311,7 +311,7 @@ impl LayoutTask {
            chan: LayoutChan,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
-           script_chan: ScriptControlChan,
+           script_chan: Sender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
@@ -645,7 +645,7 @@ impl LayoutTask {
                                   info.pipeline_port,
                                   info.constellation_chan,
                                   info.failure,
-                                  ScriptControlChan(info.script_chan.clone()),
+                                  info.script_chan.clone(),
                                   *info.paint_chan
                                        .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
                                        .unwrap(),
@@ -726,8 +726,7 @@ impl LayoutTask {
                                                 Origin::Author);
 
         //TODO: mark critical subresources as blocking load as well (#5974)
-        let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
+        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
 
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }
@@ -1197,8 +1196,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(()).unwrap();
-        let ScriptControlChan(ref chan) = data.script_chan;
-        chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
+        data.script_chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,

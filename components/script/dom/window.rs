@@ -36,7 +36,7 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use page::Page;
 use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
 use script_task::ScriptMsg;
-use script_traits::ScriptControlChan;
+use script_traits::ConstellationControlMsg;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
@@ -77,7 +77,7 @@ use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use time;
 
 /// Current state of the window object
@@ -112,7 +112,7 @@ pub struct Window {
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: Box<ScriptChan+Send>,
     #[ignore_heap_size_of = "channels are hard"]
-    control_chan: ScriptControlChan,
+    control_chan: Sender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -262,10 +262,6 @@ impl Window {
     pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
         let (tx, rx) = channel();
         (box NonWorkerScriptChan(tx), box rx)
-    }
-
-    pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {
-        &self.control_chan
     }
 
     pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
@@ -1077,7 +1073,7 @@ impl Window {
                page: Rc<Page>,
                script_chan: Box<ScriptChan+Send>,
                image_cache_chan: ImageCacheChan,
-               control_chan: ScriptControlChan,
+               control_chan: Sender<ConstellationControlMsg>,
                compositor: ScriptListener,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,

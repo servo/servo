@@ -60,7 +60,7 @@ use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::{CompositorEvent, MouseButton};
-use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::ConstellationControlMsg;
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptState, ScriptTaskFactory};
 use msg::compositor_msg::{LayerId, ScriptListener};
@@ -311,7 +311,7 @@ pub struct ScriptTask {
     chan: NonWorkerScriptChan,
 
     /// A channel to hand out to tasks that need to respond to a message from the script task.
-    control_chan: ScriptControlChan,
+    control_chan: Sender<ConstellationControlMsg>,
 
     /// The port on which the constellation and layout tasks can communicate with the
     /// script task.
@@ -405,7 +405,7 @@ impl ScriptTaskFactory for ScriptTask {
               parent_info: Option<(PipelineId, SubpageId)>,
               compositor: ScriptListener,
               layout_chan: &OpaqueScriptLayoutChannel,
-              control_chan: ScriptControlChan,
+              control_chan: Sender<ConstellationControlMsg>,
               control_port: Receiver<ConstellationControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
@@ -542,7 +542,7 @@ impl ScriptTask {
     pub fn new(compositor: ScriptListener,
                port: Receiver<ScriptMsg>,
                chan: NonWorkerScriptChan,
-               control_chan: ScriptControlChan,
+               control_chan: Sender<ConstellationControlMsg>,
                control_port: Receiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
                resource_task: Arc<ResourceTask>,
@@ -1053,7 +1053,7 @@ impl ScriptTask {
             constellation_chan: self.constellation_chan.clone(),
             failure: failure,
             paint_chan: paint_chan,
-            script_chan: self.control_chan.0.clone(),
+            script_chan: self.control_chan.clone(),
             image_cache_task: self.image_cache_task.clone(),
             layout_shutdown_chan: layout_shutdown_chan,
         };
