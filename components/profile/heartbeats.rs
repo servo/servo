@@ -57,10 +57,10 @@ pub fn cleanup() {
 
 /// Issue a heartbeat (if one exists) for the given category
 pub fn maybe_heartbeat(category: &ProfilerCategory,
-		               start_time: u64,
-		               end_time: u64,
-		               start_energy: u64,
-		               end_energy: u64) {
+                       start_time: u64,
+                       end_time: u64,
+                       start_energy: u64,
+                       end_energy: u64) {
     unsafe {
         if let Some(map) = HBS {
             if let Some(mut h) = (*map).get_mut(category) {
