@@ -21,6 +21,8 @@ extern crate syntax;
 extern crate rustc;
 
 extern crate tenacious;
+#[cfg(feature = "clippy")]
+extern crate clippy;
 
 use rustc::lint::LintPassObject;
 use rustc::plugin::Registry;
@@ -53,10 +55,19 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_lint_pass(box lints::unrooted_must_root::UnrootedPass::new() as LintPassObject);
     reg.register_lint_pass(box lints::privatize::PrivatizePass as LintPassObject);
     reg.register_lint_pass(box lints::inheritance_integrity::InheritancePass as LintPassObject);
-    reg.register_lint_pass(box lints::str_to_string::StrToStringPass as LintPassObject);
     reg.register_lint_pass(box lints::ban::BanPass as LintPassObject);
     reg.register_lint_pass(box tenacious::TenaciousPass as LintPassObject);
     reg.register_attribute("must_root".to_string(), Whitelisted);
     reg.register_attribute("servo_lang".to_string(), Whitelisted);
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
+    register_clippy(reg);
+}
+
+#[cfg(feature = "clippy")]
+fn register_clippy(reg: &mut Registry) {
+    ::clippy::plugin_registrar(reg);
+}
+#[cfg(not(feature = "clippy"))]
+fn register_clippy(reg: &mut Registry) {
+    reg.register_lint_pass(box lints::str_to_string::StrToStringPass as LintPassObject);
 }

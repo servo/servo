@@ -166,6 +166,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "clippy"
+version = "0.0.11"
+source = "git+https://github.com/Manishearth/rust-clippy?branch=servo#4d5e15ee6e1061ed7da0a91df3510728cabc0a21"
+
+[[package]]
 name = "clock_ticks"
 version = "0.0.6"
 source = "git+https://github.com/tomaka/clock_ticks#acfcf96806ae5e3bc647b7412a1c430ce62b79a1"
@@ -1082,6 +1087,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "plugins"
 version = "0.0.1"
 dependencies = [
+ "clippy 0.0.11 (git+https://github.com/Manishearth/rust-clippy?branch=servo)",
  "tenacious 0.0.9 (git+https://github.com/servo/rust-tenacious)",
 ]
 
