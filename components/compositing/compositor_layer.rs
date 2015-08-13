@@ -302,9 +302,9 @@ impl CompositorLayer for Layer<CompositorData> {
                 true
             } else {
                 // Keep this layer if it exists in the new layer list.
-                let keep_layer = new_layers.iter().position(|properties| {
+                let keep_layer = new_layers.iter().any(|properties| {
                     properties.id == extra_data.id
-                }).is_some();
+                });
 
                 // When removing a layer, clear any tiles and surfaces
                 // associated with the layer.
