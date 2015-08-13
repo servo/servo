@@ -13,7 +13,8 @@ use flow;
 use flow::Flow;
 use flow_ref::{self, FlowRef};
 use incremental::{self, RestyleDamage};
-use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
+use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
@@ -39,7 +40,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, overflow_x};
 use style::computed_values::{position, text_align, text_decoration, transform_style, white_space};
 use style::computed_values::{word_break, z_index};
-use style::properties::{self, ComputedValues};
+use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text::TextRunScanner;
@@ -194,7 +195,9 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::Iframe(_) => "SpecificFragmentInfo::Iframe",
             SpecificFragmentInfo::Image(_) => "SpecificFragmentInfo::Image",
             SpecificFragmentInfo::InlineAbsolute(_) => "SpecificFragmentInfo::InlineAbsolute",
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => "SpecificFragmentInfo::InlineAbsoluteHypothetical",
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+                "SpecificFragmentInfo::InlineAbsoluteHypothetical"
+            }
             SpecificFragmentInfo::InlineBlock(_) => "SpecificFragmentInfo::InlineBlock",
             SpecificFragmentInfo::ScannedText(_) => "SpecificFragmentInfo::ScannedText",
             SpecificFragmentInfo::Table => "SpecificFragmentInfo::Table",
@@ -876,16 +879,10 @@ impl Fragment {
 
     /// Adds a style to the inline context for this fragment. If the inline context doesn't exist
     /// yet, it will be created.
-    pub fn add_inline_context_style(&mut self,
-                                    mut node_info: InlineFragmentNodeInfo,
-                                    first_frag: bool,
-                                    last_frag: bool) {
+    pub fn add_inline_context_style(&mut self, node_info: InlineFragmentNodeInfo) {
         if self.inline_context.is_none() {
             self.inline_context = Some(InlineFragmentContext::new());
         }
-        if !first_frag || !last_frag {
-            properties::modify_style_for_inline_sides(&mut node_info.style, first_frag, last_frag)
-        };
         self.inline_context.as_mut().unwrap().nodes.push(node_info);
     }
 
@@ -1015,17 +1012,24 @@ impl Fragment {
     #[inline]
     fn border_width(&self) -> LogicalMargin<Au> {
         let style_border_width = match self.specific {
-            SpecificFragmentInfo::ScannedText(_) => LogicalMargin::zero(self.style.writing_mode),
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
             _ => self.style().logical_border_width(),
         };
 
         match self.inline_context {
             None => style_border_width,
             Some(ref inline_fragment_context) => {
-                inline_fragment_context.nodes
-                                       .iter()
-                                       .fold(style_border_width,
-                                             |acc, node| acc + node.style.logical_border_width())
+                inline_fragment_context.nodes.iter().fold(style_border_width, |accumulator, node| {
+                    let mut this_border_width = node.style.logical_border_width();
+                    if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
+                        this_border_width.inline_start = Au(0)
+                    }
+                    if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                        this_border_width.inline_end = Au(0)
+                    }
+                    accumulator + this_border_width
+                })
             }
         }
     }
@@ -1037,7 +1041,6 @@ impl Fragment {
     /// (for example, via constraint solving for blocks).
     pub fn compute_inline_direction_margins(&mut self, containing_block_inline_size: Au) {
         match self.specific {
-            SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
@@ -1046,27 +1049,41 @@ impl Fragment {
                 self.margin.inline_end = Au(0);
                 return
             }
-            _ => {}
+            SpecificFragmentInfo::InlineBlock(_) => {
+                // Inline-blocks do not take self margins into account but do account for margins
+                // from outer inline contexts.
+                self.margin.inline_start = Au(0);
+                self.margin.inline_end = Au(0);
+            }
+            _ => {
+                let margin = self.style().logical_margin();
+                self.margin.inline_start =
+                    MaybeAuto::from_style(margin.inline_start,
+                                          containing_block_inline_size).specified_or_zero();
+                self.margin.inline_end =
+                    MaybeAuto::from_style(margin.inline_end,
+                                          containing_block_inline_size).specified_or_zero();
+            }
         }
-
-
-        let margin = self.style().logical_margin();
-        self.margin.inline_start =
-            MaybeAuto::from_style(margin.inline_start,
-                                  containing_block_inline_size).specified_or_zero();
-        self.margin.inline_end =
-            MaybeAuto::from_style(margin.inline_end,
-                                  containing_block_inline_size).specified_or_zero();
 
         if let Some(ref inline_context) = self.inline_context {
             for node in &inline_context.nodes {
                 let margin = node.style.logical_margin();
-                self.margin.inline_start = self.margin.inline_start +
+                let this_inline_start_margin = if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
+                    Au(0)
+                } else {
                     MaybeAuto::from_style(margin.inline_start,
-                                          containing_block_inline_size).specified_or_zero();
-                self.margin.inline_end = self.margin.inline_end +
+                                          containing_block_inline_size).specified_or_zero()
+                };
+                let this_inline_end_margin = if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                    Au(0)
+                } else {
                     MaybeAuto::from_style(margin.inline_end,
-                                          containing_block_inline_size).specified_or_zero();
+                                          containing_block_inline_size).specified_or_zero()
+                };
+
+                self.margin.inline_start = self.margin.inline_start + this_inline_start_margin;
+                self.margin.inline_end = self.margin.inline_end + this_inline_end_margin;
             }
         }
     }
@@ -1114,33 +1131,42 @@ impl Fragment {
             border_collapse::T::collapse => LogicalMargin::zero(self.style.writing_mode),
         };
 
-        // Compute padding.
-        let padding = match self.specific {
-            SpecificFragmentInfo::TableColumn(_) | SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper => LogicalMargin::zero(self.style.writing_mode),
-            _ => {
-                let style_padding = match self.specific {
-                    SpecificFragmentInfo::ScannedText(_) => {
-                        LogicalMargin::zero(self.style.writing_mode)
-                    }
-                    _ => model::padding_from_style(self.style(), containing_block_inline_size),
-                };
+        // Compute padding from the fragment's style.
+        //
+        // This is zero in the case of `inline-block` because that padding is applied to the
+        // wrapped block, not the fragment.
+        let padding_from_style = match self.specific {
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
+            _ => model::padding_from_style(self.style(), containing_block_inline_size),
+        };
 
-                match self.inline_context {
-                    None => style_padding,
-                    Some(ref inline_fragment_context) => {
-                        inline_fragment_context.nodes
-                                               .iter()
-                                               .fold(style_padding, |acc, node| {
-                                                   acc + model::padding_from_style(&*node.style,
-                                                                                   Au(0))
-                                               })
+        // Compute padding from the inline fragment context.
+        let padding_from_inline_fragment_context = match (&self.specific, &self.inline_context) {
+            (_, &None) |
+            (&SpecificFragmentInfo::TableColumn(_), _) |
+            (&SpecificFragmentInfo::TableRow, _) |
+            (&SpecificFragmentInfo::TableWrapper, _) => {
+                LogicalMargin::zero(self.style.writing_mode)
+            }
+            (_, &Some(ref inline_fragment_context)) => {
+                let zero_padding = LogicalMargin::zero(self.style.writing_mode);
+                inline_fragment_context.nodes.iter().fold(zero_padding, |accumulator, node| {
+                    let mut padding = model::padding_from_style(&*node.style, Au(0));
+                    if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
+                        padding.inline_start = Au(0)
                     }
-                }
+                    if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                        padding.inline_end = Au(0)
+                    }
+                    accumulator + padding
+                })
             }
         };
 
-        self.border_padding = border + padding
+        self.border_padding = border + padding_from_style + padding_from_inline_fragment_context
     }
 
     // Return offset from original position because of `position: relative`.
@@ -1335,13 +1361,25 @@ impl Fragment {
         if self.is_primary_fragment() {
             if let Some(ref context) = self.inline_context {
                 for node in &context.nodes {
-                    let border_width = node.style.logical_border_width().inline_start_end();
-                    let padding_inline_size =
-                        model::padding_from_style(&*node.style, Au(0)).inline_start_end();
-                    let margin_inline_size =
-                        model::specified_margin_from_style(&*node.style).inline_start_end();
-                    result.surrounding_size = result.surrounding_size + border_width +
-                        padding_inline_size + margin_inline_size;
+                    let mut border_width = node.style.logical_border_width();
+                    let mut padding = model::padding_from_style(&*node.style, Au(0));
+                    let mut margin = model::specified_margin_from_style(&*node.style);
+                    if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
+                        border_width.inline_start = Au(0);
+                        padding.inline_start = Au(0);
+                        margin.inline_start = Au(0);
+                    }
+                    if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                        border_width.inline_end = Au(0);
+                        padding.inline_end = Au(0);
+                        margin.inline_end = Au(0);
+                    }
+
+                    result.surrounding_size =
+                        result.surrounding_size +
+                        border_width.inline_start_end() +
+                        padding.inline_start_end() +
+                        margin.inline_start_end();
                 }
             }
         }
@@ -1610,11 +1648,14 @@ impl Fragment {
                 this_info.requires_line_break_afterward_if_wrapping_on_newlines =
                     this_info.requires_line_break_afterward_if_wrapping_on_newlines ||
                     other_info.requires_line_break_afterward_if_wrapping_on_newlines;
+                self.border_padding.inline_end = next_fragment.border_padding.inline_end;
                 self.border_box.size.inline = this_info.content_size.inline +
                     self.border_padding.inline_start_end();
             }
             _ => panic!("Can only merge two scanned-text fragments!"),
         }
+
+        self.meld_with_next_inline_fragment(&next_fragment);
     }
 
     /// Returns true if this fragment is an unscanned text fragment that consists entirely of
@@ -1871,17 +1912,67 @@ impl Fragment {
         }
     }
 
-    /// Returns true if this fragment can merge with another adjacent fragment or false otherwise.
+    /// Returns true if this fragment can merge with another immediately-following fragment or
+    /// false otherwise.
     pub fn can_merge_with_fragment(&self, other: &Fragment) -> bool {
         match (&self.specific, &other.specific) {
             (&SpecificFragmentInfo::UnscannedText(ref first_unscanned_text),
              &SpecificFragmentInfo::UnscannedText(_)) => {
                 // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
+                if self.style().get_font() != other.style().get_font() ||
+                        self.text_decoration() != other.text_decoration() ||
+                        self.white_space() != other.white_space() {
+                    return false
+                }
+
                 let length = first_unscanned_text.text.len();
-                self.style().get_font() == other.style().get_font() &&
-                    self.text_decoration() == other.text_decoration() &&
-                    self.white_space() == other.white_space() &&
-                    (length == 0 || first_unscanned_text.text.char_at_reverse(length) != '\n')
+                if length != 0 && first_unscanned_text.text.char_at_reverse(length) == '\n' {
+                    return false
+                }
+
+                // If this node has any styles that have border/padding/margins on the following
+                // side, then we can't merge with the next fragment.
+                if let Some(ref inline_context) = self.inline_context {
+                    for inline_context_node in inline_context.nodes.iter() {
+                        if !inline_context_node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                            continue
+                        }
+                        if inline_context_node.style.logical_margin().inline_end !=
+                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                            return false
+                        }
+                        if inline_context_node.style.logical_padding().inline_end !=
+                                LengthOrPercentage::Length(Au(0)) {
+                            return false
+                        }
+                        if inline_context_node.style.logical_border_width().inline_end != Au(0) {
+                            return false
+                        }
+                    }
+                }
+
+                // If the next fragment has any styles that have border/padding/margins on the
+                // preceding side, then it can't merge with us.
+                if let Some(ref inline_context) = other.inline_context {
+                    for inline_context_node in inline_context.nodes.iter() {
+                        if !inline_context_node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
+                            continue
+                        }
+                        if inline_context_node.style.logical_margin().inline_start !=
+                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                            return false
+                        }
+                        if inline_context_node.style.logical_padding().inline_start !=
+                                LengthOrPercentage::Length(Au(0)) {
+                            return false
+                        }
+                        if inline_context_node.style.logical_border_width().inline_start != Au(0) {
+                            return false
+                        }
+                    }
+                }
+
+                true
             }
             _ => false,
         }
@@ -2286,6 +2377,29 @@ impl Fragment {
     pub fn is_absolutely_positioned(&self) -> bool {
         self.style.get_box().position == position::T::absolute
     }
+
+    pub fn meld_with_next_inline_fragment(&mut self, next_fragment: &Fragment) {
+        if let Some(ref mut inline_context_of_this_fragment) = self.inline_context {
+            if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
+                for (i, inline_context_node_from_next_fragment) in
+                        inline_context_of_next_fragment.nodes.iter().enumerate() {
+                    if i >= inline_context_of_this_fragment.nodes.len() {
+                        continue
+                    }
+                    if !inline_context_node_from_next_fragment.flags.contains(
+                            LAST_FRAGMENT_OF_ELEMENT) {
+                        continue
+                    }
+                    if inline_context_node_from_next_fragment.address !=
+                            inline_context_of_this_fragment.nodes[i].address {
+                        continue
+                    }
+                    inline_context_of_this_fragment.nodes[i].flags.insert(
+                        LAST_FRAGMENT_OF_ELEMENT);
+                }
+            }
+        }
+    }
 }
 
 impl fmt::Debug for Fragment {
@@ -2378,7 +2492,7 @@ impl<'a> InlineStyleIterator<'a> {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum WhitespaceStrippingResult {
     RetainFragment,
     FragmentContainedOnlyBidiControlCharacters,
