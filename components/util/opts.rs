@@ -276,6 +276,7 @@ impl DebugOptions {
                 "parallel-display-list-building" => debug_options.parallel_display_list_building = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
+                "" => {},
                 _ => return Err(option)
             };
         };
