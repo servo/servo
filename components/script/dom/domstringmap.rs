@@ -13,6 +13,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};
 use util::str::DOMString;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct DOMStringMap {
     reflector_: Reflector,
     element: JS<HTMLElement>,

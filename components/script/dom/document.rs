@@ -105,7 +105,7 @@ use std::sync::mpsc::channel;
 use std::rc::Rc;
 use time;
 
-#[derive(JSTraceable, PartialEq)]
+#[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
@@ -172,7 +172,7 @@ impl DocumentDerived for EventTarget {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -180,7 +180,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -188,7 +188,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -197,7 +197,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -205,7 +205,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -213,7 +213,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -221,7 +221,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -1054,6 +1054,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 }
 
+#[derive(HeapSizeOf)]
 pub enum MouseEventType {
     Click,
     MouseDown,
@@ -1061,7 +1062,7 @@ pub enum MouseEventType {
 }
 
 
-#[derive(PartialEq)]
+#[derive(PartialEq, HeapSizeOf)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
@@ -1828,7 +1829,7 @@ impl<'a> DocumentMethods for &'a Document {
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
                    -> *mut JSObject {
-        #[derive(JSTraceable)]
+        #[derive(JSTraceable, HeapSizeOf)]
         struct NamedElementFilter {
             name: Atom,
         }
@@ -1919,6 +1920,7 @@ fn is_scheme_host_port_tuple(url: &Url) -> bool {
     url.host().is_some() && url.port_or_default().is_some()
 }
 
+#[derive(HeapSizeOf)]
 pub enum DocumentProgressTask {
     DOMContentLoaded,
     Load,

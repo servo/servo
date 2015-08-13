@@ -18,6 +18,7 @@ use util::str::DOMString;
 use std::borrow::ToOwned;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLDialogElement {
     htmlelement: HTMLElement,
     return_value: DOMRefCell<DOMString>,

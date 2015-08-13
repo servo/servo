@@ -66,6 +66,7 @@ extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
 extern crate smallvec;
+#[macro_use]
 extern crate util;
 extern crate websocket;
 #[macro_use]

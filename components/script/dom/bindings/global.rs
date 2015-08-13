@@ -27,6 +27,8 @@ use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use url::Url;
 
+use util::mem::HeapSizeOf;
+
 /// A freely-copyable reference to a rooted global object.
 #[derive(Copy, Clone)]
 pub enum GlobalRef<'a> {
@@ -47,7 +49,7 @@ pub enum GlobalRoot {
 
 /// A traced reference to a global object, for use in fields of traced Rust
 /// structures.
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
 pub enum GlobalField {
     /// A field for a `Window` object.

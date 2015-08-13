@@ -12,7 +12,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub enum HeadingLevel {
     Heading1,
     Heading2,
@@ -23,6 +23,7 @@ pub enum HeadingLevel {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLHeadingElement {
     htmlelement: HTMLElement,
     level: HeadingLevel,

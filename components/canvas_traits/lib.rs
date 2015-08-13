@@ -8,7 +8,7 @@
 #![feature(custom_derive)]
 #![feature(nonzero)]
 #![feature(plugin)]
-#![plugin(serde_macros)]
+#![plugin(serde_macros, plugins)]
 
 extern crate core;
 extern crate azure;
@@ -19,6 +19,7 @@ extern crate ipc_channel;
 extern crate layers;
 extern crate offscreen_gl_context;
 extern crate serde;
+extern crate util;
 
 use azure::azure::{AzFloat, AzColor};
 use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
@@ -37,6 +38,7 @@ use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use core::nonzero::NonZero;
+use util::mem::HeapSizeOf;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
@@ -159,7 +161,7 @@ pub enum CanvasWebGLMsg {
     DrawingBufferHeight(IpcSender<i32>),
 }
 
-#[derive(Clone, Copy, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum WebGLError {
     InvalidEnum,
     InvalidOperation,
@@ -183,13 +185,13 @@ pub enum WebGLShaderParameter {
     Invalid,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct CanvasGradientStop {
     pub offset: f64,
     pub color: RGBA,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LinearGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -211,7 +213,7 @@ impl LinearGradientStyle {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct RadialGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -321,7 +323,7 @@ impl FillOrStrokeStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum LineCapStyle {
     Butt = 0,
     Round = 1,
@@ -347,7 +349,7 @@ impl LineCapStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum LineJoinStyle {
     Round = 0,
     Bevel = 1,
@@ -393,7 +395,7 @@ impl RepetitionStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum CompositionStyle {
     SrcIn,
     SrcOut,
@@ -459,7 +461,7 @@ impl CompositionStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum BlendingStyle {
     Multiply,
     Screen,
@@ -541,7 +543,7 @@ impl BlendingStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum CompositionOrBlending {
     Composition(CompositionStyle),
     Blending(BlendingStyle),

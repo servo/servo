@@ -29,6 +29,7 @@ use std::cell::Cell;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
+#[derive(HeapSizeOf)]
 enum ButtonType {
     ButtonSubmit,
     ButtonReset,
@@ -37,6 +38,7 @@ enum ButtonType {
 }
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
     button_type: Cell<ButtonType>

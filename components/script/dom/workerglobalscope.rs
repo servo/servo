@@ -53,25 +53,32 @@ pub struct WorkerGlobalScopeInit {
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
     worker_url: Url,
+    #[ignore_heap_size_of = "Defined in std"]
     runtime: Rc<Runtime>,
     next_worker_id: Cell<WorkerId>,
+    #[ignore_heap_size_of = "Defined in std"]
     resource_task: ResourceTask,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: TimerManager,
+    #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
     /// to the server from within the worker
     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 
+    #[ignore_heap_size_of = "Defined in std"]
     /// This `Receiver` will be ignored later if the corresponding
     /// `IpcSender` doesn't exist
     devtools_receiver: Receiver<DevtoolScriptControlMsg>,
@@ -80,6 +87,7 @@ pub struct WorkerGlobalScope {
     /// from the worker
     devtools_wants_updates: Cell<bool>,
 
+    #[ignore_heap_size_of = "Defined in std"]
     constellation_chan: ConstellationChan,
 }
 

@@ -20,6 +20,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct MouseEvent {
     uievent: UIEvent,
     screen_x: Cell<i32>,

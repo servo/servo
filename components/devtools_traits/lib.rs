@@ -13,7 +13,7 @@
 #![deny(unsafe_code)]
 
 #![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
+#![plugin(serde_macros, plugins)]
 
 #[macro_use]
 extern crate bitflags;

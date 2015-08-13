@@ -92,6 +92,7 @@ use std::mem;
 use std::sync::Arc;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Element {
     node: Node,
     local_name: Atom,
@@ -125,7 +126,7 @@ pub enum ElementTypeId {
     Element,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, HeapSizeOf)]
 pub enum ElementCreator {
     ParserCreated,
     ScriptCreated,
@@ -562,7 +563,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, HeapSizeOf)]
 pub enum StylePriority {
     Important,
     Normal,

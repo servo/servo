@@ -24,6 +24,7 @@ use url::Url;
 use script_task::{ScriptTask, ScriptMsg, MainThreadRunnable};
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Storage {
     reflector_: Reflector,
     global: GlobalField,

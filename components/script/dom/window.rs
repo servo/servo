@@ -88,7 +88,7 @@ enum WindowState {
 }
 
 /// Extra information concerning the reason for reflowing.
-#[derive(Debug)]
+#[derive(Debug, HeapSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
     RefreshTick,

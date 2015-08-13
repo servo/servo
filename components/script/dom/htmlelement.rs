@@ -40,6 +40,7 @@ use std::intrinsics;
 use std::rc::Rc;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLElement {
     element: Element,
     style_decl: MutNullableHeap<JS<CSSStyleDeclaration>>,

@@ -17,7 +17,7 @@ use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::cell::{Cell};
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, HeapSizeOf)]
 pub enum BlobTypeId {
     Blob,
     File,
@@ -25,6 +25,7 @@ pub enum BlobTypeId {
 
 // http://dev.w3.org/2006/webapi/FileAPI/#blob
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Blob {
     reflector_: Reflector,
     type_: BlobTypeId,

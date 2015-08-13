@@ -16,13 +16,14 @@ use dom::canvasrenderingcontext2d::parse_color;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct CanvasGradient {
     reflector_: Reflector,
     style: CanvasGradientStyle,
     stops: DOMRefCell<Vec<CanvasGradientStop>>,
 }
 
-#[derive(JSTraceable, Clone)]
+#[derive(JSTraceable, Clone, HeapSizeOf)]
 pub enum CanvasGradientStyle {
     Linear(LinearGradientStyle),
     Radial(RadialGradientStyle),

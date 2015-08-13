@@ -22,12 +22,14 @@ use std::cell::Cell;
 use js::jsval::JSVal;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct ErrorEvent {
     event: Event,
     message: DOMRefCell<DOMString>,
     filename: DOMRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
+    #[ignore_heap_size_of = "Defined in rust-mozjs"]
     error: MutHeapJSVal,
 }
 
