@@ -210,7 +210,6 @@ def check_rust(file_name, contents):
 
         match = re.search(r"^use", line)
         if match is not None and "{" in line and "}" not in line:
-            print(line + "  " + str(idx))
             yield (idx + 1, "use statements should not span more than one line")
 
 
