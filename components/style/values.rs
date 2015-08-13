@@ -410,8 +410,7 @@ pub mod specified {
                 }
             }
 
-            let sum = CalcSumNode { products: products };
-            Ok(sum)
+            Ok(CalcSumNode { products: products })
         }
 
         fn parse_product(input: &mut Parser) -> Result<CalcProductNode, ()> {
@@ -442,8 +441,7 @@ pub mod specified {
                 }
             }
 
-            let sum = CalcProductNode { values: values };
-            Ok(sum)
+            Ok(CalcProductNode { values: values })
         }
 
         fn parse_value(input: &mut Parser) -> Result<CalcValueNode, ()> {
