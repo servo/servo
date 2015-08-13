@@ -237,7 +237,7 @@ test(function() {
     var html = document.implementation.createHTMLDocument("title");
     var copy = html.cloneNode();
     check_copy(html, copy, Document);
-    assert_equals(html.title, copy.title);
+    assert_equals(copy.title, "");
 }, "implementation.createHTMLDocument");
 
 test(function() {
