@@ -166,16 +166,29 @@ def check_toml(file_name, contents):
 
 
 def check_rust(file_name, contents):
-    if not file_name.endswith(".rs") or file_name.endswith("properties.mako.rs"):
+    if not file_name.endswith(".rs") or \
+       file_name.endswith("properties.mako.rs") or \
+       file_name.endswith("style/build.rs") or \
+       file_name.endswith("unit/style/stylesheets.rs"):
         raise StopIteration
     contents = contents.splitlines(True)
+    comment_depth = 0
     merged_lines = ''
     for idx, line in enumerate(contents):
         # simplify the analisis
         line = line.strip()
 
+        if line.find('/*') != -1:
+            if line.find('*/') == -1:
+                comment_depth += 1
+        elif line.find('*/') != -1:
+            comment_depth -= 1
+
         if line.endswith('\\'):
             merged_lines += line[:-1]
+            continue
+        elif comment_depth:
+            merged_lines += line
             continue
         elif merged_lines:
             line = merged_lines + line
@@ -189,17 +202,27 @@ def check_rust(file_name, contents):
 
         match = re.search(r",[A-Za-z0-9]", line)
         if match:
-            yield (idx + 1, "missing space after comma")
+            yield (idx + 1, "missing space after ,")
 
-        match = re.search(r"[A-Za-z0-9][\+\-/\*%=]", line)
-        if match:
-            yield (idx + 1, "missing space before an operator")
+        # Avoid flagging <Item=Foo> constructs
+        def is_associated_type(match, line, index):
+            open_angle = line[0:match.end()].rfind('<')
+            close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
+            is_equals = match.group(0)[index] == '='
+            generic_open = open_angle != -1 and open_angle < match.start()
+            generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
+            return is_equals and generic_open and generic_close
+
+        # - not included because of scientific notation (1e-6)
+        match = re.search(r"[A-Za-z0-9][\+/\*%=]", line)
+        if match and not is_associated_type(match, line, 1):
+            yield (idx + 1, "missing space before %s" % match.group(0)[1])
 
         # * not included because of dereferencing and casting
         # - not included because of unary negation
         match = re.search(r"[\+/\%=][A-Za-z0-9]", line)
-        if match:
-            yield (idx + 1, "missing space after an operator")
+        if match and not is_associated_type(match, line, 0):
+            yield (idx + 1, "missing space after %s" % match.group(0)[0])
 
         match = re.search(r"\)->", line)
         if match:
@@ -209,12 +232,20 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space after ->")
 
-        if line.find(" :") != -1:
+        # Avoid flagging ::crate::mod
+        if line.find(" :[^:]") != -1:
             yield (idx + 1, "extra space before :")
+
+        # Avoid flagging crate::mod
+        match = re.search(r"[^:]:[A-Za-z]", line)
+        if match:
+            # Avoid flagging macros like $t1:expr
+            if line[0:match.end()].rfind('$') == -1:
+                yield (idx + 1, "missing space after :")
 
         match = re.search(r"[A-Za-z0-9\)]{", line)
         if match:
-            yield (idx + 1, "extra space before {")
+            yield (idx + 1, "missing space before {")
 
         if line.startswith("use ") and "{" in line and "}" not in line:
             yield (idx + 1, "use statement spans multiple lines")
