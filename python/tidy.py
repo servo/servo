@@ -232,9 +232,11 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space after ->")
 
-        # Avoid flagging ::crate::mod
-        if line.find(" :[^:]") != -1:
-            yield (idx + 1, "extra space before :")
+        # Avoid flagging ::crate::mod and `trait Foo : Bar`
+        match = line.find(" :")
+        if match != -1:
+            if line[0:match].find('trait ') == -1 and line[match + 2] != ':':
+                yield (idx + 1, "extra space before :")
 
         # Avoid flagging crate::mod
         match = re.search(r"[^:]:[A-Za-z]", line)
