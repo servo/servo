@@ -909,8 +909,8 @@ impl ScriptTask {
                 devtools::handle_set_timeline_markers(&page, self, marker_types, reply),
             DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
                 devtools::handle_drop_timeline_markers(&page, self, marker_types),
-            DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, callback) =>
-                devtools::handle_request_animation_frame(&page, pipeline_id, callback),
+            DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, name) =>
+                devtools::handle_request_animation_frame(&page, pipeline_id, name),
         }
     }
 

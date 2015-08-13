@@ -48,26 +48,39 @@ pub struct DevtoolsPageInfo {
     pub url: Url
 }
 
-/// Messages to the instruct the devtools server to update its known actors/state
+/// Messages to instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
+    /// Messages from tasks in the chrome process (resource/constellation/devtools)
     FromChrome(ChromeToDevtoolsControlMsg),
+    /// Messages from script tasks
     FromScript(ScriptToDevtoolsControlMsg),
 }
 
+/// Events that the devtools server must act upon.
 pub enum ChromeToDevtoolsControlMsg {
+    /// A new client has connected to the server.
     AddClient(TcpStream),
-    FramerateTick(String, f64),
+    /// The browser is shutting down.
     ServerExitMsg,
+    /// A network event occurred (request, reply, etc.). The actor with the
+    /// provided name should be notified.
     NetworkEvent(String, NetworkEvent),
 }
 
 #[derive(Deserialize, Serialize)]
+/// Events that the devtools server must act upon.
 pub enum ScriptToDevtoolsControlMsg {
+    /// A new global object was created, associated with a particular pipeline.
+    /// The means of communicating directly with it are provided.
     NewGlobal((PipelineId, Option<WorkerId>),
               IpcSender<DevtoolScriptControlMsg>,
               DevtoolsPageInfo),
+    /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
+    /// An animation frame with the given timestamp was processed in a script task.
+    /// The actor with the provided name should be notified.
+    FramerateTick(String, f64),
 }
 
 /// Serialized JS return values
@@ -134,20 +147,39 @@ pub enum TimelineMarkerType {
     DOMEvent,
 }
 
+/// The properties of a DOM node as computed by layout.
+#[derive(Deserialize, Serialize)]
+pub struct ComputedNodeLayout {
+    pub width: f32,
+    pub height: f32,
+}
+
 /// Messages to process in a particular script task, as instructed by a devtools client.
 #[derive(Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
+    /// Evaluate a JS snippet in the context of the global for the given pipeline.
     EvaluateJS(PipelineId, String, IpcSender<EvaluateJSReply>),
+    /// Retrieve the details of the root node (ie. the document) for the given pipeline.
     GetRootNode(PipelineId, IpcSender<NodeInfo>),
+    /// Retrieve the details of the document element for the given pipeline.
     GetDocumentElement(PipelineId, IpcSender<NodeInfo>),
+    /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Vec<NodeInfo>>),
-    GetLayout(PipelineId, String, IpcSender<(f32, f32)>),
+    /// Retrieve the computed layout properties of the given node in the given pipeline.
+    GetLayout(PipelineId, String, IpcSender<ComputedNodeLayout>),
+    /// Retrieve all stored console messages for the given pipeline.
     GetCachedMessages(PipelineId, CachedConsoleMessageTypes, IpcSender<Vec<CachedConsoleMessage>>),
+    /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<Modification>),
+    /// Request live console messages for a given pipeline (true if desired, false otherwise).
     WantsLiveNotifications(PipelineId, bool),
+    /// Request live notifications for a given set of timeline events for a given pipeline.
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<TimelineMarker>),
+    /// Withdraw request for live timeline notifications for a given pipeline.
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
-    RequestAnimationFrame(PipelineId, IpcSender<f64>),
+    /// Request a callback directed at the given actor name from the next animation frame
+    /// executed in the given pipeline.
+    RequestAnimationFrame(PipelineId, String),
 }
 
 #[derive(RustcEncodable, Deserialize, Serialize)]

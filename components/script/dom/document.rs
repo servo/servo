@@ -94,6 +94,7 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use num::ToPrimitive;
 use std::iter::FromIterator;
 use std::borrow::ToOwned;
+use std::boxed::FnBox;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
@@ -148,7 +149,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
+    animation_frame_list: RefCell<HashMap<i32, Box<FnBox(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -292,7 +293,7 @@ pub trait DocumentHelpers<'a> {
     fn set_current_script(self, script: Option<&HTMLScriptElement>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32;
+    fn request_animation_frame(self, callback: Box<FnBox(f64, )>) -> i32;
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32);
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
@@ -949,7 +950,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32 {
+    fn request_animation_frame(self, callback: Box<FnBox(f64)>) -> i32 {
         let window = self.window.root();
         let window = window.r();
         let ident = self.animation_frame_ident.get() + 1;

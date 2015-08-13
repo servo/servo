@@ -64,6 +64,7 @@ use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
 use util::str::{LengthOrPercentageOrAuto};
 use selectors::parser::PseudoElement;
+use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
@@ -313,7 +314,7 @@ impl JSTraceable for Box<ScriptChan+Send> {
     }
 }
 
-impl JSTraceable for Box<Fn(f64, )> {
+impl JSTraceable for Box<FnBox(f64, )> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
