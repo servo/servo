@@ -49,13 +49,13 @@ fn is_unrooted_ty(cx: &Context, ty: &ty::TyS, in_new_function: bool) -> bool {
         match t.sty {
             ty::TyStruct(did, _) |
             ty::TyEnum(did, _) => {
-                if cx.tcx.has_attr(did, "must_root") {
+                if cx.tcx.has_attr(did.did, "must_root") {
                     ret = true;
                     false
-                } else if cx.tcx.has_attr(did, "allow_unrooted_interior") {
+                } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
                     false
-                } else if match_def_path(cx, did, &["core", "cell", "Ref"])
-                        || match_def_path(cx, did, &["core", "cell", "RefMut"]) {
+                } else if match_def_path(cx, did.did, &["core", "cell", "Ref"])
+                        || match_def_path(cx, did.did, &["core", "cell", "RefMut"]) {
                         // Ref and RefMut are borrowed pointers, okay to hold unrooted stuff
                         // since it will be rooted elsewhere
                     false
