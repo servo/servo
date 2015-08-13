@@ -94,24 +94,25 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn boldness(&self) -> font_weight::T {
-        // -1.0 to 1.0
-        let normalized = self.ctfont.all_traits().normalized_weight();
-        // 0.0 to 9.0
-        let normalized = (normalized + 1.0) / 2.0 * 9.0;
-        if normalized < 1.0 { return font_weight::T::Weight100; }
-        if normalized < 2.0 { return font_weight::T::Weight200; }
-        if normalized < 3.0 { return font_weight::T::Weight300; }
-        if normalized < 4.0 { return font_weight::T::Weight400; }
-        if normalized < 5.0 { return font_weight::T::Weight500; }
-        if normalized < 6.0 { return font_weight::T::Weight600; }
-        if normalized < 7.0 { return font_weight::T::Weight700; }
-        if normalized < 8.0 { return font_weight::T::Weight800; }
-        return font_weight::T::Weight900;
+        let normalized = self.ctfont.all_traits().normalized_weight();  // [-1.0, 1.0]
+        let normalized = (normalized + 1.0) / 2.0 * 9.0;  // [0.0, 9.0]
+        match normalized {
+            v if v < 1.0 => font_weight::T::Weight100,
+            v if v < 2.0 => font_weight::T::Weight200,
+            v if v < 3.0 => font_weight::T::Weight300,
+            v if v < 4.0 => font_weight::T::Weight400,
+            v if v < 5.0 => font_weight::T::Weight500,
+            v if v < 6.0 => font_weight::T::Weight600,
+            v if v < 7.0 => font_weight::T::Weight700,
+            v if v < 8.0 => font_weight::T::Weight800,
+            _ => font_weight::T::Weight900,
+        }
     }
 
     fn stretchiness(&self) -> font_stretch::T {
-        let normalized = self.ctfont.all_traits().normalized_width();   // [-1.0, 1.0]
-        match (normalized + 1.0) / 2.0 * 9.0 {  // [0.0, 9.0]
+        let normalized = self.ctfont.all_traits().normalized_width();  // [-1.0, 1.0]
+        let normalized = (normalized + 1.0) / 2.0 * 9.0;  // [0.0, 9.0]
+        match normalized {
             v if v < 1.0 => font_stretch::T::ultra_condensed,
             v if v < 2.0 => font_stretch::T::extra_condensed,
             v if v < 3.0 => font_stretch::T::condensed,
