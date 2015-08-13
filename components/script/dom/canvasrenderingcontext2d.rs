@@ -17,15 +17,15 @@ use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
-use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::htmlcanvaselement::utils as canvas_utils;
+use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::htmlimageelement::{HTMLImageElement, HTMLImageElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
 use dom::node::{window_from_node, NodeHelpers, NodeDamage};
 
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image_cache_task::ImageResponse;
 use net_traits::image::base::PixelFormat;
+use net_traits::image_cache_task::ImageResponse;
 
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
@@ -38,13 +38,6 @@ use canvas::canvas_paint_task::RectToi32;
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
-
-<<<<<<< HEAD
-use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
-=======
->>>>>>> webgl: Implement `texParameteri/f` and partially implement `texImage2D`
 
 use ipc_channel::ipc::{self, IpcSender};
 use num::{Float, ToPrimitive};

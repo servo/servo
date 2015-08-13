@@ -11,10 +11,10 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::bindings::conversions::ToJSValConvertible;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElementHelpers;
@@ -34,17 +34,19 @@ use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
 
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image_cache_task::ImageResponse;
 use net_traits::image::base::PixelFormat;
+use net_traits::image_cache_task::ImageResponse;
 
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::slice;
 use std::sync::mpsc::channel;
+use util::mem::HeapSizeOf;
 use util::str::DOMString;
-use offscreen_gl_context::GLContextAttributes;
 use util::vec::byte_swap;
+
+use offscreen_gl_context::GLContextAttributes;
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
@@ -68,10 +70,17 @@ macro_rules! webgl_error {
 
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
-    flags TextureUnpacking : u8 {
+    flags TextureUnpacking: u8 {
         const FLIP_Y_AXIS = 0x01,
         const PREMULTIPLY_ALPHA = 0x02,
         const CONVERT_COLORSPACE = 0x04,
+    }
+}
+
+impl HeapSizeOf for TextureUnpacking {
+    #[inline]
+    fn heap_size_of_children(&self) -> usize {
+        0
     }
 }
 
@@ -134,6 +143,13 @@ impl WebGLRenderingContext {
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+    }
+
+    #[inline]
+    fn mark_as_dirty(&self) {
+        let canvas = self.canvas.root();
+        let node = NodeCast::from_ref(canvas.r());
+        node.dirty(NodeDamage::OtherNodeDamage);
     }
 }
 

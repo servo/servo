@@ -166,9 +166,8 @@ impl WebGLPaintTask {
                 gl::viewport(x, y, width, height),
             CanvasWebGLMsg::TexImage2D(target, level, internal, width, height, format, data_type, data) =>
                 gl::tex_image_2d(target, level, internal, width, height, /*border*/0, format, data_type, Some(&data)),
-            CanvasWebGLMsg::TexParameteri(target, name, value) => {
-                gl::tex_parameter_i(target, name, value)
-            },
+            CanvasWebGLMsg::TexParameteri(target, name, value) =>
+                gl::tex_parameter_i(target, name, value),
             CanvasWebGLMsg::TexParameterf(target, name, value) =>
                 gl::tex_parameter_f(target, name, value),
             CanvasWebGLMsg::DrawingBufferWidth(sender) =>
