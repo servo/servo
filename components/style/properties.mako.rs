@@ -775,8 +775,7 @@ pub mod longhands {
                         % endfor
                         &T::Length(length) => write!(f, "{:?}", length),
                         &T::Percentage(number) => write!(f, "{}%", number),
-                        // XXX HACK WRONG
-                        &T::Calc(calc) => write!(f, "{}%", 10.),
+                        &T::Calc(calc) => write!(f, "{:?}", calc)
                     }
                 }
             }
@@ -1914,9 +1913,9 @@ pub mod longhands {
                 specified::LengthOrPercentage::Length(value) => value,
                 specified::LengthOrPercentage::Percentage(value) =>
                     specified::Length::FontRelative(specified::FontRelativeLength::Em(value)),
-                // XXX WRONG HACK
-                specified::LengthOrPercentage::Calc(calc) =>
-                    specified::Length::FontRelative(specified::FontRelativeLength::Em(20.)),
+                // FIXME(dzbarsky) handle calc for font-size
+                specified::LengthOrPercentage::Calc(_) =>
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(1.)),
             })
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
