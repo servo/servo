@@ -27,7 +27,8 @@ use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use fragment::{WhitespaceStrippingResult};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
-use inline::{InlineFlow, InlineFragmentNodeInfo};
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
+use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::MulticolFlow;
 use parallel;
@@ -217,20 +218,7 @@ impl InlineFragmentsAccumulator {
                 address: node.opaque(),
                 pseudo: node.get_pseudo_element_type().strip(),
                 style: node.style().clone(),
-            }),
-            bidi_control_chars: None,
-            restyle_damage: node.restyle_damage(),
-        }
-    }
-
-    fn from_inline_node_and_style(node: &ThreadSafeLayoutNode, style: Arc<ComputedValues>)
-                                  -> InlineFragmentsAccumulator {
-        InlineFragmentsAccumulator {
-            fragments: IntermediateInlineFragments::new(),
-            enclosing_node: Some(InlineFragmentNodeInfo {
-                address: node.opaque(),
-                pseudo: node.get_pseudo_element_type().strip(),
-                style: style,
+                flags: InlineFragmentNodeFlags::empty(),
             }),
             bidi_control_chars: None,
             restyle_damage: node.restyle_damage(),
@@ -254,15 +242,16 @@ impl InlineFragmentsAccumulator {
             restyle_damage,
         } = self;
         if let Some(enclosing_node) = enclosing_node {
-            let frag_len = fragments.fragments.len();
-            for (idx, frag) in fragments.fragments.iter_mut().enumerate() {
-
-                // frag is first inline fragment in the inline node
-                let is_first = idx == 0;
-                // frag is the last inline fragment in the inline node
-                let is_last = idx == frag_len - 1;
-
-                frag.add_inline_context_style(enclosing_node.clone(), is_first, is_last);
+            let fragment_count = fragments.fragments.len();
+            for (index, fragment) in fragments.fragments.iter_mut().enumerate() {
+                let mut enclosing_node = enclosing_node.clone();
+                if index == 0 {
+                    enclosing_node.flags.insert(FIRST_FRAGMENT_OF_ELEMENT)
+                }
+                if index == fragment_count - 1 {
+                    enclosing_node.flags.insert(LAST_FRAGMENT_OF_ELEMENT)
+                }
+                fragment.add_inline_context_style(enclosing_node);
             }
 
             // Control characters are later discarded in transform_text, so they don't affect the
@@ -596,6 +585,7 @@ impl<'a> FlowConstructor<'a> {
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
                     UnscannedTextFragmentInfo::from_text(" ".to_owned()));
                 properties::modify_style_for_replaced_content(&mut whitespace_style);
+                properties::modify_style_for_text(&mut whitespace_style);
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_pseudo,
                                                                     whitespace_style,
@@ -863,6 +853,7 @@ impl<'a> FlowConstructor<'a> {
                     let fragment_info = SpecificFragmentInfo::UnscannedText(
                         UnscannedTextFragmentInfo::from_text(" ".to_owned()));
                     properties::modify_style_for_replaced_content(&mut whitespace_style);
+                    properties::modify_style_for_text(&mut whitespace_style);
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_pseudo,
                                                                         whitespace_style,
@@ -966,8 +957,7 @@ impl<'a> FlowConstructor<'a> {
                                                             node.restyle_damage(),
                                                             fragment_info);
 
-        let mut fragment_accumulator =
-            InlineFragmentsAccumulator::from_inline_node_and_style(node, modified_style);
+        let mut fragment_accumulator = InlineFragmentsAccumulator::new();
         fragment_accumulator.fragments.fragments.push_back(fragment);
         fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
 
@@ -1718,12 +1708,36 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
                     this.pop_front().unwrap())
             }
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
-                this.pop_front();
+                let removed_fragment = this.pop_front().unwrap();
+                if let Some(ref mut remaining_fragment) = this.front_mut() {
+                    if let Some(ref mut inline_context_of_remaining_fragment) =
+                            remaining_fragment.inline_context {
+                        if let Some(ref inline_context_of_removed_fragment) =
+                                removed_fragment.inline_context {
+                            for (i, inline_context_node_from_removed_fragment) in
+                                    inline_context_of_removed_fragment.nodes.iter().enumerate() {
+                                if i >= inline_context_of_remaining_fragment.nodes.len() {
+                                    break
+                                }
+                                if !inline_context_node_from_removed_fragment.flags.contains(
+                                        FIRST_FRAGMENT_OF_ELEMENT) {
+                                    continue
+                                }
+                                if inline_context_node_from_removed_fragment.address !=
+                                        inline_context_of_remaining_fragment.nodes[i].address {
+                                    continue
+                                }
+                                inline_context_of_remaining_fragment.nodes[i].flags.insert(
+                                    FIRST_FRAGMENT_OF_ELEMENT);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
     linked_list::prepend_from(this,
-                              &mut leading_fragments_consisting_of_solely_bidi_control_characters)
+                              &mut leading_fragments_consisting_of_solely_bidi_control_characters);
 }
 
 /// Strips ignorable whitespace from the end of a list of fragments.
@@ -1741,7 +1755,10 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
                     this.pop_back().unwrap())
             }
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
-                this.pop_back();
+                let removed_fragment = this.pop_back().unwrap();
+                if let Some(ref mut remaining_fragment) = this.back_mut() {
+                    remaining_fragment.meld_with_next_inline_fragment(&removed_fragment);
+                }
             }
         }
     }
@@ -1772,13 +1789,17 @@ fn bidi_control_chars(style: &Arc<ComputedValues>) -> Option<(&'static str, &'st
     }
 }
 
-fn control_chars_to_fragment(node: &InlineFragmentNodeInfo, text: &str,
-                             restyle_damage: RestyleDamage) -> Fragment {
+fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
+                             text: &str,
+                             restyle_damage: RestyleDamage)
+                             -> Fragment {
     let info = SpecificFragmentInfo::UnscannedText(
         UnscannedTextFragmentInfo::from_text(String::from(text)));
+    let mut style = node.style.clone();
+    properties::modify_style_for_text(&mut style);
     Fragment::from_opaque_node_and_style(node.address,
                                          node.pseudo,
-                                         node.style.clone(),
+                                         style,
                                          restyle_damage,
                                          info)
 }
