@@ -4032,8 +4032,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 'successCode': fillDescriptor,
                 'pre': 'let mut result_root = RootedValue::new(cx, UndefinedValue());'
             }
-            get += ("if index.is_some() {\n" +
-                    "    let index = index.unwrap();\n" +
+            get += ("if let Some(index) = index {\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
                     "    let this = &*this;\n" +
                     CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n" +
@@ -4102,8 +4101,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             if not (self.descriptor.operations['IndexedCreator'] is indexedSetter):
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("let index = get_array_index_from_id(cx, id);\n" +
-                    "if index.is_some() {\n" +
-                    "    let index = index.unwrap();\n" +
+                    "if let Some(index) = index {\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
                     "    let this = &*this;\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
@@ -4186,8 +4184,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
             indexed = ("let index = get_array_index_from_id(cx, id);\n" +
-                       "if index.is_some() {\n" +
-                       "    let index = index.unwrap();\n" +
+                       "if let Some(index) = index {\n" +
                        "    let this = UnwrapProxy(proxy);\n" +
                        "    let this = &*this;\n" +
                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
@@ -4259,8 +4256,7 @@ if !expando.ptr.is_null() {
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
             getIndexedOrExpando = ("let index = get_array_index_from_id(cx, id);\n" +
-                                   "if index.is_some() {\n" +
-                                   "    let index = index.unwrap();\n" +
+                                   "if let Some(index) = index {\n" +
                                    "    let this = UnwrapProxy(proxy);\n" +
                                    "    let this = &*this;\n" +
                                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define())
