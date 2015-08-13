@@ -41,6 +41,7 @@ use actors::console::ConsoleActor;
 use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
+use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
@@ -73,6 +74,7 @@ mod actors {
     pub mod memory;
     pub mod network_event;
     pub mod object;
+    pub mod profiler;
     pub mod root;
     pub mod tab;
     pub mod timeline;
@@ -202,7 +204,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on TabActor
-        let (tab, console, inspector, timeline) = {
+        let (tab, console, inspector, timeline, profiler) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
@@ -222,6 +224,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                                               pipeline,
                                               script_sender);
 
+            let profiler = ProfilerActor::new(actors.new_name("profiler"));
+
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
                 name: actors.new_name("tab"),
@@ -230,11 +234,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 console: console.name(),
                 inspector: inspector.name(),
                 timeline: timeline.name(),
+                profiler: profiler.name(),
             };
 
             let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
-            (tab, console, inspector, timeline)
+
+            (tab, console, inspector, timeline, profiler)
         };
 
         if let Some(id) = worker_id {
@@ -252,6 +258,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(box console);
         actors.register(box inspector);
         actors.register(box timeline);
+        actors.register(box profiler);
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
