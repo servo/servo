@@ -451,7 +451,7 @@ impl ViewportConstraints {
                         LengthOrPercentageOrAuto::Length(value) =>
                             Some(value.to_computed_value(&context)),
                         LengthOrPercentageOrAuto::Percentage(value) =>
-                            Some(initial_viewport.$dimension.scale_by(value)),
+                            Some(initial_viewport.$dimension.scale_by(value.0)),
                         LengthOrPercentageOrAuto::Auto => None,
                         LengthOrPercentageOrAuto::Calc(calc) => {
                             let calc = calc.to_computed_value(&context);
