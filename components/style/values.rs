@@ -374,7 +374,6 @@ pub mod specified {
     #[derive(Clone, Debug)]
     enum CalcAstNode {
         Add(CalcSumNode),
-        Multiply(CalcProductNode),
         Value(CalcValueNode),
     }
 
@@ -412,7 +411,6 @@ pub mod specified {
             }
 
             let sum = CalcSumNode { products: products };
-            println!("Parsed sum {:?} ", sum);
             Ok(sum)
         }
 
@@ -445,7 +443,6 @@ pub mod specified {
             }
 
             let sum = CalcProductNode { values: values };
-            println!("Parsed product {:?} ", sum);
             Ok(sum)
         }
 
@@ -491,7 +488,6 @@ pub mod specified {
                     })),
                 Some(CalcAstNode::Value(ref value)) =>
                     Ok(CalcAstNode::Value(Calc::multiply_value(value, multiplier))),
-                _ => unreachable!()
             }
         }
 
@@ -520,14 +516,12 @@ pub mod specified {
                 let node = try!(Calc::simplify_product(node));
                 match node {
                     CalcAstNode::Value(value) => {
-                        let product = CalcProductNode { values: vec!(value) };
                         if length == 1 {
-                            return Ok(CalcAstNode::Multiply(product));
+                            return Ok(CalcAstNode::Value(value));
                         }
-                        simplified.push(product);
+                        simplified.push(CalcProductNode { values: vec!(value) });
                     }
                     CalcAstNode::Add(sum) => simplified.push_all(&sum.products),
-                    _ => return Err(())
                 }
             }
 
@@ -546,6 +540,8 @@ pub mod specified {
             let ast = try!(Calc::parse_sum(input));
             let ast = try!(Calc::simplify_sum(ast));
 
+            println!("Simlified ast {:?} ", ast);
+
             let mut absolute = None;
             let mut vw = None;
             let mut vh = None;
@@ -556,42 +552,49 @@ pub mod specified {
             let mut rem = None;
             let mut percentage = None;
 
-            if let CalcAstNode::Add(ast) = ast {
-                for value in ast.products {
-                    assert!(value.values.len() == 1);
-                    match value.values[0] {
-                        CalcValueNode::Percentage(p) =>
-                            percentage = Some(percentage.unwrap_or(0.) + p),
-                        CalcValueNode::Length(Length::Absolute(Au(au))) =>
-                            absolute = Some(absolute.unwrap_or(0) + au),
-                        CalcValueNode::Length(Length::ViewportPercentage(v)) =>
-                            match v {
-                                ViewportPercentageLength::Vw(val) =>
-                                    vw = Some(vw.unwrap_or(0.) + val),
-                                ViewportPercentageLength::Vh(val) =>
-                                    vh = Some(vh.unwrap_or(0.) + val),
-                                ViewportPercentageLength::Vmin(val) =>
-                                    vmin = Some(vmin.unwrap_or(0.) + val),
-                                ViewportPercentageLength::Vmax(val) =>
-                                    vmax = Some(vmax.unwrap_or(0.) + val),
-                            },
-                        CalcValueNode::Length(Length::FontRelative(f)) =>
-                            match f {
-                                FontRelativeLength::Em(val) =>
-                                    em = Some(em.unwrap_or(0.) + val),
-                                FontRelativeLength::Ex(val) =>
-                                    ex = Some(ex.unwrap_or(0.) + val),
-                                FontRelativeLength::Rem(val) =>
-                                    rem = Some(rem.unwrap_or(0.) + val),
-                            },
-                        _ => return Err(())
-                    }
+            let values = match ast {
+                CalcAstNode::Add(sum) => {
+                  let mut values = Vec::new();
+                  for product in sum.products {
+                      assert!(product.values.len() == 1);
+                      values.push(product.values[0].clone());
+                  }
+                  values
+                },
+                CalcAstNode::Value(value) => vec!(value)
+            };
+
+            for value in values {
+                match value {
+                    CalcValueNode::Percentage(p) =>
+                        percentage = Some(percentage.unwrap_or(0.) + p),
+                    CalcValueNode::Length(Length::Absolute(Au(au))) =>
+                        absolute = Some(absolute.unwrap_or(0) + au),
+                    CalcValueNode::Length(Length::ViewportPercentage(v)) =>
+                        match v {
+                            ViewportPercentageLength::Vw(val) =>
+                                vw = Some(vw.unwrap_or(0.) + val),
+                            ViewportPercentageLength::Vh(val) =>
+                                vh = Some(vh.unwrap_or(0.) + val),
+                            ViewportPercentageLength::Vmin(val) =>
+                                vmin = Some(vmin.unwrap_or(0.) + val),
+                            ViewportPercentageLength::Vmax(val) =>
+                                vmax = Some(vmax.unwrap_or(0.) + val),
+                        },
+                    CalcValueNode::Length(Length::FontRelative(f)) =>
+                        match f {
+                            FontRelativeLength::Em(val) =>
+                                em = Some(em.unwrap_or(0.) + val),
+                            FontRelativeLength::Ex(val) =>
+                                ex = Some(ex.unwrap_or(0.) + val),
+                            FontRelativeLength::Rem(val) =>
+                                rem = Some(rem.unwrap_or(0.) + val),
+                        },
+                    _ => return Err(())
                 }
-            } else {
-                unreachable!()
             }
 
-           Ok(Calc {
+            Ok(Calc {
                 absolute: absolute.map(Au),
                 vw: vw.map(ViewportPercentageLength::Vw),
                 vh: vh.map(ViewportPercentageLength::Vh),
