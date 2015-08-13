@@ -184,7 +184,6 @@ impl TextRunScanner {
                 };
 
                 let (mut start_position, mut end_position) = (0, 0);
-
                 for character in text.chars() {
                     // Search for the first font in this font group that contains a glyph for this
                     // character.
