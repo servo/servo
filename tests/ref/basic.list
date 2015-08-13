@@ -170,6 +170,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 # inline_text_align_a.html inline_text_align_b.html
 == inline_whitespace_a.html inline_whitespace_ref.html
 == inline_whitespace_b.html inline_whitespace_ref.html
+== input_button_margins_a.html input_button_margins_ref.html
 == input_button_size_a.html input_button_size_ref.html
 != input_height_a.html input_height_ref.html
 == inset.html inset_ref.html
