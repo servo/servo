@@ -7,7 +7,6 @@ use constellation_msg::{Key, KeyState, KeyModifiers};
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::Matrix4;
-use ipc_channel::ipc::IpcSender;
 use layers::platform::surface::NativeDisplay;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use std::fmt::{Formatter, Debug};
@@ -124,41 +123,5 @@ pub enum ScriptToCompositorMsg {
     SetTitle(PipelineId, Option<String>),
     SendKeyEvent(Key, KeyState, KeyModifiers),
     Exit,
-}
-
-/// The interface used by the script task to tell the compositor to update its ready state,
-/// which is used in displaying the appropriate message in the window's title.
-#[derive(Clone)]
-pub struct ScriptListener(IpcSender<ScriptToCompositorMsg>);
-
-impl ScriptListener {
-    pub fn new(sender: IpcSender<ScriptToCompositorMsg>) -> ScriptListener {
-        ScriptListener(sender)
-    }
-
-    pub fn scroll_fragment_point(&mut self,
-                                 pipeline_id: PipelineId,
-                                 layer_id: LayerId,
-                                 point: Point2D<f32>) {
-        self.0
-            .send(ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point))
-            .unwrap()
-    }
-
-    pub fn close(&mut self) {
-        self.0.send(ScriptToCompositorMsg::Exit).unwrap()
-    }
-
-    pub fn dup(&mut self) -> ScriptListener {
-        self.clone()
-    }
-
-    pub fn set_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
-        self.0.send(ScriptToCompositorMsg::SetTitle(pipeline_id, title)).unwrap()
-    }
-
-    pub fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        self.0.send(ScriptToCompositorMsg::SendKeyEvent(key, state, modifiers)).unwrap()
-    }
 }
 

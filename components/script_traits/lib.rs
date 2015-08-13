@@ -24,11 +24,10 @@ extern crate url;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::compositor_msg::{Epoch, LayerId};
+use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
-use msg::compositor_msg::ScriptListener;
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -179,7 +178,7 @@ pub trait ScriptTaskFactory {
     fn create(_phantom: Option<&mut Self>,
               id: PipelineId,
               parent_info: Option<(PipelineId, SubpageId)>,
-              compositor: ScriptListener,
+              compositor: IpcSender<ScriptToCompositorMsg>,
               layout_chan: &OpaqueScriptLayoutChannel,
               control_chan: Sender<ConstellationControlMsg>,
               control_port: Receiver<ConstellationControlMsg>,
