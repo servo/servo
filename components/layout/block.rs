@@ -1763,6 +1763,8 @@ impl Flow for BlockFlow {
                 (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
                 (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
                     self.base.flags.insert(NEEDS_LAYER);
+                    self.base.clip = ClippingRegion::max();
+                    self.base.stacking_relative_position_of_display_port = MAX_RECT;
                 }
                 _ => {}
             }
