@@ -1861,7 +1861,7 @@ pub mod longhands {
             .map(|value| match value {
                 specified::LengthOrPercentage::Length(value) => value,
                 specified::LengthOrPercentage::Percentage(value) =>
-                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value)),
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0)),
                 // FIXME(dzbarsky) handle calc for font-size
                 specified::LengthOrPercentage::Calc(_) =>
                     specified::Length::FontRelative(specified::FontRelativeLength::Em(1.)),
@@ -4016,7 +4016,7 @@ pub mod longhands {
 
     <%self:longhand name="transform-origin">
         use values::computed::Context;
-        use values::specified::{Length, LengthOrPercentage};
+        use values::specified::{Length, LengthOrPercentage, Percentage};
 
         use cssparser::ToCss;
         use std::fmt;
@@ -4076,7 +4076,7 @@ pub mod longhands {
                 vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
                 depth: result.depth.unwrap_or(Length::Absolute(Au(0))),
             })
-        }
+       }
 
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
@@ -4098,7 +4098,7 @@ pub mod longhands {
 
     <%self:longhand name="perspective-origin">
         use values::computed::Context;
-        use values::specified::LengthOrPercentage;
+        use values::specified::{LengthOrPercentage, Percentage};
 
         use cssparser::ToCss;
         use std::fmt;
