@@ -1912,7 +1912,7 @@ pub mod longhands {
             .map(|value| match value {
                 specified::LengthOrPercentage::Length(value) => value,
                 specified::LengthOrPercentage::Percentage(value) =>
-                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value)),
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0)),
                 // FIXME(dzbarsky) handle calc for font-size
                 specified::LengthOrPercentage::Calc(_) =>
                     specified::Length::FontRelative(specified::FontRelativeLength::Em(1.)),
@@ -3986,6 +3986,7 @@ pub mod longhands {
     }
 
     pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
+        use values::specified::{LengthOrPercentage, Percentage};
         let (mut horizontal, mut vertical, mut depth) = (None, None, None);
         loop {
             if let Err(_) = input.try(|input| {
@@ -3994,37 +3995,37 @@ pub mod longhands {
                     token,
                     "left" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.0))
+                            horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
                         } else {
                             return Err(())
                         }
                     },
                     "center" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.5))
+                            horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
                         } else if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(0.5))
+                            vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
                         } else {
                             return Err(())
                         }
                     },
                     "right" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(1.0))
+                            horizontal = Some(LengthOrPercentage::Percentage(Percentage(1.0)))
                         } else {
                             return Err(())
                         }
                     },
                     "top" => {
                         if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(0.0))
+                            vertical = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
                         } else {
                             return Err(())
                         }
                     },
                     "bottom" => {
                         if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(1.0))
+                            vertical = Some(LengthOrPercentage::Percentage(Percentage(1.0)))
                         } else {
                             return Err(())
                         }
@@ -4033,13 +4034,13 @@ pub mod longhands {
                 }
                 Ok(())
             }) {
-                match specified::LengthOrPercentage::parse(input) {
+                match LengthOrPercentage::parse(input) {
                     Ok(value) => {
                         if horizontal.is_none() {
                             horizontal = Some(value);
                         } else if vertical.is_none() {
                             vertical = Some(value);
-                        } else if let specified::LengthOrPercentage::Length(length) = value {
+                        } else if let LengthOrPercentage::Length(length) = value {
                             depth = Some(length);
                         } else {
                             break;
@@ -4067,7 +4068,7 @@ pub mod longhands {
 
     <%self:longhand name="transform-origin">
         use values::computed::Context;
-        use values::specified::{Length, LengthOrPercentage};
+        use values::specified::{Length, LengthOrPercentage, Percentage};
 
         use cssparser::ToCss;
         use std::fmt;
@@ -4123,8 +4124,8 @@ pub mod longhands {
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             let result = try!(super::parse_origin(context, input));
             Ok(SpecifiedValue {
-                horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
-                vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
+                vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
                 depth: result.depth.unwrap_or(Length::Absolute(Au(0))),
             })
         }
@@ -4149,7 +4150,7 @@ pub mod longhands {
 
     <%self:longhand name="perspective-origin">
         use values::computed::Context;
-        use values::specified::LengthOrPercentage;
+        use values::specified::{LengthOrPercentage, Percentage};
 
         use cssparser::ToCss;
         use std::fmt;
@@ -4199,8 +4200,8 @@ pub mod longhands {
             match result.depth {
                 Some(_) => Err(()),
                 None => Ok(SpecifiedValue {
-                    horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
-                    vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                    horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
+                    vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
                 })
             }
         }

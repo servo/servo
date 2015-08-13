@@ -367,7 +367,8 @@ impl RawLayoutElementHelpers for Element {
         match width {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                let width_value =
+                    specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
                     PropertyDeclaration::Width(SpecifiedValue(width_value))));
             }
@@ -390,7 +391,8 @@ impl RawLayoutElementHelpers for Element {
         match height {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                let height_value =
+                    specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
                     PropertyDeclaration::Height(SpecifiedValue(height_value))));
             }
