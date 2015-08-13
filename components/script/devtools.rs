@@ -4,7 +4,7 @@
 
 use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
-use devtools_traits::{ConsoleAPI, PageError, ScriptToDevtoolsControlMsg};
+use devtools_traits::{ConsoleAPI, PageError, ScriptToDevtoolsControlMsg, ComputedNodeLayout};
 use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::Root;
@@ -97,13 +97,13 @@ pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: Strin
     reply.send(children).unwrap();
 }
 
-pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: IpcSender<(f32, f32)>) {
+pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: IpcSender<ComputedNodeLayout>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
     let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = *rect.r().Width();
     let height = *rect.r().Height();
-    reply.send((width, height)).unwrap();
+    reply.send(ComputedNodeLayout { width: width, height: height }).unwrap();
 }
 
 pub fn handle_get_cached_messages(_pipeline_id: PipelineId,

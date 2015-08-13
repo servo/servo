@@ -145,24 +145,31 @@ pub enum TimelineMarkerType {
     DOMEvent,
 }
 
+/// The properties of a DOM node as computed by layout.
+#[derive(Deserialize, Serialize)]
+pub struct ComputedNodeLayout {
+    pub width: f32,
+    pub height: f32,
+}
+
 /// Messages to process in a particular script task, as instructed by a devtools client.
 #[derive(Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
     /// Evaluate a JS snippet in the context of the global for the given pipeline.
     EvaluateJS(PipelineId, String, IpcSender<EvaluateJSReply>),
-    /// Retrieve the details of the root node (ie. document) for the given pipeline.
+    /// Retrieve the details of the root node (ie. the document) for the given pipeline.
     GetRootNode(PipelineId, IpcSender<NodeInfo>),
     /// Retrieve the details of the document element for the given pipeline.
     GetDocumentElement(PipelineId, IpcSender<NodeInfo>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Vec<NodeInfo>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
-    GetLayout(PipelineId, String, IpcSender<(f32, f32)>),
-    /// Retrieve all stored console messages for a given pipeline.
+    GetLayout(PipelineId, String, IpcSender<ComputedNodeLayout>),
+    /// Retrieve all stored console messages for the given pipeline.
     GetCachedMessages(PipelineId, CachedConsoleMessageTypes, IpcSender<Vec<CachedConsoleMessage>>),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<Modification>),
-    /// Request live console messages for a given pipeline.
+    /// Request live console messages for a given pipeline (true if desired, false otherwise).
     WantsLiveNotifications(PipelineId, bool),
     /// Request live notifications for a given set of timeline events for a given pipeline.
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<TimelineMarker>),
