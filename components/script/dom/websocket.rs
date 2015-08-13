@@ -4,7 +4,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
-use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketMethods;
+use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::EventCast;
@@ -76,6 +76,7 @@ pub struct WebSocket {
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<DOMString>, //Closing reason
     data: DOMRefCell<DOMString>, //Data from send - TODO: Remove after buffer is added.
+    binary_type: Cell<BinaryType>,
 }
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
@@ -115,6 +116,7 @@ impl WebSocket {
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned()),
             data: DOMRefCell::new("".to_owned()),
+            binary_type: Cell::new(BinaryType::Blob),
         }
 
     }
@@ -234,6 +236,14 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
+    }
+
+    fn BinaryType(self) -> BinaryType {
+        self.binary_type.get()
+    }
+
+    fn SetBinaryType(self, btype: BinaryType) {
+        self.binary_type.set(btype)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
@@ -413,6 +423,8 @@ impl Runnable for MessageReceivedTask {
         match self.message {
             MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
             MessageData::Binary(data) => {
+                // FIXME: this should do a different thing if self.address.BinaryType() is
+                // BinaryType::ArrayBuffer, but waiting on a safe ArrayBuffer wrapper.
                 let blob = Blob::new(global.r(), Some(data), "");
                 blob.to_jsval(cx, message.handle_mut());
             },
