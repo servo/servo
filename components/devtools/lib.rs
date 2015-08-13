@@ -40,7 +40,6 @@ use actors::console::ConsoleActor;
 use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
-use actors::object::ObjectActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;

@@ -15,6 +15,7 @@ use std::net::TcpStream;
 use std::raw::TraitObject;
 use std::sync::{Arc, Mutex};
 
+#[derive(PartialEq)]
 pub enum ActorMessageStatus {
     Processed,
     Ignored,
@@ -197,10 +198,10 @@ impl ActorRegistry {
             None => println!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_string().unwrap();
-                match actor.handle_message(self, &msg_type.to_string(), msg, stream) {
-                    Ok(ActorMessageStatus::Ignored) => println!("unexpected message type \"{}\" found for actor \"{}\"",
-                             msg_type, to),
-                    _ => {}
+                if try!(actor.handle_message(self, &msg_type.to_string(), msg, stream))
+                        != ActorMessageStatus::Processed {
+                    println!("unexpected message type \"{}\" found for actor \"{}\"",
+                             msg_type, to);
                 }
             }
         }
