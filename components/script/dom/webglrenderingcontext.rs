@@ -44,6 +44,7 @@ use std::slice;
 use std::sync::mpsc::channel;
 use util::str::DOMString;
 use util::vec::byte_swap;
+use util::mem::HeapSizeOf;
 use offscreen_gl_context::GLContextAttributes;
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
@@ -72,6 +73,13 @@ bitflags! {
         const FLIP_Y_AXIS = 0x01,
         const PREMULTIPLY_ALPHA = 0x02,
         const CONVERT_COLORSPACE = 0x04,
+    }
+}
+
+impl HeapSizeOf for TextureUnpacking {
+    #[inline]
+    fn heap_size_of_children(&self) -> usize {
+        0
     }
 }
 
