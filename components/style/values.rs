@@ -392,7 +392,7 @@ pub mod specified {
         pub em: Option<FontRelativeLength>,
         pub ex: Option<FontRelativeLength>,
         pub rem: Option<FontRelativeLength>,
-        pub percentage: Option<CSSFloat>,
+        pub percentage: Option<Percentage>,
     }
     impl Calc {
         fn parse_sum(input: &mut Parser) -> Result<CalcSumNode, ()> {
@@ -608,7 +608,7 @@ pub mod specified {
                 em: em.map(FontRelativeLength::Em),
                 ex: ex.map(FontRelativeLength::Ex),
                 rem: rem.map(FontRelativeLength::Rem),
-                percentage: percentage,
+                percentage: percentage.map(Percentage),
             })
         }
     }
@@ -665,9 +665,18 @@ pub mod specified {
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
+    pub struct Percentage(pub CSSFloat); // [0 .. 100%] maps to [0.0 .. 1.0]
+
+    impl ToCss for Percentage {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            write!(dest, "{}%", self.0 * 100.)
+        }
+    }
+
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrPercentage {
         Length(Length),
-        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Percentage(Percentage),
         Calc(Calc),
     }
 
@@ -675,8 +684,7 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self {
                 &LengthOrPercentage::Length(length) => length.to_css(dest),
-                &LengthOrPercentage::Percentage(percentage)
-                => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentage::Percentage(percentage) => percentage.to_css(dest),
                 &LengthOrPercentage::Calc(calc) => calc.to_css(dest),
             }
         }
@@ -693,7 +701,7 @@ pub mod specified {
                 Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                     Length::parse_dimension(value.value, unit).map(LengthOrPercentage::Length),
                 Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
-                    Ok(LengthOrPercentage::Percentage(value.unit_value)),
+                    Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -717,7 +725,7 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrPercentageOrAuto {
         Length(Length),
-        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Percentage(Percentage),
         Auto,
         Calc(Calc),
     }
@@ -726,8 +734,7 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self {
                 &LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
-                &LengthOrPercentageOrAuto::Percentage(percentage)
-                => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrAuto::Percentage(percentage) => percentage.to_css(dest),
                 &LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
                 &LengthOrPercentageOrAuto::Calc(calc) => calc.to_css(dest),
             }
@@ -742,7 +749,7 @@ pub mod specified {
                 Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                     Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrAuto::Length),
                 Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
-                    Ok(LengthOrPercentageOrAuto::Percentage(value.unit_value)),
+                    Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentageOrAuto::Length(Length::Absolute(Au(0)))),
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
@@ -767,7 +774,7 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrPercentageOrNone {
         Length(Length),
-        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Percentage(Percentage),
         None,
     }
 
@@ -775,8 +782,7 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self {
                 &LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
-                &LengthOrPercentageOrNone::Percentage(percentage) =>
-                    write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrNone::Percentage(percentage) => percentage.to_css(dest),
                 &LengthOrPercentageOrNone::None => dest.write_str("none"),
             }
         }
@@ -789,7 +795,7 @@ pub mod specified {
                 Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                     Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrNone::Length),
                 Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
-                    Ok(LengthOrPercentageOrNone::Percentage(value.unit_value)),
+                    Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
@@ -851,7 +857,7 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
         Length(Length),
-        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Percentage(Percentage),
         Center,
         Left,
         Right,
@@ -866,7 +872,7 @@ pub mod specified {
                     .map(PositionComponent::Length)
                 }
                 Token::Percentage(ref value) => {
-                    Ok(PositionComponent::Percentage(value.unit_value))
+                    Ok(PositionComponent::Percentage(Percentage(value.unit_value)))
                 }
                 Token::Number(ref value) if value.value == 0. => {
                     Ok(PositionComponent::Length(Length::Absolute(Au(0))))
@@ -889,11 +895,11 @@ pub mod specified {
             match self {
                 PositionComponent::Length(x) => LengthOrPercentage::Length(x),
                 PositionComponent::Percentage(x) => LengthOrPercentage::Percentage(x),
-                PositionComponent::Center => LengthOrPercentage::Percentage(0.5),
+                PositionComponent::Center => LengthOrPercentage::Percentage(Percentage(0.5)),
                 PositionComponent::Left |
-                PositionComponent::Top => LengthOrPercentage::Percentage(0.0),
+                PositionComponent::Top => LengthOrPercentage::Percentage(Percentage(0.0)),
                 PositionComponent::Right |
-                PositionComponent::Bottom => LengthOrPercentage::Percentage(1.0),
+                PositionComponent::Bottom => LengthOrPercentage::Percentage(Percentage(1.0)),
             }
         }
     }
@@ -1310,7 +1316,7 @@ pub mod computed {
                 }
             }
 
-            Calc { length: length, percentage: self.percentage }
+            Calc { length: length, percentage: self.percentage.map(|p| p.0) }
         }
     }
 
@@ -1347,7 +1353,7 @@ pub mod computed {
                     LengthOrPercentage::Length(value.to_computed_value(context))
                 }
                 specified::LengthOrPercentage::Percentage(value) => {
-                    LengthOrPercentage::Percentage(value)
+                    LengthOrPercentage::Percentage(value.0)
                 }
                 specified::LengthOrPercentage::Calc(calc) => {
                     LengthOrPercentage::Calc(calc.to_computed_value(context))
@@ -1395,7 +1401,7 @@ pub mod computed {
                     LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
                 }
                 specified::LengthOrPercentageOrAuto::Percentage(value) => {
-                    LengthOrPercentageOrAuto::Percentage(value)
+                    LengthOrPercentageOrAuto::Percentage(value.0)
                 }
                 specified::LengthOrPercentageOrAuto::Auto => {
                     LengthOrPercentageOrAuto::Auto
@@ -1445,7 +1451,7 @@ pub mod computed {
                     LengthOrPercentageOrNone::Length(value.to_computed_value(context))
                 }
                 specified::LengthOrPercentageOrNone::Percentage(value) => {
-                    LengthOrPercentageOrNone::Percentage(value)
+                    LengthOrPercentageOrNone::Percentage(value.0)
                 }
                 specified::LengthOrPercentageOrNone::None => {
                     LengthOrPercentageOrNone::None
