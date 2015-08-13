@@ -992,7 +992,7 @@ impl InlineFlow {
                     let percent_offset = line_height.scale_by(calc.percentage());
                     offset_from_baseline = offset_from_baseline - percent_offset - calc.length()
                 }
-             }
+            }
         }
         (offset_from_baseline - ascent, largest_size_updated)
     }
