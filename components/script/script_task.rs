@@ -98,7 +98,7 @@ use url::{Url, UrlParser};
 use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::io::{stdout, Write};
 use std::mem as std_mem;
@@ -1286,7 +1286,7 @@ impl ScriptTask {
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
         // compositor. In the future it'll need to be smarter.
-        (*(RefMut::map(self.compositor.borrow_mut(), |t| t))).send(ScriptToCompositorMsg::Exit).unwrap();
+        (*(self.compositor.borrow_mut())).send(ScriptToCompositorMsg::Exit).unwrap();
     }
 
     /// We have received notification that the response associated with a load has completed.
@@ -1462,7 +1462,7 @@ impl ScriptTask {
                                  self.chan.clone(),
                                  self.image_cache_channel.clone(),
                                  self.control_chan.clone(),
-                                 (*(RefMut::map(self.compositor.borrow_mut(), |t| t))).clone(),
+                                 (*(self.compositor.borrow_mut())).clone(),
                                  self.image_cache_task.clone(),
                                  self.resource_task.clone(),
                                  self.storage_task.clone(),
@@ -1554,8 +1554,8 @@ impl ScriptTask {
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
-        (*(RefMut::map(self.compositor.borrow_mut(), |t| t))).send(
-            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, LayerId::null(), point)).unwrap();
+        (*(self.compositor.borrow_mut())).send(ScriptToCompositorMsg::ScrollFragmentPoint(
+                                                 pipeline_id, LayerId::null(), point)).unwrap();
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
@@ -1653,7 +1653,7 @@ impl ScriptTask {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
                 document.r().dispatch_key_event(
-                    key, state, modifiers, &mut *(RefMut::map(self.compositor.borrow_mut(), |t| t)));
+                    key, state, modifiers, &mut (*(self.compositor.borrow_mut())) );
             }
         }
     }
