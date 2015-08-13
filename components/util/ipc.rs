@@ -14,7 +14,7 @@ use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 
 lazy_static! {
-    static ref IN_PROCESS_SENDERS: Mutex<HashMap<usize,Box<Any + Send>>> =
+    static ref IN_PROCESS_SENDERS: Mutex<HashMap<usize, Box<Any + Send>>> =
         Mutex::new(HashMap::new());
 }
 
@@ -49,7 +49,7 @@ impl<T> Clone for OptionalIpcSender<T> where T: Deserialize + Serialize + Send +
 
 impl<T> Deserialize for OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
     fn deserialize<D>(deserializer: &mut D)
-                      -> Result<OptionalIpcSender<T>,D::Error> where D: Deserializer {
+                      -> Result<OptionalIpcSender<T>, D::Error> where D: Deserializer {
         if opts::get().multiprocess {
             return Ok(OptionalIpcSender::OutOfProcess(try!(Deserialize::deserialize(
                             deserializer))))
@@ -66,7 +66,7 @@ impl<T> Deserialize for OptionalIpcSender<T> where T: Deserialize + Serialize + 
 }
 
 impl<T> Serialize for OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
         match *self {
             OptionalIpcSender::OutOfProcess(ref ipc_sender) => ipc_sender.serialize(serializer),
             OptionalIpcSender::InProcess(ref sender) => {

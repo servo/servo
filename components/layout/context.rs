@@ -124,7 +124,7 @@ pub struct SharedLayoutContext {
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 
     /// The animations that are currently running.
-    pub running_animations: Arc<HashMap<OpaqueNode,Vec<Animation>>>,
+    pub running_animations: Arc<HashMap<OpaqueNode, Vec<Animation>>>,
 
     /// Why is this reflow occurring
     pub goal: ReflowGoal,

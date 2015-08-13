@@ -39,7 +39,7 @@ pub enum Msg {
     AddStylesheet(Stylesheet, MediaQueryList),
 
     /// Adds the given stylesheet to the document.
-    LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad, Box<StylesheetLoadResponder+Send>),
+    LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad, Box<StylesheetLoadResponder + Send>),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,
@@ -199,7 +199,7 @@ pub trait ScriptLayoutChan {
 
 impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
     fn new(sender: Sender<Msg>, receiver: Receiver<Msg>) -> OpaqueScriptLayoutChannel {
-        let inner = (box sender as Box<Any+Send>, box receiver as Box<Any+Send>);
+        let inner = (box sender as Box<Any + Send>, box receiver as Box<Any + Send>);
         OpaqueScriptLayoutChannel(inner)
     }
 

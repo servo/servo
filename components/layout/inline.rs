@@ -309,11 +309,11 @@ impl LineBreaker {
     }
 
     /// Reflows the given fragments, which have been plucked out of the inline flow.
-    fn reflow_fragments<'a,I>(&mut self,
-                              mut old_fragment_iter: I,
-                              flow: &'a InlineFlow,
-                              layout_context: &LayoutContext)
-                              where I: Iterator<Item=Fragment> {
+    fn reflow_fragments<'a, I>(&mut self,
+                               mut old_fragment_iter: I,
+                               flow: &'a InlineFlow,
+                               layout_context: &LayoutContext)
+                               where I: Iterator<Item=Fragment> {
         loop {
             // Acquire the next fragment to lay out from the work list or fragment list, as
             // appropriate.

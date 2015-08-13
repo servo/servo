@@ -155,7 +155,7 @@ impl Browser {
 }
 
 fn create_constellation(opts: opts::Opts,
-                        compositor_proxy: Box<CompositorProxy+Send>,
+                        compositor_proxy: Box<CompositorProxy + Send>,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,

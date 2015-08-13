@@ -153,7 +153,7 @@ impl WebSocket {
                 return Err(Syntax);
             }
 
-            if protocols[i+1..].iter().any(|p| p == protocol) {
+            if protocols[i + 1..].iter().any(|p| p == protocol) {
                 return Err(Syntax);
 
             }

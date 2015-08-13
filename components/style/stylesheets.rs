@@ -10,8 +10,8 @@ use url::Url;
 
 use encoding::EncodingRef;
 
-use cssparser::{Parser, decode_stylesheet_bytes,
-                QualifiedRuleParser, AtRuleParser, RuleListParser, AtRuleType};
+use cssparser::{Parser, decode_stylesheet_bytes, QualifiedRuleParser, AtRuleParser};
+use cssparser::{RuleListParser, AtRuleType};
 use string_cache::{Atom, Namespace};
 use selectors::parser::{Selector, parse_selector_list};
 use parser::{ParserContext, log_css_error};

@@ -52,7 +52,7 @@ use profile_traits::mem;
 use string_cache::Atom;
 use util::geometry::{self, Au, MAX_RECT};
 use util::{breakpoint, opts};
-use util::str::{DOMString,HTML_SPACE_CHARACTERS};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
@@ -179,7 +179,7 @@ pub struct Window {
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_heap_size_of = "trait objects are hard"]
-    layout_rpc: Box<LayoutRPC+'static>,
+    layout_rpc: Box<LayoutRPC + 'static>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
     #[ignore_heap_size_of = "channels are hard"]
@@ -232,7 +232,7 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn script_chan(&self) -> Box<ScriptChan+Send> {
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         self.script_chan.clone()
     }
 
@@ -264,7 +264,7 @@ impl Window {
         self.parent_info
     }
 
-    pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
         (box SendableMainThreadScriptChan(tx), box rx)
     }
@@ -1143,7 +1143,7 @@ impl Window {
     }
 }
 
-fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
+fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
     let clip_rect = Rect::new(Point2D::new(clip_rect.origin.x.to_f32_px(),
                                            clip_rect.origin.y.to_f32_px()),
                               Size2D::new(clip_rect.size.width.to_f32_px(),

@@ -89,14 +89,14 @@ pub type UnsafeFlowList = (Box<Vec<UnsafeLayoutNode>>, usize);
 
 pub type ChunkedDomTraversalFunction =
     extern "Rust" fn(UnsafeLayoutNodeList,
-                     &mut WorkerProxy<SharedLayoutContext,UnsafeLayoutNodeList>);
+                     &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>);
 
 pub type DomTraversalFunction =
     extern "Rust" fn(UnsafeLayoutNode,
-                     &mut WorkerProxy<SharedLayoutContext,UnsafeLayoutNodeList>);
+                     &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>);
 
 pub type ChunkedFlowTraversalFunction =
-    extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>);
+    extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>);
 
 pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
 
@@ -104,13 +104,13 @@ pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutConte
 pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
     fn run_parallel(&self,
                     nodes: UnsafeLayoutNodeList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeLayoutNodeList>);
+                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>);
 
     #[inline(always)]
     fn run_parallel_helper(
             &self,
             unsafe_nodes: UnsafeLayoutNodeList,
-            proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeLayoutNodeList>,
+            proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>,
             top_down_func: ChunkedDomTraversalFunction,
             bottom_up_func: DomTraversalFunction) {
         let mut discovered_child_nodes = Vec::new();
@@ -168,7 +168,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
     /// fetch-and-subtract the parent's children count.
     fn run_parallel(&self,
                     mut unsafe_node: UnsafeLayoutNode,
-                    proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeLayoutNodeList>) {
+                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
         loop {
             // Get a real layout node.
             let node: LayoutNode = unsafe {
@@ -284,14 +284,14 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&self,
                     unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>);
+                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>);
 
     fn should_record_thread_ids(&self) -> bool;
 
     #[inline(always)]
     fn run_parallel_helper(&self,
                            unsafe_flows: UnsafeFlowList,
-                           proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>,
+                           proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>,
                            top_down_func: ChunkedFlowTraversalFunction,
                            bottom_up_func: FlowTraversalFunction) {
         let mut discovered_child_flows = Vec::new();
@@ -335,7 +335,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     fn run_parallel(&self,
                     unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
+                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
         self.run_parallel_helper(unsafe_flows,
                                  proxy,
                                  assign_inline_sizes,
@@ -397,7 +397,7 @@ fn construct_flows(unsafe_node: UnsafeLayoutNode,
 }
 
 fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
-                       proxy: &mut WorkerProxy<SharedLayoutContext,UnsafeFlowList>) {
+                       proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let assign_inline_sizes_traversal = AssignISizes {
@@ -438,12 +438,12 @@ fn build_display_list(unsafe_flow: UnsafeFlow,
     build_display_list_traversal.run_parallel(unsafe_flow);
 }
 
-fn run_queue_with_custom_work_data_type<To,F>(
+fn run_queue_with_custom_work_data_type<To, F>(
         queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
         callback: F,
         shared_layout_context: &SharedLayoutContext)
-        where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedLayoutContext,To>) {
-    let queue: &mut WorkQueue<SharedLayoutContext,To> = unsafe {
+        where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedLayoutContext, To>) {
+    let queue: &mut WorkQueue<SharedLayoutContext, To> = unsafe {
         mem::transmute(queue)
     };
     callback(queue);

@@ -207,11 +207,11 @@ impl MutHeapJSVal {
 /// `JS<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutHeap<T: HeapGCValue+Copy> {
+pub struct MutHeap<T: HeapGCValue + Copy> {
     val: Cell<T>,
 }
 
-impl<T: HeapGCValue+Copy> MutHeap<T> {
+impl<T: HeapGCValue + Copy> MutHeap<T> {
     /// Create a new `MutHeap`.
     pub fn new(initial: T) -> MutHeap<T> {
         MutHeap {
@@ -236,11 +236,11 @@ impl<T: HeapGCValue+Copy> MutHeap<T> {
 /// barriers are enforced.
 #[must_root]
 #[derive(JSTraceable, HeapSizeOf)]
-pub struct MutNullableHeap<T: HeapGCValue+Copy> {
+pub struct MutNullableHeap<T: HeapGCValue + Copy> {
     ptr: Cell<Option<T>>
 }
 
-impl<T: HeapGCValue+Copy> MutNullableHeap<T> {
+impl<T: HeapGCValue + Copy> MutNullableHeap<T> {
     /// Create a new `MutNullableHeap`.
     pub fn new(initial: Option<T>) -> MutNullableHeap<T> {
         MutNullableHeap {
@@ -288,7 +288,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     }
 }
 
-impl<T: HeapGCValue+Copy> Default for MutNullableHeap<T> {
+impl<T: HeapGCValue + Copy> Default for MutNullableHeap<T> {
     fn default() -> MutNullableHeap<T> {
         MutNullableHeap {
             ptr: Cell::new(None)

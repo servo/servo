@@ -394,7 +394,7 @@ impl<'a> DetailedGlyphStore {
         // Thar be dragons here. You have been warned. (Tips accepted.)
         let mut unsorted_records: Vec<DetailedGlyphRecord> = vec!();
         mem::swap(&mut self.detail_lookup, &mut unsorted_records);
-        let mut mut_records : Vec<DetailedGlyphRecord> = unsorted_records;
+        let mut mut_records: Vec<DetailedGlyphRecord> = unsorted_records;
         mut_records.sort_by(|a, b| {
             if a < b {
                 Ordering::Less

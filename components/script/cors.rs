@@ -106,10 +106,10 @@ impl CORSRequest {
     }
 
     pub fn http_fetch_async(&self,
-                            listener: Box<AsyncCORSResponseListener+Send>,
-                            script_chan: Box<ScriptChan+Send>) {
+                            listener: Box<AsyncCORSResponseListener + Send>,
+                            script_chan: Box<ScriptChan + Send>) {
         struct CORSContext {
-            listener: Box<AsyncCORSResponseListener+Send>,
+            listener: Box<AsyncCORSResponseListener + Send>,
             response: RefCell<Option<CORSResponse>>,
         }
 
@@ -341,7 +341,7 @@ pub struct CORSCacheEntry {
 }
 
 impl CORSCacheEntry {
-    fn new(origin:Url,
+    fn new(origin: Url,
            url: Url,
            max_age: u32,
            credentials: bool,

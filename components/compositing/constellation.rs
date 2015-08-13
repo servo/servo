@@ -219,7 +219,7 @@ enum ExitPipelineMode {
 }
 
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
-    pub fn start(compositor_proxy: Box<CompositorProxy+Send>,
+    pub fn start(compositor_proxy: Box<CompositorProxy + Send>,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
                  font_cache_task: FontCacheTask,
@@ -1019,7 +1019,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn load_url_for_webdriver(&mut self,
                               pipeline_id: PipelineId,
-                              load_data:LoadData,
+                              load_data: LoadData,
                               reply: IpcSender<webdriver_msg::LoadStatus>) {
         let new_pipeline_id = self.load_url(pipeline_id, load_data);
         if let Some(id) = new_pipeline_id {

@@ -142,7 +142,7 @@ impl TimerManager {
                                   timeout: i32,
                                   is_interval: IsInterval,
                                   source: TimerSource,
-                                  script_chan: Box<ScriptChan+Send>)
+                                  script_chan: Box<ScriptChan + Send>)
                                   -> i32 {
         let duration_ms = cmp::max(0, timeout) as u32;
         let handle = self.next_timer_handle.get();

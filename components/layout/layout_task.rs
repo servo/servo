@@ -139,7 +139,7 @@ pub struct LayoutTaskData {
     pub offset_parent_response: OffsetParentResponse,
 
     /// The list of currently-running animations.
-    pub running_animations: Arc<HashMap<OpaqueNode,Vec<Animation>>>,
+    pub running_animations: Arc<HashMap<OpaqueNode, Vec<Animation>>>,
 
     /// Receives newly-discovered animations.
     pub new_animations_receiver: Receiver<Animation>,
@@ -708,7 +708,7 @@ impl LayoutTask {
                                   url: Url,
                                   mq: MediaQueryList,
                                   pending: PendingAsyncLoad,
-                                  responder: Box<StylesheetLoadResponder+Send>,
+                                  responder: Box<StylesheetLoadResponder + Send>,
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding

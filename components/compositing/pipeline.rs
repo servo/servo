@@ -67,23 +67,23 @@ impl Pipeline {
     /// Starts a paint task, layout task, and possibly a script task.
     /// Returns the channels wrapped in a struct.
     /// If script_pipeline is not None, then subpage_id must also be not None.
-    pub fn create<LTF,STF>(id: PipelineId,
-                           parent_info: Option<(PipelineId, SubpageId)>,
-                           constellation_chan: ConstellationChan,
-                           compositor_proxy: Box<CompositorProxy+'static+Send>,
-                           devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                           image_cache_task: ImageCacheTask,
-                           font_cache_task: FontCacheTask,
-                           resource_task: ResourceTask,
-                           storage_task: StorageTask,
-                           time_profiler_chan: time::ProfilerChan,
-                           mem_profiler_chan: profile_mem::ProfilerChan,
-                           window_rect: Option<TypedRect<PagePx, f32>>,
-                           script_chan: Option<Sender<ConstellationControlMsg>>,
-                           load_data: LoadData,
-                           device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
-                           -> (Pipeline, PipelineContent)
-                           where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
+    pub fn create<LTF, STF>(id: PipelineId,
+                            parent_info: Option<(PipelineId, SubpageId)>,
+                            constellation_chan: ConstellationChan,
+                            compositor_proxy: Box<CompositorProxy + 'static + Send>,
+                            devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                            image_cache_task: ImageCacheTask,
+                            font_cache_task: FontCacheTask,
+                            resource_task: ResourceTask,
+                            storage_task: StorageTask,
+                            time_profiler_chan: time::ProfilerChan,
+                            mem_profiler_chan: profile_mem::ProfilerChan,
+                            window_rect: Option<TypedRect<PagePx, f32>>,
+                            script_chan: Option<Sender<ConstellationControlMsg>>,
+                            load_data: LoadData,
+                            device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
+                            -> (Pipeline, PipelineContent)
+                            where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
@@ -305,7 +305,7 @@ pub struct PipelineContent {
 }
 
 impl PipelineContent {
-    pub fn start_all<LTF,STF>(mut self) where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
+    pub fn start_all<LTF, STF>(mut self) where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
         let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel().unwrap();
 

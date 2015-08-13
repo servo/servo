@@ -288,9 +288,9 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
 pub trait WorkerGlobalScopeHelpers {
     fn execute_script(self, source: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
-    fn script_chan(self) -> Box<ScriptChan+Send>;
+    fn script_chan(self) -> Box<ScriptChan + Send>;
     fn pipeline(self) -> PipelineId;
-    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
+    fn new_script_pair(self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>);
     fn process_event(self, msg: CommonScriptMsg);
     fn get_cx(self) -> *mut JSContext;
     fn set_devtools_wants_updates(self, value: bool);
@@ -311,7 +311,7 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
         }
     }
 
-    fn script_chan(self) -> Box<ScriptChan+Send> {
+    fn script_chan(self) -> Box<ScriptChan + Send> {
         let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
@@ -329,7 +329,7 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
         }
     }
 
-    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+    fn new_script_pair(self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {

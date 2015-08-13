@@ -19,18 +19,17 @@ extern crate rustc_serialize;
 extern crate uuid;
 extern crate ipc_channel;
 
-use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId, NavigationDirection,
-                             WebDriverCommandMsg};
+use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId};
+use msg::constellation_msg::{NavigationDirection, WebDriverCommandMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters,
-                         SwitchToFrameParameters, TimeoutsParameters};
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{SwitchToFrameParameters, TimeoutsParameters};
 use webdriver::common::{LocatorStrategy, WebElement};
-use webdriver::response::{
-    WebDriverResponse, NewSessionResponse, ValueResponse};
+use webdriver::response::{WebDriverResponse, NewSessionResponse, ValueResponse};
 use webdriver::server::{self, WebDriverHandler, Session};
 use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
 use util::task::spawn_named;
@@ -498,7 +497,7 @@ impl Handler {
                                                     "Taking screenshot failed"))
         };
         let config = Config {
-            char_set:CharacterSet::Standard,
+            char_set: CharacterSet::Standard,
             newline: Newline::LF,
             pad: true,
             line_length: None
