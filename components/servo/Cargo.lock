@@ -1350,7 +1350,7 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#0e2cc56c36ca08371777e11be018d93d2a877881"
+source = "git+https://github.com/servo/skia#fce887de8bd7e3144226b3c48f088c1395a3b328"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
