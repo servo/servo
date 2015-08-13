@@ -5,7 +5,7 @@
 //! Liberally derived from the [Firefox JS implementation]
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-use devtools_traits::{DevtoolScriptControlMsg, NodeInfo};
+use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ComputedNodeLayout};
 use devtools_traits::DevtoolScriptControlMsg::{GetRootNode, GetDocumentElement, GetChildren};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 
@@ -458,7 +458,7 @@ impl Actor for PageStyleActor {
                                       registry.actor_to_script(target.to_string()),
                                       tx))
                                 .unwrap();
-                let (width, height) = rx.recv().unwrap();
+                let ComputedNodeLayout { width, height } = rx.recv().unwrap();
 
                 let auto_margins = msg.get(&"autoMargins".to_string())
                     .and_then(&Json::as_boolean).unwrap_or(false);
