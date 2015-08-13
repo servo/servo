@@ -1033,12 +1033,10 @@ impl<'a> Iterator for DisplayItemIterator<'a> {
 impl DisplayItem {
     /// Paints this display item into the given painting context.
     fn draw_into_context(&self, paint_context: &mut PaintContext) {
-        if paint_context.layer_kind == LayerKind::NoTransform {
-            let this_clip = &self.base().clip;
-            match paint_context.transient_clip {
-                Some(ref transient_clip) if transient_clip == this_clip => {}
-                Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
-            }
+        let this_clip = &self.base().clip;
+        match paint_context.transient_clip {
+            Some(ref transient_clip) if transient_clip == this_clip => {}
+            Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
         }
 
         match *self {
