@@ -169,9 +169,17 @@ def check_rust(file_name, contents):
     if not file_name.endswith(".rs") or file_name.endswith("properties.mako.rs"):
         raise StopIteration
     contents = contents.splitlines(True)
+    merged_lines = ''
     for idx, line in enumerate(contents):
         # simplify the analisis
-        line = line.lstrip()
+        line = line.strip()
+
+        if line.endswith('\\'):
+            merged_lines += line[:-1]
+            continue
+        elif merged_lines:
+            line = merged_lines + line
+            merged_lines = ''
 
         # get rid of strings and chars because cases like regex expression
         line = re.sub('".*?"|\'.*?\'', '', line)
@@ -180,38 +188,36 @@ def check_rust(file_name, contents):
         line = re.sub('//.*?$|/\*.*?$|^\*.*?$|^#.*?$', '', line)
 
         match = re.search(r",[A-Za-z0-9]", line)
-        if match is not None:
-            yield (idx + 1, "there should be a space following a comma")
+        if match:
+            yield (idx + 1, "missing space after comma")
 
         match = re.search(r"[A-Za-z0-9][\+\-/\*%=]", line)
-        if match is not None:
-            yield (idx + 1, "there should be a space preceding an operator")
+        if match:
+            yield (idx + 1, "missing space before an operator")
 
         # * not included because of dereferencing and casting
         # - not included because of unary negation
         match = re.search(r"[\+/\%=][A-Za-z0-9]", line)
-        if match is not None:
-            yield (idx + 1, "there should be a space following an operator")
+        if match:
+            yield (idx + 1, "missing space after an operator")
 
         match = re.search(r"\)->", line)
-        if match is not None:
-            yield (idx + 1, "there should be a space before -> in a function return type")
+        if match:
+            yield (idx + 1, "missing space before ->")
 
         match = re.search(r"->[A-Za-z]", line)
-        if match is not None:
-            yield (idx + 1, "there should be a space after -> in a function return type")
+        if match:
+            yield (idx + 1, "missing space after ->")
 
-        match = re.search(r" :", line)
-        if match is not None:
-            yield (idx + 1, "there should not be a space preceding a colon")
+        if line.find(" :") != -1:
+            yield (idx + 1, "extra space before :")
 
         match = re.search(r"[A-Za-z0-9\)]{", line)
-        if match is not None:
-            yield (idx + 1, "there should be a space before an open brace")
+        if match:
+            yield (idx + 1, "extra space before {")
 
-        match = re.search(r"^use", line)
-        if match is not None and "{" in line and "}" not in line:
-            yield (idx + 1, "use statements should not span more than one line")
+        if line.startswith("use ") and "{" in line and "}" not in line:
+            yield (idx + 1, "use statement spans multiple lines")
 
 
 def check_webidl_spec(file_name, contents):
