@@ -166,7 +166,7 @@ impl TableRowFlow {
         }
     }
 
-    pub fn populate_collapsed_border_spacing<'a,I>(
+    pub fn populate_collapsed_border_spacing<'a, I>(
             &mut self,
             collapsed_inline_direction_border_widths_for_table: &[Au],
             collapsed_block_direction_border_widths_for_table: &mut Peekable<I>)

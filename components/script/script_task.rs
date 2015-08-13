@@ -33,8 +33,8 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, tr
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::{JSTraceable, trace_traceables, RootedVec};
 use dom::bindings::utils::{WRAP_CALLBACKS, DOM_CALLBACKS};
-use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler,
-                    DocumentProgressTask, DocumentSource, MouseEventType};
+use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler};
+use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::HTMLIFrameElementHelpers;
@@ -196,9 +196,9 @@ pub enum ScriptMsg {
     /// DedicatedWorkerGlobalScope).
     DOMMessage(StructuredCloneData),
     /// Generic message that encapsulates event handling.
-    RunnableMsg(Box<Runnable+Send>),
+    RunnableMsg(Box<Runnable + Send>),
     /// Generic message for running tasks in the ScriptTask
-    MainThreadRunnableMsg(Box<MainThreadRunnable+Send>),
+    MainThreadRunnableMsg(Box<MainThreadRunnable + Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
     /// Notify a document that all pending loads are complete.
@@ -213,10 +213,10 @@ pub trait ScriptChan {
     /// Send a message to the associated event loop.
     fn send(&self, msg: ScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
-    fn clone(&self) -> Box<ScriptChan+Send>;
+    fn clone(&self) -> Box<ScriptChan + Send>;
 }
 
-impl OpaqueSender<ScriptMsg> for Box<ScriptChan+Send> {
+impl OpaqueSender<ScriptMsg> for Box<ScriptChan + Send> {
     fn send(&self, msg: ScriptMsg) {
         ScriptChan::send(&**self, msg).unwrap();
     }
@@ -251,7 +251,7 @@ impl ScriptChan for NonWorkerScriptChan {
         return chan.send(msg).map_err(|_| ());
     }
 
-    fn clone(&self) -> Box<ScriptChan+Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         let NonWorkerScriptChan(ref chan) = *self;
         box NonWorkerScriptChan((*chan).clone())
     }
@@ -393,8 +393,8 @@ impl ScriptTaskFactory for ScriptTask {
         ScriptLayoutChan::new(chan, port)
     }
 
-    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel) -> Box<Any+Send> {
-        box pair.sender() as Box<Any+Send>
+    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel) -> Box<Any + Send> {
+        box pair.sender() as Box<Any + Send>
     }
 
     fn create(_phantom: Option<&mut ScriptTask>,

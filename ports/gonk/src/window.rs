@@ -830,12 +830,12 @@ impl WindowMethods for Window {
     }
 
     fn create_compositor_channel(window: &Option<Rc<Window>>)
-                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
+                                 -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
         (box GonkCompositorProxy {
              sender: sender,
              event_sender: window.as_ref().unwrap().event_send.clone(),
-         } as Box<CompositorProxy+Send>,
+         } as Box<CompositorProxy + Send>,
          box receiver as Box<CompositorReceiver>)
     }
 
@@ -865,11 +865,11 @@ impl CompositorProxy for GonkCompositorProxy {
         self.sender.send(msg).ok().unwrap();
         self.event_sender.send(WindowEvent::Idle).ok().unwrap();
     }
-    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
+    fn clone_compositor_proxy(&self) -> Box<CompositorProxy + Send> {
         box GonkCompositorProxy {
             sender: self.sender.clone(),
             event_sender: self.event_sender.clone(),
-        } as Box<CompositorProxy+Send>
+        } as Box<CompositorProxy + Send>
     }
 }
 

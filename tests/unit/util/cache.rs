@@ -26,7 +26,7 @@ fn test_lru_cache() {
     let four = Cell::new("four");
 
     // Test normal insertion.
-    let mut cache: LRUCache<usize,Cell<&str>> = LRUCache::new(2); // (_, _) (cache is empty)
+    let mut cache: LRUCache<usize, Cell<&str>> = LRUCache::new(2); // (_, _) (cache is empty)
     cache.insert(1, one);    // (1, _)
     cache.insert(2, two);    // (1, 2)
     cache.insert(3, three);  // (2, 3)

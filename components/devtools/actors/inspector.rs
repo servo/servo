@@ -93,7 +93,7 @@ impl Actor for HighlighterActor {
 }
 
 #[derive(RustcEncodable)]
-struct ModifyAttributeReply{
+struct ModifyAttributeReply {
     from: String,
 }
 
@@ -119,7 +119,7 @@ impl Actor for NodeActor {
                                                       registry.actor_to_script(target.to_string()),
                                                       modifications))
                                 .unwrap();
-                let reply = ModifyAttributeReply{
+                let reply = ModifyAttributeReply {
                     from: self.name(),
                 };
                 stream.write_json_packet(&reply);

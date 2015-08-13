@@ -6,7 +6,7 @@
 use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector,reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

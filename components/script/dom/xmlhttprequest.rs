@@ -148,7 +148,7 @@ pub struct XMLHttpRequest {
     timeout_cancel: DOMRefCell<Option<Sender<()>>>,
     fetch_time: Cell<i64>,
     #[ignore_heap_size_of = "Cannot calculate Heap size"]
-    timeout_target: DOMRefCell<Option<Box<ScriptChan+Send>>>,
+    timeout_target: DOMRefCell<Option<Box<ScriptChan + Send>>>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
 }
@@ -201,13 +201,13 @@ impl XMLHttpRequest {
     fn check_cors(context: Arc<Mutex<XHRContext>>,
                   load_data: LoadData,
                   req: CORSRequest,
-                  script_chan: Box<ScriptChan+Send>,
+                  script_chan: Box<ScriptChan + Send>,
                   resource_task: ResourceTask) {
         struct CORSContext {
             xhr: Arc<Mutex<XHRContext>>,
             load_data: RefCell<Option<LoadData>>,
             req: CORSRequest,
-            script_chan: Box<ScriptChan+Send>,
+            script_chan: Box<ScriptChan + Send>,
             resource_task: ResourceTask,
         }
 
@@ -244,7 +244,7 @@ impl XMLHttpRequest {
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
-                          script_chan: Box<ScriptChan+Send>,
+                          script_chan: Box<ScriptChan + Send>,
                           resource_task: ResourceTask,
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
@@ -761,7 +761,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>);
     fn dispatch_response_progress_event(self, type_: DOMString);
     fn text_response(self) -> DOMString;
-    fn set_timeout(self, timeout:u32);
+    fn set_timeout(self, timeout: u32);
     fn cancel_timeout(self);
     fn filter_response_headers(self) -> Headers;
     fn discard_subsequent_responses(self);

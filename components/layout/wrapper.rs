@@ -280,7 +280,7 @@ impl<'ln> LayoutNode<'ln> {
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
     #[inline(always)]
-    pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
+    pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a, Option<LayoutDataWrapper>> {
         unsafe {
             mem::transmute(self.get_jsmanaged().layout_data())
         }
@@ -288,7 +288,7 @@ impl<'ln> LayoutNode<'ln> {
 
     /// Borrows the layout data mutably. Fails on a conflicting borrow.
     #[inline(always)]
-    pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
+    pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a, Option<LayoutDataWrapper>> {
         unsafe {
             mem::transmute(self.get_jsmanaged().layout_data_mut())
         }
@@ -743,7 +743,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     ///
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
-    pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
+    pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a, Option<LayoutDataWrapper>> {
         self.node.borrow_layout_data()
     }
 
@@ -751,7 +751,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     ///
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
-    pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
+    pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a, Option<LayoutDataWrapper>> {
         self.node.mutate_layout_data()
     }
 

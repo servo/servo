@@ -101,7 +101,7 @@ pub struct ResolveGeneratedContent<'a> {
     /// The counter representing an ordered list item.
     list_item: Counter,
     /// Named CSS counters.
-    counters: HashMap<String,Counter>,
+    counters: HashMap<String, Counter>,
     /// The level of quote nesting.
     quote: u32,
 }

@@ -264,7 +264,7 @@ impl LayoutDataRef {
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]
-    pub fn borrow<'a>(&'a self) -> Ref<'a,Option<LayoutData>> {
+    pub fn borrow<'a>(&'a self) -> Ref<'a, Option<LayoutData>> {
         debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow()
     }
@@ -275,7 +275,7 @@ impl LayoutDataRef {
     /// prevent CSS selector matching from mutably accessing nodes it's not supposed to and racing
     /// on it. This has already resulted in one bug!
     #[inline]
-    pub fn borrow_mut<'a>(&'a self) -> RefMut<'a,Option<LayoutData>> {
+    pub fn borrow_mut<'a>(&'a self) -> RefMut<'a, Option<LayoutData>> {
         debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow_mut()
     }
@@ -1464,7 +1464,7 @@ pub enum CloneChildrenFlag {
 fn as_uintptr<T>(t: &T) -> uintptr_t { t as *const T as uintptr_t }
 
 impl Node {
-    pub fn reflect_node<N: Reflectable+NodeBase>
+    pub fn reflect_node<N: Reflectable + NodeBase>
             (node:      Box<N>,
              document:  &Document,
              wrap_fn:   extern "Rust" fn(*mut JSContext, GlobalRef, Box<N>) -> Root<N>)
@@ -2554,12 +2554,12 @@ pub struct TrustedNodeAddress(pub *const c_void);
 #[allow(unsafe_code)]
 unsafe impl Send for TrustedNodeAddress {}
 
-pub fn document_from_node<T: NodeBase+Reflectable>(derived: &T) -> Root<Document> {
+pub fn document_from_node<T: NodeBase + Reflectable>(derived: &T) -> Root<Document> {
     let node: &Node = NodeCast::from_ref(derived);
     node.owner_doc()
 }
 
-pub fn window_from_node<T: NodeBase+Reflectable>(derived: &T) -> Root<Window> {
+pub fn window_from_node<T: NodeBase + Reflectable>(derived: &T) -> Root<Window> {
     let document = document_from_node(derived);
     document.r().window()
 }

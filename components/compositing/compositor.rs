@@ -52,7 +52,7 @@ use url::Url;
 use util::geometry::{Au, PagePx, ScreenPx, ViewportPx};
 use util::opts;
 
-const BUFFER_MAP_SIZE : usize = 10000000;
+const BUFFER_MAP_SIZE: usize = 10000000;
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
@@ -163,8 +163,8 @@ pub struct IOCompositor<Window: WindowMethods> {
 }
 
 pub struct ScrollEvent {
-    delta: TypedPoint2D<DevicePixel,f32>,
-    cursor: TypedPoint2D<DevicePixel,i32>,
+    delta: TypedPoint2D<DevicePixel, f32>,
+    cursor: TypedPoint2D<DevicePixel, i32>,
 }
 
 #[derive(PartialEq)]
@@ -249,7 +249,7 @@ pub fn reporter_name() -> String {
 
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>,
-           sender: Box<CompositorProxy+Send>,
+           sender: Box<CompositorProxy + Send>,
            receiver: Box<CompositorReceiver>,
            constellation_chan: ConstellationChan,
            time_profiler_chan: time::ProfilerChan,
@@ -312,7 +312,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     pub fn create(window: Rc<Window>,
-                  sender: Box<CompositorProxy+Send>,
+                  sender: Box<CompositorProxy + Send>,
                   receiver: Box<CompositorReceiver>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: time::ProfilerChan,

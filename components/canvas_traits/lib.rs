@@ -66,13 +66,13 @@ pub enum FromPaintMsg {
 }
 
 impl Serialize for FromPaintMsg {
-    fn serialize<S>(&self, _: &mut S) -> Result<(),S::Error> where S: Serializer {
+    fn serialize<S>(&self, _: &mut S) -> Result<(), S::Error> where S: Serializer {
         panic!("can't serialize a `FromPaintMsg`!")
     }
 }
 
 impl Deserialize for FromPaintMsg {
-    fn deserialize<D>(_: &mut D) -> Result<FromPaintMsg,D::Error> where D: Deserializer {
+    fn deserialize<D>(_: &mut D) -> Result<FromPaintMsg, D::Error> where D: Deserializer {
         panic!("can't deserialize a `FromPaintMsg`!")
     }
 }

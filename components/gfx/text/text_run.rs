@@ -46,7 +46,7 @@ pub struct NaturalWordSliceIterator<'a> {
 
 struct CharIndexComparator;
 
-impl Comparator<CharIndex,GlyphRun> for CharIndexComparator {
+impl Comparator<CharIndex, GlyphRun> for CharIndexComparator {
     fn compare(&self, key: &CharIndex, value: &GlyphRun) -> Ordering {
         if *key < value.range.begin() {
             Ordering::Less

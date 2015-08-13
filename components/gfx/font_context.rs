@@ -82,7 +82,7 @@ pub struct FontContext {
     paint_font_cache: Vec<PaintFontCacheEntry>,
 
     layout_font_group_cache:
-        HashMap<LayoutFontGroupCacheKey,Rc<FontGroup>,DefaultState<FnvHasher>>,
+        HashMap<LayoutFontGroupCacheKey, Rc<FontGroup>, DefaultState<FnvHasher>>,
 }
 
 impl FontContext {
@@ -273,7 +273,7 @@ impl FontContext {
         }
 
         let paint_font = Rc::new(RefCell::new(create_scaled_font(template, pt_size)));
-        self.paint_font_cache.push(PaintFontCacheEntry{
+        self.paint_font_cache.push(PaintFontCacheEntry {
             font: paint_font.clone(),
             pt_size: pt_size,
             identifier: template.identifier.clone(),

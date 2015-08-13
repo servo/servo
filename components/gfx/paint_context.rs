@@ -751,11 +751,11 @@ impl<'a> PaintContext<'a> {
                                   border: &SideOffsets2D<f32>,
                                   radius: &BorderRadii<AzFloat>,
                                   color: Color) {
-        let scaled_border = SideOffsets2D::new((1.0/3.0) * border.top,
-                                               (1.0/3.0) * border.right,
-                                               (1.0/3.0) * border.bottom,
-                                               (1.0/3.0) * border.left);
-        let inner_scaled_bounds = self.compute_scaled_bounds(bounds, border, 2.0/3.0);
+        let scaled_border = SideOffsets2D::new((1.0 / 3.0) * border.top,
+                                               (1.0 / 3.0) * border.right,
+                                               (1.0 / 3.0) * border.bottom,
+                                               (1.0 / 3.0) * border.left);
+        let inner_scaled_bounds = self.compute_scaled_bounds(bounds, border, 2.0 / 3.0);
         // draw the outer portion of the double border.
         self.draw_solid_border_segment(direction, bounds, &scaled_border, radius, color);
         // draw the inner portion of the double border.
@@ -786,7 +786,7 @@ impl<'a> PaintContext<'a> {
         let lighter_color;
         let mut darker_color = color::black();
         if color != darker_color {
-            darker_color = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
+            darker_color = self.scale_color(color, if is_groove { 1.0 / 3.0 } else { 2.0 / 3.0 });
             lighter_color = color;
         } else {
             // You can't scale black color (i.e. 'scaled = 0 * scale', equals black).
@@ -832,10 +832,10 @@ impl<'a> PaintContext<'a> {
         if color != scaled_color {
             scaled_color = match direction {
                 Direction::Top | Direction::Left => {
-                    self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     })
+                    self.scale_color(color, if is_inset { 2.0 / 3.0 } else { 1.0       })
                 }
                 Direction::Right | Direction::Bottom => {
-                    self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
+                    self.scale_color(color, if is_inset { 1.0       } else { 2.0 / 3.0 })
                 }
             };
         } else {

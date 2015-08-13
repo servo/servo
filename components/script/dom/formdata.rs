@@ -121,7 +121,7 @@ impl<'a> FormDataMethods for &'a FormData {
     }
 }
 
-trait PrivateFormDataHelpers{
+trait PrivateFormDataHelpers {
   fn get_file_from_blob(self, value: &Blob, filename: Option<DOMString>) -> Root<File>;
 }
 

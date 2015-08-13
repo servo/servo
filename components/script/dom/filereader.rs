@@ -267,7 +267,7 @@ impl<'a> FileReaderMethods for &'a FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(self, blob: &Blob, label:Option<DOMString>) -> ErrorResult {
+    fn ReadAsText(self, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsText, blob, label)
     }
 

@@ -23,14 +23,14 @@ impl MIMEClassifier {
                     supplied_type: &Option<(String, String)>,
                     data: &[u8]) -> Option<(String, String)> {
 
-        match *supplied_type{
+        match *supplied_type {
             None => {
               return self.sniff_unknown_type(!no_sniff, data);
             }
             Some((ref media_type, ref media_subtype)) => {
                 match (&**media_type, &**media_subtype) {
                     ("unknown", "unknown") | ("application", "unknown") | ("*", "*") => {
-                        return self.sniff_unknown_type(!no_sniff,data);
+                        return self.sniff_unknown_type(!no_sniff, data);
                     }
                     _ => {
                         if no_sniff {
@@ -71,8 +71,8 @@ impl MIMEClassifier {
         return supplied_type.clone();
     }
 
-    pub fn new()->MIMEClassifier {
-         MIMEClassifier{
+    pub fn new() -> MIMEClassifier {
+         MIMEClassifier {
              image_classifier: GroupedClassifier::image_classifer(),
              audio_video_classifer: GroupedClassifier::audio_video_classifer(),
              scriptable_classifier: GroupedClassifier::scriptable_classifier(),
@@ -84,7 +84,7 @@ impl MIMEClassifier {
     }
     //some sort of iterator over the classifiers might be better?
     fn sniff_unknown_type(&self, sniff_scriptable: bool, data: &[u8]) ->
-      Option<(String,String)> {
+      Option<(String, String)> {
         if sniff_scriptable {
             self.scriptable_classifier.classify(data)
         } else {
@@ -107,21 +107,21 @@ impl MIMEClassifier {
       }
     }
     fn is_html(tp: &str, sub_tp: &str) -> bool {
-        tp=="text" && sub_tp=="html"
+        tp == "text" && sub_tp == "html"
     }
 }
 
-pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<(String,String)> {
+pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<(String, String)> {
     tup.map(|(a, b)| (a.to_owned(), b.to_owned()))
 }
 
 //Interface used for composite types
 trait MIMEChecker {
-    fn classify(&self, data: &[u8])->Option<(String, String)>;
+    fn classify(&self, data: &[u8]) -> Option<(String, String)>;
 }
 
 trait Matches {
-    fn matches(&mut self, matches: &[u8])->bool;
+    fn matches(&mut self, matches: &[u8]) -> bool;
 }
 
 impl <'a, T: Iterator<Item=&'a u8> + Clone> Matches for T {
@@ -215,7 +215,7 @@ impl MIMEChecker for TagTerminatedByteMatcher {
 pub struct Mp4Matcher;
 
 impl Mp4Matcher {
-    pub fn matches(&self,data: &[u8]) -> bool {
+    pub fn matches(&self, data: &[u8]) -> bool {
         if data.len() < 12 {
             return false;
         }
@@ -235,7 +235,7 @@ impl Mp4Matcher {
         }
         let mut all_match = true;
         for i in 8..11 {
-            if data[i]!=mp4[i - 8] {
+            if data[i] != mp4[i - 8] {
                 all_match = false;
                 break;
             }
@@ -278,7 +278,7 @@ struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
     fn classify_impl(&self, data: &[u8]) -> Option<(&'static str, &'static str)> {
-        if (data.len() >=2 &&
+        if (data.len() >= 2 &&
             ((data[0] == 0xFFu8 && data[1] == 0xFEu8) ||
             (data[0] == 0xFEu8 && data[1] == 0xFFu8))) ||
             (data.len() >= 3 && data[0] == 0xEFu8 && data[1] == 0xBBu8 && data[2] == 0xBFu8)
@@ -320,7 +320,7 @@ impl GroupedClassifier {
         }
     }
     fn audio_video_classifer() -> GroupedClassifier {
-        GroupedClassifier{
+        GroupedClassifier {
             byte_matchers: vec![
                 box ByteMatcher::video_webm(),
                 box ByteMatcher::audio_basic(),
@@ -335,7 +335,7 @@ impl GroupedClassifier {
         }
     }
     fn scriptable_classifier() -> GroupedClassifier {
-        GroupedClassifier{
+        GroupedClassifier {
             byte_matchers: vec![
                 box ByteMatcher::text_html_doctype(),
                 box ByteMatcher::text_html_page(),
@@ -361,7 +361,7 @@ impl GroupedClassifier {
 
     }
     fn plaintext_classifier() -> GroupedClassifier {
-        GroupedClassifier{
+        GroupedClassifier {
             byte_matchers: vec![
                 box ByteMatcher::text_plain_utf_8_bom(),
                 box ByteMatcher::text_plain_utf_16le_bom(),
@@ -395,7 +395,7 @@ impl GroupedClassifier {
     }
 }
 impl MIMEChecker for GroupedClassifier {
-    fn classify(&self,data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         self.byte_matchers
             .iter()
             .filter_map(|matcher| matcher.classify(data))
@@ -405,7 +405,7 @@ impl MIMEChecker for GroupedClassifier {
 
 struct FeedsClassifier;
 impl FeedsClassifier {
-    fn classify_impl(&self,data: &[u8]) -> Option<(&'static str,&'static str)> {
+    fn classify_impl(&self, data: &[u8]) -> Option<(&'static str, &'static str)> {
         let length = data.len();
         let mut data_iterator = data.iter();
 
@@ -469,7 +469,7 @@ impl FeedsClassifier {
 }
 
 impl MIMEChecker for FeedsClassifier {
-    fn classify(&self,data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
        as_string_option(self.classify_impl(data))
     }
 }
@@ -478,8 +478,8 @@ impl MIMEChecker for FeedsClassifier {
 //TODO: These should be configured and not hard coded
 impl ByteMatcher {
     //A Windows Icon signature
-    fn image_x_icon()->ByteMatcher {
-        ByteMatcher{
+    fn image_x_icon() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\x00\x00\x01\x00",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("image", "x-icon"),
@@ -487,8 +487,8 @@ impl ByteMatcher {
         }
     }
     //A Windows Cursor signature.
-    fn image_x_icon_cursor()->ByteMatcher {
-        ByteMatcher{
+    fn image_x_icon_cursor() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\x00\x00\x02\x00",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("image", "x-icon"),
@@ -496,8 +496,8 @@ impl ByteMatcher {
         }
     }
     //The string "BM", a BMP signature.
-    fn image_bmp()->ByteMatcher {
-        ByteMatcher{
+    fn image_bmp() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"BM",
             mask: b"\xFF\xFF",
             content_type: ("image", "bmp"),
@@ -505,8 +505,8 @@ impl ByteMatcher {
         }
     }
     //The string "GIF89a", a GIF signature.
-    fn image_gif89a()->ByteMatcher {
-        ByteMatcher{
+    fn image_gif89a() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"GIF89a",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("image", "gif"),
@@ -514,8 +514,8 @@ impl ByteMatcher {
         }
     }
     //The string "GIF87a", a GIF signature.
-    fn image_gif87a()->ByteMatcher {
-        ByteMatcher{
+    fn image_gif87a() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"GIF87a",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("image", "gif"),
@@ -523,8 +523,8 @@ impl ByteMatcher {
         }
     }
     //The string "RIFF" followed by four bytes followed by the string "WEBPVP".
-    fn image_webp()->ByteMatcher {
-        ByteMatcher{
+    fn image_webp() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WEBPVP",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00,\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("image", "webp"),
@@ -533,8 +533,8 @@ impl ByteMatcher {
     }
     //An error-checking byte followed by the string "PNG" followed by CR LF SUB LF, the PNG
     //signature.
-    fn image_png()->ByteMatcher {
-        ByteMatcher{
+    fn image_png() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\x89PNG\r\n\x1A\n",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("image", "png"),
@@ -542,8 +542,8 @@ impl ByteMatcher {
         }
     }
     // The JPEG Start of Image marker followed by the indicator byte of another marker.
-    fn image_jpeg()->ByteMatcher {
-        ByteMatcher{
+    fn image_jpeg() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\xFF\xD8\xFF",
             mask: b"\xFF\xFF\xFF",
             content_type: ("image", "jpeg"),
@@ -551,8 +551,8 @@ impl ByteMatcher {
         }
     }
     //The WebM signature. [TODO: Use more bytes?]
-    fn video_webm()->ByteMatcher {
-        ByteMatcher{
+    fn video_webm() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\x1A\x45\xDF\xA3",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("video", "webm"),
@@ -560,8 +560,8 @@ impl ByteMatcher {
         }
     }
     //The string ".snd", the basic audio signature.
-    fn audio_basic()->ByteMatcher {
-        ByteMatcher{
+    fn audio_basic() -> ByteMatcher {
+        ByteMatcher {
             pattern: b".snd",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("audio", "basic"),
@@ -569,8 +569,8 @@ impl ByteMatcher {
         }
     }
     //The string "FORM" followed by four bytes followed by the string "AIFF", the AIFF signature.
-    fn audio_aiff()->ByteMatcher {
-        ByteMatcher{
+    fn audio_aiff() -> ByteMatcher {
+        ByteMatcher {
             pattern:  b"FORM\x00\x00\x00\x00AIFF",
             mask:  b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
             content_type: ("audio", "aiff"),
@@ -578,8 +578,8 @@ impl ByteMatcher {
         }
     }
     //The string "ID3", the ID3v2-tagged MP3 signature.
-    fn audio_mpeg()->ByteMatcher {
-        ByteMatcher{
+    fn audio_mpeg() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"ID3",
             mask: b"\xFF\xFF\xFF",
             content_type: ("audio", "mpeg"),
@@ -587,8 +587,8 @@ impl ByteMatcher {
         }
     }
     //The string "OggS" followed by NUL, the Ogg container signature.
-    fn application_ogg()->ByteMatcher {
-        ByteMatcher{
+    fn application_ogg() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"OggS",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "ogg"),
@@ -597,8 +597,8 @@ impl ByteMatcher {
     }
     //The string "MThd" followed by four bytes representing the number 6 in 32 bits (big-endian),
     //the MIDI signature.
-    fn audio_midi()->ByteMatcher {
-        ByteMatcher{
+    fn audio_midi() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"MThd\x00\x00\x00\x06",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("audio", "midi"),
@@ -606,8 +606,8 @@ impl ByteMatcher {
         }
     }
     //The string "RIFF" followed by four bytes followed by the string "AVI ", the AVI signature.
-    fn video_avi()->ByteMatcher {
-        ByteMatcher{
+    fn video_avi() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00AVI ",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
             content_type: ("video", "avi"),
@@ -615,8 +615,8 @@ impl ByteMatcher {
         }
     }
     // The string "RIFF" followed by four bytes followed by the string "WAVE", the WAVE signature.
-    fn audio_wave()->ByteMatcher {
-        ByteMatcher{
+    fn audio_wave() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WAVE",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
             content_type: ("audio", "wave"),
@@ -624,9 +624,9 @@ impl ByteMatcher {
         }
     }
     // doctype terminated with Tag terminating (TT) Byte
-    fn text_html_doctype()->TagTerminatedByteMatcher {
+    fn text_html_doctype() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<!DOCTYPE HTML",
                 mask: b"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -636,9 +636,9 @@ impl ByteMatcher {
     }
 
     // HTML terminated with Tag terminating (TT) Byte: 0x20 (SP)
-    fn text_html_page()->TagTerminatedByteMatcher {
+    fn text_html_page() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<HTML",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xFF",
                 content_type: ("text", "html"),
@@ -648,9 +648,9 @@ impl ByteMatcher {
     }
 
     // head terminated with Tag Terminating (TT) Byte
-    fn text_html_head()->TagTerminatedByteMatcher {
+    fn text_html_head() -> TagTerminatedByteMatcher {
          TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<HEAD",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -660,7 +660,7 @@ impl ByteMatcher {
     }
 
     // script terminated with Tag Terminating (TT) Byte
-    fn text_html_script()->TagTerminatedByteMatcher {
+    fn text_html_script() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<SCRIPT",
@@ -672,9 +672,9 @@ impl ByteMatcher {
     }
 
     // iframe terminated with Tag Terminating (TT) Byte
-    fn text_html_iframe()->TagTerminatedByteMatcher {
+    fn text_html_iframe() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<IFRAME",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -684,9 +684,9 @@ impl ByteMatcher {
     }
 
     // h1 terminated with Tag Terminating (TT) Byte
-    fn text_html_h1()->TagTerminatedByteMatcher {
+    fn text_html_h1() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<H1",
                 mask: b"\xFF\xDF\xFF",
                 content_type: ("text", "html"),
@@ -696,9 +696,9 @@ impl ByteMatcher {
     }
 
     // div terminated with Tag Terminating (TT) Byte
-    fn text_html_div()->TagTerminatedByteMatcher {
+    fn text_html_div() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<DIV",
                 mask: b"\xFF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -708,9 +708,9 @@ impl ByteMatcher {
     }
 
     // font terminated with Tag Terminating (TT) Byte
-    fn text_html_font()->TagTerminatedByteMatcher {
+    fn text_html_font() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<FONT",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -720,9 +720,9 @@ impl ByteMatcher {
     }
 
     // table terminated with Tag Terminating (TT) Byte
-    fn text_html_table()->TagTerminatedByteMatcher {
+    fn text_html_table() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
             pattern: b"<TABLE",
             mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
             content_type: ("text", "html"),
@@ -732,9 +732,9 @@ impl ByteMatcher {
     }
 
     // a terminated with Tag Terminating (TT) Byte
-    fn text_html_a()->TagTerminatedByteMatcher {
+    fn text_html_a() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<A",
                 mask: b"\xFF\xDF",
                 content_type: ("text", "html"),
@@ -744,9 +744,9 @@ impl ByteMatcher {
     }
 
     // style terminated with Tag Terminating (TT) Byte
-    fn text_html_style()->TagTerminatedByteMatcher {
+    fn text_html_style() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<STYLE",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -756,9 +756,9 @@ impl ByteMatcher {
     }
 
     // title terminated with Tag Terminating (TT) Byte
-    fn text_html_title()->TagTerminatedByteMatcher {
+    fn text_html_title() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<TITLE",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -768,9 +768,9 @@ impl ByteMatcher {
     }
 
     // b terminated with Tag Terminating (TT) Byte
-    fn text_html_b()->TagTerminatedByteMatcher {
+    fn text_html_b() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<B",
                 mask: b"\xFF\xDF",
                 content_type: ("text", "html"),
@@ -780,9 +780,9 @@ impl ByteMatcher {
     }
 
     // body terminated with Tag Terminating (TT) Byte
-    fn text_html_body()->TagTerminatedByteMatcher {
+    fn text_html_body() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<BODY",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -792,9 +792,9 @@ impl ByteMatcher {
     }
 
     // br terminated with Tag Terminating (TT) Byte
-    fn text_html_br()->TagTerminatedByteMatcher {
+    fn text_html_br() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<BR",
                 mask: b"\xFF\xDF\xDF",
                 content_type: ("text", "html"),
@@ -804,9 +804,9 @@ impl ByteMatcher {
     }
 
     // p terminated with Tag Terminating (TT) Byte
-    fn text_html_p()->TagTerminatedByteMatcher {
+    fn text_html_p() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<P",
                 mask: b"\xFF\xDF",
                 content_type: ("text", "html"),
@@ -816,9 +816,9 @@ impl ByteMatcher {
     }
 
     // comment terminated with Tag Terminating (TT) Byte
-    fn text_html_comment()->TagTerminatedByteMatcher {
+    fn text_html_comment() -> TagTerminatedByteMatcher {
         TagTerminatedByteMatcher {
-            matcher: ByteMatcher{
+            matcher: ByteMatcher {
                 pattern: b"<!--",
                 mask: b"\xFF\xFF\xFF\xFF",
                 content_type: ("text", "html"),
@@ -828,7 +828,7 @@ impl ByteMatcher {
     }
 
     //The string "<?xml".
-    fn text_xml()->ByteMatcher {
+    fn text_xml() -> ByteMatcher {
         ByteMatcher {
             pattern: b"<?xml",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
@@ -837,8 +837,8 @@ impl ByteMatcher {
         }
     }
     //The string "%PDF-", the PDF signature.
-    fn application_pdf()->ByteMatcher {
-        ByteMatcher{
+    fn application_pdf() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"%PDF",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "pdf"),
@@ -848,8 +848,8 @@ impl ByteMatcher {
     //34 bytes followed by the string "LP", the Embedded OpenType signature.
     // TODO: Use this in font context classifier
     #[allow(dead_code)]
-    fn application_vnd_ms_font_object()->ByteMatcher {
-        ByteMatcher{
+    fn application_vnd_ms_font_object() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
                        \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
                        \x00\x00LP",
@@ -863,8 +863,8 @@ impl ByteMatcher {
     //4 bytes representing the version number 1.0, a TrueType signature.
     // TODO: Use this in font context classifier
     #[allow(dead_code)]
-    fn true_type()->ByteMatcher {
-        ByteMatcher{
+    fn true_type() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\x00\x01\x00\x00",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("(TrueType)", ""),
@@ -874,8 +874,8 @@ impl ByteMatcher {
     //The string "OTTO", the OpenType signature.
     // TODO: Use this in font context classifier
     #[allow(dead_code)]
-    fn open_type()->ByteMatcher {
-        ByteMatcher{
+    fn open_type() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"OTTO",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("(OpenType)", ""),
@@ -885,8 +885,8 @@ impl ByteMatcher {
     // The string "ttcf", the TrueType Collection signature.
     // TODO: Use this in font context classifier
     #[allow(dead_code)]
-    fn true_type_collection()->ByteMatcher {
-        ByteMatcher{
+    fn true_type_collection() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"ttcf",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("(TrueType Collection)", ""),
@@ -896,8 +896,8 @@ impl ByteMatcher {
     // The string "wOFF", the Web Open Font Format signature.
     // TODO: Use this in font context classifier
     #[allow(dead_code)]
-    fn application_font_woff()->ByteMatcher {
-        ByteMatcher{
+    fn application_font_woff() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"wOFF",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("application", "font-woff"),
@@ -905,8 +905,8 @@ impl ByteMatcher {
         }
     }
     //The GZIP archive signature.
-    fn application_x_gzip()->ByteMatcher {
-        ByteMatcher{
+    fn application_x_gzip() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\x1F\x8B\x08",
             mask: b"\xFF\xFF\xFF",
             content_type: ("application", "x-gzip"),
@@ -914,8 +914,8 @@ impl ByteMatcher {
         }
     }
     //The string "PK" followed by ETX EOT, the ZIP archive signature.
-    fn application_zip()->ByteMatcher {
-        ByteMatcher{
+    fn application_zip() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"PK\x03\x04",
             mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("application", "zip"),
@@ -923,8 +923,8 @@ impl ByteMatcher {
         }
     }
     //The string "Rar " followed by SUB BEL NUL, the RAR archive signature.
-    fn application_x_rar_compressed()->ByteMatcher {
-        ByteMatcher{
+    fn application_x_rar_compressed() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"Rar \x1A\x07\x00",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "x-rar-compressed"),
@@ -932,8 +932,8 @@ impl ByteMatcher {
         }
     }
     // The string "%!PS-Adobe-", the PostScript signature.
-    fn application_postscript()->ByteMatcher {
-        ByteMatcher{
+    fn application_postscript() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"%!PS-Adobe-",
             mask:  b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "postscript"),
@@ -941,8 +941,8 @@ impl ByteMatcher {
         }
     }
     // UTF-16BE BOM
-    fn text_plain_utf_16be_bom()->ByteMatcher {
-        ByteMatcher{
+    fn text_plain_utf_16be_bom() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\xFE\xFF\x00\x00",
             mask: b"\xFF\xFF\x00\x00",
             content_type: ("text", "plain"),
@@ -950,8 +950,8 @@ impl ByteMatcher {
         }
     }
     //UTF-16LE BOM
-    fn text_plain_utf_16le_bom()->ByteMatcher {
-        ByteMatcher{
+    fn text_plain_utf_16le_bom() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\xFF\xFE\x00\x00",
             mask: b"\xFF\xFF\x00\x00",
             content_type: ("text", "plain"),
@@ -959,8 +959,8 @@ impl ByteMatcher {
         }
     }
     //UTF-8 BOM
-    fn text_plain_utf_8_bom()->ByteMatcher {
-        ByteMatcher{
+    fn text_plain_utf_8_bom() -> ByteMatcher {
+        ByteMatcher {
             pattern: b"\xEF\xBB\xBF\x00",
             mask: b"\xFF\xFF\xFF\x00",
             content_type: ("text", "plain"),

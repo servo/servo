@@ -26,7 +26,7 @@ pub trait CollectionFilter : JSTraceable {
 #[must_root]
 pub enum CollectionTypeId {
     Static(Vec<JS<Element>>),
-    Live(JS<Node>, Box<CollectionFilter+'static>)
+    Live(JS<Node>, Box<CollectionFilter + 'static>)
 }
 
 #[dom_struct]
@@ -53,7 +53,7 @@ impl HTMLCollection {
 
 impl HTMLCollection {
     pub fn create(window: &Window, root: &Node,
-                  filter: Box<CollectionFilter+'static>) -> Root<HTMLCollection> {
+                  filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
         HTMLCollection::new(window, CollectionTypeId::Live(JS::from_ref(root), filter))
     }
 

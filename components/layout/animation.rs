@@ -93,7 +93,7 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
 pub fn recalc_style_for_animations(flow: &mut Flow,
-                                   animations: &HashMap<OpaqueNode,Vec<Animation>>) {
+                                   animations: &HashMap<OpaqueNode, Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
         if let Some(ref animations) = animations.get(&OpaqueNode(fragment.node.id())) {
