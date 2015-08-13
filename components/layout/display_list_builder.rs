@@ -16,7 +16,7 @@ use context::LayoutContext;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
-use inline::InlineFlow;
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
 use table_cell::CollapsedBordersForCell;
@@ -45,11 +45,11 @@ use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::f32;
 use style::computed_values::filter::Filter;
-use style::computed_values::{background_attachment, background_clip, background_origin,
-                             background_repeat, background_size};
-use style::computed_values::{border_style, image_rendering, overflow_x, position,
-                             visibility, transform, transform_style};
-use style::properties::ComputedValues;
+use style::computed_values::{background_attachment, background_clip, background_origin};
+use style::computed_values::{background_repeat, background_size};
+use style::computed_values::{border_style, image_rendering, overflow_x, position};
+use style::computed_values::{visibility, transform, transform_style};
+use style::properties::{self, ComputedValues};
 use style::properties::style_structs::Border;
 use style::values::RGBA;
 use style::values::computed;
@@ -949,13 +949,20 @@ impl FragmentDisplayListBuilding for Fragment {
                         level,
                         &stacking_relative_border_box,
                         &clip);
+
+                    let mut style = node.style.clone();
+                    properties::modify_border_style_for_inline_sides(
+                        &mut style,
+                        node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
+                        node.flags.contains(LAST_FRAGMENT_OF_ELEMENT));
                     self.build_display_list_for_borders_if_applicable(
-                        &*node.style,
+                        &*style,
                         border_painting_mode,
                         display_list,
                         &stacking_relative_border_box,
                         level,
                         &clip);
+
                     self.build_display_list_for_outline_if_applicable(
                         &*node.style,
                         display_list,

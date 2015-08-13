@@ -1629,6 +1629,8 @@ impl Flow for InlineFlow {
                                                           .absolute_position_info
                                                           .relative_containing_block_mode,
                                                       CoordinateSystem::Parent);
+            let stacking_relative_content_box =
+                fragment.stacking_relative_content_box(&stacking_relative_border_box);
             let clip = fragment.clipping_region_for_children(&self.base.clip,
                                                              &stacking_relative_border_box,
                                                              false);
@@ -1639,7 +1641,7 @@ impl Flow for InlineFlow {
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin;
+                        stacking_relative_content_box.origin;
                     block_flow.base.stacking_relative_position_of_display_port =
                         self.base.stacking_relative_position_of_display_port;
                 }
@@ -1761,6 +1763,14 @@ pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
     pub style: Arc<ComputedValues>,
     pub pseudo: PseudoElementType<()>,
+    pub flags: InlineFragmentNodeFlags,
+}
+
+bitflags! {
+    flags InlineFragmentNodeFlags: u8 {
+        const FIRST_FRAGMENT_OF_ELEMENT = 0x01,
+        const LAST_FRAGMENT_OF_ELEMENT = 0x02,
+    }
 }
 
 #[derive(Clone)]
