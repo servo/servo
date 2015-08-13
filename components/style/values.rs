@@ -607,35 +607,61 @@ pub mod specified {
 
     impl ToCss for Calc {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            // XXX WRONG HACK
-            try!(write!(dest, "calc("));
-            if let Some(FontRelativeLength::Em(em)) = self.em {
-                try!(write!(dest, "{}em", em));
-            }
-            if let Some(FontRelativeLength::Ex(ex)) = self.ex {
-                try!(write!(dest, "{}ex", ex));
-            }
-            if let Some(absolute) = self.absolute {
-                try!(write!(dest, "{}px", Au::to_px(absolute)));
-            }
-            if let Some(FontRelativeLength::Rem(rem)) = self.rem {
-                try!(write!(dest, "{}rem", rem));
-            }
-            if let Some(ViewportPercentageLength::Vh(vh)) = self.vh {
-                try!(write!(dest, "{}vh", vh));
-            }
-            if let Some(ViewportPercentageLength::Vmax(vmax)) = self.vmax {
-                try!(write!(dest, "{}vmax", vmax));
-            }
-            if let Some(ViewportPercentageLength::Vmin(vmin)) = self.vmin {
-                try!(write!(dest, "{}vmin", vmin));
-            }
-            if let Some(ViewportPercentageLength::Vw(vw)) = self.vw {
-                try!(write!(dest, "{}vw", vw));
+
+            macro_rules! count {
+                ( $( $val:ident ),* ) => {
+                    {
+                        let mut count = 0;
+                        $(
+                            if let Some(_) = self.$val {
+                                count += 1;
+                            }
+                        )*
+                        count
+                     }
+                };
             }
 
+            macro_rules! serialize {
+                ( $( [$val:ident; $name:expr] ),* ) => {
+                    {
+                        let mut first_value = true;
+                        $(
+                            if let Some(val) = self.$val {
+                                if !first_value {
+                                    try!(write!(dest, " + "));
+                                } else {
+                                    first_value = false;
+                                }
+                                try!(write!(dest, "{:?}{}", val, $name));
+                            }
+                        )*
+                     }
+                };
+            }
 
-            write!(dest, ")")
+            let count = count!(em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
+            assert!(count > 0);
+
+            if count > 1 {
+               try!(write!(dest, "calc("));
+            }
+
+            serialize!(
+                [em; "em"],
+                [ex; "ex"],
+                [absolute; "px"],
+                [rem; "rem"],
+                [vh; "vh"],
+                [vmax; "vmax"],
+                [vmin; "vmin"],
+                [vw; "vw"],
+                [percentage; "%"]);
+
+            if count > 1 {
+               try!(write!(dest, ")"));
+            }
+            Ok(())
          }
     }
 
@@ -1308,8 +1334,7 @@ pub mod computed {
             match self {
                 &LengthOrPercentage::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
-                // XXX HACK WRONG
-                &LengthOrPercentage::Calc(calc) => write!(f, "{}%", 100.),
+                &LengthOrPercentage::Calc(calc) => write!(f, "{:?}", calc),
             }
         }
     }
@@ -1356,8 +1381,7 @@ pub mod computed {
                 &LengthOrPercentageOrAuto::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
-                // XXX HACK WRONG
-                &LengthOrPercentageOrAuto::Calc(calc) => write!(f, "{}%", 100.),
+                &LengthOrPercentageOrAuto::Calc(calc) => write!(f, "{:?}", calc),
             }
         }
     }
