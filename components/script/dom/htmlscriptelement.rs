@@ -33,7 +33,7 @@ use dom::servohtmlparser::ServoHTMLParserHelpers;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{WindowHelpers, ScriptHelpers};
 use network_listener::{NetworkListener, PreInvoke};
-use script_task::{ScriptChan, ScriptMsg, Runnable};
+use script_task::{ScriptChan, Runnable, CommonScriptMsg};
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 
@@ -459,7 +459,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                 element: handler,
                 is_error: false,
             };
-            chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
         }
     }
 
@@ -472,7 +472,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
             element: handler,
             is_error: true,
         };
-        chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
+        chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
     }
 
     fn dispatch_before_script_execute_event(self) -> bool {

@@ -28,7 +28,7 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use network_listener::{NetworkListener, PreInvoke};
-use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
+use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -1013,7 +1013,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
             sleep_ms(duration_ms);
             match cancel_rx.try_recv() {
                 Err(TryRecvError::Empty) => {
-                    timeout_target.send(ScriptMsg::RunnableMsg(box XHRTimeout {
+                    timeout_target.send(CommonScriptMsg::RunnableMsg(box XHRTimeout {
                         xhr: xhr,
                         gen_id: gen_id,
                     })).unwrap();

@@ -23,7 +23,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
-use script_task::{Runnable, ScriptChan, ScriptMsg};
+use script_task::{Runnable, ScriptChan, CommonScriptMsg};
 use util::str::DOMString;
 use string_cache::Atom;
 
@@ -140,9 +140,9 @@ impl<'a> PrivateHTMLImageElementHelpers for &'a HTMLImageElement {
                     // Return the image via a message to the script task, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
-                    script_chan.send(ScriptMsg::RunnableMsg(box ImageResponseHandlerRunnable::new(
-                                trusted_node.clone(),
-                                image_response))).unwrap();
+                    script_chan.send(CommonScriptMsg::RunnableMsg(
+                        box ImageResponseHandlerRunnable::new(
+                            trusted_node.clone(), image_response))).unwrap();
                 });
 
                 image_cache.request_image(img_url,
@@ -345,4 +345,3 @@ impl<'a> VirtualMethods for &'a HTMLImageElement {
         }
     }
 }
-

@@ -15,7 +15,7 @@ use dom::document::DocumentHelpers;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers, ScriptHelpers};
 use devtools_traits::ScriptToDevtoolsControlMsg;
-use script_task::{ScriptChan, ScriptPort, ScriptMsg, ScriptTask};
+use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask, MainThreadScriptMsg};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
@@ -25,6 +25,7 @@ use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
+use std::sync::mpsc::Sender;
 use url::Url;
 
 use util::mem::HeapSizeOf;
@@ -156,6 +157,14 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
+    /// `ScriptChan` to send messages to the main thread's event loop.
+    pub fn main_thread_script_chan(&self) -> Option<Sender<MainThreadScriptMsg>> {
+        match *self {
+            GlobalRef::Window(ref window) => Some(window.main_thread_script_chan()),
+            GlobalRef::Worker(_) => None,
+        }
+    }
+
     /// Create a new sender/receiver pair that can be used to implement an on-demand
     /// event loop. Used for implementing web APIs that require blocking semantics
     /// without resorting to nested event loops.
@@ -168,7 +177,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Process a single event as if it were the next event in the task queue for
     /// this global.
-    pub fn process_event(&self, msg: ScriptMsg) {
+    pub fn process_event(&self, msg: CommonScriptMsg) {
         match *self {
             GlobalRef::Window(_) => ScriptTask::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),
