@@ -58,7 +58,6 @@ use net_traits::storage_task::StorageType;
 use script_traits::UntrustedNodeAddress;
 use serde::{Serialize, Deserialize};
 use smallvec::SmallVec;
-use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
@@ -336,13 +335,6 @@ impl<A,B> JSTraceable for fn(A) -> B {
 }
 
 impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl JSTraceable for ScriptListener {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

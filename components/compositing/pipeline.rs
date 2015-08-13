@@ -16,7 +16,6 @@ use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
-use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
 use profile_traits::mem as profile_mem;
@@ -323,7 +322,7 @@ impl PipelineContent {
         ScriptTaskFactory::create(None::<&mut STF>,
                                   self.id,
                                   self.parent_info,
-                                  ScriptListener::new(script_to_compositor_chan),
+                                  script_to_compositor_chan,
                                   &layout_pair,
                                   self.script_chan.clone(),
                                   mem::replace(&mut self.script_port, None).unwrap(),
