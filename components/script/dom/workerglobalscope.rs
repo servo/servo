@@ -35,6 +35,8 @@ use url::{Url, UrlParser};
 use std::default::Default;
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 
 #[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
@@ -49,6 +51,7 @@ pub struct WorkerGlobalScopeInit {
     pub devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     pub constellation_chan: ConstellationChan,
     pub worker_id: WorkerId,
+    pub closing: Arc<AtomicBool>,
 }
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
@@ -57,6 +60,7 @@ pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
     worker_url: Url,
+    closing: Arc<AtomicBool>,
     runtime: Rc<Runtime>,
     next_worker_id: Cell<WorkerId>,
     resource_task: ResourceTask,
@@ -95,6 +99,7 @@ impl WorkerGlobalScope {
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
             worker_url: worker_url,
+            closing: init.closing,
             runtime: runtime,
             resource_task: init.resource_task,
             location: Default::default(),
@@ -153,6 +158,7 @@ impl WorkerGlobalScope {
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
     }
+
 }
 
 impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
@@ -286,6 +292,8 @@ pub trait WorkerGlobalScopeHelpers {
     fn process_event(self, msg: ScriptMsg);
     fn get_cx(self) -> *mut JSContext;
     fn set_devtools_wants_updates(self, value: bool);
+    fn get_closing(self) -> bool;
+    fn clear_timers(self);
 }
 
 impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
@@ -294,11 +302,15 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
             self.reflector().get_jsobject(), source, self.worker_url.serialize(), 1) {
             Ok(_) => (),
             Err(_) => {
-                // TODO: An error needs to be dispatched to the parent.
-                // https://github.com/servo/servo/issues/6422
-                println!("evaluate_script failed");
-                let _ar = JSAutoRequest::new(self.runtime.cx());
-                report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
+                if self.get_closing() {
+                    println!("evaluate_script failed (terminated)");
+                } else {
+                    // TODO: An error needs to be dispatched to the parent.
+                    // https://github.com/servo/servo/issues/6422
+                    println!("evaluate_script failed");
+                    let _ar = JSAutoRequest::new(self.runtime.cx());
+                    report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
+                }
             }
         }
     }
@@ -345,6 +357,14 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
 
     fn get_cx(self) -> *mut JSContext {
         self.runtime.cx()
+    }
+
+    fn get_closing(self) -> bool {
+        self.closing.load(Ordering::SeqCst)
+    }
+
+    fn clear_timers(self) {
+        self.timers.clear()
     }
 
     fn set_devtools_wants_updates(self, value: bool) {
