@@ -623,7 +623,7 @@ pub mod specified {
             }
 
             macro_rules! serialize {
-                ( $( [$val:ident; $name:expr] ),* ) => {
+                ( $( $val:ident ),* ) => {
                     {
                         let mut first_value = true;
                         $(
@@ -633,7 +633,7 @@ pub mod specified {
                                 } else {
                                     first_value = false;
                                 }
-                                try!(write!(dest, "{:?}{}", val, $name));
+                                try!(val.to_css(dest));
                             }
                         )*
                      }
@@ -647,16 +647,7 @@ pub mod specified {
                try!(write!(dest, "calc("));
             }
 
-            serialize!(
-                [em; "em"],
-                [ex; "ex"],
-                [absolute; "px"],
-                [rem; "rem"],
-                [vh; "vh"],
-                [vmax; "vmax"],
-                [vmin; "vmin"],
-                [vw; "vw"],
-                [percentage; "%"]);
+            serialize!(em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
 
             if count > 1 {
                try!(write!(dest, ")"));
