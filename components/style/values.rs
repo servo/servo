@@ -462,31 +462,58 @@ pub mod specified {
             }
         }
 
-        fn simplify_product(node: CalcProductNode) -> Result<CalcAstNode, ()> {
+        fn simplify_value_numerically(node: &CalcValueNode) -> Option<CSSFloat> {
+            match node {
+                &CalcValueNode::Number(number) => Some(number),
+                &CalcValueNode::Sum(box ref sum) => Calc::simplify_sum_numerically(sum),
+                _ => None
+            }
+        }
+
+        fn simplify_sum_numerically(node: &CalcSumNode) -> Option<CSSFloat> {
+            let node = node.clone();
+            let mut sum = 0.;
+            for product in node.products {
+                match Calc::simplify_product_numerically(product) {
+                    Some(number) => sum += number,
+                    _ => return None
+                }
+            }
+            Some(sum)
+        }
+
+        fn simplify_product_numerically(node: CalcProductNode) -> Option<CSSFloat> {
+            let mut product = 1.;
+            for value in node.values {
+                match Calc::simplify_value_numerically(&value) {
+                    Some(number) => product *= number,
+                    _ => return None
+                }
+            }
+            Some(product)
+        }
+
+        fn simplify_products(node: CalcProductNode) -> Result<CalcAstNode, ()> {
             let mut multiplier = 1.;
-            let mut node_with_unit: Option<CalcAstNode> = None;
-            let mut node_hack: CalcAstNode;
+            let mut node_with_unit = None;
             for node in node.values {
-                node_hack = try!(Calc::simplify_value(node));
-                if let CalcAstNode::Value(CalcValueNode::Number(n)) = node_hack {
-                    multiplier *= n;
-                } else if node_with_unit.is_none() {
-                    node_with_unit = Some(node_hack);
-                } else {
-                    return Err(());
+                match Calc::simplify_value_numerically(&node) {
+                    Some(number) => multiplier *= number,
+                    _ if node_with_unit.is_none() => node_with_unit = Some(node),
+                    _ => return Err(()),
                 }
             }
 
             match node_with_unit {
                 None => Ok(CalcAstNode::Value(CalcValueNode::Number(multiplier))),
-                Some(CalcAstNode::Add(sum)) =>
+                Some(CalcValueNode::Sum(box sum)) =>
                     Ok(CalcAstNode::Add(CalcSumNode {
                         products: sum.products
                                      .iter()
                                      .map(|p| Calc::multiply_product(p, multiplier))
                                      .collect()
                     })),
-                Some(CalcAstNode::Value(ref value)) =>
+                Some(ref value) =>
                     Ok(CalcAstNode::Value(Calc::multiply_value(value, multiplier))),
             }
         }
@@ -509,10 +536,12 @@ pub mod specified {
             }
         }
 
-        fn simplify_sum(node: CalcSumNode) -> Result<CalcAstNode, ()> {
+        pub fn parse(input: &mut Parser) -> Result<Calc, ()> {
+            let ast = try!(Calc::parse_sum(input));
+
             let mut simplified = Vec::new();
-            for node in node.products {
-                let node = try!(Calc::simplify_product(node));
+            for node in ast.products {
+                let node = try!(Calc::simplify_products(node));
                 match node {
                     CalcAstNode::Value(value) => simplified.push(value),
                     CalcAstNode::Add(sum) => {
@@ -563,119 +592,6 @@ pub mod specified {
                         },
                     CalcValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
                     _ => unreachable!()
-                }
-            }
-
-            fn viewport_node(length: ViewportPercentageLength) -> CalcValueNode {
-                CalcValueNode::Length(Length::ViewportPercentage(length))
-            }
-            fn font_node(length: FontRelativeLength) -> CalcValueNode {
-                CalcValueNode::Length(Length::FontRelative(length))
-            }
-
-            let mut new_values = Vec::new();
-            if let Some(absolute) = absolute {
-                new_values.push(CalcValueNode::Length(Length::Absolute(Au(absolute))));
-            }
-            if let Some(vw) = vw {
-                new_values.push(viewport_node(ViewportPercentageLength::Vw(vw)));
-            }
-            if let Some(vh) = vh {
-                new_values.push(viewport_node(ViewportPercentageLength::Vh(vh)));
-            }
-            if let Some(vmin) = vmin {
-                new_values.push(viewport_node(ViewportPercentageLength::Vmin(vmin)));
-            }
-            if let Some(vmax) = vmax {
-                new_values.push(viewport_node(ViewportPercentageLength::Vmax(vmax)));
-            }
-            if let Some(em) = em {
-                new_values.push(font_node(FontRelativeLength::Em(em)));
-            }
-            if let Some(ex) = ex {
-                new_values.push(font_node(FontRelativeLength::Ex(ex)));
-            }
-            if let Some(rem) = rem {
-                new_values.push(font_node(FontRelativeLength::Rem(rem)));
-            }
-            if let Some(number) = number {
-                new_values.push(CalcValueNode::Number(number));
-            }
-
-            assert!(new_values.len() > 0);
-            if new_values.len() == 1 {
-                Ok(CalcAstNode::Value(new_values[0].clone()))
-            } else {
-                let new_products = new_values.iter()
-                                             .map(|v| CalcProductNode { values: vec!(v.clone()) })
-                                             .collect();
-                Ok(CalcAstNode::Add(CalcSumNode {products: new_products} ))
-            }
-        }
-
-        fn simplify_value(node: CalcValueNode) -> Result<CalcAstNode, ()> {
-            match node {
-                CalcValueNode::Sum(box sum) => Calc::simplify_sum(sum),
-                node => Ok(CalcAstNode::Value(node))
-            }
-        }
-
-        pub fn parse(input: &mut Parser) -> Result<Calc, ()> {
-
-            let ast = try!(Calc::parse_sum(input));
-            let ast = try!(Calc::simplify_sum(ast));
-
-            println!("Simlified ast {:?} ", ast);
-
-            let mut absolute = None;
-            let mut vw = None;
-            let mut vh = None;
-            let mut vmax = None;
-            let mut vmin = None;
-            let mut em = None;
-            let mut ex = None;
-            let mut rem = None;
-            let mut percentage = None;
-
-            let values = match ast {
-                CalcAstNode::Add(sum) => {
-                  let mut values = Vec::new();
-                  for product in sum.products {
-                      assert!(product.values.len() == 1);
-                      values.push(product.values[0].clone());
-                  }
-                  values
-                },
-                CalcAstNode::Value(value) => vec!(value)
-            };
-
-            for value in values {
-                match value {
-                    CalcValueNode::Percentage(p) =>
-                        percentage = Some(p),
-                    CalcValueNode::Length(Length::Absolute(Au(au))) =>
-                        absolute = Some(au),
-                    CalcValueNode::Length(Length::ViewportPercentage(v)) =>
-                        match v {
-                            ViewportPercentageLength::Vw(val) =>
-                                vw = Some(val),
-                            ViewportPercentageLength::Vh(val) =>
-                                vh = Some(val),
-                            ViewportPercentageLength::Vmin(val) =>
-                                vmin = Some(val),
-                            ViewportPercentageLength::Vmax(val) =>
-                                vmax = Some(val),
-                        },
-                    CalcValueNode::Length(Length::FontRelative(f)) =>
-                        match f {
-                            FontRelativeLength::Em(val) =>
-                                em = Some(val),
-                            FontRelativeLength::Ex(val) =>
-                                ex = Some(val),
-                            FontRelativeLength::Rem(val) =>
-                                rem = Some(val),
-                        },
-                    _ => return Err(())
                 }
             }
 
