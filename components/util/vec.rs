@@ -39,8 +39,8 @@ impl<T> FullBinarySearchMethods<T> for [T] {
             return None;
         }
 
-        let mut low : isize = 0;
-        let mut high : isize = (self.len() as isize) - 1;
+        let mut low: isize = 0;
+        let mut high: isize = (self.len() as isize) - 1;
 
         while low <= high {
             // http://googleresearch.blogspot.com/2006/06/extra-extra-read-all-about-it-nearly.html

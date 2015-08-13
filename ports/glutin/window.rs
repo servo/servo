@@ -58,19 +58,19 @@ bitflags! {
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(all(feature = "window", target_os="macos"))]
-const CMD_OR_CONTROL : constellation_msg::KeyModifiers = SUPER;
+const CMD_OR_CONTROL: constellation_msg::KeyModifiers = SUPER;
 #[cfg(all(feature = "window", not(target_os="macos")))]
-const CMD_OR_CONTROL : constellation_msg::KeyModifiers = CONTROL;
+const CMD_OR_CONTROL: constellation_msg::KeyModifiers = CONTROL;
 
 // Some shortcuts use Cmd on Mac and Alt on other systems.
 #[cfg(all(feature = "window", target_os="macos"))]
-const CMD_OR_ALT : constellation_msg::KeyModifiers = SUPER;
+const CMD_OR_ALT: constellation_msg::KeyModifiers = SUPER;
 #[cfg(all(feature = "window", not(target_os="macos")))]
-const CMD_OR_ALT : constellation_msg::KeyModifiers = ALT;
+const CMD_OR_ALT: constellation_msg::KeyModifiers = ALT;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 #[cfg(feature = "window")]
-const LINE_HEIGHT : f32 = 38.0;
+const LINE_HEIGHT: f32 = 38.0;
 
 /// The type of a window.
 #[cfg(feature = "window")]
