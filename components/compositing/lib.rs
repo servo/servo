@@ -7,6 +7,8 @@
 #![feature(slice_bytes)]
 #![feature(vec_push_all)]
 
+#![deny(unsafe_code)]
+
 #[macro_use]
 extern crate log;
 
