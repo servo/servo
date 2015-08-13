@@ -516,21 +516,106 @@ pub mod specified {
 
         fn simplify_sum(node: CalcSumNode) -> Result<CalcAstNode, ()> {
             let mut simplified = Vec::new();
-            let length = node.products.len();
             for node in node.products {
                 let node = try!(Calc::simplify_product(node));
                 match node {
-                    CalcAstNode::Value(value) => {
-                        if length == 1 {
-                            return Ok(CalcAstNode::Value(value));
+                    CalcAstNode::Value(value) => simplified.push(value),
+                    CalcAstNode::Add(sum) => {
+                        for product in sum.products {
+                            assert!(product.values.len() == 1);
+                            simplified.push(product.values[0].clone());
                         }
-                        simplified.push(CalcProductNode { values: vec!(value) });
                     }
-                    CalcAstNode::Add(sum) => simplified.push_all(&sum.products),
                 }
             }
 
-            Ok(CalcAstNode::Add(CalcSumNode {products: simplified} ))
+            let mut absolute = None;
+            let mut vw = None;
+            let mut vh = None;
+            let mut vmax = None;
+            let mut vmin = None;
+            let mut em = None;
+            let mut ex = None;
+            let mut rem = None;
+            let mut percentage = None;
+            let mut number = None;
+
+            for value in simplified {
+                match value {
+                    CalcValueNode::Percentage(p) =>
+                        percentage = Some(percentage.unwrap_or(0.) + p),
+                    CalcValueNode::Length(Length::Absolute(Au(au))) =>
+                        absolute = Some(absolute.unwrap_or(0) + au),
+                    CalcValueNode::Length(Length::ViewportPercentage(v)) =>
+                        match v {
+                            ViewportPercentageLength::Vw(val) =>
+                                vw = Some(vw.unwrap_or(0.) + val),
+                            ViewportPercentageLength::Vh(val) =>
+                                vh = Some(vh.unwrap_or(0.) + val),
+                            ViewportPercentageLength::Vmin(val) =>
+                                vmin = Some(vmin.unwrap_or(0.) + val),
+                            ViewportPercentageLength::Vmax(val) =>
+                                vmax = Some(vmax.unwrap_or(0.) + val),
+                        },
+                    CalcValueNode::Length(Length::FontRelative(f)) =>
+                        match f {
+                            FontRelativeLength::Em(val) =>
+                                em = Some(em.unwrap_or(0.) + val),
+                            FontRelativeLength::Ex(val) =>
+                                ex = Some(ex.unwrap_or(0.) + val),
+                            FontRelativeLength::Rem(val) =>
+                                rem = Some(rem.unwrap_or(0.) + val),
+                        },
+                    CalcValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
+                    _ => unreachable!()
+                }
+            }
+
+            fn viewport_node(length: ViewportPercentageLength) -> CalcValueNode {
+                CalcValueNode::Length(Length::ViewportPercentage(length))
+            }
+            fn font_node(length: FontRelativeLength) -> CalcValueNode {
+                CalcValueNode::Length(Length::FontRelative(length))
+            }
+
+            let mut new_values = Vec::new();
+            if let Some(absolute) = absolute {
+                new_values.push(CalcValueNode::Length(Length::Absolute(Au(absolute))));
+            }
+            if let Some(vw) = vw {
+                new_values.push(viewport_node(ViewportPercentageLength::Vw(vw)));
+            }
+            if let Some(vh) = vh {
+                new_values.push(viewport_node(ViewportPercentageLength::Vh(vh)));
+            }
+            if let Some(vmin) = vmin {
+                new_values.push(viewport_node(ViewportPercentageLength::Vmin(vmin)));
+            }
+            if let Some(vmax) = vmax {
+                new_values.push(viewport_node(ViewportPercentageLength::Vmax(vmax)));
+            }
+            if let Some(em) = em {
+                new_values.push(font_node(FontRelativeLength::Em(em)));
+            }
+            if let Some(ex) = ex {
+                new_values.push(font_node(FontRelativeLength::Ex(ex)));
+            }
+            if let Some(rem) = rem {
+                new_values.push(font_node(FontRelativeLength::Rem(rem)));
+            }
+            if let Some(number) = number {
+                new_values.push(CalcValueNode::Number(number));
+            }
+
+            assert!(new_values.len() > 0);
+            if new_values.len() == 1 {
+                Ok(CalcAstNode::Value(new_values[0].clone()))
+            } else {
+                let new_products = new_values.iter()
+                                             .map(|v| CalcProductNode { values: vec!(v.clone()) })
+                                             .collect();
+                Ok(CalcAstNode::Add(CalcSumNode {products: new_products} ))
+            }
         }
 
         fn simplify_value(node: CalcValueNode) -> Result<CalcAstNode, ()> {
@@ -572,28 +657,28 @@ pub mod specified {
             for value in values {
                 match value {
                     CalcValueNode::Percentage(p) =>
-                        percentage = Some(percentage.unwrap_or(0.) + p),
+                        percentage = Some(p),
                     CalcValueNode::Length(Length::Absolute(Au(au))) =>
-                        absolute = Some(absolute.unwrap_or(0) + au),
+                        absolute = Some(au),
                     CalcValueNode::Length(Length::ViewportPercentage(v)) =>
                         match v {
                             ViewportPercentageLength::Vw(val) =>
-                                vw = Some(vw.unwrap_or(0.) + val),
+                                vw = Some(val),
                             ViewportPercentageLength::Vh(val) =>
-                                vh = Some(vh.unwrap_or(0.) + val),
+                                vh = Some(val),
                             ViewportPercentageLength::Vmin(val) =>
-                                vmin = Some(vmin.unwrap_or(0.) + val),
+                                vmin = Some(val),
                             ViewportPercentageLength::Vmax(val) =>
-                                vmax = Some(vmax.unwrap_or(0.) + val),
+                                vmax = Some(val),
                         },
                     CalcValueNode::Length(Length::FontRelative(f)) =>
                         match f {
                             FontRelativeLength::Em(val) =>
-                                em = Some(em.unwrap_or(0.) + val),
+                                em = Some(val),
                             FontRelativeLength::Ex(val) =>
-                                ex = Some(ex.unwrap_or(0.) + val),
+                                ex = Some(val),
                             FontRelativeLength::Rem(val) =>
-                                rem = Some(rem.unwrap_or(0.) + val),
+                                rem = Some(val),
                         },
                     _ => return Err(())
                 }
