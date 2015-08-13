@@ -166,7 +166,7 @@ def check_toml(file_name, contents):
 
 
 def check_rust(file_name, contents):
-    if not file_name.endswith(".rs"):
+    if not file_name.endswith(".rs") or file_name.endswith("properties.mako.rs"):
         raise StopIteration
     contents = contents.splitlines(True)
     for idx, line in enumerate(contents):
