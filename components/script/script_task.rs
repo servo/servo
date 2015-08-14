@@ -267,7 +267,7 @@ pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
 impl ScriptChan for SendableMainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         let SendableMainThreadScriptChan(ref chan) = *self;
-        return chan.send(msg).map_err(|_| ());
+        chan.send(msg).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -550,7 +550,7 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, 
 unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
     _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
     // XXX implement me
-    return DOMProxyShadowsResult::ShadowCheckFailed;
+    DOMProxyShadowsResult::ShadowCheckFailed
 }
 
 impl ScriptTask {
@@ -1062,7 +1062,7 @@ impl ScriptTask {
             return ScriptState::DocumentLoading;
         }
 
-        return ScriptState::DocumentLoaded;
+        ScriptState::DocumentLoaded
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -1406,7 +1406,7 @@ impl ScriptTask {
         if let Some(ref mut child_page) = page.remove(id) {
             shut_down_layout(&*child_page, exit_type);
         }
-        return false;
+        false
     }
 
     /// Handles when layout task finishes all animation in one tick
@@ -1550,7 +1550,7 @@ impl ScriptTask {
                                      DocumentSource::FromParser,
                                      loader);
 
-        let frame_element = frame_element.r().map(|elem| ElementCast::from_ref(elem));
+        let frame_element = frame_element.r().map(ElementCast::from_ref);
         window.r().init_browsing_context(document.r(), frame_element);
 
         // Create the root frame
