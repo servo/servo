@@ -269,19 +269,19 @@ impl Window {
         (box SendableMainThreadScriptChan(tx), box rx)
     }
 
-    pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
+    pub fn image_cache_task(&self) -> &ImageCacheTask {
         &self.image_cache_task
     }
 
-    pub fn compositor<'a>(&'a self) -> &'a IpcSender<ScriptToCompositorMsg> {
+    pub fn compositor(&self) -> &IpcSender<ScriptToCompositorMsg> {
         &self.compositor
     }
 
-    pub fn browsing_context<'a>(&'a self) -> Ref<'a, Option<BrowsingContext>> {
+    pub fn browsing_context(&self) -> Ref<Option<BrowsingContext>> {
         self.browsing_context.borrow()
     }
 
-    pub fn page<'a>(&'a self) -> &'a Page {
+    pub fn page(&self) -> &Page {
         &*self.page
     }
 
