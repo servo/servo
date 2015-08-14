@@ -14,7 +14,7 @@ use flow;
 use flow::{Flow, BaseFlow};
 
 use std::mem;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::ptr;
 use std::raw;
 use std::rt::heap;
@@ -67,12 +67,10 @@ impl<'a> Deref for FlowRef {
     }
 }
 
-impl DerefMut for FlowRef {
-    fn deref_mut<'a>(&mut self) -> &mut (Flow + 'a) {
-        unsafe {
-            mem::transmute_copy::<raw::TraitObject, &mut (Flow + 'a)>(&self.object)
-        }
-    }
+// FIXME(https://github.com/servo/servo/issues/6503) This introduces unsound mutable aliasing.
+// Try to replace it with Arc::get_mut (which checks that the reference count is 1).
+pub unsafe fn deref_mut<'a>(flow_ref: &mut FlowRef) -> &mut (Flow + 'a) {
+    mem::transmute_copy::<raw::TraitObject, &mut (Flow + 'a)>(&flow_ref.object)
 }
 
 impl Drop for FlowRef {

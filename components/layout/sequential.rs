@@ -7,7 +7,7 @@
 use context::{LayoutContext, SharedLayoutContext};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
-use flow_ref::FlowRef;
+use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use traversal::PostorderNodeMutTraversal;
@@ -40,6 +40,7 @@ pub fn traverse_dom_preorder(root: LayoutNode,
     doit(root, recalc_style, construct_flows);
 }
 
+#[allow(unsafe_code)]
 pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {
         if !traversal.should_process(flow) {
@@ -55,9 +56,10 @@ pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &Sha
 
     let layout_context = LayoutContext::new(shared_layout_context);
     let mut traversal = ResolveGeneratedContent::new(&layout_context);
-    doit(&mut **root, 0, &mut traversal)
+    doit(unsafe { flow_ref::deref_mut(root) }, 0, &mut traversal)
 }
 
+#[allow(unsafe_code)]
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow,
@@ -78,7 +80,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     let layout_context = LayoutContext::new(shared_layout_context);
 
-    let root = &mut **root;
+    let root = unsafe { flow_ref::deref_mut(root) };
 
     if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
@@ -94,6 +96,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     doit(root, assign_inline_sizes, assign_block_sizes);
 }
 
+#[allow(unsafe_code)]
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow,
@@ -116,9 +119,10 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     let compute_absolute_positions = ComputeAbsolutePositions { layout_context: &layout_context };
     let build_display_list         = BuildDisplayList         { layout_context: &layout_context };
 
-    doit(&mut **root, compute_absolute_positions, build_display_list);
+    doit(unsafe { flow_ref::deref_mut(root) }, compute_absolute_positions, build_display_list);
 }
 
+#[allow(unsafe_code)]
 pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
                                                        iterator: &mut FragmentBorderBoxIterator) {
     fn doit(flow: &mut Flow,
@@ -141,5 +145,5 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
         }
     }
 
-    doit(&mut **root, 0, iterator, &ZERO_POINT);
+    doit(unsafe { flow_ref::deref_mut(root) }, 0, iterator, &ZERO_POINT);
 }

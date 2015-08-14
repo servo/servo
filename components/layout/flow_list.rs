@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use flow::Flow;
-use flow_ref::FlowRef;
+use flow_ref::{self, FlowRef};
 
 use std::collections::{linked_list, LinkedList};
 
@@ -33,7 +33,7 @@ impl FlowList {
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn front_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
-        self.flows.front_mut().map(|head| &mut **head)
+        self.flows.front_mut().map(|head| flow_ref::deref_mut(head))
     }
 
     /// Provide a reference to the back element, or None if the list is empty
@@ -46,7 +46,7 @@ impl FlowList {
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn back_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
-        self.flows.back_mut().map(|tail| &mut **tail)
+        self.flows.back_mut().map(|tail| flow_ref::deref_mut(tail))
     }
 
     /// Add an element first in the list
@@ -123,8 +123,9 @@ impl<'a> Iterator for FlowListIterator<'a> {
 impl<'a> Iterator for MutFlowListIterator<'a> {
     type Item = &'a mut (Flow + 'a);
     #[inline]
+    #[allow(unsafe_code)]
     fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
-        self.it.next().map(|x| &mut **x)
+        self.it.next().map(|x| unsafe { flow_ref::deref_mut(x) })
     }
 
     #[inline]

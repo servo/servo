@@ -30,7 +30,7 @@ use context::LayoutContext;
 use display_list_builder::DisplayListBuildingResult;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
-use flow_ref::{FlowRef, WeakFlowRef};
+use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
@@ -771,8 +771,9 @@ pub struct AbsoluteDescendantIter<'a> {
 
 impl<'a> Iterator for AbsoluteDescendantIter<'a> {
     type Item = &'a mut (Flow + 'a);
+    #[allow(unsafe_code)]
     fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
-        self.iter.next().map(|info| &mut *info.flow)
+        self.iter.next().map(|info| unsafe { flow_ref::deref_mut(&mut info.flow) })
     }
 }
 
@@ -1382,9 +1383,10 @@ impl MutableOwnedFlowUtils for FlowRef {
     /// This is called during flow construction, so nothing else can be accessing the descendant
     /// flows. This is enforced by the fact that we have a mutable `FlowRef`, which only flow
     /// construction is allowed to possess.
+    #[allow(unsafe_code)]
     fn set_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants) {
         let this = self.clone();
-        let base = mut_base(&mut **self);
+        let base = mut_base(unsafe { flow_ref::deref_mut(self) });
         base.abs_descendants = abs_descendants;
         for descendant_link in base.abs_descendants.iter() {
             let descendant_base = mut_base(descendant_link);

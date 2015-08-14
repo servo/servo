@@ -19,7 +19,7 @@ use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{self, AbsoluteDescendants, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
-use flow_ref::FlowRef;
+use flow_ref::{self, FlowRef};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
@@ -415,6 +415,7 @@ impl<'a> FlowConstructor<'a> {
     /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
     /// otherwise.
     #[inline(always)]
+    #[allow(unsafe_code)]
     fn flush_inline_fragments_to_flow_or_list(&mut self,
                                               fragment_accumulator: InlineFragmentsAccumulator,
                                               flow: &mut FlowRef,
@@ -480,7 +481,8 @@ impl<'a> FlowConstructor<'a> {
         absolute_descendants.push_descendants(fragments.absolute_descendants);
 
         {
-            let inline_flow = inline_flow_ref.as_mut_inline();
+            // FIXME(#6503): Use Arc::get_mut().unwrap() here.
+            let inline_flow = unsafe { flow_ref::deref_mut(&mut inline_flow_ref) }.as_mut_inline();
 
 
             let (ascent, descent) =
@@ -1287,6 +1289,7 @@ impl<'a> FlowConstructor<'a> {
     ///
     /// TODO(pcwalton): Add some more fast paths, like toggling `display: none`, adding block kids
     /// to block parents with no {ib} splits, adding out-of-flow kids, etc.
+    #[allow(unsafe_code)]
     pub fn repair_if_possible(&mut self, node: &ThreadSafeLayoutNode) -> bool {
         // We can skip reconstructing the flow if we don't have to reconstruct and none of our kids
         // did either.
@@ -1317,7 +1320,8 @@ impl<'a> FlowConstructor<'a> {
                 if !flow.is_block_flow() {
                     return false
                 }
-                flow::mut_base(&mut **flow).restyle_damage.insert(damage);
+                let flow = unsafe { flow_ref::deref_mut(flow) };
+                flow::mut_base(flow).restyle_damage.insert(damage);
                 flow.repair_style_and_bubble_inline_sizes(&style);
                 true
             }
@@ -1341,27 +1345,29 @@ impl<'a> FlowConstructor<'a> {
 
                     match fragment.specific {
                         SpecificFragmentInfo::InlineBlock(ref mut inline_block_fragment) => {
-                            flow::mut_base(&mut *inline_block_fragment.flow_ref).restyle_damage
-                                                                                .insert(damage);
+                            let flow_ref = unsafe {
+                                flow_ref::deref_mut(&mut inline_block_fragment.flow_ref)
+                            };
+                            flow::mut_base(flow_ref).restyle_damage.insert(damage);
                             // FIXME(pcwalton): Fragment restyle damage too?
-                            inline_block_fragment.flow_ref
-                                                 .repair_style_and_bubble_inline_sizes(&style);
+                            flow_ref.repair_style_and_bubble_inline_sizes(&style);
                         }
                         SpecificFragmentInfo::InlineAbsoluteHypothetical(
                                 ref mut inline_absolute_hypothetical_fragment) => {
-                            flow::mut_base(&mut *inline_absolute_hypothetical_fragment.flow_ref)
-                                .restyle_damage.insert(damage);
+                            let flow_ref = unsafe {
+                                flow_ref::deref_mut(&mut inline_absolute_hypothetical_fragment.flow_ref)
+                            };
+                            flow::mut_base(flow_ref).restyle_damage.insert(damage);
                             // FIXME(pcwalton): Fragment restyle damage too?
-                            inline_absolute_hypothetical_fragment
-                                .flow_ref
-                                .repair_style_and_bubble_inline_sizes(&style);
+                            flow_ref.repair_style_and_bubble_inline_sizes(&style);
                         }
                         SpecificFragmentInfo::InlineAbsolute(ref mut inline_absolute_fragment) => {
-                            flow::mut_base(&mut *inline_absolute_fragment.flow_ref).restyle_damage
-                                                                                   .insert(damage);
+                            let flow_ref = unsafe {
+                                flow_ref::deref_mut(&mut inline_absolute_fragment.flow_ref)
+                            };
+                            flow::mut_base(flow_ref).restyle_damage.insert(damage);
                             // FIXME(pcwalton): Fragment restyle damage too?
-                            inline_absolute_fragment.flow_ref
-                                                    .repair_style_and_bubble_inline_sizes(&style);
+                            flow_ref.repair_style_and_bubble_inline_sizes(&style);
                         }
                         SpecificFragmentInfo::ScannedText(_) |
                         SpecificFragmentInfo::UnscannedText(_) => {
@@ -1655,13 +1661,14 @@ impl FlowConstructionUtils for FlowRef {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
     ///
     /// This must not be public because only the layout constructor can do this.
+    #[allow(unsafe_code)]
     fn add_new_child(&mut self, mut new_child: FlowRef) {
         {
-            let kid_base = flow::mut_base(&mut *new_child);
+            let kid_base = flow::mut_base(unsafe { flow_ref::deref_mut(&mut new_child) });
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
-        let base = flow::mut_base(&mut **self);
+        let base = flow::mut_base(unsafe { flow_ref::deref_mut(self) });
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Ordering::Relaxed);
     }
@@ -1674,9 +1681,10 @@ impl FlowConstructionUtils for FlowRef {
     /// properly computed. (This is not, however, a memory safety problem.)
     ///
     /// This must not be public because only the layout constructor can do this.
+    #[allow(unsafe_code)]
     fn finish(&mut self) {
         if !opts::get().bubble_inline_sizes_separately {
-            self.bubble_inline_sizes()
+            unsafe { flow_ref::deref_mut(self) }.bubble_inline_sizes()
         }
     }
 }

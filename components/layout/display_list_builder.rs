@@ -14,6 +14,7 @@ use azure::azure_hl::Color;
 use block::BlockFlow;
 use context::LayoutContext;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
+use flow_ref;
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
@@ -1770,6 +1771,7 @@ pub trait InlineFlowDisplayListBuilding {
 }
 
 impl InlineFlowDisplayListBuilding for InlineFlow {
+    #[allow(unsafe_code)]
     fn build_display_list_for_inline(&mut self, layout_context: &LayoutContext) {
         // TODO(#228): Once we form lines and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
@@ -1796,17 +1798,17 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = &mut *block_flow.flow_ref;
+                    let block_flow = unsafe { flow_ref::deref_mut(&mut block_flow.flow_ref) };
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = &mut *block_flow.flow_ref;
+                    let block_flow = unsafe { flow_ref::deref_mut(&mut block_flow.flow_ref) };
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
-                    let block_flow = &mut *block_flow.flow_ref;
+                    let block_flow = unsafe { flow_ref::deref_mut(&mut block_flow.flow_ref) };
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }
