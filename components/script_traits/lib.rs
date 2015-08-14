@@ -147,7 +147,7 @@ pub enum ConstellationControlMsg {
 }
 
 /// The mouse button involved in the event.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum MouseButton {
     /// The left mouse button.
     Left,
@@ -169,6 +169,12 @@ pub enum CompositorEvent {
     MouseUpEvent(MouseButton, Point2D<f32>),
     /// The mouse was moved over a point.
     MouseMoveEvent(Point2D<f32>),
+    /// A touch began at a point.
+    TouchDownEvent(i32, Point2D<f32>),
+    /// A touch was moved over a point.
+    TouchMoveEvent(i32, Point2D<f32>),
+    /// A touch ended at a point.
+    TouchUpEvent(i32, Point2D<f32>),
     /// A key was pressed.
     KeyEvent(Key, KeyState, KeyModifiers),
 }

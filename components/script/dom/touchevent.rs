@@ -9,7 +9,7 @@ use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::event::{EventBubbles, EventCancelable};
 use dom::touchlist::TouchList;
 use dom::uievent::UIEvent;
 use dom::window::Window;

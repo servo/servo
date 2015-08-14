@@ -21,6 +21,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
+use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
@@ -60,6 +61,9 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
+use dom::touch::Touch;
+use dom::touchevent::TouchEvent;
+use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
@@ -697,6 +701,55 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
+    }
+
+    pub fn handle_touch_event(&self,
+                              js_runtime: *mut JSRuntime,
+                              identifier: i32,
+                              point: Point2D<f32>,
+                              event_name: String) -> bool {
+        let node = match self.hit_test(&point) {
+            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            None => return false
+        };
+        let el = match node.downcast::<Element>() {
+            Some(el) => Root::from_ref(el),
+            None => {
+                let parent = node.r().GetParentNode();
+                match parent.and_then(Root::downcast::<Element>) {
+                    Some(parent) => parent,
+                    None => return false
+                }
+            },
+        };
+        let target = el.upcast::<EventTarget>();
+
+        let x = Finite::wrap(point.x as f64);
+        let y = Finite::wrap(point.y as f64);
+
+        let window = self.window.root();
+
+        let touch = Touch::new(window.r(), identifier, target, x, y, x, y);
+        let mut touches = RootedVec::new();
+        touches.push(JS::from_rooted(&touch));
+        let touches = TouchList::new(window.r(), touches.r());
+
+        let event = TouchEvent::new(window.r(),
+                                    event_name,
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                    Some(window.r()),
+                                    0i32,
+                                    &touches, &touches, &touches,
+                                    // FIXME: modifier keys
+                                    false, false, false, false);
+        let event = event.upcast::<Event>();
+        let result = event.fire(target);
+
+        window.r().reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::MouseEvent);
+        result
     }
 
     /// The entry point for all key processing for web content
