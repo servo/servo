@@ -108,9 +108,9 @@ impl FlowList {
 }
 
 impl<'a> Iterator for FlowListIterator<'a> {
-    type Item = &'a (Flow + 'a);
+    type Item = &'a Flow;
     #[inline]
-    fn next(&mut self) -> Option<&'a (Flow + 'a)> {
+    fn next(&mut self) -> Option<&'a Flow> {
         self.it.next().map(|x| &**x)
     }
 
@@ -121,10 +121,10 @@ impl<'a> Iterator for FlowListIterator<'a> {
 }
 
 impl<'a> Iterator for MutFlowListIterator<'a> {
-    type Item = &'a mut (Flow + 'a);
+    type Item = &'a mut Flow;
     #[inline]
     #[allow(unsafe_code)]
-    fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
+    fn next(&mut self) -> Option<&'a mut Flow> {
         self.it.next().map(|x| unsafe { flow_ref::deref_mut(x) })
     }
 

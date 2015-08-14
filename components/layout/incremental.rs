@@ -192,7 +192,7 @@ pub trait LayoutDamageComputation {
     fn reflow_entire_document(self);
 }
 
-impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
+impl<'a> LayoutDamageComputation for &'a mut Flow {
     fn compute_layout_damage(self) -> SpecialRestyleDamage {
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = flow::base(self).flags.contains(IS_ABSOLUTELY_POSITIONED);

@@ -47,25 +47,25 @@ fn null_unsafe_flow() -> UnsafeFlow {
 
 pub fn owned_flow_to_unsafe_flow(flow: *const FlowRef) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&*flow)
+        mem::transmute::<&Flow, UnsafeFlow>(&**flow)
     }
 }
 
 pub fn mut_owned_flow_to_unsafe_flow(flow: *mut FlowRef) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&*flow)
+        mem::transmute::<&Flow, UnsafeFlow>(&**flow)
     }
 }
 
 pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&flow)
+        mem::transmute::<&Flow, UnsafeFlow>(flow)
     }
 }
 
 pub fn mut_borrowed_flow_to_unsafe_flow(flow: &mut Flow) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&flow)
+        mem::transmute::<&Flow, UnsafeFlow>(flow)
     }
 }
 
@@ -239,10 +239,9 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     fn run_parallel(&self, mut unsafe_flow: UnsafeFlow) {
         loop {
             // Get a real flow.
-            let flow: &mut FlowRef = unsafe {
-                mem::transmute(&mut unsafe_flow)
+            let flow: &mut Flow = unsafe {
+                mem::transmute(unsafe_flow)
             };
-            let flow = unsafe { flow_ref::deref_mut(flow) };
 
             // Perform the appropriate traversal.
             if self.should_process(flow) {
@@ -257,7 +256,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                                                Ordering::Relaxed);
 
             // Possibly enqueue the parent.
-            let mut unsafe_parent = base.parallel.parent;
+            let unsafe_parent = base.parallel.parent;
             if unsafe_parent == null_unsafe_flow() {
                 // We're done!
                 break
@@ -266,10 +265,10 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
             // No, we're not at the root yet. Then are we the last child
             // of our parent to finish processing? If so, we can continue
             // on with our parent; otherwise, we've gotta wait.
-            let parent: &mut FlowRef = unsafe {
-                mem::transmute(&mut unsafe_parent)
+            let parent: &mut Flow = unsafe {
+                mem::transmute(unsafe_parent)
             };
-            let parent_base = flow::mut_base(unsafe { flow_ref::deref_mut(parent) });
+            let parent_base = flow::mut_base(parent);
             if parent_base.parallel.children_count.fetch_sub(1, Ordering::Relaxed) == 1 {
                 // We were the last child of our parent. Reflow our parent.
                 unsafe_flow = unsafe_parent
@@ -296,12 +295,11 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
                            top_down_func: ChunkedFlowTraversalFunction,
                            bottom_up_func: FlowTraversalFunction) {
         let mut discovered_child_flows = Vec::new();
-        for mut unsafe_flow in *unsafe_flows.0 {
+        for unsafe_flow in *unsafe_flows.0 {
             let mut had_children = false;
             unsafe {
                 // Get a real flow.
-                let flow: &mut FlowRef = mem::transmute(&mut unsafe_flow);
-                let flow = flow_ref::deref_mut(flow);
+                let flow: &mut Flow = mem::transmute(unsafe_flow);
 
                 if self.should_record_thread_ids() {
                     flow::mut_base(flow).thread_id = proxy.worker_index();
