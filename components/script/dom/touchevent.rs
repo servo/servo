@@ -39,7 +39,7 @@ impl TouchEvent {
                      changed_touches: &TouchList,
                      target_touches: &TouchList) -> TouchEvent {
         TouchEvent {
-            uievent: UIEvent::new_inherited(EventTypeId::UIEvent(UIEventTypeId::TouchEvent)),
+            uievent: UIEvent::new_inherited(UIEventTypeId::TouchEvent),
             touches: MutHeap::new(JS::from_ref(touches)),
             target_touches: MutHeap::new(JS::from_ref(target_touches)),
             changed_touches: MutHeap::new(JS::from_ref(changed_touches)),

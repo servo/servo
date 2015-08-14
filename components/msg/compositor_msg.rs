@@ -122,6 +122,12 @@ pub enum ScriptToCompositorMsg {
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     SetTitle(PipelineId, Option<String>),
     SendKeyEvent(Key, KeyState, KeyModifiers),
+    TouchEventProcessed(EventResult),
     Exit,
 }
 
+#[derive(Deserialize, Serialize)]
+pub enum EventResult {
+    DefaultAllowed,
+    DefaultPrevented,
+}
