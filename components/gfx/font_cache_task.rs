@@ -190,7 +190,7 @@ impl FontCache {
             debug!("FontList: Found font family with name={}", &**family_name);
             let s = self.local_families.get_mut(family_name).unwrap();
 
-            if s.templates.len() == 0 {
+            if s.templates.is_empty() {
                 get_variations_for_family(family_name, |path| {
                     s.add_template(Atom::from_slice(&path), None);
                 });

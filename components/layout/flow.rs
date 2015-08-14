@@ -1238,7 +1238,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
 
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool {
-        base(self).children.len() == 0
+        base(self).children.is_empty()
     }
 
     /// Returns the number of children that this flow possesses.

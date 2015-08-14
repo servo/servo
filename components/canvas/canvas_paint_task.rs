@@ -710,7 +710,7 @@ fn write_image(draw_target: &DrawTarget,
                smoothing_enabled: bool,
                composition_op: CompositionOp,
                global_alpha: f32) {
-    if image_data.len() == 0 {
+    if image_data.is_empty() {
         return
     }
     let image_rect = Rect::new(Point2D::zero(), image_size);

@@ -1320,7 +1320,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Return unused tiles first, so that they can be reused by any new BufferRequests.
         self.cache_unused_buffers(unused_buffers);
 
-        if layers_and_requests.len() == 0 {
+        if layers_and_requests.is_empty() {
             return false;
         }
 
@@ -1803,4 +1803,3 @@ pub enum CompositingReason {
     /// The window has been zoomed.
     Zoom,
 }
-

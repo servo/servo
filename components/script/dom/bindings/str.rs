@@ -50,7 +50,7 @@ impl ByteString {
     /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
     pub fn is_token(&self) -> bool {
         let ByteString(ref vec) = *self;
-        if vec.len() == 0 {
+        if vec.is_empty() {
             return false; // A token must be at least a single character
         }
         vec.iter().all(|&x| {

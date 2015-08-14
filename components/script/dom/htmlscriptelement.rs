@@ -231,7 +231,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
         }
         // Step 4.
         let text = self.Text();
-        if text.len() == 0 && !element.has_attribute(&atom!("src")) {
+        if text.is_empty() && !element.has_attribute(&atom!("src")) {
             return NextParserState::Continue;
         }
         // Step 5.

@@ -571,8 +571,8 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                              &mut applicable_declarations.after);
 
         *shareable = applicable_declarations.normal_shareable &&
-            applicable_declarations.before.len() == 0 &&
-            applicable_declarations.after.len() == 0
+            applicable_declarations.before.is_empty() &&
+            applicable_declarations.after.is_empty()
     }
 
     unsafe fn share_style_if_possible(&self,
