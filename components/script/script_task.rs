@@ -1329,7 +1329,7 @@ impl ScriptTask {
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
         // compositor. In the future it'll need to be smarter.
-        (*(self.compositor.borrow_mut())).send(ScriptToCompositorMsg::Exit).unwrap();
+        self.compositor.borrow_mut().send(ScriptToCompositorMsg::Exit).unwrap();
     }
 
     /// We have received notification that the response associated with a load has completed.
@@ -1506,7 +1506,7 @@ impl ScriptTask {
                                  MainThreadScriptChan(sender.clone()),
                                  self.image_cache_channel.clone(),
                                  self.control_chan.clone(),
-                                 (*(self.compositor.borrow_mut())).clone(),
+                                 self.compositor.borrow_mut().clone(),
                                  self.image_cache_task.clone(),
                                  self.resource_task.clone(),
                                  self.storage_task.clone(),
@@ -1601,7 +1601,7 @@ impl ScriptTask {
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
-        (*(self.compositor.borrow_mut())).send(ScriptToCompositorMsg::ScrollFragmentPoint(
+        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
                                                  pipeline_id, LayerId::null(), point)).unwrap();
     }
 
@@ -1700,7 +1700,7 @@ impl ScriptTask {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
                 document.r().dispatch_key_event(
-                    key, state, modifiers, &mut (*(self.compositor.borrow_mut())) );
+                    key, state, modifiers, &mut self.compositor.borrow_mut());
             }
         }
     }
