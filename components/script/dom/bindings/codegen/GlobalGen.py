@@ -28,7 +28,7 @@ def generate_file(config, name, filename):
 def main():
     # Parse arguments.
     from optparse import OptionParser
-    usageString = "usage: %prog [options] webidldir [files]"
+    usageString = "usage: %prog [options] configFile webidldir [files]"
     o = OptionParser(usage=usageString)
     o.add_option("--cachedir", dest='cachedir', default=None,
                  help="Directory in which to cache lex/parse tables.")
