@@ -52,7 +52,7 @@ interface Node : EventTarget {
            attribute DOMString? textContent;
   void normalize();
 
-  Node cloneNode(optional boolean deep = true);
+  Node cloneNode(optional boolean deep = false);
   boolean isEqualNode(Node? node);
 
   const unsigned short DOCUMENT_POSITION_DISCONNECTED = 0x01;

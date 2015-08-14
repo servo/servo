@@ -31,6 +31,9 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.2"
 features = [ "serde_serialization" ]
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies]
 log = "0.3"
 euclid = "0.1"

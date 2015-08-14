@@ -55,7 +55,6 @@ use libc;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WorkerId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
-use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
 use serde::{Serialize, Deserialize};
 use smallvec::SmallVec;
@@ -65,6 +64,7 @@ use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
 use util::str::{LengthOrPercentageOrAuto};
 use selectors::parser::PseudoElement;
+use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
@@ -280,7 +280,7 @@ no_jsmanaged_fields!(Receiver<T>);
 no_jsmanaged_fields!(Rect<T>);
 no_jsmanaged_fields!(Size2D<T>);
 no_jsmanaged_fields!(Arc<T>);
-no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask, ScriptControlChan);
+no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask);
 no_jsmanaged_fields!(Atom, Namespace);
 no_jsmanaged_fields!(Trusted<T>);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
@@ -314,7 +314,7 @@ impl JSTraceable for Box<ScriptChan+Send> {
     }
 }
 
-impl JSTraceable for Box<Fn(f64, )> {
+impl JSTraceable for Box<FnBox(f64, )> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

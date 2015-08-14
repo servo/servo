@@ -20,6 +20,7 @@
 #![plugin(serde_macros)]
 
 #![allow(non_snake_case)]
+#![deny(unsafe_code)]
 
 #[macro_use]
 extern crate log;
@@ -40,6 +41,7 @@ use actors::console::ConsoleActor;
 use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
+use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
@@ -68,13 +70,15 @@ mod actor;
 mod actors {
     pub mod console;
     pub mod framerate;
-    pub mod memory;
     pub mod inspector;
+    pub mod memory;
+    pub mod network_event;
+    pub mod object;
+    pub mod profiler;
     pub mod root;
     pub mod tab;
     pub mod timeline;
     pub mod worker;
-    pub mod network_event;
 }
 mod protocol;
 
@@ -181,8 +185,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     }
 
     fn handle_framerate_tick(actors: Arc<Mutex<ActorRegistry>>, actor_name: String, tick: f64) {
-        let actors = actors.lock().unwrap();
-        let framerate_actor = actors.find::<FramerateActor>(&actor_name);
+        let mut actors = actors.lock().unwrap();
+        let framerate_actor = actors.find_mut::<FramerateActor>(&actor_name);
         framerate_actor.add_tick(tick);
     }
 
@@ -192,7 +196,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          ids: (PipelineId, Option<WorkerId>),
                          script_sender: IpcSender<DevtoolScriptControlMsg>,
-                         devtools_sender: Sender<DevtoolsControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
                          page_info: DevtoolsPageInfo) {
@@ -201,7 +204,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on TabActor
-        let (tab, console, inspector, timeline) = {
+        let (tab, console, inspector, timeline, profiler) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
@@ -219,8 +222,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
             let timeline = TimelineActor::new(actors.new_name("timeline"),
                                               pipeline,
-                                              script_sender,
-                                              devtools_sender);
+                                              script_sender);
+
+            let profiler = ProfilerActor::new(actors.new_name("profiler"));
 
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
@@ -230,11 +234,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 console: console.name(),
                 inspector: inspector.name(),
                 timeline: timeline.name(),
+                profiler: profiler.name(),
             };
 
             let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
-            (tab, console, inspector, timeline)
+
+            (tab, console, inspector, timeline, profiler)
         };
 
         if let Some(id) = worker_id {
@@ -252,6 +258,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(box console);
         actors.register(box inspector);
         actors.register(box timeline);
+        actors.register(box profiler);
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
@@ -405,20 +412,20 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     handle_client(actors, stream.try_clone().unwrap())
                 })
             }
-            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::FramerateTick(
+            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
                         actor_name, tick))) =>
                 handle_framerate_tick(actors.clone(), actor_name, tick),
             Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
                         ids, script_sender, pageinfo))) =>
-                handle_new_global(actors.clone(), ids, script_sender, sender.clone(), &mut actor_pipelines,
+                handle_new_global(actors.clone(), ids, script_sender, &mut actor_pipelines,
                                   &mut actor_workers, pageinfo),
-            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::SendConsoleMessage(
+            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
                         id,
                         console_message,
                         worker_id))) =>
                 handle_console_message(actors.clone(), id, worker_id, console_message,
                                        &actor_pipelines, &actor_workers),
-            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEventMessage(
+            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                         request_id, network_event))) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();

@@ -14,11 +14,12 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
-use script_traits::{ScriptControlChan, ConstellationControlMsg};
+use script_traits::ConstellationControlMsg;
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
 use std::rc::Rc;
 
+#[derive(Debug)]
 pub struct CompositorData {
     /// This layer's pipeline id. The compositor can associate this id with an
     /// actual CompositionPipeline.
@@ -97,6 +98,14 @@ pub trait CompositorLayer {
                                                   pipeline_id: PipelineId)
                                                   where Window: WindowMethods;
 
+    /// Traverses the existing layer hierarchy and removes any layers that
+    /// currently exist but which are no longer required.
+    fn collect_old_layers<Window>(&self,
+                                  compositor: &mut IOCompositor<Window>,
+                                  pipeline_id: PipelineId,
+                                  new_layers: &Vec<LayerProperties>)
+                                  where Window: WindowMethods;
+
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
@@ -143,7 +152,7 @@ pub trait CompositorLayer {
     fn pipeline_id(&self) -> PipelineId;
 }
 
-#[derive(Copy, PartialEq, Clone)]
+#[derive(Copy, PartialEq, Clone, Debug)]
 pub enum WantsScrollEventsFlag {
     WantsScrollEvents,
     DoesntWantScrollEvents,
@@ -271,6 +280,43 @@ impl CompositorLayer for Layer<CompositorData> {
         }
     }
 
+    fn collect_old_layers<Window>(&self,
+                                  compositor: &mut IOCompositor<Window>,
+                                  pipeline_id: PipelineId,
+                                  new_layers: &Vec<LayerProperties>)
+                                  where Window: WindowMethods {
+        // Traverse children first so that layers are removed
+        // bottom up - allowing each layer being removed to properly
+        // clean up any tiles it owns.
+        for kid in self.children().iter() {
+            kid.collect_old_layers(compositor, pipeline_id, new_layers);
+        }
+
+        // Retain child layers that also exist in the new layer list.
+        self.children().retain(|child| {
+            let extra_data = child.extra_data.borrow();
+
+            // Never remove root layers or layers from other pipelines.
+            if pipeline_id != extra_data.pipeline_id ||
+               extra_data.id == LayerId::null() {
+                true
+            } else {
+                // Keep this layer if it exists in the new layer list.
+                let keep_layer = new_layers.iter().any(|properties| {
+                    properties.id == extra_data.id
+                });
+
+                // When removing a layer, clear any tiles and surfaces
+                // associated with the layer.
+                if !keep_layer {
+                    child.clear_all_tiles(compositor);
+                }
+
+                keep_layer
+            }
+        });
+    }
+
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
@@ -292,13 +338,7 @@ impl CompositorLayer for Layer<CompositorData> {
                            delta: TypedPoint2D<LayerPixel, f32>,
                            cursor: TypedPoint2D<LayerPixel, f32>)
                            -> ScrollEventResult {
-        // If this layer doesn't want scroll events, neither it nor its children can handle scroll
-        // events.
-        if self.wants_scroll_events() != WantsScrollEventsFlag::WantsScrollEvents {
-            return ScrollEventResult::ScrollEventUnhandled;
-        }
-
-        //// Allow children to scroll.
+        // Allow children to scroll.
         let scroll_offset = self.extra_data.borrow().scroll_offset;
         let new_cursor = cursor - scroll_offset;
         for child in self.children().iter() {
@@ -309,6 +349,11 @@ impl CompositorLayer for Layer<CompositorData> {
                     return result;
                 }
             }
+        }
+
+        // If this layer doesn't want scroll events, it can't handle scroll events.
+        if self.wants_scroll_events() != WantsScrollEventsFlag::WantsScrollEvents {
+            return ScrollEventResult::ScrollEventUnhandled;
         }
 
         self.clamp_scroll_offset_and_scroll_layer(scroll_offset + delta)
@@ -360,8 +405,7 @@ impl CompositorLayer for Layer<CompositorData> {
         };
 
         let pipeline = compositor.get_pipeline(self.pipeline_id());
-        let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn send_mouse_move_event<Window>(&self,
@@ -370,8 +414,7 @@ impl CompositorLayer for Layer<CompositorData> {
                                      where Window: WindowMethods {
         let message = MouseMoveEvent(cursor.to_untyped());
         let pipeline = compositor.get_pipeline(self.pipeline_id());
-        let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<LayerPixel, f32>)

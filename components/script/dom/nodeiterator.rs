@@ -19,12 +19,15 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct NodeIterator {
     reflector_: Reflector,
     root_node: JS<Node>,
+    #[ignore_heap_size_of = "Defined in rust-mozjs"]
     reference_node: MutHeap<JS<Node>>,
     pointer_before_reference_node: Cell<bool>,
     what_to_show: u32,
+    #[ignore_heap_size_of = "Can't measure due to #6870"]
     filter: Filter,
 }
 

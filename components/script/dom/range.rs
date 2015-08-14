@@ -26,6 +26,7 @@ use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use std::rc::Rc;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct Range {
     reflector_: Reflector,
     inner: Rc<RefCell<RangeInner>>,
@@ -682,6 +683,7 @@ impl<'a> RangeMethods for &'a Range {
 #[derive(JSTraceable)]
 #[must_root]
 #[privatize]
+#[derive(HeapSizeOf)]
 pub struct RangeInner {
     start: BoundaryPoint,
     end: BoundaryPoint,
@@ -816,6 +818,7 @@ impl RangeInner {
 #[derive(JSTraceable)]
 #[must_root]
 #[privatize]
+#[derive(HeapSizeOf)]
 pub struct BoundaryPoint {
     node: JS<Node>,
     offset: u32,

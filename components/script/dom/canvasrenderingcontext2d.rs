@@ -32,6 +32,7 @@ use euclid::size::Size2D;
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
+use canvas::canvas_paint_task::RectToi32;
 
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
@@ -50,7 +51,7 @@ use url::Url;
 use util::vec::byte_swap;
 
 #[must_root]
-#[derive(JSTraceable, Clone)]
+#[derive(JSTraceable, Clone, HeapSizeOf)]
 pub enum CanvasFillOrStrokeStyle {
     Color(RGBA),
     Gradient(JS<CanvasGradient>),
@@ -59,10 +60,12 @@ pub enum CanvasFillOrStrokeStyle {
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     global: GlobalField,
     renderer_id: usize,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
     state: RefCell<CanvasContextState>,
@@ -70,7 +73,7 @@ pub struct CanvasRenderingContext2D {
 }
 
 #[must_root]
-#[derive(JSTraceable, Clone)]
+#[derive(JSTraceable, Clone, HeapSizeOf)]
 struct CanvasContextState {
     global_alpha: f64,
     global_composition: CompositionOrBlending,
@@ -298,7 +301,7 @@ impl CanvasRenderingContext2D {
             let renderer = context.r().get_ipc_renderer();
             let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
             // Reads pixels from source image
-            renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect,
+            renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect.to_i32(),
                                                                         image_size,
                                                                         sender))).unwrap();
             let imagedata = receiver.recv().unwrap();
@@ -377,7 +380,8 @@ impl CanvasRenderingContext2D {
         let renderer = context.r().get_ipc_renderer();
         let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
         // Reads pixels from source canvas
-        renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect, image_size, sender))).unwrap();
+        renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect.to_i32(),
+                                                                    image_size, sender))).unwrap();
 
         return Some((receiver.recv().unwrap(), image_size));
     }
@@ -884,18 +888,30 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
                     sy: Finite<f64>,
                     sw: Finite<f64>,
                     sh: Finite<f64>) -> Fallible<Root<ImageData>> {
-        let sx = *sx;
-        let sy = *sy;
-        let sw = *sw;
-        let sh = *sh;
+        let mut sx = *sx;
+        let mut sy = *sy;
+        let mut sw = *sw;
+        let mut sh = *sh;
 
         if sw == 0.0 || sh == 0.0 {
             return Err(IndexSize)
         }
 
+        if sw < 0.0 {
+            sw = -sw;
+            sx -= sw;
+        }
+        if sh < 0.0 {
+            sh = -sh;
+            sy -= sh;
+        }
+
+        let sh = cmp::max(1, sh.to_u32().unwrap());
+        let sw = cmp::max(1, sw.to_u32().unwrap());
+
         let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
-        let dest_rect = Rect::new(Point2D::new(sx as f64, sy as f64),
-                                  Size2D::new(sw as f64, sh as f64));
+        let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
+                                  Size2D::new(sw as i32, sh as i32));
         let canvas_size = self.canvas.root().r().get_size();
         let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         self.ipc_renderer
@@ -913,7 +929,7 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
              chunk[2] = (chunk[2] as f32 / alpha) as u8;
         }
 
-        Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
+        Ok(ImageData::new(self.global.root().r(), sw, sh, Some(data)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -926,12 +942,13 @@ impl<'a> CanvasRenderingContext2DMethods for &'a CanvasRenderingContext2D {
     fn PutImageData_(self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>,
                      dirtyX: Finite<f64>, dirtyY: Finite<f64>, dirtyWidth: Finite<f64>, dirtyHeight: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
-        let image_data_rect = Rect::new(Point2D::new(*dx, *dy),
-                                        Size2D::new(imagedata.Width() as f64,
-                                                    imagedata.Height() as f64));
-        let dirty_rect = Some(Rect::new(Point2D::new(*dirtyX, *dirtyY),
-                                        Size2D::new(*dirtyWidth, *dirtyHeight)));
-        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect));
+        let offset = Point2D::new(*dx, *dy);
+        let image_data_size = Size2D::new(imagedata.Width() as f64,
+                                          imagedata.Height() as f64);
+
+        let dirty_rect = Rect::new(Point2D::new(*dirtyX, *dirtyY),
+                                   Size2D::new(*dirtyWidth, *dirtyHeight));
+        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, offset, image_data_size, dirty_rect));
         self.ipc_renderer.send(msg).unwrap();
         self.mark_as_dirty();
     }

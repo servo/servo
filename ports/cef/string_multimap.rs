@@ -20,7 +20,7 @@ pub extern "C" fn cef_string_multimap_alloc() -> *mut cef_string_multimap_t {
 pub extern "C" fn cef_string_multimap_size(smm: *mut cef_string_multimap_t) -> c_int {
     unsafe {
         if smm.is_null() { return 0; }
-        // t1 : collections::btree::map::Values<'_, collections::string::String, collections::vec::Vec<*mut types::cef_string_utf16>>` 
+        // t1 : collections::btree::map::Values<'_, collections::string::String, collections::vec::Vec<*mut types::cef_string_utf16>>`
         let t1 = (*smm).values();
         // t2 : collections::btree::map::BTreeMap<collections::string::String, collections::vec::Vec<*mut types::cef_string_utf16>>
         let t2 : usize = t1.map(|val| (*val).len()).sum();
@@ -118,7 +118,7 @@ pub extern "C" fn cef_string_multimap_value(smm: *mut cef_string_multimap_t, ind
 pub extern "C" fn cef_string_multimap_clear(smm: *mut cef_string_multimap_t) {
     unsafe {
         if smm.is_null() { return; }
-        if (*smm).len() == 0 { return; }
+        if (*smm).is_empty() { return; }
         for (_, val) in (*smm).iter_mut() {
             while let Some(cs) = (*val).pop() {
                 cef_string_userfree_utf16_free(cs);

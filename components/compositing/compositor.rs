@@ -39,7 +39,7 @@ use msg::constellation_msg::{PipelineId, WindowSizeData};
 use png;
 use profile_traits::mem::{self, Reporter, ReporterRequest, ReportKind};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, ScriptControlChan};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::mem as std_mem;
@@ -255,13 +255,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> IOCompositor<Window> {
-
         // Register this thread as a memory reporter, via its own channel.
         let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
         let compositor_proxy_for_memory_reporter = sender.clone_compositor_proxy();
         ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
             let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(reporter_request.reports_channel));
+            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(
+                    reporter_request.reports_channel));
         });
         let reporter = Reporter(reporter_sender);
         mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
@@ -376,8 +376,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.get_title_for_main_frame();
             }
 
-            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties), ShutdownState::NotShuttingDown) => {
+            (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
+             ShutdownState::NotShuttingDown) => {
                 self.get_or_create_pipeline_details(pipeline_id).current_epoch = epoch;
+                self.collect_old_layers(pipeline_id, &properties);
                 for (index, layer_properties) in properties.iter().enumerate() {
                     if index == 0 {
                         self.create_or_update_base_layer(pipeline_id, *layer_properties);
@@ -646,6 +648,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             transform: Matrix4::identity(),
             perspective: Matrix4::identity(),
             establishes_3d_context: true,
+            scrolls_overflow_area: false,
         };
 
         let root_layer = CompositorData::new_layer(pipeline.id,
@@ -686,6 +689,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null())
     }
 
+    fn collect_old_layers(&mut self,
+                          pipeline_id: PipelineId,
+                          new_layers: &Vec<LayerProperties>) {
+        let root_layer = match self.scene.root {
+            Some(ref root_layer) => root_layer.clone(),
+            None => return,
+        };
+
+        root_layer.collect_old_layers(self, pipeline_id, new_layers);
+    }
+
     fn remove_pipeline_root_layer(&mut self, pipeline_id: PipelineId) {
         let root_layer = match self.scene.root {
             Some(ref root_layer) => root_layer.clone(),
@@ -708,7 +722,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn create_or_update_base_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+    fn create_or_update_base_layer(&mut self,
+                                   pipeline_id: PipelineId,
+                                   layer_properties: LayerProperties) {
         debug_assert!(layer_properties.parent_id.is_none());
 
         let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
@@ -757,10 +773,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         if let Some(parent_layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
                                                                                parent_id) {
+            let wants_scroll_events = if layer_properties.scrolls_overflow_area {
+                WantsScrollEventsFlag::WantsScrollEvents
+            } else {
+                WantsScrollEventsFlag::DoesntWantScrollEvents
+            };
+
             let new_layer = CompositorData::new_layer(pipeline_id,
                                                       layer_properties,
-                                                      WantsScrollEventsFlag::DoesntWantScrollEvents,
+                                                      wants_scroll_events,
                                                       parent_layer.tile_size);
+
+            if layer_properties.scrolls_overflow_area {
+                *new_layer.masks_to_bounds.borrow_mut() = true
+            }
+
             parent_layer.add_child(new_layer);
         }
     }
@@ -1255,10 +1282,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 request.page_rect = request.page_rect / scale.get();
             }
 
-            let layer_kind = if layer.transform_state.borrow().is_3d {
-                LayerKind::Layer3D
+            let layer_kind = if layer.transform_state.borrow().has_transform {
+                LayerKind::HasTransform
             } else {
-                LayerKind::Layer2D
+                LayerKind::NoTransform
             };
 
             let mut paint_request = PaintRequest {
@@ -1280,8 +1307,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let layer_rect = Rect::new(-layer.extra_data.borrow().scroll_offset.to_untyped(),
                                        layer.bounds.borrow().size.to_untyped());
             let pipeline = self.get_pipeline(layer.pipeline_id());
-            let ScriptControlChan(ref chan) = pipeline.script_chan;
-            chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
+            pipeline.script_chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
         }
 
         for kid in layer.children().iter() {
@@ -1311,7 +1337,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Return unused tiles first, so that they can be reused by any new BufferRequests.
         self.cache_unused_buffers(unused_buffers);
 
-        if layers_and_requests.len() == 0 {
+        if layers_and_requests.is_empty() {
             return false;
         }
 
@@ -1625,6 +1651,33 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 buffer.native_surface
             }).collect();
             self.surface_map.insert_surfaces(&self.native_display, surfaces);
+        }
+    }
+
+    #[allow(dead_code)]
+    fn dump_layer_tree(&self) {
+        if let Some(ref layer) = self.scene.root {
+            println!("Layer tree:");
+            self.dump_layer_tree_with_indent(&**layer, 0);
+        }
+    }
+
+    #[allow(dead_code)]
+    fn dump_layer_tree_with_indent(&self, layer: &Layer<CompositorData>, level: u32) {
+        let mut indentation = String::new();
+        for _ in 0..level {
+            indentation.push_str("  ");
+        }
+
+        println!("{}Layer {:x}: {:?} @ {:?} masks to bounds: {:?} establishes 3D context: {:?}",
+                 indentation,
+                 layer as *const _ as usize,
+                 layer.extra_data,
+                 *layer.bounds.borrow(),
+                 *layer.masks_to_bounds.borrow(),
+                 layer.establishes_3d_context);
+        for kid in layer.children().iter() {
+            self.dump_layer_tree_with_indent(&**kid, level + 1)
         }
     }
 }

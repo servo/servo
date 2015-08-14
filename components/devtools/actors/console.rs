@@ -7,7 +7,8 @@
 //! Mediates interaction between the remote web console and equivalent functionality (object
 //! inspection, JS evaluation, autocompletion) in Servo.
 
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
+use actors::object::ObjectActor;
 use protocol::JsonPacketStream;
 
 use devtools_traits::EvaluateJSReply::{NullValue, VoidValue, NumberValue};
@@ -92,10 +93,10 @@ impl Actor for ConsoleActor {
     }
 
     fn handle_message(&self,
-                      _registry: &ActorRegistry,
+                      registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getCachedMessages" => {
                 let str_types = msg.get("messageTypes").unwrap().as_array().unwrap().into_iter().map(|json_type| {
@@ -123,7 +124,7 @@ impl Actor for ConsoleActor {
                     messages: messages,
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "startListeners" => {
@@ -138,7 +139,7 @@ impl Actor for ConsoleActor {
                     }
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "stopListeners" => {
@@ -154,7 +155,7 @@ impl Actor for ConsoleActor {
                                          .collect(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             //TODO: implement autocompletion like onAutocomplete in
@@ -166,7 +167,7 @@ impl Actor for ConsoleActor {
                     matchProp: "".to_string(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "evaluateJS" => {
@@ -210,12 +211,14 @@ impl Actor for ConsoleActor {
                         }
                     }
                     StringValue(s) => s.to_json(),
-                    ActorValue(s) => {
-                        //TODO: make initial ActorValue message include these properties.
+                    ActorValue { class, uuid } => {
+                        //TODO: make initial ActorValue message include these properties?
                         let mut m = BTreeMap::new();
+                        let actor = ObjectActor::new(registry, uuid);
+
                         m.insert("type".to_string(), "object".to_string().to_json());
-                        m.insert("class".to_string(), "???".to_string().to_json());
-                        m.insert("actor".to_string(), s.to_json());
+                        m.insert("class".to_string(), class.to_json());
+                        m.insert("actor".to_string(), actor.to_json());
                         m.insert("extensible".to_string(), true.to_json());
                         m.insert("frozen".to_string(), false.to_json());
                         m.insert("sealed".to_string(), false.to_json());
@@ -234,10 +237,10 @@ impl Actor for ConsoleActor {
                     helperResult: Json::Object(BTreeMap::new()),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false
+            _ => ActorMessageStatus::Ignored
         })
     }
 }

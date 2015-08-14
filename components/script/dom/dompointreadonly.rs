@@ -11,6 +11,7 @@ use std::cell::Cell;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct DOMPointReadOnly {
     reflector_: Reflector,
     x: Cell<f64>,

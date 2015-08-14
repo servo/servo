@@ -17,8 +17,8 @@ Content-Security-Policy: img-src 'none'
 
 <body>
     This test checks that we enforce all the supplied policies. This test passe if it doesn&apos;t alert fail and if the style doesn&apos;t apply.
+    Check that a SecurityPolicyViolationEvent is fired upon blocking an image.
     <script>
-        console.info('Check that a SecurityPolicyViolationEvent is fired upon blocking an image.');
         var img = document.createElement('img');
         img.src = '../support/fail.png';
         img.onerror = function() {

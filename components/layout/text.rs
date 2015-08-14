@@ -90,7 +90,7 @@ impl TextRunScanner {
         // FIXME(pcwalton): We want to be sure not to allocate multiple times, since this is a
         // performance-critical spot, but this may overestimate and allocate too much memory.
         let mut new_fragments = Vec::with_capacity(fragments.len());
-        let mut last_whitespace = true;
+        let mut last_whitespace = false;
         let mut paragraph_bytes_processed = 0;
 
         while !fragments.is_empty() {
@@ -142,7 +142,7 @@ impl TextRunScanner {
                 debug_assert!(self.clump.len() == 1,
                               "WAT: can't coalesce non-text nodes in flush_clump_to_list()!");
                 out_fragments.push(self.clump.pop_front().unwrap());
-                return last_whitespace
+                return false
             }
         }
 
@@ -398,14 +398,13 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
             };
 
             string_before =
-                unscanned_text_fragment_info.text[..(position + 1)].to_owned().into_boxed_slice();
+                unscanned_text_fragment_info.text[..(position + 1)].to_owned();
             unscanned_text_fragment_info.text =
                 unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_slice();
         }
         first_fragment.transform(first_fragment.border_box.size,
-                                 SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo {
-            text: string_before,
-        }))
+                                 SpecificFragmentInfo::UnscannedText(
+                                     UnscannedTextFragmentInfo::from_text(string_before)))
     };
 
     fragments.push_front(new_fragment);

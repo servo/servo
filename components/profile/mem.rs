@@ -440,14 +440,21 @@ mod system_reporter {
 
     #[cfg(target_os="linux")]
     fn get_system_heap_allocated() -> Option<usize> {
-        let info: struct_mallinfo = unsafe {
-            mallinfo()
-        };
-        // The documentation in the glibc man page makes it sound like |uordblks|
-        // would suffice, but that only gets the small allocations that are put in
-        // the brk heap. We need |hblkhd| as well to get the larger allocations
-        // that are mmapped.
-        Some((info.hblkhd + info.uordblks) as usize)
+        let info: struct_mallinfo = unsafe { mallinfo() };
+
+        // The documentation in the glibc man page makes it sound like |uordblks| would suffice,
+        // but that only gets the small allocations that are put in the brk heap. We need |hblkhd|
+        // as well to get the larger allocations that are mmapped.
+        //
+        // These fields are unfortunately |int| and so can overflow (becoming negative) if memory
+        // usage gets high enough. So don't report anything in that case. In the non-overflow case
+        // we cast the two values to usize before adding them to make sure the sum also doesn't
+        // overflow.
+        if info.hblkhd < 0 || info.uordblks < 0 {
+            None
+        } else {
+            Some(info.hblkhd as usize + info.uordblks as usize)
+        }
     }
 
     #[cfg(not(target_os="linux"))]

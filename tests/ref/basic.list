@@ -9,7 +9,9 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
+== abs_rel_explicit_height.html abs_rel_explicit_height_ref.html
 == absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
+== absolute_z_index_auto_paint_order_a.html absolute_z_index_auto_paint_order_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 == after_block_iteration.html after_block_iteration_ref.html
@@ -168,6 +170,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 # inline_text_align_a.html inline_text_align_b.html
 == inline_whitespace_a.html inline_whitespace_ref.html
 == inline_whitespace_b.html inline_whitespace_ref.html
+== input_button_margins_a.html input_button_margins_ref.html
 == input_button_size_a.html input_button_size_ref.html
 != input_height_a.html input_height_ref.html
 == inset.html inset_ref.html
@@ -270,6 +273,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == position_fixed_tile_edge_2.html position_fixed_tile_edge_ref.html
 == position_fixed_tile_edge_3.html position_fixed_tile_edge_ref.html
 == position_relative_a.html position_relative_b.html
+== position_relative_inline_block_a.html position_relative_inline_block_ref.html
 == position_relative_painting_order_a.html position_relative_painting_order_ref.html
 == position_relative_top_percentage_a.html position_relative_top_percentage_b.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
@@ -314,6 +318,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == text_decoration_cached.html text_decoration_cached_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
+!= text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
 == text_indent_a.html text_indent_ref.html
 == text_justify_none_a.html text_justify_none_ref.html
 != text_overflow_a.html text_overflow_ref.html
@@ -357,7 +362,6 @@ experimental == viewport_rule.html viewport_rule_ref.html
 == whitespace_pre.html whitespace_pre_ref.html
 == width_nonreplaced_block_simple_a.html width_nonreplaced_block_simple_b.html
 == word_break_a.html word_break_ref.html
-== word_spacing_a.html word_spacing_ref.html
 
 
 # This file must be sorted alphabetically.

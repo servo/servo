@@ -24,25 +24,38 @@ policies and contribution forms [3].
 <body>
 <div id="log"></div>
 <script>
+// These elements does not support creating shadow root.
+// instead, NotSupportedError should be thrown.
+// http://w3c.github.io/webcomponents/spec/shadow/#widl-Element-createShadowRoot-ShadowRoot-ShadowRootInit-shadowRootInitDict
+var BLACK_LISTED_ELEMENTS = [
+    "button",
+    "details",
+    "input",
+    "marquee",
+    "meter",
+    "progress",
+    "select",
+    "textarea",
+    "keygen"
+];
+
 function testElement(elementName) {
     var doc = document.implementation.createHTMLDocument('Test');
     var element = doc.createElement(elementName);
     doc.body.appendChild(element);
 
-    var shadowRoot1 = element.createShadowRoot();
-    assert_equals(shadowRoot1.ownerDocument, doc);
-
-    var shadowRoot2 = element.createShadowRoot();
-    assert_equals(shadowRoot2.ownerDocument, doc);
+    var shadowRoot = element.createShadowRoot();
+    assert_equals(shadowRoot.ownerDocument, doc);
 }
 
-var testParameters = HTML5_ELEMENT_NAMES.map(function (name) {
+var testParameters = HTML5_ELEMENT_NAMES.filter(function(name) {
+    return BLACK_LISTED_ELEMENTS.indexOf(name) == -1;
+}).map(function (name) {
     return [
         'Checks whether an element "' + name + '" can create a shadow root.',
         name
     ];
 });
-
 generate_tests(testElement, testParameters);
 </script>
 </body>

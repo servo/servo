@@ -60,7 +60,7 @@ use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::{CompositorEvent, MouseButton};
-use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::ConstellationControlMsg;
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptState, ScriptTaskFactory};
 use msg::compositor_msg::{LayerId, ScriptListener};
@@ -182,9 +182,6 @@ pub trait MainThreadRunnable {
 /// Messages used to control script event loops, such as ScriptTask and
 /// DedicatedWorkerGlobalScope.
 pub enum ScriptMsg {
-    /// Acts on a fragment URL load on the specified pipeline (only dispatched
-    /// to ScriptTask).
-    TriggerFragment(PipelineId, String),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     Navigate(PipelineId, LoadData),
@@ -311,7 +308,7 @@ pub struct ScriptTask {
     chan: NonWorkerScriptChan,
 
     /// A channel to hand out to tasks that need to respond to a message from the script task.
-    control_chan: ScriptControlChan,
+    control_chan: Sender<ConstellationControlMsg>,
 
     /// The port on which the constellation and layout tasks can communicate with the
     /// script task.
@@ -405,7 +402,7 @@ impl ScriptTaskFactory for ScriptTask {
               parent_info: Option<(PipelineId, SubpageId)>,
               compositor: ScriptListener,
               layout_chan: &OpaqueScriptLayoutChannel,
-              control_chan: ScriptControlChan,
+              control_chan: Sender<ConstellationControlMsg>,
               control_port: Receiver<ConstellationControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
@@ -542,7 +539,7 @@ impl ScriptTask {
     pub fn new(compositor: ScriptListener,
                port: Receiver<ScriptMsg>,
                chan: NonWorkerScriptChan,
-               control_chan: ScriptControlChan,
+               control_chan: Sender<ConstellationControlMsg>,
                control_port: Receiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
                resource_task: Arc<ResourceTask>,
@@ -862,8 +859,6 @@ impl ScriptTask {
         match msg {
             ScriptMsg::Navigate(id, load_data) =>
                 self.handle_navigate(id, None, load_data),
-            ScriptMsg::TriggerFragment(id, fragment) =>
-                self.trigger_fragment(id, fragment),
             ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
                 self.handle_fire_timer_msg(id, timer_id),
             ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
@@ -914,8 +909,8 @@ impl ScriptTask {
                 devtools::handle_set_timeline_markers(&page, self, marker_types, reply),
             DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
                 devtools::handle_drop_timeline_markers(&page, self, marker_types),
-            DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, callback) =>
-                devtools::handle_request_animation_frame(&page, pipeline_id, callback),
+            DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, name) =>
+                devtools::handle_request_animation_frame(&page, pipeline_id, name),
         }
     }
 
@@ -1053,7 +1048,7 @@ impl ScriptTask {
             constellation_chan: self.constellation_chan.clone(),
             failure: failure,
             paint_chan: paint_chan,
-            script_chan: self.control_chan.0.clone(),
+            script_chan: self.control_chan.clone(),
             image_cache_task: self.image_cache_task.clone(),
             layout_shutdown_chan: layout_shutdown_chan,
         };
@@ -1680,6 +1675,19 @@ impl ScriptTask {
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
+        // Step 8.
+        if let Some(fragment) = load_data.url.fragment {
+            let page = get_page(&self.root_page(), pipeline_id);
+            let document = page.document();
+            match document.r().find_fragment_node(fragment) {
+                Some(ref node) => {
+                    self.scroll_fragment_point(pipeline_id, node.r());
+                }
+                None => {}
+            }
+            return;
+        }
+
         match subpage_id {
             Some(subpage_id) => {
                 let borrowed_page = self.root_page();
@@ -1697,20 +1705,6 @@ impl ScriptTask {
             }
         }
     }
-
-    /// The entry point for content to notify that a fragment url has been requested
-    /// for the given pipeline.
-    fn trigger_fragment(&self, pipeline_id: PipelineId, fragment: String) {
-        let page = get_page(&self.root_page(), pipeline_id);
-        let document = page.document();
-        match document.r().find_fragment_node(fragment) {
-            Some(ref node) => {
-                self.scroll_fragment_point(pipeline_id, node.r());
-            }
-            None => {}
-        }
-    }
-
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData) {
         let page = get_page(&self.root_page(), pipeline_id);

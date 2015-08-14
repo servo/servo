@@ -42,13 +42,13 @@
 
     open_rq.onsuccess = function(e) {
         log("open_rq.success")(e);
-        assert_object_equals(events, [ "rq_add1.success",
-                                       "rq_add2.error: ConstraintError",
-                                       "rq_add3.success",
+        assert_array_equals(events, [ "rq_add1.success",
+                                      "rq_add2.error: ConstraintError",
+                                      "rq_add3.success",
 
-                                       "transaction.complete",
+                                      "transaction.complete",
 
-                                       "open_rq.success" ],
+                                      "open_rq.success" ],
                             "events");
         t.done();
     }

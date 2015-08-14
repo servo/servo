@@ -99,6 +99,18 @@
             "url": "/_mozilla/css/setpropertypriority.html"
           }
         ],
+        "css/word-spacing.html": [
+          {
+            "path": "css/word-spacing.html",
+            "references": [
+              [
+                "/_mozilla/css/word-spacing-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/word-spacing.html"
+          }
+        ],
         "mozilla/canvas/drawimage_html_image_1.html": [
           {
             "path": "mozilla/canvas/drawimage_html_image_1.html",
@@ -539,6 +551,12 @@
             "url": "/_mozilla/mozilla/focus_blur.html"
           }
         ],
+        "mozilla/follow-hyperlink.html": [
+          {
+            "path": "mozilla/follow-hyperlink.html",
+            "url": "/_mozilla/mozilla/follow-hyperlink.html"
+          }
+        ],
         "mozilla/getBoundingClientRect.html": [
           {
             "path": "mozilla/getBoundingClientRect.html",
@@ -627,12 +645,6 @@
           {
             "path": "mozilla/navigator.html",
             "url": "/_mozilla/mozilla/navigator.html"
-          }
-        ],
-        "mozilla/node_cloneNode.html": [
-          {
-            "path": "mozilla/node_cloneNode.html",
-            "url": "/_mozilla/mozilla/node_cloneNode.html"
           }
         ],
         "mozilla/node_compareDocumentPosition.html": [
@@ -852,6 +864,18 @@
             ]
           ],
           "url": "/_mozilla/css/setpropertypriority.html"
+        }
+      ],
+      "css/word-spacing.html": [
+        {
+          "path": "css/word-spacing.html",
+          "references": [
+            [
+              "/_mozilla/css/word-spacing-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/word-spacing.html"
         }
       ],
       "mozilla/canvas/drawimage_html_image_1.html": [

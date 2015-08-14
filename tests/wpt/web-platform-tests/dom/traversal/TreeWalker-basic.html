@@ -70,13 +70,15 @@ function createSampleDOM()
     return div;
 }
 
-function check_walker(walker, root)
+function check_walker(walker, root, whatToShowValue)
 {
-    assert_equals(walker.toString(), '[object TreeWalker]');
-    assert_equals(walker.root, root);
-    assert_equals(walker.whatToShow, 0xFFFFFFFF);
-    assert_equals(walker.filter, null);
-    assert_equals(walker.currentNode, root);
+    whatToShowValue = whatToShowValue === undefined ? 0xFFFFFFFF : whatToShowValue;
+
+    assert_equals(walker.toString(), '[object TreeWalker]', 'toString');
+    assert_equals(walker.root, root, 'root');
+    assert_equals(walker.whatToShow, whatToShowValue, 'whatToShow');
+    assert_equals(walker.filter, null, 'filter');
+    assert_equals(walker.currentNode, root, 'currentNode');
     assert_readonly(walker, 'root');
     assert_readonly(walker, 'whatToShow');
     assert_readonly(walker, 'filter');
@@ -88,6 +90,13 @@ test(function ()
     var walker = document.createTreeWalker(root);
     check_walker(walker, root);
 }, 'Construct a TreeWalker by document.createTreeWalker(root).');
+
+test(function ()
+{
+    var root = createSampleDOM();
+    var walker = document.createTreeWalker(root, null, null);
+    check_walker(walker, root, 0);
+}, 'Construct a TreeWalker by document.createTreeWalker(root, null, null).');
 
 test(function ()
 {

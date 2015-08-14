@@ -83,7 +83,7 @@ impl LintPass for InheritancePass {
                         cx.sess().span_note(*span, "Bare DOM struct found here");
                     }
                 }
-            } else if dom_spans.len() == 0 {
+            } else if dom_spans.is_empty() {
                 cx.span_lint(INHERITANCE_INTEGRITY, cx.tcx.map.expect_item(id).span,
                              "This DOM struct has no reflector or parent DOM struct");
             }

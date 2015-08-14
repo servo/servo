@@ -35,7 +35,7 @@ impl<T: Ord + PartialOrd + PartialEq> BinarySearchMethods<T> for [T] {
 
 impl<T> FullBinarySearchMethods<T> for [T] {
     fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<usize> {
-        if self.len() == 0 {
+        if self.is_empty() {
             return None;
         }
 

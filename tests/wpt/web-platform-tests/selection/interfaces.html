@@ -1,0 +1,41 @@
+<!doctype html>
+<title>Selection interface tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<script type=text/plain>
+interface Selection {
+  readonly attribute Node? anchorNode;
+  readonly attribute unsigned long anchorOffset;
+  readonly attribute Node? focusNode;
+  readonly attribute unsigned long focusOffset;
+
+  readonly attribute boolean isCollapsed;
+  void               collapse(Node node, unsigned long offset);
+  void               collapseToStart();
+  void               collapseToEnd();
+
+  void               extend(Node node, unsigned long offset);
+
+  void               selectAllChildren(Node node);
+  void               deleteFromDocument();
+
+  readonly attribute unsigned long rangeCount;
+  Range              getRangeAt(unsigned long index);
+  void               addRange(Range range);
+  void               removeRange(Range range);
+  void               removeAllRanges();
+
+  stringifier;
+};
+</script>
+<script>
+"use strict";
+
+var idlArray = new IdlArray();
+idlArray.add_idls(document.querySelector("script[type=text\\/plain]").textContent);
+idlArray.add_objects({Selection: ['getSelection()']});
+idlArray.test();
+</script>

@@ -11,12 +11,12 @@ use std::mem;
 use std::net::TcpStream;
 use std::thread::sleep_ms;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::channel;
 
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::memory::{MemoryActor, TimelineMemoryReply};
 use actors::framerate::FramerateActor;
-use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
+use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{SetTimelineMarkers, DropTimelineMarkers};
 use devtools_traits::{PreciseTime, TimelineMarker, TracingMetadata, TimelineMarkerType};
 use protocol::JsonPacketStream;
@@ -25,7 +25,6 @@ use util::task;
 pub struct TimelineActor {
     name: String,
     script_sender: IpcSender<DevtoolScriptControlMsg>,
-    devtools_sender: Sender<DevtoolsControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
     pipeline: PipelineId,
     is_recording: Arc<Mutex<bool>>,
@@ -126,8 +125,7 @@ static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u32 = 200; //ms
 impl TimelineActor {
     pub fn new(name: String,
                pipeline: PipelineId,
-               script_sender: IpcSender<DevtoolScriptControlMsg>,
-               devtools_sender: Sender<DevtoolsControlMsg>) -> TimelineActor {
+               script_sender: IpcSender<DevtoolScriptControlMsg>) -> TimelineActor {
 
         let marker_types = vec!(TimelineMarkerType::Reflow,
                                 TimelineMarkerType::DOMEvent);
@@ -137,7 +135,6 @@ impl TimelineActor {
             pipeline: pipeline,
             marker_types: marker_types,
             script_sender: script_sender,
-            devtools_sender: devtools_sender,
             is_recording: Arc::new(Mutex::new(false)),
             stream: RefCell::new(None),
 
@@ -235,7 +232,7 @@ impl Actor for TimelineActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
@@ -260,8 +257,7 @@ impl Actor for TimelineActor {
                         let framerate_actor = Some(FramerateActor::create(
                                 registry,
                                 self.pipeline.clone(),
-                                self.script_sender.clone(),
-                                self.devtools_sender.clone()));
+                                self.script_sender.clone()));
                         *self.framerate_actor.borrow_mut() = framerate_actor;
                     }
                 }
@@ -279,7 +275,7 @@ impl Actor for TimelineActor {
                     value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "stop" => {
@@ -301,7 +297,7 @@ impl Actor for TimelineActor {
 
                 **self.is_recording.lock().as_mut().unwrap() = false;
                 self.stream.borrow_mut().take();
-                true
+                ActorMessageStatus::Processed
             }
 
             "isRecording" => {
@@ -311,11 +307,11 @@ impl Actor for TimelineActor {
                 };
 
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             _ => {
-                false
+                ActorMessageStatus::Ignored
             }
         })
     }

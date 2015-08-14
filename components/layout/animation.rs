@@ -12,7 +12,7 @@ use gfx::display_list::OpaqueNode;
 use layout_task::{LayoutTask, LayoutTaskData};
 use msg::constellation_msg::{AnimationState, Msg, PipelineId};
 use script::layout_interface::Animation;
-use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::ConstellationControlMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
@@ -128,7 +128,6 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
 pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskData) {
     layout_task.tick_animations(rw_data);
 
-    let ScriptControlChan(ref chan) = layout_task.script_chan;
-    chan.send(ConstellationControlMsg::TickAllAnimations(layout_task.id)).unwrap();
+    layout_task.script_chan.send(ConstellationControlMsg::TickAllAnimations(layout_task.id)).unwrap();
 }
 

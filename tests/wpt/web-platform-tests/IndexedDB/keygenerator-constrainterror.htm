@@ -62,10 +62,7 @@
             }
             else {
                 assert_equals(errors, 2, "expected ConstraintError's");
-
-                assert_equals(actual_keys.length, expected.length, "array length");
-                assert_object_equals(actual_keys, expected, "keygenerator array");
-
+                assert_array_equals(actual_keys, expected, "keygenerator array");
                 t.done();
             }
         });

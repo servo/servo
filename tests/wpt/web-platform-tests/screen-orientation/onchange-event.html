@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+var changeTest = async_test("Test that orientationchange event is fired when the orientation changes.");
+var noChangeTest = async_test("Test that orientationchange event is not fired when the orientation does not change.");
+
+var orientations = [
+  'portrait-primary',
+  'portrait-secondary',
+  'landscape-primary',
+  'landscape-secondary'
+];
+
+var currentIndex = orientations.indexOf(window.screen.orientation.type);
+// Count the number of calls received from the EventHandler set on screen.orientation.onchange.
+var orientationChangeEventHandlerCalls = 0;
+// Count the number of calls received from the listener set with screen.orientation.addEventListene().
+var orientationChangeEventListenerCalls = 0;
+
+var orientationChangeContinuation = null;
+
+function getNextIndex() {
+  return (currentIndex + 1) % orientations.length;
+}
+
+window.screen.orientation.onchange = function() {
+  orientationChangeEventHandlerCalls++;
+  if (orientationChangeEventContinuation) {
+    setTimeout(orientationChangeEventContinuation);
+    orientationChangeEventContinuation = null;
+  }
+};
+
+window.screen.orientation.addEventListener('change', function() {
+  orientationChangeEventListenerCalls++;
+});
+
+function runNoChangeTest() {
+  screen.orientation.lock(orientations[currentIndex]).then(function() {}, function() {});
+
+  noChangeTest.step(function() {
+    assert_equals(screen.orientation.type, orientations[currentIndex]);
+    assert_equals(orientationChangeEventHandlerCalls, orientations.length);
+    assert_equals(orientationChangeEventListenerCalls, orientations.length);
+  });
+
+  noChangeTest.done();
+}
+
+var i = 0;
+function runChangeTest() {
+  screen.orientation.lock(orientations[getNextIndex()]).then(function() {}, function() {});
+  currentIndex = getNextIndex();
+
+  orientationChangeEventContinuation = function() {
+    changeTest.step(function() {
+      assert_equals(screen.orientation.type, orientations[currentIndex]);
+      assert_equals(orientationChangeEventHandlerCalls, i + 1);
+      assert_equals(orientationChangeEventListenerCalls, i + 1);
+    });
+
+    ++i;
+    if (i == orientations.length) {
+      changeTest.done();
+      runNoChangeTest();
+    } else {
+      runChangeTest();
+    }
+  };
+}
+
+runChangeTest();
+
+</script>
+</body>
+</html>

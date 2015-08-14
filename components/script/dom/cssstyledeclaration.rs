@@ -25,6 +25,7 @@ use std::cell::Ref;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: JS<HTMLElement>,
@@ -32,7 +33,7 @@ pub struct CSSStyleDeclaration {
     pseudo: Option<PseudoElement>,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, HeapSizeOf)]
 pub enum CSSModificationAccess {
     ReadWrite,
     Readonly
@@ -44,8 +45,8 @@ macro_rules! css_properties(
             fn $getter(self) -> DOMString {
                 self.GetPropertyValue($cssprop.to_owned())
             }
-            fn $setter(self, value: DOMString) {
-                self.SetPropertyValue($cssprop.to_owned(), value).unwrap();
+            fn $setter(self, value: DOMString) -> ErrorResult {
+                self.SetPropertyValue($cssprop.to_owned(), value)
             }
         )*
     );

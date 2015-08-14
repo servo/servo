@@ -58,7 +58,7 @@
             }
             else {
                 assert_true(overflow_error_fired, "error fired on 'current number' overflow");
-                assert_object_equals(actual_keys, expected_keys, "keygenerator array");
+                assert_array_equals(actual_keys, expected_keys, "keygenerator array");
 
                 t.done();
             }

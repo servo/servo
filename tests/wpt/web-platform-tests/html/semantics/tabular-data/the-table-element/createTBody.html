@@ -162,4 +162,12 @@ test(function() {
   assert_array_equals(table.childNodes, [before, tbody, after1]);
   assert_tbody(tbody);
 }, "A tbody node inside a tfoot child node after a tbody child node");
+
+test(function() {
+  var table = document.createElementNS(htmlNS, "foo:table");
+  var tbody = table.createTBody();
+
+  assert_equals(tbody.prefix, null);
+}, "A prefixed table creates tbody without prefix");
+
 </script>

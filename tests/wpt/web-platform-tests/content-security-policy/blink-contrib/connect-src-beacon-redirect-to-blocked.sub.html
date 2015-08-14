@@ -16,8 +16,8 @@ connect-src 'self'; script-src 'self' 'unsafe-inline';
 
 <body>
     <p>The beacon should not follow the redirect to http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png and send a CSP violation report.</p>
+    <p>Verify that a CSP connect-src directive blocks redirects.</p>
     <script>
-        console.info("Verify that a CSP connect-src directive blocks redirects.");
         navigator.sendBeacon(
             "/common/redirect.py?location=http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png",
             "ping");

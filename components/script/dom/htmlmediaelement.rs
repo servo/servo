@@ -11,6 +11,7 @@ use dom::node::NodeTypeId;
 use util::str::DOMString;
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
 }

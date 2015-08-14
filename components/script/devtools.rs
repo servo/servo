@@ -4,7 +4,7 @@
 
 use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
-use devtools_traits::{ConsoleAPI, PageError};
+use devtools_traits::{ConsoleAPI, PageError, ScriptToDevtoolsControlMsg, ComputedNodeLayout};
 use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::Root;
@@ -20,11 +20,14 @@ use page::{IterablePage, Page};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_task::{get_page, ScriptTask};
-use js::jsapi::RootedValue;
+use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
-
+use std::ffi::CStr;
 use std::rc::Rc;
+use std::str;
+use uuid::Uuid;
 
+#[allow(unsafe_code)]
 pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<EvaluateJSReply>) {
     let cx = global.get_cx();
     let mut rval = RootedValue::new(cx, UndefinedValue());
@@ -43,7 +46,15 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
         EvaluateJSReply::NullValue
     } else {
         assert!(rval.ptr.is_object());
-        panic!("object values unimplemented")
+
+        let obj = RootedObject::new(cx, rval.ptr.to_object());
+        let class_name = unsafe { CStr::from_ptr(ObjectClassName(cx, obj.handle())) };
+        let class_name = str::from_utf8(class_name.to_bytes()).unwrap();
+
+        EvaluateJSReply::ActorValue {
+            class: class_name.to_owned(),
+            uuid: Uuid::new_v4().to_string(),
+        }
     }).unwrap();
 }
 
@@ -86,13 +97,16 @@ pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: Strin
     reply.send(children).unwrap();
 }
 
-pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: IpcSender<(f32, f32)>) {
+pub fn handle_get_layout(page: &Rc<Page>,
+                         pipeline: PipelineId,
+                         node_id: String,
+                         reply: IpcSender<ComputedNodeLayout>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
     let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = *rect.r().Width();
     let height = *rect.r().Height();
-    reply.send((width, height)).unwrap();
+    reply.send(ComputedNodeLayout { width: width, height: height }).unwrap();
 }
 
 pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
@@ -191,10 +205,12 @@ pub fn handle_drop_timeline_markers(page: &Rc<Page>,
     }
 }
 
-pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, callback: IpcSender<f64>) {
+pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, actor_name: String) {
     let page = page.find(id).expect("There is no such page");
     let doc = page.document();
+    let devtools_sender = page.window().devtools_chan().unwrap();
     doc.r().request_animation_frame(box move |time| {
-        callback.send(time).unwrap()
+        let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
+        devtools_sender.send(msg).unwrap();
     });
 }

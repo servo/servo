@@ -23,6 +23,7 @@ use dom::virtualmethods::VirtualMethods;
 use util::str::{DOMString, split_html_space_chars};
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLOptionElement {
     htmlelement: HTMLElement
 }

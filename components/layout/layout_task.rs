@@ -59,7 +59,7 @@ use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, StylesheetLoadResponder};
+use script_traits::StylesheetLoadResponder;
 use selectors::parser::PseudoElement;
 use serde_json;
 use std::borrow::ToOwned;
@@ -118,9 +118,6 @@ pub struct LayoutTaskData {
 
     /// The workers that we use for parallel operation.
     pub parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
-
-    /// The dirty rect. Used during display list construction.
-    pub dirty: Rect<Au>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -189,7 +186,7 @@ pub struct LayoutTask {
     pub constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the script task.
-    pub script_chan: ScriptControlChan,
+    pub script_chan: Sender<ConstellationControlMsg>,
 
     /// The channel on which messages can be sent to the painting task.
     pub paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
@@ -231,7 +228,7 @@ impl LayoutTaskFactory for LayoutTask {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
-              script_chan: ScriptControlChan,
+              script_chan: Sender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
@@ -314,7 +311,7 @@ impl LayoutTask {
            chan: LayoutChan,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
-           script_chan: ScriptControlChan,
+           script_chan: Sender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
@@ -377,7 +374,6 @@ impl LayoutTask {
                     stacking_context: None,
                     stylist: stylist,
                     parallel_traversal: parallel_traversal,
-                    dirty: Rect::zero(),
                     generation: 0,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
@@ -421,7 +417,6 @@ impl LayoutTask {
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
             reflow_root: reflow_root.map(|node| node.opaque()),
-            dirty: Rect::zero(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
             new_animations_sender: rw_data.new_animations_sender.clone(),
@@ -650,7 +645,7 @@ impl LayoutTask {
                                   info.pipeline_port,
                                   info.constellation_chan,
                                   info.failure,
-                                  ScriptControlChan(info.script_chan.clone()),
+                                  info.script_chan.clone(),
                                   *info.paint_chan
                                        .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
                                        .unwrap(),
@@ -731,8 +726,7 @@ impl LayoutTask {
                                                 Origin::Author);
 
         //TODO: mark critical subresources as blocking load as well (#5974)
-        let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
+        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
 
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }
@@ -1005,9 +999,6 @@ impl LayoutTask {
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
-            shared_layout_context.dirty =
-                flow::base(&**layout_root).position.to_physical(writing_mode,
-                                                                     rw_data.screen_size);
             flow::mut_base(&mut **layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
@@ -1054,7 +1045,8 @@ impl LayoutTask {
                                                                      Some(paint_layer),
                                                                      Matrix4::identity(),
                                                                      Matrix4::identity(),
-                                                                     true));
+                                                                     true,
+                                                                     false));
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
@@ -1204,8 +1196,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(()).unwrap();
-        let ScriptControlChan(ref chan) = data.script_chan;
-        chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
+        data.script_chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,

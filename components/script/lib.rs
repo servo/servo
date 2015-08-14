@@ -16,12 +16,14 @@
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(drain)]
+#![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(plugin)]
 #![feature(ref_slice)]
 #![feature(rc_unique)]
+#![feature(slice_patterns)]
 #![feature(str_utf16)]
 #![feature(unicode)]
 #![feature(vec_push_all)]
@@ -64,6 +66,7 @@ extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
 extern crate smallvec;
+#[macro_use]
 extern crate util;
 extern crate websocket;
 #[macro_use]

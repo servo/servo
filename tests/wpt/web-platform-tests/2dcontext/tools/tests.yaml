@@ -483,6 +483,16 @@
     var data = canvas.toDataURL('image/png');
     @assert data =~ /^data:image\/png[;,]/;
 
+- name: toDataURL.jpg
+  desc: toDataURL with image/jpg is invalid type hence returns a PNG
+  testing:
+    - toDataURL.jpg
+    - toDataURL.witharguments
+  code: |
+    var data = canvas.toDataURL('image/jpg');
+    @assert data =~ /^data:image\/png[;,]/;
+
+
 - name: toDataURL.bogustype
   desc: toDataURL with a syntactically invalid type returns a PNG
   testing:

@@ -314,11 +314,15 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
-    def build_tests(self, jobs=None):
+    @CommandArgument('--release', default=False, action="store_true",
+                     help="Build tests with release mode")
+    def build_tests(self, jobs=None, release=False):
         self.ensure_bootstrapped()
         args = ["cargo", "test", "--no-run"]
         if is_headless_build():
             args += ["--no-default-features", "--features", "headless"]
+        if release:
+            args += ["--release"]
         return subprocess.call(
             args,
             env=self.build_env(), cwd=self.servo_crate())

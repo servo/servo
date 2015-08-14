@@ -21,6 +21,7 @@ use std::default::Default;
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-UIEvent
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct UIEvent {
     event: Event,
     view: MutNullableHeap<JS<Window>>,

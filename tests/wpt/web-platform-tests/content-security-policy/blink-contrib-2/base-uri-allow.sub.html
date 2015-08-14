@@ -13,7 +13,6 @@ base-uri http://www1.{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inli
 -->
     <base href="http://www1.{{host}}:{{ports[http][0]}}/">
     <script>
-        console.info('Check that base URIs can be set if they do not violate the page\'s policy.');
         test(function() {
             assert_equals(document.baseURI, 'http://www1.{{host}}:{{ports[http][0]}}/');
             log("TEST COMPLETE")
@@ -23,6 +22,7 @@ base-uri http://www1.{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inli
 </head>
 
 <body>
+    <p>Check that base URIs can be set if they do not violate the page's policy.</p>
     <div id="log"></div>
     <script async defer src="./content-security-policy/support/checkReport.sub.js?reportExists=false"></script>
 </body>

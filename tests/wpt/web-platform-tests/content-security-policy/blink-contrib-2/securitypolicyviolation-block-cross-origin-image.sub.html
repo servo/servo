@@ -15,13 +15,13 @@ img-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 
 <body>
     <script>
-        console.info('Check that a SecurityPolicyViolationEvent strips detail from cross-origin blocked URLs.');
         var img = document.createElement('img');
         img.src = 'http://{{host}}:{{ports[http][0]}}/security/resources/abe.png';
         document.body.appendChild(img);
         log("TEST COMPLETE");
 
     </script>
+    <p>Check that a SecurityPolicyViolationEvent strips detail from cross-origin blocked URLs.</p>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=img-src%20&apos;none&apos;"></script>
 </body>

@@ -181,25 +181,31 @@ impl DisplayList {
             for item in items.iter() {
                 match *item {
                     DisplayItem::SolidColorClass(ref solid_color) => {
-                        println!("{:?} SolidColor. {:?}", indentation, solid_color.base.bounds)
+                        println!("{} SolidColor({},{},{},{}). {:?}",
+                                 indentation,
+                                 solid_color.color.r,
+                                 solid_color.color.g,
+                                 solid_color.color.b,
+                                 solid_color.color.a,
+                                 solid_color.base.bounds)
                     }
                     DisplayItem::TextClass(ref text) => {
-                        println!("{:?} Text. {:?}", indentation, text.base.bounds)
+                        println!("{} Text. {:?}", indentation, text.base.bounds)
                     }
                     DisplayItem::ImageClass(ref image) => {
-                        println!("{:?} Image. {:?}", indentation, image.base.bounds)
+                        println!("{} Image. {:?}", indentation, image.base.bounds)
                     }
                     DisplayItem::BorderClass(ref border) => {
-                        println!("{:?} Border. {:?}", indentation, border.base.bounds)
+                        println!("{} Border. {:?}", indentation, border.base.bounds)
                     }
                     DisplayItem::GradientClass(ref gradient) => {
-                        println!("{:?} Gradient. {:?}", indentation, gradient.base.bounds)
+                        println!("{} Gradient. {:?}", indentation, gradient.base.bounds)
                     }
                     DisplayItem::LineClass(ref line) => {
-                        println!("{:?} Line. {:?}", indentation, line.base.bounds)
+                        println!("{} Line. {:?}", indentation, line.base.bounds)
                     }
                     DisplayItem::BoxShadowClass(ref box_shadow) => {
-                        println!("{:?} Box_shadow. {:?}", indentation, box_shadow.base.bounds)
+                        println!("{} Box_shadow. {:?}", indentation, box_shadow.base.bounds)
                     }
                 }
             }
@@ -252,6 +258,9 @@ pub struct StackingContext {
 
     /// Whether this stacking context creates a new 3d rendering context.
     pub establishes_3d_context: bool,
+
+    /// Whether this stacking context scrolls its overflow area.
+    pub scrolls_overflow_area: bool,
 }
 
 impl StackingContext {
@@ -266,7 +275,8 @@ impl StackingContext {
                layer: Option<PaintLayer>,
                transform: Matrix4,
                perspective: Matrix4,
-               establishes_3d_context: bool)
+               establishes_3d_context: bool,
+               scrolls_overflow_area: bool)
                -> StackingContext {
         StackingContext {
             display_list: display_list,
@@ -279,6 +289,7 @@ impl StackingContext {
             transform: transform,
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
+            scrolls_overflow_area: scrolls_overflow_area,
         }
     }
 
@@ -303,7 +314,7 @@ impl StackingContext {
 
             if opts::get().dump_display_list_optimized {
                 println!("**** optimized display list. Tile bounds: {:?}", paint_context.page_rect);
-                display_list.print_items("*".to_owned());
+                display_list.print_items("####".to_owned());
             }
 
             // Sort positioned children according to z-index.
@@ -423,7 +434,7 @@ impl StackingContext {
         // TODO(gw): This is a hack to avoid running the DL optimizer
         // on 3d transformed tiles. We should have a better solution
         // than just disabling the opts here.
-        if paint_context.layer_kind == LayerKind::Layer3D {
+        if paint_context.layer_kind == LayerKind::HasTransform {
             self.draw_into_context(&self.display_list,
                                    paint_context,
                                    &transform,
@@ -575,7 +586,7 @@ impl StackingContext {
 
     pub fn print(&self, mut indentation: String) {
         // We cover the case of an empty string.
-        if indentation.len() == 0 {
+        if indentation.is_empty() {
             indentation = "####".to_owned();
         }
 
@@ -1022,12 +1033,10 @@ impl<'a> Iterator for DisplayItemIterator<'a> {
 impl DisplayItem {
     /// Paints this display item into the given painting context.
     fn draw_into_context(&self, paint_context: &mut PaintContext) {
-        if paint_context.layer_kind == LayerKind::Layer2D {
-            let this_clip = &self.base().clip;
-            match paint_context.transient_clip {
-                Some(ref transient_clip) if transient_clip == this_clip => {}
-                Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
-            }
+        let this_clip = &self.base().clip;
+        match paint_context.transient_clip {
+            Some(ref transient_clip) if transient_clip == this_clip => {}
+            Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
         }
 
         match *self {

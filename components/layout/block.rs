@@ -1104,7 +1104,8 @@ impl BlockFlow {
             let screen_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
                                                          layout_context.shared.screen_size);
             Some(screen_size.block)
-        } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+        } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
+                  self.base.block_container_explicit_block_size.is_none() {
             self.base.absolute_cb.explicit_block_containing_size(layout_context)
         } else {
             self.base.block_container_explicit_block_size
@@ -1329,12 +1330,7 @@ impl BlockFlow {
 
         let mut iterator = self.base.child_iter().enumerate().peekable();
         while let Some((i, kid)) = iterator.next() {
-            {
-                let kid_base = flow::mut_base(kid);
-                if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                    kid_base.block_container_explicit_block_size = explicit_content_size;
-                }
-            }
+            flow::mut_base(kid).block_container_explicit_block_size = explicit_content_size;
 
             // Determine float impaction, and update the inline size speculations if necessary.
             if flow::base(kid).flags.contains(CLEARS_LEFT) {
@@ -1760,6 +1756,19 @@ impl Flow for BlockFlow {
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            // `overflow: auto` and `overflow: scroll` force creation of layers, since we can only
+            // scroll layers.
+            match (self.fragment.style().get_box().overflow_x,
+                   self.fragment.style().get_box().overflow_y.0) {
+                (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
+                (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
+                    self.base.flags.insert(NEEDS_LAYER);
+                    self.base.clip = ClippingRegion::max();
+                    self.base.stacking_relative_position_of_display_port = MAX_RECT;
+                }
+                _ => {}
+            }
+
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,
                                                                       container_size);
 
@@ -1896,8 +1905,10 @@ impl Flow for BlockFlow {
                                                   .absolute_position_info
                                                   .relative_containing_block_mode,
                                               CoordinateSystem::Own);
-        let clip = self.fragment.clipping_region_for_children(&clip_in_child_coordinate_system,
-                                                              &stacking_relative_border_box);
+        let clip = self.fragment.clipping_region_for_children(
+            &clip_in_child_coordinate_system,
+            &stacking_relative_border_box,
+            self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
 
         // Process children.
         for kid in self.base.child_iter() {

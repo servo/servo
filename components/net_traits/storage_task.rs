@@ -7,7 +7,7 @@ use url::Url;
 
 use util::str::DOMString;
 
-#[derive(Copy, Clone, Deserialize, Serialize)]
+#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum StorageType {
     Session,
     Local

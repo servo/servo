@@ -1,0 +1,121 @@
+<!doctype html>
+<title>Selection.collapseTo(Start|End)() tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+// Also test a selection with no ranges
+testRanges.unshift("[]");
+
+for (var i = 0; i < testRanges.length; i++) {
+    test(function() {
+        selection.removeAllRanges();
+        var endpoints = eval(testRanges[i]);
+        if (!endpoints.length) {
+            assert_throws("INVALID_STATE_ERR", function() {
+                selection.collapseToStart();
+            }, "Must throw InvalidStateErr if the selection's range is null");
+            return;
+        }
+
+        var addedRange = ownerDocument(endpoints[0]).createRange();
+        addedRange.setStart(endpoints[0], endpoints[1]);
+        addedRange.setEnd(endpoints[2], endpoints[3]);
+        selection.addRange(addedRange);
+
+        // We don't penalize browsers here for mishandling addRange() and
+        // adding a different range than we specified.  They fail addRange()
+        // tests for that, and don't have to fail collapseToStart/End() tests
+        // too.  They do fail if they throw unexpectedly, though.  I also fail
+        // them if there's no range at all, because otherwise they could pass
+        // all tests if addRange() always does nothing and collapseToStart()
+        // always throws.
+        assert_equals(selection.rangeCount, 1,
+            "Sanity check: rangeCount must equal 1 after addRange()");
+
+        var expectedEndpoint = [
+            selection.getRangeAt(0).startContainer,
+            selection.getRangeAt(0).startOffset
+        ];
+
+        selection.collapseToStart();
+
+        assert_equals(selection.rangeCount, 1,
+            "selection.rangeCount must equal 1");
+        assert_equals(selection.focusNode, expectedEndpoint[0],
+            "focusNode must equal the original start node");
+        assert_equals(selection.focusOffset, expectedEndpoint[1],
+            "focusOffset must equal the original start offset");
+        assert_equals(selection.anchorNode, expectedEndpoint[0],
+            "anchorNode must equal the original start node");
+        assert_equals(selection.anchorOffset, expectedEndpoint[1],
+            "anchorOffset must equal the original start offset");
+        assert_equals(addedRange.startContainer, endpoints[0],
+            "collapseToStart() must not change the startContainer of the selection's original range");
+        assert_equals(addedRange.startOffset, endpoints[1],
+            "collapseToStart() must not change the startOffset of the selection's original range");
+        assert_equals(addedRange.endContainer, endpoints[2],
+            "collapseToStart() must not change the endContainer of the selection's original range");
+        assert_equals(addedRange.endOffset, endpoints[3],
+            "collapseToStart() must not change the endOffset of the selection's original range");
+    }, "Range " + i + " " + testRanges[i] + " collapseToStart()");
+
+    // Copy-paste of above
+    test(function() {
+        selection.removeAllRanges();
+        var endpoints = eval(testRanges[i]);
+        if (!endpoints.length) {
+            assert_throws("INVALID_STATE_ERR", function() {
+                selection.collapseToEnd();
+            }, "Must throw InvalidStateErr if the selection's range is null");
+            return;
+        }
+
+        var addedRange = ownerDocument(endpoints[0]).createRange();
+        addedRange.setStart(endpoints[0], endpoints[1]);
+        addedRange.setEnd(endpoints[2], endpoints[3]);
+        selection.addRange(addedRange);
+
+        // We don't penalize browsers here for mishandling addRange() and
+        // adding a different range than we specified.  They fail addRange()
+        // tests for that, and don't have to fail collapseToStart/End() tests
+        // too.  They do fail if they throw unexpectedly, though.  I also fail
+        // them if there's no range at all, because otherwise they could pass
+        // all tests if addRange() always does nothing and collapseToStart()
+        // always throws.
+        assert_equals(selection.rangeCount, 1,
+            "Sanity check: rangeCount must equal 1 after addRange()");
+
+        var expectedEndpoint = [
+            selection.getRangeAt(0).endContainer,
+            selection.getRangeAt(0).endOffset
+        ];
+
+        selection.collapseToEnd();
+
+        assert_equals(selection.rangeCount, 1,
+            "selection.rangeCount must equal 1");
+        assert_equals(selection.focusNode, expectedEndpoint[0],
+            "focusNode must equal the original end node");
+        assert_equals(selection.focusOffset, expectedEndpoint[1],
+            "focusOffset must equal the original end offset");
+        assert_equals(selection.anchorNode, expectedEndpoint[0],
+            "anchorNode must equal the original end node");
+        assert_equals(selection.anchorOffset, expectedEndpoint[1],
+            "anchorOffset must equal the original end offset");
+        assert_equals(addedRange.startContainer, endpoints[0],
+            "collapseToEnd() must not change the startContainer of the selection's original range");
+        assert_equals(addedRange.startOffset, endpoints[1],
+            "collapseToEnd() must not change the startOffset of the selection's original range");
+        assert_equals(addedRange.endContainer, endpoints[2],
+            "collapseToEnd() must not change the endContainer of the selection's original range");
+        assert_equals(addedRange.endOffset, endpoints[3],
+            "collapseToEnd() must not change the endOffset of the selection's original range");
+    }, "Range " + i + " " + testRanges[i] + " collapseToEnd()");
+}
+
+testDiv.style.display = "none";
+</script>
