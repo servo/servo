@@ -15,6 +15,7 @@ use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
+use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::ConstellationControlMsg;
 use std::rc::Rc;
@@ -136,6 +137,11 @@ pub trait CompositorLayer {
                                      compositor: &IOCompositor<Window>,
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods;
+
+    fn send_event<Window>(&self,
+                          compositor: &IOCompositor<Window>,
+                          event: CompositorEvent)
+                          where Window: WindowMethods;
 
     fn clamp_scroll_offset_and_scroll_layer(&self,
                                             new_offset: TypedPoint2D<LayerPixel, f32>)
@@ -403,18 +409,22 @@ impl CompositorLayer for Layer<CompositorData> {
             MouseWindowEvent::MouseUp(button, _) =>
                 MouseUpEvent(button, event_point),
         };
-
-        let pipeline = compositor.get_pipeline(self.pipeline_id());
-        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        self.send_event(compositor, message);
     }
 
     fn send_mouse_move_event<Window>(&self,
                                      compositor: &IOCompositor<Window>,
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods {
-        let message = MouseMoveEvent(cursor.to_untyped());
+        self.send_event(compositor, MouseMoveEvent(cursor.to_untyped()));
+    }
+
+    fn send_event<Window>(&self,
+                          compositor: &IOCompositor<Window>,
+                          event: CompositorEvent) where Window: WindowMethods {
         let pipeline = compositor.get_pipeline(self.pipeline_id());
-        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(),
+                                                                             event));
     }
 
     fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<LayerPixel, f32>)

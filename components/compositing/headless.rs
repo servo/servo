@@ -122,6 +122,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::ChangePageTitle(..) |
             Msg::ChangePageUrl(..) |
             Msg::KeyEvent(..) |
+            Msg::TouchEventProcessed(..) |
             Msg::SetCursor(..) |
             Msg::ViewportConstrained(..) => {}
             Msg::CreatePng(..) |

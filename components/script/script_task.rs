@@ -53,7 +53,7 @@ use webdriver_handlers;
 use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker};
 use devtools_traits::{StartedTimelineMarker, TimelineMarkerType};
-use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
+use msg::compositor_msg::{EventResult, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
@@ -68,6 +68,7 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
+use script_traits::CompositorEvent::{TouchDownEvent, TouchMoveEvent, TouchUpEvent};
 use script_traits::ConstellationControlMsg;
 use script_traits::{CompositorEvent, MouseButton};
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
@@ -1789,6 +1790,27 @@ impl ScriptTask {
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
+            TouchDownEvent(identifier, point) => {
+                let default_action_allowed =
+                    self.handle_touch_event(pipeline_id, identifier, point, "touchstart");
+                if default_action_allowed {
+                    // TODO: Wait to see if preventDefault is called on the first touchmove event.
+                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
+                            EventResult::DefaultAllowed)).unwrap();
+                } else {
+                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
+                            EventResult::DefaultPrevented)).unwrap();
+                }
+            }
+
+            TouchMoveEvent(identifier, point) => {
+                self.handle_touch_event(pipeline_id, identifier, point, "touchmove");
+            }
+
+            TouchUpEvent(identifier, point) => {
+                self.handle_touch_event(pipeline_id, identifier, point, "touchend");
+            }
+
             KeyEvent(key, state, modifiers) => {
                 let _marker;
                 if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
@@ -1814,6 +1836,21 @@ impl ScriptTask {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
         document.r().handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
+    }
+
+    fn handle_touch_event(&self,
+                          pipeline_id: PipelineId,
+                          identifier: i32,
+                          point: Point2D<f32>,
+                          event_name: &str) -> bool {
+        let _marker;
+        if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+            _marker = AutoDOMEventMarker::new(self);
+        }
+        let page = get_page(&self.root_page(), pipeline_id);
+        let document = page.document();
+        document.r().handle_touch_event(self.js_runtime.rt(), identifier, point,
+                                        event_name.to_owned())
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
