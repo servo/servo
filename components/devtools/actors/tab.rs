@@ -7,7 +7,7 @@
 //! Connection point for remote devtools that wish to investigate a particular tab's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
@@ -84,11 +84,11 @@ impl Actor for TabActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       _msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "reconfigure" => {
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
-                true
+                ActorMessageStatus::Processed
             }
 
             // https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
@@ -107,7 +107,7 @@ impl Actor for TabActor {
                 stream.write_json_packet(&msg);
                 console_actor.script_chan.send(
                     WantsLiveNotifications(console_actor.pipeline, true)).unwrap();
-                true
+                ActorMessageStatus::Processed
             }
 
             //FIXME: The current implementation won't work for multiple connections. Need to ensure 105
@@ -122,7 +122,7 @@ impl Actor for TabActor {
                 stream.write_json_packet(&msg);
                 console_actor.script_chan.send(
                     WantsLiveNotifications(console_actor.pipeline, false)).unwrap();
-                true
+                ActorMessageStatus::Processed
             }
 
             "listFrames" => {
@@ -131,10 +131,10 @@ impl Actor for TabActor {
                     frames: vec!(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false
+            _ => ActorMessageStatus::Ignored
         })
     }
 }

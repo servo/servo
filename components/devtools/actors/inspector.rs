@@ -9,7 +9,7 @@ use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ComputedNodeLayout};
 use devtools_traits::DevtoolScriptControlMsg::{GetRootNode, GetDocumentElement, GetChildren};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use protocol::JsonPacketStream;
 
 use ipc_channel::ipc::{self, IpcSender};
@@ -69,14 +69,14 @@ impl Actor for HighlighterActor {
                       _registry: &ActorRegistry,
                       msg_type: &str,
                       _msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "showBoxModel" => {
                 let msg = ShowBoxModelReply {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "hideBoxModel" => {
@@ -84,10 +84,10 @@ impl Actor for HighlighterActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false,
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
@@ -106,7 +106,7 @@ impl Actor for NodeActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
                 let target = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
@@ -123,10 +123,10 @@ impl Actor for NodeActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&reply);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false,
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
@@ -280,14 +280,14 @@ impl Actor for WalkerActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "querySelector" => {
                 let msg = QuerySelectorReply {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "documentElement" => {
@@ -301,7 +301,7 @@ impl Actor for WalkerActor {
                     node: node,
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "clearPseudoClassLocks" => {
@@ -309,7 +309,7 @@ impl Actor for WalkerActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "children" => {
@@ -330,10 +330,10 @@ impl Actor for WalkerActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false,
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
@@ -426,7 +426,7 @@ impl Actor for PageStyleActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getApplied" => {
                 //TODO: query script for relevant applied styles to node (msg.node)
@@ -437,7 +437,7 @@ impl Actor for PageStyleActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "getComputed" => {
@@ -447,7 +447,7 @@ impl Actor for PageStyleActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             //TODO: query script for box layout properties of node (msg.node)
@@ -484,10 +484,10 @@ impl Actor for PageStyleActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false,
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
@@ -501,7 +501,7 @@ impl Actor for InspectorActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       _msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getWalker" => {
                 if self.walker.borrow().is_none() {
@@ -529,7 +529,7 @@ impl Actor for InspectorActor {
                     }
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "getPageStyle" => {
@@ -551,7 +551,7 @@ impl Actor for InspectorActor {
                     },
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             //TODO: this is an old message; try adding highlightable to the root traits instead
@@ -574,10 +574,10 @@ impl Actor for InspectorActor {
                     },
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false,
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }

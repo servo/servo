@@ -15,6 +15,12 @@ use std::net::TcpStream;
 use std::raw::TraitObject;
 use std::sync::{Arc, Mutex};
 
+#[derive(PartialEq)]
+pub enum ActorMessageStatus {
+    Processed,
+    Ignored,
+}
+
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
@@ -23,7 +29,7 @@ pub trait Actor: Any {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()>;
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()>;
     fn name(&self) -> String;
 }
 
@@ -194,7 +200,8 @@ impl ActorRegistry {
             None => println!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_string().unwrap();
-                if !try!(actor.handle_message(self, &msg_type.to_string(), msg, stream)) {
+                if try!(actor.handle_message(self, &msg_type.to_string(), msg, stream))
+                        != ActorMessageStatus::Processed {
                     println!("unexpected message type \"{}\" found for actor \"{}\"",
                              msg_type, to);
                 }

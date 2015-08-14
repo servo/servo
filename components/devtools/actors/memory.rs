@@ -5,7 +5,7 @@
 use rustc_serialize::json;
 use std::net::TcpStream;
 
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
 
 #[derive(RustcEncodable)]
 pub struct TimelineMemoryReply {
@@ -33,8 +33,8 @@ impl Actor for MemoryActor {
                       _registry: &ActorRegistry,
                       _msg_type: &str,
                       _msg: &json::Object,
-                      _stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(false)
+                      _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+        Ok(ActorMessageStatus::Ignored)
     }
 }
 
