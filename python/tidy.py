@@ -175,22 +175,21 @@ def check_rust(file_name, contents):
     comment_depth = 0
     merged_lines = ''
     for idx, line in enumerate(contents):
-        # simplify the analisis
+        # simplify the analysis
         line = line.strip()
 
-        if line.find('/*') != -1:
-            if line.find('*/') == -1:
-                comment_depth += 1
-        elif line.find('*/') != -1:
-            comment_depth -= 1
+        # Simple heuristic to avoid common case of no comments.
+        if '/' in line:
+            comment_depth += line.count('/*')
+            comment_depth -= line.count('*/')
 
         if line.endswith('\\'):
             merged_lines += line[:-1]
             continue
-        elif comment_depth:
+        if comment_depth:
             merged_lines += line
             continue
-        elif merged_lines:
+        if merged_lines:
             line = merged_lines + line
             merged_lines = ''
 
