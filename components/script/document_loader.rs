@@ -5,11 +5,12 @@
 //! Tracking of pending loads in a document.
 //! https://html.spec.whatwg.org/multipage/#the-end
 
-use script_task::{ScriptMsg, ScriptChan};
+use script_task::MainThreadScriptMsg;
 use msg::constellation_msg::{PipelineId};
 use net_traits::{Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
 use net_traits::AsyncResponseTarget;
 use std::sync::Arc;
+use std::sync::mpsc::Sender;
 use url::Url;
 
 #[derive(JSTraceable, PartialEq, Clone, Debug, HeapSizeOf)]
@@ -46,7 +47,7 @@ pub struct DocumentLoader {
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct NotifierData {
     #[ignore_heap_size_of = "trait objects are hard"]
-    pub script_chan: Box<ScriptChan + Send>,
+    pub script_chan: Sender<MainThreadScriptMsg>,
     pub pipeline: PipelineId,
 }
 
@@ -100,7 +101,7 @@ impl DocumentLoader {
 
         if let Some(NotifierData { ref script_chan, pipeline }) = self.notifier_data {
             if !self.is_blocked() {
-                script_chan.send(ScriptMsg::DocumentLoadsComplete(pipeline)).unwrap();
+                script_chan.send(MainThreadScriptMsg::DocumentLoadsComplete(pipeline)).unwrap();
             }
         }
     }

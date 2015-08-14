@@ -34,8 +34,8 @@ use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use page::Page;
-use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
-use script_task::ScriptMsg;
+use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
 use script_traits::ConstellationControlMsg;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
@@ -110,7 +110,7 @@ pub enum ReflowReason {
 pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
-    script_chan: Box<ScriptChan+Send>,
+    script_chan: MainThreadScriptChan,
     #[ignore_heap_size_of = "channels are hard"]
     control_chan: Sender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
@@ -236,6 +236,11 @@ impl Window {
         self.script_chan.clone()
     }
 
+    pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
+        let MainThreadScriptChan(ref sender) = self.script_chan;
+        sender
+    }
+
     pub fn image_cache_chan(&self) -> ImageCacheChan {
         self.image_cache_chan.clone()
     }
@@ -261,7 +266,7 @@ impl Window {
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
         let (tx, rx) = channel();
-        (box NonWorkerScriptChan(tx), box rx)
+        (box SendableMainThreadScriptChan(tx), box rx)
     }
 
     pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
@@ -370,7 +375,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(self) {
-        self.script_chan.send(ScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-0
@@ -887,7 +892,8 @@ impl<'a> WindowHelpers for &'a Window {
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     fn load_url(self, url: Url) {
-        self.script_chan.send(ScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
+        self.main_thread_script_chan().send(
+            MainThreadScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
     }
 
     fn handle_fire_timer(self, timer_id: TimerId) {
@@ -1064,7 +1070,7 @@ impl<'a> WindowHelpers for &'a Window {
 impl Window {
     pub fn new(runtime: Rc<Runtime>,
                page: Rc<Page>,
-               script_chan: Box<ScriptChan+Send>,
+               script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
                control_chan: Sender<ConstellationControlMsg>,
                compositor: ScriptListener,

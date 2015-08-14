@@ -17,7 +17,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
-use script_task::{ScriptChan, TimerSource, ScriptPort, ScriptMsg};
+use script_task::{CommonScriptMsg, ScriptChan, TimerSource, ScriptPort};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
@@ -291,7 +291,7 @@ pub trait WorkerGlobalScopeHelpers {
     fn script_chan(self) -> Box<ScriptChan+Send>;
     fn pipeline(self) -> PipelineId;
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
-    fn process_event(self, msg: ScriptMsg);
+    fn process_event(self, msg: CommonScriptMsg);
     fn get_cx(self) -> *mut JSContext;
     fn set_devtools_wants_updates(self, value: bool);
 }
@@ -338,7 +338,7 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
         }
     }
 
-    fn process_event(self, msg: ScriptMsg) {
+    fn process_event(self, msg: CommonScriptMsg) {
         let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {

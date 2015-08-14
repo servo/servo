@@ -15,23 +15,22 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::bindings::js::Root;
 use dom::window::WindowHelpers;
-use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
-use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-
-use util::str::DOMString;
+use script_task::{ScriptChan, Runnable};
 
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue, RootedValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use url::UrlParser;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
@@ -47,11 +46,13 @@ pub struct Worker {
     #[ignore_heap_size_of = "Defined in std"]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
-    sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
 }
 
 impl Worker {
-    fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
+    fn new_inherited(global: GlobalRef,
+                     sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
+                     -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
             global: GlobalField::from_rooted(&global),
@@ -59,7 +60,9 @@ impl Worker {
         }
     }
 
-    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Root<Worker> {
+    pub fn new(global: GlobalRef,
+               sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
+               -> Root<Worker> {
         reflect_dom_object(box Worker::new_inherited(global, sender),
                            global,
                            WorkerBinding::Wrap)
@@ -157,7 +160,7 @@ impl<'a> WorkerMethods for &'a Worker {
     fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
-        self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();
+        self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }
 
