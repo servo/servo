@@ -168,6 +168,9 @@ pub struct Opts {
     /// Whether to run absolute position calculation and display list construction in parallel.
     pub parallel_display_list_building: bool,
 
+    /// Translate mouse input into touch events.
+    pub convert_mouse_to_touch: bool,
+
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
 
@@ -247,6 +250,9 @@ pub struct DebugOptions {
     /// Build display lists in parallel.
     pub parallel_display_list_building: bool,
 
+    /// Translate mouse input into touch events.
+    pub convert_mouse_to_touch: bool,
+
     /// Replace unpaires surrogates in DOM strings with U+FFFD.
     /// See https://github.com/servo/servo/issues/6564
     pub replace_surrogates: bool,
@@ -259,6 +265,12 @@ pub struct DebugOptions {
 impl DebugOptions {
     pub fn new(debug_string: &str) -> Result<DebugOptions, &str> {
         let mut debug_options = DebugOptions::default();
+
+        // FIXME: Glutin currently converts touch input to mouse events on Android.
+        // Convert it back to touch events.
+        if cfg!(target_os = "android") {
+            debug_options.convert_mouse_to_touch = true;
+        }
 
         for option in debug_string.split(',') {
             match option {
@@ -283,6 +295,7 @@ impl DebugOptions {
                 "validate-display-list-geometry" => debug_options.validate_display_list_geometry = true,
                 "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
                 "parallel-display-list-building" => debug_options.parallel_display_list_building = true,
+                "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
                 "" => {},
@@ -326,6 +339,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
                                         See https://github.com/servo/servo/issues/6564");
     print_option("gc-profile", "Log GC passes and their durations.");
+    print_option("convert-mouse-to-touch", "Send touch events instead of mouse events");
 
     println!("");
 
@@ -422,6 +436,7 @@ pub fn default_opts() -> Opts {
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
+        convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
     }
@@ -628,6 +643,7 @@ pub fn from_cmdline_args(args: &[String]) {
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.disable_share_style_cache,
         parallel_display_list_building: debug_options.parallel_display_list_building,
+        convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: opt_match.opt_present("b"),
     };
