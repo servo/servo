@@ -7,7 +7,7 @@
 //! Mediates interaction between the remote web console and equivalent functionality (object
 //! inspection, JS evaluation, autocompletion) in Servo.
 
-use actor::{Actor, ActorRegistry};
+use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::object::ObjectActor;
 use protocol::JsonPacketStream;
 
@@ -96,7 +96,7 @@ impl Actor for ConsoleActor {
                       registry: &ActorRegistry,
                       msg_type: &str,
                       msg: &json::Object,
-                      stream: &mut TcpStream) -> Result<bool, ()> {
+                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getCachedMessages" => {
                 let str_types = msg.get("messageTypes").unwrap().as_array().unwrap().into_iter().map(|json_type| {
@@ -124,7 +124,7 @@ impl Actor for ConsoleActor {
                     messages: messages,
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "startListeners" => {
@@ -139,7 +139,7 @@ impl Actor for ConsoleActor {
                     }
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "stopListeners" => {
@@ -155,7 +155,7 @@ impl Actor for ConsoleActor {
                                          .collect(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             //TODO: implement autocompletion like onAutocomplete in
@@ -167,7 +167,7 @@ impl Actor for ConsoleActor {
                     matchProp: "".to_string(),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
             "evaluateJS" => {
@@ -237,10 +237,10 @@ impl Actor for ConsoleActor {
                     helperResult: Json::Object(BTreeMap::new()),
                 };
                 stream.write_json_packet(&msg);
-                true
+                ActorMessageStatus::Processed
             }
 
-            _ => false
+            _ => ActorMessageStatus::Ignored
         })
     }
 }
