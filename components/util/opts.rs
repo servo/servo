@@ -10,8 +10,8 @@ use geometry::ScreenPx;
 use euclid::size::{Size2D, TypedSize2D};
 use getopts::Options;
 use num_cpus;
-use std::collections::HashSet;
 use std::cmp;
+use std::default::Default;
 use std::env;
 use std::io::{self, Read, Write};
 use std::fs::{File, PathExt};
@@ -179,6 +179,113 @@ fn print_usage(app: &str, opts: &Options) {
     println!("{}", opts.usage(&message));
 }
 
+
+/// Debug options for Servo, currently set on the command line with -Z
+#[derive(Default)]
+pub struct DebugOptions {
+    /// List all the debug options.
+    pub help: bool,
+
+    /// Bubble intrinsic widths separately like other engines.
+    pub bubble_widths: bool,
+
+    /// Disable antialiasing of rendered text.
+    pub disable_text_aa: bool,
+
+    /// Disable antialiasing of rendered text on the HTML canvas element.
+    pub disable_canvas_aa: bool,
+
+    /// Print the flow tree after each layout.
+    pub dump_flow_tree: bool,
+
+    /// Print the display list after each layout.
+    pub dump_display_list: bool,
+
+    /// Print the display list in JSON form.
+    pub dump_display_list_json: bool,
+
+    /// Print optimized display list (at paint time).
+    pub dump_display_list_optimized: bool,
+
+    /// Print notifications when there is a relayout.
+    pub relayout_event: bool,
+
+    /// Instrument each task, writing the output to a file.
+    pub profile_tasks: bool,
+
+    /// Paint borders along layer and tile boundaries.
+    pub show_compositor_borders: bool,
+
+    /// Paint borders along fragment boundaries.
+    pub show_fragment_borders: bool,
+
+    /// Overlay tiles with colors showing which thread painted them.
+    pub show_parallel_paint: bool,
+
+    /// Mark which thread laid each flow out with colors.
+    pub show_parallel_layout: bool,
+
+    /// Overlay repainted areas with a random color.
+    pub paint_flashing: bool,
+
+    /// Write layout trace to an external file for debugging.
+    pub trace_layout: bool,
+
+    /// Display an error when display list geometry escapes overflow region.
+    pub validate_display_list_geometry: bool,
+
+    /// Disable the style sharing cache.
+    pub disable_share_style_cache: bool,
+
+    /// Build display lists in parallel.
+    pub parallel_display_list_building: bool,
+
+    /// Replace unpaires surrogates in DOM strings with U+FFFD.
+    /// See https://github.com/servo/servo/issues/6564
+    pub replace_surrogates: bool,
+
+    /// Log GC passes and their durations.
+    pub gc_profile: bool,
+}
+
+
+impl DebugOptions {
+    pub fn new<'a>(debug_string: &'a str) -> Result<DebugOptions, &'a str> {
+        let mut debug_options = DebugOptions::default();
+
+        for option in debug_string.split(',') {
+            match option {
+                "help" => debug_options.help = true,
+                "bubble-widths" => debug_options.bubble_widths = true,
+                "disable-text-aa" => debug_options.disable_text_aa = true,
+                "disable-canvas-aa" => debug_options.disable_text_aa = true,
+                "dump-flow-tree" => debug_options.dump_flow_tree = true,
+                "dump-display-list" => debug_options.dump_display_list = true,
+                "dump-display-list-json" => debug_options.dump_display_list_json = true,
+                "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
+                "relayout-event" => debug_options.relayout_event = true,
+                "profile-tasks" => debug_options.profile_tasks = true,
+                "show-compositor-borders" => debug_options.show_compositor_borders = true,
+                "show-fragment-borders" => debug_options.show_fragment_borders = true,
+                "show-parallel-paint" => debug_options.show_parallel_paint = true,
+                "show-parallel-layout" => debug_options.show_parallel_layout = true,
+                "paint-flashing" => debug_options.paint_flashing = true,
+                "trace-layout" => debug_options.trace_layout = true,
+                "validate-display-list-geometry" => debug_options.validate_display_list_geometry = true,
+                "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
+                "parallel-display-list-building" => debug_options.parallel_display_list_building = true,
+                "replace-surrogates" => debug_options.replace_surrogates = true,
+                "gc-profile" => debug_options.gc_profile = true,
+                "" => {},
+                _ => return Err(option)
+            };
+        };
+
+        Ok(debug_options)
+    }
+}
+
+
 pub fn print_debug_usage(app: &str) -> ! {
     fn print_option(name: &str, description: &str) {
         println!("\t{:<35} {}", name, description);
@@ -188,6 +295,7 @@ pub fn print_debug_usage(app: &str) -> ! {
 
     print_option("bubble-widths", "Bubble intrinsic widths separately like other engines.");
     print_option("disable-text-aa", "Disable antialiasing of rendered text.");
+    print_option("disable-canvas-aa", "Disable antialiasing on the HTML canvas element.");
     print_option("dump-flow-tree", "Print the flow tree after each layout.");
     print_option("dump-display-list", "Print the display list after each layout.");
     print_option("dump-display-list-json", "Print the display list in JSON form.");
@@ -338,11 +446,13 @@ pub fn from_cmdline_args(args: &[String]) {
         Some(string) => string,
         None => String::new()
     };
-    let mut debug_options = HashSet::new();
-    for split in debug_string.split(',') {
-        debug_options.insert(split.clone());
-    }
-    if debug_options.contains(&"help") {
+
+    let debug_options = match DebugOptions::new(&debug_string) {
+        Ok(debug_options) => debug_options,
+        Err(e) => args_fail(&format!("error: unrecognized debug option: {}", e)),
+    };
+
+    if debug_options.help {
         print_debug_usage(app_name)
     }
 
@@ -397,9 +507,8 @@ pub fn from_cmdline_args(args: &[String]) {
     let nonincremental_layout = opt_match.opt_present("i");
     let nossl = opt_match.opt_present("no-ssl");
 
-    let mut bubble_inline_sizes_separately = debug_options.contains(&"bubble-widths");
-    let trace_layout = debug_options.contains(&"trace-layout");
-    if trace_layout {
+    let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
+    if debug_options.trace_layout {
         paint_threads = 1;
         layout_threads = 1;
         bubble_inline_sizes_separately = true;
@@ -451,35 +560,35 @@ pub fn from_cmdline_args(args: &[String]) {
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets: user_stylesheets,
         output_file: opt_match.opt_str("o"),
-        replace_surrogates: debug_options.contains(&"replace-surrogates"),
-        gc_profile: debug_options.contains(&"gc-profile"),
+        replace_surrogates: debug_options.replace_surrogates,
+        gc_profile: debug_options.gc_profile,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
-        profile_tasks: debug_options.contains(&"profile-tasks"),
-        trace_layout: trace_layout,
+        profile_tasks: debug_options.profile_tasks,
+        trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
-        show_debug_borders: debug_options.contains(&"show-compositor-borders"),
-        show_debug_fragment_borders: debug_options.contains(&"show-fragment-borders"),
-        show_debug_parallel_paint: debug_options.contains(&"show-parallel-paint"),
-        show_debug_parallel_layout: debug_options.contains(&"show-parallel-layout"),
-        paint_flashing: debug_options.contains(&"paint-flashing"),
-        enable_text_antialiasing: !debug_options.contains(&"disable-text-aa"),
-        enable_canvas_antialiasing: !debug_options.contains(&"disable-canvas-aa"),
-        dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
-        dump_display_list: debug_options.contains(&"dump-display-list"),
-        dump_display_list_json: debug_options.contains(&"dump-display-list-json"),
-        dump_display_list_optimized: debug_options.contains(&"dump-display-list-optimized"),
-        relayout_event: debug_options.contains(&"relayout-event"),
-        validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
+        show_debug_borders: debug_options.show_compositor_borders,
+        show_debug_fragment_borders: debug_options.show_fragment_borders,
+        show_debug_parallel_paint: debug_options.show_parallel_paint,
+        show_debug_parallel_layout: debug_options.show_parallel_layout,
+        paint_flashing: debug_options.paint_flashing,
+        enable_text_antialiasing: !debug_options.disable_text_aa,
+        enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
+        dump_flow_tree: debug_options.dump_flow_tree,
+        dump_display_list: debug_options.dump_display_list,
+        dump_display_list_json: debug_options.dump_display_list_json,
+        dump_display_list_optimized: debug_options.dump_display_list_optimized,
+        relayout_event: debug_options.relayout_event,
+        validate_display_list_geometry: debug_options.validate_display_list_geometry,
         resources_path: opt_match.opt_str("resources-path"),
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
-        disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
-        parallel_display_list_building: debug_options.contains(&"parallel-display-list-building"),
+        disable_share_style_cache: debug_options.disable_share_style_cache,
+        parallel_display_list_building: debug_options.parallel_display_list_building,
         exit_after_load: opt_match.opt_present("x"),
     };
 
