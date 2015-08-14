@@ -504,13 +504,8 @@ pub mod specified {
 
             match node_with_unit {
                 None => Ok(CalcAstNode::Value(CalcValueNode::Number(multiplier))),
-                Some(CalcValueNode::Sum(box sum)) =>
-                    Ok(CalcAstNode::Add(CalcSumNode {
-                        products: sum.products
-                                     .iter()
-                                     .map(|p| Calc::multiply_product(p, multiplier))
-                                     .collect()
-                    })),
+                Some(CalcValueNode::Sum(box ref sum)) =>
+                    Ok(CalcAstNode::Add(Calc::multiply_sum(sum, multiplier))),
                 Some(ref value) =>
                     Ok(CalcAstNode::Value(Calc::multiply_value(value, multiplier))),
             }
@@ -525,11 +520,22 @@ pub mod specified {
             }
         }
 
+        fn multiply_sum(node: &CalcSumNode, multiplier: CSSFloat) -> CalcSumNode {
+            CalcSumNode {
+                products: node.products
+                              .iter()
+                              .map(|p| Calc::multiply_product(p, multiplier))
+                              .collect()
+            }
+        }
+
         fn multiply_value(node: &CalcValueNode, multiplier: CSSFloat) -> CalcValueNode {
+            println!("multiplying {:?} by {}", node, multiplier);
             match node {
-                &CalcValueNode::Number(_) => unreachable!(),
+                &CalcValueNode::Number(num) => CalcValueNode::Number(num * multiplier),
                 &CalcValueNode::Percentage(p) => CalcValueNode::Percentage(p * multiplier),
-                &CalcValueNode::Sum(_) => unreachable!(),
+                &CalcValueNode::Sum(box ref sum) =>
+                    CalcValueNode::Sum(box Calc::multiply_sum(sum, multiplier)),
                 &CalcValueNode::Length(l) => CalcValueNode::Length(l * multiplier),
             }
         }
@@ -544,6 +550,7 @@ pub mod specified {
                     CalcAstNode::Value(value) => simplified.push(value),
                     CalcAstNode::Add(sum) => {
                         for product in sum.products {
+                            println!(" Matching product AST: {:?}", product);
                             assert!(product.values.len() == 1);
                             simplified.push(product.values[0].clone());
                         }
