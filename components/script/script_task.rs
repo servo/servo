@@ -60,7 +60,7 @@ use layout_interface::{ReflowQueryType};
 use layout_interface::{self, LayoutChan, NewLayoutTaskInfo, ReflowGoal, ScriptLayoutChan};
 use libc;
 use mem::heap_size_of_self_and_children;
-use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
+use msg::compositor_msg::{EventResult, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
@@ -79,6 +79,7 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{ClickEvent, ResizeEvent};
 use script_traits::CompositorEvent::{KeyEvent, MouseMoveEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
+use script_traits::CompositorEvent::{TouchDownEvent, TouchMoveEvent, TouchUpEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
 use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
@@ -1784,6 +1785,27 @@ impl ScriptTask {
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
+            TouchDownEvent(identifier, point) => {
+                let default_action_allowed =
+                    self.handle_touch_event(pipeline_id, identifier, point, "touchstart");
+                if default_action_allowed {
+                    // TODO: Wait to see if preventDefault is called on the first touchmove event.
+                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
+                            EventResult::DefaultAllowed)).unwrap();
+                } else {
+                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
+                            EventResult::DefaultPrevented)).unwrap();
+                }
+            }
+
+            TouchMoveEvent(identifier, point) => {
+                self.handle_touch_event(pipeline_id, identifier, point, "touchmove");
+            }
+
+            TouchUpEvent(identifier, point) => {
+                self.handle_touch_event(pipeline_id, identifier, point, "touchend");
+            }
+
             KeyEvent(key, state, modifiers) => {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
@@ -1801,6 +1823,17 @@ impl ScriptTask {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
         document.r().handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
+    }
+
+    fn handle_touch_event(&self,
+                          pipeline_id: PipelineId,
+                          identifier: i32,
+                          point: Point2D<f32>,
+                          event_name: &str) -> bool {
+        let page = get_page(&self.root_page(), pipeline_id);
+        let document = page.document();
+        document.r().handle_touch_event(self.js_runtime.rt(), identifier, point,
+                                        event_name.to_owned())
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
