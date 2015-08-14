@@ -1045,7 +1045,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         chan.send(msg).unwrap()
     }
 
-    fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
+    fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
+        if opts::get().convert_mouse_to_touch {
+            match mouse_window_event {
+                MouseWindowEvent::Click(_, _) => {}
+                MouseWindowEvent::MouseDown(_, p) => self.on_touch_down(0, p),
+                MouseWindowEvent::MouseUp(_, p) => self.on_touch_up(0, p),
+            }
+            return
+        }
+
         let point = match mouse_window_event {
             MouseWindowEvent::Click(_, p) => p,
             MouseWindowEvent::MouseDown(_, p) => p,
@@ -1057,7 +1066,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
+    fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<DevicePixel, f32>) {
+        if opts::get().convert_mouse_to_touch {
+            self.on_touch_move(0, cursor);
+            return
+        }
+
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
             Some(result) => result.layer.send_mouse_move_event(self, result.point),
             None => {},
