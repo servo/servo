@@ -30,8 +30,10 @@ use util::str::DOMString;
 use util::task::spawn_named;
 
 use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData};
 use js::jsval::UndefinedValue;
 use hyper::header::Host;
+use libc::{uint8_t, uint32_t};
 use websocket::Message;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::client::sender::Sender;
@@ -47,6 +49,7 @@ use websocket::ws::util::url::parse_url;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
+use std::ptr;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug)]
 enum WebSocketRequestState {
@@ -404,6 +407,7 @@ struct MessageReceivedTask {
 }
 
 impl Runnable for MessageReceivedTask {
+    #[allow(unsafe_code)]
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
         debug!("MessageReceivedTask::handler({:p}): readyState={:?}", &*ws,
@@ -423,10 +427,21 @@ impl Runnable for MessageReceivedTask {
         match self.message {
             MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
             MessageData::Binary(data) => {
-                // FIXME: this should do a different thing if self.address.BinaryType() is
-                // BinaryType::ArrayBuffer, but waiting on a safe ArrayBuffer wrapper.
-                let blob = Blob::new(global.r(), Some(data), "");
-                blob.to_jsval(cx, message.handle_mut());
+                match ws.binary_type.get() {
+                    BinaryType::Blob => {
+                        let blob = Blob::new(global.r(), Some(data), "");
+                        blob.to_jsval(cx, message.handle_mut());
+                    }
+                    BinaryType::Arraybuffer => {
+                        unsafe {
+                            let buf = JS_NewArrayBuffer(cx, data.len() as uint32_t);
+                            let buf_data: *mut uint8_t = JS_GetArrayBufferData(buf, ptr::null());
+                            ptr::copy_nonoverlapping(data.as_ptr(), buf_data, data.len());
+                            buf.to_jsval(cx, message.handle_mut());
+                        }
+                    }
+
+                }
             },
         }
 
