@@ -192,8 +192,8 @@ impl Decodable for Modification {
     fn decode<D: Decoder>(d: &mut D) -> Result<Modification, D::Error> {
         d.read_struct("Modification", 2, |d|
             Ok(Modification {
-                attributeName: try!(d.read_struct_field("attributeName", 0, |d| Decodable::decode(d))),
-                newValue: match d.read_struct_field("newValue", 1, |d| Decodable::decode(d)) {
+                attributeName: try!(d.read_struct_field("attributeName", 0, Decodable::decode)),
+                newValue: match d.read_struct_field("newValue", 1, Decodable::decode) {
                     Ok(opt) => opt,
                     Err(_) => None
                 }
