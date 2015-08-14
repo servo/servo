@@ -143,11 +143,11 @@ impl WorkerGlobalScope {
         self.runtime.cx()
     }
 
-    pub fn resource_task<'a>(&'a self) -> &'a ResourceTask {
+    pub fn resource_task(&self) -> &ResourceTask {
         &self.resource_task
     }
 
-    pub fn get_url<'a>(&'a self) -> &'a Url {
+    pub fn get_url(&self) -> &Url {
         &self.worker_url
     }
 
