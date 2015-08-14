@@ -277,7 +277,7 @@ impl<'a> WebSocketMethods for &'a WebSocket {
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
         let _ = my_sender.lock().unwrap().send_message(Message::Text(data.unwrap().0));
-        return Ok(())
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close

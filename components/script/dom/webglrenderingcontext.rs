@@ -514,15 +514,13 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttribPointer(self, attrib_id: u32, size: i32, data_type: u32,
                            normalized: bool, stride: i32, offset: i64) {
-        match data_type {
-            constants::FLOAT => {
-               let msg = CanvasMsg::WebGL(
-                   CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset));
-                self.ipc_renderer.send(msg).unwrap()
-            }
-            _ => panic!("VertexAttribPointer: Data Type not supported")
+        if let constants::FLOAT = data_type {
+           let msg = CanvasMsg::WebGL(
+               CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset));
+            self.ipc_renderer.send(msg).unwrap()
+        } else {
+            panic!("VertexAttribPointer: Data Type not supported")
         }
-
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
