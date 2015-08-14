@@ -25,7 +25,6 @@ pub trait CollectionFilter : JSTraceable {
 #[derive(JSTraceable)]
 #[must_root]
 pub enum CollectionTypeId {
-    Static(Vec<JS<Element>>),
     Live(JS<Node>, Box<CollectionFilter+'static>)
 }
 
@@ -179,7 +178,6 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(self) -> u32 {
         match self.collection {
-            CollectionTypeId::Static(ref elems) => elems.len() as u32,
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
@@ -193,8 +191,6 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     fn Item(self, index: u32) -> Option<Root<Element>> {
         let index = index as usize;
         match self.collection {
-            CollectionTypeId::Static(ref elems) => elems
-                .get(index).map(|t| t.root()),
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
@@ -213,11 +209,6 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
 
         // Step 2.
         match self.collection {
-            CollectionTypeId::Static(ref elems) => elems.iter()
-                .map(|elem| elem.root())
-                .find(|elem| {
-                    elem.r().get_string_attribute(&atom!("name")) == key ||
-                    elem.r().get_string_attribute(&atom!("id")) == key }),
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
