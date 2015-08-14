@@ -314,7 +314,7 @@ impl StackingContext {
 
             if opts::get().dump_display_list_optimized {
                 println!("**** optimized display list. Tile bounds: {:?}", paint_context.page_rect);
-                display_list.print_items("*".to_owned());
+                display_list.print_items("####".to_owned());
             }
 
             // Sort positioned children according to z-index.
