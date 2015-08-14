@@ -1276,14 +1276,23 @@ impl LayoutTask {
                                                                   &self.url,
                                                                   reflow_info.goal);
 
-        {
-            // Perform an abbreviated style recalc that operates without access to the DOM.
-            let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
-            let animations = &*rw_data.running_animations;
-            profile(time::ProfilerCategory::LayoutStyleRecalc,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || animation::recalc_style_for_animations(root_flow.deref_mut(), animations));
+        match rw_data.root_flow.as_ref() {
+            None => {
+                // We haven't performed a single layout yet! Do nothing.
+                return
+            }
+            Some(ref root_flow) => {
+                // Perform an abbreviated style recalc that operates without access to the DOM.
+                let mut root_flow = (*root_flow).clone();
+                let animations = &*rw_data.running_animations;
+                profile(time::ProfilerCategory::LayoutStyleRecalc,
+                        self.profiler_metadata(),
+                        self.time_profiler_chan.clone(),
+                        || {
+                            animation::recalc_style_for_animations(root_flow.deref_mut(),
+                                                                   animations)
+                        });
+            }
         }
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
