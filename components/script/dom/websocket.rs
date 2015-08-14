@@ -241,10 +241,12 @@ impl<'a> WebSocketMethods for &'a WebSocket {
         self.ready_state.get() as u16
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
     fn BinaryType(self) -> BinaryType {
         self.binary_type.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
     fn SetBinaryType(self, btype: BinaryType) {
         self.binary_type.set(btype)
     }
