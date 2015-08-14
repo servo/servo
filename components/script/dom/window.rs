@@ -740,7 +740,7 @@ impl<'a> WindowMethods for &'a Window {
 
 pub trait WindowHelpers {
     fn scroll(self, x_: f64, y_: f64, behavior: ScrollBehavior);
-    fn perform_a_scroll(self, x: f32, y: f32, behavior: ScrollBehavior);
+    fn perform_a_scroll(self, x: f32, y: f32, behavior: ScrollBehavior, element: Option<&Element>);
     fn clear_js_runtime(self);
     fn init_browsing_context(self, doc: &Document, frame_element: Option<&Element>);
     fn load_url(self, url: Url);
@@ -893,15 +893,15 @@ impl<'a> WindowHelpers for &'a Window {
         //TODO Step 11
         //let document = self.Document();
         // Step 12
-        self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32), y.to_f32().unwrap_or(0.0f32), behavior);
+        self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32), y.to_f32().unwrap_or(0.0f32), behavior, None);
     }
 
     /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
-    fn perform_a_scroll(self, x: f32, y: f32, behavior: ScrollBehavior) {
+    fn perform_a_scroll(self, x: f32, y: f32, behavior: ScrollBehavior, _element: Option<&Element>) {
         //TODO Step 1
         let point = Point2D::new(x, y);
         let smooth = match behavior {
-            ScrollBehavior::Auto => false,
+            ScrollBehavior::Auto => false, //TODO check css scroll behavior
             ScrollBehavior::Instant => false,
             ScrollBehavior::Smooth => true
         };

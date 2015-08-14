@@ -142,7 +142,7 @@ impl ScriptListener {
                                  pipeline_id: PipelineId,
                                  layer_id: LayerId,
                                  point: Point2D<f32>,
-                                 _: bool) {
+                                 _smooth: bool) {
         self.0
             .send(ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point))
             .unwrap()
