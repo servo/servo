@@ -586,7 +586,7 @@ impl StackingContext {
 
     pub fn print(&self, mut indentation: String) {
         // We cover the case of an empty string.
-        if indentation.len() == 0 {
+        if indentation.is_empty() {
             indentation = "####".to_owned();
         }
 

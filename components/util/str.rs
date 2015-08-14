@@ -121,14 +121,14 @@ pub enum LengthOrPercentageOrAuto {
 /// Parses a length per HTML5 § 2.4.4.4. If unparseable, `Auto` is returned.
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     value = value.trim_left_matches(WHITESPACE);
-    if value.len() == 0 {
+    if value.is_empty() {
         return LengthOrPercentageOrAuto::Auto
     }
     if value.starts_with("+") {
         value = &value[1..]
     }
     value = value.trim_left_matches('0');
-    if value.len() == 0 {
+    if value.is_empty() {
         return LengthOrPercentageOrAuto::Auto
     }
 
@@ -171,7 +171,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
 /// Parses a legacy color per HTML5 § 2.4.6. If unparseable, `Err` is returned.
 pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
     // Steps 1 and 2.
-    if input.len() == 0 {
+    if input.is_empty() {
         return Err(())
     }
 
@@ -243,7 +243,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
     let mut input = new_input;
 
     // Step 11.
-    while input.len() == 0 || (input.len() % 3) != 0 {
+    while input.is_empty() || (input.len() % 3) != 0 {
         input.push(b'0')
     }
 

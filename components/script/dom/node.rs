@@ -2135,7 +2135,7 @@ impl<'a> NodeMethods for &'a Node {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
                 // Step 1-2.
-                let node = if value.len() == 0 {
+                let node = if value.is_empty() {
                     None
                 } else {
                     let document = self.owner_doc();

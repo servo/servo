@@ -707,7 +707,7 @@ impl<'a> FlowConstructor<'a> {
                                               style: &Arc<ComputedValues>) {
         // Fast path: If there is no text content, return immediately.
         let text_content = node.text_content();
-        if text_content.len() == 0 {
+        if text_content.is_empty() {
             return
         }
 

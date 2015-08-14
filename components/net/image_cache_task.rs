@@ -182,7 +182,7 @@ impl ImageCache {
 
             // Can only exit when all pending loads are complete.
             if let Some(ref exit_sender) = exit_sender {
-                if self.pending_loads.len() == 0 {
+                if self.pending_loads.is_empty() {
                     exit_sender.send(()).unwrap();
                     break;
                 }
@@ -388,4 +388,3 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
 
     ImageCacheTask::new(ipc_command_sender)
 }
-

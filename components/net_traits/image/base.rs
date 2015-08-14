@@ -44,7 +44,7 @@ fn byte_swap_and_premultiply(data: &mut [u8]) {
 }
 
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
-    if buffer.len() == 0 {
+    if buffer.is_empty() {
         return None;
     }
 
@@ -120,5 +120,3 @@ fn is_gif(buffer: &[u8]) -> bool {
         _ => false
     }
 }
-
-

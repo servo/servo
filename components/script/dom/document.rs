@@ -970,7 +970,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
-        if self.animation_frame_list.borrow().len() == 0 {
+        if self.animation_frame_list.borrow().is_empty() {
             let window = self.window.root();
             let window = window.r();
             let ConstellationChan(ref chan) = window.constellation_chan();
