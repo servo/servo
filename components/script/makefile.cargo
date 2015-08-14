@@ -10,6 +10,8 @@ WEBIDLS = $(call rwildcard,$(WEBIDLS_SRC),*.webidl)
 BINDINGS = $(patsubst %.webidl,%Binding.rs,$(WEBIDLS))
 AUTOGEN_SRC = $(foreach var,$(BINDINGS),$(subst $(WEBIDLS_SRC),$(OUT_DIR)/Bindings,$(var)))
 
+export PYTHONPATH := $(BINDINGS_SRC)/parser:$(BINDINGS_SRC)/ply:$(PYTHONPATH)
+
 CACHE_DIR = $(OUT_DIR)/_cache
 
 bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/,BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(OUT_DIR)/ParserResults.pkl $(OUT_DIR)/Bindings/.done
@@ -28,18 +30,19 @@ $(CACHE_DIR)/.done:
 	touch $@
 
 $(OUT_DIR)/ParserResults.pkl: $(globalgen_dependencies) $(WEBIDLS)
-	$(PYTHON) -B $(BINDINGS_SRC)/pythonpath.py \
-	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
-	  -D$(OUT_DIR) \
-	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
-	  --cachedir=$(CACHE_DIR) \
-	  $(WEBIDLS)
+	$(PYTHON) \
+	  $(BINDINGS_SRC)/GlobalGen.py \
+	    --cachedir=$(CACHE_DIR) \
+	    $(BINDINGS_SRC)/Bindings.conf \
+	    $(OUT_DIR) \
+	    . \
+	    $(WEBIDLS)
 
 $(AUTOGEN_SRC): $(OUT_DIR)/Bindings/%Binding.rs: $(bindinggen_dependencies) \
 						 $(addprefix $(WEBIDLS_SRC)/,%.webidl)
-	$(PYTHON) -B $(BINDINGS_SRC)/pythonpath.py \
-	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
-	  -D$(OUT_DIR) \
+	$(PYTHON) \
 	  $(BINDINGS_SRC)/BindingGen.py \
-	  $(BINDINGS_SRC)/Bindings.conf Bindings/$*Binding $(addprefix $(WEBIDLS_SRC)/,$*.webidl)
+	    $(BINDINGS_SRC)/Bindings.conf \
+	    $(OUT_DIR)/Bindings/$*Binding \
+	    $(addprefix $(WEBIDLS_SRC)/,$*.webidl)
 	touch $@
