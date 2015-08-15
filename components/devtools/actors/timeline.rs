@@ -211,7 +211,7 @@ impl TimelineActor {
                 }
 
                 // Emit all markers
-                for (_, queue) in queues.iter_mut() {
+                for (_, queue) in &mut queues {
                     let start_payload = queue.pop_front();
                     group(queue, 0, start_payload, &mut emitter);
                 }

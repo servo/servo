@@ -802,7 +802,7 @@ pub struct InlineFragments {
 
 impl fmt::Debug for InlineFragments {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for fragment in self.fragments.iter() {
+        for fragment in &self.fragments {
             try!(write!(f, "\n  * {:?}", fragment))
         }
         Ok(())
@@ -889,7 +889,7 @@ impl InlineFlow {
             first_line_indentation: Au(0),
         };
 
-        for fragment in flow.fragments.fragments.iter() {
+        for fragment in &flow.fragments.fragments {
             if fragment.is_generated_content() {
                 flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT)
             }
@@ -1223,7 +1223,7 @@ impl InlineFlow {
 
         // According to CSS 2.1 § 10.8, `line-height` of any inline element specifies the minimal
         // height of line boxes within the element.
-        for frag in self.fragments.fragments.iter() {
+        for frag in &self.fragments.fragments {
             match frag.inline_context {
                 Some(ref inline_context) => {
                     for node in inline_context.nodes.iter() {
@@ -1248,7 +1248,7 @@ impl InlineFlow {
     fn update_restyle_damage(&mut self) {
         let mut damage = self.base.restyle_damage;
 
-        for frag in self.fragments.fragments.iter() {
+        for frag in &self.fragments.fragments {
             damage.insert(frag.restyle_damage());
         }
 
@@ -1321,7 +1321,7 @@ impl Flow for InlineFlow {
         let mut intrinsic_sizes_for_flow = IntrinsicISizesContribution::new();
         let mut intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
         let mut intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
-        for fragment in self.fragments.fragments.iter_mut() {
+        for fragment in &mut self.fragments.fragments {
             let intrinsic_sizes_for_fragment = fragment.compute_intrinsic_inline_sizes().finish();
             match fragment.style.get_inheritedtext().white_space {
                 white_space::T::nowrap => {
@@ -1420,7 +1420,7 @@ impl Flow for InlineFlow {
         // Assign the block-size and late-computed inline-sizes for the inline fragments.
         let containing_block_block_size =
             self.base.block_container_explicit_block_size;
-        for fragment in self.fragments.fragments.iter_mut() {
+        for fragment in &mut self.fragments.fragments {
             fragment.update_late_computed_replaced_inline_size_if_necessary();
             fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
         }
@@ -1619,7 +1619,7 @@ impl Flow for InlineFlow {
 
         // Then compute the positions of all of our fragments.
         let mut containing_block_positions = containing_block_positions.iter();
-        for fragment in self.fragments.fragments.iter_mut() {
+        for fragment in &mut self.fragments.fragments {
             let stacking_relative_border_box =
                 fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
                                                       &self.base
@@ -1688,7 +1688,7 @@ impl Flow for InlineFlow {
 
     fn compute_overflow(&self) -> Rect<Au> {
         let mut overflow = ZERO_RECT;
-        for fragment in self.fragments.fragments.iter() {
+        for fragment in &self.fragments.fragments {
             overflow = overflow.union(&fragment.compute_overflow())
         }
         overflow
@@ -1699,7 +1699,7 @@ impl Flow for InlineFlow {
                                              level: i32,
                                              stacking_context_position: &Point2D<Au>) {
         // FIXME(#2795): Get the real container size.
-        for fragment in self.fragments.fragments.iter() {
+        for fragment in &self.fragments.fragments {
             if !iterator.should_process(fragment) {
                 continue
             }
@@ -1720,7 +1720,7 @@ impl Flow for InlineFlow {
     }
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
-        for fragment in self.fragments.fragments.iter_mut() {
+        for fragment in &mut self.fragments.fragments {
             (*mutator)(fragment)
         }
     }
@@ -1784,7 +1784,7 @@ impl InlineFragmentContext {
         if self.nodes.len() != other.nodes.len() {
             return false
         }
-        for (this_node, other_node) in self.nodes.iter().zip(other.nodes.iter()) {
+        for (this_node, other_node) in self.nodes.iter().zip(&other.nodes) {
             if !util::arc_ptr_eq(&this_node.style, &other_node.style) {
                 return false
             }
@@ -1871,4 +1871,3 @@ enum LineFlushMode {
     No,
     Flush,
 }
-

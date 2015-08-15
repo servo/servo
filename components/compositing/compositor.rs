@@ -658,7 +658,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                      -> Rc<Layer<CompositorData>> {
         let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
                                                                       frame_rect);
-        for kid in frame_tree.children.iter() {
+        for kid in &frame_tree.children {
             root_layer.add_child(self.create_frame_tree_root_layers(kid, kid.rect));
         }
         return root_layer;
@@ -1085,7 +1085,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             process_layer(&**layer, &window_size, &mut new_visible_rects)
         }
 
-        for (pipeline_id, new_visible_rects) in new_visible_rects.iter() {
+        for (pipeline_id, new_visible_rects) in &new_visible_rects {
             if let Some(pipeline_details) = self.pipeline_details.get(&pipeline_id) {
                 if let Some(ref pipeline) = pipeline_details.pipeline {
                     let LayoutControlChan(ref sender) = pipeline.layout_chan;
@@ -1109,7 +1109,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
     fn process_animations(&mut self) {
-        for (pipeline_id, pipeline_details) in self.pipeline_details.iter() {
+        for (pipeline_id, pipeline_details) in &self.pipeline_details {
             if pipeline_details.animations_running ||
                pipeline_details.animation_callbacks_running {
                 self.tick_animations_for_pipeline(*pipeline_id)
@@ -1225,7 +1225,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
-        for buffer_request in paint_request.buffer_requests.iter_mut() {
+        for buffer_request in &mut paint_request.buffer_requests {
             if self.surface_map.mem() == 0 {
                 return;
             }
@@ -1261,7 +1261,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             // All the BufferRequests are in layer/device coordinates, but the paint task
             // wants to know the page coordinates. We scale them before sending them.
-            for request in layer_requests.iter_mut() {
+            for request in &mut layer_requests {
                 request.page_rect = request.page_rect / scale.get();
             }
 
@@ -1393,7 +1393,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
-                for (id, details) in self.pipeline_details.iter() {
+                for (id, details) in &self.pipeline_details {
                     // If animations are currently running, then don't bother checking
                     // with the constellation if the output image is stable.
                     if details.animations_running || details.animation_callbacks_running {

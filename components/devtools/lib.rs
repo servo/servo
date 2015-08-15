@@ -347,7 +347,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     __type__: "networkEvent".to_string(),
                     eventActor: actor.event_actor(),
                 };
-                for stream in connections.iter_mut() {
+                for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
             }
@@ -363,7 +363,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     response: actor.response_start()
                 };
 
-                for stream in connections.iter_mut() {
+                for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
             }
@@ -429,7 +429,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                         request_id, network_event))) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();
-                for stream in accepted_connections.iter() {
+                for stream in &accepted_connections {
                     connections.push(stream.try_clone().unwrap());
                 }
                 //TODO: Get pipeline_id from NetworkEventMessage after fixing the send in http_loader
@@ -441,7 +441,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             Err(RecvError) => break
         }
     }
-    for connection in accepted_connections.iter_mut() {
+    for connection in &mut accepted_connections {
         let _ = connection.shutdown(Shutdown::Both);
     }
 }

@@ -64,7 +64,7 @@ impl Flow for TableColGroupFlow {
         let _scope = layout_debug_scope!("table_colgroup::bubble_inline_sizes {:x}",
                                             self.base.debug_id());
 
-        for fragment in self.cols.iter() {
+        for fragment in &self.cols {
             // Retrieve the specified value from the appropriate CSS property.
             let inline_size = fragment.style().content_inline_size();
             let span = match fragment.specific {

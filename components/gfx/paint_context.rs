@@ -1128,7 +1128,7 @@ impl<'a> PaintContext<'a> {
 
     pub fn remove_transient_clip_if_applicable(&mut self) {
         if let Some(old_transient_clip) = mem::replace(&mut self.transient_clip, None) {
-            for _ in old_transient_clip.complex.iter() {
+            for _ in &old_transient_clip.complex {
                 self.draw_pop_clip()
             }
             self.draw_pop_clip()
@@ -1141,7 +1141,7 @@ impl<'a> PaintContext<'a> {
         self.remove_transient_clip_if_applicable();
 
         self.draw_push_clip(&clip_region.main);
-        for complex_region in clip_region.complex.iter() {
+        for complex_region in &clip_region.complex {
             // FIXME(pcwalton): Actually draw a rounded rect.
             self.push_rounded_rect_clip(&complex_region.rect.to_nearest_azure_rect(),
                                         &complex_region.radii.to_radii_px())

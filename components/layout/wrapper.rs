@@ -520,7 +520,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
             match (*self.element.unsafe_get()).get_classes_for_layout() {
                 None => {}
                 Some(ref classes) => {
-                    for class in classes.iter() {
+                    for class in *classes {
                         callback(class)
                     }
                 }

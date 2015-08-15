@@ -69,7 +69,7 @@ impl LintPass for InheritancePass {
                     if cx.current_level(INHERITANCE_INTEGRITY) != Level::Allow {
                         let sess = cx.sess();
                         sess.span_note(sp, "Reflector found here");
-                        for span in dom_spans.iter() {
+                        for span in &dom_spans {
                             sess.span_note(*span, "Bare DOM struct found here");
                         }
                     }
@@ -79,7 +79,7 @@ impl LintPass for InheritancePass {
                 cx.span_lint(INHERITANCE_INTEGRITY, cx.tcx.map.expect_item(id).span,
                              "This DOM struct has multiple DOM struct members, only one is allowed");
                 if cx.current_level(INHERITANCE_INTEGRITY) != Level::Allow {
-                    for span in dom_spans.iter() {
+                    for span in &dom_spans {
                         cx.sess().span_note(*span, "Bare DOM struct found here");
                     }
                 }

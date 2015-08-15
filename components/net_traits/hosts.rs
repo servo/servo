@@ -41,7 +41,7 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> 
     let mut host_table = HashMap::new();
     let lines: Vec<&str> = hostsfile_content.split('\n').collect();
 
-    for line in lines.iter() {
+    for line in &lines {
         let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
         if ip_host.len() > 1 {
             if !IPV4_REGEX.is_match(ip_host[0]) && !IPV6_REGEX.is_match(ip_host[0]) { continue; }

@@ -161,10 +161,10 @@ impl FontContext {
 
         let mut fonts: SmallVec<[Rc<RefCell<Font>>; 8]> = SmallVec::new();
 
-        for family in style.font_family.0.iter() {
+        for family in &style.font_family.0 {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
-            for cached_font_entry in self.layout_font_cache.iter() {
+            for cached_font_entry in &self.layout_font_cache {
                 if cached_font_entry.family == family.name() {
                     match cached_font_entry.font {
                         None => {
@@ -224,7 +224,7 @@ impl FontContext {
         // list of last resort fonts for this platform.
         if fonts.is_empty() {
             let mut cache_hit = false;
-            for cached_font_entry in self.fallback_font_cache.iter() {
+            for cached_font_entry in &self.fallback_font_cache {
                 let cached_font = cached_font_entry.font.borrow();
                 if cached_font.descriptor == desc &&
                             cached_font.requested_pt_size == style.font_size &&
@@ -265,7 +265,7 @@ impl FontContext {
                                         template: &Arc<FontTemplateData>,
                                         pt_size: Au)
                                         -> Rc<RefCell<ScaledFont>> {
-        for cached_font in self.paint_font_cache.iter() {
+        for cached_font in &self.paint_font_cache {
             if cached_font.pt_size == pt_size &&
                cached_font.identifier == template.identifier {
                 return cached_font.font.clone();

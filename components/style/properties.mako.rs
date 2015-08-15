@@ -1112,7 +1112,7 @@ pub mod longhands {
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 let mut first = true;
-                for pair in self.0.iter() {
+                for pair in &self.0 {
                     if !first {
                         try!(dest.write_str(" "));
                     }
@@ -1186,7 +1186,7 @@ pub mod longhands {
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 let mut first = true;
-                for pair in self.0.iter() {
+                for pair in &self.0 {
                     if !first {
                         try!(dest.write_str(" "));
                     }
@@ -3313,7 +3313,7 @@ pub mod longhands {
                 pub fn opacity(&self) -> CSSFloat {
                     let mut opacity = 1.0;
 
-                    for filter in self.filters.iter() {
+                    for filter in &self.filters {
                         if let Filter::Opacity(ref opacity_value) = *filter {
                             opacity *= *opacity_value
                         }
@@ -3635,7 +3635,7 @@ pub mod longhands {
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 let mut first = true;
-                for operation in self.0.iter() {
+                for operation in &self.0 {
                     if !first {
                         try!(dest.write_str(" "));
                     }
@@ -3889,7 +3889,7 @@ pub mod longhands {
                 }
 
                 let mut result = vec!();
-                for operation in self.0.iter() {
+                for operation in &self.0 {
                     match *operation {
                         SpecifiedOperation::Matrix(ref matrix) => {
                             result.push(computed_value::ComputedOperation::Matrix(*matrix));
@@ -6219,7 +6219,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
     // Initialize `context`
     // Declarations blocks are already stored in increasing precedence order.
-    for sub_list in applicable_declarations.iter() {
+    for sub_list in applicable_declarations {
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {

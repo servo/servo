@@ -235,7 +235,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                 members, s.as_ptr())
     }
 
-    for ctor in named_constructors.iter() {
+    for ctor in named_constructors {
         let (cnative, cname, cnargs) = *ctor;
 
         let cs = CString::new(cname).unwrap();
@@ -321,7 +321,7 @@ fn create_interface_object(cx: *mut JSContext,
 /// Fails on JSAPI failure.
 fn define_constants(cx: *mut JSContext, obj: HandleObject,
                     constants: &'static [ConstantSpec]) {
-    for spec in constants.iter() {
+    for spec in constants {
         let value = RootedValue::new(cx, spec.get_value());
         unsafe {
             assert!(JS_DefineProperty(cx, obj, spec.name.as_ptr() as *const libc::c_char,

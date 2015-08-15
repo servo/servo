@@ -1041,7 +1041,7 @@ impl Fragment {
                                   containing_block_inline_size).specified_or_zero();
 
         if let Some(ref inline_context) = self.inline_context {
-            for node in inline_context.nodes.iter() {
+            for node in &inline_context.nodes {
                 let margin = node.style.logical_margin();
                 self.margin.inline_start = self.margin.inline_start +
                     MaybeAuto::from_style(margin.inline_start,
@@ -1155,7 +1155,7 @@ impl Fragment {
         };
 
         if let Some(ref inline_fragment_context) = self.inline_context {
-            for node in inline_fragment_context.nodes.iter() {
+            for node in &inline_fragment_context.nodes {
                 if node.style.get_box().position == position::T::relative {
                     rel_pos = rel_pos + from_style(&*node.style, containing_block_size);
                 }
@@ -1309,7 +1309,7 @@ impl Fragment {
         // Take borders and padding for parent inline fragments into account, if necessary.
         if self.is_primary_fragment() {
             if let Some(ref context) = self.inline_context {
-                for node in context.nodes.iter() {
+                for node in &context.nodes {
                     let border_width = node.style.logical_border_width().inline_start_end();
                     let padding_inline_size =
                         model::padding_from_style(&*node.style, Au(0)).inline_start_end();
@@ -2042,7 +2042,7 @@ impl Fragment {
         let mut overflow = border_box;
 
         // Box shadows cause us to draw outside our border box.
-        for box_shadow in self.style().get_effects().box_shadow.0.iter() {
+        for box_shadow in &self.style().get_effects().box_shadow.0 {
             let offset = Point2D::new(box_shadow.offset_x, box_shadow.offset_y);
             let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
                 BLUR_INFLATION_FACTOR;
@@ -2345,4 +2345,3 @@ impl WhitespaceStrippingResult {
         }
     }
 }
-

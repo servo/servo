@@ -28,7 +28,7 @@ impl LintPass for PrivatizePass {
                         _gen: &ast::Generics,
                         id: ast::NodeId) {
         if cx.tcx.has_attr(ast_util::local_def(id), "privatize") {
-            for field in def.fields.iter() {
+            for field in &def.fields {
                 match field.node {
                     ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } if visibility == Public => {
                         cx.span_lint(PRIVATIZE, field.span,

@@ -715,7 +715,7 @@ fn can_interpolate_list(from_list: &Vec<TransformOperation>,
     }
 
     // Each transform operation must match primitive type in other list
-    for (from, to) in from_list.iter().zip(to_list.iter()) {
+    for (from, to) in from_list.iter().zip(to_list) {
         match (from, to) {
             (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
             (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
@@ -740,7 +740,7 @@ fn interpolate_transform_list(from_list: &Vec<TransformOperation>,
     let mut result = vec!();
 
     if can_interpolate_list(from_list, to_list) {
-        for (from, to) in from_list.iter().zip(to_list.iter()) {
+        for (from, to) in from_list.iter().zip(to_list) {
             match (from, to) {
                 (&TransformOperation::Matrix(from),
                  &TransformOperation::Matrix(_to)) => {
@@ -870,4 +870,3 @@ impl<T> GetMod for Vec<T> {
         &(*self)[i % self.len()]
     }
 }
-

@@ -1086,7 +1086,7 @@ impl BaseFlow {
             DisplayListBuildingResult::Normal(ref display_list) => display_list.all_display_items(),
         };
 
-        for item in all_items.iter() {
+        for item in &all_items {
             let paint_bounds = item.base().clip.clone().intersect_rect(&item.base().bounds);
             if !paint_bounds.might_be_nonempty() {
                 continue;

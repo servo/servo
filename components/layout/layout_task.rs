@@ -296,7 +296,7 @@ impl<'a> DerefMut for RWGuard<'a> {
 
 fn add_font_face_rules(stylesheet: &Stylesheet, device: &Device, font_cache_task: &FontCacheTask) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
-        for source in font_face.sources.iter() {
+        for source in &font_face.sources {
             font_cache_task.add_web_font(font_face.family.clone(), source.clone());
         }
     }
@@ -1213,7 +1213,7 @@ impl LayoutTask {
         let inflation_amount =
             Size2D::new(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
                         rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
-        for &(ref layer_id, ref new_visible_rect) in new_visible_rects.iter() {
+        for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
             match rw_data.visible_rects.get(layer_id) {
                 None => {
                     old_visible_rects.insert(*layer_id, *new_visible_rect);
@@ -1236,7 +1236,7 @@ impl LayoutTask {
         }
 
         debug!("regenerating display lists!");
-        for &(ref layer_id, ref new_visible_rect) in new_visible_rects.iter() {
+        for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
             old_visible_rects.insert(*layer_id, *new_visible_rect);
         }
         rw_data.visible_rects = Arc::new(old_visible_rects);
@@ -1556,4 +1556,3 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
-
