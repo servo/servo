@@ -302,6 +302,9 @@ class CommandBase(object):
         if hosts_file_path:
             env['HOST_FILE'] = hosts_file_path
 
+        env['RUSTDOC'] = '../../etc/rustdoc-with-private'
+        env['RUSTC'] = '../../etc/rustc-with-gold'
+
         return env
 
     def servo_crate(self):
