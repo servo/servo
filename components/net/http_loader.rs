@@ -294,6 +294,32 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
+#[inline(always)]
+fn set_request_cookies(url: Url, headers: &mut Headers, resource_mgr_chan: &IpcSender<ControlMsg>) {
+    let (tx, rx) = ipc::channel().unwrap();
+    resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
+                                                        tx,
+                                                        CookieSource::HTTP)).unwrap();
+    if let Some(cookie_list) = rx.recv().unwrap() {
+        let mut v = Vec::new();
+        v.push(cookie_list.into_bytes());
+        headers.set_raw("Cookie".to_owned(), v);
+    }
+}
+
+#[inline(always)]
+fn set_cookies_from_response(url: Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
+    if let Some(cookies) = response.headers().get_raw("set-cookie") {
+        for cookie in cookies.iter() {
+            if let Ok(cookies) = String::from_utf8(cookie.clone()) {
+                resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
+                                                                    cookies,
+                                                                    CookieSource::HTTP)).unwrap();
+            }
+        }
+    }
+}
+
 pub fn load<A>(mut load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -363,17 +389,7 @@ pub fn load<A>(mut load_data: LoadData,
 
         set_default_accept(&mut request_headers);
         set_default_accept_encoding(&mut request_headers);
-
-        // --- Fetch cookies
-        let (tx, rx) = ipc::channel().unwrap();
-        resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(doc_url.clone(),
-                                                            tx,
-                                                            CookieSource::HTTP)).unwrap();
-        if let Some(cookie_list) = rx.recv().unwrap() {
-            let mut v = Vec::new();
-            v.push(cookie_list.into_bytes());
-            request_headers.set_raw("Cookie".to_owned(), v);
-        }
+        set_request_cookies(doc_url.clone(), &mut request_headers, &resource_mgr_chan);
 
         // --- Send the request
         let mut req = try!(request_factory.create(url.clone(), load_data.method.clone()));
@@ -416,16 +432,7 @@ pub fn load<A>(mut load_data: LoadData,
             }
         }
 
-        // --- Update the resource manager that we've gotten a cookie
-        if let Some(cookies) = response.headers().get_raw("set-cookie") {
-            for cookie in cookies.iter() {
-                if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                    resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(doc_url.clone(),
-                                                                        cookies,
-                                                                        CookieSource::HTTP)).unwrap();
-                }
-            }
-        }
+        set_cookies_from_response(doc_url.clone(), &response, &resource_mgr_chan);
 
         if url.scheme == "https" {
             if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
