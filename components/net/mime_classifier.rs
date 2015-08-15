@@ -89,7 +89,7 @@ impl MIMEClassifier {
             _ => false
         }
     }
-    
+
     fn is_html(tp: &str, sub_tp: &str) -> bool {
         tp == "text" && sub_tp == "html"
     }
@@ -174,7 +174,7 @@ struct TagTerminatedByteMatcher {
 
 impl MIMEChecker for TagTerminatedByteMatcher {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
-        self.matcher.matches(data).and_then(|j| 
+        self.matcher.matches(data).and_then(|j|
             if j < data.len() && (data[j] == b' ' || data[j] == b'>') {
                 Some((self.matcher.content_type.0.to_owned(),
                       self.matcher.content_type.1.to_owned()))
@@ -190,18 +190,18 @@ impl Mp4Matcher {
         if data.len() < 12 {
             return false;
         }
-        
+
         let box_size = ((data[0] as u32) << 3 | (data[1] as u32) << 2 |
                         (data[2] as u32) << 1 | (data[3] as u32)) as usize;
         if (data.len() < box_size) || (box_size % 4 != 0) {
             return false;
         }
-        
+
         let ftyp = [0x66, 0x74, 0x79, 0x70];
         if !data[4..].starts_with(&ftyp) {
             return false;
         }
-        
+
         let mp4 =  [0x6D, 0x70, 0x34];
         data[8..].starts_with(&mp4) ||
         (0..).map(|i| 16 + 4 * i) // better to use step_by once stabilized
@@ -348,7 +348,7 @@ impl MIMEChecker for GroupedClassifier {
 fn eats_until<'a, T>(matcher: &mut T, start: &[u8], end: &[u8]) -> Option<bool>
 where T: Iterator<Item=&'a u8> + Clone {
     if matcher.matches(start) {
-        if end.len() == 1 { 
+        if end.len() == 1 {
             return matcher.find(|&x| *x == end[0]).map(|_| true)
         } else {
             loop {
@@ -368,7 +368,7 @@ impl FeedsClassifier {
         if data.len() < 3 {
             return None;
         }
-        
+
         let mut matcher = data.iter();
 
         // eat the first three acceptable byte sequences if they are equal to UTF-8 BOM
@@ -379,9 +379,9 @@ impl FeedsClassifier {
         // TODO: need max_bytes to prevent inadvertently examining html document
         //       eg. an html page with a feed example
         loop {
-            
+
             if matcher.find(|&x| *x == b'<').is_none() { return None; }
-            
+
             match eats_until(&mut matcher, b"?", b"?>")
                .or_else(|| eats_until(&mut matcher, b"!--", b"-->"))
                .or_else(|| eats_until(&mut matcher, b"!", b">")) {
@@ -389,17 +389,17 @@ impl FeedsClassifier {
                 None => {},
                 Some(false) => return None
             }
-            
+
             if matcher.matches(b"rss") { return Some(("application", "rss+xml")); }
             if matcher.matches(b"feed") { return Some(("application", "atom+xml")); }
             if matcher.matches(b"rdf: RDF") {
                 loop {
                     if matcher.next().is_none() { return None; }
-                    match eats_until(&mut matcher, 
-                                     b"http: //purl.org/rss/1.0/", 
+                    match eats_until(&mut matcher,
+                                     b"http: //purl.org/rss/1.0/",
                                      b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#")
-                       .or_else(|| eats_until(&mut matcher, 
-                                              b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#", 
+                       .or_else(|| eats_until(&mut matcher,
+                                              b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#",
                                               b"http: //purl.org/rss/1.0/")) {
                         Some(true) => return Some(("application", "rss+xml")),
                         None => continue,
