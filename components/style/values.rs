@@ -496,13 +496,39 @@ pub mod specified {
             Some(product)
         }
 
-        fn simplify_products(node: CalcProductNode) -> Result<CalcAstNode, ()> {
+        fn simplify_products_in_sum(node: &CalcSumNode) -> Result<CalcValueNode, ()> {
+            let mut simplified = Vec::new();
+            let node = node.clone();
+            for product in node.products {
+                match try!(Calc::simplify_product(product)) {
+                    CalcAstNode::Value(val) =>
+                        simplified.push(CalcProductNode { values: vec!(val) }),
+                    CalcAstNode::Add(sum) => simplified.push_all(&sum.products),
+                }
+            }
+
+            if simplified.len() == 1 {
+                assert!(simplified[0].values.len() == 1);
+                Ok(simplified[0].values[0].clone())
+            } else {
+                Ok(CalcValueNode::Sum(box CalcSumNode { products: simplified } ))
+            }
+        }
+
+        fn simplify_product(node: CalcProductNode) -> Result<CalcAstNode, ()> {
             let mut multiplier = 1.;
             let mut node_with_unit = None;
             for node in node.values {
                 match Calc::simplify_value_numerically(&node) {
                     Some(number) => multiplier *= number,
-                    _ if node_with_unit.is_none() => node_with_unit = Some(node),
+                    _ if node_with_unit.is_none() => {
+                        node_with_unit = Some(match node {
+                            CalcValueNode::Sum(box ref sum) =>
+                                try!(Calc::simplify_products_in_sum(sum)),
+                            val => val,
+                        })
+                    },
+                    //_ if node_with_unit.is_none() => node_with_unit = Some(node),
                     _ => return Err(()),
                 }
             }
@@ -550,7 +576,7 @@ pub mod specified {
 
             let mut simplified = Vec::new();
             for node in ast.products {
-                let node = try!(Calc::simplify_products(node));
+                let node = try!(Calc::simplify_product(node));
                 match node {
                     CalcAstNode::Value(value) => simplified.push(value),
                     CalcAstNode::Add(sum) => {
