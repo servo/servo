@@ -218,6 +218,7 @@ pub mod file;
 pub mod filelist;
 pub mod filereader;
 pub mod formdata;
+pub mod history;
 pub mod htmlanchorelement;
 pub mod htmlappletelement;
 pub mod htmlareaelement;
