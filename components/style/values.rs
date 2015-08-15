@@ -428,8 +428,7 @@ pub mod specified {
             products.push(try!(Calc::parse_product(input)));
 
             loop {
-                let next = input.next();
-                match next {
+                match input.next() {
                     Ok(Token::Delim('+')) => {
                         products.push(try!(Calc::parse_product(input)));
                     }
@@ -452,8 +451,7 @@ pub mod specified {
 
             loop {
                 let position = input.position();
-                let next = input.next();
-                match next {
+                match input.next() {
                     Ok(Token::Delim('*')) => {
                         values.push(try!(Calc::parse_value(input)));
                     }
@@ -478,8 +476,7 @@ pub mod specified {
         }
 
         fn parse_value(input: &mut Parser) -> Result<CalcValueNode, ()> {
-            let next = input.next();
-            match next {
+            match input.next() {
                 Ok(Token::Number(ref value)) => Ok(CalcValueNode::Number(value.value)),
                 Ok(Token::Dimension(ref value, ref unit)) =>
                     Length::parse_dimension(value.value, unit).map(CalcValueNode::Length),
@@ -503,7 +500,7 @@ pub mod specified {
 
         fn simplify_sum_to_number(node: &CalcSumNode) -> Option<CSSFloat> {
             let mut sum = 0.;
-            for product in &node.products {
+            for ref product in &node.products {
                 match Calc::simplify_product_to_number(product) {
                     Some(number) => sum += number,
                     _ => return None
@@ -514,7 +511,7 @@ pub mod specified {
 
         fn simplify_product_to_number(node: &CalcProductNode) -> Option<CSSFloat> {
             let mut product = 1.;
-            for value in &node.values {
+            for ref value in &node.values {
                 match Calc::simplify_value_to_number(value) {
                     Some(number) => product *= number,
                     _ => return None
@@ -539,22 +536,21 @@ pub mod specified {
             }
         }
 
-        fn simplify_product(node: CalcProductNode) -> Result<SimplifiedValueNode, ()> {
+        fn simplify_product(node: &CalcProductNode) -> Result<SimplifiedValueNode, ()> {
             let mut multiplier = 1.;
             let mut node_with_unit = None;
-            for node in node.values {
+            for node in &node.values {
                 match Calc::simplify_value_to_number(&node) {
                     Some(number) => multiplier *= number,
                     _ if node_with_unit.is_none() => {
                         node_with_unit = Some(match node {
-                            CalcValueNode::Sum(box ref sum) =>
+                            &CalcValueNode::Sum(box ref sum) =>
                                 try!(Calc::simplify_products_in_sum(sum)),
-                            CalcValueNode::Length(l) => SimplifiedValueNode::Length(l),
-                            CalcValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p),
+                            &CalcValueNode::Length(l) => SimplifiedValueNode::Length(l),
+                            &CalcValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p),
                             _ => unreachable!("Numbers should have been handled by simplify_value_to_nubmer")
                         })
                     },
-                    //_ if node_with_unit.is_none() => node_with_unit = Some(node),
                     _ => return Err(()),
                 }
             }
@@ -569,7 +565,7 @@ pub mod specified {
             let ast = try!(Calc::parse_sum(input));
 
             let mut simplified = Vec::new();
-            for node in ast.products {
+            for ref node in ast.products {
                 match try!(Calc::simplify_product(node)) {
                     SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
                     value => simplified.push(value),
