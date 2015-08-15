@@ -22,7 +22,8 @@ use hyper::client::Request;
 use hyper::header::StrictTransportSecurity;
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::client::{Request, Response};
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, StrictTransportSecurity};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
+use hyper::header::{Location, qitem, StrictTransportSecurity};
 use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
 use hyper::Error as HttpError;
 use hyper::method::Method;
@@ -199,7 +200,10 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
                 return Err(
                     LoadError::Ssl(
                         url.clone(),
-                        format!("ssl error {:?}: {:?} {:?}", io_error.kind(), io_error.description(), io_error.cause())
+                        format!("ssl error {:?}: {:?} {:?}",
+                                io_error.kind(),
+                                io_error.description(),
+                                io_error.cause())
                     )
                 )
             },
@@ -468,7 +472,10 @@ pub fn load<A>(mut load_data: LoadData,
                     match load_data.cors {
                         Some(ref c) => {
                             if c.preflight {
-                                return Err(LoadError::Cors(url, "Preflight fetch inconsistent with main fetch".to_string()));
+                                return Err(
+                                    LoadError::Cors(
+                                        url,
+                                        "Preflight fetch inconsistent with main fetch".to_string()));
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
                                 // but they don't seem necessary until credentials are implemented
