@@ -372,9 +372,42 @@ pub mod specified {
     }
 
     #[derive(Clone, Debug)]
-    enum CalcAstNode {
-        Add(CalcSumNode),
-        Value(CalcValueNode),
+    struct SimplifiedSumNode {
+        values: Vec<SimplifiedValueNode>,
+    }
+    impl<'a> Mul<CSSFloat> for &'a SimplifiedSumNode {
+        type Output = SimplifiedSumNode;
+
+        #[inline]
+        fn mul(self, scalar: CSSFloat) -> SimplifiedSumNode {
+            SimplifiedSumNode {
+                values: self.values.iter().map(|p| p * scalar).collect()
+            }
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    enum SimplifiedValueNode {
+        Length(Length),
+        Percentage(CSSFloat),
+        Number(CSSFloat),
+        Sum(Box<SimplifiedSumNode>),
+    }
+    impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
+        type Output = SimplifiedValueNode;
+
+        #[inline]
+        fn mul(self, scalar: CSSFloat) -> SimplifiedValueNode {
+            match self {
+                &SimplifiedValueNode::Length(l) => SimplifiedValueNode::Length(l * scalar),
+                &SimplifiedValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p * scalar),
+                &SimplifiedValueNode::Number(n) => SimplifiedValueNode::Number(n * scalar),
+                &SimplifiedValueNode::Sum(box ref s) => {
+                    let sum = s * scalar;
+                    SimplifiedValueNode::Sum(box sum)
+                }
+            }
+        }
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
@@ -460,19 +493,19 @@ pub mod specified {
             }
         }
 
-        fn simplify_value_numerically(node: &CalcValueNode) -> Option<CSSFloat> {
+        fn simplify_value_to_number(node: &CalcValueNode) -> Option<CSSFloat> {
             match node {
                 &CalcValueNode::Number(number) => Some(number),
-                &CalcValueNode::Sum(box ref sum) => Calc::simplify_sum_numerically(sum),
+                &CalcValueNode::Sum(box ref sum) => Calc::simplify_sum_to_number(sum),
                 _ => None
             }
         }
 
-        fn simplify_sum_numerically(node: &CalcSumNode) -> Option<CSSFloat> {
+        fn simplify_sum_to_number(node: &CalcSumNode) -> Option<CSSFloat> {
             let node = node.clone();
             let mut sum = 0.;
             for product in node.products {
-                match Calc::simplify_product_numerically(product) {
+                match Calc::simplify_product_to_number(product) {
                     Some(number) => sum += number,
                     _ => return None
                 }
@@ -480,10 +513,10 @@ pub mod specified {
             Some(sum)
         }
 
-        fn simplify_product_numerically(node: CalcProductNode) -> Option<CSSFloat> {
+        fn simplify_product_to_number(node: CalcProductNode) -> Option<CSSFloat> {
             let mut product = 1.;
             for value in node.values {
-                match Calc::simplify_value_numerically(&value) {
+                match Calc::simplify_value_to_number(&value) {
                     Some(number) => product *= number,
                     _ => return None
                 }
@@ -491,36 +524,36 @@ pub mod specified {
             Some(product)
         }
 
-        fn simplify_products_in_sum(node: &CalcSumNode) -> Result<CalcValueNode, ()> {
+        fn simplify_products_in_sum(node: &CalcSumNode) -> Result<SimplifiedValueNode, ()> {
             let mut simplified = Vec::new();
             let node = node.clone();
             for product in node.products {
                 match try!(Calc::simplify_product(product)) {
-                    CalcAstNode::Value(val) =>
-                        simplified.push(CalcProductNode { values: vec!(val) }),
-                    CalcAstNode::Add(sum) => simplified.push_all(&sum.products),
+                    SimplifiedValueNode::Sum(box sum) => simplified.push_all(&sum.values),
+                    val => simplified.push(val),
                 }
             }
 
             if simplified.len() == 1 {
-                assert!(simplified[0].values.len() == 1);
-                Ok(simplified[0].values[0].clone())
+                Ok(simplified[0].clone())
             } else {
-                Ok(CalcValueNode::Sum(box CalcSumNode { products: simplified } ))
+                Ok(SimplifiedValueNode::Sum(box SimplifiedSumNode { values: simplified } ))
             }
         }
 
-        fn simplify_product(node: CalcProductNode) -> Result<CalcAstNode, ()> {
+        fn simplify_product(node: CalcProductNode) -> Result<SimplifiedValueNode, ()> {
             let mut multiplier = 1.;
             let mut node_with_unit = None;
             for node in node.values {
-                match Calc::simplify_value_numerically(&node) {
+                match Calc::simplify_value_to_number(&node) {
                     Some(number) => multiplier *= number,
                     _ if node_with_unit.is_none() => {
                         node_with_unit = Some(match node {
                             CalcValueNode::Sum(box ref sum) =>
                                 try!(Calc::simplify_products_in_sum(sum)),
-                            val => val,
+                            CalcValueNode::Length(l) => SimplifiedValueNode::Length(l),
+                            CalcValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p),
+                            _ => unreachable!("Numbers should have been handled by simplify_value_to_nubmer")
                         })
                     },
                     //_ if node_with_unit.is_none() => node_with_unit = Some(node),
@@ -529,40 +562,8 @@ pub mod specified {
             }
 
             match node_with_unit {
-                None => Ok(CalcAstNode::Value(CalcValueNode::Number(multiplier))),
-                Some(CalcValueNode::Sum(box ref sum)) =>
-                    Ok(CalcAstNode::Add(Calc::multiply_sum(sum, multiplier))),
-                Some(ref value) =>
-                    Ok(CalcAstNode::Value(Calc::multiply_value(value, multiplier))),
-            }
-        }
-
-        fn multiply_product(node: &CalcProductNode, multiplier: CSSFloat) -> CalcProductNode {
-            CalcProductNode {
-                values: node.values
-                            .iter()
-                            .map(|v| Calc::multiply_value(v, multiplier))
-                            .collect()
-            }
-        }
-
-        fn multiply_sum(node: &CalcSumNode, multiplier: CSSFloat) -> CalcSumNode {
-            CalcSumNode {
-                products: node.products
-                              .iter()
-                              .map(|p| Calc::multiply_product(p, multiplier))
-                              .collect()
-            }
-        }
-
-        fn multiply_value(node: &CalcValueNode, multiplier: CSSFloat) -> CalcValueNode {
-            println!("multiplying {:?} by {}", node, multiplier);
-            match node {
-                &CalcValueNode::Number(num) => CalcValueNode::Number(num * multiplier),
-                &CalcValueNode::Percentage(p) => CalcValueNode::Percentage(p * multiplier),
-                &CalcValueNode::Sum(box ref sum) =>
-                    CalcValueNode::Sum(box Calc::multiply_sum(sum, multiplier)),
-                &CalcValueNode::Length(l) => CalcValueNode::Length(l * multiplier),
+                None => Ok(SimplifiedValueNode::Number(multiplier)),
+                Some(ref value) => Ok(value * multiplier)
             }
         }
 
@@ -571,16 +572,9 @@ pub mod specified {
 
             let mut simplified = Vec::new();
             for node in ast.products {
-                let node = try!(Calc::simplify_product(node));
-                match node {
-                    CalcAstNode::Value(value) => simplified.push(value),
-                    CalcAstNode::Add(sum) => {
-                        for product in sum.products {
-                            println!(" Matching product AST: {:?}", product);
-                            assert!(product.values.len() == 1);
-                            simplified.push(product.values[0].clone());
-                        }
-                    }
+                match try!(Calc::simplify_product(node)) {
+                    SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
+                    value => simplified.push(value),
                 }
             }
 
@@ -597,11 +591,11 @@ pub mod specified {
 
             for value in simplified {
                 match value {
-                    CalcValueNode::Percentage(p) =>
+                    SimplifiedValueNode::Percentage(p) =>
                         percentage = Some(percentage.unwrap_or(0.) + p),
-                    CalcValueNode::Length(Length::Absolute(Au(au))) =>
+                    SimplifiedValueNode::Length(Length::Absolute(Au(au))) =>
                         absolute = Some(absolute.unwrap_or(0) + au),
-                    CalcValueNode::Length(Length::ViewportPercentage(v)) =>
+                    SimplifiedValueNode::Length(Length::ViewportPercentage(v)) =>
                         match v {
                             ViewportPercentageLength::Vw(val) =>
                                 vw = Some(vw.unwrap_or(0.) + val),
@@ -612,7 +606,7 @@ pub mod specified {
                             ViewportPercentageLength::Vmax(val) =>
                                 vmax = Some(vmax.unwrap_or(0.) + val),
                         },
-                    CalcValueNode::Length(Length::FontRelative(f)) =>
+                    SimplifiedValueNode::Length(Length::FontRelative(f)) =>
                         match f {
                             FontRelativeLength::Em(val) =>
                                 em = Some(em.unwrap_or(0.) + val),
@@ -621,7 +615,7 @@ pub mod specified {
                             FontRelativeLength::Rem(val) =>
                                 rem = Some(rem.unwrap_or(0.) + val),
                         },
-                    CalcValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
+                    SimplifiedValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
                     _ => unreachable!()
                 }
             }
