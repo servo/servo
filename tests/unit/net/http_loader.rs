@@ -6,10 +6,8 @@ use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpRes
 use net::resource_task::new_resource_task;
 use net_traits::{ResourceTask, ControlMsg, CookieSource};
 use url::Url;
-use std::sync::{Arc, Mutex};
 use ipc_channel::ipc;
 use net_traits::LoadData;
-use net::hsts::HSTSList;
 use hyper::method::Method;
 use hyper::http::RawStatus;
 use hyper::status::StatusCode;
@@ -191,6 +189,34 @@ fn assert_cookie_for_domain(resource_mgr: &ResourceTask, domain: &str, cookie: &
 }
 
 #[test]
+fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let content = <[_]>::to_vec("Yay!".as_bytes());
+            let mut headers = Headers::new();
+            headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
+            Ok(MockRequest::new(RequestType::WithHeaders(content, headers)))
+        }
+    }
+
+    let url = Url::parse("https://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+
+    let load_data = LoadData::new(url.clone(), None);
+
+    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory);
+
+    let (tx, rx) = ipc::channel().unwrap();
+    resource_mgr.send(ControlMsg::GetHostMustBeSecured("mozilla.com".to_string(), tx)).unwrap();
+
+    assert!(rx.recv().unwrap());
+}
+
+#[test]
 fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
     struct Factory;
 
@@ -210,9 +236,8 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "");
 
     let load_data = LoadData::new(url.clone(), None);
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, hsts_list, &Factory);
+    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory);
 
     assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "mozillaIs=theBest");
 }
@@ -231,9 +256,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let mut cookie = Headers::new();
     cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
-
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: cookie,
         body: <[_]>::to_vec(&*load_data.data.unwrap())
     });
@@ -251,9 +274,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let mut content_len_headers= Headers::new();
     content_len_headers.set_raw("Content-Length".to_owned(), vec![<[_]>::to_vec(&*format!("{}", content.len()).as_bytes())]);
 
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
-
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: content_len_headers,
         body: <[_]>::to_vec(&*load_data.data.unwrap())
     });
@@ -268,9 +289,8 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let resource_mgr = new_resource_task(None, None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
     });
@@ -285,9 +305,8 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let resource_mgr = new_resource_task(None, None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_encoding_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
     });
@@ -314,9 +333,8 @@ fn test_load_errors_when_there_a_redirect_loop() {
     let url = Url::parse("http://mozilla.com").unwrap();
     let resource_mgr = new_resource_task(None, None);
     let load_data = LoadData::new(url.clone(), None);
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load::<MockRequest>(load_data, resource_mgr, None, hsts_list, &Factory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
         Err(LoadError::InvalidRedirect(_, msg)) => {
             assert_eq!(msg, "redirect loop");
         },
@@ -343,9 +361,8 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     let url = Url::parse("http://mozilla.com").unwrap();
     let resource_mgr = new_resource_task(None, None);
     let load_data = LoadData::new(url.clone(), None);
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load::<MockRequest>(load_data, resource_mgr, None, hsts_list, &Factory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
         Err(LoadError::MaxRedirects(url)) => {
             assert_eq!(url.domain().unwrap(), "mozilla.com")
         },
@@ -380,9 +397,8 @@ fn test_load_follows_a_redirect() {
     let url = Url::parse("http://mozilla.com").unwrap();
     let resource_mgr = new_resource_task(None, None);
     let load_data = LoadData::new(url.clone(), None);
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load::<MockRequest>(load_data, resource_mgr, None, hsts_list, &Factory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
         Err(_) => panic!("expected to follow a redirect"),
         Ok((mut r, _)) => {
             let response = read_response(&mut *r);
@@ -404,11 +420,10 @@ impl HttpRequestFactory for DontConnectFactory {
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
     let url = Url::parse("ftp://not-supported").unwrap();
-    let (cookies_chan, _) = ipc::channel().unwrap();
+    let resource_mgr = new_resource_task(None, None);
     let load_data = LoadData::new(url.clone(), None);
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load::<MockRequest>(load_data, cookies_chan, None, hsts_list, &DontConnectFactory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
     }
@@ -417,11 +432,10 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
     let url = Url::parse("view-source:ftp://not-supported").unwrap();
-    let (cookies_chan, _) = ipc::channel().unwrap();
+    let resource_mgr = new_resource_task(None, None);
     let load_data = LoadData::new(url.clone(), None);
-    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load::<MockRequest>(load_data, cookies_chan, None, hsts_list, &DontConnectFactory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
     }

@@ -9,7 +9,7 @@ use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
-use hsts::{HSTSList, secure_url};
+use hsts::secure_url;
 use file_loader;
 
 use file_loader;
@@ -37,7 +37,6 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
@@ -52,12 +51,11 @@ use uuid;
 use std::fs::File;
 
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
-               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               hsts_list: Arc<Mutex<HSTSList>>)
+               devtools_chan: Option<Sender<DevtoolsControlMsg>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()),
-                    move || load_for_consumer(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
+                    move || load_for_consumer(load_data, senders, classifier, resource_mgr_chan, devtools_chan))
     }
 }
 
@@ -89,15 +87,6 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
-    match url.domain() {
-        Some(ref h) => {
-            hsts_list.is_host_secure(h)
-        },
-        _ => false
-    }
-}
-
 fn inner_url(url: &Url) -> Url {
     let inner_url = url.non_relative_scheme_data().unwrap();
     Url::parse(inner_url).unwrap()
@@ -107,10 +96,9 @@ fn load_for_consumer(load_data: LoadData,
         start_chan: LoadConsumer,
         classifier: Arc<MIMEClassifier>,
         resource_mgr_chan: IpcSender<ControlMsg>,
-        devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-        hsts_list: Arc<Mutex<HSTSList>>) {
+        devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
 
-    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, hsts_list, &NetworkHttpRequestFactory) {
+    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &NetworkHttpRequestFactory) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -320,10 +308,18 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, resource_mgr_cha
     }
 }
 
+fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>) -> bool {
+    let (tx, rx) = ipc::channel().unwrap();
+    resource_mgr_chan.send(
+        ControlMsg::GetHostMustBeSecured(url.domain().unwrap().to_string(), tx)
+    ).unwrap();
+
+    rx.recv().unwrap()
+}
+
 pub fn load<A>(mut load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-            hsts_list: Arc<Mutex<HSTSList>>,
             request_factory: &HttpRequestFactory<R=A>)
     -> Result<(Box<Read>, Metadata), LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
@@ -352,7 +348,7 @@ pub fn load<A>(mut load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        if &*url.scheme != "https" && request_must_be_secured(&hsts_list.lock().unwrap(), &url) {
+        if &*url.scheme != "https" && request_must_be_secured(&url, &resource_mgr_chan) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
