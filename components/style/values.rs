@@ -428,8 +428,7 @@ pub mod specified {
             products.push(try!(Calc::parse_product(input)));
 
             loop {
-                let next = input.next();
-                match next {
+                match input.next() {
                     Ok(Token::Delim('+')) => {
                         products.push(try!(Calc::parse_product(input)));
                     }
@@ -452,8 +451,7 @@ pub mod specified {
 
             loop {
                 let position = input.position();
-                let next = input.next();
-                match next {
+                match input.next() {
                     Ok(Token::Delim('*')) => {
                         values.push(try!(Calc::parse_value(input)));
                     }
@@ -478,8 +476,7 @@ pub mod specified {
         }
 
         fn parse_value(input: &mut Parser) -> Result<CalcValueNode, ()> {
-            let next = input.next();
-            match next {
+            match input.next() {
                 Ok(Token::Number(ref value)) => Ok(CalcValueNode::Number(value.value)),
                 Ok(Token::Dimension(ref value, ref unit)) =>
                     Length::parse_dimension(value.value, unit).map(CalcValueNode::Length),
@@ -554,7 +551,6 @@ pub mod specified {
                             _ => unreachable!("Numbers should have been handled by simplify_value_to_nubmer")
                         })
                     },
-                    //_ if node_with_unit.is_none() => node_with_unit = Some(node),
                     _ => return Err(()),
                 }
             }
