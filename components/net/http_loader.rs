@@ -231,15 +231,16 @@ impl HttpRequest for WrappedHttpRequest {
     }
 
     fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
+        let url = self.request.url.clone();
         let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
         };
 
         if let Some(ref data) = *body {
             match request_writer.write_all(&data) {
                 Err(e) => {
-                    return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+                    return Err(LoadError::Connection(url, e.description().to_string()))
                 }
                 _ => {}
             }
@@ -247,7 +248,7 @@ impl HttpRequest for WrappedHttpRequest {
 
         let response = match request_writer.send() {
             Ok(w) => w,
-            Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
         };
 
         Ok(WrappedHttpResponse { response: response })
