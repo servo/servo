@@ -97,8 +97,8 @@ numericTags = [
     IDLType.Tags.int16, IDLType.Tags.uint16,
     IDLType.Tags.int32, IDLType.Tags.uint32,
     IDLType.Tags.int64, IDLType.Tags.uint64,
-    IDLType.Tags.unrestricted_float, IDLType.Tags.float,
-    IDLType.Tags.unrestricted_double, IDLType.Tags.double
+    IDLType.Tags.unrestricted_float,
+    IDLType.Tags.unrestricted_double
 ]
 
 
@@ -1056,7 +1056,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             defaultStr = "None"
         else:
             tag = defaultValue.type.tag()
-            if tag in numericTags:
+            if tag in [IDLType.Tags.float, IDLType.Tags.double]:
+                defaultStr = "Finite::wrap(%s)" % defaultValue.value
+            elif tag in numericTags:
                 defaultStr = str(defaultValue.value)
             else:
                 assert(tag == IDLType.Tags.bool)
