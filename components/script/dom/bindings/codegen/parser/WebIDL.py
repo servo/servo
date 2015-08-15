@@ -2920,8 +2920,7 @@ class IDLValue(IDLObject):
         elif self.type.isInteger() and type.isFloat():
             # Convert an integer literal into float
             if -2**24 <= self.value <= 2**24:
-                floatType = BuiltinTypes[IDLBuiltinType.Types.float]
-                return IDLValue(self.location, floatType, float(self.value))
+                return IDLValue(self.location, type, float(self.value))
             else:
                 raise WebIDLError("Converting value %s to %s will lose precision." %
                                   (self.value, type), [location])
@@ -2939,7 +2938,7 @@ class IDLValue(IDLObject):
                  math.isnan(self.value))):
                 raise WebIDLError("Trying to convert unrestricted value %s to non-unrestricted"
                                   % self.value, [location]);
-            return self
+            return IDLValue(self.location, type, self.value)
         elif self.type.isString() and type.isUSVString():
             # Allow USVStrings to use default value just like
             # DOMString.  No coercion is required in this case as Codegen.py
