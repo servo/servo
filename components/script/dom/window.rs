@@ -26,6 +26,7 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
+use dom::history::History;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
@@ -141,6 +142,7 @@ pub struct Window {
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
+    history: MutNullableHeap<JS<History>>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
@@ -441,7 +443,12 @@ impl WindowMethods for Window {
         self.browsing_context().active_document()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-location
+    // https://html.spec.whatwg.org/multipage/#dom-history
+    fn History(&self) -> Root<History> {
+        self.history.or_init(|| History::new(&self))
+    }
+
+    // https://html.spec.whatwg.org/#dom-location
     fn Location(&self) -> Root<Location> {
         self.Document().GetLocation().unwrap()
     }
@@ -1438,6 +1445,7 @@ impl Window {
             compositor: compositor,
             page: page,
             navigator: Default::default(),
+            history: Default::default(),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
