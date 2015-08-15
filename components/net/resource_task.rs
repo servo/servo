@@ -29,7 +29,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::mpsc::{channel, Sender};
 
 pub enum ProgressSender {
@@ -161,23 +160,26 @@ impl ResourceChannelManager {
     fn start(&mut self) {
         loop {
             match self.from_client.recv().unwrap() {
-              ControlMsg::Load(load_data, consumer) => {
-                  self.resource_manager.load(load_data, consumer)
-              }
-              ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
-                  self.resource_manager.set_cookies_for_url(request, cookie_list, source)
-              }
-              ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                  consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
-              }
-              ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
-                  if let Some(entry) = HSTSEntry::new(host, include_subdomains, Some(max_age)) {
-                      self.resource_manager.add_hsts_entry(entry)
-                  }
-              }
-              ControlMsg::Exit => {
-                  break
-              }
+                ControlMsg::Load(load_data, consumer) => {
+                    self.resource_manager.load(load_data, consumer)
+                }
+                ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
+                    self.resource_manager.set_cookies_for_url(request, cookie_list, source)
+                }
+                ControlMsg::GetCookiesForUrl(url, consumer, source) => {
+                    consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
+                }
+                ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
+                    if let Some(entry) = HSTSEntry::new(host, include_subdomains, Some(max_age)) {
+                        self.resource_manager.add_hsts_entry(entry)
+                    }
+                }
+                ControlMsg::GetHostMustBeSecured(host, consumer) => {
+                    consumer.send(self.resource_manager.is_host_sts(&*host)).unwrap();
+                }
+                ControlMsg::Exit => {
+                    break
+                }
             }
         }
     }
@@ -189,7 +191,7 @@ pub struct ResourceManager {
     resource_task: IpcSender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    hsts_list: Arc<Mutex<HSTSList>>
+    hsts_list: HSTSList
 }
 
 impl ResourceManager {
@@ -203,7 +205,7 @@ impl ResourceManager {
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
-            hsts_list: Arc::new(Mutex::new(hsts_list))
+            hsts_list: hsts_list
         }
     }
 }
@@ -221,11 +223,11 @@ impl ResourceManager {
     }
 
     pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
-        self.hsts_list.lock().unwrap().push(entry);
+        self.hsts_list.push(entry);
     }
 
     pub fn is_host_sts(&self, host: &str) -> bool {
-        self.hsts_list.lock().unwrap().is_host_secure(host)
+        self.hsts_list.is_host_secure(host)
     }
 
     fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
@@ -241,7 +243,7 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone(), self.hsts_list.clone()),
+                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
