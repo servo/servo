@@ -284,10 +284,12 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let mut cookie = Headers::new();
     cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
-        expected_headers: cookie,
-        body: <[_]>::to_vec(&*load_data.data.unwrap())
-    });
+    let _ = load::<AssertMustHaveHeadersRequest>(
+        load_data.clone(), resource_mgr, None,
+        &AssertMustHaveHeadersRequestFactory {
+            expected_headers: cookie,
+            body: <[_]>::to_vec(&*load_data.data.unwrap())
+        });
 }
 
 #[test]
@@ -300,18 +302,24 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
     let mut content_len_headers= Headers::new();
-    content_len_headers.set_raw("Content-Length".to_owned(), vec![<[_]>::to_vec(&*format!("{}", content.len()).as_bytes())]);
+    content_len_headers.set_raw(
+        "Content-Length".to_owned(), vec![<[_]>::to_vec(&*format!("{}", content.len()).as_bytes())]
+    );
 
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
-        expected_headers: content_len_headers,
-        body: <[_]>::to_vec(&*load_data.data.unwrap())
-    });
+    let _ = load::<AssertMustHaveHeadersRequest>(
+        load_data.clone(), resource_mgr, None,
+        &AssertMustHaveHeadersRequestFactory {
+            expected_headers: content_len_headers,
+            body: <[_]>::to_vec(&*load_data.data.unwrap())
+        });
 }
 
 #[test]
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let mut accept_headers = Headers::new();
-    accept_headers.set_raw("Accept".to_owned(), vec![b"text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8".to_vec()]);
+    accept_headers.set_raw(
+        "Accept".to_owned(), vec![b"text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8".to_vec()]
+    );
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let resource_mgr = new_resource_task(None, None);
